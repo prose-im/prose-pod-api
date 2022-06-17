@@ -4,6 +4,8 @@
 
 **Prose Pod API server. REST API used for administration and management.**
 
+_Tested at Rust version: `rustc 1.60.0 (7737e0b5c 2022-04-04)`_
+
 ## License
 
 Licensing information can be found in the [LICENSE.md](./LICENSE.md) document.
