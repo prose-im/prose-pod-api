@@ -1,0 +1,31 @@
+[package]
+name = "prose-pod-api"
+version = "1.0.0"
+description = "Prose Pod API server."
+readme = "README.md"
+license = "MPL-2.0"
+edition = "2021"
+homepage = "https://github.com/prose-im/prose-pod-api"
+repository = "https://github.com/prose-im/prose-pod-api.git"
+publish = false
+authors = ["Valerian Saliou <valerian@valeriansaliou.name>"]
+
+[[bin]]
+name = "prose-pod-api"
+path = "src/main.rs"
+doc = false
+
+[dependencies]
+log = { version = "0.4", features = ["std"] }
+
+[profile.dev]
+opt-level = 0
+debug = true
+debug-assertions = true
+
+[profile.release]
+opt-level = "s"
+lto = true
+debug = false
+debug-assertions = false
+panic = "abort"

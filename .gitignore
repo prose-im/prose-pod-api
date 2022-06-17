@@ -1,0 +1,8 @@
+# Editor
+.nova
+
+# macOS
+.DS_Store
+
+# Rust
+target
