@@ -17,6 +17,7 @@ doc = false
 
 [dependencies]
 log = { version = "0.4", features = ["std"] }
+rocket = "0.5.0-rc.2"
 
 [profile.dev]
 opt-level = 0
