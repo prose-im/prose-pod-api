@@ -13,7 +13,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
-- ø
+- [Write tests with the Gherkin syntax](./2024-01-11-a-write-tests-in-gherkin.md) (2024-01-11)
 
 ## Superseded ADRs
 
