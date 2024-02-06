@@ -1,0 +1,30 @@
+[package]
+name = "service"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MPL-2.0"
+authors = [
+    "Rémi Bardon <remi@remibardon.name>",
+]
+
+[dependencies]
+entity = { path = "../entity" }
+
+[dependencies.sea-orm]
+version = "0.12.10"
+features = [
+    "runtime-tokio-rustls",
+    "sqlx-sqlite",
+    #"macros",
+]
+
+[dev-dependencies]
+tokio = "1.20.0"
+
+[features]
+mock = ["sea-orm/mock"]
+
+[[test]]
+name = "mock"
+required-features = ["mock"]

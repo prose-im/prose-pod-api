@@ -1,6 +1,6 @@
 [package]
 name = "prose-pod-api"
-version = "1.0.0"
+version = "0.1.0"
 description = "Prose Pod API server."
 readme = "README.md"
 license = "MPL-2.0"
@@ -8,16 +8,44 @@ edition = "2021"
 homepage = "https://github.com/prose-im/prose-pod-api"
 repository = "https://github.com/prose-im/prose-pod-api.git"
 publish = false
-authors = ["Valerian Saliou <valerian@valeriansaliou.name>"]
+authors = [
+    "Valerian Saliou <valerian@valeriansaliou.name>",
+    "Rémi Bardon <remi@remibardon.name>",
+]
+
+[workspace]
+members = [".", "service", "entity", "migration"]
+
+[dependencies]
+async-stream = "0.3"
+async-trait = "0.1"
+entity = { path = "./entity" }
+futures = "0.3"
+futures-util = { version = "0.3" }
+log = { version = "0.4", features = ["std"] }
+migration = { path = "./migration" }
+rocket = { version = "0.5.0-rc.4", features = ["json"] }
+sea-orm-rocket = "0.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+service = { path = "./service" }
+tokio = "1.29"
+# TODO: Add feature flag to disable `utoipa`
+utoipa = { version = "4", features = ["rocket_extras"] }
+utoipa-swagger-ui = { version = "5", features = ["rocket"] }
+utoipauto = "0.1"
+
+[dev-dependencies]
+cucumber = "0.20"
 
 [[bin]]
 name = "prose-pod-api"
 path = "src/main.rs"
 doc = false
 
-[dependencies]
-log = { version = "0.4", features = ["std"] }
-rocket = "0.5.0-rc.2"
+[lib]
+name = "prose_pod_api"
+path = "src/lib.rs"
 
 [profile.dev]
 opt-level = 0
@@ -30,3 +58,7 @@ lto = true
 debug = false
 debug-assertions = false
 panic = "abort"
+
+[[test]]
+name = "cucumber"
+harness = false
