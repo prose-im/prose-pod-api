@@ -13,6 +13,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
+- [Describe Prose Pod API using the OpenAPI Specification](./2023-12-18-a-describe-with-openapi.md) (2023-12-18)
 - [Write tests with the Gherkin syntax](./2024-01-11-a-write-tests-in-gherkin.md) (2024-01-11)
 
 ## Superseded ADRs
