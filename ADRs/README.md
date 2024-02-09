@@ -13,7 +13,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
-- ø
+- [Describe Prose Pod API using the OpenAPI Specification](./2023-12-18-a-describe-with-openapi.md) (2023-12-18)
 
 ## Superseded ADRs
 
