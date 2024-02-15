@@ -70,10 +70,7 @@ pub type InitResponse = settings::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
 #[post("/v1/init", format = "json", data = "<req>")]
-pub(super) async fn init(
-    conn: Connection<'_, Db>,
-    req: Json<InitRequest>,
-) -> R<InitResponse> {
+pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<InitResponse> {
     let db = conn.into_inner();
 
     let settings = Query::settings(db).await.map_err(Error::DbErr)?;

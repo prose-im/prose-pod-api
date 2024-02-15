@@ -48,10 +48,7 @@ impl Error {
 
 #[rocket::async_trait]
 impl<'r> Responder<'r, 'static> for Error {
-    fn respond_to(
-        self,
-        _: &'r Request<'_>,
-    ) -> response::Result<'static> {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         // Log error
         info!("{self}");
 
@@ -69,10 +66,7 @@ impl<'r> Responder<'r, 'static> for Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-    ) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::UnknownDbErr => write!(f, "Unknown database error"),
             Error::DbErr(err) => write!(f, "Database error: {err}"),

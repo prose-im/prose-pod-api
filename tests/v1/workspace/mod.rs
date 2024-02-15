@@ -18,10 +18,7 @@ async fn get_workspace_name<'a>(client: &'a Client) -> LocalResponse<'a> {
     client.get("/v1/workspace/name").dispatch().await
 }
 
-async fn set_workspace_name<'a>(
-    client: &'a Client,
-    name: &str,
-) -> LocalResponse<'a> {
+async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
     client
         .put("/v1/workspace/name")
         .header(ContentType::JSON)
@@ -36,10 +33,7 @@ async fn set_workspace_name<'a>(
 }
 
 #[given(expr = "the workspace is named {string}")]
-async fn given_workspace_name(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn given_workspace_name(world: &mut TestWorld, name: String) {
     init_workspace(&world.client, &name).await;
 }
 
@@ -50,28 +44,19 @@ async fn when_user_gets_workspace_name(world: &mut TestWorld) {
 }
 
 #[when(expr = "a user sets the workspace name to {string}")]
-async fn when_set_workspace_name(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn when_set_workspace_name(world: &mut TestWorld, name: String) {
     let res = set_workspace_name(&world.client, &name).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "the returned workspace name should be {string}")]
-async fn then_response_workspace_name_is(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
     let res: GetWorkspaceNameResponse = world.result().body_into();
     assert_eq!(res.name, name);
 }
 
 #[then(expr = "the workspace should be named {string}")]
-async fn then_workspace_name_should_be(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) {
     let mut res: Response = get_workspace_name(&world.client).await.into();
     let res: GetWorkspaceNameResponse = res.body_into();
     assert_eq!(res.name, name);
@@ -87,10 +72,7 @@ async fn get_workspace_icon<'a>(client: &'a Client) -> LocalResponse<'a> {
         .await
 }
 
-async fn set_workspace_icon_url<'a>(
-    client: &'a Client,
-    url: &str,
-) -> LocalResponse<'a> {
+async fn set_workspace_icon_url<'a>(client: &'a Client, url: &str) -> LocalResponse<'a> {
     client
         .put("/v1/workspace/icon")
         .header(Accept::JSON)
@@ -101,10 +83,7 @@ async fn set_workspace_icon_url<'a>(
 }
 
 #[given(expr = "the workspace icon URL is {string}")]
-async fn given_workspace_icon_url(
-    world: &mut TestWorld,
-    url: String,
-) {
+async fn given_workspace_icon_url(world: &mut TestWorld, url: String) {
     init_workspace(&world.client, DEFAULT_WORKSPACE_NAME).await;
     set_workspace_icon_url(&world.client, &url).await;
 }
@@ -116,10 +95,7 @@ async fn when_user_gets_workspace_icon(world: &mut TestWorld) {
 }
 
 #[when(expr = "a user sets the workspace icon URL to {string}")]
-async fn when_set_workspace_icon_url(
-    world: &mut TestWorld,
-    url: String,
-) {
+async fn when_set_workspace_icon_url(world: &mut TestWorld, url: String) {
     let res = set_workspace_icon_url(&world.client, &url).await;
     world.result = Some(res.into());
 }
@@ -131,19 +107,13 @@ async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
 }
 
 #[then(expr = "the returned workspace icon URL should be {string}")]
-async fn then_response_workspace_icon_is(
-    world: &mut TestWorld,
-    url: String,
-) {
+async fn then_response_workspace_icon_is(world: &mut TestWorld, url: String) {
     let res: GetWorkspaceIconResponse = world.result().body_into();
     assert_eq!(res.url, Some(url));
 }
 
 #[then(expr = "the workspace icon URL should be {string}")]
-async fn then_workspace_icon_url_should_be(
-    world: &mut TestWorld,
-    url: String,
-) {
+async fn then_workspace_icon_url_should_be(world: &mut TestWorld, url: String) {
     let mut res: Response = get_workspace_icon(&world.client).await.into();
     let res: GetWorkspaceIconResponse = res.body_into();
     assert_eq!(res.url, Some(url));

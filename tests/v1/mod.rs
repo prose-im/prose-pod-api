@@ -64,10 +64,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
 
 // INIT
 
-async fn init_workspace<'a>(
-    client: &'a Client,
-    name: &str,
-) -> LocalResponse<'a> {
+async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
     client
         .post("/v1/init")
         .header(ContentType::JSON)
@@ -82,10 +79,7 @@ async fn init_workspace<'a>(
 }
 
 #[when(expr = "a user ititializes a workspace named {string}")]
-async fn when_workspace_init(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn when_workspace_init(world: &mut TestWorld, name: String) {
     let res = init_workspace(&world.client, &name).await;
     world.result = Some(res.into());
 }
