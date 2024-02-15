@@ -5,6 +5,7 @@
 
 use std::{fmt, io::Cursor};
 
+use log::info;
 use migration::sea_orm;
 use rocket::http::{ContentType, Status};
 use rocket::response::{self, Responder};
@@ -25,12 +26,22 @@ pub enum Error {
 
 impl Error {
     /// HTTP status to return for this error.
-    pub fn status(&self) -> Status {
+    pub fn http_status(&self) -> Status {
         match self {
             Error::UnknownDbErr => Status::InternalServerError,
             Error::DbErr(_) => Status::InternalServerError,
             Error::PodNotInitialized => Status::BadRequest,
             Error::PodAlreadyInitialized => Status::Conflict,
+        }
+    }
+
+    /// User-facing error code (a string for easier understanding).
+    pub fn code(&self) -> &str {
+        match self {
+            Error::UnknownDbErr => "database_error",
+            Error::DbErr(_) => "database_error",
+            Error::PodNotInitialized => "pod_not_initialized",
+            Error::PodAlreadyInitialized => "pod_already_initialized",
         }
     }
 }
@@ -41,19 +52,16 @@ impl<'r> Responder<'r, 'static> for Error {
         self,
         _: &'r Request<'_>,
     ) -> response::Result<'static> {
-        let message = self.to_string();
-        let status = self.status();
+        // Log error
+        info!("{self}");
+
+        // Construct response
         let body = json!({
-            "success": false,
-            "error": {
-                "code": status.code,
-                "reason": status.to_string()[4..],
-                "description": message,
-            },
+            "reason": self.code(),
         })
         .to_string();
         Response::build()
-            .status(status)
+            .status(self.http_status())
             .header(ContentType::JSON)
             .sized_body(body.len(), Cursor::new(body))
             .ok()
