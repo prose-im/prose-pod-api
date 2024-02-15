@@ -3,7 +3,7 @@
 - Date: **2023-12-18**
 - Author: **Rémi Bardon <[remi@remibardon.name](mailto:remi@remibardon.name)>**
 <!-- Proposed|Accepted|Rejected, with date and channel if applicable -->
-- Status: **Proposed**
+- Status: **Accepted** via [#4](https://github.com/prose-im/prose-pod-api/pull/4) (2024-02-09)
 <!-- "ø" or a nested unordered list linking to other ADRs and their date -->
 - Relates to:
   - [Describe Prose Pod API using the OpenAPI Specification](./2023-12-18-a-describe-with-openapi.md) (2023-12-18)
