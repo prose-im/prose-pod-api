@@ -6,7 +6,7 @@ Feature: Initialize a workspace
      Then the call should succeed
       And the response content type should be JSON
 
-  Scenario: Trying to initializing a workspace again
+  Scenario: Trying to initialize a workspace again
     Given workspace has been initialized
      When a user ititializes a workspace named "Prose"
      Then the user should receive 'Prose Pod already initialized'
