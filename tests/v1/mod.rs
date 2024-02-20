@@ -35,14 +35,15 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
         "Content type (body: {:#?})",
         res.body
     );
-    assert_eq!(res.body, Some(json!({
-        "success": false,
-        "error": {
-            "code": 400,
-            "reason": "Bad Request",
-            "description": "Prose Pod not initialized. Call `POST /v1/init` to initialize it.",
-        },
-    }).to_string()));
+    assert_eq!(
+        res.body,
+        Some(
+            json!({
+                "reason": "pod_not_initialized",
+            })
+            .to_string()
+        )
+    );
 }
 
 #[then("the user should receive 'Prose Pod already initialized'")]
@@ -54,12 +55,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "success": false,
-                "error": {
-                    "code": 409,
-                    "reason": "Conflict",
-                    "description": "Prose Pod already initialized.",
-                },
+                "reason": "pod_already_initialized",
             })
             .to_string()
         )
@@ -68,10 +64,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
 
 // INIT
 
-async fn init_workspace<'a>(
-    client: &'a Client,
-    name: &str,
-) -> LocalResponse<'a> {
+async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
     client
         .post("/v1/init")
         .header(ContentType::JSON)
@@ -86,10 +79,7 @@ async fn init_workspace<'a>(
 }
 
 #[when(expr = "a user ititializes a workspace named {string}")]
-async fn when_workspace_init(
-    world: &mut TestWorld,
-    name: String,
-) {
+async fn when_workspace_init(world: &mut TestWorld, name: String) {
     let res = init_workspace(&world.client, &name).await;
     world.result = Some(res.into());
 }
