@@ -14,6 +14,9 @@ use serde_json::json;
 
 #[derive(Debug)]
 pub enum Error {
+    /// Internal server error.
+    /// Use it only when a nearly-impossible code path is taken.
+    InternalServerError { reason: String },
     /// Unauthorized
     Unauthorized,
     /// Unknown database error.
@@ -30,6 +33,7 @@ impl Error {
     /// HTTP status to return for this error.
     pub fn http_status(&self) -> Status {
         match self {
+            Self::InternalServerError { .. } => Status::InternalServerError,
             Self::Unauthorized => Status::Unauthorized,
             Self::UnknownDbErr => Status::InternalServerError,
             Self::DbErr(_) => Status::InternalServerError,
@@ -41,6 +45,7 @@ impl Error {
     /// User-facing error code (a string for easier understanding).
     pub fn code(&self) -> &str {
         match self {
+            Self::InternalServerError { .. } => "internal_server_error",
             Self::Unauthorized => "unauthorized",
             Self::UnknownDbErr => "database_error",
             Self::DbErr(_) => "database_error",
@@ -85,13 +90,14 @@ impl<'r> Responder<'r, 'static> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InternalServerError { reason } => write!(f, "Internal server error: {reason}"),
             Self::Unauthorized => write!(f, "Unauthorized"),
             Self::UnknownDbErr => write!(f, "Unknown database error"),
             Self::DbErr(err) => write!(f, "Database error: {err}"),
             Self::PodNotInitialized => write!(
                 f,
                 "Prose Pod not initialized. Call `POST {}` to initialize it.",
-                uri!(super::init)
+                uri!(crate::v1::init)
             ),
             Self::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
         }

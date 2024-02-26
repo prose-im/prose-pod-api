@@ -71,9 +71,21 @@ impl MigrationTrait for Migration {
                             .string()
                             .null(),
                     )
-                    .col(ColumnDef::new(ServerConfig::WorkspaceName).string().not_null())
-                    .col(ColumnDef::new(ServerConfig::WorkspaceIconUrl).string().null())
-                    .col(ColumnDef::new(ServerConfig::WorkspaceVCardUrl).string().null())
+                    .col(
+                        ColumnDef::new(ServerConfig::WorkspaceName)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ServerConfig::WorkspaceIconUrl)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(ServerConfig::WorkspaceVCardUrl)
+                            .string()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(ServerConfig::WorkspaceAccentColor)
                             .string()

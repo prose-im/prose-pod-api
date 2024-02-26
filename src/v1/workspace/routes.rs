@@ -175,7 +175,9 @@ pub struct GetWorkspaceAccentColorResponse {
     ),
 )]
 #[get("/v1/workspace/accent-color")]
-pub(super) fn get_workspace_accent_color(server_config: ServerConfig) -> R<GetWorkspaceAccentColorResponse> {
+pub(super) fn get_workspace_accent_color(
+    server_config: ServerConfig,
+) -> R<GetWorkspaceAccentColorResponse> {
     let server_config = server_config.model?;
     let response = GetWorkspaceAccentColorResponse {
         color: server_config.workspace_accent_color,

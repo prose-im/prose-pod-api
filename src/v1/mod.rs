@@ -3,7 +3,6 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod error;
 mod members;
 pub mod routes;
 pub mod server;
@@ -21,7 +20,7 @@ use service::Query;
 
 use crate::pool::Db;
 
-use self::error::Error;
+use crate::error::{self, Error};
 
 pub(super) fn routes() -> Vec<Route> {
     vec![

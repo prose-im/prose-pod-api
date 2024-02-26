@@ -6,9 +6,10 @@
 #[macro_use]
 extern crate rocket;
 
-mod prosody_config;
-pub mod prosody_ctl;
+pub mod error;
+pub mod prosody;
 pub mod server_ctl;
+pub mod server_manager;
 pub mod v1;
 
 use migration::MigratorTrait;

@@ -3,18 +3,14 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::server_ctl::ServerCtl;
-use crate::v1::ServerConfig;
-use entity::server_config;
-use migration::sea_orm::{ActiveModelTrait as _, Set};
+use entity::server_config::Model as ServerConfig;
 use rocket::serde::json::Json;
-use rocket::{get, post, put, State};
-use sea_orm_rocket::Connection;
+use rocket::{get, post, put};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::pool::Db;
-use crate::v1::error::Error;
+use crate::error::Error;
+use crate::server_manager::ServerManager;
 
 pub type R<T> = Result<Json<T>, Error>;
 
@@ -38,12 +34,6 @@ pub struct SetMessageArchivingRequest {
     pub message_archive_enabled: bool,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
-#[cfg_attr(test, derive(Debug))]
-pub struct SetMessageArchivingResponse {
-    pub message_archive_enabled: bool,
-}
-
 /// Activate or deactivate message archiving.
 #[utoipa::path(
     tag = "Server / Features / Configuration",
@@ -51,32 +41,19 @@ pub struct SetMessageArchivingResponse {
         (status = 200, description = "Success", body = SetMessageArchivingRequest)
     )
 )]
-#[put("/v1/server/features/config/store-message-archive", format = "json", data = "<req>")]
+#[put(
+    "/v1/server/features/config/store-message-archive",
+    format = "json",
+    data = "<req>"
+)]
 pub(super) async fn store_message_archive(
-    conn: Connection<'_, Db>,
-    server_config: ServerConfig,
-    server_ctl: &State<ServerCtl>,
+    server_manager: ServerManager<'_>,
     req: Json<SetMessageArchivingRequest>,
-) -> R<SetMessageArchivingResponse> {
-    let db = conn.into_inner();
-    let server_config = server_config.model?;
-
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
     let new_state = req.message_archive_enabled.clone();
-
-    let mut active: server_config::ActiveModel = server_config.into();
-    active.message_archive_enabled = Set(new_state);
-    let server_config = active.update(db).await.map_err(Error::DbErr)?;
-
-    let response = SetMessageArchivingResponse {
-        message_archive_enabled: server_config.message_archive_enabled,
-    };
-
-    let mut server_ctl = server_ctl.implem.lock().unwrap();
-    if server_ctl.set_message_archiving(new_state) {
-        server_ctl.save_config();
-    }
-
-    Ok(response.into())
+    let new_config = server_manager.set_message_archiving(new_state).await?;
+    Ok(new_config.into())
 }
 
 /// Update message archive retention time.

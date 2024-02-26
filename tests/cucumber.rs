@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod v1;
 mod test_server_ctl;
+mod v1;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

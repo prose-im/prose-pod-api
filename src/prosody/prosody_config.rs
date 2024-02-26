@@ -6,8 +6,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 
-use crate::server_ctl::{DataRate, DurationDate, DurationTime, PossiblyInfinite};
-use ::model::JID;
+use model::server_config::{DataRate, DurationDate, DurationTime, PossiblyInfinite};
+use model::JID;
 
 /// Prosody configuration.
 ///
@@ -66,7 +66,10 @@ limits = {{{limits}}}",
         }
 
         if let Some(duration) = &self.archive_expires_after {
-            file.push_str(&format!("\n\narchive_expires_after = {}", format_duration_date_inf(duration)));
+            file.push_str(&format!(
+                "\n\narchive_expires_after = {}",
+                format_duration_date_inf(duration)
+            ));
         }
 
         file
@@ -210,7 +213,7 @@ impl Display for ConnectionType {
     }
 }
 
-impl Into<ConnectionType> for crate::server_ctl::ConnectionType {
+impl Into<ConnectionType> for model::server_config::ConnectionType {
     fn into(self) -> ConnectionType {
         match self {
             Self::ClientToServer => ConnectionType::ClientToServer,

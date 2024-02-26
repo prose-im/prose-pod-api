@@ -16,8 +16,8 @@ use utoipauto::utoipauto;
 
 use crate::pool::Db;
 
-use super::error::Error;
 use super::workspace::openapi_extensions;
+use crate::error::Error;
 use crate::v1::workspace::rocket_uri_macro_set_workspace_icon_file;
 
 pub type R<T> = Result<Json<T>, Error>;

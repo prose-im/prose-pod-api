@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod server_config;
+
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]

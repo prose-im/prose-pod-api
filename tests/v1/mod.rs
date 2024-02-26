@@ -105,7 +105,9 @@ impl ToggleState {
 }
 
 impl Into<bool> for ToggleState {
-    fn into(self) -> bool { self.as_bool() }
+    fn into(self) -> bool {
+        self.as_bool()
+    }
 }
 
 impl FromStr for ToggleState {

@@ -78,7 +78,9 @@ async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: 
 #[then(expr = "message archiving is {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db).await?.expect("Workspace not initialized");
+    let server_config = Query::server_config(db)
+        .await?
+        .expect("Workspace not initialized");
     assert_eq!(server_config.message_archive_enabled, state.as_bool());
     Ok(())
 }
