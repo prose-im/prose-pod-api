@@ -193,7 +193,7 @@ async fn when_workspace_init(world: &mut TestWorld, name: String) {
 }
 
 #[tokio::test]
-async fn test_init_settings() -> Result<(), Box<dyn Error>> {
+async fn test_init_workspace() -> Result<(), Box<dyn Error>> {
     let client = rocket_test_client().await;
 
     let workspace_name = DEFAULT_WORKSPACE_NAME;

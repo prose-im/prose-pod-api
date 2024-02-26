@@ -3,4 +3,4 @@
 pub mod prelude;
 
 pub mod member;
-pub mod settings;
+pub mod server_config;

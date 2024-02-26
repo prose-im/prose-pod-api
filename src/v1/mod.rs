@@ -13,7 +13,7 @@ use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 pub use routes::*;
 
-use entity::settings;
+use entity::server_config;
 use rocket::Route;
 use rocket::{routes, Request};
 use sea_orm_rocket::Connection;
@@ -33,10 +33,10 @@ pub(super) fn routes() -> Vec<Route> {
     .concat()
 }
 
-// TODO: Make it so we can call `settings.field` directly
-// instead of `settings.model.field`.
+// TODO: Make it so we can call `server_config.field` directly
+// instead of `server_config.model.field`.
 #[repr(transparent)]
-pub struct Settings {
+pub struct ServerConfig {
     // NOTE: We have to wrap model in a `Result` instead of sending `Outcome::Error`
     //   because when sending `Outcome::Error((Status::BadRequest, Error::PodNotInitialized))`
     //   [Rocket's built-in catcher] doesn't use `impl Responder for Error` but instead
@@ -47,11 +47,11 @@ pub struct Settings {
     //
     //   [Rocket's built-in catcher]: https://rocket.rs/v0.5/guide/requests/#built-in-catcher
     //   [error catcher]: https://rocket.rs/v0.5/guide/requests/#error-catchers
-    pub model: Result<settings::Model, error::Error>,
+    pub model: Result<server_config::Model, error::Error>,
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Settings {
+impl<'r> FromRequest<'r> for ServerConfig {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -69,8 +69,8 @@ impl<'r> FromRequest<'r> for Settings {
         };
 
         Outcome::Success(Self {
-            model: match Query::settings(db).await {
-                Ok(Some(settings)) => Ok(settings),
+            model: match Query::server_config(db).await {
+                Ok(Some(server_config)) => Ok(server_config),
                 Ok(None) => Err(Error::PodNotInitialized),
                 Err(err) => Err(Error::DbErr(err)),
             },

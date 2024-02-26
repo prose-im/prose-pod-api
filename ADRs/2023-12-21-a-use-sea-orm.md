@@ -17,7 +17,7 @@
 This section describes the forces at play, including technological, political, social, and project local. These forces are probably in tension, and should be called out as such. The language in this section is value-neutral. It is simply describing facts.
 -->
 
-Prose Pod API uses a SQLite database to store data, for example the server settings.
+Prose Pod API uses a SQLite database to store data, for example the server configuration.
 To avoid SQL mistakes and simplify development, it had been decided to use an [ORM].
 
 To avoid regressions, catch errors sooner and because it's generally a good pratice,

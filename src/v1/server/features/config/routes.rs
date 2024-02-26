@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use crate::server_ctl::ServerCtl;
-use crate::v1::Settings;
-use entity::settings;
+use crate::v1::ServerConfig;
+use entity::server_config;
 use migration::sea_orm::{ActiveModelTrait as _, Set};
 use rocket::serde::json::Json;
 use rocket::{get, post, put, State};
@@ -54,21 +54,21 @@ pub struct SetMessageArchivingResponse {
 #[put("/v1/server/features/config/store-message-archive", format = "json", data = "<req>")]
 pub(super) async fn store_message_archive(
     conn: Connection<'_, Db>,
-    settings: Settings,
+    server_config: ServerConfig,
     server_ctl: &State<ServerCtl>,
     req: Json<SetMessageArchivingRequest>,
 ) -> R<SetMessageArchivingResponse> {
     let db = conn.into_inner();
-    let settings = settings.model?;
+    let server_config = server_config.model?;
 
     let new_state = req.message_archive_enabled.clone();
 
-    let mut active: settings::ActiveModel = settings.into();
+    let mut active: server_config::ActiveModel = server_config.into();
     active.message_archive_enabled = Set(new_state);
-    let settings = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await.map_err(Error::DbErr)?;
 
     let response = SetMessageArchivingResponse {
-        message_archive_enabled: settings.message_archive_enabled,
+        message_archive_enabled: server_config.message_archive_enabled,
     };
 
     let mut server_ctl = server_ctl.implem.lock().unwrap();

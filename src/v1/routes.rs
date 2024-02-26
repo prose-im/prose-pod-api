@@ -3,7 +3,7 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::settings;
+use entity::server_config;
 use migration::sea_orm::{Set, TryIntoModel};
 use rocket::serde::json::Json;
 use sea_orm_rocket::Connection;
@@ -50,29 +50,29 @@ pub struct InitRequest {
     pub workspace_name: String,
 }
 
-pub type InitResponse = settings::Model;
+pub type InitResponse = server_config::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
 #[post("/v1/init", format = "json", data = "<req>")]
 pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<InitResponse> {
     let db = conn.into_inner();
 
-    let settings = Query::settings(db).await.map_err(Error::DbErr)?;
-    let None = settings else {
+    let server_config = Query::server_config(db).await.map_err(Error::DbErr)?;
+    let None = server_config else {
         return Err(Error::PodAlreadyInitialized);
     };
 
     let req = req.into_inner();
-    let form = settings::ActiveModel {
+    let form = server_config::ActiveModel {
         workspace_name: Set(req.workspace_name),
         ..Default::default()
     };
-    let settings = Mutation::create_settings(db, form)
+    let server_config = Mutation::create_server_config(db, form)
         .await
-        .expect("Could not create settings")
+        .expect("Could not create server config")
         .try_into_model()
         .expect("Could not transform active model into model");
-    Ok(Json(settings))
+    Ok(Json(server_config))
 }
 
 #[derive(Serialize, Deserialize)]

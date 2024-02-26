@@ -39,10 +39,10 @@ async fn set_message_archiving<'a>(
 #[given(expr = "message archiving is {toggle}")]
 async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let settings = Query::settings(db)
+    let server_config = Query::server_config(db)
         .await?
         .expect("Workspace should be initialized first");
-    let mut model = settings.into_active_model();
+    let mut model = server_config.into_active_model();
     model.message_archive_enabled = Set(state.into());
     model.update(db).await?;
     Ok(())
@@ -54,10 +54,10 @@ async fn given_message_archive_retention(
     duration: Duration,
 ) -> Result<(), DbErr> {
     let db = world.db();
-    let settings = Query::settings(db)
+    let server_config = Query::server_config(db)
         .await?
         .expect("Workspace should be initialized first");
-    let mut model = settings.into_active_model();
+    let mut model = server_config.into_active_model();
     model.message_archive_retention = Set(duration.to_string());
     model.update(db).await?;
     Ok(())
@@ -78,7 +78,7 @@ async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: 
 #[then(expr = "message archiving is {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let settings = Query::settings(db).await?.expect("Workspace not initialized");
-    assert_eq!(settings.message_archive_enabled, state.as_bool());
+    let server_config = Query::server_config(db).await?.expect("Workspace not initialized");
+    assert_eq!(server_config.message_archive_enabled, state.as_bool());
     Ok(())
 }

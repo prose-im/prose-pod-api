@@ -33,84 +33,84 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Settings::Table)
+                    .table(ServerConfig::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(Settings::Id)
+                        ColumnDef::new(ServerConfig::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(Settings::MessageArchiveEnabled)
+                        ColumnDef::new(ServerConfig::MessageArchiveEnabled)
                             .boolean()
                             .not_null()
                             .default(DEFAULT_MESSAGE_ARCHIVE_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(Settings::MessageArchiveRetention)
+                        ColumnDef::new(ServerConfig::MessageArchiveRetention)
                             .string()
                             .not_null()
                             .default(DEFAULT_MESSAGE_ARCHIVE_RETENTION),
                     )
                     .col(
-                        ColumnDef::new(Settings::FileUploadAllowed)
+                        ColumnDef::new(ServerConfig::FileUploadAllowed)
                             .boolean()
                             .not_null()
                             .default(DEFAULT_FILE_UPLOAD_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(Settings::FileStorageEncryptionScheme)
+                        ColumnDef::new(ServerConfig::FileStorageEncryptionScheme)
                             .string()
                             .not_null()
                             .default(DEFAULT_FILE_ENCRYPTION_SCHEME),
                     )
                     .col(
-                        ColumnDef::new(Settings::FileStorageRetention)
+                        ColumnDef::new(ServerConfig::FileStorageRetention)
                             .string()
                             .null(),
                     )
-                    .col(ColumnDef::new(Settings::WorkspaceName).string().not_null())
-                    .col(ColumnDef::new(Settings::WorkspaceIconUrl).string().null())
-                    .col(ColumnDef::new(Settings::WorkspaceVCardUrl).string().null())
+                    .col(ColumnDef::new(ServerConfig::WorkspaceName).string().not_null())
+                    .col(ColumnDef::new(ServerConfig::WorkspaceIconUrl).string().null())
+                    .col(ColumnDef::new(ServerConfig::WorkspaceVCardUrl).string().null())
                     .col(
-                        ColumnDef::new(Settings::WorkspaceAccentColor)
+                        ColumnDef::new(ServerConfig::WorkspaceAccentColor)
                             .string()
                             .null(),
                     )
                     .col(
-                        ColumnDef::new(Settings::MFARequired)
+                        ColumnDef::new(ServerConfig::MFARequired)
                             .boolean()
                             .not_null()
                             .default(DEFAULT_MFA_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(Settings::MinimumTLSVersion)
+                        ColumnDef::new(ServerConfig::MinimumTLSVersion)
                             .string()
                             .not_null()
                             .default(DEFAULT_MINIMUM_TLS_VERSION),
                     )
                     .col(
-                        ColumnDef::new(Settings::MinimumCipherSuite)
+                        ColumnDef::new(ServerConfig::MinimumCipherSuite)
                             .string()
                             .not_null()
                             .default(DEFAULT_MINIMUM_CIPHER_SUITE),
                     )
                     .col(
-                        ColumnDef::new(Settings::FederationEnabled)
+                        ColumnDef::new(ServerConfig::FederationEnabled)
                             .boolean()
                             .not_null()
                             .default(DEFAULT_FEDERATION_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(Settings::SettingsBackupInterval)
+                        ColumnDef::new(ServerConfig::SettingsBackupInterval)
                             .string()
                             .not_null()
                             .default(DEFAULT_SETTINGS_BACKUP_INTERVAL),
                     )
                     .col(
-                        ColumnDef::new(Settings::UserDataBackupInterval)
+                        ColumnDef::new(ServerConfig::UserDataBackupInterval)
                             .string()
                             .not_null()
                             .default(DEFAULT_USER_DATA_BACKUP_INTERVAL),
@@ -122,13 +122,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Settings::Table).to_owned())
+            .drop_table(Table::drop().table(ServerConfig::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum Settings {
+enum ServerConfig {
     Table,
     Id,
     MessageArchiveEnabled,

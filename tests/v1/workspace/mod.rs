@@ -123,13 +123,13 @@ async fn then_workspace_icon_url_should_be(world: &mut TestWorld, url: String) {
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color_not_initialized() {
-//     test_settings_must_be_initialized(uri!(super::get_workspace_accent_color));
+//     test_workspace_must_be_initialized(uri!(super::get_workspace_accent_color));
 // }
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color() -> Result<(), Box<dyn Error>> {
 //     let client = rocket_test_client().await;
-//     init_settings(&client).await?;
+//     init_workspace(&client).await?;
 //     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
 
 //     assert_eq!(res.color, None);
@@ -140,7 +140,7 @@ async fn then_workspace_icon_url_should_be(world: &mut TestWorld, url: String) {
 // #[tokio::test]
 // async fn test_set_workspace_accent_color() -> Result<(), Box<dyn Error>> {
 //     let client = rocket_test_client().await;
-//     init_settings(&client).await?;
+//     init_workspace(&client).await?;
 
 //     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
 //     assert_eq!(res.color, None);

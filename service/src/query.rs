@@ -4,16 +4,16 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::prelude::*;
-use ::entity::settings;
+use ::entity::server_config;
 use ::model::JID;
 use sea_orm::*;
 
 pub struct Query;
 
 impl Query {
-    pub async fn settings(db: &DbConn) -> Result<Option<settings::Model>, DbErr> {
-        Settings::find()
-            .order_by_asc(settings::Column::Id)
+    pub async fn server_config(db: &DbConn) -> Result<Option<server_config::Model>, DbErr> {
+        ServerConfig::find()
+            .order_by_asc(server_config::Column::Id)
             .one(db)
             .await
     }
