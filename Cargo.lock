@@ -1890,6 +1890,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "model"
+version = "0.1.0"
+
+[[package]]
 name = "multer"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2372,6 +2376,7 @@ dependencies = [
  "futures-util",
  "log",
  "migration",
+ "model",
  "rocket",
  "sea-orm-rocket",
  "serde",
@@ -3100,6 +3105,7 @@ name = "service"
 version = "0.1.0"
 dependencies = [
  "entity",
+ "model",
  "sea-orm",
  "tokio",
 ]

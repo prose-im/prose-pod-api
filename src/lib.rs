@@ -6,9 +6,9 @@
 #[macro_use]
 extern crate rocket;
 
-mod model;
 mod prosody_config;
-mod server_ctl;
+pub mod prosody_ctl;
+pub mod server_ctl;
 pub mod v1;
 
 use migration::MigratorTrait;
@@ -17,7 +17,7 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database;
 use utoipa_swagger_ui::{Config, SwaggerUi, Url};
 
-mod pool;
+pub mod pool;
 use pool::Db;
 
 /// A custom `Rocket` with a default configuration.

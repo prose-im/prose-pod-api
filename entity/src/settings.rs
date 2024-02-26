@@ -3,14 +3,14 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "settings")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
     pub id: i32,
     pub message_archive_enabled: bool,
-    pub message_archive_retention: Option<String>,
+    pub message_archive_retention: String,
     pub file_upload_allowed: bool,
     pub file_storage_encryption_scheme: String,
     pub file_storage_retention: Option<String>,

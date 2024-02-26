@@ -3,9 +3,9 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use super::Settings;
+use crate::v1::Settings;
 use entity::settings;
-use migration::sea_orm::{ActiveModelTrait, Set};
+use migration::sea_orm::{ActiveModelTrait as _, Set};
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{get, put};

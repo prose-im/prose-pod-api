@@ -6,8 +6,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 
-use crate::model::JID;
-use crate::server_ctl::{DataRate, Duration};
+use crate::server_ctl::{DataRate, DurationDate, DurationTime, PossiblyInfinite};
+use ::model::JID;
 
 /// Prosody configuration.
 ///
@@ -23,6 +23,7 @@ pub struct ProsodyConfig {
     pub disabled_modules: HashSet<String>,
     pub limits: HashMap<ConnectionType, ConnectionLimits>,
     pub limits_resolution: Option<u32>,
+    pub archive_expires_after: Option<PossiblyInfinite<DurationDate>>,
 }
 
 impl Default for ProsodyConfig {
@@ -34,6 +35,7 @@ impl Default for ProsodyConfig {
             disabled_modules: Default::default(),
             limits: Default::default(),
             limits_resolution: Default::default(),
+            archive_expires_after: Default::default(),
         }
     }
 }
@@ -61,6 +63,10 @@ limits = {{{limits}}}",
 
         if let Some(limits_resolution) = self.limits_resolution {
             file.push_str(&format!("\nlimits_resolution = {limits_resolution}"));
+        }
+
+        if let Some(duration) = &self.archive_expires_after {
+            file.push_str(&format!("\n\narchive_expires_after = {}", format_duration_date_inf(duration)));
         }
 
         file
@@ -98,6 +104,24 @@ where
         .collect::<Vec<_>>()
         .join("\n");
     format!("{{\n{inner}\n}}")
+}
+
+/// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
+fn format_duration_date(duration: &DurationDate) -> String {
+    match duration {
+        DurationDate::Days(n) => format!("{n}d"),
+        DurationDate::Weeks(n) => format!("{n}w"),
+        DurationDate::Months(n) => format!("{n}m"),
+        DurationDate::Years(n) => format!("{n}y"),
+    }
+}
+
+/// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
+fn format_duration_date_inf(duration: &PossiblyInfinite<DurationDate>) -> String {
+    match duration {
+        PossiblyInfinite::Infinite => "never".to_string(),
+        PossiblyInfinite::Finite(duration) => format_duration_date(duration),
+    }
 }
 
 /// See <https://prosody.im/doc/logging>.
@@ -200,7 +224,7 @@ impl Into<ConnectionType> for crate::server_ctl::ConnectionType {
 #[derive(Debug, Default)]
 pub struct ConnectionLimits {
     pub rate: Option<DataRate>,
-    pub burst: Option<Duration>,
+    pub burst: Option<DurationTime>,
 }
 
 /// <https://prosody.im/doc/modules/mod_limits> states:

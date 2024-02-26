@@ -5,30 +5,27 @@
 
 pub mod error;
 mod members;
-mod server;
+pub mod routes;
+pub mod server;
 pub mod workspace;
 
+use rocket::http::Status;
+use rocket::request::{FromRequest, Outcome};
+pub use routes::*;
+
 use entity::settings;
-use migration::sea_orm::{Set, TryIntoModel};
-use rocket::routes;
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::{routes, Request};
 use sea_orm_rocket::Connection;
-use serde::{Deserialize, Serialize};
-use service::{Mutation, Query};
-use utoipa::openapi::PathItemType::Put;
-use utoipa::OpenApi;
-use utoipauto::utoipauto;
+use service::Query;
 
 use crate::pool::Db;
 
 use self::error::Error;
-use self::workspace::openapi_extensions;
-use crate::v1::workspace::rocket_uri_macro_set_workspace_icon_file;
 
 pub(super) fn routes() -> Vec<Route> {
     vec![
-        routes![openapi, init],
+        routes![openapi, init, login],
         members::routes(),
         server::routes(),
         workspace::routes(),
@@ -36,57 +33,65 @@ pub(super) fn routes() -> Vec<Route> {
     .concat()
 }
 
-pub type R<T> = Result<Json<T>, Error>;
-
-#[utoipauto(paths = "src/v1")]
-#[derive(OpenApi)]
-#[openapi()]
-pub struct ApiDoc;
-
-#[get("/v1/api-docs/openapi.json")]
-/// Construct the OpenAPI description file for this version of the API.
-pub(super) fn openapi() -> String {
-    let mut open_api = ApiDoc::openapi();
-
-    // Crate `utoipa` doesn't support request bodies with multiple content types,
-    // we need to override the definition manually.
-    open_api
-        .paths
-        .paths
-        .get_mut(&uri!(set_workspace_icon_file).to_string())
-        .unwrap()
-        .operations
-        .insert(Put, openapi_extensions::set_workspace_icon());
-
-    open_api.to_pretty_json().unwrap()
+// TODO: Make it so we can call `settings.field` directly
+// instead of `settings.model.field`.
+#[repr(transparent)]
+pub struct Settings {
+    // NOTE: We have to wrap model in a `Result` instead of sending `Outcome::Error`
+    //   because when sending `Outcome::Error((Status::BadRequest, Error::PodNotInitialized))`
+    //   [Rocket's built-in catcher] doesn't use `impl Responder for Error` but instead
+    //   transforms the response to HTML (no matter the `Accept` header, which is weird)
+    //   saying "The request could not be understood by the server due to malformed syntax.".
+    //   We can't build our own [error catcher] as it does not have access to the error
+    //   sent via `Outcome::Error`.
+    //
+    //   [Rocket's built-in catcher]: https://rocket.rs/v0.5/guide/requests/#built-in-catcher
+    //   [error catcher]: https://rocket.rs/v0.5/guide/requests/#error-catchers
+    pub model: Result<settings::Model, error::Error>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct InitRequest {
-    pub workspace_name: String,
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Settings {
+    type Error = error::Error;
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let db = req
+            .guard::<Connection<'_, Db>>()
+            .await
+            .map(|conn| conn.into_inner())
+            .map_error(|(status, err)| {
+                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
+            });
+        let db = match db {
+            Outcome::Success(db) => db,
+            Outcome::Error(e) => return Outcome::Error(e),
+            Outcome::Forward(e) => return Outcome::Forward(e),
+        };
+
+        Outcome::Success(Self {
+            model: match Query::settings(db).await {
+                Ok(Some(settings)) => Ok(settings),
+                Ok(None) => Err(Error::PodNotInitialized),
+                Err(err) => Err(Error::DbErr(err)),
+            },
+        })
+    }
 }
 
-pub type InitResponse = settings::Model;
+pub struct Admin {}
 
-/// Initialize the Prose Pod and return the default configuration.
-#[post("/v1/init", format = "json", data = "<req>")]
-pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<InitResponse> {
-    let db = conn.into_inner();
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Admin {
+    type Error = error::Error;
 
-    let settings = Query::settings(db).await.map_err(Error::DbErr)?;
-    let None = settings else {
-        return Err(Error::PodAlreadyInitialized);
-    };
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let Some(auth) = req.headers().get_one("Authorization") else {
+            return Outcome::Error((Status::Unauthorized, Error::Unauthorized));
+        };
 
-    let req = req.into_inner();
-    let form = settings::ActiveModel {
-        workspace_name: Set(req.workspace_name),
-        ..Default::default()
-    };
-    let settings = Mutation::create_settings(db, form)
-        .await
-        .expect("Could not create settings")
-        .try_into_model()
-        .expect("Could not transform active model into model");
-    Ok(Json(settings))
+        match auth {
+            "ok" => Outcome::Success(Self {}),
+            _ => Outcome::Error((Status::Unauthorized, Error::Unauthorized)),
+        }
+    }
 }

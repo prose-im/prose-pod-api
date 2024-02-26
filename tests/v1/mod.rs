@@ -3,16 +3,39 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod server;
 pub mod workspace;
 
+use std::str::FromStr;
+
 use crate::TestWorld;
-use cucumber::{given, then, when};
+use cucumber::codegen::Regex;
+use cucumber::{given, then, when, Parameter};
+use migration::sea_orm::{ActiveModelTrait, Set};
+use migration::DbErr;
 use prose_pod_api::v1::InitRequest;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
+
+#[given(regex = r"^(.+) is an admin$")]
+async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
+    let db = world.db();
+    let model = ::entity::member::ActiveModel {
+        id: Set(format!("{}@test.org", name.to_lowercase())),
+        ..Default::default()
+    };
+    let model = model.insert(db).await?;
+
+    let response = login(&world.client).await;
+    let token = response.into_string().await.expect("Could not log in");
+
+    world.members.insert(name, (model, token));
+
+    Ok(())
+}
 
 #[given("workspace has not been initialized")]
 fn given_workspace_not_initialized(_world: &mut TestWorld) {
@@ -60,6 +83,91 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
             .to_string()
         )
     );
+}
+
+// Custom Cucumber parameters
+// See <https://cucumber-rs.github.io/cucumber/current/writing/capturing.html#custom-parameters>
+
+#[derive(Debug, Parameter)]
+#[param(name = "toggle", regex = "on|off|enabled|disabled")]
+enum ToggleState {
+    Enabled,
+    Disabled,
+}
+
+impl ToggleState {
+    fn as_bool(&self) -> bool {
+        match self {
+            Self::Enabled => true,
+            Self::Disabled => false,
+        }
+    }
+}
+
+impl Into<bool> for ToggleState {
+    fn into(self) -> bool { self.as_bool() }
+}
+
+impl FromStr for ToggleState {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "on" | "enabled" => Self::Enabled,
+            "off" | "disabled" => Self::Disabled,
+            invalid => return Err(format!("Invalid `ToggleState`: {invalid}")),
+        })
+    }
+}
+
+#[derive(Debug, Parameter)]
+#[param(
+    name = "duration",
+    regex = r"\d+ (?:year|month|week|day)s?(?: \d+ (?:year|month|week|day)s?)*"
+)]
+struct Duration(String);
+
+impl FromStr for Duration {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let patterns = vec![
+            (r"(\d+) years?", 'Y'),
+            (r"(\d+) months?", 'M'),
+            (r"(\d+) weeks?", 'W'),
+            (r"(\d+) days?", 'D'),
+        ];
+
+        let mut value = "P".to_string();
+        for (pattern, designator) in patterns {
+            let re = Regex::new(pattern).unwrap();
+            if let Some(captures) = re.captures(s) {
+                value.push_str(captures.get(1).unwrap().as_str());
+                value.push(designator);
+            }
+        }
+
+        match value.as_str() {
+            "P" => Err(format!("Invalid `Duration`: {s}")),
+            _ => Ok(Self(value)),
+        }
+    }
+}
+
+impl ToString for Duration {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+
+// LOGIN
+
+async fn login<'a>(client: &'a Client) -> LocalResponse<'a> {
+    client
+        .post("/v1/login")
+        .header(ContentType::JSON)
+        .dispatch()
+        .await
 }
 
 // INIT

@@ -7,13 +7,15 @@ use std::{fmt, io::Cursor};
 
 use log::info;
 use migration::sea_orm;
-use rocket::http::{ContentType, Status};
+use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
 
 #[derive(Debug)]
 pub enum Error {
+    /// Unauthorized
+    Unauthorized,
     /// Unknown database error.
     UnknownDbErr,
     /// SeaORM database error.
@@ -28,20 +30,31 @@ impl Error {
     /// HTTP status to return for this error.
     pub fn http_status(&self) -> Status {
         match self {
-            Error::UnknownDbErr => Status::InternalServerError,
-            Error::DbErr(_) => Status::InternalServerError,
-            Error::PodNotInitialized => Status::BadRequest,
-            Error::PodAlreadyInitialized => Status::Conflict,
+            Self::Unauthorized => Status::Unauthorized,
+            Self::UnknownDbErr => Status::InternalServerError,
+            Self::DbErr(_) => Status::InternalServerError,
+            Self::PodNotInitialized => Status::BadRequest,
+            Self::PodAlreadyInitialized => Status::Conflict,
         }
     }
 
     /// User-facing error code (a string for easier understanding).
     pub fn code(&self) -> &str {
         match self {
-            Error::UnknownDbErr => "database_error",
-            Error::DbErr(_) => "database_error",
-            Error::PodNotInitialized => "pod_not_initialized",
-            Error::PodAlreadyInitialized => "pod_already_initialized",
+            Self::Unauthorized => "unauthorized",
+            Self::UnknownDbErr => "database_error",
+            Self::DbErr(_) => "database_error",
+            Self::PodNotInitialized => "pod_not_initialized",
+            Self::PodAlreadyInitialized => "pod_already_initialized",
+        }
+    }
+
+    pub fn add_headers(&self, response: &mut Response<'_>) {
+        match self {
+            Self::Unauthorized => {
+                response.set_header(Header::new("WWW-Authenticate", "value"));
+            }
+            _ => {}
         }
     }
 }
@@ -57,25 +70,30 @@ impl<'r> Responder<'r, 'static> for Error {
             "reason": self.code(),
         })
         .to_string();
-        Response::build()
+        let mut response = Response::build()
             .status(self.http_status())
             .header(ContentType::JSON)
             .sized_body(body.len(), Cursor::new(body))
-            .ok()
+            .ok()?;
+
+        self.add_headers(&mut response);
+
+        Ok(response)
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::UnknownDbErr => write!(f, "Unknown database error"),
-            Error::DbErr(err) => write!(f, "Database error: {err}"),
-            Error::PodNotInitialized => write!(
+            Self::Unauthorized => write!(f, "Unauthorized"),
+            Self::UnknownDbErr => write!(f, "Unknown database error"),
+            Self::DbErr(err) => write!(f, "Database error: {err}"),
+            Self::PodNotInitialized => write!(
                 f,
                 "Prose Pod not initialized. Call `POST {}` to initialize it.",
                 uri!(super::init)
             ),
-            Error::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
+            Self::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
         }
     }
 }

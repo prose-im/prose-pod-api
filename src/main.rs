@@ -7,8 +7,12 @@
 extern crate rocket;
 
 use prose_pod_api::custom_rocket;
+use prose_pod_api::prosody_ctl::ProsodyCtl;
+use prose_pod_api::server_ctl::ServerCtl;
+use std::sync::{Arc, Mutex};
 
 #[launch]
 fn rocket() -> _ {
     custom_rocket(rocket::build())
+        .manage(ServerCtl::new(Arc::new(Mutex::new(ProsodyCtl::new()))))
 }

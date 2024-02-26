@@ -3,33 +3,61 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::model::JID;
-use crate::prosody_config::ProsodyConfig;
+use std::sync::{Arc, Mutex};
+use ::model::JID;
+
+pub struct ServerCtl {
+    pub implem: Arc<Mutex<dyn ServerCtlImpl>>,
+}
+
+impl ServerCtl {
+    pub fn new(implem: Arc<Mutex<dyn ServerCtlImpl>>) -> Self {
+        Self { implem }
+    }
+}
 
 /// Abstraction over ProsodyCtl in case we want to switch to another server.
 /// Also facilitates testing.
-trait ServerCtl {
-    type Config;
-
-    fn config(&self) -> &Self::Config;
+pub trait ServerCtlImpl: Sync + Send {
+    fn save_config(&self);
 
     fn add_admin(&mut self, jid: JID);
     fn remove_admin(&mut self, jid: &JID);
 
-    fn add_enabled_module(&mut self, module_name: String);
-    fn remove_enabled_module(&mut self, module_name: &String);
+    /// Returns whether or not the value was changed.
+    fn add_enabled_module(&mut self, module_name: String) -> bool;
+    /// Returns whether or not the value was changed.
+    fn remove_enabled_module(&mut self, module_name: &String) -> bool;
 
-    fn add_disabled_module(&mut self, module_name: String);
-    fn remove_disabled_module(&mut self, module_name: &String);
+    /// Returns whether or not the value was changed.
+    fn add_disabled_module(&mut self, module_name: String) -> bool;
+    /// Returns whether or not the value was changed.
+    fn remove_disabled_module(&mut self, module_name: &String) -> bool;
 
     fn set_rate_limit(&mut self, conn_type: ConnectionType, value: DataRate);
-    fn set_burst_limit(&mut self, conn_type: ConnectionType, value: Duration);
+    fn set_burst_limit(&mut self, conn_type: ConnectionType, value: DurationTime);
     /// Sets the time that an over-limit session is suspended for
     /// (`limits_resolution` in Prosody).
     ///
     /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
     /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    fn set_timeout(&mut self, value: Duration);
+    fn set_timeout(&mut self, value: DurationTime);
+
+    /// Returns whether or not the value was changed.
+    fn enable_message_archiving(&mut self) -> bool;
+    /// Returns whether or not the value was changed.
+    fn disable_message_archiving(&mut self) -> bool;
+}
+
+impl dyn ServerCtlImpl {
+    /// Returns whether or not the value was changed.
+    pub fn set_message_archiving(&mut self, new_state: bool) -> bool {
+        if new_state {
+            self.enable_message_archiving()
+        } else {
+            self.disable_message_archiving()
+        } 
+    }
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
@@ -55,71 +83,39 @@ pub enum DataRate {
     MegaBytesPerSec(u32),
 }
 
+pub trait Duration {}
+
 #[derive(Debug)]
-pub enum Duration {
+pub enum DurationTime {
     Seconds(u32),
+    Minutes(u32),
+    Hours(u32),
 }
 
-impl Duration {
-    pub fn seconds(&self) -> &u32 {
+impl DurationTime {
+    pub fn seconds(&self) -> u32 {
         match self {
-            Duration::Seconds(n) => n,
+            Self::Seconds(n) => n.clone(),
+            Self::Minutes(n) => n * Self::Seconds(60).seconds(),
+            Self::Hours(n)   => n * Self::Minutes(60).seconds(),
         }
     }
 }
 
-struct ProsodyCtl {
-    config: ProsodyConfig,
+impl Duration for DurationTime {}
+
+#[derive(Debug)]
+pub enum DurationDate {
+    Days(u32),
+    Weeks(u32),
+    Months(u32),
+    Years(u32),
 }
 
-impl ServerCtl for ProsodyCtl {
-    type Config = ProsodyConfig;
+impl Duration for DurationDate {}
 
-    fn config(&self) -> &Self::Config {
-        &self.config
-    }
-
-    fn add_admin(&mut self, jid: JID) {
-        self.config.admins.insert(jid);
-    }
-    fn remove_admin(&mut self, jid: &JID) {
-        self.config.admins.remove(jid);
-    }
-
-    fn add_enabled_module(&mut self, module_name: String) {
-        self.config.enabled_modules.insert(module_name);
-    }
-    fn remove_enabled_module(&mut self, module_name: &String) {
-        self.config.enabled_modules.remove(module_name);
-    }
-
-    fn add_disabled_module(&mut self, module_name: String) {
-        self.config.disabled_modules.insert(module_name);
-    }
-    fn remove_disabled_module(&mut self, module_name: &String) {
-        self.config.disabled_modules.remove(module_name);
-    }
-
-    fn set_rate_limit(&mut self, conn_type: ConnectionType, value: DataRate) {
-        self.config
-            .limits
-            .entry(conn_type.into())
-            .or_insert_with(Default::default)
-            .rate = Some(value)
-    }
-    fn set_burst_limit(&mut self, conn_type: ConnectionType, value: Duration) {
-        self.config
-            .limits
-            .entry(conn_type.into())
-            .or_insert_with(Default::default)
-            .burst = Some(value)
-    }
-    /// Sets the time that an over-limit session is suspended for
-    /// (`limits_resolution` in Prosody).
-    ///
-    /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
-    /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    fn set_timeout(&mut self, value: Duration) {
-        self.config.limits_resolution = Some(value.seconds().clone());
-    }
+#[derive(Debug)]
+pub enum PossiblyInfinite<D: Duration> {
+    Infinite,
+    Finite(D),
 }

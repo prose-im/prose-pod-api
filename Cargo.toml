@@ -14,7 +14,7 @@ authors = [
 ]
 
 [workspace]
-members = [".", "service", "entity", "migration", "prosody-config"]
+members = [".", "service", "entity", "migration", "model", "prosody-config"]
 
 [dependencies]
 async-stream = "0.3"
@@ -24,6 +24,7 @@ futures = "0.3"
 futures-util = { version = "0.3" }
 log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
+model = { path = "./model" }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
 sea-orm-rocket = "0.5"
 serde = { version = "1.0", features = ["derive"] }
