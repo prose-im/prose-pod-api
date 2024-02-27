@@ -3,6 +3,7 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config::Model as ServerConfig;
 use rocket::serde::json::Json;
 use rocket::{get, post, put};
@@ -20,7 +21,7 @@ pub type R<T> = Result<Json<T>, Error>;
 #[utoipa::path(
     tag = "Server / Features / Configuration",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = String),
     )
 )]
 #[get("/v1/server/features/config")]
@@ -38,7 +39,7 @@ pub struct SetMessageArchivingRequest {
 #[utoipa::path(
     tag = "Server / Features / Configuration",
     responses(
-        (status = 200, description = "Success", body = SetMessageArchivingRequest)
+        (status = 200, description = "Success", body = ServerConfig),
     )
 )]
 #[put(
@@ -56,16 +57,33 @@ pub(super) async fn store_message_archive(
     Ok(new_config.into())
 }
 
-/// Update message archive retention time.
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SetMessageArchiveRetentionRequest {
+    pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
+}
+
+/// Update message archive retention.
 #[utoipa::path(
     tag = "Server / Features / Configuration",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = ServerConfig),
     )
 )]
-#[put("/v1/server/features/config/message-archive-retention")]
-pub(super) fn message_archive_retention() -> String {
-    todo!()
+#[put(
+    "/v1/server/features/config/message-archive-retention",
+    format = "json",
+    data = "<req>"
+)]
+pub(super) async fn message_archive_retention(
+    server_manager: ServerManager<'_>,
+    req: Json<SetMessageArchiveRetentionRequest>,
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
+    let new_state = req.message_archive_retention.clone();
+    let new_config = server_manager
+        .set_message_archive_retention(new_state)
+        .await?;
+    Ok(new_config.into())
 }
 
 /// Expunge the message archive.

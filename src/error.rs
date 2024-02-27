@@ -6,11 +6,11 @@
 use std::{fmt, io::Cursor};
 
 use log::info;
-use migration::sea_orm;
 use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
+use service::sea_orm;
 
 #[derive(Debug)]
 pub enum Error {

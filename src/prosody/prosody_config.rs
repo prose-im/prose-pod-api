@@ -6,8 +6,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 
-use model::server_config::{DataRate, DurationDate, DurationTime, PossiblyInfinite};
-use model::JID;
+use ::entity::model::server_config::*;
+use ::entity::model::*;
 
 /// Prosody configuration.
 ///
@@ -23,7 +23,7 @@ pub struct ProsodyConfig {
     pub disabled_modules: HashSet<String>,
     pub limits: HashMap<ConnectionType, ConnectionLimits>,
     pub limits_resolution: Option<u32>,
-    pub archive_expires_after: Option<PossiblyInfinite<DurationDate>>,
+    pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
 }
 
 impl Default for ProsodyConfig {
@@ -110,17 +110,17 @@ where
 }
 
 /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
-fn format_duration_date(duration: &DurationDate) -> String {
-    match duration {
-        DurationDate::Days(n) => format!("{n}d"),
-        DurationDate::Weeks(n) => format!("{n}w"),
-        DurationDate::Months(n) => format!("{n}m"),
-        DurationDate::Years(n) => format!("{n}y"),
+fn format_duration_date(duration: &Duration<DateLike>) -> String {
+    match duration.0 {
+        DateLike::Days(n) => format!("{n}d"),
+        DateLike::Weeks(n) => format!("{n}w"),
+        DateLike::Months(n) => format!("{n}m"),
+        DateLike::Years(n) => format!("{n}y"),
     }
 }
 
 /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
-fn format_duration_date_inf(duration: &PossiblyInfinite<DurationDate>) -> String {
+fn format_duration_date_inf(duration: &PossiblyInfinite<Duration<DateLike>>) -> String {
     match duration {
         PossiblyInfinite::Infinite => "never".to_string(),
         PossiblyInfinite::Finite(duration) => format_duration_date(duration),
@@ -213,7 +213,7 @@ impl Display for ConnectionType {
     }
 }
 
-impl Into<ConnectionType> for model::server_config::ConnectionType {
+impl Into<ConnectionType> for entity::model::server_config::ConnectionType {
     fn into(self) -> ConnectionType {
         match self {
             Self::ClientToServer => ConnectionType::ClientToServer,
@@ -227,7 +227,7 @@ impl Into<ConnectionType> for model::server_config::ConnectionType {
 #[derive(Debug, Default)]
 pub struct ConnectionLimits {
     pub rate: Option<DataRate>,
-    pub burst: Option<DurationTime>,
+    pub burst: Option<Duration<TimeLike>>,
 }
 
 /// <https://prosody.im/doc/modules/mod_limits> states:

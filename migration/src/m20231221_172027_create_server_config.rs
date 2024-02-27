@@ -1,4 +1,4 @@
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -35,96 +35,47 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ServerConfig::Table)
                     .if_not_exists()
+                    .col(pk_auto(ServerConfig::Id))
                     .col(
-                        ColumnDef::new(ServerConfig::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::MessageArchiveEnabled)
-                            .boolean()
-                            .not_null()
+                        boolean(ServerConfig::MessageArchiveEnabled)
                             .default(DEFAULT_MESSAGE_ARCHIVE_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::MessageArchiveRetention)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::MessageArchiveRetention)
                             .default(DEFAULT_MESSAGE_ARCHIVE_RETENTION),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::FileUploadAllowed)
-                            .boolean()
-                            .not_null()
+                        boolean(ServerConfig::FileUploadAllowed)
                             .default(DEFAULT_FILE_UPLOAD_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::FileStorageEncryptionScheme)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::FileStorageEncryptionScheme)
                             .default(DEFAULT_FILE_ENCRYPTION_SCHEME),
                     )
+                    .col(string_null(ServerConfig::FileStorageRetention))
+                    .col(string(ServerConfig::WorkspaceName))
+                    .col(string_null(ServerConfig::WorkspaceIconUrl))
+                    .col(string_null(ServerConfig::WorkspaceVCardUrl))
+                    .col(string_null(ServerConfig::WorkspaceAccentColor))
+                    .col(boolean(ServerConfig::MFARequired).default(DEFAULT_MFA_ENABLED))
                     .col(
-                        ColumnDef::new(ServerConfig::FileStorageRetention)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::WorkspaceName)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::WorkspaceIconUrl)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::WorkspaceVCardUrl)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::WorkspaceAccentColor)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::MFARequired)
-                            .boolean()
-                            .not_null()
-                            .default(DEFAULT_MFA_ENABLED),
-                    )
-                    .col(
-                        ColumnDef::new(ServerConfig::MinimumTLSVersion)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::MinimumTLSVersion)
                             .default(DEFAULT_MINIMUM_TLS_VERSION),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::MinimumCipherSuite)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::MinimumCipherSuite)
                             .default(DEFAULT_MINIMUM_CIPHER_SUITE),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::FederationEnabled)
-                            .boolean()
-                            .not_null()
+                        boolean(ServerConfig::FederationEnabled)
                             .default(DEFAULT_FEDERATION_ENABLED),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::SettingsBackupInterval)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::SettingsBackupInterval)
                             .default(DEFAULT_SETTINGS_BACKUP_INTERVAL),
                     )
                     .col(
-                        ColumnDef::new(ServerConfig::UserDataBackupInterval)
-                            .string()
-                            .not_null()
+                        string(ServerConfig::UserDataBackupInterval)
                             .default(DEFAULT_USER_DATA_BACKUP_INTERVAL),
                     )
                     .to_owned(),

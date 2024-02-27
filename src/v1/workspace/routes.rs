@@ -5,12 +5,12 @@
 
 use crate::v1::ServerConfig;
 use entity::server_config;
-use migration::sea_orm::{ActiveModelTrait as _, Set};
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::sea_orm::{ActiveModelTrait as _, Set};
 use utoipa::ToSchema;
 
 use crate::pool::Db;

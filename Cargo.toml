@@ -14,7 +14,7 @@ authors = [
 ]
 
 [workspace]
-members = [".", "service", "entity", "migration", "model", "prosody-config"]
+members = [".", "service", "entity", "migration", "prosody-config"]
 
 [dependencies]
 async-stream = "0.3"
@@ -22,9 +22,9 @@ async-trait = "0.1"
 entity = { path = "./entity" }
 futures = "0.3"
 futures-util = { version = "0.3" }
+iso8601-duration = { version = "0.2", features = ["serde"] }
 log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
-model = { path = "./model" }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
 sea-orm-rocket = "0.5"
 serde = { version = "1.0", features = ["derive"] }
@@ -38,6 +38,7 @@ utoipauto = "0.1"
 
 [dev-dependencies]
 cucumber = "0.20"
+# cucumber = { version = "0.20", features = ["tracing"] }
 
 [[bin]]
 name = "prose-pod-api"

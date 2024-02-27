@@ -11,12 +11,13 @@ use std::str::FromStr;
 use crate::TestWorld;
 use cucumber::codegen::Regex;
 use cucumber::{given, then, when, Parameter};
-use migration::sea_orm::{ActiveModelTrait, Set};
-use migration::DbErr;
+use entity::model::{self, DateLike, PossiblyInfinite};
+use iso8601_duration::Duration as ISODuration;
 use prose_pod_api::v1::InitRequest;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::sea_orm::{ActiveModelTrait, DbErr, Set};
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
@@ -37,12 +38,12 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
     Ok(())
 }
 
-#[given("workspace has not been initialized")]
+#[given("the workspace has not been initialized")]
 fn given_workspace_not_initialized(_world: &mut TestWorld) {
     // Do nothing, as a new test client is always empty
 }
 
-#[given("workspace has been initialized")]
+#[given("the workspace has been initialized")]
 async fn given_workspace_initialized(world: &mut TestWorld) {
     let res = init_workspace(&world.client, DEFAULT_WORKSPACE_NAME).await;
     assert_eq!(res.status(), Status::Ok);
@@ -159,6 +160,18 @@ impl FromStr for Duration {
 impl ToString for Duration {
     fn to_string(&self) -> String {
         self.0.clone()
+    }
+}
+
+impl Into<model::Duration<DateLike>> for Duration {
+    fn into(self) -> model::Duration<DateLike> {
+        ISODuration::parse(&self.0).unwrap().try_into().unwrap()
+    }
+}
+
+impl Into<PossiblyInfinite<model::Duration<DateLike>>> for Duration {
+    fn into(self) -> PossiblyInfinite<model::Duration<DateLike>> {
+        PossiblyInfinite::Finite(self.into())
     }
 }
 

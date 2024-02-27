@@ -3,9 +3,9 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use ::entity::model::JID;
 use ::entity::prelude::*;
 use ::entity::server_config;
-use ::model::JID;
 use sea_orm::*;
 
 pub struct Query;

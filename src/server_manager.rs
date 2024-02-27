@@ -5,9 +5,9 @@
 
 use std::ops::Deref;
 
+use entity::model::server_config::{ConnectionType, DataRate};
+use entity::model::{DateLike, Duration, PossiblyInfinite, TimeLike, JID};
 use entity::server_config;
-use model::server_config::{ConnectionType, DataRate, DurationTime};
-use model::JID;
 use rocket::outcome::try_outcome;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
@@ -126,7 +126,7 @@ impl<'r> ServerManagerInner<'r> {
     pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
         todo!()
     }
-    pub fn set_burst_limit(&self, conn_type: ConnectionType, value: DurationTime) {
+    pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
         todo!()
     }
     /// Sets the time that an over-limit session is suspended for
@@ -134,7 +134,7 @@ impl<'r> ServerManagerInner<'r> {
     ///
     /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
     /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    pub fn set_timeout(&self, value: DurationTime) {
+    pub fn set_timeout(&self, value: Duration<TimeLike>) {
         todo!()
     }
 
@@ -144,6 +144,15 @@ impl<'r> ServerManagerInner<'r> {
     ) -> Result<server_config::Model, Error> {
         self.update(|active| {
             active.message_archive_enabled = Set(new_state);
+        })
+        .await
+    }
+    pub async fn set_message_archive_retention(
+        &self,
+        new_state: PossiblyInfinite<Duration<DateLike>>,
+    ) -> Result<server_config::Model, Error> {
+        self.update(|active| {
+            active.message_archive_retention = Set(new_state);
         })
         .await
     }

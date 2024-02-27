@@ -10,10 +10,9 @@ authors = [
 
 [dependencies]
 entity = { path = "../entity" }
-model = { path = "../model" }
 
 [dependencies.sea-orm]
-version = "0.12.10"
+version = "1.0.0-rc.1"
 features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",

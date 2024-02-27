@@ -1,7 +1,7 @@
 Feature: Message archive
 
   Background:
-    Given workspace has been initialized
+    Given the workspace has been initialized
 
   Rule: Message archiving can be turned on and off
 
@@ -17,24 +17,24 @@ Feature: Message archive
       | off           | on        |
       | on            | off       |
 
-  Rule: Message archive retention time can be configured
+  Rule: Message archive retention can be configured
 
-    Scenario: An admin changes message archive retention time
-      Given message archive retention time is set to 2 years
+    Scenario: An admin changes message archive retention
+      Given the message archive retention is set to 2 years
         And Valerian is an admin
-       When Valerian sets the message archive retention time to 1 year
-       Then message archive retention time is set to 1 year
+       When Valerian sets the message archive retention to 1 year
+       Then the message archive retention is set to 1 year
         And the server is reconfigured
 
   Rule: The Messaging configuration can be reset to its default value
 
     Scenario: An admin resets the Messaging configuration to its default value
       Given message archiving is off
-        And message archive retention time is set to 1 year
+        And the message archive retention is set to 1 year
         And Valerian is an admin
        When Valerian resets the Messaging configuration to its default value
        Then message archiving is on
-        And message archive retention time is set to 2 years
+        And the message archive retention is set to 2 years
         And the server is reconfigured
 
   Rule: Turning on/off message archiving is idempotent
@@ -54,10 +54,10 @@ Feature: Message archive
   Rule: Changing message archive retention is idempotent
 
     Scenario Outline: Changing to the same value twice
-      Given message archive retention time is set to <initial_state>
+      Given the message archive retention is set to <initial_state>
         And Valerian is an admin
-       When Valerian turns message archiving <initial_state>
-       Then message archive retention time is set to <initial_state>
+       When Valerian sets the message archive retention to <initial_state>
+       Then the message archive retention is set to <initial_state>
         And the server is not reconfigured
 
     Examples:
@@ -77,4 +77,4 @@ Feature: Message archive
 
     Examples:
       | action |
-      | Valerian sets the message archive retention time to 1 year |
+      | Valerian sets the message archive retention to 1 year |

@@ -30,6 +30,13 @@ async fn main() {
     // Run tests and ignore undefined steps
     TestWorld::run("tests/features").await;
 
+    // Run tests and ignore undefined steps, but show logs
+    // NOTE: Needs the "tracing" feature enabled for `cucumber`
+    // TestWorld::cucumber()
+    //     .init_tracing()
+    //     .run("tests/features")
+    //     .await;
+
     // Run and fail on undefined steps
     // TestWorld::cucumber()
     //     .fail_on_skipped()

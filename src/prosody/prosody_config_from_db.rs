@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use entity::model::{Duration, PossiblyInfinite};
 use entity::server_config::Model as ServerConfig;
 
 use super::ProsodyConfig;
@@ -12,9 +13,7 @@ fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfig {
 
     if model.message_archive_enabled {
         config.enabled_modules.insert("mam".to_string());
-        //DurationDate::from(model.message_archive_retention)
-        //model.message_archive_retention
-        //config.archive_expires_after
+        config.archive_expires_after = Some(model.message_archive_retention);
     }
 
     config

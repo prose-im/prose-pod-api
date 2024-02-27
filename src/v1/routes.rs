@@ -4,10 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::server_config;
-use migration::sea_orm::{Set, TryIntoModel};
 use rocket::serde::json::Json;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::sea_orm::{Set, TryIntoModel};
 use service::{Mutation, Query};
 use std::path::PathBuf;
 use utoipa::openapi::PathItemType::Put;
@@ -69,9 +69,11 @@ pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<
     };
     let server_config = Mutation::create_server_config(db, form)
         .await
-        .expect("Could not create server config")
+        // TODO: Log as "Could not create server config"
+        .map_err(Error::DbErr)?
         .try_into_model()
-        .expect("Could not transform active model into model");
+        // TODO: Log as "Could not transform active model into model"
+        .map_err(Error::DbErr)?;
     Ok(Json(server_config))
 }
 
