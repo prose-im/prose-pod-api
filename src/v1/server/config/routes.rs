@@ -11,8 +11,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::error::Error;
-use crate::server_manager::ServerManager;
-use crate::v1::ServerConfig as ServerConfigGuard;
+use crate::guards::{ServerConfig as ServerConfigGuard, ServerManager};
 
 pub type R<T> = Result<Json<T>, Error>;
 

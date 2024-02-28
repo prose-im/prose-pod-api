@@ -3,7 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod members;
 pub mod server_config;
+
+pub use members::*;
+pub use server_config::*;
 
 use iso8601_duration::Duration as ISODuration;
 use sea_orm::entity::prelude::*;
@@ -22,9 +26,49 @@ pub struct JID {
     pub domain: String,
 }
 
+impl JID {
+    pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Self {
+        Self {
+            node: node.to_string(),
+            domain: domain.to_string(),
+        }
+    }
+}
+
 impl Display for JID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}@{}", self.node, self.domain)
+    }
+}
+
+impl TryFrom<String> for JID {
+    type Error = &'static str;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.split_once("@") {
+            Some((node, domain)) => Ok(Self::new(node, domain)),
+            None => Err("The JID does not contain a '@'"),
+        }
+    }
+}
+
+impl Serialize for JID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_string().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for JID {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .try_into()
+            .map_err(|e| de::Error::custom(format!("{:?}", e)))
     }
 }
 

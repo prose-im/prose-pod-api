@@ -3,8 +3,13 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::collections::BTreeMap;
+
+use entity::model::JID;
 use entity::server_config;
+use jwt::SignWithKey as _;
 use rocket::serde::json::Json;
+use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{Set, TryIntoModel};
@@ -13,7 +18,7 @@ use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
 
-use crate::pool::Db;
+use crate::guards::{Db, JWTKey, JWT_JID_KEY};
 
 use super::workspace::openapi_extensions;
 use crate::error::Error;
@@ -78,7 +83,7 @@ pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginRequest {
-    pub jid: String,
+    pub jid: JID,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -88,20 +93,28 @@ pub struct LoginResponse {
 
 /// Log user in and return an authentication token.
 #[post("/v1/login", format = "json", data = "<req>")]
-pub(super) async fn login(
+pub(super) fn login(
     // conn: Connection<'_, Db>,
+    jwt_key: &State<JWTKey>,
     req: Json<LoginRequest>,
 ) -> R<LoginResponse> {
+    // FIXME: Add password authentication, this is unsecure!
+
+    let jwt_key = jwt_key.as_hmac_sha_256()?;
+    let jid = &req.jid;
+
+    let mut claims = BTreeMap::new();
+    claims.insert(JWT_JID_KEY, jid.to_string());
+    let token_str = claims
+        .sign_with_key(&jwt_key)
+        .map_err(|e| Error::InternalServerError {
+            reason: format!("Could not sign JWT claims: {e}"),
+        })?;
+
     let response = LoginResponse {
-        token: "ok".to_string(),
+        token: token_str.to_string(),
     }
     .into();
 
     Ok(response)
 }
-
-// TODO: Use or delete the following comment
-// #[post("/v1/<path..>")]
-// pub(super) fn admin_only_guard(path: PathBuf) {
-//     debug!("Admin check");
-// }

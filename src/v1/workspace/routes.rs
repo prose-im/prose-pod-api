@@ -3,7 +3,6 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::v1::ServerConfig;
 use entity::server_config;
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
@@ -13,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use service::sea_orm::{ActiveModelTrait as _, Set};
 use utoipa::ToSchema;
 
-use crate::pool::Db;
-use crate::v1::error::Error;
+use crate::error::Error;
+use crate::guards::Db;
+use crate::guards::ServerConfig;
 
 pub type R<T> = Result<Json<T>, Error>;
 

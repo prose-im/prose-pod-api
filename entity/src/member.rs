@@ -3,13 +3,15 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::model::MemberRole;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "member")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     #[serde(skip_deserializing)]
     pub id: String,
-    pub is_admin: bool,
+    pub role: MemberRole,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

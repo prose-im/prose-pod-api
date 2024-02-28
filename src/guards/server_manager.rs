@@ -15,8 +15,9 @@ use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set};
 use service::Query;
 
 use crate::error::{self, Error};
-use crate::pool::Db;
 use crate::server_ctl::ServerCtl;
+
+use super::{Db, JID as JIDGuard};
 
 pub struct ServerManager<'r> {
     // NOTE: We have to wrap model in a `Result` instead of sending `Outcome::Error`
@@ -52,6 +53,14 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
             .map_error(|(status, err)| {
                 (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
             }));
+
+        let jid = try_outcome!(req.guard::<JIDGuard>().await);
+        match Query::is_admin(db, &jid).await {
+            Ok(true) => {}
+            Ok(false) => return Error::Unauthorized.into(),
+            Err(e) => return Error::DbErr(e).into(),
+        }
+
         let server_ctl =
             try_outcome!(req
                 .guard::<&State<ServerCtl>>()

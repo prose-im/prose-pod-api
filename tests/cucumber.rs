@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use cucumber::{then, World};
 use entity::member;
 use log::debug;
-use prose_pod_api::pool::Db;
+use prose_pod_api::guards::{Db, JWTKey};
 use prose_pod_api::server_ctl::ServerCtl;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
@@ -50,6 +50,7 @@ fn test_rocket(server_ctl: TestServerCtl) -> Rocket<Build> {
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
     prose_pod_api::custom_rocket(rocket::custom(figment))
+        .manage(JWTKey::custom("test_key"))
         .manage(ServerCtl::new(Arc::new(Mutex::new(server_ctl))))
 }
 

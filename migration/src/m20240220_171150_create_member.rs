@@ -1,7 +1,9 @@
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
+
+const DEFAULT_MEMBER_ROLE: &'static str = "MEMBER";
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
@@ -11,13 +13,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Member::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Member::Id).string().not_null().primary_key())
-                    .col(
-                        ColumnDef::new(Member::IsAdmin)
-                            .boolean()
-                            .default(false)
-                            .not_null(),
-                    )
+                    .col(string(Member::Id).primary_key())
+                    .col(string_len(Member::Role, 6).default(DEFAULT_MEMBER_ROLE))
                     .to_owned(),
             )
             .await
@@ -34,5 +31,5 @@ impl MigrationTrait for Migration {
 enum Member {
     Table,
     Id,
-    IsAdmin,
+    Role,
 }
