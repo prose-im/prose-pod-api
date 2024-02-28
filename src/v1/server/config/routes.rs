@@ -85,18 +85,6 @@ pub(super) async fn message_archive_retention(
     Ok(new_config.into())
 }
 
-/// Expunge the message archive.
-#[utoipa::path(
-    tag = "Server / Configuration",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[post("/v1/server/config/expunge-message-archive")]
-pub(super) fn expunge_message_archive() -> String {
-    todo!()
-}
-
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct SetFileUploadingRequest {
     pub file_upload_allowed: bool,
