@@ -14,6 +14,8 @@ use service::sea_orm;
 
 #[derive(Debug)]
 pub enum Error {
+    /// Feature not implemented yet.
+    NotImplemented { feature: String },
     /// Internal server error.
     /// Use it only when a nearly-impossible code path is taken.
     InternalServerError { reason: String },
@@ -33,6 +35,7 @@ impl Error {
     /// HTTP status to return for this error.
     pub fn http_status(&self) -> Status {
         match self {
+            Self::NotImplemented { .. } => Status::NotImplemented,
             Self::InternalServerError { .. } => Status::InternalServerError,
             Self::Unauthorized => Status::Unauthorized,
             Self::UnknownDbErr => Status::InternalServerError,
@@ -43,8 +46,9 @@ impl Error {
     }
 
     /// User-facing error code (a string for easier understanding).
-    pub fn code(&self) -> &str {
+    pub fn code(&self) -> &'static str {
         match self {
+            Self::NotImplemented { .. } => "not_implemented",
             Self::InternalServerError { .. } => "internal_server_error",
             Self::Unauthorized => "unauthorized",
             Self::UnknownDbErr => "database_error",
@@ -90,6 +94,7 @@ impl<'r> Responder<'r, 'static> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::NotImplemented { feature } => write!(f, "Feature not implemented: {feature}"),
             Self::InternalServerError { reason } => write!(f, "Internal server error: {reason}"),
             Self::Unauthorized => write!(f, "Unauthorized"),
             Self::UnknownDbErr => write!(f, "Unknown database error"),

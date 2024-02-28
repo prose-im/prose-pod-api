@@ -6,12 +6,13 @@
 use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config::Model as ServerConfig;
 use rocket::serde::json::Json;
-use rocket::{get, post, put};
+use rocket::{get, put};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::error::Error;
 use crate::server_manager::ServerManager;
+use crate::v1::ServerConfig as ServerConfigGuard;
 
 pub type R<T> = Result<Json<T>, Error>;
 
@@ -21,12 +22,16 @@ pub type R<T> = Result<Json<T>, Error>;
 #[utoipa::path(
     tag = "Server / Configuration",
     responses(
-        (status = 200, description = "Success", body = String),
+        (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/server/config")]
-pub(super) fn get_features_config() -> String {
-    todo!()
+pub(super) async fn get_features_config(server_config: ServerConfigGuard) -> R<ServerConfig> {
+    let model = server_config.model?;
+    Ok(model.into())
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -39,6 +44,9 @@ pub struct SetMessageArchivingRequest {
     tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put(
@@ -66,6 +74,9 @@ pub struct SetMessageArchiveRetentionRequest {
     tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put(
@@ -94,7 +105,10 @@ pub struct SetFileUploadingRequest {
 #[utoipa::path(
     tag = "Server / Configuration",
     responses(
-        (status = 200, description = "Success", body = ServerConfig)
+        (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/allow-file-upload", format = "json", data = "<req>")]
@@ -112,12 +126,17 @@ pub(super) async fn store_files(
 #[utoipa::path(
     tag = "Server / Configuration",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/file-storage-encryption-scheme")]
-pub(super) fn file_storage_encryption_scheme() -> String {
-    todo!()
+pub(super) fn file_storage_encryption_scheme() -> R<ServerConfig> {
+    Err(Error::NotImplemented {
+        feature: "File storage encryption scheme".to_string(),
+    })
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -129,7 +148,10 @@ pub struct SetFileRetentionRequest {
 #[utoipa::path(
     tag = "Server / Configuration",
     responses(
-        (status = 200, description = "Success", body = ServerConfig)
+        (status = 200, description = "Success", body = ServerConfig),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/file-retention", format = "json", data = "<req>")]
