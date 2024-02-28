@@ -18,7 +18,7 @@ pub struct Model {
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
     pub file_upload_allowed: bool,
     pub file_storage_encryption_scheme: String,
-    pub file_storage_retention: Option<String>,
+    pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
     pub workspace_name: String,
     pub workspace_icon_url: Option<String>,
     pub workspace_v_card_url: Option<String>,

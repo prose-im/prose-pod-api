@@ -30,7 +30,6 @@ pub(super) fn get_features_config() -> String {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-#[cfg_attr(test, derive(Debug))]
 pub struct SetMessageArchivingRequest {
     pub message_archive_enabled: bool,
 }
@@ -98,16 +97,31 @@ pub(super) fn expunge_message_archive() -> String {
     todo!()
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SetFileUploadingRequest {
+    pub file_upload_allowed: bool,
+}
+
 /// Activate or deactivate file upload and sharing.
 #[utoipa::path(
     tag = "Server / Features / Configuration",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = ServerConfig)
     )
 )]
-#[put("/v1/server/features/config/file-upload")]
-pub(super) fn file_upload() -> String {
-    todo!()
+#[put(
+    "/v1/server/features/config/allow-file-upload",
+    format = "json",
+    data = "<req>"
+)]
+pub(super) async fn store_files(
+    server_manager: ServerManager<'_>,
+    req: Json<SetFileUploadingRequest>,
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
+    let new_state = req.file_upload_allowed.clone();
+    let new_config = server_manager.set_file_uploading(new_state).await?;
+    Ok(new_config.into())
 }
 
 /// Change the file storage encryption scheme.
@@ -122,16 +136,31 @@ pub(super) fn file_storage_encryption_scheme() -> String {
     todo!()
 }
 
-/// Change the retention time of uploaded files.
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct SetFileRetentionRequest {
+    pub file_retention: PossiblyInfinite<Duration<DateLike>>,
+}
+
+/// Change the retention of uploaded files.
 #[utoipa::path(
     tag = "Server / Features / Configuration",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = ServerConfig)
     )
 )]
-#[put("/v1/server/features/config/file-retention")]
-pub(super) fn file_retention() -> String {
-    todo!()
+#[put(
+    "/v1/server/features/config/file-retention",
+    format = "json",
+    data = "<req>"
+)]
+pub(super) async fn file_retention(
+    server_manager: ServerManager<'_>,
+    req: Json<SetFileRetentionRequest>,
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
+    let new_state = req.file_retention.clone();
+    let new_config = server_manager.set_file_retention(new_state).await?;
+    Ok(new_config.into())
 }
 
 /// Expunge the file storage.

@@ -12,6 +12,8 @@ pub const DEFAULT_FILE_UPLOAD_ENABLED: bool = true;
 // TODO: Make `FileStorageEncryptionScheme` an enum
 /// Encrypt files in [AES 256](https://fr.wikipedia.org/wiki/Advanced_Encryption_Standard) by default.
 pub const DEFAULT_FILE_ENCRYPTION_SCHEME: &'static str = "AES-256";
+/// 1 year in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+pub const DEFAULT_FILE_RETENTION: &'static str = "P1Y";
 /// Enable MFA by default.
 pub const DEFAULT_MFA_ENABLED: bool = true;
 // TODO: Make `MinimumTLSVersion` an enum
@@ -52,7 +54,7 @@ impl MigrationTrait for Migration {
                         string(ServerConfig::FileStorageEncryptionScheme)
                             .default(DEFAULT_FILE_ENCRYPTION_SCHEME),
                     )
-                    .col(string_null(ServerConfig::FileStorageRetention))
+                    .col(string(ServerConfig::FileStorageRetention).default(DEFAULT_FILE_RETENTION))
                     .col(string(ServerConfig::WorkspaceName))
                     .col(string_null(ServerConfig::WorkspaceIconUrl))
                     .col(string_null(ServerConfig::WorkspaceVCardUrl))

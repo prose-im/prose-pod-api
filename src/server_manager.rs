@@ -156,4 +156,20 @@ impl<'r> ServerManagerInner<'r> {
         })
         .await
     }
+
+    pub async fn set_file_uploading(&self, new_state: bool) -> Result<server_config::Model, Error> {
+        self.update(|active| {
+            active.file_upload_allowed = Set(new_state);
+        })
+        .await
+    }
+    pub async fn set_file_retention(
+        &self,
+        new_state: PossiblyInfinite<Duration<DateLike>>,
+    ) -> Result<server_config::Model, Error> {
+        self.update(|active| {
+            active.file_storage_retention = Set(new_state);
+        })
+        .await
+    }
 }

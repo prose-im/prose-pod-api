@@ -17,9 +17,9 @@ Feature: Message archive
       | off           | on        |
       | on            | off       |
 
-  Rule: Message archive retention can be configured
+  Rule: The message archive retention can be configured
 
-    Scenario: An admin changes message archive retention
+    Scenario: An admin changes the message archive retention
       Given the message archive retention is set to 2 years
         And Valerian is an admin
        When Valerian sets the message archive retention to 1 year
@@ -51,7 +51,7 @@ Feature: Message archive
       | off           |
       | on            |
 
-  Rule: Changing message archive retention is idempotent
+  Rule: Changing the message archive retention is idempotent
 
     Scenario Outline: Changing to the same value twice
       Given the message archive retention is set to <initial_state>
@@ -77,4 +77,5 @@ Feature: Message archive
 
     Examples:
       | action |
+      | Valerian turns message archiving off |
       | Valerian sets the message archive retention to 1 year |
