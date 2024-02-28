@@ -5,8 +5,7 @@
 
 use std::ops::Deref;
 
-use entity::model::server_config::{ConnectionType, DataRate};
-use entity::model::{DateLike, Duration, PossiblyInfinite, TimeLike, JID};
+use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
 use rocket::outcome::try_outcome;
 use rocket::request::{FromRequest, Outcome};
@@ -102,41 +101,29 @@ impl<'r> ServerManagerInner<'r> {
 }
 
 impl<'r> ServerManagerInner<'r> {
-    pub fn add_admin(&self, jid: JID) {
-        todo!()
-    }
-    pub fn remove_admin(&self, jid: &JID) {
-        todo!()
-    }
+    // TODO: Use or delete the following comments
 
-    pub fn add_enabled_module(&self, module_name: String) {
-        todo!()
-    }
-    pub fn remove_enabled_module(&self, module_name: &String) {
-        todo!()
-    }
+    // pub fn add_admin(&self, jid: JID) {
+    //     todo!()
+    // }
+    // pub fn remove_admin(&self, jid: &JID) {
+    //     todo!()
+    // }
 
-    pub fn add_disabled_module(&self, module_name: String) {
-        todo!()
-    }
-    pub fn remove_disabled_module(&self, module_name: &String) {
-        todo!()
-    }
-
-    pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
-        todo!()
-    }
-    pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
-        todo!()
-    }
-    /// Sets the time that an over-limit session is suspended for
-    /// (`limits_resolution` in Prosody).
-    ///
-    /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
-    /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    pub fn set_timeout(&self, value: Duration<TimeLike>) {
-        todo!()
-    }
+    // pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
+    //     todo!()
+    // }
+    // pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
+    //     todo!()
+    // }
+    // /// Sets the time that an over-limit session is suspended for
+    // /// (`limits_resolution` in Prosody).
+    // ///
+    // /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
+    // /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
+    // pub fn set_timeout(&self, value: Duration<TimeLike>) {
+    //     todo!()
+    // }
 
     pub async fn set_message_archiving(
         &self,

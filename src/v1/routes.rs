@@ -9,7 +9,6 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{Set, TryIntoModel};
 use service::{Mutation, Query};
-use std::path::PathBuf;
 use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
@@ -89,7 +88,10 @@ pub struct LoginResponse {
 
 /// Log user in and return an authentication token.
 #[post("/v1/login", format = "json", data = "<req>")]
-pub(super) async fn login(conn: Connection<'_, Db>, req: Json<LoginRequest>) -> R<LoginResponse> {
+pub(super) async fn login(
+    // conn: Connection<'_, Db>,
+    req: Json<LoginRequest>,
+) -> R<LoginResponse> {
     let response = LoginResponse {
         token: "ok".to_string(),
     }
@@ -98,7 +100,8 @@ pub(super) async fn login(conn: Connection<'_, Db>, req: Json<LoginRequest>) -> 
     Ok(response)
 }
 
-#[post("/v1/<path..>")]
-pub(super) fn admin_only_guard(path: PathBuf) {
-    debug!("Admin check");
-}
+// TODO: Use or delete the following comment
+// #[post("/v1/<path..>")]
+// pub(super) fn admin_only_guard(path: PathBuf) {
+//     debug!("Admin check");
+// }

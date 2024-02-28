@@ -3,12 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{Duration, PossiblyInfinite};
 use entity::server_config::Model as ServerConfig;
 
 use super::ProsodyConfig;
 
-fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfig {
+pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfig {
     let mut config = ProsodyConfig::default();
 
     if model.message_archive_enabled {
