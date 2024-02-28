@@ -19,12 +19,12 @@ pub type R<T> = Result<Json<T>, Error>;
 
 /// Get the current configuration of server features.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = String),
     )
 )]
-#[get("/v1/server/features/config")]
+#[get("/v1/server/config")]
 pub(super) fn get_features_config() -> String {
     todo!()
 }
@@ -36,13 +36,13 @@ pub struct SetMessageArchivingRequest {
 
 /// Activate or deactivate message archiving.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig),
     )
 )]
 #[put(
-    "/v1/server/features/config/store-message-archive",
+    "/v1/server/config/store-message-archive",
     format = "json",
     data = "<req>"
 )]
@@ -63,13 +63,13 @@ pub struct SetMessageArchiveRetentionRequest {
 
 /// Update message archive retention.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig),
     )
 )]
 #[put(
-    "/v1/server/features/config/message-archive-retention",
+    "/v1/server/config/message-archive-retention",
     format = "json",
     data = "<req>"
 )]
@@ -87,12 +87,12 @@ pub(super) async fn message_archive_retention(
 
 /// Expunge the message archive.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = String)
     )
 )]
-#[post("/v1/server/features/config/expunge-message-archive")]
+#[post("/v1/server/config/expunge-message-archive")]
 pub(super) fn expunge_message_archive() -> String {
     todo!()
 }
@@ -104,16 +104,12 @@ pub struct SetFileUploadingRequest {
 
 /// Activate or deactivate file upload and sharing.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig)
     )
 )]
-#[put(
-    "/v1/server/features/config/allow-file-upload",
-    format = "json",
-    data = "<req>"
-)]
+#[put("/v1/server/config/allow-file-upload", format = "json", data = "<req>")]
 pub(super) async fn store_files(
     server_manager: ServerManager<'_>,
     req: Json<SetFileUploadingRequest>,
@@ -126,12 +122,12 @@ pub(super) async fn store_files(
 
 /// Change the file storage encryption scheme.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = String)
     )
 )]
-#[put("/v1/server/features/config/file-storage-encryption-scheme")]
+#[put("/v1/server/config/file-storage-encryption-scheme")]
 pub(super) fn file_storage_encryption_scheme() -> String {
     todo!()
 }
@@ -143,16 +139,12 @@ pub struct SetFileRetentionRequest {
 
 /// Change the retention of uploaded files.
 #[utoipa::path(
-    tag = "Server / Features / Configuration",
+    tag = "Server / Configuration",
     responses(
         (status = 200, description = "Success", body = ServerConfig)
     )
 )]
-#[put(
-    "/v1/server/features/config/file-retention",
-    format = "json",
-    data = "<req>"
-)]
+#[put("/v1/server/config/file-retention", format = "json", data = "<req>")]
 pub(super) async fn file_retention(
     server_manager: ServerManager<'_>,
     req: Json<SetFileRetentionRequest>,

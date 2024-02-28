@@ -5,7 +5,7 @@
 
 use cucumber::{given, then, when};
 use migration::DbErr;
-use prose_pod_api::v1::server::features::config::*;
+use prose_pod_api::v1::server::config::*;
 use rocket::http::{ContentType, Header};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
@@ -23,7 +23,7 @@ async fn set_message_archiving<'a>(
     state: bool,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/features/config/store-message-archive")
+        .put("/v1/server/config/store-message-archive")
         .header(ContentType::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
@@ -42,7 +42,7 @@ async fn set_message_archive_retention<'a>(
     duration: Duration,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/features/config/message-archive-retention")
+        .put("/v1/server/config/message-archive-retention")
         .header(ContentType::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
@@ -141,7 +141,7 @@ async fn set_file_uploading<'a>(
     state: bool,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/features/config/allow-file-upload")
+        .put("/v1/server/config/allow-file-upload")
         .header(ContentType::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
@@ -160,7 +160,7 @@ async fn set_file_retention<'a>(
     duration: Duration,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/features/config/file-retention")
+        .put("/v1/server/config/file-retention")
         .header(ContentType::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
