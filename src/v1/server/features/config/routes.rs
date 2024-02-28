@@ -162,15 +162,3 @@ pub(super) async fn file_retention(
     let new_config = server_manager.set_file_retention(new_state).await?;
     Ok(new_config.into())
 }
-
-/// Expunge the file storage.
-#[utoipa::path(
-    tag = "Server / Features / Configuration",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[post("/v1/server/features/config/expunge-file-storage")]
-pub(super) fn expunge_file_storage() -> String {
-    todo!()
-}

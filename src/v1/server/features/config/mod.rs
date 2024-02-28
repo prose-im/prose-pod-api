@@ -18,6 +18,5 @@ pub(super) fn routes() -> Vec<Route> {
         store_files,
         file_storage_encryption_scheme,
         file_retention,
-        expunge_file_storage,
     ]
 }
