@@ -39,7 +39,7 @@ pub(super) fn get_members() -> String {
         (status = 200, description = "Success", body = String)
     )
 )]
-#[post("/v1/members")]
+#[post("/v1/members/invites")]
 pub(super) fn invite_member() -> String {
     todo!()
 }
