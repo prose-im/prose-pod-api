@@ -7,7 +7,6 @@ use std::collections::BTreeMap;
 use std::ops::Deref;
 
 use entity::model;
-use jwt::VerifyWithKey;
 use log::debug;
 use rocket::outcome::try_outcome;
 use rocket::request::{FromRequest, Outcome};
@@ -15,9 +14,7 @@ use rocket::{Request, State};
 
 use crate::error::{self, Error};
 
-use super::JWTKey;
-
-pub const JWT_JID_KEY: &'static str = "jid";
+use super::{JWTService, JWT_JID_KEY};
 
 pub struct JID(model::JID);
 
@@ -43,23 +40,20 @@ impl<'r> FromRequest<'r> for JID {
             return Outcome::Error(Error::Unauthorized.into());
         };
 
-        let jwt_key = try_outcome!(req
-            .guard::<&State<JWTKey>>()
-            .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<JWTKey>` from a request.".to_string(),
-                }
-            )));
-        let jwt_key = match jwt_key.as_hmac_sha_256() {
-            Ok(key) => key,
-            Err(e) => return Outcome::Error(e.into()),
-        };
-        let claims: BTreeMap<String, String> = match jwt.verify_with_key(&jwt_key) {
+        let jwt_service =
+            try_outcome!(req
+                .guard::<&State<JWTService>>()
+                .await
+                .map_error(|(status, _)| (
+                    status,
+                    Error::InternalServerError {
+                        reason: "Could not get a `&State<JWTService>` from a request.".to_string(),
+                    }
+                )));
+        let claims: BTreeMap<String, String> = match jwt_service.verify(jwt) {
             Ok(claims) => claims,
             Err(e) => {
-                debug!("The provided JWT is invalid: {}", e);
+                debug!("The provided JWT is invalid: {e}");
                 return Outcome::Error(Error::Unauthorized.into());
             }
         };

@@ -12,6 +12,8 @@ use rocket::{Request, Response};
 use serde_json::json;
 use service::sea_orm;
 
+use crate::server_ctl;
+
 #[derive(Debug)]
 pub enum Error {
     /// Feature not implemented yet.
@@ -29,6 +31,8 @@ pub enum Error {
     PodNotInitialized,
     /// Prose Pod already initialized.
     PodAlreadyInitialized,
+    /// ServerCtl fail (e.g. execution of `prosodyctl` failed).
+    ServerCtlErr(server_ctl::Error),
 }
 
 impl Error {
@@ -42,6 +46,7 @@ impl Error {
             Self::DbErr(_) => Status::InternalServerError,
             Self::PodNotInitialized => Status::BadRequest,
             Self::PodAlreadyInitialized => Status::Conflict,
+            Self::ServerCtlErr(_) => Status::InternalServerError,
         }
     }
 
@@ -55,6 +60,7 @@ impl Error {
             Self::DbErr(_) => "database_error",
             Self::PodNotInitialized => "pod_not_initialized",
             Self::PodAlreadyInitialized => "pod_already_initialized",
+            Self::ServerCtlErr(_) => "internal_server_error",
         }
     }
 
@@ -105,6 +111,7 @@ impl fmt::Display for Error {
                 uri!(crate::v1::init)
             ),
             Self::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
+            Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
         }
     }
 }

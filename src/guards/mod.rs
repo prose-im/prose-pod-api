@@ -5,13 +5,13 @@
 
 mod db;
 mod jid;
-mod jwt_key;
+mod jwt_service;
 mod server_config;
 mod server_manager;
 
 pub use db::*;
 pub use jid::*;
-pub use jwt_key::*;
+pub use jwt_service::*;
 pub use server_config::*;
 pub use server_manager::*;
 

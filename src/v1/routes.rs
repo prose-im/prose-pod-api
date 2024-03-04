@@ -3,11 +3,8 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::collections::BTreeMap;
-
 use entity::model::JID;
 use entity::server_config;
-use jwt::SignWithKey as _;
 use rocket::serde::json::Json;
 use rocket::State;
 use sea_orm_rocket::Connection;
@@ -18,7 +15,7 @@ use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
 
-use crate::guards::{Db, JWTKey, JWT_JID_KEY};
+use crate::guards::{Db, JWTService};
 
 use super::workspace::openapi_extensions;
 use crate::error::Error;
@@ -95,26 +92,14 @@ pub struct LoginResponse {
 #[post("/v1/login", format = "json", data = "<req>")]
 pub(super) fn login(
     // conn: Connection<'_, Db>,
-    jwt_key: &State<JWTKey>,
+    jwt_service: &State<JWTService>,
     req: Json<LoginRequest>,
 ) -> R<LoginResponse> {
     // FIXME: Add password authentication, this is unsecure!
 
-    let jwt_key = jwt_key.as_hmac_sha_256()?;
-    let jid = &req.jid;
+    let token = jwt_service.generate_jwt(&req.jid)?;
 
-    let mut claims = BTreeMap::new();
-    claims.insert(JWT_JID_KEY, jid.to_string());
-    let token_str = claims
-        .sign_with_key(&jwt_key)
-        .map_err(|e| Error::InternalServerError {
-            reason: format!("Could not sign JWT claims: {e}"),
-        })?;
-
-    let response = LoginResponse {
-        token: token_str.to_string(),
-    }
-    .into();
+    let response = LoginResponse { token }.into();
 
     Ok(response)
 }

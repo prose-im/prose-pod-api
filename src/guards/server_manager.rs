@@ -102,7 +102,11 @@ impl<'r> ServerManagerInner<'r> {
         let server_config = active.update(self.db).await.map_err(Error::DbErr)?;
 
         if server_config != *config_before {
-            self.server_ctl.lock().unwrap().reload();
+            self.server_ctl
+                .lock()
+                .expect("Serverctl lock poisonned")
+                .reload()
+                .map_err(Error::ServerCtlErr)?;
         }
 
         Ok(server_config)

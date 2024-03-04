@@ -3,16 +3,17 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod test_server_ctl;
+mod dummy_server_ctl;
 mod v1;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use cucumber::{then, World};
+use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
 use entity::member;
 use log::debug;
-use prose_pod_api::guards::{Db, JWTKey};
+use prose_pod_api::guards::{Db, JWTKey, JWTService};
 use prose_pod_api::server_ctl::ServerCtl;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
@@ -21,21 +22,41 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::sea_orm::DatabaseConnection;
-use test_server_ctl::{TestServerCtl, TestServerCtlState};
 use tokio::runtime::Handle;
 use tokio::task;
+// use tracing_subscriber::{
+//     filter::{self, LevelFilter},
+//     fmt::format::{self, Format},
+//     layer::{Layer, SubscriberExt as _},
+// };
 
 #[tokio::main]
 async fn main() {
     // Run tests and ignore undefined steps
-    TestWorld::run("tests/features").await;
+    // TestWorld::run("tests/features").await;
 
     // Run tests and ignore undefined steps, but show logs
     // NOTE: Needs the "tracing" feature enabled for `cucumber`
-    // TestWorld::cucumber()
-    //     .init_tracing()
-    //     .run("tests/features")
-    //     .await;
+    TestWorld::cucumber()
+        .init_tracing()
+        // .configure_and_init_tracing(
+        //     format::DefaultFields::new(),
+        //     Format::default(),
+        //     |fmt_layer| {
+        //         tracing_subscriber::registry()
+        //             .with(
+        //                 filter::Targets::new()
+        //                     .with_targets(vec![
+        //                         ("rocket", LevelFilter::WARN),
+        //                         ("sea_orm_migration", LevelFilter::WARN),
+        //                         ("rocket::server", LevelFilter::TRACE),
+        //                     ])
+        //                     .and_then(fmt_layer)
+        //             )
+        //     },
+        // )
+        .run("tests/features")
+        .await;
 
     // Run and fail on undefined steps
     // TestWorld::cucumber()
@@ -43,18 +64,18 @@ async fn main() {
     //     .run_and_exit("tests/features").await;
 }
 
-fn test_rocket(server_ctl: TestServerCtl) -> Rocket<Build> {
+fn test_rocket(server_ctl: DummyServerCtl) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
         .merge(("log_level", "off"))
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
     prose_pod_api::custom_rocket(rocket::custom(figment))
-        .manage(JWTKey::custom("test_key"))
+        .manage(JWTService::new(JWTKey::custom("test_key")))
         .manage(ServerCtl::new(Arc::new(Mutex::new(server_ctl))))
 }
 
-pub async fn rocket_test_client(server_ctl: TestServerCtl) -> Client {
+pub async fn rocket_test_client(server_ctl: DummyServerCtl) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(server_ctl))
         .await
@@ -100,7 +121,7 @@ impl From<LocalResponse<'_>> for Response {
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 struct TestWorld {
-    server_state: Arc<Mutex<TestServerCtlState>>,
+    server_state: Arc<Mutex<DummyServerCtlState>>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -122,11 +143,11 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let state = Arc::new(Mutex::new(TestServerCtlState::default()));
+        let state = Arc::new(Mutex::new(DummyServerCtlState::default()));
 
         Self {
             server_state: state.clone(),
-            client: rocket_test_client(TestServerCtl::new(state)).await,
+            client: rocket_test_client(DummyServerCtl::new(state)).await,
             result: None,
             members: HashMap::new(),
         }
@@ -136,7 +157,11 @@ impl TestWorld {
 #[then("the call should succeed")]
 fn then_response_ok(world: &mut TestWorld) {
     let res = world.result();
-    assert_eq!(res.status, Status::Ok);
+    assert!(
+        (200..300).contains(&res.status.code),
+        "Status is not a success ({:#?})",
+        res
+    );
 }
 
 #[then("the response content type should be JSON")]

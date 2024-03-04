@@ -8,30 +8,39 @@ pub mod workspace;
 
 use std::str::FromStr;
 
-use crate::TestWorld;
 use cucumber::codegen::Regex;
 use cucumber::{given, then, when, Parameter};
-use entity::model::{self, DateLike, PossiblyInfinite};
+use entity::model::{self, DateLike, MemberRole, PossiblyInfinite, JID};
+use entity::{member, server_config};
 use iso8601_duration::Duration as ISODuration;
+use prose_pod_api::error::Error;
+use prose_pod_api::guards::JWTService;
 use prose_pod_api::v1::InitRequest;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::sea_orm::{ActiveModelTrait, DbErr, Set};
+use service::sea_orm::{ActiveModelTrait, Set};
+use service::Mutation;
+
+use crate::TestWorld;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
 #[given(regex = r"^(.+) is an admin$")]
-async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
+async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
-    let model = ::entity::member::ActiveModel {
-        id: Set(format!("{}@test.org", name.to_lowercase())),
+
+    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+
+    let model = member::ActiveModel {
+        id: Set(jid.to_string()),
+        role: Set(MemberRole::Admin),
         ..Default::default()
     };
-    let model = model.insert(db).await?;
+    let model = model.insert(db).await.map_err(Error::DbErr)?;
 
-    let response = login(&world.client).await;
-    let token = response.into_string().await.expect("Could not log in");
+    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
+    let token = jwt_service.generate_jwt(&jid)?;
 
     world.members.insert(name, (model, token));
 
@@ -44,9 +53,16 @@ fn given_workspace_not_initialized(_world: &mut TestWorld) {
 }
 
 #[given("the workspace has been initialized")]
-async fn given_workspace_initialized(world: &mut TestWorld) {
-    let res = init_workspace(&world.client, DEFAULT_WORKSPACE_NAME).await;
-    assert_eq!(res.status(), Status::Ok);
+async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
+    let db = world.db();
+    let form = server_config::ActiveModel {
+        workspace_name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
+        ..Default::default()
+    };
+    Mutation::create_server_config(db, form)
+        .await
+        .map_err(Error::DbErr)?;
+    Ok(())
 }
 
 #[then("the user should receive 'Prose Pod not initialized'")]
@@ -177,13 +193,13 @@ impl Into<PossiblyInfinite<model::Duration<DateLike>>> for Duration {
 
 // LOGIN
 
-async fn login<'a>(client: &'a Client) -> LocalResponse<'a> {
-    client
-        .post("/v1/login")
-        .header(ContentType::JSON)
-        .dispatch()
-        .await
-}
+// async fn login<'a>(client: &'a Client) -> LocalResponse<'a> {
+//     client
+//         .post("/v1/login")
+//         .header(ContentType::JSON)
+//         .dispatch()
+//         .await
+// }
 
 // INIT
 
@@ -201,7 +217,7 @@ async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a>
         .await
 }
 
-#[when(expr = "a user ititializes a workspace named {string}")]
+#[when(expr = "a user initializes a workspace named {string}")]
 async fn when_workspace_init(world: &mut TestWorld, name: String) {
     let res = init_workspace(&world.client, &name).await;
     world.result = Some(res.into());

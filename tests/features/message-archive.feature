@@ -9,7 +9,8 @@ Feature: Message archive
       Given message archiving is <initial_state>
         And Valerian is an admin
        When Valerian turns message archiving <new_state>
-       Then message archiving is <new_state>
+       Then the call should succeed
+        And message archiving is <new_state>
         And the server is reconfigured
 
     Examples:
@@ -23,7 +24,8 @@ Feature: Message archive
       Given the message archive retention is set to 2 years
         And Valerian is an admin
        When Valerian sets the message archive retention to 1 year
-       Then the message archive retention is set to 1 year
+       Then the call should succeed
+        And the message archive retention is set to 1 year
         And the server is reconfigured
 
   Rule: The Messaging configuration can be reset to its default value
@@ -33,7 +35,8 @@ Feature: Message archive
         And the message archive retention is set to 1 year
         And Valerian is an admin
        When Valerian resets the Messaging configuration to its default value
-       Then message archiving is on
+       Then the call should succeed
+        And message archiving is on
         And the message archive retention is set to 2 years
         And the server is reconfigured
 
@@ -43,7 +46,8 @@ Feature: Message archive
       Given message archiving is <initial_state>
         And Valerian is an admin
        When Valerian turns message archiving <initial_state>
-       Then message archiving is <initial_state>
+       Then the call should succeed
+        And message archiving is <initial_state>
         And the server is not reconfigured
 
     Examples:
@@ -57,7 +61,8 @@ Feature: Message archive
       Given the message archive retention is set to <initial_state>
         And Valerian is an admin
        When Valerian sets the message archive retention to <initial_state>
-       Then the message archive retention is set to <initial_state>
+       Then the call should succeed
+        And the message archive retention is set to <initial_state>
         And the server is not reconfigured
 
     Examples:

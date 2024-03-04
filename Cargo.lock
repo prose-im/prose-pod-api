@@ -770,6 +770,7 @@ dependencies = [
  "async-trait",
  "clap",
  "console",
+ "crossbeam-utils",
  "cucumber-codegen",
  "cucumber-expressions",
  "derive_more",
@@ -788,6 +789,8 @@ dependencies = [
  "regex",
  "sealed",
  "smart-default",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2438,6 +2441,7 @@ dependencies = [
  "service",
  "sha2",
  "tokio",
+ "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
  "utoipauto",
