@@ -6,13 +6,9 @@
 pub mod server;
 pub mod workspace;
 
-use std::str::FromStr;
-
-use cucumber::codegen::Regex;
-use cucumber::{given, then, when, Parameter};
-use entity::model::{self, DateLike, MemberRole, PossiblyInfinite, JID};
+use cucumber::{given, then, when};
+use entity::model::{MemberRole, JID};
 use entity::{member, server_config};
-use iso8601_duration::Duration as ISODuration;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::JWTService;
 use prose_pod_api::v1::InitRequest;
@@ -35,6 +31,27 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let model = member::ActiveModel {
         id: Set(jid.to_string()),
         role: Set(MemberRole::Admin),
+        ..Default::default()
+    };
+    let model = model.insert(db).await.map_err(Error::DbErr)?;
+
+    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
+    let token = jwt_service.generate_jwt(&jid)?;
+
+    world.members.insert(name, (model, token));
+
+    Ok(())
+}
+
+#[given(regex = r"^(.+) is (not an admin|a regular member)$")]
+async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    let db = world.db();
+
+    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+
+    let model = member::ActiveModel {
+        id: Set(jid.to_string()),
+        role: Set(MemberRole::Member),
         ..Default::default()
     };
     let model = model.insert(db).await.map_err(Error::DbErr)?;
@@ -100,95 +117,6 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
             .to_string()
         )
     );
-}
-
-// Custom Cucumber parameters
-// See <https://cucumber-rs.github.io/cucumber/current/writing/capturing.html#custom-parameters>
-
-#[derive(Debug, Parameter)]
-#[param(name = "toggle", regex = "on|off|enabled|disabled")]
-enum ToggleState {
-    Enabled,
-    Disabled,
-}
-
-impl ToggleState {
-    fn as_bool(&self) -> bool {
-        match self {
-            Self::Enabled => true,
-            Self::Disabled => false,
-        }
-    }
-}
-
-impl Into<bool> for ToggleState {
-    fn into(self) -> bool {
-        self.as_bool()
-    }
-}
-
-impl FromStr for ToggleState {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "on" | "enabled" => Self::Enabled,
-            "off" | "disabled" => Self::Disabled,
-            invalid => return Err(format!("Invalid `ToggleState`: {invalid}")),
-        })
-    }
-}
-
-#[derive(Debug, Parameter)]
-#[param(
-    name = "duration",
-    regex = r"\d+ (?:year|month|week|day)s?(?: \d+ (?:year|month|week|day)s?)*"
-)]
-struct Duration(String);
-
-impl FromStr for Duration {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let patterns = vec![
-            (r"(\d+) years?", 'Y'),
-            (r"(\d+) months?", 'M'),
-            (r"(\d+) weeks?", 'W'),
-            (r"(\d+) days?", 'D'),
-        ];
-
-        let mut value = "P".to_string();
-        for (pattern, designator) in patterns {
-            let re = Regex::new(pattern).unwrap();
-            if let Some(captures) = re.captures(s) {
-                value.push_str(captures.get(1).unwrap().as_str());
-                value.push(designator);
-            }
-        }
-
-        match value.as_str() {
-            "P" => Err(format!("Invalid `Duration`: {s}")),
-            _ => Ok(Self(value)),
-        }
-    }
-}
-
-impl ToString for Duration {
-    fn to_string(&self) -> String {
-        self.0.clone()
-    }
-}
-
-impl Into<model::Duration<DateLike>> for Duration {
-    fn into(self) -> model::Duration<DateLike> {
-        ISODuration::parse(&self.0).unwrap().try_into().unwrap()
-    }
-}
-
-impl Into<PossiblyInfinite<model::Duration<DateLike>>> for Duration {
-    fn into(self) -> PossiblyInfinite<model::Duration<DateLike>> {
-        PossiblyInfinite::Finite(self.into())
-    }
 }
 
 // LOGIN

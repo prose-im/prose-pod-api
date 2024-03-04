@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod cucumber_parameters;
 mod dummy_server_ctl;
 mod v1;
 
@@ -10,6 +11,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use cucumber::{then, World};
+use cucumber_parameters::HTTPStatus;
 use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
 use entity::member;
 use log::debug;
@@ -87,6 +89,7 @@ struct Response {
     status: Status,
     content_type: Option<ContentType>,
     body: Option<String>,
+    headers: HashMap<String, String>,
 }
 
 impl Response {
@@ -108,10 +111,15 @@ impl From<LocalResponse<'_>> for Response {
     fn from(value: LocalResponse) -> Self {
         task::block_in_place(|| {
             Handle::current().block_on(async move {
+                let mut headers: HashMap<String, String> = HashMap::new();
+                for header in value.headers().iter() {
+                    headers.insert(header.name().to_string(), header.value().to_string());
+                }
                 Self {
                     status: value.status(),
                     content_type: value.content_type(),
                     body: value.into_string().await,
+                    headers,
                 }
             })
         })
@@ -164,8 +172,35 @@ fn then_response_ok(world: &mut TestWorld) {
     );
 }
 
+#[then("the call should not succeed")]
+fn then_response_not_ok(world: &mut TestWorld) {
+    let res = world.result();
+    assert!(
+        !(200..300).contains(&res.status.code),
+        "Status is not a failure ({:#?})",
+        res
+    );
+}
+
 #[then("the response content type should be JSON")]
 fn then_response_json(world: &mut TestWorld) {
     let res = world.result();
     assert_eq!(res.content_type, Some(ContentType::JSON));
+}
+
+#[then(expr = "the HTTP status code should be {status}")]
+fn then_response_http_status(world: &mut TestWorld, status: HTTPStatus) {
+    let res = world.result();
+    assert_eq!(res.status, *status);
+}
+
+#[then(expr = "the response should contain a {string} HTTP header")]
+fn then_response_header_contain(world: &mut TestWorld, header_name: String) {
+    let res = world.result();
+    assert!(
+        res.headers.contains_key(&header_name),
+        "No '{}' header found. Headers: {:?}",
+        &header_name,
+        &res.headers.keys()
+    );
 }

@@ -57,7 +57,15 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
         let jid = try_outcome!(req.guard::<JIDGuard>().await);
         match Query::is_admin(db, &jid).await {
             Ok(true) => {}
-            Ok(false) => return Error::Unauthorized.into(),
+            Ok(false) => {
+                // NOTE: Returning `Error::Unauthorized.into()` would cause the error
+                //   to be caught by Rocket's built-in error catcher, not logging it
+                //   and returning an incorrect user-facing error.
+                //   See note on `ServerManager.inner`.
+                return Outcome::Success(Self {
+                    inner: Err(Error::Unauthorized),
+                });
+            }
             Err(e) => return Error::DbErr(e).into(),
         }
 

@@ -12,7 +12,7 @@ use serde_json::json;
 use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set};
 use service::Query;
 
-use crate::v1::{Duration, ToggleState};
+use crate::cucumber_parameters::{Duration, ToggleState};
 use crate::TestWorld;
 
 // MESSAGE ARCHIVING
