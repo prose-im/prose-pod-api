@@ -2432,6 +2432,7 @@ dependencies = [
  "hmac",
  "iso8601-duration",
  "jwt",
+ "linked-hash-map",
  "log",
  "migration",
  "rocket",

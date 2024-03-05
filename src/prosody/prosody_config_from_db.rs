@@ -11,7 +11,7 @@ pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfig {
     let mut config = ProsodyConfig::default();
 
     if model.message_archive_enabled {
-        config.enabled_modules.insert("mam".to_string());
+        config.modules_enabled.insert("mam".to_string());
         config.archive_expires_after = Some(model.message_archive_retention);
     }
 

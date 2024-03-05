@@ -19,8 +19,8 @@ use ::entity::model::*;
 pub struct ProsodyConfig {
     pub log: LogConfig,
     pub admins: HashSet<JID>,
-    pub enabled_modules: HashSet<String>,
-    pub disabled_modules: HashSet<String>,
+    pub modules_enabled: HashSet<String>,
+    pub modules_disabled: HashSet<String>,
     pub limits: HashMap<ConnectionType, ConnectionLimits>,
     pub limits_resolution: Option<u32>,
     pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
@@ -31,8 +31,37 @@ impl Default for ProsodyConfig {
         Self {
             log: Default::default(),
             admins: Default::default(),
-            enabled_modules: vec!["limits".to_string()].into_iter().collect(),
-            disabled_modules: Default::default(),
+            modules_enabled: vec![
+                "roster",
+                "groups",
+                "saslauth",
+                "tls",
+                "dialback",
+                "disco",
+                "posix",
+                "smacks",
+                "private",
+                "vcard_legacy",
+                "vcard4",
+                "version",
+                "uptime",
+                "time",
+                "ping",
+                "lastactivity",
+                "pep",
+                "blocklist",
+                "limits",
+                "carbons",
+                "mam",
+                "csi",
+                "server_contact_info",
+                "websocket",
+                "s2s_bidi",
+            ]
+            .into_iter()
+            .map(ToString::to_string)
+            .collect(),
+            modules_disabled: Default::default(),
             limits: Default::default(),
             limits_resolution: Default::default(),
             archive_expires_after: Default::default(),
@@ -50,14 +79,14 @@ log = {log}
 
 admins = {{{admins}}}
 
-enabled_modules = {{{enabled_modules}}}
-disabled_modules = {{{disabled_modules}}}
+modules_enabled = {{{modules_enabled}}}
+modules_disabled = {{{modules_disabled}}}
 
 limits = {{{limits}}}",
             log = self.log,
             admins = format_set(&self.admins),
-            enabled_modules = format_set(&self.enabled_modules),
-            disabled_modules = format_set(&self.disabled_modules),
+            modules_enabled = format_set(&self.modules_enabled),
+            modules_disabled = format_set(&self.modules_disabled),
             limits = format_map(&self.limits),
         );
 
