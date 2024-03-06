@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod prosody_config;
+mod prosody_config_file;
 mod prosody_config_from_db;
-mod prosody_config_generator;
 pub mod prosody_ctl;
 
 pub use prosody_config::ProsodyConfig;

@@ -104,7 +104,7 @@ mod model {
         },
     }
 
-    pub struct ProsodyConfig {
+    pub struct ProsodyConfigFile {
         pub header: Option<Group<LuaComment>>,
         pub global_settings: Vec<Group<LuaDefinition>>,
         pub additional_sections: Vec<ProsodyConfigSection>,
@@ -272,7 +272,7 @@ mod print {
         }
     }
 
-    impl Print for ProsodyConfig {
+    impl Print for ProsodyConfigFile {
         fn print(&self, acc: &mut String, indent: u8) {
             self.header.print(acc, indent);
             for element in self.global_settings.iter() {
@@ -286,7 +286,7 @@ mod print {
         }
     }
 
-    impl ToString for ProsodyConfig {
+    impl ToString for ProsodyConfigFile {
         fn to_string(&self) -> String {
             let mut acc = "".to_string();
             self.print(&mut acc, 0);
@@ -295,9 +295,9 @@ mod print {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
-    use crate::model::*;
+    use super::model::*;
 
     impl LuaComment {
         pub fn new<S: ToString>(s: S) -> Self {
@@ -334,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_default_config() {
-        let default_config = ProsodyConfig {
+        let default_config = ProsodyConfigFile {
             header: Some(vec![
                 "Prose Pod Server".into(),
                 "XMPP Server Configuration".into(),

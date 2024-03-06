@@ -7,6 +7,7 @@
 /// Probably abstract enough to be used in non-Prosody APIs.
 ///
 /// See also <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
+#[derive(Debug, Eq, PartialEq)]
 pub enum ConnectionType {
     /// "c2s"
     ClientToServer,
@@ -16,10 +17,23 @@ pub enum ConnectionType {
     ServerToServerOutbounds,
 }
 
+/// Bytes.
+///
+/// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
+#[derive(Debug, Eq, PartialEq)]
+pub enum Bytes {
+    Bytes(u32),
+    KiloBytes(u32),
+    KibiBytes(u32),
+    MegaBytes(u32),
+    MebiBytes(u32),
+}
+
 /// Data-transfer rate (kB/s, MB/s…).
-/// See <https://en.wikipedia.org/wiki/Data-rate_units> for Prosody
+///
+/// See <https://en.wikipedia.org/wiki/Data-rate_units>
 /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum DataRate {
     BytesPerSec(u32),
     KiloBytesPerSec(u32),
