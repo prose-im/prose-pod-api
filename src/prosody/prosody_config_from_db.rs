@@ -5,17 +5,34 @@
 
 use entity::server_config::Model as ServerConfig;
 
-use super::ProsodyConfig;
+use super::{prosody_config::ConnectionType, ProsodyConfig};
 
 pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfig {
     let mut config = ProsodyConfig::default();
 
     if model.message_archive_enabled {
-        config.modules_enabled.insert("mam".to_string());
-        config.archive_expires_after = Some(model.message_archive_retention);
+        config
+            .global_settings
+            .modules_enabled
+            .insert("mam".to_string());
+        config.global_settings.archive_expires_after = model.message_archive_retention;
     }
 
+    if model.file_upload_allowed {}
+
     config
+}
+
+// ===== Model mappings =====
+
+impl Into<ConnectionType> for entity::model::ConnectionType {
+    fn into(self) -> ConnectionType {
+        match self {
+            Self::ClientToServer => ConnectionType::ClientToServer,
+            Self::ServerToServerInbounds => ConnectionType::ServerToServerInbounds,
+            Self::ServerToServerOutbounds => ConnectionType::ServerToServerOutbounds,
+        }
+    }
 }
 
 // Some old method definitions

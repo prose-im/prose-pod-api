@@ -1,4 +1,6 @@
-mod model {
+pub mod model {
+    use std::{collections::HashSet, hash::Hash, path::PathBuf};
+
     use linked_hash_map::LinkedHashMap;
 
     pub struct LuaComment(pub String);
@@ -34,6 +36,12 @@ mod model {
         }
     }
 
+    impl LuaDefinition {
+        pub fn as_group(self) -> Group<Self> {
+            self.into()
+        }
+    }
+
     pub struct LuaDefinition {
         pub comment: Option<LuaComment>,
         pub key: String,
@@ -41,13 +49,37 @@ mod model {
     }
 
     pub enum LuaNumber {
-        Scalar(i32),
+        Scalar(i64),
         Product(Box<LuaNumber>, Box<LuaNumber>),
+    }
+
+    impl From<i64> for LuaNumber {
+        fn from(value: i64) -> Self {
+            LuaNumber::Scalar(value)
+        }
+    }
+
+    impl From<i16> for LuaNumber {
+        fn from(value: i16) -> Self {
+            i64::from(value).into()
+        }
+    }
+
+    impl From<u16> for LuaNumber {
+        fn from(value: u16) -> Self {
+            i64::from(value).into()
+        }
     }
 
     impl From<i32> for LuaNumber {
         fn from(value: i32) -> Self {
-            LuaNumber::Scalar(value)
+            LuaNumber::Scalar(i64::from(value))
+        }
+    }
+
+    impl From<u32> for LuaNumber {
+        fn from(value: u32) -> Self {
+            LuaNumber::Scalar(i64::from(value))
         }
     }
 
@@ -65,15 +97,21 @@ mod model {
         }
     }
 
-    impl From<LuaNumber> for LuaValue {
-        fn from(value: LuaNumber) -> Self {
-            LuaValue::Number(value)
+    impl<T: Into<LuaNumber>> From<T> for LuaValue {
+        fn from(value: T) -> Self {
+            LuaValue::Number(value.into())
         }
     }
 
-    impl From<i32> for LuaValue {
-        fn from(value: i32) -> Self {
-            Self::Number(LuaNumber::Scalar(value))
+    impl From<String> for LuaValue {
+        fn from(value: String) -> Self {
+            Self::String(value)
+        }
+    }
+
+    impl From<PathBuf> for LuaValue {
+        fn from(value: PathBuf) -> Self {
+            Self::String(value.display().to_string())
         }
     }
 
@@ -86,6 +124,37 @@ mod model {
     impl<V: Into<LuaValue>> From<Vec<V>> for LuaValue {
         fn from(value: Vec<V>) -> Self {
             Self::List(value.into_iter().map(Into::into).collect())
+        }
+    }
+
+    impl<V: Into<LuaValue>> From<HashSet<V>> for LuaValue {
+        fn from(value: HashSet<V>) -> Self {
+            Self::List(value.into_iter().map(Into::into).collect())
+        }
+    }
+
+    impl<K, V> Into<LuaValue> for LinkedHashMap<K, V>
+    where
+        K: Into<String> + Hash + Eq,
+        V: Into<LuaValue>,
+    {
+        fn into(self) -> LuaValue {
+            let mut map = LinkedHashMap::<String, LuaValue>::new();
+            for (k, v) in self {
+                map.insert(k.into(), v.into());
+            }
+            LuaValue::Map(map)
+        }
+    }
+
+    impl<K, V> Into<LuaValue> for Vec<(K, V)>
+    where
+        K: Into<String> + Hash + Eq,
+        V: Into<LuaValue>,
+    {
+        fn into(self) -> LuaValue {
+            let map: LinkedHashMap<K, V> = self.into_iter().collect();
+            map.into()
         }
     }
 
@@ -108,6 +177,44 @@ mod model {
         pub header: Option<Group<LuaComment>>,
         pub global_settings: Vec<Group<LuaDefinition>>,
         pub additional_sections: Vec<ProsodyConfigSection>,
+    }
+
+    pub mod utils {
+        use super::*;
+
+        impl LuaComment {
+            pub fn new<S: ToString>(s: S) -> Self {
+                Self(s.to_string())
+            }
+        }
+
+        impl<T> Group<T> {
+            pub fn new<C: Into<LuaComment>>(comment: C, elements: Vec<T>) -> Self {
+                Self {
+                    comment: Some(comment.into()),
+                    elements,
+                }
+            }
+        }
+
+        impl LuaDefinition {
+            pub fn comment<C: Into<LuaComment>>(mut self, comment: C) -> Self {
+                self.comment = Some(comment.into());
+                self
+            }
+        }
+
+        pub fn def<K: ToString, V: Into<LuaValue>>(key: K, value: V) -> LuaDefinition {
+            LuaDefinition {
+                comment: None,
+                key: key.to_string(),
+                value: value.into(),
+            }
+        }
+
+        pub fn mult<LHS: Into<LuaNumber>, RHS: Into<LuaNumber>>(lhs: LHS, rhs: RHS) -> LuaNumber {
+            LuaNumber::Product(Box::new(lhs.into()), Box::new(rhs.into()))
+        }
     }
 }
 
@@ -275,9 +382,11 @@ mod print {
     impl Print for ProsodyConfigFile {
         fn print(&self, acc: &mut String, indent: u8) {
             self.header.print(acc, indent);
+            LuaComment::new("Base server configuration").print(acc, indent);
             for element in self.global_settings.iter() {
                 element.print(acc, indent);
             }
+            LuaComment::new("Server hosts and components").print(acc, indent);
             for section in self.additional_sections.iter() {
                 section.print(acc, indent);
             }
@@ -297,40 +406,8 @@ mod print {
 
 #[cfg(test)]
 mod tests {
+    use super::model::utils::*;
     use super::model::*;
-
-    impl LuaComment {
-        pub fn new<S: ToString>(s: S) -> Self {
-            Self(s.to_string())
-        }
-    }
-
-    impl<T> Group<T> {
-        pub fn one<S: ToString>(comment: S, element: T) -> Self {
-            Self {
-                comment: Some(LuaComment::new(comment)),
-                elements: vec![element],
-            }
-        }
-        pub fn many<S: ToString>(comment: S, elements: Vec<T>) -> Self {
-            Self {
-                comment: Some(LuaComment::new(comment)),
-                elements,
-            }
-        }
-    }
-
-    pub fn def<K: ToString, V: Into<LuaValue>>(key: K, value: V) -> LuaDefinition {
-        LuaDefinition {
-            comment: None,
-            key: key.to_string(),
-            value: value.into(),
-        }
-    }
-
-    pub fn mult<LHS: Into<LuaNumber>, RHS: Into<LuaNumber>>(lhs: LHS, rhs: RHS) -> LuaNumber {
-        LuaNumber::Product(Box::new(lhs.into()), Box::new(rhs.into()))
-    }
 
     #[test]
     fn test_default_config() {
@@ -338,87 +415,77 @@ mod tests {
             header: Some(vec![
                 "Prose Pod Server".into(),
                 "XMPP Server Configuration".into(),
-                "/!\\ This file has been automatically generated by Prose Pod API.".into(),
-                "/!\\ Do NOT edit this file manually or your changes will be overriden during the next reload.".into(),
+                r#"/!\ This file has been automatically generated by Prose Pod API."#.into(),
+                r#"/!\ Do NOT edit this file manually or your changes will be overriden during the next reload."#.into(),
             ].into()),
             global_settings: vec![
-                Group::one(
-                    "Base server configuration",
-                    def("pidfile", "/var/run/prosody/prosody.pid"),
-                ),
+                def("pidfile", "/var/run/prosody/prosody.pid").into(),
                 vec![
                     def("authentication", "internal_hashed"),
                     def("storage", "internal"),
                 ].into(),
                 def(
                     "log",
-                    LuaValue::Map(vec![
-                        ("info".to_string(), "*console".into()),
-                        ("warn".to_string(), "*console".into()),
-                        ("error".to_string(), "*console".into()),
-                    ].into_iter().collect())
+                    vec![
+                        ("info", "*console"),
+                        ("warn", "*console"),
+                        ("error", "*console"),
+                    ]
                 ).into(),
-                Group::one(
+                Group::new(
                     "Network interfaces/ports",
-                    def("interfaces", vec!["*"]),
+                    vec![
+                        def("interfaces", vec!["*"]),
+                        def("c2s_ports", vec![5222]),
+                        def("s2s_ports", vec![5269]),
+                        def("http_ports", vec![5280]),
+                        def("http_interfaces", vec!["*"]),
+                        def("https_ports", LuaValue::List(vec![])),
+                        def("https_interfaces", LuaValue::List(vec![])),
+                    ],
                 ),
-                vec![
-                    def("c2s_ports", vec![5222]),
-                    def("s2s_ports", vec![5269]),
-                ].into(),
-                vec![
-                    def("http_ports", vec![5280]),
-                    def("http_interfaces", vec!["*"]),
-                ].into(),
-                vec![
-                    def("https_ports", LuaValue::List(vec![])),
-                    def("https_interfaces", LuaValue::List(vec![])),
-                ].into(),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Enabled modules")),
-                    key: "modules_enabled".to_string(),
-                    value: vec![
-                        "roster",
-                        "groups",
-                        "saslauth",
-                        "tls",
-                        "dialback",
-                        "disco",
-                        "posix",
-                        "smacks",
-                        "private",
-                        "vcard_legacy",
-                        "vcard4",
-                        "version",
-                        "uptime",
-                        "time",
-                        "ping",
-                        "lastactivity",
-                        "pep",
-                        "blocklist",
-                        "limits",
-                        "carbons",
-                        "mam",
-                        "csi",
-                        "server_contact_info",
-                        "websocket",
-                        "s2s_bidi",
-                    ].into(),
-                }.into(),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Path to SSL key and certificate for all server domains")),
-                    key: "ssl".to_string(),
-                    value: LuaValue::Map(vec![
-                        ("key".into(), "/etc/prosody/certs/prose.org.local.key".into()),
-                        ("certificate".into(), "/etc/prosody/certs/prose.org.local.crt".into()),
-                    ].into_iter().collect()),
-                }.into(),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Disable in-band registrations (done through the Prose Pod Dashboard/API)")),
-                    key: "allow_registration".to_string(),
-                    value: false.into()
-                }.into(),
-                Group::many(
+                Group::new(
+                    "Modules",
+                    vec![
+                        def("modules_enabled", vec![
+                            "roster",
+                            "groups",
+                            "saslauth",
+                            "tls",
+                            "dialback",
+                            "disco",
+                            "posix",
+                            "smacks",
+                            "private",
+                            "vcard_legacy",
+                            "vcard4",
+                            "version",
+                            "uptime",
+                            "time",
+                            "ping",
+                            "lastactivity",
+                            "pep",
+                            "blocklist",
+                            "limits",
+                            "carbons",
+                            "mam",
+                            "csi",
+                            "server_contact_info",
+                            "websocket",
+                            "s2s_bidi",
+                        ]),
+                    ],
+                ),
+                def("ssl", vec![
+                    ("key", "/etc/prosody/certs/prose.org.local.key"),
+                    ("certificate", "/etc/prosody/certs/prose.org.local.crt"),
+                ])
+                .comment("Path to SSL key and certificate for all server domains")
+                .into(),
+                def("allow_registration", false)
+                    .comment("Disable in-band registrations (done through the Prose Pod Dashboard/API)")
+                    .into(),
+                Group::new(
                     "Mandate highest security levels",
                     vec![
                         def("c2s_require_encryption", true),
@@ -426,38 +493,36 @@ mod tests {
                         def("s2s_secure_auth", false),
                     ],
                 ),
-                Group::many(
+                Group::new(
                     "Enforce safety C2S/S2S limits",
                     vec![
                         def("c2s_stanza_size_limit", mult(256, 1024)),
                         def("s2s_stanza_size_limit", mult(512, 1024)),
                     ],
                 ),
-                def("limits", LuaValue::Map(vec![
-                    ("c2s".into(), LuaValue::Map(vec![
-                        ("rate".into(), "50kb/s".into()),
-                        ("burst".into(), "2s".into()),
-                    ].into_iter().collect())),
-                    ("s2sin".into(), LuaValue::Map(vec![
-                        ("rate".into(), "250kb/s".into()),
-                        ("burst".into(), "4s".into()),
-                    ].into_iter().collect())),
-                ].into_iter().collect())).into(),
-                Group::many(
+                def("limits", vec![
+                    ("c2s", vec![
+                        ("rate", "50kb/s"),
+                        ("burst", "2s"),
+                    ]),
+                    ("s2sin", vec![
+                        ("rate", "250kb/s"),
+                        ("burst", "4s"),
+                    ]),
+                ]).into(),
+                Group::new(
                     "Allow reverse-proxying to WebSocket service over insecure local HTTP",
                     vec![
                         def("consider_websocket_secure", true),
                         def("cross_domain_websocket", true),
                     ],
                 ),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Specify server administrator")),
-                    key: "contact_info".to_string(),
-                    value: LuaValue::Map(vec![
-                        ("admin".into(), vec!["mailto:hostmaster@prose.org.local"].into()),
-                    ].into_iter().collect()),
-                }.into(),
-                Group::many(
+                def("contact_info", vec![
+                    ("admin", vec!["mailto:hostmaster@prose.org.local"]),
+                ])
+                .comment("Specify server administrator")
+                .into(),
+                Group::new(
                     "MAM settings",
                     vec![
                         def("archive_expires_after", "never"),
@@ -465,22 +530,16 @@ mod tests {
                         def("max_archive_query_results", 100)
                     ],
                 ),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Enable vCard legacy compatibility layer")),
-                    key: "upgrade_legacy_vcards".to_string(),
-                    value: true.into(),
-                }.into(),
-                LuaDefinition {
-                    comment: Some(LuaComment::new("Define server members groups file")),
-                    key: "groups_file".to_string(),
-                    value: "/etc/prosody/roster_groups.txt".into(),
-                }.into(),
+                def("upgrade_legacy_vcards", true)
+                    .comment("Enable vCard legacy compatibility layer")
+                    .into(),
+                def("groups_file", "/etc/prosody/roster_groups.txt")
+                    .comment("Define server members groups file")
+                    .into(),
             ],
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
-                    comments: vec![
-                        "Server hosts and components".into(),
-                    ],
+                    comments: vec![],
                     hostname: "prose.org.local".to_string(),
                     settings: vec![],
                 },
@@ -537,17 +596,14 @@ log = {
 
 -- Network interfaces/ports
 interfaces = { "*" }
-
 c2s_ports = { 5222 }
 s2s_ports = { 5269 }
-
 http_ports = { 5280 }
 http_interfaces = { "*" }
-
 https_ports = {}
 https_interfaces = {}
 
--- Enabled modules
+-- Modules
 modules_enabled = {
   "roster";
   "groups";

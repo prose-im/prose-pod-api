@@ -5,11 +5,15 @@
 
 use linked_hash_map::LinkedHashMap;
 use std::collections::HashSet;
-use std::fmt::{self, Display};
+use std::hash::Hash;
 use std::path::PathBuf;
 
 use ::entity::model::server_config::*;
 use ::entity::model::*;
+
+use super::prosody_config_file::model::utils::*;
+use super::prosody_config_file::model::ProsodyConfigSection as ProsodyConfigFileSection;
+use super::prosody_config_file::model::*;
 
 /// Prosody configuration.
 ///
@@ -27,6 +31,26 @@ use ::entity::model::*;
 /// See <https://prosody.im/doc/configure>.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProsodyConfig {
+    pub global_settings: ProsodySettings,
+    pub additional_sections: Vec<ProsodyConfigSection>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum ProsodyConfigSection {
+    VirtualHost {
+        hostname: String,
+        settings: ProsodySettings,
+    },
+    Component {
+        hostname: String,
+        plugin: String,
+        name: String,
+        settings: ProsodySettings,
+    },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ProsodySettings {
     pub pidfile: PathBuf,
     pub authentication: AuthenticationProvider,
     pub storage: StorageConfig,
@@ -53,7 +77,7 @@ pub struct ProsodyConfig {
     pub consider_websocket_secure: bool,
     pub cross_domain_websocket: bool,
     pub contact_info: ContactInfo,
-    pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
+    pub archive_expires_after: PossiblyInfinite<Duration<DateLike>>,
     pub default_archive_policy: bool,
     pub max_archive_query_results: u32,
     pub upgrade_legacy_vcards: bool,
@@ -129,7 +153,7 @@ pub enum LogConfig {
 #[derive(Debug, Eq, PartialEq)]
 pub enum LogLevelValue {
     /// A file path, relative to the config file.
-    FilePath(String),
+    FilePath(PathBuf),
     /// Log to the console, useful for debugging when running in the foreground (`"*console"`).
     Console,
     /// Log to syslog (`"*syslog"`).
@@ -196,271 +220,439 @@ pub struct ContactInfo {
 impl Default for ProsodyConfig {
     fn default() -> Self {
         Self {
-            pidfile: "/var/run/prosody/prosody.pid".into(),
-            authentication: AuthenticationProvider::InternalHashed,
-            storage: StorageConfig::Raw(StorageBackend::Internal),
-            log: LogConfig::Map(
-                vec![
-                    (LogLevel::Info, LogLevelValue::Console),
-                    (LogLevel::Warn, LogLevelValue::Console),
-                    (LogLevel::Error, LogLevelValue::Console),
+            global_settings: ProsodySettings {
+                pidfile: "/var/run/prosody/prosody.pid".into(),
+                authentication: AuthenticationProvider::InternalHashed,
+                storage: StorageConfig::Raw(StorageBackend::Internal),
+                log: LogConfig::Map(
+                    vec![
+                        (LogLevel::Info, LogLevelValue::Console),
+                        (LogLevel::Warn, LogLevelValue::Console),
+                        (LogLevel::Error, LogLevelValue::Console),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+                interfaces: vec![Interface::AllIPv4],
+                c2s_ports: vec![5222],
+                s2s_ports: vec![5269],
+                http_ports: vec![5280],
+                http_interfaces: vec![Interface::AllIPv4],
+                https_ports: vec![],
+                https_interfaces: vec![],
+                admins: Default::default(),
+                modules_enabled: vec![
+                    "roster",
+                    "groups",
+                    "saslauth",
+                    "tls",
+                    "dialback",
+                    "disco",
+                    "posix",
+                    "smacks",
+                    "private",
+                    "vcard_legacy",
+                    "vcard4",
+                    "version",
+                    "uptime",
+                    "time",
+                    "ping",
+                    "lastactivity",
+                    "pep",
+                    "blocklist",
+                    "limits",
+                    "carbons",
+                    "mam",
+                    "csi",
+                    "server_contact_info",
+                    "websocket",
+                    "s2s_bidi",
+                ]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+                modules_disabled: Default::default(),
+                ssl: SSLConfig::Manual {
+                    key: "/etc/prosody/certs/prose.org.local.key".into(),
+                    certificate: "/etc/prosody/certs/prose.org.local.crt".into(),
+                },
+                allow_registration: false,
+                c2s_require_encryption: true,
+                s2s_require_encryption: true,
+                s2s_secure_auth: false,
+                c2s_stanza_size_limit: Bytes::KibiBytes(256),
+                s2s_stanza_size_limit: Bytes::KibiBytes(512),
+                limits: vec![
+                    (
+                        ConnectionType::ClientToServer,
+                        ConnectionLimits {
+                            rate: Some(DataRate::KiloBytesPerSec(50)),
+                            burst: Some(Duration(TimeLike::Seconds(2))),
+                        },
+                    ),
+                    (
+                        ConnectionType::ServerToServerInbounds,
+                        ConnectionLimits {
+                            rate: Some(DataRate::KiloBytesPerSec(250)),
+                            burst: Some(Duration(TimeLike::Seconds(4))),
+                        },
+                    ),
                 ]
                 .into_iter()
                 .collect(),
-            ),
-            interfaces: vec![Interface::AllIPv4],
-            c2s_ports: vec![5222],
-            s2s_ports: vec![5269],
-            http_ports: vec![5280],
-            http_interfaces: vec![Interface::AllIPv4],
-            https_ports: vec![],
-            https_interfaces: vec![],
-            admins: Default::default(),
-            modules_enabled: vec![
-                "roster",
-                "groups",
-                "saslauth",
-                "tls",
-                "dialback",
-                "disco",
-                "posix",
-                "smacks",
-                "private",
-                "vcard_legacy",
-                "vcard4",
-                "version",
-                "uptime",
-                "time",
-                "ping",
-                "lastactivity",
-                "pep",
-                "blocklist",
-                "limits",
-                "carbons",
-                "mam",
-                "csi",
-                "server_contact_info",
-                "websocket",
-                "s2s_bidi",
-            ]
-            .into_iter()
-            .map(ToString::to_string)
-            .collect(),
-            modules_disabled: Default::default(),
-            ssl: SSLConfig::Manual {
-                key: "/etc/prosody/certs/prose.org.local.key".into(),
-                certificate: "/etc/prosody/certs/prose.org.local.crt".into(),
+                consider_websocket_secure: true,
+                cross_domain_websocket: true,
+                contact_info: ContactInfo {
+                    admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                    ..Default::default()
+                },
+                archive_expires_after: PossiblyInfinite::Infinite,
+                default_archive_policy: true,
+                max_archive_query_results: 100,
+                upgrade_legacy_vcards: true,
+                groups_file: "/etc/prosody/roster_groups.txt".into(),
             },
-            allow_registration: false,
-            c2s_require_encryption: true,
-            s2s_require_encryption: true,
-            s2s_secure_auth: false,
-            c2s_stanza_size_limit: Bytes::KibiBytes(256),
-            s2s_stanza_size_limit: Bytes::KibiBytes(512),
-            limits: vec![
-                (
-                    ConnectionType::ClientToServer,
-                    ConnectionLimits {
-                        rate: Some(DataRate::KiloBytesPerSec(50)),
-                        burst: Some(Duration(TimeLike::Seconds(2))),
-                    },
-                ),
-                (
-                    ConnectionType::ServerToServerInbounds,
-                    ConnectionLimits {
-                        rate: Some(DataRate::KiloBytesPerSec(250)),
-                        burst: Some(Duration(TimeLike::Seconds(4))),
-                    },
-                ),
-            ]
-            .into_iter()
-            .collect(),
-            consider_websocket_secure: true,
-            cross_domain_websocket: true,
-            contact_info: ContactInfo {
-                admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
-                ..Default::default()
-            },
-            archive_expires_after: Some(PossiblyInfinite::Infinite),
-            default_archive_policy: true,
-            max_archive_query_results: 100,
-            upgrade_legacy_vcards: true,
-            groups_file: "/etc/prosody/roster_groups.txt".into(),
+            additional_sections: vec![],
         }
     }
 }
 
 impl Default for LogConfig {
     fn default() -> Self {
-        Self::Raw(LogLevelValue::FilePath("prosody.log".to_string()))
+        Self::Raw(LogLevelValue::FilePath("prosody.log".into()))
     }
 }
 
-// ===== INTO =====
+// ===== Config to config file =====
 
-impl Into<ConnectionType> for entity::model::server_config::ConnectionType {
-    fn into(self) -> ConnectionType {
+impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
+    fn into(self) -> Vec<Group<LuaDefinition>> {
+        let mut res: Vec<Group<LuaDefinition>> = vec![];
+
+        res.push(def("pidfile", self.pidfile).into());
+        res.push(
+            vec![
+                def("authentication", self.authentication),
+                def("storage", self.storage),
+            ]
+            .into(),
+        );
+        res.push(def("log", self.log).into());
+        res.push(Group::new(
+            "Network interfaces/ports",
+            vec![
+                def("interfaces", self.interfaces),
+                def("c2s_ports", self.c2s_ports),
+                def("s2s_ports", self.s2s_ports),
+                def("http_ports", self.http_ports),
+                def("http_interfaces", self.http_interfaces),
+            ],
+        ));
+        res.push(
+            vec![
+                def("https_ports", self.https_ports),
+                def("https_interfaces", self.https_interfaces),
+            ]
+            .into(),
+        );
+        res.push(Group::new(
+            "Modules",
+            vec![
+                def("modules_enabled", self.modules_enabled),
+                def("modules_disabled", self.modules_disabled),
+            ],
+        ));
+        res.push(
+            def("ssl", self.ssl)
+                .comment("Path to SSL key and certificate for all server domains")
+                .into(),
+        );
+        res.push(
+            def("allow_registration", false)
+                .comment("Disable in-band registrations (done through the Prose Pod Dashboard/API)")
+                .into(),
+        );
+        res.push(Group::new(
+            "Mandate highest security levels",
+            vec![
+                def("c2s_require_encryption", self.c2s_require_encryption),
+                def("s2s_require_encryption", self.s2s_require_encryption),
+                def("s2s_secure_auth", self.s2s_secure_auth),
+            ],
+        ));
+        res.push(Group::new(
+            "Enforce safety C2S/S2S limits",
+            vec![
+                def("c2s_stanza_size_limit", self.c2s_stanza_size_limit),
+                def("s2s_stanza_size_limit", self.s2s_stanza_size_limit),
+            ],
+        ));
+        res.push(def("limits", self.limits).into());
+        res.push(Group::new(
+            "Allow reverse-proxying to WebSocket service over insecure local HTTP",
+            vec![
+                def("consider_websocket_secure", self.consider_websocket_secure),
+                def("cross_domain_websocket", self.cross_domain_websocket),
+            ],
+        ));
+        res.push(
+            def("contact_info", self.contact_info)
+                .comment("Specify server administrator")
+                .into(),
+        );
+        res.push(Group::new(
+            "MAM settings",
+            vec![
+                def("archive_expires_after", self.archive_expires_after),
+                def("default_archive_policy", self.default_archive_policy),
+                def("max_archive_query_results", self.max_archive_query_results),
+            ],
+        ));
+        res.push(
+            def("upgrade_legacy_vcards", self.upgrade_legacy_vcards)
+                .comment("Enable vCard legacy compatibility layer")
+                .into(),
+        );
+        res.push(
+            def("groups_file", self.groups_file)
+                .comment("Define server members groups file")
+                .into(),
+        );
+
+        res
+    }
+}
+
+impl Into<ProsodyConfigFileSection> for ProsodyConfigSection {
+    fn into(self) -> ProsodyConfigFileSection {
         match self {
-            Self::ClientToServer => ConnectionType::ClientToServer,
-            Self::ServerToServerInbounds => ConnectionType::ServerToServerInbounds,
-            Self::ServerToServerOutbounds => ConnectionType::ServerToServerOutbounds,
+            Self::VirtualHost { hostname, settings } => ProsodyConfigFileSection::VirtualHost {
+                comments: vec![],
+                hostname,
+                settings: settings.into(),
+            },
+            Self::Component {
+                hostname,
+                plugin,
+                name,
+                settings,
+            } => ProsodyConfigFileSection::Component {
+                comments: vec![],
+                hostname,
+                plugin,
+                name,
+                settings: settings.into(),
+            },
         }
     }
 }
 
-mod transform {
-    use super::*;
-    use std::hash::Hash;
-
-    impl ToString for ProsodyConfig {
-        fn to_string(&self) -> String {
-            let mut file = format!(
-                "-- This file has been automatically generated by Prose Pod API.
-    -- Do NOT edit this file manually or your changes will be overriden during the next reload.
-
-    log = {log}
-
-    admins = {{{admins}}}
-
-    modules_enabled = {{{modules_enabled}}}
-    modules_disabled = {{{modules_disabled}}}
-
-    limits = {{{limits}}}",
-                log = self.log,
-                admins = format_set(&self.admins),
-                modules_enabled = format_set(&self.modules_enabled),
-                modules_disabled = format_set(&self.modules_disabled),
-                limits = format_map(&self.limits),
-            );
-
-            if let Some(duration) = &self.archive_expires_after {
-                file.push_str(&format!(
-                    "\n\narchive_expires_after = {}",
-                    format_duration_date_inf(duration)
-                ));
-            }
-
-            file
+impl Into<ProsodyConfigFile> for ProsodyConfig {
+    fn into(self) -> ProsodyConfigFile {
+        ProsodyConfigFile {
+            header: Some(vec![
+                "Prose Pod Server".into(),
+                "XMPP Server Configuration".into(),
+                r#"/!\ This file has been automatically generated by Prose Pod API."#.into(),
+                r#"/!\ Do NOT edit this file manually or your changes will be overriden during the next reload."#.into(),
+            ].into()),
+            global_settings: self.global_settings.into(),
+            additional_sections: self
+                .additional_sections
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
+}
 
-    fn format_set<T>(set: &HashSet<T>) -> String
-    where
-        T: Display,
-    {
-        set.into_iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-
-    fn format_map<K, V>(map: &LinkedHashMap<K, V>) -> String
-    where
-        K: Display + Hash + Eq,
-        V: Display,
-    {
-        if map.is_empty() {
-            return "{}".to_string();
+impl Into<LuaValue> for AuthenticationProvider {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::InternalPlain => "internal_plain",
+            Self::InternalHashed => "internal_hashed",
+            Self::Cyrus => "cyrus",
+            Self::LDAP => "ldap",
+            Self::Anonymous => "anonymous",
         }
-
-        let inner = map
-            .iter()
-            .map(|(k, v)| {
-                format!("{k} = {v};")
-                    .lines()
-                    .map(|l| format!("  {l}"))
-                    .collect::<Vec<_>>()
-                    .join("")
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!("{{\n{inner}\n}}")
+        .into()
     }
+}
 
-    /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
-    fn format_duration_date(duration: &Duration<DateLike>) -> String {
-        match duration.0 {
-            DateLike::Days(n) => format!("{n}d"),
-            DateLike::Weeks(n) => format!("{n}w"),
-            DateLike::Months(n) => format!("{n}m"),
-            DateLike::Years(n) => format!("{n}y"),
+impl Into<LuaValue> for StorageConfig {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Raw(backend) => backend.into(),
+            Self::Map(map) => map.into(),
         }
     }
+}
 
-    /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
-    fn format_duration_date_inf(duration: &PossiblyInfinite<Duration<DateLike>>) -> String {
-        match duration {
-            PossiblyInfinite::Infinite => "never".to_string(),
-            PossiblyInfinite::Finite(duration) => format_duration_date(duration),
+impl Into<LuaValue> for StorageBackend {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Internal => "internal",
+            Self::SQL => "sql",
+            Self::Memory => "memory",
+            Self::Null => "null",
+            Self::None => "none",
+        }
+        .into()
+    }
+}
+
+impl Into<LuaValue> for LogConfig {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Raw(value) => value.into(),
+            Self::Map(map) => map.into(),
         }
     }
+}
 
-    impl Display for LogConfig {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Self::Raw(v) => v.fmt(f),
-                Self::Map(map) => format_map(map).fmt(f),
-            }
+impl Into<LuaValue> for LogLevelValue {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::FilePath(path) => path.into(),
+            Self::Console => "*console".into(),
+            Self::Syslog => "*syslog".into(),
         }
     }
+}
 
-    impl Display for LogLevelValue {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Self::FilePath(p) => p.fmt(f),
-                Self::Console => write!(f, "*console"),
-                Self::Syslog => write!(f, "*syslog"),
-            }
+impl Into<String> for LogLevel {
+    fn into(self) -> String {
+        match self {
+            Self::Debug => "debug",
+            Self::Info => "info",
+            Self::Warn => "warn",
+            Self::Error => "error",
+        }
+        .to_string()
+    }
+}
+
+impl Into<LuaValue> for Interface {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::AllIPv4 => "*".into(),
+            Self::AllIPv6 => "::".into(),
+            Self::Address(address) => address.into(),
         }
     }
+}
 
-    impl Display for LogLevel {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Self::Debug => write!(f, "debug"),
-                Self::Info => write!(f, "info"),
-                Self::Warn => write!(f, "warn"),
-                Self::Error => write!(f, "error"),
-            }
+impl Into<LuaValue> for SSLConfig {
+    fn into(self) -> LuaValue {
+        match self {
+            SSLConfig::Automatic(path) => path.into(),
+            SSLConfig::Manual { certificate, key } => vec![
+                ("certificate", certificate),
+                ("key", key),
+            ]
+            .into(),
         }
     }
+}
 
-    impl Display for ConnectionType {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Self::ClientToServer => write!(f, "c2s"),
-                Self::ServerToServerInbounds => write!(f, "s2sin"),
-                Self::ServerToServerOutbounds => write!(f, "s2sout"),
-            }
+impl Into<LuaNumber> for Bytes {
+    fn into(self) -> LuaNumber {
+        match self {
+            Self::Bytes(n) => LuaNumber::from(n),
+            Self::KiloBytes(n) => mult(Self::Bytes(n), 1000),
+            Self::KibiBytes(n) => mult(Self::Bytes(n), 1024),
+            Self::MegaBytes(n) => mult(Self::KiloBytes(n), 1000),
+            Self::MebiBytes(n) => mult(Self::KibiBytes(n), 1024),
         }
     }
+}
 
+impl Into<LuaValue> for DataRate {
     /// <https://prosody.im/doc/modules/mod_limits> states:
     ///
     /// > All units are in terms of bytes, not bits, so that “kb/s” is interpreted as “kilobytes per second”, where a kilobyte is 1000 bytes.
     ///
     /// This behavior is non-standard (we would expect "kB/s" for “kilobytes per second”),
     /// therefore we have to define a custom printer.
-    fn format_data_rate(rate: &DataRate) -> String {
-        match rate {
-            DataRate::BytesPerSec(n) => format!("{n}b/s"),
-            DataRate::KiloBytesPerSec(n) => format!("{n}kb/s"),
-            DataRate::MegaBytesPerSec(n) => format!("{n}mb/s"),
+    fn into(self) -> LuaValue {
+        match self {
+            Self::BytesPerSec(n) => format!("{n}b/s"),
+            Self::KiloBytesPerSec(n) => format!("{n}kb/s"),
+            Self::MegaBytesPerSec(n) => format!("{n}mb/s"),
+        }
+        .into()
+    }
+}
+
+impl<Content: DurationContent> Into<LuaValue> for Duration<Content>
+where
+    Content: DurationContent + Into<LuaValue>,
+{
+    fn into(self) -> LuaValue {
+        self.0.into()
+    }
+}
+
+impl Into<LuaValue> for DateLike {
+    /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Days(n) => format!("{n}d"),
+            Self::Weeks(n) => format!("{n}w"),
+            Self::Months(n) => format!("{n}m"),
+            Self::Years(n) => format!("{n}y"),
+        }
+        .into()
+    }
+}
+
+impl<Content> Into<LuaValue> for PossiblyInfinite<Duration<Content>>
+where
+    Content: DurationContent + Into<LuaValue>,
+{
+    /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
+    fn into(self) -> LuaValue {
+        match self {
+            PossiblyInfinite::Infinite => "never".into(),
+            PossiblyInfinite::Finite(duration) => duration.into(),
         }
     }
+}
 
-    impl Display for ConnectionLimits {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let mut map: LinkedHashMap<&str, String> = LinkedHashMap::new();
-
-            if let Some(rate) = &self.rate {
-                map.insert("rate", format_data_rate(rate));
-            }
-            if let Some(burst) = &self.burst {
-                map.insert("burst", format!("{}s", burst.seconds()));
-            }
-
-            format_map(&map).fmt(f)
+impl Into<String> for ConnectionType {
+    fn into(self) -> String {
+        match self {
+            Self::ClientToServer => "c2s",
+            Self::ServerToServerInbounds => "s2sin",
+            Self::ServerToServerOutbounds => "s2sout",
         }
+        .to_string()
+    }
+}
+
+impl Into<LuaValue> for ConnectionLimits {
+    fn into(self) -> LuaValue {
+        let mut map: LinkedHashMap<String, LuaValue> = LinkedHashMap::new();
+        if let Some(rate) = self.rate {
+            map.insert("rate".to_string(), rate.into());
+        }
+        if let Some(burst) = self.burst {
+            map.insert("burst".to_string(), format!("{}s", burst.seconds()).into());
+        }
+        map.into()
+    }
+}
+
+impl Into<LuaValue> for ContactInfo {
+    fn into(self) -> LuaValue {
+        vec![
+            ("abuse", self.abuse),
+            ("admin", self.admin),
+            ("feedback", self.feedback),
+            ("sales", self.sales),
+            ("security", self.security),
+            ("support", self.support),
+        ]
+        .into()
     }
 }
