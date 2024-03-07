@@ -5,9 +5,8 @@
 
 use log::error;
 use migration::DbErr;
-use prose_pod_api::prosody::prosody_config_from_db;
-use prose_pod_api::prosody::ProsodyConfig;
-use prose_pod_api::server_ctl::{Error, ServerCtlImpl};
+use service::server_ctl::{Error, ServerCtlImpl};
+use service::{prosody_config_from_db, ProseDefault, ProsodyConfig};
 use service::{sea_orm::DatabaseConnection, Query};
 use std::sync::{Arc, Mutex};
 
@@ -16,7 +15,7 @@ pub struct DummyServerCtl {
     state: Arc<Mutex<DummyServerCtlState>>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct DummyServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: ProsodyConfig,
@@ -32,6 +31,15 @@ impl DummyServerCtlState {
             conf_reload_count: 0,
             applied_config: prosody_config,
         })
+    }
+}
+
+impl Default for DummyServerCtlState {
+    fn default() -> Self {
+        Self {
+            conf_reload_count: 0,
+            applied_config: ProsodyConfig::prose_default(),
+        }
     }
 }
 

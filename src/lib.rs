@@ -8,8 +8,6 @@ extern crate rocket;
 
 pub mod error;
 pub mod guards;
-pub mod prosody;
-pub mod server_ctl;
 pub mod v1;
 
 use guards::Db;

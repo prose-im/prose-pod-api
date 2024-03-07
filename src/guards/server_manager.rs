@@ -12,10 +12,9 @@ use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set};
-use service::Query;
+use service::{Query, ServerCtl};
 
 use crate::error::{self, Error};
-use crate::server_ctl::ServerCtl;
 
 use super::{Db, JID as JIDGuard};
 

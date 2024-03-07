@@ -2432,7 +2432,6 @@ dependencies = [
  "hmac",
  "iso8601-duration",
  "jwt",
- "linked-hash-map",
  "log",
  "migration",
  "rocket",
@@ -2456,6 +2455,10 @@ dependencies = [
  "linked-hash-map",
  "linked_hash_set",
 ]
+
+[[package]]
+name = "prosodyctl"
+version = "0.1.0"
 
 [[package]]
 name = "ptr_meta"
@@ -3166,6 +3169,8 @@ name = "service"
 version = "0.1.0"
 dependencies = [
  "entity",
+ "log",
+ "prosody-config",
  "sea-orm",
  "tokio",
 ]

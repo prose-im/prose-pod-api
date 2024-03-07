@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 license = "MPL-2.0"
-authors = [
-    "Rémi Bardon <remi@remibardon.name>",
-]
+authors = ["Rémi Bardon <remi@remibardon.name>"]
 
 [dependencies]
 entity = { path = "../entity" }
+log = { version = "0.4", features = ["std"] }
+prosody-config = { path = "../prosody-config" }
 
 [dependencies.sea-orm]
 version = "1.0.0-rc.1"

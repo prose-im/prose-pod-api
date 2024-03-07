@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use log::error;
 use std::{path::PathBuf, process::Command};
 
 use crate::server_ctl::*;

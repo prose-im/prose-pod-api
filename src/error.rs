@@ -11,8 +11,7 @@ use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
 use service::sea_orm;
-
-use crate::server_ctl;
+use service::server_ctl;
 
 #[derive(Debug)]
 pub enum Error {

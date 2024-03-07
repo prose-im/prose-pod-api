@@ -16,7 +16,6 @@ use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
 use entity::member;
 use log::debug;
 use prose_pod_api::guards::{Db, JWTKey, JWTService};
-use prose_pod_api::server_ctl::ServerCtl;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -24,6 +23,7 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::sea_orm::DatabaseConnection;
+use service::ServerCtl;
 use tokio::runtime::Handle;
 use tokio::task;
 // use tracing_subscriber::{
