@@ -146,46 +146,6 @@ fn test_prose_default_config() {
             },
         ],
     };
-    /*
-    ProsodyConfigFile {
-        additional_sections: vec![
-            ProsodyConfigFileSection::VirtualHost {
-                comments: vec![],
-                hostname: "prose.org.local".to_string(),
-                settings: vec![],
-            },
-            ProsodyConfigFileSection::Component {
-                comments: vec![],
-                hostname: "groups.prose.org.local".to_string(),
-                plugin: "muc".to_string(),
-                name: "Chatrooms".to_string(),
-                settings: vec![
-                    def("modules_enabled", vec!["muc_mam"]).into(),
-                    def("restrict_room_creation", "local").into(),
-                    vec![
-                        def("log_all_rooms", true),
-                        def("muc_log_expires_after", "never"),
-                    ].into(),
-                ],
-            },
-            ProsodyConfigFileSection::Component {
-                comments: vec![],
-                hostname: "upload.prose.org.local".to_string(),
-                plugin: "http_file_share".to_string(),
-                name: "HTTP File Upload".to_string(),
-                settings: vec![
-                    vec![
-                        def("http_file_share_size_limit", mult(20, mult(1024, 1024))),
-                        def("http_file_share_daily_quota", mult(250, mult(1024, 1024))),
-                        def("http_file_share_expires_after", -1),
-                        def("http_host", "localhost"),
-                        def("http_external_url", "http://localhost:5280/"),
-                    ].into(),
-                ],
-            },
-        ],
-    };
-    */
 
     let result = default_config.print(vec![
         "Prose Pod Server".into(),
