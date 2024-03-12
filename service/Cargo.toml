@@ -20,7 +20,10 @@ features = [
 ]
 
 [dev-dependencies]
-tokio = "1.20.0"
+cucumber = "0.20"
+insta = "1"
+migration = { path = "../migration" }
+tokio = "1.20"
 
 [features]
 mock = ["sea-orm/mock"]
@@ -28,3 +31,7 @@ mock = ["sea-orm/mock"]
 [[test]]
 name = "mock"
 required-features = ["mock"]
+
+[[test]]
+name = "cucumber"
+harness = false

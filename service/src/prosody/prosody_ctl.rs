@@ -47,19 +47,19 @@ impl ProsodyCtl {
 
 impl ServerCtlImpl for ProsodyCtl {
     fn start(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["start".to_string()])
+        self.run_prosodyctl(vec!["start"])
     }
 
     fn stop(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["stop".to_string()])
+        self.run_prosodyctl(vec!["stop"])
     }
 
     fn restart(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["restart".to_string()])
+        self.run_prosodyctl(vec!["restart"])
     }
 
     fn reload(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["reload".to_string()])
+        self.run_prosodyctl(vec!["reload"])
     }
 
     fn status(&self) -> Result<(), Error> {

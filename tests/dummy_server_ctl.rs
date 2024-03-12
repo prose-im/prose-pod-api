@@ -3,11 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use ::migration::DbErr;
+use ::service::sea_orm::DatabaseConnection;
+use ::service::server_ctl::{Error, ServerCtlImpl};
+use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
 use log::error;
-use migration::DbErr;
-use service::server_ctl::{Error, ServerCtlImpl};
-use service::{prosody_config_from_db, ProseDefault, ProsodyConfig};
-use service::{sea_orm::DatabaseConnection, Query};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
@@ -15,10 +15,10 @@ pub struct DummyServerCtl {
     state: Arc<Mutex<DummyServerCtlState>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DummyServerCtlState {
     pub conf_reload_count: usize,
-    pub applied_config: ProsodyConfig,
+    pub applied_config: Option<ProsodyConfigFile>,
 }
 
 impl DummyServerCtlState {
@@ -29,17 +29,8 @@ impl DummyServerCtlState {
         let prosody_config = prosody_config_from_db(server_config);
         Ok(Self {
             conf_reload_count: 0,
-            applied_config: prosody_config,
+            applied_config: Some(prosody_config),
         })
-    }
-}
-
-impl Default for DummyServerCtlState {
-    fn default() -> Self {
-        Self {
-            conf_reload_count: 0,
-            applied_config: ProsodyConfig::prose_default(),
-        }
     }
 }
 

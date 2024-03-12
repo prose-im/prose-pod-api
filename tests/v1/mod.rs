@@ -82,6 +82,11 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
     Ok(())
 }
 
+#[given("nothing has changed since the initialization of the workspace")]
+fn given_nothing_changed(_world: &mut TestWorld) {
+    // Do nothing, even though we could performs checks
+}
+
 #[then("the user should receive 'Prose Pod not initialized'")]
 async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     let res = world.result();

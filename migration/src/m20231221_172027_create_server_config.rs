@@ -5,15 +5,15 @@ pub struct Migration;
 
 /// Enable message archiving by default.
 pub const DEFAULT_MESSAGE_ARCHIVE_ENABLED: bool = true;
-/// 2 years in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
-pub const DEFAULT_MESSAGE_ARCHIVE_RETENTION: &'static str = "P2Y";
+/// Keep indefinitely, as defined in <https://github.com/prose-im/prose-pod-system/blob/f2e353758e628c01c0923fc0e46491f1644354c9/server/etc/prosody/prosody.cfg.lua#L97>.
+pub const DEFAULT_MESSAGE_ARCHIVE_RETENTION: &'static str = "infinite";
 /// Enable file upload by default.
 pub const DEFAULT_FILE_UPLOAD_ENABLED: bool = true;
 // TODO: Make `FileStorageEncryptionScheme` an enum
 /// Encrypt files in [AES 256](https://fr.wikipedia.org/wiki/Advanced_Encryption_Standard) by default.
 pub const DEFAULT_FILE_ENCRYPTION_SCHEME: &'static str = "AES-256";
-/// 1 year in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
-pub const DEFAULT_FILE_RETENTION: &'static str = "P1Y";
+/// Keep indefinitely, as defined in <https://github.com/prose-im/prose-pod-system/blob/f2e353758e628c01c0923fc0e46491f1644354c9/server/etc/prosody/prosody.cfg.lua#L126>.
+pub const DEFAULT_FILE_RETENTION: &'static str = "infinite";
 /// Enable MFA by default.
 pub const DEFAULT_MFA_ENABLED: bool = true;
 // TODO: Make `MinimumTLSVersion` an enum
