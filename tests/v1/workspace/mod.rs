@@ -3,12 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::{Response, TestWorld};
+use crate::TestWorld;
 use cucumber::{given, then, when};
+use migration::DbErr;
 use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::Query;
 
 use super::{init_workspace, DEFAULT_WORKSPACE_NAME};
 
@@ -56,10 +58,13 @@ async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
 }
 
 #[then(expr = "the workspace should be named {string}")]
-async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) {
-    let mut res: Response = get_workspace_name(&world.client).await.into();
-    let res: GetWorkspaceNameResponse = res.body_into();
-    assert_eq!(res.name, name);
+async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
+    let db = world.db();
+    let server_config = Query::server_config(db)
+        .await?
+        .expect("Workspace not initialized");
+    assert_eq!(server_config.workspace_name, name);
+    Ok(())
 }
 
 // WORKSPACE ICON
@@ -113,23 +118,29 @@ async fn then_response_workspace_icon_is(world: &mut TestWorld, url: String) {
 }
 
 #[then(expr = "the workspace icon URL should be {string}")]
-async fn then_workspace_icon_url_should_be(world: &mut TestWorld, url: String) {
-    let mut res: Response = get_workspace_icon(&world.client).await.into();
-    let res: GetWorkspaceIconResponse = res.body_into();
-    assert_eq!(res.url, Some(url));
+async fn then_workspace_icon_url_should_be(
+    world: &mut TestWorld,
+    url: String,
+) -> Result<(), DbErr> {
+    let db = world.db();
+    let server_config = Query::server_config(db)
+        .await?
+        .expect("Workspace not initialized");
+    assert_eq!(server_config.workspace_icon_url, Some(url));
+    Ok(())
 }
 
 // // WORKSPACE ACCENT COLOR
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color_not_initialized() {
-//     test_settings_must_be_initialized(uri!(super::get_workspace_accent_color));
+//     test_workspace_must_be_initialized(uri!(super::get_workspace_accent_color));
 // }
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color() -> Result<(), Box<dyn Error>> {
 //     let client = rocket_test_client().await;
-//     init_settings(&client).await?;
+//     init_workspace(&client).await?;
 //     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
 
 //     assert_eq!(res.color, None);
@@ -140,7 +151,7 @@ async fn then_workspace_icon_url_should_be(world: &mut TestWorld, url: String) {
 // #[tokio::test]
 // async fn test_set_workspace_accent_color() -> Result<(), Box<dyn Error>> {
 //     let client = rocket_test_client().await;
-//     init_settings(&client).await?;
+//     init_workspace(&client).await?;
 
 //     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
 //     assert_eq!(res.color, None);

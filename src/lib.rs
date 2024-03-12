@@ -6,16 +6,17 @@
 #[macro_use]
 extern crate rocket;
 
+pub mod error;
+pub mod guards;
 pub mod v1;
+
+use guards::Db;
 
 use migration::MigratorTrait;
 use rocket::fairing::{self, AdHoc};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database;
 use utoipa_swagger_ui::{Config, SwaggerUi, Url};
-
-mod pool;
-use pool::Db;
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(rocket: Rocket<Build>) -> Rocket<Build> {

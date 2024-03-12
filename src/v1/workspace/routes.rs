@@ -3,18 +3,18 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use super::Settings;
-use entity::settings;
-use migration::sea_orm::{ActiveModelTrait, Set};
+use entity::server_config;
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::sea_orm::{ActiveModelTrait as _, Set};
 use utoipa::ToSchema;
 
-use crate::pool::Db;
-use crate::v1::error::Error;
+use crate::error::Error;
+use crate::guards::Db;
+use crate::guards::ServerConfig;
 
 pub type R<T> = Result<Json<T>, Error>;
 
@@ -33,10 +33,10 @@ pub struct GetWorkspaceNameResponse {
     )
 )]
 #[get("/v1/workspace/name")]
-pub(super) fn get_workspace_name(settings: Settings) -> R<GetWorkspaceNameResponse> {
-    let settings = settings.model?;
+pub(super) fn get_workspace_name(server_config: ServerConfig) -> R<GetWorkspaceNameResponse> {
+    let server_config = server_config.model?;
     let response = GetWorkspaceNameResponse {
-        name: settings.workspace_name,
+        name: server_config.workspace_name,
     }
     .into();
 
@@ -64,18 +64,18 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub(super) async fn set_workspace_name(
     conn: Connection<'_, Db>,
-    settings: Settings,
+    server_config: ServerConfig,
     req: Json<SetWorkspaceNameRequest>,
 ) -> R<SetWorkspaceNameResponse> {
     let db = conn.into_inner();
-    let settings = settings.model?;
+    let server_config = server_config.model?;
 
-    let mut active: settings::ActiveModel = settings.into();
+    let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_name = Set(req.name.clone());
-    let settings = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await.map_err(Error::DbErr)?;
 
     let response = SetWorkspaceNameResponse {
-        name: settings.workspace_name,
+        name: server_config.workspace_name,
     }
     .into();
 
@@ -96,10 +96,10 @@ pub struct GetWorkspaceIconResponse {
     )
 )]
 #[get("/v1/workspace/icon")]
-pub(super) fn get_workspace_icon(settings: Settings) -> R<GetWorkspaceIconResponse> {
-    let settings = settings.model?;
+pub(super) fn get_workspace_icon(server_config: ServerConfig) -> R<GetWorkspaceIconResponse> {
+    let server_config = server_config.model?;
     let response = GetWorkspaceIconResponse {
-        url: settings.workspace_icon_url,
+        url: server_config.workspace_icon_url,
     }
     .into();
 
@@ -110,19 +110,19 @@ pub(super) fn get_workspace_icon(settings: Settings) -> R<GetWorkspaceIconRespon
 #[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
 pub(super) async fn set_workspace_icon_string(
     conn: Connection<'_, Db>,
-    settings: Settings,
+    server_config: ServerConfig,
     string: String,
 ) -> R<GetWorkspaceIconResponse> {
     let db = conn.into_inner();
-    let settings = settings.model?;
+    let server_config = server_config.model?;
 
     // TODO: Validate `string`
-    let mut active: settings::ActiveModel = settings.into();
+    let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_icon_url = Set(Some(string));
-    let settings = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await.map_err(Error::DbErr)?;
 
     let response = GetWorkspaceIconResponse {
-        url: settings.workspace_icon_url,
+        url: server_config.workspace_icon_url,
     }
     .into();
 
@@ -175,10 +175,12 @@ pub struct GetWorkspaceAccentColorResponse {
     ),
 )]
 #[get("/v1/workspace/accent-color")]
-pub(super) fn get_workspace_accent_color(settings: Settings) -> R<GetWorkspaceAccentColorResponse> {
-    let settings = settings.model?;
+pub(super) fn get_workspace_accent_color(
+    server_config: ServerConfig,
+) -> R<GetWorkspaceAccentColorResponse> {
+    let server_config = server_config.model?;
     let response = GetWorkspaceAccentColorResponse {
-        color: settings.workspace_accent_color,
+        color: server_config.workspace_accent_color,
     }
     .into();
 
@@ -202,19 +204,19 @@ pub struct SetWorkspaceAccentColorRequest {
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub(super) async fn set_workspace_accent_color(
     conn: Connection<'_, Db>,
-    settings: Settings,
+    server_config: ServerConfig,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> R<GetWorkspaceAccentColorResponse> {
     let db = conn.into_inner();
-    let settings = settings.model?;
+    let server_config = server_config.model?;
 
     // TODO: Validate `string`
-    let mut active: settings::ActiveModel = settings.into();
+    let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_accent_color = Set(Some(req.color.clone()));
-    let settings = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await.map_err(Error::DbErr)?;
 
     let response = GetWorkspaceAccentColorResponse {
-        color: settings.workspace_accent_color,
+        color: server_config.workspace_accent_color,
     }
     .into();
 

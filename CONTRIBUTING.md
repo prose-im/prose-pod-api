@@ -12,6 +12,13 @@ After release 1.0, contributions will be more than welcome though!
 cargo install sea-orm-cli
 ```
 
+To use `prosodyctl` locally, you need `prosodyctl` and its dependencies.
+
+```bash
+brew install prosodyctl
+luarocks install luaunbound
+```
+
 ## Testing
 
 As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md),
