@@ -10,8 +10,8 @@ use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
-use service::sea_orm;
 use service::server_ctl;
+use service::{sea_orm, MutationError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -32,6 +32,10 @@ pub enum Error {
     PodAlreadyInitialized,
     /// ServerCtl fail (e.g. execution of `prosodyctl` failed).
     ServerCtlErr(server_ctl::Error),
+    /// Bad request (invalid data for example).
+    BadRequest { reason: String },
+    /// Service error while mutation an entity.
+    MutationErr(MutationError),
 }
 
 impl Error {
@@ -46,6 +50,8 @@ impl Error {
             Self::PodNotInitialized => Status::BadRequest,
             Self::PodAlreadyInitialized => Status::Conflict,
             Self::ServerCtlErr(_) => Status::InternalServerError,
+            Self::BadRequest { .. } => Status::BadRequest,
+            Self::MutationErr(_) => Status::InternalServerError,
         }
     }
 
@@ -60,6 +66,9 @@ impl Error {
             Self::PodNotInitialized => "pod_not_initialized",
             Self::PodAlreadyInitialized => "pod_already_initialized",
             Self::ServerCtlErr(_) => "internal_server_error",
+            Self::BadRequest { .. } => "bad_request",
+            Self::MutationErr(MutationError::DbErr(_)) => "database_error",
+            Self::MutationErr(MutationError::EntityNotFound { .. }) => "not_found",
         }
     }
 
@@ -111,6 +120,8 @@ impl fmt::Display for Error {
             ),
             Self::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
             Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
+            Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
+            Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
         }
     }
 }

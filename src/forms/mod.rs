@@ -3,10 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod prelude;
+mod timestamp;
 
-pub mod model;
-
-pub mod member;
-pub mod member_invite;
-pub mod server_config;
+pub use timestamp::Timestamp;

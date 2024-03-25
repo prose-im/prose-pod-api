@@ -13,7 +13,8 @@ use std::sync::{Arc, Mutex};
 use cucumber::{then, World};
 use cucumber_parameters::HTTPStatus;
 use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
-use entity::member;
+use entity::model::EmailAddress;
+use entity::{member, member_invite};
 use log::debug;
 use prose_pod_api::guards::{Db, JWTKey, JWTService};
 use rocket::figment::Figment;
@@ -134,6 +135,8 @@ struct TestWorld {
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
     members: HashMap<String, (member::Model, String)>,
+    /// Map an email address to an invite.
+    member_invites: HashMap<EmailAddress, member_invite::Model>,
 }
 
 impl TestWorld {
@@ -147,6 +150,21 @@ impl TestWorld {
     fn db(&self) -> &DatabaseConnection {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
+
+    fn token(&self, user: String) -> String {
+        self.members
+            .get(&user)
+            .expect("User must be created first")
+            .1
+            .clone()
+    }
+
+    fn invite(&self, email_address: EmailAddress) -> member_invite::Model {
+        self.member_invites
+            .get(&email_address)
+            .expect("Invite must be created first")
+            .clone()
+    }
 }
 
 impl TestWorld {
@@ -158,6 +176,7 @@ impl TestWorld {
             client: rocket_test_client(DummyServerCtl::new(state)).await,
             result: None,
             members: HashMap::new(),
+            member_invites: HashMap::new(),
         }
     }
 }
@@ -195,10 +214,22 @@ fn then_response_http_status(world: &mut TestWorld, status: HTTPStatus) {
 }
 
 #[then(expr = "the response should contain a {string} HTTP header")]
-fn then_response_header_contain(world: &mut TestWorld, header_name: String) {
+fn then_response_headers_contain(world: &mut TestWorld, header_name: String) {
     let res = world.result();
     assert!(
         res.headers.contains_key(&header_name),
+        "No '{}' header found. Headers: {:?}",
+        &header_name,
+        &res.headers.keys()
+    );
+}
+
+#[then(expr = "the {string} header should contain {string}")]
+fn then_response_header_equals(world: &mut TestWorld, header_name: String, header_value: String) {
+    let res = world.result();
+    assert_eq!(
+        res.headers.get(&header_name),
+        Some(&header_value),
         "No '{}' header found. Headers: {:?}",
         &header_name,
         &res.headers.keys()

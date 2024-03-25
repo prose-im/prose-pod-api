@@ -1,8 +1,5 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
-#[derive(DeriveMigrationName)]
-pub struct Migration;
-
 /// Enable message archiving by default.
 pub const DEFAULT_MESSAGE_ARCHIVE_ENABLED: bool = true;
 /// Keep indefinitely, as defined in <https://github.com/prose-im/prose-pod-system/blob/f2e353758e628c01c0923fc0e46491f1644354c9/server/etc/prosody/prosody.cfg.lua#L97>.
@@ -28,6 +25,9 @@ pub const DEFAULT_FEDERATION_ENABLED: bool = true;
 pub const DEFAULT_SETTINGS_BACKUP_INTERVAL: &'static str = "P1D";
 /// 1 week in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
 pub const DEFAULT_USER_DATA_BACKUP_INTERVAL: &'static str = "P1W";
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {

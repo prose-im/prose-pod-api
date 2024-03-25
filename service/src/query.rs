@@ -4,8 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::{MemberRole, JID};
-use ::entity::prelude::*;
 use ::entity::server_config;
+use ::entity::{member_invite, prelude::*};
+use chrono::{DateTime, Utc};
 use sea_orm::*;
 
 pub struct Query;
@@ -28,5 +29,27 @@ impl Query {
         };
 
         Ok(member.role == MemberRole::Admin)
+    }
+
+    pub async fn get_invites(
+        db: &DbConn,
+        page_number: u64,
+        page_size: u64,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<(ItemsAndPagesNumber, Vec<member_invite::Model>), DbErr> {
+        assert_ne!(
+            page_number, 0,
+            "`page_number` starts at 1 like in the public API."
+        );
+
+        let mut query = MemberInvite::find().order_by_asc(member_invite::Column::CreatedAt);
+        if let Some(until) = until {
+            query = query.filter(member_invite::Column::CreatedAt.lte(until));
+        }
+        let pages = query.paginate(db, page_size);
+
+        let num_items_and_pages = pages.num_items_and_pages().await?;
+        let models = pages.fetch_page(page_number - 1).await?;
+        Ok((num_items_and_pages, models))
     }
 }

@@ -9,10 +9,7 @@ use cucumber::Parameter;
 use rocket::http::Status;
 
 #[derive(Debug, Parameter)]
-#[param(
-    name = "status",
-    regex = r"\d{3}|Unauthorized|OK|Internal ?Server ?Error"
-)]
+#[param(name = "status", regex = r"\d{3}|.+")]
 pub struct HTTPStatus(Status);
 
 impl Deref for HTTPStatus {
@@ -29,7 +26,10 @@ impl FromStr for HTTPStatus {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HTTPStatus(match s {
             "Unauthorized" => Status::Unauthorized,
-            "OK" | "Ok" => Status::Ok,
+            "Ok" | "OK" => Status::Ok,
+            "Created" => Status::Created,
+            "PartialContent" | "Partial Content" => Status::PartialContent,
+            "NoContent" | "No Content" => Status::NoContent,
             "InternalServerError" | "Internal Server Error" => Status::InternalServerError,
             s => {
                 if let Some(status) = s.parse::<u16>().ok().and_then(Status::from_code) {
