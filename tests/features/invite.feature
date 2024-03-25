@@ -1,4 +1,3 @@
-@testing
 Feature: Inviting members
 
   Background:
@@ -113,7 +112,22 @@ Feature: Inviting members
   email server down…), therefore we must provide a way to resend it
   once issues have been solved.
   """
+  @testing
   Rule: If the invite did not go through, an admin can resend it
+
+    Scenario: Valerian (admin) resends an invitation
+      Given <mb@nesium.com> has been invited via email
+        And the invitation did not go through
+        And Valerian is an admin
+       When Valerian resends the invitation
+       Then the HTTP status code should be OK
+
+    Scenario: Rémi (not admin) tries to resend an invitation
+      Given <mb@nesium.com> has been invited via email
+        And the invitation did not go through
+        And Rémi is not an admin
+       When Rémi resends the invitation
+       Then the HTTP status code should be Unauthorized
 
   """
   Access logs already store this kind of operation,
@@ -124,7 +138,7 @@ Feature: Inviting members
   """
   Rule: An invite disappears after it's accepted
 
-    Scenario: Rémi accpets an invitation
+    Scenario: Rémi accepts an invitation
       Given <remi@personal.name> has been invited via email
        When <remi@personal.name> accepts their invitation
        Then there should not be any invitation for <remi@personal.name> in the database

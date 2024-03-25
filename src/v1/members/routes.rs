@@ -96,7 +96,10 @@ pub(super) async fn invite_member(
 #[utoipa::path(
     tag = "Members",
     responses(
-        (status = 200, description = "Success", body = String)
+        (status = 200, description = "Success", body = Paginated<member_invite::Model>),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/members/invites?<page_number>&<page_size>&<until>")]
@@ -128,7 +131,10 @@ pub(super) async fn get_invites(
 #[utoipa::path(
     tag = "Members",
     responses(
-        (status = 200, description = "Success", body = member_invite::Model)
+        (status = 200, description = "Success", body = member_invite::Model),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/members/invites/<invite_id>")]
@@ -160,41 +166,68 @@ impl Display for InviteAction {
     }
 }
 
-/// Reject a member invitation.
+/// Accept or reject a member invitation.
 #[utoipa::path(
     tag = "Members",
     responses(
-        (status = 200, description = "Success")
+        (status = 204, description = "Success"),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[post("/v1/members/invites/<invite_id>?<action>")]
 pub(super) async fn invite_action(
     conn: Connection<'_, Db>,
+    jid: Option<JIDGuard>,
     invite_id: i32,
     action: InviteAction,
 ) -> Result<NoContent, Error> {
+    // NOTE: We don't check that the invite status is "RECEIVED"
+    //   because it would cause more useless edge cases.
     match action {
         InviteAction::Accept => {
-            let db = conn.into_inner();
-
-            member_invite::Entity::delete_by_id(invite_id)
-                .exec(db)
-                .await
-                .map_err(Error::DbErr)?;
-
-            Ok(NoContent)
+            // FIXME: Add the new user.
         }
-        InviteAction::Reject => {
-            let db = conn.into_inner();
-
-            member_invite::Entity::delete_by_id(invite_id)
-                .exec(db)
-                .await
-                .map_err(Error::DbErr)?;
-
-            Ok(NoContent)
-        }
+        InviteAction::Reject => {}
     }
+
+    let db = conn.into_inner();
+
+    member_invite::Entity::delete_by_id(invite_id)
+        .exec(db)
+        .await
+        .map_err(Error::DbErr)?;
+
+    Ok(NoContent)
+}
+
+/// Resend a failed member invitation.
+#[utoipa::path(
+    tag = "Members",
+    responses(
+        (status = 200, description = "Success"),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
+    )
+)]
+#[post("/v1/members/invites/<invite_id>?action=resend")]
+pub(super) async fn invite_resend(
+    conn: Connection<'_, Db>,
+    jid: Option<JIDGuard>,
+    invite_id: i32,
+) -> Result<(), Error> {
+    let db = conn.into_inner();
+
+    let Some(jid) = jid else {
+        return Err(Error::Unauthorized);
+    };
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+        return Err(Error::Unauthorized);
+    }
+
+    Ok(())
 }
 
 /// Cancel one member invitation.

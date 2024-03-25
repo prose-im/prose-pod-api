@@ -56,7 +56,7 @@ impl Mutation {
         model.insert(db).await
     }
 
-    pub async fn update_member_invite_status(
+    pub async fn update_member_invite_status_by_id(
         db: &DbConn,
         id: i32,
         status: MemberInviteState,
@@ -70,7 +70,7 @@ impl Mutation {
         };
 
         // Update
-        Self::update_member_invite_status_inner(db, model, status).await
+        Self::update_member_invite_status(db, model, status).await
     }
 
     pub async fn update_member_invite_status_by_email(
@@ -90,10 +90,10 @@ impl Mutation {
         };
 
         // Update
-        Self::update_member_invite_status_inner(db, model, status).await
+        Self::update_member_invite_status(db, model, status).await
     }
 
-    async fn update_member_invite_status_inner(
+    pub async fn update_member_invite_status(
         db: &DbConn,
         model: member_invite::Model,
         status: MemberInviteState,

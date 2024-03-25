@@ -137,6 +137,7 @@ struct TestWorld {
     members: HashMap<String, (member::Model, String)>,
     /// Map an email address to an invite.
     member_invites: HashMap<EmailAddress, member_invite::Model>,
+    scenario_invite: Option<(EmailAddress, member_invite::Model)>,
 }
 
 impl TestWorld {
@@ -159,6 +160,13 @@ impl TestWorld {
             .clone()
     }
 
+    fn scenario_invite(&self) -> (EmailAddress, member_invite::Model) {
+        self.scenario_invite
+            .as_ref()
+            .expect("Invite must be created first")
+            .clone()
+    }
+
     fn invite(&self, email_address: EmailAddress) -> member_invite::Model {
         self.member_invites
             .get(&email_address)
@@ -177,6 +185,7 @@ impl TestWorld {
             result: None,
             members: HashMap::new(),
             member_invites: HashMap::new(),
+            scenario_invite: None,
         }
     }
 }

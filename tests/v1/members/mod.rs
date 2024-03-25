@@ -90,6 +90,15 @@ async fn invite_action<'a>(
         .await
 }
 
+async fn invite_resend<'a>(client: &'a Client, token: String, invite_id: i32) -> LocalResponse<'a> {
+    client
+        .post(format!("/v1/members/invites/{invite_id}?action=resend"))
+        .header(Accept::JSON)
+        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .dispatch()
+        .await
+}
+
 #[given(expr = "<{email}> has been invited via email")]
 async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), DbErr> {
     let db = world.db();
@@ -101,7 +110,10 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
         },
     )
     .await?;
-    world.member_invites.insert(email_address.0, model);
+    world
+        .member_invites
+        .insert(email_address.0.clone(), model.clone());
+    world.scenario_invite = Some((email_address.0, model));
     Ok(())
 }
 
@@ -134,6 +146,18 @@ async fn given_invite_received(
         db,
         email_address.0,
         MemberInviteStateModel::Received,
+    )
+    .await?;
+    Ok(())
+}
+
+#[given("the invitation did not go through")]
+async fn given_invite_not_received(world: &mut TestWorld) -> Result<(), MutationError> {
+    let db = world.db();
+    Mutation::update_member_invite_status(
+        db,
+        world.scenario_invite().1,
+        MemberInviteStateModel::ReceptionFailure,
     )
     .await?;
     Ok(())
@@ -204,6 +228,14 @@ async fn when_invited_rejects_invite(world: &mut TestWorld, email_address: Email
         InviteAction::Reject,
     )
     .await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{name} resends the invitation")]
+async fn when_user_resends_invite(world: &mut TestWorld, name: Name) {
+    let token = world.token(name.0);
+    let invite = world.scenario_invite().1;
+    let res = invite_resend(&world.client, token, invite.id).await;
     world.result = Some(res.into());
 }
 
