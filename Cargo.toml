@@ -47,6 +47,7 @@ tokio = "1.29"
 utoipa = { version = "4", features = ["rocket_extras"] }
 utoipa-swagger-ui = { version = "5", features = ["rocket"] }
 utoipauto = "0.1"
+uuid = "1.8"
 
 [dev-dependencies]
 # cucumber = "0.20"

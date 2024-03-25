@@ -5,6 +5,7 @@
 
 mod cucumber_parameters;
 mod dummy_server_ctl;
+mod email_sender;
 mod v1;
 
 use std::collections::HashMap;
@@ -27,6 +28,7 @@ use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
 use tokio::runtime::Handle;
 use tokio::task;
+use uuid::Uuid;
 // use tracing_subscriber::{
 //     filter::{self, LevelFilter},
 //     fmt::format::{self, Format},
@@ -138,6 +140,7 @@ struct TestWorld {
     /// Map an email address to an invite.
     member_invites: HashMap<EmailAddress, member_invite::Model>,
     scenario_invite: Option<(EmailAddress, member_invite::Model)>,
+    previous_invite_accept_token: Option<Uuid>,
 }
 
 impl TestWorld {
@@ -163,7 +166,14 @@ impl TestWorld {
     fn scenario_invite(&self) -> (EmailAddress, member_invite::Model) {
         self.scenario_invite
             .as_ref()
-            .expect("Invite must be created first")
+            .expect("Current scenario invite not stored by previous steps")
+            .clone()
+    }
+
+    fn previous_invite_accept_token(&self) -> Uuid {
+        self.previous_invite_accept_token
+            .as_ref()
+            .expect("Previous invite accept not stored in previous steps")
             .clone()
     }
 
@@ -186,6 +196,7 @@ impl TestWorld {
             members: HashMap::new(),
             member_invites: HashMap::new(),
             scenario_invite: None,
+            previous_invite_accept_token: None,
         }
     }
 }

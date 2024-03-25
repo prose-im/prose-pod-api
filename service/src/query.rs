@@ -8,6 +8,7 @@ use ::entity::server_config;
 use ::entity::{member_invite, prelude::*};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
+use uuid::Uuid;
 
 pub struct Query;
 
@@ -51,5 +52,25 @@ impl Query {
         let num_items_and_pages = pages.num_items_and_pages().await?;
         let models = pages.fetch_page(page_number - 1).await?;
         Ok((num_items_and_pages, models))
+    }
+
+    pub async fn get_invite_by_accept_token(
+        db: &DbConn,
+        token: &Uuid,
+    ) -> Result<Option<member_invite::Model>, DbErr> {
+        member_invite::Entity::find()
+            .filter(member_invite::Column::AcceptToken.eq(*token))
+            .one(db)
+            .await
+    }
+
+    pub async fn get_invite_by_reject_token(
+        db: &DbConn,
+        token: &Uuid,
+    ) -> Result<Option<member_invite::Model>, DbErr> {
+        member_invite::Entity::find()
+            .filter(member_invite::Column::RejectToken.eq(*token))
+            .one(db)
+            .await
     }
 }

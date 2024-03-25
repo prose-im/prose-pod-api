@@ -19,6 +19,9 @@ impl MigrationTrait for Migration {
                     .col(string(MemberInvite::PreAssignedRole))
                     .col(string(MemberInvite::InvitationChannel))
                     .col(string_null(MemberInvite::EmailAddress))
+                    .col(string(MemberInvite::AcceptToken))
+                    .col(string(MemberInvite::AcceptTokenExpiresAt))
+                    .col(string(MemberInvite::RejectToken))
                     .to_owned(),
             )
             .await
@@ -40,4 +43,7 @@ enum MemberInvite {
     PreAssignedRole,
     InvitationChannel,
     EmailAddress,
+    AcceptToken,
+    AcceptTokenExpiresAt,
+    RejectToken,
 }

@@ -10,6 +10,7 @@ email_address = "0.2"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
+uuid = { version = "1.8", features = ["v4"] }
 
 [dependencies.sea-orm]
 version = "1.0.0-rc.1"

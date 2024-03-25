@@ -30,6 +30,7 @@ impl FromStr for HTTPStatus {
             "Created" => Status::Created,
             "PartialContent" | "Partial Content" => Status::PartialContent,
             "NoContent" | "No Content" => Status::NoContent,
+            "NotFound" | "Not Found" => Status::NotFound,
             "InternalServerError" | "Internal Server Error" => Status::InternalServerError,
             s => {
                 if let Some(status) = s.parse::<u16>().ok().and_then(Status::from_code) {
