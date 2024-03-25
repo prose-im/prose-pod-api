@@ -12,9 +12,9 @@ Feature: Inviting members
 
     Scenario: Valerian (admin) invites Rémi
       Given Valerian is an admin
-       When Valerian sends an invitation to "remi@prose.org"
-       Then the call should succeed
-        And the HTTP status code should be OK
+       When Valerian invites <remi@prose.org> as a MEMBER
+       Then the HTTP status code should be Created
+        And the response should contain a "Location" HTTP header
 
   """
   For security reasons, we don't want members to invite other people.
@@ -24,10 +24,9 @@ Feature: Inviting members
 
     Scenario: Rémi (not admin) invites Marc
       Given Rémi is not an admin
-       When Valerian sends an invitation to "marc@prose.org"
-       Then the call should not succeed
+       When Rémi invites <marc@prose.org> as a MEMBER
+       Then the HTTP status code should be Unauthorized
         And the response content type should be JSON
-        And the HTTP status code should be Unauthorized
         And the response should contain a "WWW-Authenticate" HTTP header
 
   """
@@ -36,11 +35,50 @@ Feature: Inviting members
   """
   Rule: Admins can list invites
 
+    Scenario: Small number of invites
+      Given <marc@prose.org> has been invited via email
+        And <remi@prose.org> has been invited via email
+        And Valerian is an admin
+       When Valerian lists pending invitations
+       Then the HTTP status code should be OK
+        And the response content type should be JSON
+        And they should see 2 pending invitations
+
+    Scenario: Large number of invites, first page
+      Given 42 people have been invited via email
+        And Valerian is an admin
+       When Valerian lists pending invitations by pages of 20
+       Then the HTTP status code should be Partial Content
+        And they should see 20 pending invitations
+        And the "Pagination-Current-Page" header should contain "1"
+        And the "Pagination-Page-Size" header should contain "20"
+        And the "Pagination-Page-Count" header should contain "3"
+
+    Scenario: Large number of invites, last page
+      Given 42 people have been invited via email
+        And Valerian is an admin
+       When Valerian gets page 3 of pending invitations by pages of 20
+       Then the HTTP status code should be OK
+        And they should see 2 pending invitations
+        And the "Pagination-Current-Page" header should contain "3"
+        And the "Pagination-Page-Size" header should contain "20"
+        And the "Pagination-Page-Count" header should contain "3"
+
   """
   Admins should be able to see the status of an invite
   (to act if needed).
   """
   Rule: Admins can see the status of an invite
+
+    Scenario: Small number of invites
+      Given <marc@prose.org> has been invited via email
+        And <marc@prose.org> has received their invitation
+        And <remi@prose.org> has been invited via email
+        And Valerian is an admin
+       When Valerian lists pending invitations
+       Then the call should succeed
+        And 1 invitation should be TO_SEND
+        And 1 invitation should be RECEIVED
 
   """
   Admins should be able to see when an invite has been created
@@ -71,7 +109,7 @@ Feature: Inviting members
   Rule: An admin can only pre-assign a role lower or equal to theirs
 
   """
-  A invite can never find its recipient (e.g. typo in email address,
+  An invite can never find its recipient (e.g. typo in email address,
   email server down…), therefore we must provide a way to resend it
   once issues have been solved.
   """
@@ -86,6 +124,11 @@ Feature: Inviting members
   """
   Rule: An invite disappears after it's accepted
 
+    Scenario: Rémi accpets an invitation
+      Given <remi@personal.name> has been invited via email
+       When <remi@personal.name> accepts their invitation
+       Then there should not be any invitation for <remi@personal.name> in the database
+
   """
   If the admin made a mistake in the email address for example,
   a random person might receive the invite.
@@ -94,6 +137,11 @@ Feature: Inviting members
   """
   Rule: Someone invited by mistake can reject an invite
 
+    Scenario: Rémi rejects an invitation
+      Given <remi@personal.name> has been invited via email
+       When <remi@personal.name> rejects their invitation
+       Then the HTTP status code should be No Content
+
   """
   Access logs already store this kind of operation,
   there is no need to clutter the database with such data.
@@ -101,3 +149,8 @@ Feature: Inviting members
   their email address staying around.
   """
   Rule: An invite disappears after it's rejected
+
+    Scenario: Rémi rejects an invitation
+      Given <remi@personal.name> has been invited via email
+       When <remi@personal.name> rejects their invitation
+       Then there should not be any invitation for <remi@personal.name> in the database

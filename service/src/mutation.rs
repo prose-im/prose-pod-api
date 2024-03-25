@@ -3,8 +3,16 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::server_config;
-use sea_orm::*;
+use std::fmt;
+
+use ::entity::{
+    member_invite,
+    model::{member_invite::MemberInviteContact, MemberRole},
+    server_config,
+};
+use chrono::prelude::Utc;
+use entity::model::{member_invite::MemberInviteState, EmailAddress};
+use sea_orm::{prelude::*, IntoActiveModel as _, Set};
 
 pub struct Mutation;
 
@@ -35,4 +43,89 @@ impl Mutation {
     //     .update(db)
     //     .await
     // }
+
+    pub async fn create_member_invite(
+        db: &DbConn,
+        pre_assigned_role: MemberRole,
+        contact: MemberInviteContact,
+    ) -> Result<member_invite::Model, DbErr> {
+        let mut model = member_invite::ActiveModel::new();
+        model.created_at = Set(Utc::now());
+        model.pre_assigned_role = Set(pre_assigned_role);
+        model.set_contact(contact);
+        model.insert(db).await
+    }
+
+    pub async fn update_member_invite_status(
+        db: &DbConn,
+        id: i32,
+        status: MemberInviteState,
+    ) -> Result<member_invite::Model, MutationError> {
+        // Query
+        let model = member_invite::Entity::find_by_id(id).one(db).await?;
+        let Some(model) = model else {
+            return Err(MutationError::EntityNotFound {
+                entity_name: stringify!(member_invite::Entity),
+            });
+        };
+
+        // Update
+        Self::update_member_invite_status_inner(db, model, status).await
+    }
+
+    pub async fn update_member_invite_status_by_email(
+        db: &DbConn,
+        email_address: EmailAddress,
+        status: MemberInviteState,
+    ) -> Result<member_invite::Model, MutationError> {
+        // Query
+        let model = member_invite::Entity::find()
+            .filter(member_invite::Column::EmailAddress.eq(email_address))
+            .one(db)
+            .await?;
+        let Some(model) = model else {
+            return Err(MutationError::EntityNotFound {
+                entity_name: stringify!(member_invite::Entity),
+            });
+        };
+
+        // Update
+        Self::update_member_invite_status_inner(db, model, status).await
+    }
+
+    async fn update_member_invite_status_inner(
+        db: &DbConn,
+        model: member_invite::Model,
+        status: MemberInviteState,
+    ) -> Result<member_invite::Model, MutationError> {
+        // Update
+        let mut active = model.into_active_model();
+        active.state = Set(status);
+        let model = active.update(db).await?;
+
+        Ok(model)
+    }
+}
+
+#[derive(Debug)]
+pub enum MutationError {
+    DbErr(DbErr),
+    EntityNotFound { entity_name: &'static str },
+}
+
+impl fmt::Display for MutationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DbErr(err) => write!(f, "Database error: {err}"),
+            Self::EntityNotFound { entity_name } => write!(f, "Entity not found: {entity_name}"),
+        }
+    }
+}
+
+impl std::error::Error for MutationError {}
+
+impl From<DbErr> for MutationError {
+    fn from(value: DbErr) -> Self {
+        Self::DbErr(value)
+    }
 }

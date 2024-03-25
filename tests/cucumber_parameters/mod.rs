@@ -7,9 +7,15 @@
 // See <https://cucumber-rs.github.io/cucumber/current/writing/capturing.html#custom-parameters>
 
 mod duration;
+mod email_address;
 mod http_status;
+mod invites;
+mod name;
 mod toggle_state;
 
-pub use duration::Duration;
-pub use http_status::HTTPStatus;
-pub use toggle_state::ToggleState;
+pub use duration::*;
+pub use email_address::*;
+pub use http_status::*;
+pub use invites::*;
+pub use name::*;
+pub use toggle_state::*;

@@ -6,6 +6,7 @@ publish = false
 license = "MPL-2.0"
 
 [dependencies]
+email_address = "0.2"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }

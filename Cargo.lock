@@ -455,7 +455,7 @@ version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.7",
 ]
 
 [[package]]
@@ -586,8 +586,10 @@ checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-targets 0.52.3",
 ]
 
@@ -756,7 +758,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
- "generic-array",
+ "generic-array 0.14.7",
  "typenum",
 ]
 
@@ -987,6 +989,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "email_address"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2153bd83ebc09db15bcbdc3e2194d901804952e3dc96967e1cd3b0c5c32d112"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1005,6 +1016,7 @@ dependencies = [
 name = "entity"
 version = "0.1.0"
 dependencies = [
+ "email_address",
  "iso8601-duration",
  "rocket",
  "sea-orm",
@@ -1313,6 +1325,15 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "generic-array"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe739944a5406424e080edccb6add95685130b9f160d5407c639c7df0c5836b0"
+dependencies = [
+ "typenum",
 ]
 
 [[package]]
@@ -1691,6 +1712,17 @@ checksum = "a26adff60a5d3ca10dc271ad37a34ff376595d2a1e5f21d02564929ca888c511"
 dependencies = [
  "nom",
  "serde",
+]
+
+[[package]]
+name = "iso8601-timestamp"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24d4e5d712dd664b11e778d1cfc06c79ba2700d6bc1771e44fb7b6a4656b487d"
+dependencies = [
+ "generic-array 1.0.0",
+ "serde",
+ "time",
 ]
 
 [[package]]
@@ -2425,12 +2457,14 @@ version = "0.1.0"
 dependencies = [
  "async-stream",
  "async-trait",
+ "chrono",
  "cucumber",
  "entity",
  "futures",
  "futures-util",
  "hmac",
  "iso8601-duration",
+ "iso8601-timestamp",
  "jwt",
  "log",
  "migration",
@@ -3168,6 +3202,7 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "cucumber",
  "entity",
  "insta",
@@ -3459,7 +3494,7 @@ dependencies = [
  "futures-core",
  "futures-io",
  "futures-util",
- "generic-array",
+ "generic-array 0.14.7",
  "hex",
  "hkdf",
  "hmac",
