@@ -2,6 +2,7 @@
 
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub use crate::model::member_invite::*;
 
@@ -21,6 +22,16 @@ pub struct Model {
     pub pre_assigned_role: MemberRole,
     pub invitation_channel: MemberInvitationChannel,
     email_address: Option<EmailAddress>,
+    /// Expiring one-time use token used to accept an invite.
+    /// Will change every time an admin resends the invite.
+    /// Will be deleted along with the entire invite once used.
+    pub accept_token: Uuid,
+    pub accept_token_expires_at: DateTimeUtc,
+    /// Unique token used by someone to reject an invite (e.g. because of
+    /// misspelled email address).
+    /// Never expires, will be usable as long as the invite still exists.
+    /// Will be deleted along with the entire invite once used.
+    pub reject_token: Uuid,
 }
 
 impl Model {

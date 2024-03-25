@@ -5,6 +5,7 @@
 
 use std::str::FromStr as _;
 
+use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
     member_invite,
@@ -21,7 +22,7 @@ use rocket::{
 };
 use serde_json::json;
 use service::{
-    sea_orm::{prelude::*, EntityTrait, PaginatorTrait, QueryFilter},
+    sea_orm::{prelude::*, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set},
     Mutation, MutationError,
 };
 
@@ -80,19 +81,27 @@ async fn list_invites_paged<'a>(
 
 async fn invite_action<'a>(
     client: &'a Client,
+    token: Uuid,
     invite_id: i32,
     action: InviteAction,
 ) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/members/invites/{invite_id}?action={action}"))
+        .post(format!(
+            "/v1/members/invites/{invite_id}?action={action}&token={token}"
+        ))
         .header(Accept::JSON)
         .dispatch()
         .await
 }
 
-async fn invite_resend<'a>(client: &'a Client, token: String, invite_id: i32) -> LocalResponse<'a> {
+async fn invite_admin_action<'a>(
+    client: &'a Client,
+    token: String,
+    invite_id: i32,
+    action: &'static str,
+) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/members/invites/{invite_id}?action=resend"))
+        .post(format!("/v1/members/invites/{invite_id}?action={action}"))
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .dispatch()
@@ -101,19 +110,25 @@ async fn invite_resend<'a>(client: &'a Client, token: String, invite_id: i32) ->
 
 #[given(expr = "<{email}> has been invited via email")]
 async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), DbErr> {
+    let email_address = email_address.0;
+
+    // Create invite
     let db = world.db();
     let model = Mutation::create_member_invite(
         db,
         DEFAULT_MEMBER_ROLE,
         MemberInviteContact::Email {
-            email_address: email_address.0.clone(),
+            email_address: email_address.clone(),
         },
     )
     .await?;
+
+    // Store current invite data
     world
         .member_invites
-        .insert(email_address.0.clone(), model.clone());
-    world.scenario_invite = Some((email_address.0, model));
+        .insert(email_address.clone(), model.clone());
+    world.scenario_invite = Some((email_address, model));
+
     Ok(())
 }
 
@@ -148,6 +163,46 @@ async fn given_invite_received(
         MemberInviteStateModel::Received,
     )
     .await?;
+    Ok(())
+}
+
+#[given("an admin resent the invite")]
+async fn given_invite_resent(world: &mut TestWorld) -> Result<(), MutationError> {
+    let (email_address, invite_before) = world.scenario_invite();
+
+    // Store previous accept token for other steps requiring it
+    world.previous_invite_accept_token = Some(invite_before.accept_token);
+
+    // Resend invite
+    let db = world.db();
+    let model = Mutation::resend_invite(db, invite_before).await?;
+
+    // Store current invite data
+    world
+        .member_invites
+        .insert(email_address.clone(), model.clone());
+    world.scenario_invite = Some((email_address, model));
+
+    Ok(())
+}
+
+#[given("the invite has already expired")]
+async fn given_invite_expired(world: &mut TestWorld) -> Result<(), MutationError> {
+    let db = world.db();
+    let (email_address, invite_before) = world.scenario_invite();
+
+    // Update invite
+    let mut active = invite_before.into_active_model();
+    active.accept_token_expires_at =
+        Set(Utc::now().checked_sub_signed(TimeDelta::days(1)).unwrap());
+    let model = active.update(db).await?;
+
+    // Store current invite data
+    world
+        .member_invites
+        .insert(email_address.clone(), model.clone());
+    world.scenario_invite = Some((email_address, model));
+
     Ok(())
 }
 
@@ -210,10 +265,25 @@ async fn when_getting_invites_page(
 }
 
 #[when(expr = "<{email}> accepts their invitation")]
-async fn when_invited_accpts_invite(world: &mut TestWorld, email_address: EmailAddress) {
+async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: EmailAddress) {
+    let invite = world.invite(email_address.0);
     let res = invite_action(
         &world.client,
-        world.invite(email_address.0).id,
+        invite.accept_token,
+        invite.id,
+        InviteAction::Accept,
+    )
+    .await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "<{email}> uses the previous invite accept link they received")]
+async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
+    let invite = world.invite(email_address.0);
+    let res = invite_action(
+        &world.client,
+        world.previous_invite_accept_token(),
+        invite.id,
         InviteAction::Accept,
     )
     .await;
@@ -222,9 +292,11 @@ async fn when_invited_accpts_invite(world: &mut TestWorld, email_address: EmailA
 
 #[when(expr = "<{email}> rejects their invitation")]
 async fn when_invited_rejects_invite(world: &mut TestWorld, email_address: EmailAddress) {
+    let invite = world.invite(email_address.0);
     let res = invite_action(
         &world.client,
-        world.invite(email_address.0).id,
+        invite.reject_token,
+        invite.id,
         InviteAction::Reject,
     )
     .await;
@@ -235,7 +307,15 @@ async fn when_invited_rejects_invite(world: &mut TestWorld, email_address: Email
 async fn when_user_resends_invite(world: &mut TestWorld, name: Name) {
     let token = world.token(name.0);
     let invite = world.scenario_invite().1;
-    let res = invite_resend(&world.client, token, invite.id).await;
+    let res = invite_admin_action(&world.client, token, invite.id, "resend").await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{name} cancels the invitation")]
+async fn when_user_cancels_invite(world: &mut TestWorld, name: Name) {
+    let token = world.token(name.0);
+    let invite = world.scenario_invite().1;
+    let res = invite_admin_action(&world.client, token, invite.id, "cancel").await;
     world.result = Some(res.into());
 }
 

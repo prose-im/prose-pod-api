@@ -20,7 +20,7 @@ use service::Mutation;
 use service::Query;
 
 use crate::error::Error;
-use crate::forms::Timestamp;
+use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, JID as JIDGuard};
 use crate::responders::Paginated;
 
@@ -137,8 +137,8 @@ pub(super) async fn get_invites(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[get("/v1/members/invites/<invite_id>")]
-pub(super) fn get_invite(invite_id: i32) -> Json<member_invite::Model> {
+#[get("/v1/members/invites/<_>")]
+pub(super) fn get_invite() -> Json<member_invite::Model> {
     todo!()
 }
 
@@ -175,23 +175,41 @@ impl Display for InviteAction {
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/members/invites/<invite_id>?<action>")]
+#[post("/v1/members/invites/<invite_id>?<action>&<token>")]
 pub(super) async fn invite_action(
     conn: Connection<'_, Db>,
-    jid: Option<JIDGuard>,
+    _jid: Option<JIDGuard>,
     invite_id: i32,
     action: InviteAction,
+    token: Uuid,
 ) -> Result<NoContent, Error> {
+    let db = conn.into_inner();
+
     // NOTE: We don't check that the invite status is "RECEIVED"
     //   because it would cause more useless edge cases.
     match action {
         InviteAction::Accept => {
+            let model = Query::get_invite_by_accept_token(db, &token)
+                .await
+                .map_err(Error::DbErr)?;
+            let Some(model) = model else {
+                return Err(Error::NotFound {
+                    reason: "No invite found for given accept token",
+                });
+            };
+
+            if model.accept_token_expires_at < Utc::now() {
+                return Err(Error::NotFound {
+                    reason: "Invite accept token has expired",
+                });
+            }
+
             // FIXME: Add the new user.
         }
-        InviteAction::Reject => {}
+        InviteAction::Reject => {
+            // Nothing to do
+        }
     }
-
-    let db = conn.into_inner();
 
     member_invite::Entity::delete_by_id(invite_id)
         .exec(db)
@@ -201,7 +219,7 @@ pub(super) async fn invite_action(
     Ok(NoContent)
 }
 
-/// Resend a failed member invitation.
+/// Resend a member invitation.
 #[utoipa::path(
     tag = "Members",
     responses(
@@ -211,7 +229,7 @@ pub(super) async fn invite_action(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/members/invites/<invite_id>?action=resend")]
+#[post("/v1/members/invites/<invite_id>?action=resend", rank = 1)]
 pub(super) async fn invite_resend(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,
@@ -226,6 +244,40 @@ pub(super) async fn invite_resend(
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);
     }
+
+    Ok(())
+}
+
+/// Cancel a member invitation.
+#[utoipa::path(
+    tag = "Members",
+    responses(
+        (status = 200, description = "Success"),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 401, description = "Unauthorized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
+    )
+)]
+#[post("/v1/members/invites/<invite_id>?action=cancel", rank = 2)]
+pub(super) async fn invite_cancel(
+    conn: Connection<'_, Db>,
+    jid: Option<JIDGuard>,
+    invite_id: i32,
+) -> Result<(), Error> {
+    let db = conn.into_inner();
+
+    let Some(jid) = jid else {
+        return Err(Error::Unauthorized);
+    };
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+        return Err(Error::Unauthorized);
+    }
+
+    member_invite::Entity::delete_by_id(invite_id)
+        .exec(db)
+        .await
+        .map_err(Error::DbErr)?;
 
     Ok(())
 }

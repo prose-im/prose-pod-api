@@ -1,3 +1,4 @@
+@testing
 Feature: Inviting members
 
   Background:
@@ -14,6 +15,8 @@ Feature: Inviting members
        When Valerian invites <remi@prose.org> as a MEMBER
        Then the HTTP status code should be Created
         And the response should contain a "Location" HTTP header
+        And 1 email should be queued in the email sender
+        And the queued email data should match "/v1/members/invites/1?action=accept&token=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   """
   For security reasons, we don't want members to invite other people.
@@ -86,10 +89,24 @@ Feature: Inviting members
   Rule: Admins can see the creation timestamp of an invite
 
   """
-  For security reasons (e.g. a typo in the email address),
+  For many reasons (e.g. a typo in the email address),
   admins should be able to cancel invites.
   """
   Rule: Admins can cancel an invitation
+
+    Scenario: Valerian (admin) cancels an invitation
+      Given <marc@prose.org> has been invited via email
+        And Valerian is an admin
+       When Valerian cancels the invitation
+       Then the HTTP status code should be OK
+        And there should not be any invitation for <marc@prose.org> in the database
+
+    Scenario: Rémi (not admin) tries to cancel an invitation
+      Given <marc@prose.org> has been invited via email
+        And Rémi is not an admin
+       When Rémi cancels the invitation
+       Then the HTTP status code should be Unauthorized
+        And there should be an invitation for <marc@prose.org> in the database
 
   """
   Instead of having to wait for a member to accept their invitation
@@ -108,26 +125,56 @@ Feature: Inviting members
   Rule: An admin can only pre-assign a role lower or equal to theirs
 
   """
-  An invite can never find its recipient (e.g. typo in email address,
-  email server down…), therefore we must provide a way to resend it
-  once issues have been solved.
+  For security reasons, invites should expire after some time.
   """
-  @testing
-  Rule: If the invite did not go through, an admin can resend it
+  Rule: Invites expire after 3 days by default
+
+    Scenario: Rémi did not accept the invite in time (he always does this)
+      Given <remi@prose.org> has been invited via email
+        And the invite has already expired
+       When <remi@prose.org> accepts their invitation
+       Then the HTTP status code should be Not Found
+
+  """
+  By default, an invite is valid for 3 days.
+  Admins should be able to override this setting when inviting someone.
+  """
+  Rule: Admins can choose the lifetime of an invite upon creation
+
+  """
+  Because invites expire after some time or they can never find their recipient
+  (e.g. typo in email address, email server down…), we must provide a way
+  to resend them.
+  """
+  Rule: An admin can resend an invite
 
     Scenario: Valerian (admin) resends an invitation
-      Given <mb@nesium.com> has been invited via email
+      Given <marc@prose.org> has been invited via email
         And the invitation did not go through
         And Valerian is an admin
        When Valerian resends the invitation
        Then the HTTP status code should be OK
+        And 1 email should be queued in the email sender
 
     Scenario: Rémi (not admin) tries to resend an invitation
-      Given <mb@nesium.com> has been invited via email
+      Given <marc@prose.org> has been invited via email
         And the invitation did not go through
         And Rémi is not an admin
        When Rémi resends the invitation
        Then the HTTP status code should be Unauthorized
+        And 0 email should be queued in the email sender
+
+  """
+  For security reasons, if an invite is sent again, the previous accpet link
+  becomes useless.
+  """
+  Rule: After resending an invite, the previous accept token becomes invalid
+
+    Scenario: Rémi has been invited twice but uses the first link
+      Given <remi@prose.org> has been invited via email
+        And an admin resent the invite
+       When <remi@prose.org> uses the previous invite accept link they received
+       Then the HTTP status code should be Not Found
 
   """
   Access logs already store this kind of operation,
