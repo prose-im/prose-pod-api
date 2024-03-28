@@ -20,7 +20,7 @@ pub struct Model {
     pub created_at: DateTimeUtc,
     pub state: MemberInviteState,
     pub pre_assigned_role: MemberRole,
-    pub invitation_channel: MemberInvitationChannel,
+    invitation_channel: MemberInvitationChannel,
     email_address: Option<EmailAddress>,
     /// Expiring one-time use token used to accept an invite.
     /// Will change every time an admin resends the invite.

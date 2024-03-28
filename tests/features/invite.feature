@@ -15,8 +15,9 @@ Feature: Inviting members
        When Valerian invites <remi@prose.org> as a MEMBER
        Then the HTTP status code should be Created
         And the response should contain a "Location" HTTP header
-        And 1 email should be queued in the email sender
-        And the queued email data should match "/v1/members/invites/1?action=accept&token=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        And 1 email should have been sent
+        And the email body should match "/invites/accept/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        And the email body should match "/invites/reject/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   """
   For security reasons, we don't want members to invite other people.
@@ -154,7 +155,7 @@ Feature: Inviting members
         And Valerian is an admin
        When Valerian resends the invitation
        Then the HTTP status code should be OK
-        And 1 email should be queued in the email sender
+        And 1 email should have been sent
 
     Scenario: Rémi (not admin) tries to resend an invitation
       Given <marc@prose.org> has been invited via email
@@ -162,7 +163,7 @@ Feature: Inviting members
         And Rémi is not an admin
        When Rémi resends the invitation
        Then the HTTP status code should be Unauthorized
-        And 0 email should be queued in the email sender
+        And 0 email should have been sent
 
   """
   For security reasons, if an invite is sent again, the previous accpet link

@@ -13,6 +13,8 @@ use serde_json::json;
 use service::server_ctl;
 use service::{sea_orm, MutationError};
 
+use crate::guards::NotifierError;
+
 #[derive(Debug)]
 pub enum Error {
     /// Feature not implemented yet.
@@ -38,6 +40,8 @@ pub enum Error {
     MutationErr(MutationError),
     /// Could not find the desired entity.
     NotFound { reason: &'static str },
+    /// Could not send a notification.
+    NotifierError(NotifierError),
 }
 
 impl Error {
@@ -55,6 +59,7 @@ impl Error {
             Self::BadRequest { .. } => Status::BadRequest,
             Self::MutationErr(_) => Status::InternalServerError,
             Self::NotFound { .. } => Status::NotFound,
+            Self::NotifierError(_) => Status::InternalServerError,
         }
     }
 
@@ -73,6 +78,7 @@ impl Error {
             Self::MutationErr(MutationError::DbErr(_)) => "database_error",
             Self::MutationErr(MutationError::EntityNotFound { .. }) => "not_found",
             Self::NotFound { .. } => "not_found",
+            Self::NotifierError(_) => "internal_server_error",
         }
     }
 
@@ -127,8 +133,15 @@ impl fmt::Display for Error {
             Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
             Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
             Self::NotFound { reason } => write!(f, "Not found: {reason}"),
+            Self::NotifierError(err) => write!(f, "Notifier error: {err}"),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<NotifierError> for Error {
+    fn from(value: NotifierError) -> Self {
+        Self::NotifierError(value)
+    }
+}

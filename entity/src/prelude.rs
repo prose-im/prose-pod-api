@@ -5,4 +5,5 @@
 
 pub use super::member::Entity as Member;
 pub use super::member_invite::Entity as MemberInvite;
+pub use super::notification::Entity as Notification;
 pub use super::server_config::Entity as ServerConfig;

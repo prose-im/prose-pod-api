@@ -6,6 +6,7 @@
 use std::{fmt::Display, ops::Deref};
 
 use rocket::form::{self, FromFormField, ValueField};
+use rocket::http::uri::fmt::{FromUriParam, Query};
 
 pub struct Uuid(uuid::Uuid);
 
@@ -15,6 +16,14 @@ impl<'v> FromFormField<'v> for Uuid {
             .map(Uuid)
             .ok()
             .ok_or(field.unexpected().with_name("invalid_uuid").into())
+    }
+}
+
+impl FromUriParam<Query, uuid::Uuid> for Uuid {
+    type Target = String;
+
+    fn from_uri_param(param: uuid::Uuid) -> Self::Target {
+        param.to_string()
     }
 }
 
