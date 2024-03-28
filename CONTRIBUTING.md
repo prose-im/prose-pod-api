@@ -29,3 +29,7 @@ cargo test --test cucumber
 ```
 
 You could also run `cargo test` but it runs unit tests in `src/`, which we don't need.
+
+> [!TIP]
+> While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
+> and then use `cargo test --test cucumber -- --tags '@testing'` to run only matching `Scenario`s.

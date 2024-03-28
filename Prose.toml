@@ -1,0 +1,38 @@
+# Prose Pod API
+# REST API for administrating a Prose Pod
+# Configuration file
+# Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
+
+[server]
+
+log_level = "debug"
+
+[assets]
+
+path = "./res/assets/"
+
+[branding]
+
+page_title = "Prose Pod API"
+page_url = "https://admin.prose.org/"
+company_name = "Prose"
+icon_color = "#3458AD"
+icon_url = "https://media.githubusercontent.com/media/prose-im/prose-medley/master/renders/logos/icon-social.png"
+logo_color = "#3458AD"
+logo_url = "https://raw.githubusercontent.com/prose-im/prose-medley/master/renders/logos/icon-app.svg"
+website_url = "https://prose.org/"
+support_url = "mailto:support@prose.org"
+custom_html = ""
+
+[notify]
+
+[notify.email]
+
+from = "pod@prose.org"
+to = "pod@prose.org"
+
+smtp_host = "localhost"
+smtp_port = 587
+smtp_username = "user-access"
+smtp_password = "user-password"
+smtp_encrypt = false

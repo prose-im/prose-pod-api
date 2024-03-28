@@ -7,7 +7,9 @@
 extern crate rocket;
 
 pub mod error;
+pub mod forms;
 pub mod guards;
+pub mod responders;
 pub mod v1;
 
 use guards::Db;

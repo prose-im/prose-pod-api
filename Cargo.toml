@@ -26,11 +26,13 @@ members = [
 [dependencies]
 async-stream = "0.3"
 async-trait = "0.1"
+chrono = "0.4"
 entity = { path = "./entity" }
 futures = "0.3"
 futures-util = { version = "0.3" }
 hmac = "0.12"
 iso8601-duration = { version = "0.2", features = ["serde"] }
+iso8601-timestamp = "0.2"
 jwt = "0.16"
 log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
@@ -45,10 +47,12 @@ tokio = "1.29"
 utoipa = { version = "4", features = ["rocket_extras"] }
 utoipa-swagger-ui = { version = "5", features = ["rocket"] }
 utoipauto = "0.1"
+uuid = "1.8"
 
 [dev-dependencies]
 # cucumber = "0.20"
 cucumber = { version = "0.20", features = ["tracing"] }
+regex = "1"
 tracing-subscriber = "0.3"
 
 [[bin]]
