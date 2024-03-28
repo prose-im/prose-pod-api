@@ -336,6 +336,23 @@ fn then_n_invitations_with_status(
     assert_eq!(filtered.count(), n)
 }
 
+#[then(expr = "there should be an invitation for <{email}> in the database")]
+async fn then_invitation_for_email(
+    world: &mut TestWorld,
+    email_address: EmailAddress,
+) -> Result<(), DbErr> {
+    let db = world.db();
+    let count = member_invite::Entity::find()
+        .filter(member_invite::Column::EmailAddress.eq(email_address.0.clone()))
+        .count(db)
+        .await?;
+    assert_eq!(
+        count, 1,
+        "Found {count} invite(s) for <{email_address}> in the database"
+    );
+    Ok(())
+}
+
 #[then(expr = "there should not be any invitation for <{email}> in the database")]
 async fn then_no_invitation_for_email(
     world: &mut TestWorld,

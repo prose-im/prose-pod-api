@@ -4,24 +4,28 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::fmt::Display;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::models::Member;
 use ::entity::member_invite;
 use ::entity::model::{member_invite::MemberInviteContact, MemberRole};
 use chrono::{DateTime, Utc};
 use rocket::form::{Errors, FromFormField, ValueField};
+use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::notifier::Notification;
 use service::sea_orm::EntityTrait;
-use service::Mutation;
 use service::Query;
+use service::{Mutation, APP_CONF};
 
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, JID as JIDGuard};
+use crate::guards::{Db, Notifier, JID as JIDGuard};
 use crate::responders::Paginated;
 
 pub type R<T> = Result<Json<T>, Error>;
@@ -73,9 +77,11 @@ pub type InviteMemberResponse = member_invite::Model;
     )
 )]
 #[post("/v1/members/invites", format = "json", data = "<req>")]
-pub(super) async fn invite_member(
+pub(super) async fn invite_member<'r>(
+    host: Option<&'r Host<'r>>,
     conn: Connection<'_, Db>,
     jid: JIDGuard,
+    notifier: Notifier<'_>,
     req: Json<InviteMemberRequest>,
 ) -> Created<InviteMemberResponse> {
     let db = conn.into_inner();
@@ -88,8 +94,32 @@ pub(super) async fn invite_member(
     let invite = Mutation::create_member_invite(db, req.pre_assigned_role, req.contact.clone())
         .await
         .map_err(Error::DbErr)?;
-    Ok(status::Created::new("http://test.org").body(invite.into()))
-    // Ok(status::Created::new(uri!(get_invite(invite.id)).to_string()).body(invite.into()))
+    let accept_token = invite.accept_token;
+    let reject_token = invite.reject_token;
+
+    let notifier = notifier.inner?;
+    let admin_site_root = PathBuf::from_str(&APP_CONF.branding.page_url.to_string()).unwrap();
+    notifier
+        .send(&Notification::MemberInvite {
+            accept_link: admin_site_root
+                .join(format!("invites/accept/{accept_token}"))
+                .display()
+                .to_string(),
+            reject_link: admin_site_root
+                .join(format!("invites/reject/{reject_token}"))
+                .display()
+                .to_string(),
+        })
+        .await?;
+
+    let resource_uri = match host {
+        Some(host) => {
+            let origin = Origin::parse_owned(host.to_string()).unwrap();
+            uri!(origin, get_invite(invite.id)).to_string()
+        }
+        None => uri!(get_invite(invite.id)).to_string(),
+    };
+    Ok(status::Created::new(resource_uri).body(invite.into()))
 }
 
 /// Get member invitations.
@@ -142,6 +172,7 @@ pub(super) fn get_invite() -> Json<member_invite::Model> {
     todo!()
 }
 
+#[derive(UriDisplayQuery)]
 pub enum InviteAction {
     Accept,
     Reject,

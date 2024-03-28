@@ -9,4 +9,5 @@ pub mod model;
 
 pub mod member;
 pub mod member_invite;
+pub mod notification;
 pub mod server_config;
