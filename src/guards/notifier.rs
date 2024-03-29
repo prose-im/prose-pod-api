@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt;
+use std::{fmt, path::PathBuf, str::FromStr as _};
 
 use chrono::Utc;
 use entity::{notification, server_config};
@@ -120,7 +120,7 @@ impl From<DbErr> for NotifierError {
 }
 
 impl<'r> NotifierInner<'r> {
-    pub async fn send(&self, notification: &Notification) -> Result<(), NotifierError> {
+    async fn send(&self, notification: &Notification) -> Result<(), NotifierError> {
         // Store in DB
         let mut model = notification::ActiveModel::new();
         model.created_at = Set(Utc::now());
@@ -144,5 +144,24 @@ impl<'r> NotifierInner<'r> {
         // Delete if delivered
 
         Ok(())
+    }
+
+    pub async fn send_member_invite(
+        &self,
+        accept_token: Uuid,
+        reject_token: Uuid,
+    ) -> Result<(), NotifierError> {
+        let admin_site_root = PathBuf::from_str(&APP_CONF.branding.page_url.to_string()).unwrap();
+        self.send(&Notification::MemberInvite {
+            accept_link: admin_site_root
+                .join(format!("invites/accept/{accept_token}"))
+                .display()
+                .to_string(),
+            reject_link: admin_site_root
+                .join(format!("invites/reject/{reject_token}"))
+                .display()
+                .to_string(),
+        })
+        .await
     }
 }

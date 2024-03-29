@@ -39,7 +39,7 @@ pub enum Error {
     /// Service error while mutation an entity.
     MutationErr(MutationError),
     /// Could not find the desired entity.
-    NotFound { reason: &'static str },
+    NotFound { reason: String },
     /// Could not send a notification.
     NotifierError(NotifierError),
 }

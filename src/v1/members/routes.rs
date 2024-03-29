@@ -4,8 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::fmt::Display;
-use std::path::PathBuf;
-use std::str::FromStr;
 
 use super::models::Member;
 use ::entity::member_invite;
@@ -18,10 +16,9 @@ use rocket::serde::json::Json;
 use rocket::{delete, get, post, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::notifier::Notification;
 use service::sea_orm::EntityTrait;
+use service::Mutation;
 use service::Query;
-use service::{Mutation, APP_CONF};
 
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
@@ -97,19 +94,9 @@ pub(super) async fn invite_member<'r>(
     let accept_token = invite.accept_token;
     let reject_token = invite.reject_token;
 
-    let notifier = notifier.inner?;
-    let admin_site_root = PathBuf::from_str(&APP_CONF.branding.page_url.to_string()).unwrap();
     notifier
-        .send(&Notification::MemberInvite {
-            accept_link: admin_site_root
-                .join(format!("invites/accept/{accept_token}"))
-                .display()
-                .to_string(),
-            reject_link: admin_site_root
-                .join(format!("invites/reject/{reject_token}"))
-                .display()
-                .to_string(),
-        })
+        .inner?
+        .send_member_invite(accept_token, reject_token)
         .await?;
 
     let resource_uri = match host {
@@ -209,7 +196,6 @@ impl Display for InviteAction {
 #[post("/v1/members/invites/<invite_id>?<action>&<token>")]
 pub(super) async fn invite_action(
     conn: Connection<'_, Db>,
-    _jid: Option<JIDGuard>,
     invite_id: i32,
     action: InviteAction,
     token: Uuid,
@@ -225,13 +211,13 @@ pub(super) async fn invite_action(
                 .map_err(Error::DbErr)?;
             let Some(model) = model else {
                 return Err(Error::NotFound {
-                    reason: "No invite found for given accept token",
+                    reason: "No invite found for given accept token".to_string(),
                 });
             };
 
             if model.accept_token_expires_at < Utc::now() {
                 return Err(Error::NotFound {
-                    reason: "Invite accept token has expired",
+                    reason: "Invite accept token has expired".to_string(),
                 });
             }
 
@@ -264,6 +250,7 @@ pub(super) async fn invite_action(
 pub(super) async fn invite_resend(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,
+    notifier: Notifier<'_>,
     invite_id: i32,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
@@ -275,6 +262,18 @@ pub(super) async fn invite_resend(
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);
     }
+
+    let invite = Query::get_invite_by_id(db, &invite_id)
+        .await
+        .map_err(Error::DbErr)?
+        .ok_or(Error::NotFound {
+            reason: format!("Could not find the invite with id '{invite_id}'"),
+        })?;
+
+    notifier
+        .inner?
+        .send_member_invite(invite.accept_token, invite.reject_token)
+        .await?;
 
     Ok(())
 }

@@ -54,6 +54,13 @@ impl Query {
         Ok((num_items_and_pages, models))
     }
 
+    pub async fn get_invite_by_id(
+        db: &DbConn,
+        id: &i32,
+    ) -> Result<Option<member_invite::Model>, DbErr> {
+        member_invite::Entity::find_by_id(*id).one(db).await
+    }
+
     pub async fn get_invite_by_accept_token(
         db: &DbConn,
         token: &Uuid,
