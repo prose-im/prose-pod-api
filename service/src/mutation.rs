@@ -126,6 +126,15 @@ impl Mutation {
 
         Ok(model)
     }
+
+    pub async fn accept_invite(
+        db: &DbConn,
+        model: member_invite::Model,
+    ) -> Result<(), MutationError> {
+        model.delete(db).await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]

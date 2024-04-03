@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use entity::model::JID;
 use log::error;
 use std::{path::PathBuf, process::Command};
 
@@ -67,18 +68,18 @@ impl ServerCtlImpl for ProsodyCtl {
         todo!("`prosodyctl status`")
     }
 
-    fn add_user(&self) -> Result<(), Error> {
-        error!("`prosodyctl adduser` not implemented");
-        todo!("`prosodyctl adduser`")
+    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+        self.run_prosodyctl(vec![
+            "register",
+            jid.node.as_str(),
+            jid.domain.as_str(),
+            password,
+        ])
     }
-
-    fn set_user_password(&self) -> Result<(), Error> {
-        error!("`prosodyctl passwd` not implemented");
-        todo!("`prosodyctl passwd`")
-    }
-
-    fn remove_user(&self) -> Result<(), Error> {
-        error!("`prosodyctl deluser` not implemented");
-        todo!("`prosodyctl deluser`")
+    fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+        self.run_prosodyctl(vec![
+            "deluser",
+            jid.to_string().as_str(),
+        ])
     }
 }

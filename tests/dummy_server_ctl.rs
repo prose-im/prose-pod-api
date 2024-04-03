@@ -7,6 +7,8 @@ use ::migration::DbErr;
 use ::service::sea_orm::DatabaseConnection;
 use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
+use entity::model::JID;
+use linked_hash_map::LinkedHashMap;
 use log::error;
 use std::sync::{Arc, Mutex};
 
@@ -15,10 +17,17 @@ pub struct DummyServerCtl {
     state: Arc<Mutex<DummyServerCtlState>>,
 }
 
+#[derive(Debug)]
+pub struct UserAccount {
+    pub jid: JID,
+    pub password: String,
+}
+
 #[derive(Debug, Default)]
 pub struct DummyServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfigFile>,
+    pub users: LinkedHashMap<JID, UserAccount>,
 }
 
 impl DummyServerCtlState {
@@ -30,6 +39,7 @@ impl DummyServerCtlState {
         Ok(Self {
             conf_reload_count: 0,
             applied_config: Some(prosody_config),
+            users: LinkedHashMap::default(),
         })
     }
 }
@@ -67,18 +77,20 @@ impl ServerCtlImpl for DummyServerCtl {
         todo!("DummyServerCtl `status`")
     }
 
-    fn add_user(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `add_user` not implemented");
-        todo!("DummyServerCtl `add_user`")
+    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+        let mut state = self.state.lock().unwrap();
+        state.users.insert(
+            jid.clone(),
+            UserAccount {
+                jid: jid.clone(),
+                password: password.to_string(),
+            },
+        );
+        Ok(())
     }
-
-    fn set_user_password(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `set_user_password` not implemented");
-        todo!("DummyServerCtl `set_user_password`")
-    }
-
-    fn remove_user(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `remove_user` not implemented");
-        todo!("DummyServerCtl `remove_user`")
+    fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+        let mut state = self.state.lock().unwrap();
+        state.users.remove(&jid);
+        Ok(())
     }
 }

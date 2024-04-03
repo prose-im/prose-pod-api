@@ -3,26 +3,24 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Display;
-
 use super::models::Member;
 use ::entity::member_invite;
 use ::entity::model::{member_invite::MemberInviteContact, MemberRole};
 use chrono::{DateTime, Utc};
-use rocket::form::{Errors, FromFormField, ValueField};
+use entity::model::JID;
 use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::sea_orm::EntityTrait;
+use service::sea_orm::{prelude::*, EntityTrait};
 use service::Mutation;
 use service::Query;
 
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, Notifier, JID as JIDGuard};
+use crate::guards::{Db, Notifier, UserFactory, JID as JIDGuard};
 use crate::responders::Paginated;
 
 pub type R<T> = Result<Json<T>, Error>;
@@ -159,32 +157,66 @@ pub(super) fn get_invite() -> Json<member_invite::Model> {
     todo!()
 }
 
-#[derive(UriDisplayQuery)]
-pub enum InviteAction {
-    Accept,
-    Reject,
-}
-
-impl<'v> FromFormField<'v> for InviteAction {
-    fn from_value(field: ValueField<'v>) -> Result<Self, Errors<'v>> {
-        match field.value {
-            "accept" => Ok(Self::Accept),
-            "reject" => Ok(Self::Reject),
-            _ => Err(field.unexpected())?,
-        }
-    }
-}
-
-impl Display for InviteAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Accept => write!(f, "accept"),
-            Self::Reject => write!(f, "reject"),
-        }
-    }
+#[derive(Serialize, Deserialize)]
+pub struct AcceptInviteRequest {
+    pub jid: JID,
+    pub nickname: String,
+    pub password: String,
 }
 
 /// Accept or reject a member invitation.
+#[utoipa::path(
+    tag = "Members",
+    responses(
+        (status = 200, description = "Success"),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
+    )
+)]
+#[post(
+    "/v1/members/invites/<invite_id>?action=accept&<token>",
+    format = "json",
+    data = "<req>",
+    rank = 1
+)]
+pub(super) async fn invite_accept(
+    conn: Connection<'_, Db>,
+    invite_id: i32,
+    token: Uuid,
+    user_factory: UserFactory<'_>,
+    req: Json<AcceptInviteRequest>,
+) -> Result<(), Error> {
+    let db = conn.into_inner();
+    let user_factory = user_factory.inner?;
+
+    // NOTE: We don't check that the invite status is "RECEIVED"
+    //   because it would cause more useless edge cases.
+    let invite = Query::get_invite_by_id(db, &invite_id)
+        .await
+        .map_err(Error::DbErr)?
+        .ok_or(Error::NotFound {
+            reason: format!("No invite with ID {invite_id}"),
+        })?;
+    if token != invite.accept_token {
+        return Err(Error::Unauthorized);
+    }
+    if invite.accept_token_expires_at < Utc::now() {
+        return Err(Error::NotFound {
+            reason: "Invite accept token has expired".to_string(),
+        });
+    }
+
+    // FIXME: Add the new user.
+    user_factory
+        .create_user(&req.jid, &req.password, &req.nickname)
+        .await?;
+
+    invite.delete(db).await.map_err(Error::DbErr)?;
+
+    Ok(())
+}
+
+/// Reject an invitation.
 #[utoipa::path(
     tag = "Members",
     responses(
@@ -193,45 +225,29 @@ impl Display for InviteAction {
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/members/invites/<invite_id>?<action>&<token>")]
-pub(super) async fn invite_action(
+#[post("/v1/members/invites/<invite_id>?action=reject&<token>", rank = 3)]
+pub(super) async fn invite_reject(
     conn: Connection<'_, Db>,
     invite_id: i32,
-    action: InviteAction,
     token: Uuid,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
+    // Nothing to do
     // NOTE: We don't check that the invite status is "RECEIVED"
     //   because it would cause more useless edge cases.
-    match action {
-        InviteAction::Accept => {
-            let model = Query::get_invite_by_accept_token(db, &token)
-                .await
-                .map_err(Error::DbErr)?;
-            let Some(model) = model else {
-                return Err(Error::NotFound {
-                    reason: "No invite found for given accept token".to_string(),
-                });
-            };
 
-            if model.accept_token_expires_at < Utc::now() {
-                return Err(Error::NotFound {
-                    reason: "Invite accept token has expired".to_string(),
-                });
-            }
-
-            // FIXME: Add the new user.
-        }
-        InviteAction::Reject => {
-            // Nothing to do
-        }
+    let invite = Query::get_invite_by_id(db, &invite_id)
+        .await
+        .map_err(Error::DbErr)?
+        .ok_or(Error::NotFound {
+            reason: format!("No invite with ID {invite_id}"),
+        })?;
+    if token != invite.reject_token {
+        return Err(Error::Unauthorized);
     }
 
-    member_invite::Entity::delete_by_id(invite_id)
-        .exec(db)
-        .await
-        .map_err(Error::DbErr)?;
+    invite.delete(db).await.map_err(Error::DbErr)?;
 
     Ok(NoContent)
 }
@@ -246,7 +262,7 @@ pub(super) async fn invite_action(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/members/invites/<invite_id>?action=resend", rank = 1)]
+#[post("/v1/members/invites/<invite_id>?action=resend", rank = 2)]
 pub(super) async fn invite_resend(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,
@@ -288,7 +304,7 @@ pub(super) async fn invite_resend(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/members/invites/<invite_id>?action=cancel", rank = 2)]
+#[post("/v1/members/invites/<invite_id>?action=cancel", rank = 4)]
 pub(super) async fn invite_cancel(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,

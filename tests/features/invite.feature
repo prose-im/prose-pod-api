@@ -116,6 +116,12 @@ Feature: Inviting members
   """
   Rule: An invited member can be pre-assigned a role upon invitation
 
+    Scenario: Rémi is invited to be an admin
+      Given <remi@prose.org> has been invited via email
+        And <remi@prose.org> is pre-assigned the ADMIN role
+       When <remi@prose.org> accepts their invitation using <remi@prose.org> as JID
+       Then <remi@prose.org> should have the ADMIN role
+
   """
   At the time of writing this test, only two roles exist: ADMIN and MEMBER.
   As admins are the only ones who can invite new members, we won't
@@ -175,7 +181,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invite
        When <remi@prose.org> uses the previous invite accept link they received
-       Then the HTTP status code should be Not Found
+       Then the HTTP status code should be Unauthorized
 
   """
   Access logs already store this kind of operation,

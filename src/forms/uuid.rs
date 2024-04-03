@@ -8,6 +8,7 @@ use std::{fmt::Display, ops::Deref};
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Query};
 
+#[derive(Debug, Eq)]
 pub struct Uuid(uuid::Uuid);
 
 impl<'v> FromFormField<'v> for Uuid {
@@ -38,5 +39,17 @@ impl Deref for Uuid {
 impl Display for Uuid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl PartialEq for Uuid {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl PartialEq<uuid::Uuid> for Uuid {
+    fn eq(&self, other: &uuid::Uuid) -> bool {
+        &self.0 == other
     }
 }

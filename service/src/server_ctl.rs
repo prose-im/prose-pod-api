@@ -8,6 +8,8 @@ use std::ops::Deref;
 use std::process::Output;
 use std::sync::{Arc, Mutex};
 
+use entity::model::JID;
+
 pub struct ServerCtl {
     pub implem: Arc<Mutex<dyn ServerCtlImpl>>,
 }
@@ -35,9 +37,8 @@ pub trait ServerCtlImpl: Sync + Send {
     fn reload(&self) -> Result<(), Error>;
     fn status(&self) -> Result<(), Error>;
 
-    fn add_user(&self) -> Result<(), Error>;
-    fn set_user_password(&self) -> Result<(), Error>;
-    fn remove_user(&self) -> Result<(), Error>;
+    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;
+    fn remove_user(&self, jid: &JID) -> Result<(), Error>;
 }
 
 #[derive(Debug)]

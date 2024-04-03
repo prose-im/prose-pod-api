@@ -15,7 +15,7 @@ use entity::{
     },
 };
 use migration::DbErr;
-use prose_pod_api::v1::members::{InviteAction, InviteMemberRequest};
+use prose_pod_api::v1::members::{AcceptInviteRequest, InviteMemberRequest};
 use rocket::{
     http::{Accept, ContentType, Header},
     local::asynchronous::{Client, LocalResponse},
@@ -27,7 +27,7 @@ use service::{
 };
 
 use crate::{
-    cucumber_parameters::{EmailAddress, MemberInviteState, Name},
+    cucumber_parameters::{EmailAddress, MemberInviteState, Name, JID},
     TestWorld,
 };
 
@@ -79,15 +79,36 @@ async fn list_invites_paged<'a>(
         .await
 }
 
-async fn invite_action<'a>(
+async fn accept_invite<'a>(
     client: &'a Client,
     token: Uuid,
     invite_id: i32,
-    action: InviteAction,
+    jid: JID,
+    nickname: Option<String>,
+    password: Option<String>,
 ) -> LocalResponse<'a> {
     client
         .post(format!(
-            "/v1/members/invites/{invite_id}?action={action}&token={token}"
+            "/v1/members/invites/{invite_id}?action=accept&token={token}"
+        ))
+        .header(ContentType::JSON)
+        .body(
+            json!(AcceptInviteRequest {
+                jid: jid.clone(),
+                nickname: nickname.unwrap_or(jid.node.clone()),
+                password: password.unwrap_or("test".to_string()),
+            })
+            .to_string(),
+        )
+        .header(Accept::JSON)
+        .dispatch()
+        .await
+}
+
+async fn reject_invite<'a>(client: &'a Client, token: Uuid, invite_id: i32) -> LocalResponse<'a> {
+    client
+        .post(format!(
+            "/v1/members/invites/{invite_id}?action=reject&token={token}"
         ))
         .header(Accept::JSON)
         .dispatch()
@@ -266,12 +287,33 @@ async fn when_getting_invites_page(
 
 #[when(expr = "<{email}> accepts their invitation")]
 async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: EmailAddress) {
-    let invite = world.invite(email_address.0);
-    let res = invite_action(
+    let invite = world.invite(&email_address.0);
+    let res = accept_invite(
         &world.client,
         invite.accept_token,
         invite.id,
-        InviteAction::Accept,
+        JID::from_str(email_address.as_str()).unwrap(),
+        None,
+        None,
+    )
+    .await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "<{email}> accepts their invitation using <{jid}> as JID")]
+async fn when_invited_accepts_invite_with_jid(
+    world: &mut TestWorld,
+    email_address: EmailAddress,
+    jid: JID,
+) {
+    let invite = world.invite(&email_address.0);
+    let res = accept_invite(
+        &world.client,
+        invite.accept_token,
+        invite.id,
+        jid,
+        None,
+        None,
     )
     .await;
     world.result = Some(res.into());
@@ -279,12 +321,14 @@ async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: Email
 
 #[when(expr = "<{email}> uses the previous invite accept link they received")]
 async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
-    let invite = world.invite(email_address.0);
-    let res = invite_action(
+    let invite = world.invite(&email_address.0);
+    let res = accept_invite(
         &world.client,
         world.previous_invite_accept_token(),
         invite.id,
-        InviteAction::Accept,
+        JID::from_str(email_address.as_str()).unwrap(),
+        None,
+        None,
     )
     .await;
     world.result = Some(res.into());
@@ -292,14 +336,8 @@ async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address:
 
 #[when(expr = "<{email}> rejects their invitation")]
 async fn when_invited_rejects_invite(world: &mut TestWorld, email_address: EmailAddress) {
-    let invite = world.invite(email_address.0);
-    let res = invite_action(
-        &world.client,
-        invite.reject_token,
-        invite.id,
-        InviteAction::Reject,
-    )
-    .await;
+    let invite = world.invite(&email_address.0);
+    let res = reject_invite(&world.client, invite.reject_token, invite.id).await;
     world.result = Some(res.into());
 }
 

@@ -182,9 +182,9 @@ impl TestWorld {
             .clone()
     }
 
-    fn invite(&self, email_address: EmailAddress) -> member_invite::Model {
+    fn invite(&self, email_address: &EmailAddress) -> member_invite::Model {
         self.member_invites
-            .get(&email_address)
+            .get(email_address)
             .expect("Invite must be created first")
             .clone()
     }
