@@ -54,6 +54,7 @@ pub(super) fn get_members() -> String {
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
+    pub jid: JID,
     pub pre_assigned_role: MemberRole,
     #[serde(flatten)]
     pub contact: MemberInviteContact,
@@ -86,9 +87,14 @@ pub(super) async fn invite_member<'r>(
         return Err(Error::Unauthorized);
     }
 
-    let invite = Mutation::create_member_invite(db, req.pre_assigned_role, req.contact.clone())
-        .await
-        .map_err(Error::DbErr)?;
+    let invite = Mutation::create_member_invite(
+        db,
+        req.jid.clone(),
+        req.pre_assigned_role,
+        req.contact.clone(),
+    )
+    .await
+    .map_err(Error::DbErr)?;
     let accept_token = invite.accept_token;
     let reject_token = invite.reject_token;
 
@@ -204,7 +210,6 @@ pub(super) async fn get_invite_by_token(
 
 #[derive(Serialize, Deserialize)]
 pub struct AcceptInviteRequest {
-    pub jid: JID,
     pub nickname: String,
     pub password: String,
 }
@@ -253,10 +258,10 @@ pub(super) async fn invite_accept(
 
     // FIXME: Add the new user.
     user_factory
-        .create_user(&req.jid, &req.password, &req.nickname)
+        .create_user(&invite.jid, &req.password, &req.nickname)
         .await?;
 
-    Mutation::accept_invite(db, invite, &req.jid)
+    Mutation::accept_invite(db, invite)
         .await
         .map_err(Error::MutationErr)?;
 

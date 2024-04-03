@@ -51,12 +51,14 @@ impl Mutation {
 
     pub async fn create_member_invite(
         db: &DbConn,
+        jid: JID,
         pre_assigned_role: MemberRole,
         contact: MemberInviteContact,
     ) -> Result<member_invite::Model, DbErr> {
         let mut model = member_invite::ActiveModel::new();
         let now = Utc::now();
         model.created_at = Set(now);
+        model.jid = Set(jid);
         model.pre_assigned_role = Set(pre_assigned_role);
         model.set_contact(contact);
         model.accept_token = Set(Uuid::new_v4());
@@ -133,12 +135,11 @@ impl Mutation {
     pub async fn accept_invite(
         db: &DbConn,
         invite: member_invite::Model,
-        jid: &JID,
     ) -> Result<(), MutationError> {
         let txn = db.begin().await?;
 
         let mut new_member = member::ActiveModel::new();
-        new_member.id = Set(jid.to_string());
+        new_member.id = Set(invite.jid.to_string());
         new_member.role = Set(invite.pre_assigned_role);
         new_member.insert(&txn).await?;
 

@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto(MemberInvite::Id))
                     .col(timestamp_with_time_zone(MemberInvite::CreatedAt))
+                    .col(string(MemberInvite::Jid))
                     .col(string(MemberInvite::State).default(DEFAULT_MEMBER_INVITE_STATE))
                     .col(string(MemberInvite::PreAssignedRole))
                     .col(string(MemberInvite::InvitationChannel))
@@ -39,6 +40,7 @@ enum MemberInvite {
     Table,
     Id,
     CreatedAt,
+    Jid,
     State,
     PreAssignedRole,
     InvitationChannel,

@@ -83,6 +83,51 @@ impl<'de> Deserialize<'de> for JID {
     }
 }
 
+impl From<JID> for sea_query::Value {
+    fn from(value: JID) -> Self {
+        Self::String(Some(Box::new(value.to_string())))
+    }
+}
+
+impl sea_orm::TryGetable for JID {
+    fn try_get_by<I: sea_orm::ColIdx>(
+        res: &sea_orm::prelude::QueryResult,
+        index: I,
+    ) -> Result<Self, TryGetError> {
+        let value: String = res.try_get_by(index).map_err(TryGetError::DbErr)?;
+        Self::try_from(value)
+            // Technically, the value is not `null`, but we wouldn't want to unsafely unwrap here.
+            .map_err(|e| TryGetError::Null(format!("{:?}", e)))
+    }
+}
+
+impl sea_query::ValueType for JID {
+    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+        match v {
+            Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
+            _ => Err(ValueTypeErr),
+        }
+    }
+
+    fn type_name() -> String {
+        stringify!(JID).to_string()
+    }
+
+    fn array_type() -> ArrayType {
+        ArrayType::String
+    }
+
+    fn column_type() -> ColumnType {
+        ColumnType::string(None)
+    }
+}
+
+impl sea_query::Nullable for JID {
+    fn null() -> Value {
+        Value::String(None)
+    }
+}
+
 // ===== DURATIONS =====
 
 #[derive(Clone, Debug, PartialEq)]

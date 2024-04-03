@@ -8,7 +8,7 @@ pub use crate::model::member_invite::*;
 
 use crate::model::{
     member_invite::{MemberInvitationChannel, MemberInviteContact, MemberInviteState},
-    EmailAddress, MemberRole,
+    EmailAddress, MemberRole, JID,
 };
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
@@ -19,6 +19,7 @@ pub struct Model {
     pub id: i32,
     pub created_at: DateTimeUtc,
     pub state: MemberInviteState,
+    pub jid: JID,
     pub pre_assigned_role: MemberRole,
     invitation_channel: MemberInvitationChannel,
     email_address: Option<EmailAddress>,

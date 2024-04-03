@@ -119,7 +119,7 @@ Feature: Inviting members
     Scenario: Rémi is invited to be an admin
       Given <remi@prose.org> has been invited via email
         And <remi@prose.org> is pre-assigned the ADMIN role
-       When <remi@prose.org> accepts their invitation using <remi@prose.org> as JID
+       When <remi@prose.org> accepts their invitation
        Then <remi@prose.org> should have the ADMIN role
 
   """

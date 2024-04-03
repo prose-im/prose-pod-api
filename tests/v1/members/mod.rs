@@ -36,6 +36,7 @@ const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
 async fn invite_member<'a>(
     client: &'a Client,
     token: String,
+    jid: JID,
     pre_assigned_role: MemberRole,
     contact: MemberInviteContact,
 ) -> LocalResponse<'a> {
@@ -45,6 +46,7 @@ async fn invite_member<'a>(
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
             json!(InviteMemberRequest {
+                jid: jid.0,
                 pre_assigned_role: pre_assigned_role.0,
                 contact,
             })
@@ -97,8 +99,7 @@ async fn accept_invite<'a>(
     client: &'a Client,
     token: Uuid,
     invite_id: i32,
-    jid: JID,
-    nickname: Option<String>,
+    nickname: String,
     password: Option<String>,
 ) -> LocalResponse<'a> {
     client
@@ -108,8 +109,7 @@ async fn accept_invite<'a>(
         .header(ContentType::JSON)
         .body(
             json!(AcceptInviteRequest {
-                jid: jid.clone(),
-                nickname: nickname.unwrap_or(jid.node.clone()),
+                nickname: nickname,
                 password: password.unwrap_or("test".to_string()),
             })
             .to_string(),
@@ -143,14 +143,16 @@ async fn invite_admin_action<'a>(
         .await
 }
 
-#[given(expr = "<{email}> has been invited via email")]
-async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), DbErr> {
-    let email_address = email_address.0;
+#[given(expr = "<{jid}> has been invited via email")]
+async fn given_invited(world: &mut TestWorld, jid: JID) -> Result<(), DbErr> {
+    let email_address = model::EmailAddress::from_str(&jid.0.to_string()).unwrap();
+    let jid = jid.0;
 
     // Create invite
     let db = world.db();
     let model = Mutation::create_member_invite(
         db,
+        jid,
         DEFAULT_MEMBER_ROLE,
         MemberInviteContact::Email {
             email_address: email_address.clone(),
@@ -186,10 +188,12 @@ async fn given_pre_assigned_role(
 async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), DbErr> {
     for i in 0..n {
         let db = world.db();
+        let jid = model::JID::from_str(format!("person.{i}@test.org").as_str()).unwrap();
         let email_address =
             model::EmailAddress::from_str(format!("person.{i}@test.org").as_str()).unwrap();
         let model = Mutation::create_member_invite(
             db,
+            jid,
             DEFAULT_MEMBER_ROLE,
             MemberInviteContact::Email {
                 email_address: email_address.clone(),
@@ -270,21 +274,16 @@ async fn given_invite_not_received(world: &mut TestWorld) -> Result<(), Mutation
     Ok(())
 }
 
-#[when(expr = r#"{name} invites <{email}> as a(n) {member_role}"#)]
-async fn when_inviting(
-    world: &mut TestWorld,
-    name: Name,
-    email_address: EmailAddress,
-    pre_assigned_role: MemberRole,
-) {
+#[when(expr = r#"{name} invites <{jid}> as a(n) {member_role}"#)]
+async fn when_inviting(world: &mut TestWorld, name: Name, jid: JID, pre_assigned_role: MemberRole) {
     let token = world.token(name.0);
+    let email_address = model::EmailAddress::from_str(&jid.to_string()).unwrap();
     let res = invite_member(
         &world.client,
         token,
+        jid,
         pre_assigned_role,
-        MemberInviteContact::Email {
-            email_address: email_address.0,
-        },
+        MemberInviteContact::Email { email_address },
     )
     .await;
     world.result = Some(res.into());
@@ -351,27 +350,7 @@ async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: Email
         &world.client,
         invite.accept_token,
         invite.id,
-        JID::from_str(email_address.as_str()).unwrap(),
-        None,
-        None,
-    )
-    .await;
-    world.result = Some(res.into());
-}
-
-#[when(expr = "<{email}> accepts their invitation using <{jid}> as JID")]
-async fn when_invited_accepts_invite_with_jid(
-    world: &mut TestWorld,
-    email_address: EmailAddress,
-    jid: JID,
-) {
-    let invite = world.invite(&email_address.0);
-    let res = accept_invite(
-        &world.client,
-        invite.accept_token,
-        invite.id,
-        jid,
-        None,
+        email_address.0.local_part().to_string(),
         None,
     )
     .await;
@@ -385,8 +364,7 @@ async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address:
         &world.client,
         world.previous_invite_accept_token(&email_address),
         invite.id,
-        JID::from_str(email_address.as_str()).unwrap(),
-        None,
+        email_address.0.local_part().to_string(),
         None,
     )
     .await;
