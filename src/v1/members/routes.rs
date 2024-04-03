@@ -211,7 +211,9 @@ pub(super) async fn invite_accept(
         .create_user(&req.jid, &req.password, &req.nickname)
         .await?;
 
-    invite.delete(db).await.map_err(Error::DbErr)?;
+    Mutation::accept_invite(db, invite, &req.jid)
+        .await
+        .map_err(Error::MutationErr)?;
 
     Ok(())
 }

@@ -7,6 +7,7 @@ pub mod member_invite;
 pub mod members;
 pub mod server_config;
 
+pub use member_invite::*;
 pub use members::*;
 pub use server_config::*;
 

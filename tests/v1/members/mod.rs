@@ -8,11 +8,8 @@ use std::str::FromStr as _;
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
-    member_invite,
-    model::{
-        member_invite::{MemberInviteContact, MemberInviteState as MemberInviteStateModel},
-        EmailAddress as EmailAddressEntityModel, MemberRole,
-    },
+    member, member_invite,
+    model::{self, MemberInviteContact},
 };
 use migration::DbErr;
 use prose_pod_api::v1::members::{AcceptInviteRequest, InviteMemberRequest};
@@ -27,11 +24,11 @@ use service::{
 };
 
 use crate::{
-    cucumber_parameters::{EmailAddress, MemberInviteState, Name, JID},
+    cucumber_parameters::{EmailAddress, MemberInviteState, MemberRole, Name, JID},
     TestWorld,
 };
 
-const DEFAULT_MEMBER_ROLE: MemberRole = MemberRole::Member;
+const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
 
 async fn invite_member<'a>(
     client: &'a Client,
@@ -45,7 +42,7 @@ async fn invite_member<'a>(
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
             json!(InviteMemberRequest {
-                pre_assigned_role,
+                pre_assigned_role: pre_assigned_role.0,
                 contact,
             })
             .to_string(),
@@ -153,12 +150,27 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
     Ok(())
 }
 
+#[given(expr = "<{email}> is pre-assigned the {member_role} role")]
+async fn given_pre_assigned_role(
+    world: &mut TestWorld,
+    email_address: EmailAddress,
+    role: MemberRole,
+) -> Result<(), DbErr> {
+    let db = world.db();
+
+    let mut active = world.invite(&email_address).into_active_model();
+    active.pre_assigned_role = Set(role.0);
+    active.update(db).await?;
+
+    Ok(())
+}
+
 #[given(expr = "{int} people have been invited via email")]
 async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), DbErr> {
     for i in 0..n {
         let db = world.db();
         let email_address =
-            EmailAddressEntityModel::from_str(format!("person.{i}@test.org").as_str()).unwrap();
+            model::EmailAddress::from_str(format!("person.{i}@test.org").as_str()).unwrap();
         let model = Mutation::create_member_invite(
             db,
             DEFAULT_MEMBER_ROLE,
@@ -181,7 +193,7 @@ async fn given_invite_received(
     Mutation::update_member_invite_status_by_email(
         db,
         email_address.0,
-        MemberInviteStateModel::Received,
+        model::MemberInviteState::Received,
     )
     .await?;
     Ok(())
@@ -233,20 +245,20 @@ async fn given_invite_not_received(world: &mut TestWorld) -> Result<(), Mutation
     Mutation::update_member_invite_status(
         db,
         world.scenario_invite().1,
-        MemberInviteStateModel::ReceptionFailure,
+        model::MemberInviteState::ReceptionFailure,
     )
     .await?;
     Ok(())
 }
 
-#[when(regex = r#"^(.+) invites <(.+)> as an? (.+)$"#)]
+#[when(expr = r#"{name} invites <{email}> as a(n) {member_role}"#)]
 async fn when_inviting(
     world: &mut TestWorld,
-    name: String,
+    name: Name,
     email_address: EmailAddress,
     pre_assigned_role: MemberRole,
 ) {
-    let token = world.token(name);
+    let token = world.token(name.0);
     let res = invite_member(
         &world.client,
         token,
@@ -405,5 +417,18 @@ async fn then_no_invitation_for_email(
         count, 0,
         "Found {count} invite(s) for <{email_address}> in the database"
     );
+    Ok(())
+}
+
+#[then(expr = "<{jid}> should have the {member_role} role")]
+async fn then_member_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
+    let db = world.db();
+
+    let member = member::Entity::find_by_id(jid.to_string())
+        .one(db)
+        .await?
+        .expect(&format!("Member {jid} not found"));
+    assert_eq!(member.role, role.0);
+
     Ok(())
 }

@@ -11,8 +11,11 @@ use ::entity::{
     server_config,
 };
 use chrono::{prelude::Utc, TimeDelta};
-use entity::model::{member_invite::MemberInviteState, EmailAddress};
-use sea_orm::{prelude::*, IntoActiveModel as _, Set};
+use entity::{
+    member,
+    model::{member_invite::MemberInviteState, EmailAddress, JID},
+};
+use sea_orm::{prelude::*, IntoActiveModel as _, Set, TransactionTrait as _};
 
 const DEFAULT_INVITE_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
@@ -129,9 +132,19 @@ impl Mutation {
 
     pub async fn accept_invite(
         db: &DbConn,
-        model: member_invite::Model,
+        invite: member_invite::Model,
+        jid: &JID,
     ) -> Result<(), MutationError> {
-        model.delete(db).await?;
+        let txn = db.begin().await?;
+
+        let mut new_member = member::ActiveModel::new();
+        new_member.id = Set(jid.to_string());
+        new_member.role = Set(invite.pre_assigned_role);
+        new_member.insert(&txn).await?;
+
+        invite.delete(&txn).await?;
+
+        txn.commit().await?;
 
         Ok(())
     }

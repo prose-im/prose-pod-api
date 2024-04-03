@@ -11,6 +11,7 @@ mod email_address;
 mod http_status;
 mod invites;
 mod jid;
+mod member_role;
 mod name;
 mod toggle_state;
 
@@ -19,5 +20,6 @@ pub use email_address::*;
 pub use http_status::*;
 pub use invites::*;
 pub use jid::*;
+pub use member_role::*;
 pub use name::*;
 pub use toggle_state::*;
