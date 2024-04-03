@@ -222,3 +222,39 @@ Feature: Inviting members
       Given <remi@personal.name> has been invited via email
        When <remi@personal.name> rejects their invitation
        Then there should not be any invitation for <remi@personal.name> in the database
+
+  """
+  The invite accept and reject links look like `/invites/(accept|reject)/{uuid}`,
+  with the invide ID not directly accessible. However, to follow the HTTP standard,
+  the Prose Pod API requires the full path to the invite resource, which includes its ID.
+  Therefore, the Prose Pod Dashboard needs a way to retrieve the invite ID in order to
+  make the REST API call.
+
+  The answer should not contain sensitive information such as the invite creator,
+  creation timestamp and accept/reject tokens, as the route needs to be publicly accessible
+  (the member is joining and doesn't have a JID and role yet). Since accept/reject tokens
+  are never shared outside of invite notifications, someone with a token should be allowed
+  to see this basic information, as it proves they have been invited.
+
+  In the result we can share the accept token expiration timestamp, so it can be displayed
+  in the Prose Pod Dashboard if we wanted to (e.g. "This invites expires in {countdown}").
+  """
+  Rule: Basic info about an invite can be retrieved from the accept and reject tokens
+
+    Scenario: Retrieving from an accept token
+      Given <remi@prose.org> has been invited via email
+       When <remi@prose.org> requests the invite associated to their accept token
+       Then the call should succeed
+        And the response content type should be JSON
+
+    Scenario: Retrieving from a reject token
+      Given <remi@prose.org> has been invited via email
+       When <remi@prose.org> requests the invite associated to their reject token
+       Then the call should succeed
+        And the response content type should be JSON
+
+    Scenario: Retrieving from an old accept token
+      Given <remi@prose.org> has been invited via email
+        And an admin resent the invite
+       When <remi@prose.org> requests the invite associated to their previous accept token
+       Then the HTTP status code should be Unauthorized

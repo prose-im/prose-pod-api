@@ -19,7 +19,7 @@ use service::Mutation;
 use service::Query;
 
 use crate::error::Error;
-use crate::forms::{Timestamp, Uuid};
+use crate::forms::{MemberInviteTokenType, Timestamp, Uuid, JID as JIDUriParam};
 use crate::guards::{Db, Notifier, UserFactory, JID as JIDGuard};
 use crate::responders::Paginated;
 
@@ -117,7 +117,7 @@ pub(super) async fn invite_member<'r>(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[get("/v1/members/invites?<page_number>&<page_size>&<until>")]
+#[get("/v1/members/invites?<page_number>&<page_size>&<until>", rank = 2)]
 pub(super) async fn get_invites(
     conn: Connection<'_, Db>,
     page_number: Option<u64>,
@@ -155,6 +155,51 @@ pub(super) async fn get_invites(
 #[get("/v1/members/invites/<_>")]
 pub(super) fn get_invite() -> Json<member_invite::Model> {
     todo!()
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetInviteByTokenResponse {
+    pub invite_id: i32,
+    pub pre_assigned_role: MemberRole,
+    pub accept_token_expires_at: DateTimeUtc,
+}
+
+impl From<member_invite::Model> for GetInviteByTokenResponse {
+    fn from(value: member_invite::Model) -> Self {
+        Self {
+            invite_id: value.id,
+            pre_assigned_role: value.pre_assigned_role,
+            accept_token_expires_at: value.accept_token_expires_at,
+        }
+    }
+}
+
+/// Get information about an invitation from an accept or reject token.
+#[utoipa::path(
+    tag = "Members",
+    responses(
+        (status = 200, description = "Success", body = GetInviteByTokenResponse),
+        (status = 401, description = "Unauthorized", body = Error),
+    )
+)]
+#[get("/v1/members/invites?<token>&<token_type>", rank = 1)]
+pub(super) async fn get_invite_by_token(
+    conn: Connection<'_, Db>,
+    token: Uuid,
+    token_type: MemberInviteTokenType,
+) -> R<GetInviteByTokenResponse> {
+    let db = conn.into_inner();
+    let invite = match token_type {
+        MemberInviteTokenType::Accept => Query::get_invite_by_accept_token(db, &token).await,
+        MemberInviteTokenType::Reject => Query::get_invite_by_reject_token(db, &token).await,
+    }
+    .map_err(Error::DbErr)?;
+    let Some(invite) = invite else {
+        return Err(Error::Unauthorized);
+    };
+
+    let response: GetInviteByTokenResponse = invite.into();
+    Ok(response.into())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -362,7 +407,7 @@ pub(super) fn search_members() -> String {
     )
 )]
 #[get("/v1/members/<_member_id>")]
-pub(super) fn get_member(_member_id: &str) -> String {
+pub(super) fn get_member(_member_id: JIDUriParam) -> String {
     todo!()
 }
 

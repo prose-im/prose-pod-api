@@ -145,7 +145,7 @@ struct TestWorld {
     /// Map an email address to an invite.
     member_invites: HashMap<EmailAddress, member_invite::Model>,
     scenario_invite: Option<(EmailAddress, member_invite::Model)>,
-    previous_invite_accept_token: Option<Uuid>,
+    previous_invite_accept_token: HashMap<EmailAddress, Uuid>,
 }
 
 impl TestWorld {
@@ -175,9 +175,9 @@ impl TestWorld {
             .clone()
     }
 
-    fn previous_invite_accept_token(&self) -> Uuid {
+    fn previous_invite_accept_token(&self, email_address: &EmailAddress) -> Uuid {
         self.previous_invite_accept_token
-            .as_ref()
+            .get(email_address)
             .expect("Previous invite accept not stored in previous steps")
             .clone()
     }
@@ -207,7 +207,7 @@ impl TestWorld {
             members: HashMap::new(),
             member_invites: HashMap::new(),
             scenario_invite: None,
-            previous_invite_accept_token: None,
+            previous_invite_accept_token: HashMap::new(),
         }
     }
 }

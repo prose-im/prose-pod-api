@@ -17,6 +17,7 @@ pub(super) fn routes() -> Vec<Route> {
         invite_member,
         get_invites,
         get_invite,
+        get_invite_by_token,
         invite_accept,
         invite_reject,
         invite_resend,

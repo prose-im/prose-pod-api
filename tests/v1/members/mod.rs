@@ -12,7 +12,10 @@ use entity::{
     model::{self, MemberInviteContact},
 };
 use migration::DbErr;
-use prose_pod_api::v1::members::{AcceptInviteRequest, InviteMemberRequest};
+use prose_pod_api::{
+    forms::MemberInviteTokenType::{self as TokenType},
+    v1::members::{AcceptInviteRequest, InviteMemberRequest},
+};
 use rocket::{
     http::{Accept, ContentType, Header},
     local::asynchronous::{Client, LocalResponse},
@@ -72,6 +75,20 @@ async fn list_invites_paged<'a>(
         ))
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
+        .dispatch()
+        .await
+}
+
+async fn get_invite_by_token<'a>(
+    client: &'a Client,
+    token: &Uuid,
+    token_type: TokenType,
+) -> LocalResponse<'a> {
+    client
+        .get(format!(
+            "/v1/members/invites?token={token}&token_type={token_type}"
+        ))
+        .header(Accept::JSON)
         .dispatch()
         .await
 }
@@ -204,7 +221,9 @@ async fn given_invite_resent(world: &mut TestWorld) -> Result<(), MutationError>
     let (email_address, invite_before) = world.scenario_invite();
 
     // Store previous accept token for other steps requiring it
-    world.previous_invite_accept_token = Some(invite_before.accept_token);
+    world
+        .previous_invite_accept_token
+        .insert(email_address.clone(), invite_before.accept_token);
 
     // Resend invite
     let db = world.db();
@@ -297,6 +316,34 @@ async fn when_getting_invites_page(
     world.result = Some(res.into());
 }
 
+#[when(expr = "<{email}> requests the invite associated to their accept token")]
+async fn when_getting_invite_for_accept_token(world: &mut TestWorld, email_address: EmailAddress) {
+    let invite = world.invite(&email_address);
+    let res = get_invite_by_token(&world.client, &invite.accept_token, TokenType::Accept).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "<{email}> requests the invite associated to their reject token")]
+async fn when_getting_invite_for_reject_token(world: &mut TestWorld, email_address: EmailAddress) {
+    let invite = world.invite(&email_address);
+    let res = get_invite_by_token(&world.client, &invite.reject_token, TokenType::Reject).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "<{email}> requests the invite associated to their previous accept token")]
+async fn when_getting_invite_for_previous_accept_token(
+    world: &mut TestWorld,
+    email_address: EmailAddress,
+) {
+    let res = get_invite_by_token(
+        &world.client,
+        &world.previous_invite_accept_token(&email_address),
+        TokenType::Accept,
+    )
+    .await;
+    world.result = Some(res.into());
+}
+
 #[when(expr = "<{email}> accepts their invitation")]
 async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: EmailAddress) {
     let invite = world.invite(&email_address.0);
@@ -333,10 +380,10 @@ async fn when_invited_accepts_invite_with_jid(
 
 #[when(expr = "<{email}> uses the previous invite accept link they received")]
 async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
-    let invite = world.invite(&email_address.0);
+    let invite = world.invite(&email_address);
     let res = accept_invite(
         &world.client,
-        world.previous_invite_accept_token(),
+        world.previous_invite_accept_token(&email_address),
         invite.id,
         JID::from_str(email_address.as_str()).unwrap(),
         None,
