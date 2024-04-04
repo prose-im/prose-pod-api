@@ -5,7 +5,7 @@
 
 use std::ops::Deref;
 use std::process::Output;
-use std::str::Utf8Error;
+use std::str::{self, Utf8Error};
 use std::sync::{Arc, Mutex};
 use std::{fmt, io};
 
@@ -78,8 +78,10 @@ impl fmt::Display for Error {
             Self::IO(err) => write!(f, "IO error: {err}"),
             Self::CommandFailed(output) => write!(
                 f,
-                "Command failed (status: {}):\n{:?}",
-                output.status, output.stderr,
+                "Command failed ({}):\nstdout: {}\nstderr: {}",
+                output.status,
+                str::from_utf8(&output.stdout).unwrap(),
+                str::from_utf8(&output.stderr).unwrap(),
             ),
             Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
             Self::VcardError(err) => write!(f, "vCard error: {err}"),

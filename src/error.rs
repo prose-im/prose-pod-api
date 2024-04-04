@@ -5,7 +5,6 @@
 
 use std::{fmt, io::Cursor};
 
-use log::info;
 use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
@@ -96,7 +95,13 @@ impl Error {
 impl<'r> Responder<'r, 'static> for Error {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         // Log error
-        info!("{self}");
+        if (500..600).contains(&self.http_status().code) {
+            // Server error
+            error!("{self}");
+        } else {
+            // Client error
+            warn!("{self}");
+        }
 
         // Construct response
         let body = json!({
