@@ -5,6 +5,7 @@
 
 use crate::TestWorld;
 use cucumber::{given, then, when};
+use entity::model::JID;
 use migration::DbErr;
 use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
@@ -36,7 +37,7 @@ async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse
 
 #[given(expr = "the workspace is named {string}")]
 async fn given_workspace_name(world: &mut TestWorld, name: String) {
-    init_workspace(&world.client, &name).await;
+    init_workspace(&world.client, &JID::new("test.admin", "prose.org"), &name).await;
 }
 
 #[when("a user gets the workspace name")]
@@ -89,7 +90,12 @@ async fn set_workspace_icon_url<'a>(client: &'a Client, url: &str) -> LocalRespo
 
 #[given(expr = "the workspace icon URL is {string}")]
 async fn given_workspace_icon_url(world: &mut TestWorld, url: String) {
-    init_workspace(&world.client, DEFAULT_WORKSPACE_NAME).await;
+    init_workspace(
+        &world.client,
+        &JID::new("test.admin", "prose.org"),
+        DEFAULT_WORKSPACE_NAME,
+    )
+    .await;
     set_workspace_icon_url(&world.client, &url).await;
 }
 

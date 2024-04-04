@@ -3,8 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::config::ConfigNotify;
-use service::notifier::{GenericNotifier, Notification};
+use ::service::config::ConfigNotify;
+use ::service::notifier::{GenericNotifier, Notification};
+
 use std::sync::Mutex;
 
 #[derive(Debug)]

@@ -3,9 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use ::service::notifier::notification_message;
 use cucumber::then;
 use regex::Regex;
-use service::notifier::notification_message;
 
 use crate::TestWorld;
 

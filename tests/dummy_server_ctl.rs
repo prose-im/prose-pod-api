@@ -3,14 +3,15 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use ::entity::model::JID;
 use ::migration::DbErr;
 use ::service::sea_orm::DatabaseConnection;
 use ::service::server_ctl::{Error, ServerCtlImpl};
+use ::service::vcard_parser::vcard::Vcard;
 use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
-use entity::model::JID;
 use linked_hash_map::LinkedHashMap;
 use log::error;
-use service::vcard_parser::vcard::Vcard;
+
 use std::sync::Mutex;
 
 #[derive(Debug)]
