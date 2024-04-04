@@ -23,6 +23,12 @@ use rocket::{
 use serde_json::json;
 use service::{
     sea_orm::{prelude::*, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set},
+    server_ctl::{self, ServerCtlImpl},
+    vcard_parser::{
+        constants::PropertyName,
+        traits::HasValue as _,
+        vcard::{self, property::property_nickname::PropertyNickNameData},
+    },
     Mutation, MutationError,
 };
 
@@ -357,6 +363,24 @@ async fn when_invited_accepts_invite(world: &mut TestWorld, email_address: Email
     world.result = Some(res.into());
 }
 
+#[when(expr = "<{email}> accepts their invitation using the nickname {string}")]
+async fn when_invited_accepts_invite_with_nickname(
+    world: &mut TestWorld,
+    email_address: EmailAddress,
+    nickname: String,
+) {
+    let invite = world.invite(&email_address.0);
+    let res = accept_invite(
+        &world.client,
+        invite.accept_token,
+        invite.id,
+        nickname,
+        None,
+    )
+    .await;
+    world.result = Some(res.into());
+}
+
 #[when(expr = "<{email}> uses the previous invite accept link they received")]
 async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
     let invite = world.invite(&email_address);
@@ -446,7 +470,7 @@ async fn then_no_invitation_for_email(
 }
 
 #[then(expr = "<{jid}> should have the {member_role} role")]
-async fn then_member_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
+async fn then_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
     let db = world.db();
 
     let member = member::Entity::find_by_id(jid.to_string())
@@ -454,6 +478,28 @@ async fn then_member_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> 
         .await?
         .expect(&format!("Member {jid} not found"));
     assert_eq!(member.role, role.0);
+
+    Ok(())
+}
+
+#[then(expr = "<{jid}> should have the nickname {string}")]
+async fn then_nickname(
+    world: &mut TestWorld,
+    jid: JID,
+    nickname: String,
+) -> Result<(), server_ctl::Error> {
+    let vcard = world
+        .server_ctl()
+        .get_vcard(&jid)?
+        .expect("vCard not found");
+    let properties = vcard.get_properties_by_name(PropertyName::NICKNAME);
+    let properties = properties
+        .iter()
+        .map(vcard::property::Property::get_value)
+        .collect::<Vec<_>>();
+
+    let expected = PropertyNickNameData::try_from((None, nickname.as_str(), vec![])).unwrap();
+    assert_eq!(properties, vec![expected.get_value()]);
 
     Ok(())
 }

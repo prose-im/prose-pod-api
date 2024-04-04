@@ -38,16 +38,16 @@ log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
 sea-orm-rocket = "0.5"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 service = { path = "./service" }
 sha2 = "0.10"
-tokio = "1.29"
+tokio = "1"
 # TODO: Add feature flag to disable `utoipa`
 utoipa = { version = "4", features = ["rocket_extras"] }
 utoipa-swagger-ui = { version = "5", features = ["rocket"] }
 utoipauto = "0.1"
-uuid = "1.8"
+uuid = "1"
 
 [dev-dependencies]
 # cucumber = "0.20"

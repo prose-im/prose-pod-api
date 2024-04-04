@@ -237,7 +237,6 @@ pub(super) async fn invite_accept(
     req: Json<AcceptInviteRequest>,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
-    let user_factory = user_factory.inner?;
 
     // NOTE: We don't check that the invite status is "RECEIVED"
     //   because it would cause more useless edge cases.

@@ -145,3 +145,9 @@ impl From<NotifierError> for Error {
         Self::NotifierError(value)
     }
 }
+
+impl From<server_ctl::Error> for Error {
+    fn from(value: server_ctl::Error) -> Self {
+        Self::ServerCtlErr(value)
+    }
+}

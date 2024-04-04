@@ -258,3 +258,11 @@ Feature: Inviting members
         And an admin resent the invite
        When <remi@prose.org> requests the invite associated to their previous accept token
        Then the HTTP status code should be Unauthorized
+
+  Rule: Invited members can choose their nickname when joining
+
+    Scenario: Rémi joins using a custom nickname
+      Given <remi@prose.org> has been invited via email
+       When <remi@prose.org> accepts their invitation using the nickname "Rémi B."
+       Then the call should succeed
+        And <remi@prose.org> should have the nickname "Rémi B."

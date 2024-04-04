@@ -1848,6 +1848,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "language-tags"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4345964bb142484797b161f473a503a434de77149dd8c7427788c6e13379388"
+
+[[package]]
 name = "lazy-regex"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3442,9 +3448,11 @@ dependencies = [
  "prosody-config",
  "sea-orm",
  "serde",
+ "tempfile",
  "tokio",
  "url_serde",
  "uuid",
+ "vcard_parser",
 ]
 
 [[package]]
@@ -4495,6 +4503,18 @@ name = "value-bag"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "126e423afe2dd9ac52142e7e9d5ce4135d7e13776c529d27fd6bc49f19e3280b"
+
+[[package]]
+name = "vcard_parser"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc100f699a284e97b3e1d92c0c7ab2f5b6efc39b35d63a675fa5e80dcdbd9778"
+dependencies = [
+ "language-tags",
+ "nom",
+ "time",
+ "url 2.5.0",
+]
 
 [[package]]
 name = "vcpkg"

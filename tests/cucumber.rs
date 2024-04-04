@@ -10,12 +10,12 @@ mod notifier;
 mod v1;
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use cucumber::{then, World};
 use cucumber_parameters::HTTPStatus;
-use dummy_notifier::{DummyNotifier, DummyNotifierState};
-use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
+use dummy_notifier::DummyNotifier;
+use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
 use entity::{member, member_invite};
 use log::debug;
@@ -72,7 +72,10 @@ async fn main() {
     //     .run_and_exit("tests/features").await;
 }
 
-fn test_rocket(server_ctl: DummyServerCtl, notifier: DummyNotifier) -> Rocket<Build> {
+fn test_rocket(
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
+) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
         .merge(("log_level", "off"))
@@ -80,11 +83,14 @@ fn test_rocket(server_ctl: DummyServerCtl, notifier: DummyNotifier) -> Rocket<Bu
         .merge(("databases.data.sql_log_level", "off"));
     prose_pod_api::custom_rocket(rocket::custom(figment))
         .manage(JWTService::new(JWTKey::custom("test_key")))
-        .manage(ServerCtl::new(Arc::new(Mutex::new(server_ctl))))
-        .manage(Notifier::new(Arc::new(Mutex::new(notifier))))
+        .manage(ServerCtl::new(server_ctl))
+        .manage(Notifier::new(notifier))
 }
 
-pub async fn rocket_test_client(server_ctl: DummyServerCtl, notifier: DummyNotifier) -> Client {
+pub async fn rocket_test_client(
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
+) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(server_ctl, notifier))
         .await
@@ -136,8 +142,8 @@ impl From<LocalResponse<'_>> for Response {
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 struct TestWorld {
-    server_state: Arc<Mutex<DummyServerCtlState>>,
-    notifier_state: Arc<Mutex<DummyNotifierState>>,
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -158,6 +164,14 @@ impl TestWorld {
 
     fn db(&self) -> &DatabaseConnection {
         &Db::fetch(&self.client.rocket()).unwrap().conn
+    }
+
+    fn server_ctl(&self) -> MutexGuard<DummyServerCtl> {
+        self.server_ctl.lock().unwrap()
+    }
+
+    fn notifier(&self) -> MutexGuard<DummyNotifier> {
+        self.notifier.lock().unwrap()
     }
 
     fn token(&self, user: String) -> String {
@@ -192,17 +206,13 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let server_state = Arc::new(Mutex::new(DummyServerCtlState::default()));
-        let notifier_state = Arc::new(Mutex::new(DummyNotifierState::default()));
+        let server_ctl = Arc::new(Mutex::new(DummyServerCtl::new(Default::default())));
+        let notifier = Arc::new(Mutex::new(DummyNotifier::new(Default::default())));
 
         Self {
-            server_state: server_state.clone(),
-            notifier_state: notifier_state.clone(),
-            client: rocket_test_client(
-                DummyServerCtl::new(server_state),
-                DummyNotifier::new(notifier_state),
-            )
-            .await,
+            server_ctl: server_ctl.clone(),
+            notifier: notifier.clone(),
+            client: rocket_test_client(server_ctl, notifier).await,
             result: None,
             members: HashMap::new(),
             member_invites: HashMap::new(),

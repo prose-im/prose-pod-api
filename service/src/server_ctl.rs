@@ -3,12 +3,17 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt;
 use std::ops::Deref;
 use std::process::Output;
+use std::str::Utf8Error;
 use std::sync::{Arc, Mutex};
+use std::{fmt, io};
 
 use entity::model::JID;
+use vcard_parser::error::VcardError;
+use vcard_parser::vcard::property::property_nickname::PropertyNickNameData;
+use vcard_parser::vcard::property::Property;
+use vcard_parser::vcard::Vcard;
 
 pub struct ServerCtl {
     pub implem: Arc<Mutex<dyn ServerCtlImpl>>,
@@ -39,12 +44,32 @@ pub trait ServerCtlImpl: Sync + Send {
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;
     fn remove_user(&self, jid: &JID) -> Result<(), Error>;
+
+    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error>;
+    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error>;
+
+    fn create_vcard(&self, jid: &JID, name: &str) -> Result<(), Error> {
+        let vcard = Vcard::new(name);
+        self.set_vcard(jid, &vcard)
+    }
+    fn set_nickname(&self, jid: &JID, nickname: &str) -> Result<(), Error> {
+        let mut vcard = self.get_vcard(jid)?.unwrap_or(Vcard::new(nickname));
+
+        vcard.set_property(
+            &PropertyNickNameData::try_from((None, nickname, vec![]))
+                .map(Property::PropertyNickName)?,
+        )?;
+
+        self.set_vcard(jid, &vcard)
+    }
 }
 
 #[derive(Debug)]
 pub enum Error {
-    IO(std::io::Error),
+    IO(io::Error),
     CommandFailed(Output),
+    Utf8Error(Utf8Error),
+    VcardError(VcardError),
 }
 
 impl fmt::Display for Error {
@@ -56,6 +81,26 @@ impl fmt::Display for Error {
                 "Command failed (status: {}):\n{:?}",
                 output.status, output.stderr,
             ),
+            Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
+            Self::VcardError(err) => write!(f, "vCard error: {err}"),
         }
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(value: io::Error) -> Self {
+        Self::IO(value)
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(value: Utf8Error) -> Self {
+        Self::Utf8Error(value)
+    }
+}
+
+impl From<VcardError> for Error {
+    fn from(value: VcardError) -> Self {
+        Self::VcardError(value)
     }
 }

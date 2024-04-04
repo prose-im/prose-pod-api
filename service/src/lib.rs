@@ -18,6 +18,7 @@ pub use server_ctl::ServerCtl;
 use lazy_static::lazy_static;
 pub use prosody_config::ProsodyConfigFile;
 pub use sea_orm;
+pub use vcard_parser;
 
 use crate::config::Config;
 

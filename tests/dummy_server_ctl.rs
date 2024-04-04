@@ -10,11 +10,12 @@ use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
 use entity::model::JID;
 use linked_hash_map::LinkedHashMap;
 use log::error;
-use std::sync::{Arc, Mutex};
+use service::vcard_parser::vcard::Vcard;
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct DummyServerCtl {
-    state: Arc<Mutex<DummyServerCtlState>>,
+    pub(crate) state: Mutex<DummyServerCtlState>,
 }
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ pub struct DummyServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfigFile>,
     pub users: LinkedHashMap<JID, UserAccount>,
+    pub vcards: LinkedHashMap<JID, Vcard>,
 }
 
 impl DummyServerCtlState {
@@ -40,12 +42,13 @@ impl DummyServerCtlState {
             conf_reload_count: 0,
             applied_config: Some(prosody_config),
             users: LinkedHashMap::default(),
+            vcards: LinkedHashMap::default(),
         })
     }
 }
 
 impl DummyServerCtl {
-    pub fn new(state: Arc<Mutex<DummyServerCtlState>>) -> Self {
+    pub fn new(state: Mutex<DummyServerCtlState>) -> Self {
         Self { state }
     }
 }
@@ -91,6 +94,18 @@ impl ServerCtlImpl for DummyServerCtl {
     fn remove_user(&self, jid: &JID) -> Result<(), Error> {
         let mut state = self.state.lock().unwrap();
         state.users.remove(&jid);
+        Ok(())
+    }
+
+    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
+        Ok(self.state.lock().unwrap().vcards.get(jid).map(Clone::clone))
+    }
+    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error> {
+        self.state
+            .lock()
+            .unwrap()
+            .vcards
+            .insert(jid.clone(), vcard.clone());
         Ok(())
     }
 }

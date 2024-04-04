@@ -10,7 +10,7 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 chrono = "0.4"
 entity = { path = "../entity" }
 figment = { version = "0.10", features = ["toml"] }
-lazy_static = "1.4"
+lazy_static = "1"
 lettre = { version = "0.11", features = [
     "smtp-transport",
     "native-tls",
@@ -20,8 +20,10 @@ lettre = { version = "0.11", features = [
 log = { version = "0.4", features = ["std"] }
 prosody-config = { path = "../prosody-config" }
 serde = "1"
+tempfile = "3"
 url_serde = "0.2"
-uuid = "1.8"
+uuid = "1"
+vcard_parser = "0.2"
 
 [dependencies.sea-orm]
 version = "1.0.0-rc.1"

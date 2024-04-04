@@ -5,11 +5,11 @@
 
 use service::config::ConfigNotify;
 use service::notifier::{GenericNotifier, Notification};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct DummyNotifier {
-    state: Arc<Mutex<DummyNotifierState>>,
+    pub(crate) state: Mutex<DummyNotifierState>,
 }
 
 #[derive(Debug, Default)]
@@ -19,7 +19,7 @@ pub struct DummyNotifierState {
 }
 
 impl DummyNotifier {
-    pub fn new(state: Arc<Mutex<DummyNotifierState>>) -> Self {
+    pub fn new(state: Mutex<DummyNotifierState>) -> Self {
         Self { state }
     }
 }
