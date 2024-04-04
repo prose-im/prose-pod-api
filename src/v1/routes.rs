@@ -15,7 +15,7 @@ use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
 
-use crate::guards::{Db, JWTService};
+use crate::guards::{Db, JWTService, UserFactory};
 
 use super::workspace::openapi_extensions;
 use crate::error::Error;
@@ -49,13 +49,25 @@ pub(super) fn openapi() -> String {
 #[derive(Serialize, Deserialize)]
 pub struct InitRequest {
     pub workspace_name: String,
+    pub admin: AdminAccountInit,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AdminAccountInit {
+    pub jid: JID,
+    pub password: String,
+    pub nickname: String,
 }
 
 pub type InitResponse = server_config::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
 #[post("/v1/init", format = "json", data = "<req>")]
-pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<InitResponse> {
+pub(super) async fn init(
+    conn: Connection<'_, Db>,
+    user_factory: UserFactory<'_>,
+    req: Json<InitRequest>,
+) -> R<InitResponse> {
     let db = conn.into_inner();
 
     let server_config = Query::server_config(db).await.map_err(Error::DbErr)?;
@@ -75,6 +87,11 @@ pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<
         .try_into_model()
         // TODO: Log as "Could not transform active model into model"
         .map_err(Error::DbErr)?;
+
+    user_factory
+        .create_user(&req.admin.jid, &req.admin.password, &req.admin.nickname)
+        .await?;
+
     Ok(Json(server_config))
 }
 

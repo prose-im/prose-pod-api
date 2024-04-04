@@ -47,7 +47,7 @@ async fn invite_member<'a>(
     contact: MemberInviteContact,
 ) -> LocalResponse<'a> {
     client
-        .post("/v1/members/invites")
+        .post("/v1/invites")
         .header(ContentType::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
@@ -64,7 +64,7 @@ async fn invite_member<'a>(
 
 async fn list_invites<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
     client
-        .get("/v1/members/invites")
+        .get("/v1/invites")
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .dispatch()
@@ -79,7 +79,7 @@ async fn list_invites_paged<'a>(
 ) -> LocalResponse<'a> {
     client
         .get(format!(
-            "/v1/members/invites?page_number={page_number}&page_size={page_size}"
+            "/v1/invites?page_number={page_number}&page_size={page_size}"
         ))
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
@@ -94,7 +94,7 @@ async fn get_invite_by_token<'a>(
 ) -> LocalResponse<'a> {
     client
         .get(format!(
-            "/v1/members/invites?token={token}&token_type={token_type}"
+            "/v1/invites?token={token}&token_type={token_type}"
         ))
         .header(Accept::JSON)
         .dispatch()
@@ -110,7 +110,7 @@ async fn accept_invite<'a>(
 ) -> LocalResponse<'a> {
     client
         .post(format!(
-            "/v1/members/invites/{invite_id}?action=accept&token={token}"
+            "/v1/invites/{invite_id}?action=accept&token={token}"
         ))
         .header(ContentType::JSON)
         .body(
@@ -128,7 +128,7 @@ async fn accept_invite<'a>(
 async fn reject_invite<'a>(client: &'a Client, token: Uuid, invite_id: i32) -> LocalResponse<'a> {
     client
         .post(format!(
-            "/v1/members/invites/{invite_id}?action=reject&token={token}"
+            "/v1/invites/{invite_id}?action=reject&token={token}"
         ))
         .header(Accept::JSON)
         .dispatch()
@@ -142,7 +142,7 @@ async fn invite_admin_action<'a>(
     action: &'static str,
 ) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/members/invites/{invite_id}?action={action}"))
+        .post(format!("/v1/invites/{invite_id}?action={action}"))
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .dispatch()
