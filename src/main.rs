@@ -15,8 +15,13 @@ use std::sync::{Arc, Mutex};
 
 #[launch]
 fn rocket() -> _ {
+    let jwt_service = match JWTService::from_env() {
+        Ok(service) => service,
+        Err(err) => panic!("{err}"),
+    };
+
     custom_rocket(rocket::build())
-        .manage(JWTService::from_env())
+        .manage(jwt_service)
         .manage(ServerCtl::new(Arc::new(Mutex::new(ProsodyCtl::default()))))
         .manage(Notifier::new(Arc::new(Mutex::new(EmailNotifier))))
 }
