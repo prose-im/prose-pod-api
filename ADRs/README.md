@@ -16,7 +16,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
-- ø
+- [Interact with Prosody using `prosodyctl`](./2024-04-04-a-use-prosodyctl.md) (2024-04-04)
 
 ## Superseded ADRs
 
@@ -30,5 +30,5 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 - ø
 
-[adr]: <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions> "Documenting Architecture Decisions | Cognitect"
-[adr-permalink]: <https://web.archive.org/web/20240104230549/https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions> "Documenting Architecture Decisions | Wayback Machine"
+[adr]: https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions "Documenting Architecture Decisions | Cognitect"
+[adr-permalink]: https://web.archive.org/web/20240104230549/https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions "Documenting Architecture Decisions | Wayback Machine"
