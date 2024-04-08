@@ -36,11 +36,7 @@ impl Deref for ServerCtl {
 /// Abstraction over ProsodyCtl in case we want to switch to another server.
 /// Also facilitates testing.
 pub trait ServerCtlImpl: Sync + Send {
-    fn start(&self) -> Result<(), Error>;
-    fn stop(&self) -> Result<(), Error>;
-    fn restart(&self) -> Result<(), Error>;
     fn reload(&self) -> Result<(), Error>;
-    fn status(&self) -> Result<(), Error>;
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;
     fn remove_user(&self, jid: &JID) -> Result<(), Error>;

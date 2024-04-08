@@ -10,7 +10,6 @@ use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::vcard_parser::vcard::Vcard;
 use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
 use linked_hash_map::LinkedHashMap;
-use log::error;
 
 use std::sync::Mutex;
 
@@ -55,30 +54,10 @@ impl DummyServerCtl {
 }
 
 impl ServerCtlImpl for DummyServerCtl {
-    fn start(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `start` not implemented");
-        todo!("DummyServerCtl `start`")
-    }
-
-    fn stop(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `stop` not implemented");
-        todo!("DummyServerCtl `stop`")
-    }
-
-    fn restart(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `restart` not implemented");
-        todo!("DummyServerCtl `restart`")
-    }
-
     fn reload(&self) -> Result<(), Error> {
         let mut state = self.state.lock().unwrap();
         state.conf_reload_count += 1;
         Ok(())
-    }
-
-    fn status(&self) -> Result<(), Error> {
-        error!("DummyServerCtl `status` not implemented");
-        todo!("DummyServerCtl `status`")
     }
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {

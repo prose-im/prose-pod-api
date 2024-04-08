@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::model::JID;
-use log::error;
 use std::{
     io::Write as _,
     path::PathBuf,
@@ -51,25 +50,8 @@ impl ProsodyCtl {
 }
 
 impl ServerCtlImpl for ProsodyCtl {
-    fn start(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["start"]).map(|_| ())
-    }
-
-    fn stop(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["stop"]).map(|_| ())
-    }
-
-    fn restart(&self) -> Result<(), Error> {
-        self.run_prosodyctl(vec!["restart"]).map(|_| ())
-    }
-
     fn reload(&self) -> Result<(), Error> {
         self.run_prosodyctl(vec!["reload"]).map(|_| ())
-    }
-
-    fn status(&self) -> Result<(), Error> {
-        error!("`prosodyctl status` not implemented");
-        todo!("`prosodyctl status`")
     }
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
