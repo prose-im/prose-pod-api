@@ -7,8 +7,20 @@
 
 use std::path::PathBuf;
 
-pub fn server_log_level() -> String {
+pub fn api_log_level() -> String {
     "error".to_string()
+}
+
+pub fn api_admin_node() -> String {
+    "prose-pod-api".to_string()
+}
+
+pub fn server_local_hostname() -> String {
+    "prose-pod-server".to_string()
+}
+
+pub fn server_admin_rest_api_port() -> u16 {
+    5280
 }
 
 pub fn assets_path() -> PathBuf {

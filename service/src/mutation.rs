@@ -22,8 +22,8 @@ const DEFAULT_INVITE_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 pub struct Mutation;
 
 impl Mutation {
-    pub async fn create_server_config(
-        db: &DbConn,
+    pub async fn create_server_config<'a, C: ConnectionTrait>(
+        db: &C,
         form_data: server_config::ActiveModel,
     ) -> Result<server_config::ActiveModel, DbErr> {
         form_data.save(db).await

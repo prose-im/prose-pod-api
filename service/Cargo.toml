@@ -13,14 +13,24 @@ figment = { version = "0.10", features = ["toml"] }
 lazy_static = "1"
 lettre = { version = "0.11", features = [
     "smtp-transport",
-    "native-tls",
+    "rustls-tls",
     "hostname",
     "builder",
 ], default-features = false }
 log = { version = "0.4", features = ["std"] }
 prosody-config = { path = "../prosody-config" }
+reqwest = { version = "0.12", features = [
+    "blocking",
+    "rustls-tls",
+    "json",
+    "trust-dns",
+], default-features = false }
 serde = "1"
 tempfile = "3"
+# https://github.com/launchbadge/sqlx/issues/3189
+# https://github.com/launchbadge/sqlx/pull/3190
+time = "=0.3.34"
+urlencoding = "2"
 url_serde = "0.2"
 uuid = "1"
 vcard_parser = "0.2"

@@ -66,6 +66,7 @@ pub enum Error {
     CommandFailed(Output),
     Utf8Error(Utf8Error),
     VcardError(VcardError),
+    Other(String),
 }
 
 impl fmt::Display for Error {
@@ -81,6 +82,7 @@ impl fmt::Display for Error {
             ),
             Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
             Self::VcardError(err) => write!(f, "vCard error: {err}"),
+            Self::Other(err) => write!(f, "{err}"),
         }
     }
 }
@@ -100,5 +102,11 @@ impl From<Utf8Error> for Error {
 impl From<VcardError> for Error {
     fn from(value: VcardError) -> Self {
         Self::VcardError(value)
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Other(value.to_string())
     }
 }

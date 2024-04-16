@@ -9,6 +9,7 @@ mod defaults;
 
 use std::path::PathBuf;
 
+use entity::model::JID;
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
@@ -17,6 +18,7 @@ use serde::Deserialize;
 use url_serde::SerdeUrl;
 #[derive(Deserialize)]
 pub struct Config {
+    pub api: ConfigApi,
     pub server: ConfigServer,
     pub assets: ConfigAssets,
     pub branding: ConfigBranding,
@@ -24,20 +26,36 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn figment() -> Self {
+    pub fn figment() -> Self {
         // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
         Figment::new()
             .merge(Toml::file("Prose.toml"))
-            .merge(Env::prefixed("PROSE_"))
+            .merge(Env::prefixed("PROSE_").split("__"))
             .extract()
             .expect("Could not read config")
+    }
+
+    pub fn api_jid(&self) -> JID {
+        JID::new(self.api.admin_node.clone(), self.server.domain.clone())
     }
 }
 
 #[derive(Deserialize)]
-pub struct ConfigServer {
-    #[serde(default = "defaults::server_log_level")]
+pub struct ConfigApi {
+    #[serde(default = "defaults::api_log_level")]
     pub log_level: String,
+    #[serde(default = "defaults::api_admin_node")]
+    pub admin_node: String,
+    pub admin_password: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ConfigServer {
+    pub domain: String,
+    #[serde(default = "defaults::server_local_hostname")]
+    pub local_hostname: String,
+    #[serde(default = "defaults::server_admin_rest_api_port")]
+    pub admin_rest_api_port: u16,
 }
 
 #[derive(Deserialize)]

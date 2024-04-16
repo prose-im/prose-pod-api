@@ -9,7 +9,7 @@ use rocket::serde::json::Json;
 use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::sea_orm::{Set, TryIntoModel};
+use service::sea_orm::{Set, TransactionTrait as _, TryIntoModel};
 use service::{Mutation, Query};
 use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
@@ -69,6 +69,7 @@ pub(super) async fn init(
     req: Json<InitRequest>,
 ) -> R<InitResponse> {
     let db = conn.into_inner();
+    let txn = db.begin().await.map_err(Error::DbErr)?;
 
     let server_config = Query::server_config(db).await.map_err(Error::DbErr)?;
     let None = server_config else {
@@ -80,7 +81,9 @@ pub(super) async fn init(
         workspace_name: Set(req.workspace_name),
         ..Default::default()
     };
-    let server_config = Mutation::create_server_config(db, form)
+    // Initialize the server config in a transaction,
+    // to rollback if subsequent operations fail.
+    let server_config = Mutation::create_server_config(&txn, form)
         .await
         // TODO: Log as "Could not create server config"
         .map_err(Error::DbErr)?
@@ -91,6 +94,10 @@ pub(super) async fn init(
     user_factory
         .create_user(&req.admin.jid, &req.admin.password, &req.admin.nickname)
         .await?;
+
+    // Commit the transaction only if the admin user was
+    // successfully created, to prevent inconsistent states.
+    txn.commit().await.map_err(Error::DbErr)?;
 
     Ok(Json(server_config))
 }
