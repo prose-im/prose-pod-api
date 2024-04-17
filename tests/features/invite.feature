@@ -81,7 +81,7 @@ Feature: Inviting members
        When Valerian lists pending invitations
        Then the call should succeed
         And 1 invitation should be TO_SEND
-        And 1 invitation should be RECEIVED
+        And 1 invitation should be SENT
 
   """
   Admins should be able to see when an invite has been created

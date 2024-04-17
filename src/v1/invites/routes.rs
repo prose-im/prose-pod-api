@@ -3,9 +3,10 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::member_invite;
-use ::entity::model::{member_invite::MemberInviteContact, MemberRole};
+use ::entity::member_invite::{self, MemberInviteContact};
+use ::entity::model::MemberRole;
 use chrono::{DateTime, Utc};
+use entity::member_invite::MemberInviteState;
 use entity::model::JID;
 use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
@@ -68,13 +69,34 @@ pub(super) async fn invite_member<'r>(
     )
     .await
     .map_err(Error::DbErr)?;
-    let accept_token = invite.accept_token;
-    let reject_token = invite.reject_token;
 
-    notifier
+    if let Err(err) = notifier
         .inner?
-        .send_member_invite(accept_token, reject_token)
-        .await?;
+        .send_member_invite(invite.accept_token, invite.reject_token)
+        .await
+    {
+        error!("Could not send member invite: {err}");
+        Mutation::update_member_invite_status(db, invite.clone(), MemberInviteState::SendFailed)
+            .await
+            .map_or_else(
+                |err| {
+                    error!(
+                        "Could not mark member invite as `{}`: {err}",
+                        MemberInviteState::SendFailed
+                    )
+                },
+                |_| (),
+            );
+    };
+
+    Mutation::update_member_invite_status(db, invite.clone(), MemberInviteState::Sent)
+        .await
+        .inspect_err(|err| {
+            error!(
+                "Could not mark member invite as `{}`: {err}",
+                MemberInviteState::Sent
+            )
+        })?;
 
     let resource_uri = match host {
         Some(host) => {

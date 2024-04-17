@@ -6,14 +6,14 @@
 use std::fmt;
 
 use ::entity::{
-    member_invite,
-    model::{member_invite::MemberInviteContact, MemberRole},
+    member_invite::{self, MemberInviteContact, MemberInviteState},
+    model::MemberRole,
     server_config,
 };
 use chrono::{prelude::Utc, TimeDelta};
 use entity::{
     member,
-    model::{member_invite::MemberInviteState, EmailAddress, JID},
+    model::{EmailAddress, JID},
 };
 use sea_orm::{prelude::*, IntoActiveModel as _, Set, TransactionTrait as _};
 

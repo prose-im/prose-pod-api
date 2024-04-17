@@ -156,3 +156,9 @@ impl From<server_ctl::Error> for Error {
         Self::ServerCtlErr(value)
     }
 }
+
+impl From<MutationError> for Error {
+    fn from(value: MutationError) -> Self {
+        Self::MutationErr(value)
+    }
+}

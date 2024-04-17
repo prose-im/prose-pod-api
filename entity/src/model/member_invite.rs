@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::Display;
 use std::str::FromStr;
 
 use sea_orm::sea_query::{self, ArrayType, Value, ValueTypeErr};
@@ -15,10 +16,7 @@ use super::EmailAddress;
 
 const INVITE_STATE_TO_SEND: &'static str = "TO_SEND";
 const INVITE_STATE_SENT: &'static str = "SENT";
-const INVITE_STATE_RECEIVED: &'static str = "RECEIVED";
-const INVITE_STATE_RECEPTION_FAILURE: &'static str = "RECEPTION_FAILURE";
-const INVITE_STATE_ACCEPTED: &'static str = "ACCEPTED";
-const INVITE_STATE_REJECTED: &'static str = "REJECTED";
+const INVITE_STATE_SEND_FAILED: &'static str = "SEND_FAILURE";
 
 // NOTE: When adding a new case to this enum, make sure to update
 //   the `column_type` function in `impl sea_query::ValueType`
@@ -27,10 +25,7 @@ const INVITE_STATE_REJECTED: &'static str = "REJECTED";
 pub enum MemberInviteState {
     ToSend,
     Sent,
-    Received,
-    ReceptionFailure,
-    Accepted,
-    Rejected,
+    SendFailed,
 }
 
 impl MemberInviteState {
@@ -38,13 +33,18 @@ impl MemberInviteState {
         [
             Self::ToSend,
             Self::Sent,
-            Self::Received,
-            Self::ReceptionFailure,
-            Self::Accepted,
-            Self::Rejected,
+            Self::SendFailed,
         ]
         .iter()
         .copied()
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::ToSend => INVITE_STATE_TO_SEND,
+            Self::Sent => INVITE_STATE_SENT,
+            Self::SendFailed => INVITE_STATE_SEND_FAILED,
+        }
     }
 }
 
@@ -54,17 +54,9 @@ impl Default for MemberInviteState {
     }
 }
 
-impl ToString for MemberInviteState {
-    fn to_string(&self) -> String {
-        match self {
-            Self::ToSend => INVITE_STATE_TO_SEND,
-            Self::Sent => INVITE_STATE_SENT,
-            Self::Received => INVITE_STATE_RECEIVED,
-            Self::ReceptionFailure => INVITE_STATE_RECEPTION_FAILURE,
-            Self::Accepted => INVITE_STATE_ACCEPTED,
-            Self::Rejected => INVITE_STATE_REJECTED,
-        }
-        .to_string()
+impl Display for MemberInviteState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -81,10 +73,7 @@ impl FromStr for MemberInviteState {
         match s {
             INVITE_STATE_TO_SEND => Ok(Self::ToSend),
             INVITE_STATE_SENT => Ok(Self::Sent),
-            INVITE_STATE_RECEIVED => Ok(Self::Received),
-            INVITE_STATE_RECEPTION_FAILURE => Ok(Self::ReceptionFailure),
-            INVITE_STATE_ACCEPTED => Ok(Self::Accepted),
-            INVITE_STATE_REJECTED => Ok(Self::Rejected),
+            INVITE_STATE_SEND_FAILED => Ok(Self::SendFailed),
             s => Err(format!("Unknown member invite state value: {:?}", s)),
         }
     }

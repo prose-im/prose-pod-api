@@ -8,8 +8,8 @@ use std::str::FromStr as _;
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
-    member_invite,
-    model::{self, MemberInviteContact},
+    member_invite::{self, MemberInviteContact},
+    model,
 };
 use migration::DbErr;
 use prose_pod_api::{
@@ -212,7 +212,7 @@ async fn given_invite_received(
     Mutation::update_member_invite_status_by_email(
         db,
         email_address.0,
-        model::MemberInviteState::Received,
+        model::MemberInviteState::Sent,
     )
     .await?;
     Ok(())
@@ -266,7 +266,7 @@ async fn given_invite_not_received(world: &mut TestWorld) -> Result<(), Mutation
     Mutation::update_member_invite_status(
         db,
         world.scenario_invite().1,
-        model::MemberInviteState::ReceptionFailure,
+        model::MemberInviteState::SendFailed,
     )
     .await?;
     Ok(())

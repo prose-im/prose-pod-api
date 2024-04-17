@@ -4,12 +4,9 @@ use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub use crate::model::member_invite::*;
+use crate::model::{EmailAddress, MemberRole, JID};
 
-use crate::model::{
-    member_invite::{MemberInvitationChannel, MemberInviteContact, MemberInviteState},
-    EmailAddress, MemberRole, JID,
-};
+pub use crate::model::member_invite::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "member_invite")]
