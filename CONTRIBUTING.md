@@ -25,7 +25,11 @@ As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-w
 we are using Gherkin and Cucumber to run tests. Therefore, you can use this command to run the tests:
 
 ```bash
-cargo test --test cucumber
+cargo test --test behavior
 ```
 
 You could also run `cargo test` but it runs unit tests in `src/`, which we don't need.
+
+> [!TIP]
+> While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
+> and then use `cargo test --test behavior -- --tags '@testing'` to run only matching `Scenario`s.

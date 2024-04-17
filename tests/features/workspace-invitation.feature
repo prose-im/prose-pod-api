@@ -1,4 +1,3 @@
-@testing
 Feature: Inviting members
 
   Background:

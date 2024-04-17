@@ -4,10 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod cucumber_parameters;
-mod dummy_notifier;
-mod dummy_server_ctl;
-mod notifier;
+mod prelude;
 mod v1;
+
+use self::prelude::*;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -141,7 +141,7 @@ impl From<LocalResponse<'_>> for Response {
 
 #[derive(Debug, World)]
 #[world(init = Self::new)]
-struct TestWorld {
+pub struct TestWorld {
     server_ctl: Arc<Mutex<DummyServerCtl>>,
     notifier: Arc<Mutex<DummyNotifier>>,
     client: Client,

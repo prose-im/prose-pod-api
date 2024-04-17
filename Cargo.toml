@@ -9,18 +9,18 @@ homepage = "https://github.com/prose-im/prose-pod-api"
 repository = "https://github.com/prose-im/prose-pod-api.git"
 publish = false
 authors = [
-    "Valerian Saliou <valerian@valeriansaliou.name>",
-    "Rémi Bardon <remi@remibardon.name>",
+  "Valerian Saliou <valerian@valeriansaliou.name>",
+  "Rémi Bardon <remi@remibardon.name>",
 ]
 
 [workspace]
 members = [
-    ".",
-    "entity",
-    "migration",
-    "prosody-config",
-    "prosodyctl",
-    "service",
+  ".",
+  "entity",
+  "migration",
+  "prosody-config",
+  "prosodyctl",
+  "service",
 ]
 
 [dependencies]
@@ -78,5 +78,5 @@ debug-assertions = false
 panic = "abort"
 
 [[test]]
-name = "cucumber"
+name = "behavior"
 harness = false
