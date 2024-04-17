@@ -5,7 +5,7 @@
 
 use ::entity::model::{MemberRole, JID};
 use ::entity::server_config;
-use ::entity::{member_invite, prelude::*};
+use ::entity::{prelude::*, workspace_invitation};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
@@ -32,20 +32,21 @@ impl Query {
         Ok(member.role == MemberRole::Admin)
     }
 
-    pub async fn get_invites(
+    pub async fn get_workspace_invitations(
         db: &DbConn,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<member_invite::Model>), DbErr> {
+    ) -> Result<(ItemsAndPagesNumber, Vec<workspace_invitation::Model>), DbErr> {
         assert_ne!(
             page_number, 0,
             "`page_number` starts at 1 like in the public API."
         );
 
-        let mut query = MemberInvite::find().order_by_asc(member_invite::Column::CreatedAt);
+        let mut query =
+            WorkspaceInvitation::find().order_by_asc(workspace_invitation::Column::CreatedAt);
         if let Some(until) = until {
-            query = query.filter(member_invite::Column::CreatedAt.lte(until));
+            query = query.filter(workspace_invitation::Column::CreatedAt.lte(until));
         }
         let pages = query.paginate(db, page_size);
 
@@ -54,29 +55,29 @@ impl Query {
         Ok((num_items_and_pages, models))
     }
 
-    pub async fn get_invite_by_id(
+    pub async fn get_workspace_invitation_by_id(
         db: &DbConn,
         id: &i32,
-    ) -> Result<Option<member_invite::Model>, DbErr> {
-        member_invite::Entity::find_by_id(*id).one(db).await
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find_by_id(*id).one(db).await
     }
 
-    pub async fn get_invite_by_accept_token(
+    pub async fn get_workspace_invitation_by_accept_token(
         db: &DbConn,
         token: &Uuid,
-    ) -> Result<Option<member_invite::Model>, DbErr> {
-        member_invite::Entity::find()
-            .filter(member_invite::Column::AcceptToken.eq(*token))
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find()
+            .filter(workspace_invitation::Column::AcceptToken.eq(*token))
             .one(db)
             .await
     }
 
-    pub async fn get_invite_by_reject_token(
+    pub async fn get_workspace_invitation_by_reject_token(
         db: &DbConn,
         token: &Uuid,
-    ) -> Result<Option<member_invite::Model>, DbErr> {
-        member_invite::Entity::find()
-            .filter(member_invite::Column::RejectToken.eq(*token))
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find()
+            .filter(workspace_invitation::Column::RejectToken.eq(*token))
             .one(db)
             .await
     }

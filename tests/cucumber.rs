@@ -17,7 +17,7 @@ use cucumber_parameters::HTTPStatus;
 use dummy_notifier::DummyNotifier;
 use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
-use entity::{member, member_invite};
+use entity::{member, workspace_invitation};
 use log::debug;
 use prose_pod_api::guards::{Db, JWTKey, JWTService};
 use rocket::figment::Figment;
@@ -149,9 +149,9 @@ struct TestWorld {
     /// Map a name to a member and an authorization token.
     members: HashMap<String, (member::Model, String)>,
     /// Map an email address to an invite.
-    member_invites: HashMap<EmailAddress, member_invite::Model>,
-    scenario_invite: Option<(EmailAddress, member_invite::Model)>,
-    previous_invite_accept_token: HashMap<EmailAddress, Uuid>,
+    workspace_invitations: HashMap<EmailAddress, workspace_invitation::Model>,
+    scenario_workspace_invitation: Option<(EmailAddress, workspace_invitation::Model)>,
+    previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
 }
 
 impl TestWorld {
@@ -182,24 +182,24 @@ impl TestWorld {
             .clone()
     }
 
-    fn scenario_invite(&self) -> (EmailAddress, member_invite::Model) {
-        self.scenario_invite
+    fn scenario_workspace_invitation(&self) -> (EmailAddress, workspace_invitation::Model) {
+        self.scenario_workspace_invitation
             .as_ref()
-            .expect("Current scenario invite not stored by previous steps")
+            .expect("Current scenario invitation not stored by previous steps")
             .clone()
     }
 
-    fn previous_invite_accept_token(&self, email_address: &EmailAddress) -> Uuid {
-        self.previous_invite_accept_token
+    fn previous_workspace_invitation_accept_token(&self, email_address: &EmailAddress) -> Uuid {
+        self.previous_workspace_invitation_accept_tokens
             .get(email_address)
-            .expect("Previous invite accept not stored in previous steps")
+            .expect("Previous invitation accept not stored in previous steps")
             .clone()
     }
 
-    fn invite(&self, email_address: &EmailAddress) -> member_invite::Model {
-        self.member_invites
+    fn workspace_invitation(&self, email_address: &EmailAddress) -> workspace_invitation::Model {
+        self.workspace_invitations
             .get(email_address)
-            .expect("Invite must be created first")
+            .expect("Invitation must be created first")
             .clone()
     }
 }
@@ -215,9 +215,9 @@ impl TestWorld {
             client: rocket_test_client(server_ctl, notifier).await,
             result: None,
             members: HashMap::new(),
-            member_invites: HashMap::new(),
-            scenario_invite: None,
-            previous_invite_accept_token: HashMap::new(),
+            workspace_invitations: HashMap::new(),
+            scenario_workspace_invitation: None,
+            previous_workspace_invitation_accept_tokens: HashMap::new(),
         }
     }
 }

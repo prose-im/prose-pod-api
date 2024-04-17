@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod invites;
+pub mod invitations;
 pub mod members;
 pub mod server;
 pub mod workspace;

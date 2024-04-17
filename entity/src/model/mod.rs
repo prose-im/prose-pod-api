@@ -3,11 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub(crate) mod member_invite;
+pub(crate) mod invitations;
 pub mod members;
 pub mod server_config;
 
-pub use member_invite::*;
+pub use invitations::*;
 pub use members::*;
 pub use server_config::*;
 

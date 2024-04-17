@@ -16,8 +16,8 @@ Feature: Inviting members
        Then the HTTP status code should be Created
         And the response should contain a "Location" HTTP header
         And 1 email should have been sent
-        And the email body should match "/invites/accept/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-        And the email body should match "/invites/reject/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        And the email body should match "/invitations/accept/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        And the email body should match "/invitations/reject/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   """
   For security reasons, we don't want members to invite other people.
@@ -36,9 +36,9 @@ Feature: Inviting members
   In the Prose Pod Dashboard, admins should be able to see
   pending invitations.
   """
-  Rule: Admins can list invites
+  Rule: Admins can list invitations
 
-    Scenario: Small number of invites
+    Scenario: Small number of invitations
       Given <marc@prose.org> has been invited via email
         And <remi@prose.org> has been invited via email
         And Valerian is an admin
@@ -47,7 +47,7 @@ Feature: Inviting members
         And the response content type should be JSON
         And they should see 2 pending invitations
 
-    Scenario: Large number of invites, first page
+    Scenario: Large number of invitations, first page
       Given 42 people have been invited via email
         And Valerian is an admin
        When Valerian lists pending invitations by pages of 20
@@ -57,7 +57,7 @@ Feature: Inviting members
         And the "Pagination-Page-Size" header should contain "20"
         And the "Pagination-Page-Count" header should contain "3"
 
-    Scenario: Large number of invites, last page
+    Scenario: Large number of invitations, last page
       Given 42 people have been invited via email
         And Valerian is an admin
        When Valerian gets page 3 of pending invitations by pages of 20
@@ -68,12 +68,12 @@ Feature: Inviting members
         And the "Pagination-Page-Count" header should contain "3"
 
   """
-  Admins should be able to see the status of an invite
+  Admins should be able to see the status of an invitation
   (to act if needed).
   """
-  Rule: Admins can see the status of an invite
+  Rule: Admins can see the status of an invitation
 
-    Scenario: Small number of invites
+    Scenario: Small number of invitations
       Given <marc@prose.org> has been invited via email
         And <marc@prose.org> has received their invitation
         And <remi@prose.org> has been invited via email
@@ -84,14 +84,14 @@ Feature: Inviting members
         And 1 invitation should be SENT
 
   """
-  Admins should be able to see when an invite has been created
+  Admins should be able to see when an invitation has been created
   (to spot languishing ones for example).
   """
-  Rule: Admins can see the creation timestamp of an invite
+  Rule: Admins can see the creation timestamp of an invitation
 
   """
   For many reasons (e.g. a typo in the email address),
-  admins should be able to cancel invites.
+  admins should be able to cancel invitations.
   """
   Rule: Admins can cancel an invitation
 
@@ -99,7 +99,7 @@ Feature: Inviting members
       Given <marc@prose.org> has been invited via email
         And Valerian is an admin
        When Valerian cancels the invitation
-       Then the HTTP status code should be OK
+       Then the HTTP status code should be NoContent
         And there should not be any invitation for <marc@prose.org> in the database
 
     Scenario: Rémi (not admin) tries to cancel an invitation
@@ -132,28 +132,28 @@ Feature: Inviting members
   Rule: An admin can only pre-assign a role lower or equal to theirs
 
   """
-  For security reasons, invites should expire after some time.
+  For security reasons, invitations should expire after some time.
   """
-  Rule: Invites expire after 3 days by default
+  Rule: Invitations expire after 3 days by default
 
-    Scenario: Rémi did not accept the invite in time (he always does this)
+    Scenario: Rémi did not accept the invitation in time (he always does this)
       Given <remi@prose.org> has been invited via email
-        And the invite has already expired
+        And the invitation has already expired
        When <remi@prose.org> accepts their invitation
        Then the HTTP status code should be Not Found
 
   """
-  By default, an invite is valid for 3 days.
+  By default, an invitation is valid for 3 days.
   Admins should be able to override this setting when inviting someone.
   """
-  Rule: Admins can choose the lifetime of an invite upon creation
+  Rule: Admins can choose the lifetime of an invitation upon creation
 
   """
-  Because invites expire after some time or they can never find their recipient
+  Because invitations expire after some time or they can never find their recipient
   (e.g. typo in email address, email server down…), we must provide a way
   to resend them.
   """
-  Rule: An admin can resend an invite
+  Rule: An admin can resend an invitation
 
     Scenario: Valerian (admin) resends an invitation
       Given <marc@prose.org> has been invited via email
@@ -172,15 +172,15 @@ Feature: Inviting members
         And 0 email should have been sent
 
   """
-  For security reasons, if an invite is sent again, the previous accpet link
+  For security reasons, if an invitation is sent again, the previous accpet link
   becomes useless.
   """
-  Rule: After resending an invite, the previous accept token becomes invalid
+  Rule: After resending an invitation, the previous accept token becomes invalid
 
     Scenario: Rémi has been invited twice but uses the first link
       Given <remi@prose.org> has been invited via email
-        And an admin resent the invite
-       When <remi@prose.org> uses the previous invite accept link they received
+        And an admin resent the invitation
+       When <remi@prose.org> uses the previous invitation accept link they received
        Then the HTTP status code should be Unauthorized
 
   """
@@ -190,7 +190,7 @@ Feature: Inviting members
   might not be a professional email address, and therefore
   should be treated as a sensitive information.
   """
-  Rule: An invite disappears after it's accepted
+  Rule: An invitation disappears after it's accepted
 
     Scenario: Rémi accepts an invitation
       Given <remi@personal.name> has been invited via email
@@ -199,11 +199,11 @@ Feature: Inviting members
 
   """
   If the admin made a mistake in the email address for example,
-  a random person might receive the invite.
+  a random person might receive the invitation.
   It is their right to reject it and make sure they will never
   receive a follow-up email.
   """
-  Rule: Someone invited by mistake can reject an invite
+  Rule: Someone invited by mistake can reject an invitation
 
     Scenario: Rémi rejects an invitation
       Given <remi@personal.name> has been invited via email
@@ -213,10 +213,10 @@ Feature: Inviting members
   """
   Access logs already store this kind of operation,
   there is no need to clutter the database with such data.
-  Also, someone rejecting an invite probably doesn't want
+  Also, someone rejecting an invitation probably doesn't want
   their email address staying around.
   """
-  Rule: An invite disappears after it's rejected
+  Rule: An invitation disappears after it's rejected
 
     Scenario: Rémi rejects an invitation
       Given <remi@personal.name> has been invited via email
@@ -224,39 +224,39 @@ Feature: Inviting members
        Then there should not be any invitation for <remi@personal.name> in the database
 
   """
-  The invite accept and reject links look like `/invites/(accept|reject)/{uuid}`,
+  The invitation accept and reject links look like `/invitations/(accept|reject)/{uuid}`,
   with the invide ID not directly accessible. However, to follow the HTTP standard,
-  the Prose Pod API requires the full path to the invite resource, which includes its ID.
-  Therefore, the Prose Pod Dashboard needs a way to retrieve the invite ID in order to
+  the Prose Pod API requires the full path to the invitation resource, which includes its ID.
+  Therefore, the Prose Pod Dashboard needs a way to retrieve the invitation ID in order to
   make the REST API call.
 
-  The answer should not contain sensitive information such as the invite creator,
+  The answer should not contain sensitive information such as the invitation creator,
   creation timestamp and accept/reject tokens, as the route needs to be publicly accessible
   (the member is joining and doesn't have a JID and role yet). Since accept/reject tokens
-  are never shared outside of invite notifications, someone with a token should be allowed
+  are never shared outside of invitation notifications, someone with a token should be allowed
   to see this basic information, as it proves they have been invited.
 
   In the result we can share the accept token expiration timestamp, so it can be displayed
   in the Prose Pod Dashboard if we wanted to (e.g. "This invites expires in {countdown}").
   """
-  Rule: Basic info about an invite can be retrieved from the accept and reject tokens
+  Rule: Basic info about an invitation can be retrieved from the accept and reject tokens
 
     Scenario: Retrieving from an accept token
       Given <remi@prose.org> has been invited via email
-       When <remi@prose.org> requests the invite associated to their accept token
+       When <remi@prose.org> requests the invitation associated to their accept token
        Then the call should succeed
         And the response content type should be JSON
 
     Scenario: Retrieving from a reject token
       Given <remi@prose.org> has been invited via email
-       When <remi@prose.org> requests the invite associated to their reject token
+       When <remi@prose.org> requests the invitation associated to their reject token
        Then the call should succeed
         And the response content type should be JSON
 
     Scenario: Retrieving from an old accept token
       Given <remi@prose.org> has been invited via email
-        And an admin resent the invite
-       When <remi@prose.org> requests the invite associated to their previous accept token
+        And an admin resent the invitation
+       When <remi@prose.org> requests the invitation associated to their previous accept token
        Then the HTTP status code should be Unauthorized
 
   Rule: Invited members can choose their nickname when joining

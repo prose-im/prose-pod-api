@@ -3,11 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::member_invite::{self, MemberInviteContact};
-use ::entity::model::MemberRole;
+use ::entity::model::{MemberRole, JID};
+use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
-use entity::member_invite::MemberInviteState;
-use entity::model::JID;
 use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
@@ -15,11 +13,11 @@ use rocket::{delete, get, post};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{prelude::*, EntityTrait};
-use service::Mutation;
-use service::Query;
+use service::{Mutation, Query};
 
+use super::forms::InvitationTokenType;
 use crate::error::Error;
-use crate::forms::{MemberInviteTokenType, Timestamp, Uuid};
+use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, Notifier, UserFactory, JID as JIDGuard};
 use crate::responders::Paginated;
 
@@ -31,14 +29,14 @@ pub struct InviteMemberRequest {
     pub jid: JID,
     pub pre_assigned_role: MemberRole,
     #[serde(flatten)]
-    pub contact: MemberInviteContact,
+    pub contact: InvitationContact,
 }
 
-pub type InviteMemberResponse = member_invite::Model;
+pub type InviteMemberResponse = workspace_invitation::Model;
 
 /// Invite a new member.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
         (status = 200, description = "Success", body = InviteMemberResponse),
         (status = 400, description = "Pod not initialized", body = Error),
@@ -46,7 +44,7 @@ pub type InviteMemberResponse = member_invite::Model;
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/invites", format = "json", data = "<req>")]
+#[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
     host: Option<&'r Host<'r>>,
     conn: Connection<'_, Db>,
@@ -61,7 +59,7 @@ pub(super) async fn invite_member<'r>(
         return Err(Error::Unauthorized);
     }
 
-    let invite = Mutation::create_member_invite(
+    let invitation = Mutation::create_workspace_invitation(
         db,
         req.jid.clone(),
         req.pre_assigned_role,
@@ -72,59 +70,63 @@ pub(super) async fn invite_member<'r>(
 
     if let Err(err) = notifier
         .inner?
-        .send_member_invite(invite.accept_token, invite.reject_token)
+        .send_workspace_invitation(invitation.accept_token, invitation.reject_token)
         .await
     {
-        error!("Could not send member invite: {err}");
-        Mutation::update_member_invite_status(db, invite.clone(), MemberInviteState::SendFailed)
-            .await
-            .map_or_else(
-                |err| {
-                    error!(
-                        "Could not mark member invite as `{}`: {err}",
-                        MemberInviteState::SendFailed
-                    )
-                },
-                |_| (),
-            );
+        error!("Could not send workspace invitation: {err}");
+        Mutation::update_workspace_invitation_status(
+            db,
+            invitation.clone(),
+            InvitationStatus::SendFailed,
+        )
+        .await
+        .map_or_else(
+            |err| {
+                error!(
+                    "Could not mark workspace invitation as `{}`: {err}",
+                    InvitationStatus::SendFailed
+                )
+            },
+            |_| (),
+        );
     };
 
-    Mutation::update_member_invite_status(db, invite.clone(), MemberInviteState::Sent)
+    Mutation::update_workspace_invitation_status(db, invitation.clone(), InvitationStatus::Sent)
         .await
         .inspect_err(|err| {
             error!(
-                "Could not mark member invite as `{}`: {err}",
-                MemberInviteState::Sent
+                "Could not mark workspace invitation as `{}`: {err}",
+                InvitationStatus::Sent
             )
         })?;
 
     let resource_uri = match host {
         Some(host) => {
             let origin = Origin::parse_owned(host.to_string()).unwrap();
-            uri!(origin, get_invite(invite.id)).to_string()
+            uri!(origin, get_invitation(invitation.id)).to_string()
         }
-        None => uri!(get_invite(invite.id)).to_string(),
+        None => uri!(get_invitation(invitation.id)).to_string(),
     };
-    Ok(status::Created::new(resource_uri).body(invite.into()))
+    Ok(status::Created::new(resource_uri).body(invitation.into()))
 }
 
-/// Get member invitations.
+/// Get workspace invitations.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
-        (status = 200, description = "Success", body = Paginated<member_invite::Model>),
+        (status = 200, description = "Success", body = Paginated<workspace_invitation::Model>),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[get("/v1/invites?<page_number>&<page_size>&<until>", rank = 2)]
-pub(super) async fn get_invites(
+#[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
+pub(super) async fn get_invitations(
     conn: Connection<'_, Db>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
-) -> Result<Paginated<member_invite::Model>, Error> {
+) -> Result<Paginated<workspace_invitation::Model>, Error> {
     let db = conn.into_inner();
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
@@ -132,43 +134,44 @@ pub(super) async fn get_invites(
         Some(t) => Some(t.try_into()?),
         None => None,
     };
-    let (pages_metadata, invites) = Query::get_invites(db, page_number, page_size, until)
-        .await
-        .map_err(Error::DbErr)?;
+    let (pages_metadata, invitations) =
+        Query::get_workspace_invitations(db, page_number, page_size, until)
+            .await
+            .map_err(Error::DbErr)?;
     Ok(Paginated::new(
-        invites,
+        invitations,
         page_number,
         page_size,
         pages_metadata,
     ))
 }
 
-/// Get information about one member invitation.
+/// Get information about a workspace invitation.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
-        (status = 200, description = "Success", body = member_invite::Model),
+        (status = 200, description = "Success", body = workspace_invitation::Model),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[get("/v1/invites/<_>")]
-pub(super) fn get_invite() -> Json<member_invite::Model> {
+#[get("/v1/invitations/<_>")]
+pub(super) fn get_invitation() -> Json<workspace_invitation::Model> {
     todo!()
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct GetInviteByTokenResponse {
-    pub invite_id: i32,
+pub struct GetWorkspaceInvitationByTokenResponse {
+    pub invitation_id: i32,
     pub pre_assigned_role: MemberRole,
     pub accept_token_expires_at: DateTimeUtc,
 }
 
-impl From<member_invite::Model> for GetInviteByTokenResponse {
-    fn from(value: member_invite::Model) -> Self {
+impl From<workspace_invitation::Model> for GetWorkspaceInvitationByTokenResponse {
+    fn from(value: workspace_invitation::Model) -> Self {
         Self {
-            invite_id: value.id,
+            invitation_id: value.id,
             pre_assigned_role: value.pre_assigned_role,
             accept_token_expires_at: value.accept_token_expires_at,
         }
@@ -177,41 +180,45 @@ impl From<member_invite::Model> for GetInviteByTokenResponse {
 
 /// Get information about an invitation from an accept or reject token.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
-        (status = 200, description = "Success", body = GetInviteByTokenResponse),
+        (status = 200, description = "Success", body = GetWorkspaceInvitationByTokenResponse),
         (status = 401, description = "Unauthorized", body = Error),
     )
 )]
-#[get("/v1/invites?<token>&<token_type>", rank = 1)]
-pub(super) async fn get_invite_by_token(
+#[get("/v1/invitations?<token>&<token_type>", rank = 1)]
+pub(super) async fn get_invitation_by_token(
     conn: Connection<'_, Db>,
     token: Uuid,
-    token_type: MemberInviteTokenType,
-) -> R<GetInviteByTokenResponse> {
+    token_type: InvitationTokenType,
+) -> R<GetWorkspaceInvitationByTokenResponse> {
     let db = conn.into_inner();
-    let invite = match token_type {
-        MemberInviteTokenType::Accept => Query::get_invite_by_accept_token(db, &token).await,
-        MemberInviteTokenType::Reject => Query::get_invite_by_reject_token(db, &token).await,
+    let invitation = match token_type {
+        InvitationTokenType::Accept => {
+            Query::get_workspace_invitation_by_accept_token(db, &token).await
+        }
+        InvitationTokenType::Reject => {
+            Query::get_workspace_invitation_by_reject_token(db, &token).await
+        }
     }
     .map_err(Error::DbErr)?;
-    let Some(invite) = invite else {
+    let Some(invitation) = invitation else {
         return Err(Error::Unauthorized);
     };
 
-    let response: GetInviteByTokenResponse = invite.into();
+    let response: GetWorkspaceInvitationByTokenResponse = invitation.into();
     Ok(response.into())
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct AcceptInviteRequest {
+pub struct AcceptWorkspaceInvitationRequest {
     pub nickname: String,
     pub password: String,
 }
 
-/// Accept or reject a member invitation.
+/// Accept or reject a workspace invitation.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
         (status = 200, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
@@ -219,42 +226,42 @@ pub struct AcceptInviteRequest {
     )
 )]
 #[post(
-    "/v1/invites/<invite_id>?action=accept&<token>",
+    "/v1/invitations/<invitation_id>?action=accept&<token>",
     format = "json",
     data = "<req>",
     rank = 1
 )]
-pub(super) async fn invite_accept(
+pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
-    invite_id: i32,
+    invitation_id: i32,
     token: Uuid,
     user_factory: UserFactory<'_>,
-    req: Json<AcceptInviteRequest>,
+    req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
 
-    // NOTE: We don't check that the invite status is "RECEIVED"
-    //   because it would cause more useless edge cases.
-    let invite = Query::get_invite_by_id(db, &invite_id)
+    // NOTE: We don't check that the invitation status is "SENT"
+    //   because it would cause a lot of useless edge cases.
+    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
         .await
         .map_err(Error::DbErr)?
         .ok_or(Error::NotFound {
-            reason: format!("No invite with ID {invite_id}"),
+            reason: format!("No invitation with ID {invitation_id}"),
         })?;
-    if token != invite.accept_token {
+    if token != invitation.accept_token {
         return Err(Error::Unauthorized);
     }
-    if invite.accept_token_expires_at < Utc::now() {
+    if invitation.accept_token_expires_at < Utc::now() {
         return Err(Error::NotFound {
-            reason: "Invite accept token has expired".to_string(),
+            reason: "Invitation accept token has expired".to_string(),
         });
     }
 
     user_factory
-        .create_user(&invite.jid, &req.password, &req.nickname)
+        .create_user(&invitation.jid, &req.password, &req.nickname)
         .await?;
 
-    Mutation::accept_invite(db, invite)
+    Mutation::accept_workspace_invitation(db, invitation)
         .await
         .map_err(Error::MutationErr)?;
 
@@ -263,43 +270,43 @@ pub(super) async fn invite_accept(
 
 /// Reject an invitation.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
         (status = 204, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/invites/<invite_id>?action=reject&<token>", rank = 3)]
-pub(super) async fn invite_reject(
+#[post("/v1/invitations/<invitation_id>?action=reject&<token>", rank = 3)]
+pub(super) async fn invitation_reject(
     conn: Connection<'_, Db>,
-    invite_id: i32,
+    invitation_id: i32,
     token: Uuid,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
     // Nothing to do
-    // NOTE: We don't check that the invite status is "RECEIVED"
-    //   because it would cause more useless edge cases.
+    // NOTE: We don't check that the invitation status is "SENT"
+    //   because it would cause a lot of useless edge cases.
 
-    let invite = Query::get_invite_by_id(db, &invite_id)
+    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
         .await
         .map_err(Error::DbErr)?
         .ok_or(Error::NotFound {
-            reason: format!("No invite with ID {invite_id}"),
+            reason: format!("No invitation with ID {invitation_id}"),
         })?;
-    if token != invite.reject_token {
+    if token != invitation.reject_token {
         return Err(Error::Unauthorized);
     }
 
-    invite.delete(db).await.map_err(Error::DbErr)?;
+    invitation.delete(db).await.map_err(Error::DbErr)?;
 
     Ok(NoContent)
 }
 
-/// Resend a member invitation.
+/// Resend a workspace invitation.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
         (status = 200, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
@@ -307,80 +314,68 @@ pub(super) async fn invite_reject(
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/invites/<invite_id>?action=resend", rank = 2)]
-pub(super) async fn invite_resend(
+#[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
+pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,
     notifier: Notifier<'_>,
-    invite_id: i32,
+    invitation_id: i32,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
 
     let Some(jid) = jid else {
         return Err(Error::Unauthorized);
     };
-    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);
     }
 
-    let invite = Query::get_invite_by_id(db, &invite_id)
+    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
         .await
         .map_err(Error::DbErr)?
         .ok_or(Error::NotFound {
-            reason: format!("Could not find the invite with id '{invite_id}'"),
+            reason: format!("Could not find the invitation with id '{invitation_id}'"),
         })?;
 
     notifier
         .inner?
-        .send_member_invite(invite.accept_token, invite.reject_token)
+        .send_workspace_invitation(invitation.accept_token, invitation.reject_token)
         .await?;
 
     Ok(())
 }
 
-/// Cancel a member invitation.
+/// Cancel a workspace invitation.
 #[utoipa::path(
-    tag = "Invites",
+    tag = "Invitations",
     responses(
-        (status = 200, description = "Success"),
+        (status = 204, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
         (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
-#[post("/v1/invites/<invite_id>?action=cancel", rank = 4)]
-pub(super) async fn invite_cancel(
+#[delete("/v1/invitations/<invitation_id>")]
+pub(super) async fn invitation_cancel(
     conn: Connection<'_, Db>,
     jid: Option<JIDGuard>,
-    invite_id: i32,
-) -> Result<(), Error> {
+    invitation_id: i32,
+) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
     let Some(jid) = jid else {
         return Err(Error::Unauthorized);
     };
-    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);
     }
 
-    member_invite::Entity::delete_by_id(invite_id)
+    workspace_invitation::Entity::delete_by_id(invitation_id)
         .exec(db)
         .await
         .map_err(Error::DbErr)?;
 
-    Ok(())
-}
-
-/// Cancel one member invitation.
-#[utoipa::path(
-    tag = "Invites",
-    responses(
-        (status = 200, description = "Success", body = member_invite::Model)
-    )
-)]
-#[delete("/v1/invites/<_invite_id>")]
-pub(super) fn cancel_invite(_invite_id: &str) -> Json<member_invite::Model> {
-    todo!()
+    Ok(NoContent)
 }

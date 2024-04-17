@@ -45,7 +45,7 @@ pub trait GenericNotifier: Sync + Send {
 
 pub fn notification_subject(notification: &Notification) -> String {
     match notification {
-        Notification::MemberInvite { .. } => {
+        Notification::WorkspaceInvitation { .. } => {
             format!(
                 "You have been invited to {}'s Prose server!",
                 APP_CONF.branding.company_name
@@ -56,7 +56,7 @@ pub fn notification_subject(notification: &Notification) -> String {
 
 pub fn notification_message(notification: &Notification) -> String {
     match notification {
-        Notification::MemberInvite {
+        Notification::WorkspaceInvitation {
             accept_link,
             reject_link,
         } => {

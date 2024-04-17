@@ -7,7 +7,8 @@ use serde_json::json;
 
 pub use self::model::NotificationContent;
 use self::model::{
-    Template, NOTIFICATION_DATA_KEY_INVITE_ACCEPT_LINK, NOTIFICATION_DATA_KEY_INVITE_REJECT_LINK,
+    Template, NOTIFICATION_DATA_KEY_INVITATION_ACCEPT_LINK,
+    NOTIFICATION_DATA_KEY_INVITATION_REJECT_LINK,
 };
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
@@ -31,9 +32,9 @@ impl Model {
 
     pub fn content(&self) -> NotificationContent {
         match self.template {
-            Template::MemberInvite => NotificationContent::MemberInvite {
-                accept_link: self.string(NOTIFICATION_DATA_KEY_INVITE_ACCEPT_LINK),
-                reject_link: self.string(NOTIFICATION_DATA_KEY_INVITE_REJECT_LINK),
+            Template::WorkspaceInvitation => NotificationContent::WorkspaceInvitation {
+                accept_link: self.string(NOTIFICATION_DATA_KEY_INVITATION_ACCEPT_LINK),
+                reject_link: self.string(NOTIFICATION_DATA_KEY_INVITATION_REJECT_LINK),
             },
         }
     }
@@ -43,12 +44,12 @@ impl ActiveModel {
     pub fn set_content(&mut self, content: &NotificationContent) {
         self.template = Set(content.template());
         self.data = Set(match content {
-            NotificationContent::MemberInvite {
+            NotificationContent::WorkspaceInvitation {
                 accept_link,
                 reject_link,
             } => json!({
-                NOTIFICATION_DATA_KEY_INVITE_ACCEPT_LINK: accept_link,
-                NOTIFICATION_DATA_KEY_INVITE_REJECT_LINK: reject_link,
+                NOTIFICATION_DATA_KEY_INVITATION_ACCEPT_LINK: accept_link,
+                NOTIFICATION_DATA_KEY_INVITATION_REJECT_LINK: reject_link,
             }),
         });
     }
@@ -69,12 +70,14 @@ mod model {
     };
     use serde::{Deserialize, Serialize};
 
-    pub(super) const NOTIFICATION_DATA_KEY_INVITE_ACCEPT_LINK: &'static str = "invite_accept_link";
-    pub(super) const NOTIFICATION_DATA_KEY_INVITE_REJECT_LINK: &'static str = "invite_reject_link";
+    pub(super) const NOTIFICATION_DATA_KEY_INVITATION_ACCEPT_LINK: &'static str =
+        "invitation_accept_link";
+    pub(super) const NOTIFICATION_DATA_KEY_INVITATION_REJECT_LINK: &'static str =
+        "invitation_reject_link";
 
     #[derive(Clone, Debug, PartialEq, Eq)]
     pub enum NotificationContent {
-        MemberInvite {
+        WorkspaceInvitation {
             accept_link: String,
             reject_link: String,
         },
@@ -83,26 +86,26 @@ mod model {
     impl NotificationContent {
         pub fn template(&self) -> Template {
             match self {
-                Self::MemberInvite { .. } => Template::MemberInvite,
+                Self::WorkspaceInvitation { .. } => Template::WorkspaceInvitation,
             }
         }
     }
 
     #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub enum Template {
-        MemberInvite,
+        WorkspaceInvitation,
     }
 
     impl Template {
         pub fn iterator() -> impl Iterator<Item = Self> {
-            [Self::MemberInvite].iter().copied()
+            [Self::WorkspaceInvitation].iter().copied()
         }
     }
 
     impl Display for Template {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::MemberInvite => write!(f, "member_invite"),
+                Self::WorkspaceInvitation => write!(f, "workspace_invitation"),
             }
         }
     }
@@ -112,7 +115,7 @@ mod model {
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
-                "member_invite" => Ok(Self::MemberInvite),
+                "workspace_invitation" => Ok(Self::WorkspaceInvitation),
                 _ => Err(format!("Unknown notification template: {s:?}")),
             }
         }

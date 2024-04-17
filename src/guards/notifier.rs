@@ -146,19 +146,19 @@ impl<'r> NotifierInner<'r> {
         Ok(())
     }
 
-    pub async fn send_member_invite(
+    pub async fn send_workspace_invitation(
         &self,
         accept_token: Uuid,
         reject_token: Uuid,
     ) -> Result<(), NotifierError> {
         let admin_site_root = PathBuf::from_str(&APP_CONF.branding.page_url.to_string()).unwrap();
-        self.send(&Notification::MemberInvite {
+        self.send(&Notification::WorkspaceInvitation {
             accept_link: admin_site_root
-                .join(format!("invites/accept/{accept_token}"))
+                .join(format!("invitations/accept/{accept_token}"))
                 .display()
                 .to_string(),
             reject_link: admin_site_root
-                .join(format!("invites/reject/{reject_token}"))
+                .join(format!("invitations/reject/{reject_token}"))
                 .display()
                 .to_string(),
         })

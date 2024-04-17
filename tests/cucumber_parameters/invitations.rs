@@ -12,23 +12,23 @@ use entity::model;
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_channel", regex = r"Email")]
-pub struct MemberInvitationChannel(model::MemberInvitationChannel);
+pub struct InvitationChannel(model::InvitationChannel);
 
-impl Deref for MemberInvitationChannel {
-    type Target = model::MemberInvitationChannel;
+impl Deref for InvitationChannel {
+    type Target = model::InvitationChannel;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl FromStr for MemberInvitationChannel {
+impl FromStr for InvitationChannel {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Email" => Ok(Self(model::MemberInvitationChannel::Email)),
-            s => Err(format!("Invalid `MemberInvitationChannel`: {s}")),
+            "Email" => Ok(Self(model::InvitationChannel::Email)),
+            s => Err(format!("Invalid `InvitationChannel`: {s}")),
         }
     }
 }
@@ -37,20 +37,20 @@ impl FromStr for MemberInvitationChannel {
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]
-pub struct MemberInviteState(pub model::MemberInviteState);
+pub struct InvitationStatus(pub model::InvitationStatus);
 
-impl Deref for MemberInviteState {
-    type Target = model::MemberInviteState;
+impl Deref for InvitationStatus {
+    type Target = model::InvitationStatus;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl FromStr for MemberInviteState {
-    type Err = <model::MemberInviteState as FromStr>::Err;
+impl FromStr for InvitationStatus {
+    type Err = <model::InvitationStatus as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        model::MemberInviteState::from_str(s).map(MemberInviteState)
+        model::InvitationStatus::from_str(s).map(InvitationStatus)
     }
 }

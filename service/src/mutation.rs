@@ -6,9 +6,9 @@
 use std::fmt;
 
 use ::entity::{
-    member_invite::{self, MemberInviteContact, MemberInviteState},
     model::MemberRole,
     server_config,
+    workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
 use entity::{
@@ -17,7 +17,7 @@ use entity::{
 };
 use sea_orm::{prelude::*, IntoActiveModel as _, Set, TransactionTrait as _};
 
-const DEFAULT_INVITE_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
+const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
 pub struct Mutation;
 
@@ -49,13 +49,13 @@ impl Mutation {
     //     .await
     // }
 
-    pub async fn create_member_invite(
+    pub async fn create_workspace_invitation(
         db: &DbConn,
         jid: JID,
         pre_assigned_role: MemberRole,
-        contact: MemberInviteContact,
-    ) -> Result<member_invite::Model, DbErr> {
-        let mut model = member_invite::ActiveModel::new();
+        contact: InvitationContact,
+    ) -> Result<workspace_invitation::Model, DbErr> {
+        let mut model = workspace_invitation::ActiveModel::new();
         let now = Utc::now();
         model.created_at = Set(now);
         model.jid = Set(jid);
@@ -63,87 +63,87 @@ impl Mutation {
         model.set_contact(contact);
         model.accept_token = Set(Uuid::new_v4());
         model.accept_token_expires_at = Set(now
-            .checked_add_signed(DEFAULT_INVITE_ACCEPT_TOKEN_LIFETIME)
+            .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
             .unwrap());
         model.reject_token = Set(Uuid::new_v4());
         model.insert(db).await
     }
 
-    pub async fn update_member_invite_status_by_id(
+    pub async fn update_workspace_invitation_status_by_id(
         db: &DbConn,
         id: i32,
-        status: MemberInviteState,
-    ) -> Result<member_invite::Model, MutationError> {
+        status: InvitationStatus,
+    ) -> Result<workspace_invitation::Model, MutationError> {
         // Query
-        let model = member_invite::Entity::find_by_id(id).one(db).await?;
+        let model = workspace_invitation::Entity::find_by_id(id).one(db).await?;
         let Some(model) = model else {
             return Err(MutationError::EntityNotFound {
-                entity_name: stringify!(member_invite::Entity),
+                entity_name: stringify!(workspace_invitation::Entity),
             });
         };
 
         // Update
-        Self::update_member_invite_status(db, model, status).await
+        Self::update_workspace_invitation_status(db, model, status).await
     }
 
-    pub async fn update_member_invite_status_by_email(
+    pub async fn update_workspace_invitation_status_by_email(
         db: &DbConn,
         email_address: EmailAddress,
-        status: MemberInviteState,
-    ) -> Result<member_invite::Model, MutationError> {
+        status: InvitationStatus,
+    ) -> Result<workspace_invitation::Model, MutationError> {
         // Query
-        let model = member_invite::Entity::find()
-            .filter(member_invite::Column::EmailAddress.eq(email_address))
+        let model = workspace_invitation::Entity::find()
+            .filter(workspace_invitation::Column::EmailAddress.eq(email_address))
             .one(db)
             .await?;
         let Some(model) = model else {
             return Err(MutationError::EntityNotFound {
-                entity_name: stringify!(member_invite::Entity),
+                entity_name: stringify!(workspace_invitation::Entity),
             });
         };
 
         // Update
-        Self::update_member_invite_status(db, model, status).await
+        Self::update_workspace_invitation_status(db, model, status).await
     }
 
-    pub async fn update_member_invite_status(
+    pub async fn update_workspace_invitation_status(
         db: &DbConn,
-        model: member_invite::Model,
-        status: MemberInviteState,
-    ) -> Result<member_invite::Model, MutationError> {
+        model: workspace_invitation::Model,
+        status: InvitationStatus,
+    ) -> Result<workspace_invitation::Model, MutationError> {
         let mut active = model.into_active_model();
-        active.state = Set(status);
+        active.status = Set(status);
         let model = active.update(db).await?;
 
         Ok(model)
     }
 
-    pub async fn resend_invite(
+    pub async fn resend_workspace_invitation(
         db: &DbConn,
-        model: member_invite::Model,
-    ) -> Result<member_invite::Model, MutationError> {
+        model: workspace_invitation::Model,
+    ) -> Result<workspace_invitation::Model, MutationError> {
         let mut active = model.into_active_model();
         active.accept_token = Set(Uuid::new_v4());
         active.accept_token_expires_at = Set(Utc::now()
-            .checked_add_signed(DEFAULT_INVITE_ACCEPT_TOKEN_LIFETIME)
+            .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
             .unwrap());
         let model = active.update(db).await?;
 
         Ok(model)
     }
 
-    pub async fn accept_invite(
+    pub async fn accept_workspace_invitation(
         db: &DbConn,
-        invite: member_invite::Model,
+        invitation: workspace_invitation::Model,
     ) -> Result<(), MutationError> {
         let txn = db.begin().await?;
 
         let mut new_member = member::ActiveModel::new();
-        new_member.id = Set(invite.jid.to_string());
-        new_member.role = Set(invite.pre_assigned_role);
+        new_member.id = Set(invitation.jid.to_string());
+        new_member.role = Set(invitation.pre_assigned_role);
         new_member.insert(&txn).await?;
 
-        invite.delete(&txn).await?;
+        invitation.delete(&txn).await?;
 
         txn.commit().await?;
 

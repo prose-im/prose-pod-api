@@ -12,23 +12,23 @@ use serde::{Deserialize, Serialize};
 
 use super::EmailAddress;
 
-// ===== INVITE STATE =====
+// ===== INVITATION STATUS =====
 
-const INVITE_STATE_TO_SEND: &'static str = "TO_SEND";
-const INVITE_STATE_SENT: &'static str = "SENT";
-const INVITE_STATE_SEND_FAILED: &'static str = "SEND_FAILURE";
+const INVITATION_STATUS_TO_SEND: &'static str = "TO_SEND";
+const INVITATION_STATUS_SENT: &'static str = "SENT";
+const INVITATION_STATUS_SEND_FAILED: &'static str = "SEND_FAILURE";
 
 // NOTE: When adding a new case to this enum, make sure to update
 //   the `column_type` function in `impl sea_query::ValueType`
 //   and add a new migration to update the column size.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MemberInviteState {
+pub enum InvitationStatus {
     ToSend,
     Sent,
     SendFailed,
 }
 
-impl MemberInviteState {
+impl InvitationStatus {
     pub fn iterator() -> impl Iterator<Item = Self> {
         [
             Self::ToSend,
@@ -41,45 +41,45 @@ impl MemberInviteState {
 
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::ToSend => INVITE_STATE_TO_SEND,
-            Self::Sent => INVITE_STATE_SENT,
-            Self::SendFailed => INVITE_STATE_SEND_FAILED,
+            Self::ToSend => INVITATION_STATUS_TO_SEND,
+            Self::Sent => INVITATION_STATUS_SENT,
+            Self::SendFailed => INVITATION_STATUS_SEND_FAILED,
         }
     }
 }
 
-impl Default for MemberInviteState {
+impl Default for InvitationStatus {
     fn default() -> Self {
         Self::ToSend
     }
 }
 
-impl Display for MemberInviteState {
+impl Display for InvitationStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl From<MemberInviteState> for sea_query::Value {
-    fn from(value: MemberInviteState) -> Self {
+impl From<InvitationStatus> for sea_query::Value {
+    fn from(value: InvitationStatus) -> Self {
         Self::String(Some(Box::new(value.to_string())))
     }
 }
 
-impl FromStr for MemberInviteState {
+impl FromStr for InvitationStatus {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            INVITE_STATE_TO_SEND => Ok(Self::ToSend),
-            INVITE_STATE_SENT => Ok(Self::Sent),
-            INVITE_STATE_SEND_FAILED => Ok(Self::SendFailed),
-            s => Err(format!("Unknown member invite state value: {:?}", s)),
+            INVITATION_STATUS_TO_SEND => Ok(Self::ToSend),
+            INVITATION_STATUS_SENT => Ok(Self::Sent),
+            INVITATION_STATUS_SEND_FAILED => Ok(Self::SendFailed),
+            s => Err(format!("Unknown workspace invitation status: {:?}", s)),
         }
     }
 }
 
-impl TryFrom<String> for MemberInviteState {
+impl TryFrom<String> for InvitationStatus {
     type Error = <Self as FromStr>::Err;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -87,7 +87,7 @@ impl TryFrom<String> for MemberInviteState {
     }
 }
 
-impl sea_orm::TryGetable for MemberInviteState {
+impl sea_orm::TryGetable for InvitationStatus {
     fn try_get_by<I: sea_orm::ColIdx>(
         res: &sea_orm::prelude::QueryResult,
         index: I,
@@ -99,7 +99,7 @@ impl sea_orm::TryGetable for MemberInviteState {
     }
 }
 
-impl sea_query::ValueType for MemberInviteState {
+impl sea_query::ValueType for InvitationStatus {
     fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
         match v {
             Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
@@ -108,7 +108,7 @@ impl sea_query::ValueType for MemberInviteState {
     }
 
     fn type_name() -> String {
-        stringify!(MemberInviteState).to_string()
+        stringify!(InvitationStatus).to_string()
     }
 
     fn array_type() -> ArrayType {
@@ -130,17 +130,17 @@ const INVITATION_CHANNEL_EMAIL: &'static str = "EMAIL";
 //   the `column_type` function in `impl sea_query::ValueType`
 //   and add a new migration to update the column size.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MemberInvitationChannel {
+pub enum InvitationChannel {
     Email,
 }
 
-impl MemberInvitationChannel {
+impl InvitationChannel {
     pub fn iterator() -> impl Iterator<Item = Self> {
         [Self::Email].iter().copied()
     }
 }
 
-impl ToString for MemberInvitationChannel {
+impl ToString for InvitationChannel {
     fn to_string(&self) -> String {
         match self {
             Self::Email => INVITATION_CHANNEL_EMAIL,
@@ -149,24 +149,27 @@ impl ToString for MemberInvitationChannel {
     }
 }
 
-impl From<MemberInvitationChannel> for sea_query::Value {
-    fn from(value: MemberInvitationChannel) -> Self {
+impl From<InvitationChannel> for sea_query::Value {
+    fn from(value: InvitationChannel) -> Self {
         Self::String(Some(Box::new(value.to_string())))
     }
 }
 
-impl FromStr for MemberInvitationChannel {
+impl FromStr for InvitationChannel {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             INVITATION_CHANNEL_EMAIL => Ok(Self::Email),
-            s => Err(format!("Unknown member invitation channel value: {:?}", s)),
+            s => Err(format!(
+                "Unknown workspace invitation channel value: {:?}",
+                s
+            )),
         }
     }
 }
 
-impl TryFrom<String> for MemberInvitationChannel {
+impl TryFrom<String> for InvitationChannel {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -174,7 +177,7 @@ impl TryFrom<String> for MemberInvitationChannel {
     }
 }
 
-impl sea_orm::TryGetable for MemberInvitationChannel {
+impl sea_orm::TryGetable for InvitationChannel {
     fn try_get_by<I: sea_orm::ColIdx>(
         res: &sea_orm::prelude::QueryResult,
         index: I,
@@ -186,7 +189,7 @@ impl sea_orm::TryGetable for MemberInvitationChannel {
     }
 }
 
-impl sea_query::ValueType for MemberInvitationChannel {
+impl sea_query::ValueType for InvitationChannel {
     fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
         match v {
             Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
@@ -195,7 +198,7 @@ impl sea_query::ValueType for MemberInvitationChannel {
     }
 
     fn type_name() -> String {
-        stringify!(MemberInvitationChannel).to_string()
+        stringify!(InvitationChannel).to_string()
     }
 
     fn array_type() -> ArrayType {
@@ -209,10 +212,10 @@ impl sea_query::ValueType for MemberInvitationChannel {
     }
 }
 
-// ===== INVITE CONTACT =====
+// ===== INVITATION CONTACT =====
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "channel")]
-pub enum MemberInviteContact {
+pub enum InvitationContact {
     Email { email_address: EmailAddress },
 }

@@ -9,7 +9,7 @@
 mod duration;
 mod email_address;
 mod http_status;
-mod invites;
+mod invitations;
 mod jid;
 mod member_role;
 mod name;
@@ -18,7 +18,7 @@ mod toggle_state;
 pub use duration::*;
 pub use email_address::*;
 pub use http_status::*;
-pub use invites::*;
+pub use invitations::*;
 pub use jid::*;
 pub use member_role::*;
 pub use name::*;
