@@ -62,6 +62,14 @@ pub struct AdminAccountInit {
 pub type InitResponse = server_config::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
+#[utoipa::path(
+    tag = "Misc",
+    responses(
+        (status = 200, description = "Success", body = InitRequest),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
+    ),
+)]
 #[post("/v1/init", format = "json", data = "<req>")]
 pub(super) async fn init(
     conn: Connection<'_, Db>,

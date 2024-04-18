@@ -24,7 +24,6 @@ pub type R<T> = Result<Json<T>, Error>;
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/server/config")]
@@ -45,7 +44,6 @@ pub struct SetMessageArchivingRequest {
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put(
@@ -75,7 +73,6 @@ pub struct SetMessageArchiveRetentionRequest {
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put(
@@ -107,7 +104,6 @@ pub struct SetFileUploadingRequest {
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/allow-file-upload", format = "json", data = "<req>")]
@@ -128,7 +124,6 @@ pub(super) async fn store_files(
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/file-storage-encryption-scheme")]
@@ -150,7 +145,6 @@ pub struct SetFileRetentionRequest {
         (status = 200, description = "Success", body = ServerConfig),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[put("/v1/server/config/file-retention", format = "json", data = "<req>")]

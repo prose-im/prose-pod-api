@@ -41,7 +41,6 @@ pub type InviteMemberResponse = workspace_invitation::Model;
         (status = 200, description = "Success", body = InviteMemberResponse),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[post("/v1/invitations", format = "json", data = "<req>")]
@@ -117,7 +116,6 @@ pub(super) async fn invite_member<'r>(
         (status = 200, description = "Success", body = Paginated<workspace_invitation::Model>),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
@@ -153,7 +151,6 @@ pub(super) async fn get_invitations(
         (status = 200, description = "Success", body = workspace_invitation::Model),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[get("/v1/invitations/<_>")]
@@ -222,7 +219,6 @@ pub struct AcceptWorkspaceInvitationRequest {
     responses(
         (status = 200, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[post(
@@ -274,7 +270,6 @@ pub(super) async fn invitation_accept(
     responses(
         (status = 204, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[post("/v1/invitations/<invitation_id>?action=reject&<token>", rank = 3)]
@@ -311,7 +306,6 @@ pub(super) async fn invitation_reject(
         (status = 200, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
@@ -353,7 +347,6 @@ pub(super) async fn invitation_resend(
         (status = 204, description = "Success"),
         (status = 400, description = "Pod not initialized", body = Error),
         (status = 401, description = "Unauthorized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
     )
 )]
 #[delete("/v1/invitations/<invitation_id>")]
