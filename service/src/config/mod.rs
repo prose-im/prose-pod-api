@@ -16,13 +16,17 @@ use figment::{
 };
 use serde::Deserialize;
 use url_serde::SerdeUrl;
-#[derive(Deserialize)]
+
+#[derive(Clone, Deserialize)]
 pub struct Config {
     pub api: ConfigApi,
     pub server: ConfigServer,
     pub assets: ConfigAssets,
     pub branding: ConfigBranding,
     pub notify: Option<ConfigNotify>,
+    #[cfg(debug_assertions)]
+    #[serde(default)]
+    pub dependency_modes: ConfigDependencyModes,
 }
 
 impl Config {
@@ -40,7 +44,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigApi {
     #[serde(default = "defaults::api_log_level")]
     pub log_level: String,
@@ -49,7 +53,7 @@ pub struct ConfigApi {
     pub admin_password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigServer {
     pub domain: String,
     #[serde(default = "defaults::server_local_hostname")]
@@ -58,13 +62,13 @@ pub struct ConfigServer {
     pub admin_rest_api_port: u16,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigAssets {
     #[serde(default = "defaults::assets_path")]
     pub path: PathBuf,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
@@ -80,12 +84,12 @@ pub struct ConfigBranding {
     pub custom_html: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigNotify {
     pub email: Option<ConfigNotifyEmail>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ConfigNotifyEmail {
     pub to: String,
     pub from: String,
@@ -101,4 +105,26 @@ pub struct ConfigNotifyEmail {
 
     #[serde(default = "defaults::notify_email_smtp_encrypt")]
     pub smtp_encrypt: bool,
+}
+
+#[cfg(debug_assertions)]
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum UuidDependencyMode {
+    Normal,
+    Incrementing,
+}
+
+#[cfg(debug_assertions)]
+impl Default for UuidDependencyMode {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
+#[cfg(debug_assertions)]
+#[derive(Clone, Deserialize, Default)]
+pub struct ConfigDependencyModes {
+    #[serde(default)]
+    pub uuid: UuidDependencyMode,
 }

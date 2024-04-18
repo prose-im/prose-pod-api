@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod config;
+pub mod dependencies;
 mod mutation;
 pub mod notifier;
 pub mod prosody;

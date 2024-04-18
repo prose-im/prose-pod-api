@@ -10,6 +10,7 @@ mod notifier;
 mod server_config;
 mod server_manager;
 mod user_factory;
+mod uuid_generator;
 
 pub use db::*;
 pub use jid::*;
@@ -18,6 +19,7 @@ pub use notifier::*;
 pub use server_config::*;
 pub use server_manager::*;
 pub use user_factory::*;
+pub use uuid_generator::*;
 
 use rocket::http::Status;
 use rocket::request::Outcome;

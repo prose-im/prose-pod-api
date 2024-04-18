@@ -9,16 +9,17 @@ use chrono::{DateTime, Utc};
 use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
-use rocket::{delete, get, post};
+use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::config::Config;
 use service::sea_orm::{prelude::*, EntityTrait};
 use service::{Mutation, Query};
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, Notifier, UserFactory, JID as JIDGuard};
+use crate::guards::{Db, Notifier, UserFactory, UuidGenerator, JID as JIDGuard};
 use crate::responders::Paginated;
 
 pub type R<T> = Result<Json<T>, Error>;
@@ -26,7 +27,9 @@ pub type Created<T> = Result<status::Created<Json<T>>, Error>;
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
-    pub jid: JID,
+    // TODO: Validate user input
+    pub username: String,
+    #[serde(default)]
     pub pre_assigned_role: MemberRole,
     #[serde(flatten)]
     pub contact: InvitationContact,
@@ -47,6 +50,8 @@ pub type InviteMemberResponse = workspace_invitation::Model;
 pub(super) async fn invite_member<'r>(
     host: Option<&'r Host<'r>>,
     conn: Connection<'_, Db>,
+    uuid_gen: UuidGenerator,
+    config: &State<Config>,
     jid: JIDGuard,
     notifier: Notifier<'_>,
     req: Json<InviteMemberRequest>,
@@ -60,7 +65,8 @@ pub(super) async fn invite_member<'r>(
 
     let invitation = Mutation::create_workspace_invitation(
         db,
-        req.jid.clone(),
+        &uuid_gen,
+        JID::new(req.username.clone(), config.server.domain.clone()),
         req.pre_assigned_role,
         req.contact.clone(),
     )

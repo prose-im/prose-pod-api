@@ -17,13 +17,15 @@ use std::sync::{Arc, Mutex};
 
 #[launch]
 fn rocket() -> _ {
+    env_logger::init();
+
     let config = Config::figment();
     let jwt_service = match JWTService::from_env() {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
 
-    custom_rocket(rocket::build())
+    custom_rocket(rocket::build(), &config)
         .manage(jwt_service)
         .manage(ServerCtl::new(Arc::new(Mutex::new(
             ProsodyAdminRest::from_config(&config),

@@ -26,6 +26,8 @@ use rocket::local::asynchronous::{Client, LocalResponse};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
+use service::config::Config;
+use service::dependencies;
 use service::notifier::Notifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
@@ -73,6 +75,7 @@ async fn main() {
 }
 
 fn test_rocket(
+    config: &Config,
     server_ctl: Arc<Mutex<DummyServerCtl>>,
     notifier: Arc<Mutex<DummyNotifier>>,
 ) -> Rocket<Build> {
@@ -81,18 +84,19 @@ fn test_rocket(
         .merge(("log_level", "off"))
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
-    prose_pod_api::custom_rocket(rocket::custom(figment))
+    prose_pod_api::custom_rocket(rocket::custom(figment), config)
         .manage(JWTService::new(JWTKey::custom("test_key")))
         .manage(ServerCtl::new(server_ctl))
         .manage(Notifier::new(notifier))
 }
 
 pub async fn rocket_test_client(
+    config: &Config,
     server_ctl: Arc<Mutex<DummyServerCtl>>,
     notifier: Arc<Mutex<DummyNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(server_ctl, notifier))
+    Client::tracked(test_rocket(config, server_ctl, notifier))
         .await
         .expect("valid rocket instance")
 }
@@ -166,6 +170,10 @@ impl TestWorld {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
 
+    fn uuid_gen(&self) -> &dependencies::Uuid {
+        self.client.rocket().state::<dependencies::Uuid>().unwrap()
+    }
+
     fn server_ctl(&self) -> MutexGuard<DummyServerCtl> {
         self.server_ctl.lock().unwrap()
     }
@@ -206,13 +214,14 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
+        let config = Config::figment();
         let server_ctl = Arc::new(Mutex::new(DummyServerCtl::new(Default::default())));
         let notifier = Arc::new(Mutex::new(DummyNotifier::new(Default::default())));
 
         Self {
             server_ctl: server_ctl.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(server_ctl, notifier).await,
+            client: rocket_test_client(&config, server_ctl, notifier).await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),

@@ -34,8 +34,8 @@ const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
 
 async fn invite_member<'a>(
     client: &'a Client,
-    token: String,
-    jid: JID,
+    token: &str,
+    username: &str,
     pre_assigned_role: MemberRole,
     contact: InvitationContact,
 ) -> LocalResponse<'a> {
@@ -45,7 +45,7 @@ async fn invite_member<'a>(
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
             json!(InviteMemberRequest {
-                jid: jid.0,
+                username: username.to_string(),
                 pre_assigned_role: pre_assigned_role.0,
                 contact,
             })
@@ -168,6 +168,7 @@ async fn given_invited(world: &mut TestWorld, jid: JID) -> Result<(), DbErr> {
     let db = world.db();
     let model = Mutation::create_workspace_invitation(
         db,
+        world.uuid_gen(),
         jid,
         DEFAULT_MEMBER_ROLE,
         InvitationContact::Email {
@@ -211,6 +212,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), DbErr> {
             model::EmailAddress::from_str(format!("person.{i}@test.org").as_str()).unwrap();
         let model = Mutation::create_workspace_invitation(
             db,
+            world.uuid_gen(),
             jid,
             DEFAULT_MEMBER_ROLE,
             InvitationContact::Email {
@@ -249,7 +251,8 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
     // Resend invitation
     let db = world.db();
-    let model = Mutation::resend_workspace_invitation(db, invitation_before).await?;
+    let model =
+        Mutation::resend_workspace_invitation(db, world.uuid_gen(), invitation_before).await?;
 
     // Store current invitation data
     world
@@ -292,14 +295,19 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     Ok(())
 }
 
-#[when(expr = r#"{name} invites <{jid}> as a(n) {member_role}"#)]
-async fn when_inviting(world: &mut TestWorld, name: Name, jid: JID, pre_assigned_role: MemberRole) {
+#[when(expr = r#"{name} invites <{email}> as a(n) {member_role}"#)]
+async fn when_inviting(
+    world: &mut TestWorld,
+    name: Name,
+    email_address: EmailAddress,
+    pre_assigned_role: MemberRole,
+) {
     let token = world.token(name.0);
-    let email_address = model::EmailAddress::from_str(&jid.to_string()).unwrap();
+    let email_address = email_address.0;
     let res = invite_member(
         &world.client,
-        token,
-        jid,
+        &token,
+        email_address.clone().local_part(),
         pre_assigned_role,
         InvitationContact::Email { email_address },
     )

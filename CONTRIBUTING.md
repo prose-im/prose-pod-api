@@ -33,3 +33,18 @@ You could also run `cargo test` but it runs unit tests in `src/`, which we don't
 > [!TIP]
 > While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
 > and then use `cargo test --test behavior -- --tags '@testing'` to run only matching `Scenario`s.
+
+## Building the Docker image
+
+```bash
+docker build -t proseim/prose-pod-api .
+```
+
+To build the API in debug mode (e.g. to use predictable data generators),
+you can use the `CARGO_INSTALL_EXTRA_ARGS` [Docker `ARG`]:
+
+```bash
+docker build -t proseim/prose-pod-api --build-arg CARGO_INSTALL_EXTRA_ARGS='--debug' .
+```
+
+[Docker `ARG`]: https://docs.docker.com/reference/dockerfile/#arg "Dockerfile reference | Docker Docs"

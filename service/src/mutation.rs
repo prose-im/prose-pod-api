@@ -5,16 +5,14 @@
 
 use std::fmt;
 
+use crate::dependencies::Uuid;
 use ::entity::{
-    model::MemberRole,
+    member,
+    model::{EmailAddress, MemberRole, JID},
     server_config,
     workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
-use entity::{
-    member,
-    model::{EmailAddress, JID},
-};
 use sea_orm::{prelude::*, IntoActiveModel as _, Set, TransactionTrait as _};
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
@@ -51,6 +49,7 @@ impl Mutation {
 
     pub async fn create_workspace_invitation(
         db: &DbConn,
+        uuid: &Uuid,
         jid: JID,
         pre_assigned_role: MemberRole,
         contact: InvitationContact,
@@ -61,11 +60,11 @@ impl Mutation {
         model.jid = Set(jid);
         model.pre_assigned_role = Set(pre_assigned_role);
         model.set_contact(contact);
-        model.accept_token = Set(Uuid::new_v4());
+        model.accept_token = Set(uuid.new_v4());
         model.accept_token_expires_at = Set(now
             .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
             .unwrap());
-        model.reject_token = Set(Uuid::new_v4());
+        model.reject_token = Set(uuid.new_v4());
         model.insert(db).await
     }
 
@@ -120,10 +119,11 @@ impl Mutation {
 
     pub async fn resend_workspace_invitation(
         db: &DbConn,
+        uuid: &Uuid,
         model: workspace_invitation::Model,
     ) -> Result<workspace_invitation::Model, MutationError> {
         let mut active = model.into_active_model();
-        active.accept_token = Set(Uuid::new_v4());
+        active.accept_token = Set(uuid.new_v4());
         active.accept_token_expires_at = Set(Utc::now()
             .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
             .unwrap());

@@ -5,7 +5,8 @@
 
 use entity::model::JID;
 use log::debug;
-use reqwest::blocking::{Client, RequestBuilder, Response};
+use reqwest::{Client, RequestBuilder, Response};
+use tokio::runtime::Handle;
 use vcard_parser::vcard::Vcard;
 
 use crate::{config::Config, server_ctl::*};
@@ -38,17 +39,22 @@ impl ProsodyAdminRest {
             )
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
-        let response = client.execute(request)?;
-        if response.status().is_success() {
-            Ok(response)
-        } else {
-            Err(Error::Other(format!(
-                "Admin REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
-                response.status(),
-                response.headers().clone(),
-                response.text().unwrap_or("<nil>".to_string())
-            )))
-        }
+
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let response = client.execute(request).await?;
+                if response.status().is_success() {
+                    Ok(response)
+                } else {
+                    Err(Error::Other(format!(
+                        "Admin REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
+                        response.status(),
+                        response.headers().clone(),
+                        response.text().await.unwrap_or("<nil>".to_string())
+                    )))
+                }
+            })
+        })
     }
 
     fn url(&self, path: &str) -> String {
@@ -95,7 +101,10 @@ impl ServerCtlImpl for ProsodyAdminRest {
                 urlencoding::encode(&jid.to_string())
             ))
         })
-        .and_then(|res| res.text().map_err(Error::from))
+        .and_then(|res| {
+            tokio::task::block_in_place(move || Handle::current().block_on(res.text()))
+                .map_err(Error::from)
+        })
         .and_then(|vcard| {
             let vcards = vcard_parser::parse_vcards(vcard.as_str())?;
             Ok(vcards.into_iter().next())
