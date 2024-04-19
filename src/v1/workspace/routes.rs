@@ -13,8 +13,7 @@ use service::sea_orm::{ActiveModelTrait as _, Set};
 use utoipa::ToSchema;
 
 use crate::error::Error;
-use crate::guards::Db;
-use crate::guards::ServerConfig;
+use crate::guards::{Db, LazyGuard, ServerConfig};
 
 pub type R<T> = Result<Json<T>, Error>;
 
@@ -33,8 +32,10 @@ pub struct GetWorkspaceNameResponse {
     )
 )]
 #[get("/v1/workspace/name")]
-pub(super) fn get_workspace_name(server_config: ServerConfig) -> R<GetWorkspaceNameResponse> {
-    let server_config = server_config.model?;
+pub(super) fn get_workspace_name(
+    server_config: LazyGuard<ServerConfig>,
+) -> R<GetWorkspaceNameResponse> {
+    let server_config = server_config.inner?.model();
     let response = GetWorkspaceNameResponse {
         name: server_config.workspace_name,
     }
@@ -64,11 +65,11 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub(super) async fn set_workspace_name(
     conn: Connection<'_, Db>,
-    server_config: ServerConfig,
+    server_config: LazyGuard<ServerConfig>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> R<SetWorkspaceNameResponse> {
     let db = conn.into_inner();
-    let server_config = server_config.model?;
+    let server_config = server_config.inner?.model();
 
     let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_name = Set(req.name.clone());
@@ -96,8 +97,10 @@ pub struct GetWorkspaceIconResponse {
     )
 )]
 #[get("/v1/workspace/icon")]
-pub(super) fn get_workspace_icon(server_config: ServerConfig) -> R<GetWorkspaceIconResponse> {
-    let server_config = server_config.model?;
+pub(super) fn get_workspace_icon(
+    server_config: LazyGuard<ServerConfig>,
+) -> R<GetWorkspaceIconResponse> {
+    let server_config = server_config.inner?.model();
     let response = GetWorkspaceIconResponse {
         url: server_config.workspace_icon_url,
     }
@@ -110,11 +113,11 @@ pub(super) fn get_workspace_icon(server_config: ServerConfig) -> R<GetWorkspaceI
 #[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
 pub(super) async fn set_workspace_icon_string(
     conn: Connection<'_, Db>,
-    server_config: ServerConfig,
+    server_config: LazyGuard<ServerConfig>,
     string: String,
 ) -> R<GetWorkspaceIconResponse> {
     let db = conn.into_inner();
-    let server_config = server_config.model?;
+    let server_config = server_config.inner?.model();
 
     // TODO: Validate `string`
     let mut active: server_config::ActiveModel = server_config.into();
@@ -176,9 +179,9 @@ pub struct GetWorkspaceAccentColorResponse {
 )]
 #[get("/v1/workspace/accent-color")]
 pub(super) fn get_workspace_accent_color(
-    server_config: ServerConfig,
+    server_config: LazyGuard<ServerConfig>,
 ) -> R<GetWorkspaceAccentColorResponse> {
-    let server_config = server_config.model?;
+    let server_config = server_config.inner?.model();
     let response = GetWorkspaceAccentColorResponse {
         color: server_config.workspace_accent_color,
     }
@@ -204,11 +207,11 @@ pub struct SetWorkspaceAccentColorRequest {
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub(super) async fn set_workspace_accent_color(
     conn: Connection<'_, Db>,
-    server_config: ServerConfig,
+    server_config: LazyGuard<ServerConfig>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> R<GetWorkspaceAccentColorResponse> {
     let db = conn.into_inner();
-    let server_config = server_config.model?;
+    let server_config = server_config.inner?.model();
 
     // TODO: Validate `string`
     let mut active: server_config::ActiveModel = server_config.into();

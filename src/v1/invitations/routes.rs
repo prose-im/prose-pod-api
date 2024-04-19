@@ -19,7 +19,7 @@ use service::{Mutation, Query};
 use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, Notifier, UserFactory, UuidGenerator, JID as JIDGuard};
+use crate::guards::{Db, LazyGuard, Notifier, UserFactory, UuidGenerator, JID as JIDGuard};
 use crate::responders::Paginated;
 
 pub type R<T> = Result<Json<T>, Error>;
@@ -52,11 +52,12 @@ pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
     uuid_gen: UuidGenerator,
     config: &State<Config>,
-    jid: JIDGuard,
-    notifier: Notifier<'_>,
+    jid: LazyGuard<JIDGuard>,
+    notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
 ) -> Created<InviteMemberResponse> {
     let db = conn.into_inner();
+    let jid = jid.inner?;
 
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
@@ -317,8 +318,8 @@ pub(super) async fn invitation_reject(
 #[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
-    jid: Option<JIDGuard>,
-    notifier: Notifier<'_>,
+    jid: Option<LazyGuard<JIDGuard>>,
+    notifier: LazyGuard<Notifier<'_>>,
     invitation_id: i32,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
@@ -326,6 +327,7 @@ pub(super) async fn invitation_resend(
     let Some(jid) = jid else {
         return Err(Error::Unauthorized);
     };
+    let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);
@@ -358,7 +360,7 @@ pub(super) async fn invitation_resend(
 #[delete("/v1/invitations/<invitation_id>")]
 pub(super) async fn invitation_cancel(
     conn: Connection<'_, Db>,
-    jid: Option<JIDGuard>,
+    jid: Option<LazyGuard<JIDGuard>>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
@@ -366,6 +368,7 @@ pub(super) async fn invitation_cancel(
     let Some(jid) = jid else {
         return Err(Error::Unauthorized);
     };
+    let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
         return Err(Error::Unauthorized);

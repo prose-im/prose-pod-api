@@ -44,6 +44,17 @@ pub enum Error {
 }
 
 impl Error {
+    /// Log the error.
+    pub fn log(&self) {
+        if (500..600).contains(&self.http_status().code) {
+            // Server error
+            error!("{self}");
+        } else {
+            // Client error
+            warn!("{self}");
+        }
+    }
+
     /// HTTP status to return for this error.
     pub fn http_status(&self) -> Status {
         match self {
@@ -89,25 +100,17 @@ impl Error {
             _ => {}
         }
     }
-}
 
-#[rocket::async_trait]
-impl<'r> Responder<'r, 'static> for Error {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
-        // Log error
-        if (500..600).contains(&self.http_status().code) {
-            // Server error
-            error!("{self}");
-        } else {
-            // Client error
-            warn!("{self}");
-        }
-
-        // Construct response
-        let body = json!({
+    pub(crate) fn as_json(&self) -> String {
+        json!({
             "reason": self.code(),
         })
-        .to_string();
+        .to_string()
+    }
+
+    /// Construct the HTTP response.
+    pub(crate) fn as_response(&self) -> response::Result<'static> {
+        let body = self.as_json();
         let mut response = Response::build()
             .status(self.http_status())
             .header(ContentType::JSON)
@@ -117,6 +120,14 @@ impl<'r> Responder<'r, 'static> for Error {
         self.add_headers(&mut response);
 
         Ok(response)
+    }
+}
+
+#[rocket::async_trait]
+impl<'r> Responder<'r, 'static> for Error {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+        self.log();
+        self.as_response()
     }
 }
 

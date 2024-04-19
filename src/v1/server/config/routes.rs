@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::error::Error;
-use crate::guards::{ServerConfig as ServerConfigGuard, ServerManager};
+use crate::guards::{LazyGuard, ServerConfig as ServerConfigGuard, ServerManager};
 
 pub type R<T> = Result<Json<T>, Error>;
 
@@ -27,8 +27,10 @@ pub type R<T> = Result<Json<T>, Error>;
     )
 )]
 #[get("/v1/server/config")]
-pub(super) async fn get_features_config(server_config: ServerConfigGuard) -> R<ServerConfig> {
-    let model = server_config.model?;
+pub(super) async fn get_features_config(
+    server_config: LazyGuard<ServerConfigGuard>,
+) -> R<ServerConfig> {
+    let model = server_config.inner?.model();
     Ok(model.into())
 }
 
@@ -52,7 +54,7 @@ pub struct SetMessageArchivingRequest {
     data = "<req>"
 )]
 pub(super) async fn store_message_archive(
-    server_manager: ServerManager<'_>,
+    server_manager: LazyGuard<ServerManager<'_>>,
     req: Json<SetMessageArchivingRequest>,
 ) -> R<ServerConfig> {
     let server_manager = server_manager.inner?;
@@ -81,7 +83,7 @@ pub struct SetMessageArchiveRetentionRequest {
     data = "<req>"
 )]
 pub(super) async fn message_archive_retention(
-    server_manager: ServerManager<'_>,
+    server_manager: LazyGuard<ServerManager<'_>>,
     req: Json<SetMessageArchiveRetentionRequest>,
 ) -> R<ServerConfig> {
     let server_manager = server_manager.inner?;
@@ -108,7 +110,7 @@ pub struct SetFileUploadingRequest {
 )]
 #[put("/v1/server/config/allow-file-upload", format = "json", data = "<req>")]
 pub(super) async fn store_files(
-    server_manager: ServerManager<'_>,
+    server_manager: LazyGuard<ServerManager<'_>>,
     req: Json<SetFileUploadingRequest>,
 ) -> R<ServerConfig> {
     let server_manager = server_manager.inner?;
@@ -149,7 +151,7 @@ pub struct SetFileRetentionRequest {
 )]
 #[put("/v1/server/config/file-retention", format = "json", data = "<req>")]
 pub(super) async fn file_retention(
-    server_manager: ServerManager<'_>,
+    server_manager: LazyGuard<ServerManager<'_>>,
     req: Json<SetFileRetentionRequest>,
 ) -> R<ServerConfig> {
     let server_manager = server_manager.inner?;
