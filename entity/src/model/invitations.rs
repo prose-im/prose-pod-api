@@ -215,7 +215,7 @@ impl sea_query::ValueType for InvitationChannel {
 // ===== INVITATION CONTACT =====
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "channel")]
+#[serde(tag = "channel", rename_all = "camelCase")]
 pub enum InvitationContact {
     Email { email_address: EmailAddress },
 }
