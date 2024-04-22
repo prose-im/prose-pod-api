@@ -14,6 +14,7 @@ use entity::{
 use migration::DbErr;
 use prose_pod_api::v1::invitations::{
     AcceptWorkspaceInvitationRequest, InvitationTokenType as TokenType, InviteMemberRequest,
+    WorkspaceInvitation,
 };
 use rocket::{
     http::{Accept, ContentType, Header},
@@ -462,7 +463,7 @@ async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Nam
 
 #[then(expr = "they should see {int} pending invitation(s)")]
 fn then_n_pending_invitations(world: &mut TestWorld, n: usize) {
-    let res: Vec<workspace_invitation::Model> = world.result().body_into();
+    let res: Vec<WorkspaceInvitation> = world.result().body_into();
     assert_eq!(res.len(), n)
 }
 
@@ -472,7 +473,7 @@ fn then_n_invitations_with_status(
     n: usize,
     invitation_status: InvitationStatus,
 ) {
-    let res: Vec<workspace_invitation::Model> = world.result().body_into();
+    let res: Vec<WorkspaceInvitation> = world.result().body_into();
     let filtered = res.iter().filter(|m| m.status == invitation_status.0);
     assert_eq!(filtered.count(), n)
 }

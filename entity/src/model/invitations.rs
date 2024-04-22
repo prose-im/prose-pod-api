@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use sea_orm::sea_query::{self, ArrayType, Value, ValueTypeErr};
 use sea_orm::{ColumnType, TryGetError};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::EmailAddress;
 
@@ -16,12 +16,12 @@ use super::EmailAddress;
 
 const INVITATION_STATUS_TO_SEND: &'static str = "TO_SEND";
 const INVITATION_STATUS_SENT: &'static str = "SENT";
-const INVITATION_STATUS_SEND_FAILED: &'static str = "SEND_FAILURE";
+const INVITATION_STATUS_SEND_FAILED: &'static str = "SEND_FAILED";
 
 // NOTE: When adding a new case to this enum, make sure to update
 //   the `column_type` function in `impl sea_query::ValueType`
 //   and add a new migration to update the column size.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum InvitationStatus {
     ToSend,
     Sent,
@@ -60,6 +60,15 @@ impl Display for InvitationStatus {
     }
 }
 
+impl Serialize for InvitationStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 impl From<InvitationStatus> for sea_query::Value {
     fn from(value: InvitationStatus) -> Self {
         Self::String(Some(Box::new(value.to_string())))
@@ -84,6 +93,16 @@ impl TryFrom<String> for InvitationStatus {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for InvitationStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let status_string = String::deserialize(deserializer)?;
+        Self::try_from(status_string).map_err(|err| serde::de::Error::custom(&err))
     }
 }
 

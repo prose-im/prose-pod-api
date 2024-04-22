@@ -34,8 +34,6 @@ pub struct InviteMemberRequest {
     pub contact: InvitationContact,
 }
 
-pub type InviteMemberResponse = workspace_invitation::Model;
-
 /// Invite a new member.
 #[utoipa::path(
     tag = "Invitations",
@@ -53,7 +51,7 @@ pub(super) async fn invite_member<'r>(
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
-) -> Created<InviteMemberResponse> {
+) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let jid = jid.inner?;
 
@@ -113,7 +111,8 @@ pub(super) async fn invite_member<'r>(
         })?;
 
     let resource_uri = uri!(get_invitation(invitation.id)).to_string();
-    Ok(status::Created::new(resource_uri).body(invitation.into()))
+    let response: WorkspaceInvitation = invitation.into();
+    Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
 /// Get workspace invitations.
@@ -131,7 +130,7 @@ pub(super) async fn get_invitations(
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
-) -> Result<Paginated<workspace_invitation::Model>, Error> {
+) -> Result<Paginated<WorkspaceInvitation>, Error> {
     let db = conn.into_inner();
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
@@ -144,11 +143,36 @@ pub(super) async fn get_invitations(
             .await
             .map_err(Error::DbErr)?;
     Ok(Paginated::new(
-        invitations,
+        invitations.into_iter().map(Into::into).collect(),
         page_number,
         page_size,
         pages_metadata,
     ))
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WorkspaceInvitation {
+    pub invitation_id: i32,
+    pub created_at: DateTimeUtc,
+    pub status: InvitationStatus,
+    pub jid: JID,
+    pub pre_assigned_role: MemberRole,
+    pub contact: InvitationContact,
+    pub accept_token_expires_at: DateTimeUtc,
+}
+
+impl From<workspace_invitation::Model> for WorkspaceInvitation {
+    fn from(value: workspace_invitation::Model) -> Self {
+        Self {
+            invitation_id: value.id,
+            created_at: value.created_at,
+            status: value.status,
+            jid: value.jid.clone(),
+            pre_assigned_role: value.pre_assigned_role,
+            contact: value.contact(),
+            accept_token_expires_at: value.accept_token_expires_at,
+        }
+    }
 }
 
 /// Get information about a workspace invitation.
@@ -165,23 +189,6 @@ pub(super) fn get_invitation() -> Json<workspace_invitation::Model> {
     todo!()
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GetWorkspaceInvitationByTokenResponse {
-    pub invitation_id: i32,
-    pub pre_assigned_role: MemberRole,
-    pub accept_token_expires_at: DateTimeUtc,
-}
-
-impl From<workspace_invitation::Model> for GetWorkspaceInvitationByTokenResponse {
-    fn from(value: workspace_invitation::Model) -> Self {
-        Self {
-            invitation_id: value.id,
-            pre_assigned_role: value.pre_assigned_role,
-            accept_token_expires_at: value.accept_token_expires_at,
-        }
-    }
-}
-
 /// Get information about an invitation from an accept or reject token.
 #[utoipa::path(
     tag = "Invitations",
@@ -195,7 +202,7 @@ pub(super) async fn get_invitation_by_token(
     conn: Connection<'_, Db>,
     token: Uuid,
     token_type: InvitationTokenType,
-) -> R<GetWorkspaceInvitationByTokenResponse> {
+) -> R<WorkspaceInvitation> {
     let db = conn.into_inner();
     let invitation = match token_type {
         InvitationTokenType::Accept => {
@@ -211,7 +218,7 @@ pub(super) async fn get_invitation_by_token(
         return Err(Error::Unauthorized);
     };
 
-    let response: GetWorkspaceInvitationByTokenResponse = invitation.into();
+    let response: WorkspaceInvitation = invitation.into();
     Ok(response.into())
 }
 
