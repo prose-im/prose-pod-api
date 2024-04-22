@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod basic_auth;
 mod db;
 mod jid;
 mod jwt_service;
@@ -14,6 +15,7 @@ mod uuid_generator;
 
 use std::ops::Deref;
 
+pub use basic_auth::*;
 pub use db::*;
 pub use jid::*;
 pub use jwt_service::*;

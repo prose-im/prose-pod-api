@@ -3,19 +3,19 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
+use entity::model::{MemberRole, JID};
 use entity::server_config;
 use rocket::serde::json::Json;
 use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{Set, TransactionTrait as _, TryIntoModel};
-use service::{Mutation, Query};
+use service::{Mutation, Query, ServerCtl};
 use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
 
-use crate::guards::{Db, JWTService, UserFactory};
+use crate::guards::{BasicAuth, Db, JWTService, UserFactory};
 
 use super::workspace::openapi_extensions;
 use crate::error::Error;
@@ -99,8 +99,18 @@ pub(super) async fn init(
         // TODO: Log as "Could not transform active model into model"
         .map_err(Error::DbErr)?;
 
+    // NOTE: We can't rollback changes made to the XMPP server so let's do it
+    //   after "rollbackable" DB changes in case they fail. It's not perfect
+    //   but better than nothing.
+    // TODO: Find a way to rollback XMPP server changes.
     user_factory
-        .create_user(&req.admin.jid, &req.admin.password, &req.admin.nickname)
+        .create_user(
+            &txn,
+            &req.admin.jid,
+            &req.admin.password,
+            &req.admin.nickname,
+            &Some(MemberRole::Admin),
+        )
         .await?;
 
     // Commit the transaction only if the admin user was
@@ -111,25 +121,24 @@ pub(super) async fn init(
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct LoginRequest {
-    pub jid: JID,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
     pub token: String,
 }
 
 /// Log user in and return an authentication token.
-#[post("/v1/login", format = "json", data = "<req>")]
+#[post("/v1/login")]
 pub(super) fn login(
-    // conn: Connection<'_, Db>,
+    basic_auth: BasicAuth,
     jwt_service: &State<JWTService>,
-    req: Json<LoginRequest>,
+    server_ctl: &State<ServerCtl>,
 ) -> R<LoginResponse> {
-    // FIXME: Add password authentication, this is unsecure!
+    server_ctl
+        .implem
+        .lock()
+        .expect("Serverctl lock poisonned")
+        .test_user_password(&basic_auth.jid, &basic_auth.password)?;
 
-    let token = jwt_service.generate_jwt(&req.jid)?;
+    let token = jwt_service.generate_jwt(&basic_auth.jid)?;
 
     let response = LoginResponse { token }.into();
 

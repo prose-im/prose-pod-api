@@ -5,6 +5,7 @@
 
 use std::{fmt, io::Cursor};
 
+use http_auth_basic::AuthBasicError;
 use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
@@ -41,6 +42,8 @@ pub enum Error {
     NotFound { reason: String },
     /// Could not send a notification.
     NotifierError(NotifierError),
+    /// Basic authentication failed.
+    BasicAuthError(AuthBasicError),
 }
 
 impl Error {
@@ -70,6 +73,7 @@ impl Error {
             Self::MutationErr(_) => Status::InternalServerError,
             Self::NotFound { .. } => Status::NotFound,
             Self::NotifierError(_) => Status::InternalServerError,
+            Self::BasicAuthError(_) => Status::Unauthorized,
         }
     }
 
@@ -89,12 +93,13 @@ impl Error {
             Self::MutationErr(MutationError::EntityNotFound { .. }) => "not_found",
             Self::NotFound { .. } => "not_found",
             Self::NotifierError(_) => "internal_server_error",
+            Self::BasicAuthError(_) => "unauthorized",
         }
     }
 
     pub fn add_headers(&self, response: &mut Response<'_>) {
         match self {
-            Self::Unauthorized => {
+            Self::Unauthorized | Self::BasicAuthError(_) => {
                 response.set_header(Header::new("WWW-Authenticate", "value"));
             }
             _ => {}
@@ -150,6 +155,7 @@ impl fmt::Display for Error {
             Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
             Self::NotFound { reason } => write!(f, "Not found: {reason}"),
             Self::NotifierError(err) => write!(f, "Notifier error: {err}"),
+            Self::BasicAuthError(err) => write!(f, "Basic auth error: {err}"),
         }
     }
 }
@@ -171,5 +177,11 @@ impl From<server_ctl::Error> for Error {
 impl From<MutationError> for Error {
     fn from(value: MutationError) -> Self {
         Self::MutationErr(value)
+    }
+}
+
+impl From<AuthBasicError> for Error {
+    fn from(value: AuthBasicError) -> Self {
+        Self::BasicAuthError(value)
     }
 }

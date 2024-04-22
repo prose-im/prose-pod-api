@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
+use entity::model::{MemberRole, JID};
 use std::{
     io::Write as _,
     path::PathBuf,
@@ -69,6 +69,13 @@ impl ServerCtlImpl for ProsodyCtl {
             jid.to_string().as_str(),
         ])
         .map(|_| ())
+    }
+    fn set_user_role(&self, _jid: &JID, _role: &MemberRole) -> Result<(), Error> {
+        unimplemented!()
+    }
+
+    fn test_user_password(&self, _jid: &JID, _password: &str) -> Result<bool, Error> {
+        unimplemented!()
     }
 
     fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {

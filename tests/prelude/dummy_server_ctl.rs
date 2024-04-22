@@ -9,6 +9,7 @@ use ::service::sea_orm::DatabaseConnection;
 use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::vcard_parser::vcard::Vcard;
 use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
+use entity::model::MemberRole;
 use linked_hash_map::LinkedHashMap;
 
 use std::sync::Mutex;
@@ -75,6 +76,20 @@ impl ServerCtlImpl for DummyServerCtl {
         let mut state = self.state.lock().unwrap();
         state.users.remove(&jid);
         Ok(())
+    }
+    fn set_user_role(&self, _jid: &JID, _role: &MemberRole) -> Result<(), Error> {
+        // NOTE: The role is stored on our side in the database,
+        //   our `DummyServerCtl` has nothing to save.
+        Ok(())
+    }
+
+    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
+        let state = self.state.lock().unwrap();
+        Ok(state
+            .users
+            .get(jid)
+            .map(|user| user.password == password)
+            .expect("User must be created first"))
     }
 
     fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {

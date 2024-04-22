@@ -3,13 +3,15 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
+use entity::model::{MemberRole, JID};
 use log::debug;
-use reqwest::{Client, RequestBuilder, Response};
+use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::runtime::Handle;
 use vcard_parser::vcard::Vcard;
 
 use crate::{config::Config, server_ctl::*};
+
+use super::AsProsody as _;
 
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
 #[derive(Debug)]
@@ -30,20 +32,22 @@ impl ProsodyAdminRest {
         }
     }
 
-    fn call<F: FnOnce(&Client) -> RequestBuilder>(&self, req: F) -> Result<Response, Error> {
+    fn call_unauthenticated<
+        Req: FnOnce(&Client) -> RequestBuilder,
+        Accept: FnOnce(&Response) -> bool,
+    >(
+        &self,
+        make_req: Req,
+        accept: Accept,
+    ) -> Result<Response, Error> {
         let client = Client::new();
-        let request = req(&client)
-            .basic_auth(
-                self.api_auth_username.to_string(),
-                Some(self.api_auth_password.clone()),
-            )
-            .build()?;
+        let request = make_req(&client).build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
                 let response = client.execute(request).await?;
-                if response.status().is_success() {
+                if accept(&response) {
                     Ok(response)
                 } else {
                     Err(Error::Other(format!(
@@ -55,6 +59,18 @@ impl ProsodyAdminRest {
                 }
             })
         })
+    }
+
+    fn call<F: FnOnce(&Client) -> RequestBuilder>(&self, make_req: F) -> Result<Response, Error> {
+        self.call_unauthenticated(
+            |client| {
+                make_req(client).basic_auth(
+                    self.api_auth_username.to_string(),
+                    Some(self.api_auth_password.clone()),
+                )
+            },
+            |res| res.status().is_success(),
+        )
     }
 
     fn url(&self, path: &str) -> String {
@@ -91,6 +107,30 @@ impl ServerCtlImpl for ProsodyAdminRest {
             ))
         })
         .map(|_| ())
+    }
+    fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error> {
+        self.call(|client| {
+            client
+                .patch(format!(
+                    "{}/{}/role",
+                    self.url("user"),
+                    urlencoding::encode(&jid.to_string()),
+                ))
+                .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
+        })
+        .map(|_| ())
+    }
+
+    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
+        self.call_unauthenticated(
+            |client| {
+                client
+                    .get(self.url("ping"))
+                    .basic_auth(jid.to_string(), Some(password.to_string()))
+            },
+            |res| res.status().is_success() || res.status() == StatusCode::UNAUTHORIZED,
+        )
+        .map(|res| res.status().is_success())
     }
 
     fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {

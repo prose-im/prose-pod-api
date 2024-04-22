@@ -13,7 +13,7 @@ use ::entity::{
     workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
-use sea_orm::{prelude::*, IntoActiveModel as _, Set, TransactionTrait as _};
+use sea_orm::{prelude::*, ActiveValue::NotSet, IntoActiveModel as _, Set};
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
@@ -132,21 +132,26 @@ impl Mutation {
         Ok(model)
     }
 
-    pub async fn accept_workspace_invitation(
-        db: &DbConn,
+    /// Create the user in database but NOT on the XMPP server.
+    /// Use `UserFactory` instead, to create users in both places at the same time.
+    pub async fn create_user<'a, C: ConnectionTrait>(
+        db: &C,
+        jid: &JID,
+        role: &Option<MemberRole>,
+    ) -> Result<member::Model, MutationError> {
+        let mut new_member = member::ActiveModel::new();
+        new_member.id = Set(jid.to_string());
+        new_member.role = role.map(Set).unwrap_or(NotSet);
+        new_member.insert(db).await.map_err(Into::into)
+    }
+
+    /// Accept a user invitation (i.e. delete it from database).
+    /// To also create the associated user at the same time, use `UserFactory`.
+    pub async fn accept_workspace_invitation<'a, C: ConnectionTrait>(
+        db: &C,
         invitation: workspace_invitation::Model,
     ) -> Result<(), MutationError> {
-        let txn = db.begin().await?;
-
-        let mut new_member = member::ActiveModel::new();
-        new_member.id = Set(invitation.jid.to_string());
-        new_member.role = Set(invitation.pre_assigned_role);
-        new_member.insert(&txn).await?;
-
-        invitation.delete(&txn).await?;
-
-        txn.commit().await?;
-
+        invitation.delete(db).await?;
         Ok(())
     }
 }

@@ -38,7 +38,10 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
         let jid = try_outcome!(JIDGuard::from_request(req).await);
         match Query::is_admin(db, &jid).await {
             Ok(true) => {}
-            Ok(false) => return Error::Unauthorized.into(),
+            Ok(false) => {
+                debug!("<{}> is not an admin", jid.to_string());
+                return Error::Unauthorized.into();
+            }
             Err(e) => return Error::DbErr(e).into(),
         }
 

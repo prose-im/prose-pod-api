@@ -33,6 +33,7 @@ impl<'r> FromRequest<'r> for JID {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         // NOTE: We only read the first "Authorization" header.
         let Some(auth) = req.headers().get("Authorization").next() else {
+            debug!("No 'Authorization' header found");
             return Error::Unauthorized.into();
         };
         let Some(jwt) = auth.strip_prefix("Bearer ") else {

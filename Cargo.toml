@@ -32,6 +32,7 @@ env_logger = "0.11"
 futures = "0.3"
 futures-util = { version = "0.3" }
 hmac = "0.12"
+http-auth-basic = "0.3"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 iso8601-timestamp = "0.2"
 jwt = "0.16"

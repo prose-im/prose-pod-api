@@ -61,6 +61,7 @@ pub(super) async fn invite_member<'r>(
 
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+        debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
@@ -108,7 +109,8 @@ pub(super) async fn invite_member<'r>(
 
     let resource_uri = match host {
         Some(host) => {
-            let origin = Origin::parse_owned(host.to_string()).unwrap();
+            let origin = Origin::parse_owned(host.to_string())
+                .expect(&format!("Could not parse an `Origin` from `{host}`."));
             uri!(origin, get_invitation(invitation.id)).to_string()
         }
         None => uri!(get_invitation(invitation.id)).to_string(),
@@ -207,6 +209,7 @@ pub(super) async fn get_invitation_by_token(
     }
     .map_err(Error::DbErr)?;
     let Some(invitation) = invitation else {
+        debug!("No invitation found for provided token");
         return Err(Error::Unauthorized);
     };
 
@@ -252,6 +255,7 @@ pub(super) async fn invitation_accept(
             reason: format!("No invitation with ID {invitation_id}"),
         })?;
     if token != invitation.accept_token {
+        debug!("Accept token is invalid");
         return Err(Error::Unauthorized);
     }
     if invitation.accept_token_expires_at < Utc::now() {
@@ -261,12 +265,8 @@ pub(super) async fn invitation_accept(
     }
 
     user_factory
-        .create_user(&invitation.jid, &req.password, &req.nickname)
+        .accept_workspace_invitation(db, invitation, &req.password, &req.nickname)
         .await?;
-
-    Mutation::accept_workspace_invitation(db, invitation)
-        .await
-        .map_err(Error::MutationErr)?;
 
     Ok(())
 }
@@ -298,6 +298,7 @@ pub(super) async fn invitation_reject(
             reason: format!("No invitation with ID {invitation_id}"),
         })?;
     if token != invitation.reject_token {
+        debug!("Reject token is invalid");
         return Err(Error::Unauthorized);
     }
 
@@ -318,18 +319,16 @@ pub(super) async fn invitation_reject(
 #[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
-    jid: Option<LazyGuard<JIDGuard>>,
+    jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     invitation_id: i32,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
 
-    let Some(jid) = jid else {
-        return Err(Error::Unauthorized);
-    };
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+        debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
@@ -360,17 +359,15 @@ pub(super) async fn invitation_resend(
 #[delete("/v1/invitations/<invitation_id>")]
 pub(super) async fn invitation_cancel(
     conn: Connection<'_, Db>,
-    jid: Option<LazyGuard<JIDGuard>>,
+    jid: LazyGuard<JIDGuard>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
-    let Some(jid) = jid else {
-        return Err(Error::Unauthorized);
-    };
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+        debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 

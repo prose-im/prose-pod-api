@@ -9,7 +9,7 @@ use std::str::{self, Utf8Error};
 use std::sync::{Arc, Mutex};
 use std::{fmt, io};
 
-use entity::model::JID;
+use entity::model::{MemberRole, JID};
 use vcard_parser::error::VcardError;
 use vcard_parser::vcard::property::property_nickname::PropertyNickNameData;
 use vcard_parser::vcard::property::Property;
@@ -40,6 +40,18 @@ pub trait ServerCtlImpl: Sync + Send {
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;
     fn remove_user(&self, jid: &JID) -> Result<(), Error>;
+    fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error>;
+    fn add_user_with_role(
+        &self,
+        jid: &JID,
+        password: &str,
+        role: &MemberRole,
+    ) -> Result<(), Error> {
+        self.add_user(jid, password)
+            .and_then(|_| self.set_user_role(jid, role))
+    }
+
+    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error>;
 
     fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error>;
     fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error>;
