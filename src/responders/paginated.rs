@@ -39,8 +39,8 @@ impl<T> Paginated<T> {
                 format!("{}", metadata.number_of_items),
             ),
         };
-        // NOTE: Page number starts at 1.
-        if page == metadata.number_of_pages {
+        // NOTE: Page number starts at `1` and `number_of_pages` can be `0` if there are `0` items.
+        if page >= metadata.number_of_pages {
             Self::End(inner)
         } else {
             Self::Partial(inner)
