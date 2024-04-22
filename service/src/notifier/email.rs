@@ -21,6 +21,7 @@ use super::generic::{
 use crate::config::ConfigNotify;
 use crate::APP_CONF;
 
+#[derive(Debug)]
 pub struct EmailNotifier;
 
 impl GenericNotifier for EmailNotifier {
@@ -37,7 +38,7 @@ impl GenericNotifier for EmailNotifier {
         let subject = notification_subject(&notification);
         let message = notification_message(&notification);
 
-        debug!("Sending email notification with message: {}", &message);
+        debug!("Sending email notification '{}'…", &subject);
 
         // Build up the email
         let email_message = Message::builder()

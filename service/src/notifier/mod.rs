@@ -17,6 +17,7 @@ pub use self::generic::{
     notification_message, notification_subject, GenericNotifier, Notification,
 };
 
+#[derive(Debug)]
 pub struct Notifier {
     pub implem: Arc<Mutex<dyn GenericNotifier>>,
 }

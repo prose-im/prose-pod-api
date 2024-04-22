@@ -10,11 +10,13 @@ use log::{debug, info};
 
 use crate::{config::ConfigNotify, APP_CONF};
 
+use std::fmt::Debug;
+
 pub(super) const DISPATCH_TIMEOUT_SECONDS: u64 = 10;
 
 pub type Notification = NotificationContent;
 
-pub trait GenericNotifier: Sync + Send {
+pub trait GenericNotifier: Debug + Sync + Send {
     fn name(&self) -> &'static str;
     fn attempt(&self, config: &ConfigNotify, notification: &Notification) -> Result<(), String>;
 

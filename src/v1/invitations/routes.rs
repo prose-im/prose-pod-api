@@ -6,7 +6,6 @@
 use ::entity::model::{MemberRole, JID};
 use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
-use rocket::http::uri::{Host, Origin};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
@@ -48,7 +47,6 @@ pub type InviteMemberResponse = workspace_invitation::Model;
 )]
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
-    host: Option<&'r Host<'r>>,
     conn: Connection<'_, Db>,
     uuid_gen: UuidGenerator,
     config: &State<Config>,
@@ -90,11 +88,18 @@ pub(super) async fn invite_member<'r>(
         .map_or_else(
             |err| {
                 error!(
-                    "Could not mark workspace invitation as `{}`: {err}",
+                    "Could not mark workspace invitation `{}` as `{}`: {err}",
+                    invitation.id,
                     InvitationStatus::SendFailed
                 )
             },
-            |_| (),
+            |_| {
+                debug!(
+                    "Marked invitation `{}` as `{}`",
+                    invitation.id,
+                    InvitationStatus::SendFailed
+                )
+            },
         );
     };
 
@@ -107,14 +112,7 @@ pub(super) async fn invite_member<'r>(
             )
         })?;
 
-    let resource_uri = match host {
-        Some(host) => {
-            let origin = Origin::parse_owned(host.to_string())
-                .expect(&format!("Could not parse an `Origin` from `{host}`."));
-            uri!(origin, get_invitation(invitation.id)).to_string()
-        }
-        None => uri!(get_invitation(invitation.id)).to_string(),
-    };
+    let resource_uri = uri!(get_invitation(invitation.id)).to_string();
     Ok(status::Created::new(resource_uri).body(invitation.into()))
 }
 

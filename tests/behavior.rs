@@ -87,7 +87,9 @@ fn test_rocket(
     prose_pod_api::custom_rocket(rocket::custom(figment), config)
         .manage(JWTService::new(JWTKey::custom("test_key")))
         .manage(ServerCtl::new(server_ctl))
-        .manage(Notifier::new(notifier))
+        .manage(dependencies::Notifier::new(Arc::new(Notifier::new(
+            notifier,
+        ))))
 }
 
 pub async fn rocket_test_client(

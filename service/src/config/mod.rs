@@ -123,8 +123,25 @@ impl Default for UuidDependencyMode {
 }
 
 #[cfg(debug_assertions)]
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NotifierDependencyMode {
+    Live,
+    Logging,
+}
+
+#[cfg(debug_assertions)]
+impl Default for NotifierDependencyMode {
+    fn default() -> Self {
+        Self::Live
+    }
+}
+
+#[cfg(debug_assertions)]
 #[derive(Clone, Deserialize, Default)]
 pub struct ConfigDependencyModes {
     #[serde(default)]
     pub uuid: UuidDependencyMode,
+    #[serde(default)]
+    pub notifier: NotifierDependencyMode,
 }

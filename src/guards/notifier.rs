@@ -22,7 +22,7 @@ use super::{Db, FromRequest, JID as JIDGuard};
 
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
-    notifier: &'r State<service::notifier::Notifier>,
+    notifier: &'r State<service::dependencies::Notifier>,
     server_config: server_config::Model,
 }
 
@@ -39,13 +39,14 @@ impl<'r> FromRequest<'r> for Notifier<'r> {
                 (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
             }));
         let notifier = try_outcome!(req
-            .guard::<&State<service::notifier::Notifier>>()
+            .guard::<&State<service::dependencies::Notifier>>()
             .await
             .map_error(|(status, _)| (
                 status,
                 Error::InternalServerError {
-                    reason: "Could not get a `&State<service::notifier::Notifier>` from a request."
-                        .to_string(),
+                    reason:
+                        "Could not get a `&State<service::dependencies::Notifier>` from a request."
+                            .to_string(),
                 }
             )));
 
@@ -86,8 +87,6 @@ impl<'r> Notifier<'r> {
             });
         };
         self.notifier
-            .lock()
-            .expect("Notifier lock poisonned")
             .dispatch(notification, notify_config)
             .map_err(|e| NotifierError::Custom { reason: e })?;
 
