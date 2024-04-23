@@ -182,7 +182,7 @@ impl From<workspace_invitation::Model> for WorkspaceInvitation {
     )
 )]
 #[get("/v1/invitations/<_>")]
-pub(super) fn get_invitation() -> Json<workspace_invitation::Model> {
+pub(super) fn get_invitation() -> Json<WorkspaceInvitation> {
     todo!()
 }
 

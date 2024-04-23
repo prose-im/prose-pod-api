@@ -4,18 +4,16 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::model::{EmailAddress, MemberRole, JID};
 
 pub use crate::model::invitations::*;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "workspace_invitation")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(skip_deserializing)]
     pub id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
@@ -26,14 +24,12 @@ pub struct Model {
     /// Expiring one-time use token used to accept an invitation.
     /// Will change every time an admin resends the invitation.
     /// Will be deleted along with the entire invitation once used.
-    #[serde(skip_serializing)]
     pub accept_token: Uuid,
     pub accept_token_expires_at: DateTimeUtc,
     /// Unique token used by someone to reject an invitation (e.g. because of
     /// misspelled email address).
     /// Never expires, will be usable as long as the invitation still exists.
     /// Will be deleted along with the entire invitation once used.
-    #[serde(skip_serializing)]
     pub reject_token: Uuid,
 }
 

@@ -5,7 +5,6 @@
 
 use rocket::serde::json as serde_json;
 use sea_orm::{entity::prelude::*, Set};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 pub use self::model::NotificationPayload;
@@ -14,11 +13,10 @@ use self::model::{
     NOTIFICATION_DATA_KEY_INVITATION_REJECT_LINK,
 };
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "notification")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(skip_deserializing)]
     pub id: i32,
     pub created_at: DateTimeUtc,
     template: Template,
