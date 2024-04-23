@@ -74,7 +74,7 @@ impl<'r> UserFactory<'r> {
         password: &str,
         nickname: &str,
     ) -> Result<(), Error> {
-        let txn = db.begin().await.map_err(Error::DbErr)?;
+        let txn = db.begin().await?;
 
         // Create the user
         self.create_user(
@@ -90,7 +90,7 @@ impl<'r> UserFactory<'r> {
         Mutation::accept_workspace_invitation(&txn, invitation).await?;
 
         // Commit the transaction if everything went well
-        txn.commit().await.map_err(Error::DbErr)?;
+        txn.commit().await?;
 
         Ok(())
     }

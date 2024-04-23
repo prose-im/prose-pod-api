@@ -56,7 +56,7 @@ pub(super) async fn invite_member<'r>(
     let jid = jid.inner?;
 
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
@@ -68,8 +68,7 @@ pub(super) async fn invite_member<'r>(
         req.pre_assigned_role,
         req.contact.clone(),
     )
-    .await
-    .map_err(Error::DbErr)?;
+    .await?;
 
     if let Err(err) = notifier
         .inner?
@@ -139,9 +138,7 @@ pub(super) async fn get_invitations(
         None => None,
     };
     let (pages_metadata, invitations) =
-        Query::get_workspace_invitations(db, page_number, page_size, until)
-            .await
-            .map_err(Error::DbErr)?;
+        Query::get_workspace_invitations(db, page_number, page_size, until).await?;
     Ok(Paginated::new(
         invitations.into_iter().map(Into::into).collect(),
         page_number,
@@ -211,8 +208,7 @@ pub(super) async fn get_invitation_by_token(
         InvitationTokenType::Reject => {
             Query::get_workspace_invitation_by_reject_token(db, &token).await
         }
-    }
-    .map_err(Error::DbErr)?;
+    }?;
     let Some(invitation) = invitation else {
         debug!("No invitation found for provided token");
         return Err(Error::Unauthorized);
@@ -254,8 +250,7 @@ pub(super) async fn invitation_accept(
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
     let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
-        .await
-        .map_err(Error::DbErr)?
+        .await?
         .ok_or(Error::NotFound {
             reason: format!("No invitation with ID {invitation_id}"),
         })?;
@@ -297,8 +292,7 @@ pub(super) async fn invitation_reject(
     //   because it would cause a lot of useless edge cases.
 
     let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
-        .await
-        .map_err(Error::DbErr)?
+        .await?
         .ok_or(Error::NotFound {
             reason: format!("No invitation with ID {invitation_id}"),
         })?;
@@ -307,7 +301,7 @@ pub(super) async fn invitation_reject(
         return Err(Error::Unauthorized);
     }
 
-    invitation.delete(db).await.map_err(Error::DbErr)?;
+    invitation.delete(db).await?;
 
     Ok(NoContent)
 }
@@ -332,14 +326,13 @@ pub(super) async fn invitation_resend(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
     let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
-        .await
-        .map_err(Error::DbErr)?
+        .await?
         .ok_or(Error::NotFound {
             reason: format!("Could not find the invitation with id '{invitation_id}'"),
         })?;
@@ -371,15 +364,14 @@ pub(super) async fn invitation_cancel(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await.map_err(Error::DbErr)? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
     workspace_invitation::Entity::delete_by_id(invitation_id)
         .exec(db)
-        .await
-        .map_err(Error::DbErr)?;
+        .await?;
 
     Ok(NoContent)
 }

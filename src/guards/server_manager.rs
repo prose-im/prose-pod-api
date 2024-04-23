@@ -75,14 +75,13 @@ impl<'r> ServerManager<'r> {
         let config_before = &self.server_config;
         let mut active: server_config::ActiveModel = self.server_config.clone().into();
         update(&mut active);
-        let server_config = active.update(self.db).await.map_err(Error::DbErr)?;
+        let server_config = active.update(self.db).await?;
 
         if server_config != *config_before {
             self.server_ctl
                 .lock()
                 .expect("Serverctl lock poisonned")
-                .reload()
-                .map_err(Error::ServerCtlErr)?;
+                .reload()?;
         }
 
         Ok(server_config)

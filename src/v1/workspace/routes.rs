@@ -73,7 +73,7 @@ pub(super) async fn set_workspace_name(
 
     let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_name = Set(req.name.clone());
-    let server_config = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await?;
 
     let response = SetWorkspaceNameResponse {
         name: server_config.workspace_name,
@@ -122,7 +122,7 @@ pub(super) async fn set_workspace_icon_string(
     // TODO: Validate `string`
     let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_icon_url = Set(Some(string));
-    let server_config = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await?;
 
     let response = GetWorkspaceIconResponse {
         url: server_config.workspace_icon_url,
@@ -216,7 +216,7 @@ pub(super) async fn set_workspace_accent_color(
     // TODO: Validate `string`
     let mut active: server_config::ActiveModel = server_config.into();
     active.workspace_accent_color = Set(Some(req.color.clone()));
-    let server_config = active.update(db).await.map_err(Error::DbErr)?;
+    let server_config = active.update(db).await?;
 
     let response = GetWorkspaceAccentColorResponse {
         color: server_config.workspace_accent_color,

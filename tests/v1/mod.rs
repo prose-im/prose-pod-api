@@ -36,7 +36,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
         role: Set(MemberRole::Admin),
         ..Default::default()
     };
-    let model = model.insert(db).await.map_err(Error::DbErr)?;
+    let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;
@@ -57,7 +57,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
         role: Set(MemberRole::Member),
         ..Default::default()
     };
-    let model = model.insert(db).await.map_err(Error::DbErr)?;
+    let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;
@@ -79,9 +79,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         workspace_name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
         ..Default::default()
     };
-    Mutation::create_server_config(db, form)
-        .await
-        .map_err(Error::DbErr)?;
+    Mutation::create_server_config(db, form).await?;
     Ok(())
 }
 

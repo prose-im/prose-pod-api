@@ -162,6 +162,12 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+impl From<sea_orm::DbErr> for Error {
+    fn from(value: sea_orm::DbErr) -> Self {
+        Self::DbErr(value)
+    }
+}
+
 impl From<NotifierError> for Error {
     fn from(value: NotifierError) -> Self {
         Self::NotifierError(value)

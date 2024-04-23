@@ -77,9 +77,9 @@ pub(super) async fn init(
     req: Json<InitRequest>,
 ) -> R<InitResponse> {
     let db = conn.into_inner();
-    let txn = db.begin().await.map_err(Error::DbErr)?;
+    let txn = db.begin().await?;
 
-    let server_config = Query::server_config(db).await.map_err(Error::DbErr)?;
+    let server_config = Query::server_config(db).await?;
     let None = server_config else {
         return Err(Error::PodAlreadyInitialized);
     };
@@ -92,12 +92,8 @@ pub(super) async fn init(
     // Initialize the server config in a transaction,
     // to rollback if subsequent operations fail.
     let server_config = Mutation::create_server_config(&txn, form)
-        .await
-        // TODO: Log as "Could not create server config"
-        .map_err(Error::DbErr)?
-        .try_into_model()
-        // TODO: Log as "Could not transform active model into model"
-        .map_err(Error::DbErr)?;
+        .await?
+        .try_into_model()?;
 
     // NOTE: We can't rollback changes made to the XMPP server so let's do it
     //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -115,7 +111,7 @@ pub(super) async fn init(
 
     // Commit the transaction only if the admin user was
     // successfully created, to prevent inconsistent states.
-    txn.commit().await.map_err(Error::DbErr)?;
+    txn.commit().await?;
 
     Ok(Json(server_config))
 }
