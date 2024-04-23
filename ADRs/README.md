@@ -16,7 +16,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
-- [Interact with Prosody using `prosodyctl`](./2024-04-04-a-use-prosodyctl.md) (2024-04-04)
+- [Interact with Prosody using a REST API](./2024-04-04-a-prosody-rest-api.md) (2024-04-04)
 
 ## Superseded ADRs
 
