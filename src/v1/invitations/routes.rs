@@ -72,7 +72,11 @@ pub(super) async fn invite_member<'r>(
 
     if let Err(err) = notifier
         .inner?
-        .send_workspace_invitation(invitation.accept_token, invitation.reject_token)
+        .send_workspace_invitation(
+            &config.branding,
+            invitation.accept_token,
+            invitation.reject_token,
+        )
         .await
     {
         error!("Could not send workspace invitation: {err}");
@@ -318,6 +322,7 @@ pub(super) async fn invitation_reject(
 #[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
+    config: &State<Config>,
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     invitation_id: i32,
@@ -339,7 +344,11 @@ pub(super) async fn invitation_resend(
 
     notifier
         .inner?
-        .send_workspace_invitation(invitation.accept_token, invitation.reject_token)
+        .send_workspace_invitation(
+            &config.branding,
+            invitation.accept_token,
+            invitation.reject_token,
+        )
         .await?;
 
     Ok(())

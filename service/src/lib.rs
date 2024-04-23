@@ -16,16 +16,9 @@ pub use prosody::{prosody_config_from_db, ProsodyCtl};
 pub use query::*;
 pub use server_ctl::ServerCtl;
 
-use lazy_static::lazy_static;
 pub use prosody_config::ProsodyConfigFile;
 pub use sea_orm;
 pub use vcard_parser;
-
-use crate::config::Config;
-
-lazy_static! {
-    pub static ref APP_CONF: Config = Config::figment();
-}
 
 pub trait ProseDefault {
     fn prose_default() -> Self;

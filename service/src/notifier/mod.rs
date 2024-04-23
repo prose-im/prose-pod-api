@@ -10,6 +10,8 @@ mod generic;
 
 use std::sync::{Arc, Mutex};
 
+use crate::config::ConfigBranding;
+
 pub use self::email::EmailNotifier;
 pub use self::generic::{
     notification_message, notification_subject, GenericNotifier, Notification,
@@ -35,10 +37,14 @@ impl GenericNotifier for AnyNotifier {
             .name()
     }
 
-    fn attempt(&self, notification: &Notification) -> Result<(), String> {
+    fn attempt(
+        &self,
+        branding: &ConfigBranding,
+        notification: &Notification,
+    ) -> Result<(), String> {
         self.implem
             .lock()
             .expect("`GenericNotifier` lock poisonned")
-            .attempt(notification)
+            .attempt(branding, notification)
     }
 }

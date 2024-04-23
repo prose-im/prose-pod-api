@@ -16,6 +16,9 @@ fn then_n_emails_sent(world: &mut TestWorld, n: usize) {
 
 #[then(expr = "the email body should match {string}")]
 fn then_email_matches(world: &mut TestWorld, pattern: Regex) {
-    let email = notification_message(&world.notifier().state.lock().unwrap().sent[0]);
+    let email = notification_message(
+        &world.config.branding,
+        &world.notifier().state.lock().unwrap().sent[0],
+    );
     assert!(pattern.is_match(&email));
 }

@@ -6,9 +6,9 @@
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
-use crate::config::Config;
 #[cfg(debug_assertions)]
 use crate::config::NotifierDependencyMode;
+use crate::config::{Config, ConfigBranding};
 use crate::notifier::{EmailNotifier, Notification};
 
 use self::live::LiveNotifier;
@@ -39,8 +39,12 @@ impl Notifier {
         })
     }
 
-    pub fn dispatch(&self, notification: &Notification) -> Result<(), String> {
-        self.implem.dispatch(notification)
+    pub fn dispatch(
+        &self,
+        branding: &ConfigBranding,
+        notification: &Notification,
+    ) -> Result<(), String> {
+        self.implem.dispatch(branding, notification)
     }
 }
 
@@ -53,17 +57,28 @@ impl From<LiveNotifier> for Notifier {
 }
 
 trait NotifierImpl: Send + Sync + Debug {
-    fn dispatch(&self, notification: &Notification) -> Result<(), String>;
+    fn dispatch(
+        &self,
+        branding: &ConfigBranding,
+        notification: &Notification,
+    ) -> Result<(), String>;
 }
 
 mod live {
     use super::NotifierImpl;
     pub(super) use crate::notifier::AnyNotifier as LiveNotifier;
-    use crate::notifier::{GenericNotifier, Notification};
+    use crate::{
+        config::ConfigBranding,
+        notifier::{GenericNotifier, Notification},
+    };
 
     impl NotifierImpl for LiveNotifier {
-        fn dispatch(&self, notification: &Notification) -> Result<(), String> {
-            (self as &dyn GenericNotifier).dispatch(notification)
+        fn dispatch(
+            &self,
+            branding: &ConfigBranding,
+            notification: &Notification,
+        ) -> Result<(), String> {
+            (self as &dyn GenericNotifier).dispatch(branding, notification)
         }
     }
 }
@@ -73,15 +88,22 @@ mod logging {
     use log::debug;
 
     use super::NotifierImpl;
-    use crate::notifier::{notification_message, notification_subject, Notification};
+    use crate::{
+        config::ConfigBranding,
+        notifier::{notification_message, notification_subject, Notification},
+    };
 
     #[derive(Debug)]
     pub(super) struct LoggingNotifier;
 
     impl NotifierImpl for LoggingNotifier {
-        fn dispatch(&self, notification: &Notification) -> Result<(), String> {
-            let subject = notification_subject(notification);
-            let message = notification_message(notification);
+        fn dispatch(
+            &self,
+            branding: &ConfigBranding,
+            notification: &Notification,
+        ) -> Result<(), String> {
+            let subject = notification_subject(branding, notification);
+            let message = notification_message(branding, notification);
 
             debug!("Sending notification '{subject}'… Message:\n{message}");
 

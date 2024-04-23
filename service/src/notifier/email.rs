@@ -17,7 +17,7 @@ use super::generic::{
     notification_message, notification_subject, GenericNotifier, Notification,
     DISPATCH_TIMEOUT_SECONDS,
 };
-use crate::config::Config;
+use crate::config::{Config, ConfigBranding};
 
 #[derive(Debug)]
 pub struct EmailNotifier {
@@ -65,10 +65,14 @@ impl GenericNotifier for EmailNotifier {
         "email"
     }
 
-    fn attempt(&self, notification: &Notification) -> Result<(), String> {
+    fn attempt(
+        &self,
+        branding: &ConfigBranding,
+        notification: &Notification,
+    ) -> Result<(), String> {
         // Build up the message text
-        let subject = notification_subject(&notification);
-        let message = notification_message(&notification);
+        let subject = notification_subject(branding, notification);
+        let message = notification_message(branding, notification);
 
         // Build up the email
         let email_message = Message::builder()

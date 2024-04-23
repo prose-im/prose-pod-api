@@ -8,7 +8,7 @@
 use entity::notification::NotificationPayload;
 use log::{debug, info};
 
-use crate::APP_CONF;
+use crate::config::ConfigBranding;
 
 use std::fmt::Debug;
 
@@ -18,9 +18,14 @@ pub type Notification = NotificationPayload;
 
 pub trait GenericNotifier: Debug + Sync + Send {
     fn name(&self) -> &'static str;
-    fn attempt(&self, notification: &Notification) -> Result<(), String>;
+    fn attempt(&self, branding: &ConfigBranding, notification: &Notification)
+        -> Result<(), String>;
 
-    fn dispatch(&self, notification: &Notification) -> Result<(), String> {
+    fn dispatch(
+        &self,
+        branding: &ConfigBranding,
+        notification: &Notification,
+    ) -> Result<(), String> {
         info!(
             "Dispatching '{}' notification via '{}'…",
             notification.template(),
@@ -28,7 +33,7 @@ pub trait GenericNotifier: Debug + Sync + Send {
         );
 
         // Attempt notification dispatch
-        self.attempt(notification).map_err(|e| {
+        self.attempt(branding, notification).map_err(|e| {
             format!(
                 "Failed dispatching '{}' notification via '{}': {e}",
                 notification.template(),
@@ -45,18 +50,18 @@ pub trait GenericNotifier: Debug + Sync + Send {
     }
 }
 
-pub fn notification_subject(notification: &Notification) -> String {
+pub fn notification_subject(branding: &ConfigBranding, notification: &Notification) -> String {
     match notification {
         Notification::WorkspaceInvitation { .. } => {
             format!(
                 "You have been invited to {}'s Prose server!",
-                APP_CONF.branding.company_name
+                branding.company_name
             )
         }
     }
 }
 
-pub fn notification_message(notification: &Notification) -> String {
+pub fn notification_message(branding: &ConfigBranding, notification: &Notification) -> String {
     match notification {
         Notification::WorkspaceInvitation {
             accept_link,
@@ -65,7 +70,7 @@ pub fn notification_message(notification: &Notification) -> String {
             vec![
                 format!(
                     "You have been invited to {}'s Prose server!",
-                    APP_CONF.branding.company_name
+                    branding.company_name
                 )
                 .as_str(),
                 format!(
@@ -79,8 +84,8 @@ pub fn notification_message(notification: &Notification) -> String {
                 format!(
                     "If you have been invited by mistake, you can reject the invitation using the following link: {}. Your email address will be erased from {}'s {} database.",
                     reject_link,
-                    APP_CONF.branding.company_name,
-                    APP_CONF.branding.page_title,
+                    branding.company_name,
+                    branding.page_title,
                 ).as_str(),
             ]
             .join("\n\n")

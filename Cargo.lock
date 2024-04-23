@@ -3548,7 +3548,6 @@ dependencies = [
  "entity",
  "figment",
  "insta",
- "lazy_static",
  "lettre",
  "log",
  "migration",

@@ -6,14 +6,15 @@
 use std::{fmt, path::PathBuf, str::FromStr as _};
 
 use chrono::Utc;
-use entity::{notification, server_config};
+use entity::notification;
 use migration::DbErr;
 use rocket::{outcome::try_outcome, request::Outcome, Request, State};
 use sea_orm_rocket::Connection;
 use service::{
+    config::ConfigBranding,
     notifier::Notification,
     sea_orm::{prelude::*, ActiveModelBehavior, DatabaseConnection, Set},
-    Query, APP_CONF,
+    Query,
 };
 
 use crate::error::{self, Error};
@@ -23,7 +24,7 @@ use super::{Db, FromRequest, JID as JIDGuard};
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
     notifier: &'r State<service::dependencies::Notifier>,
-    server_config: server_config::Model,
+    branding: &'r ConfigBranding,
 }
 
 #[rocket::async_trait]
@@ -60,15 +61,31 @@ impl<'r> FromRequest<'r> for Notifier<'r> {
             Err(e) => return Error::DbErr(e).into(),
         }
 
-        match Query::server_config(db).await {
-            Ok(Some(server_config)) => Outcome::Success(Notifier {
-                db,
-                server_config,
-                notifier,
-            }),
-            Ok(None) => Error::PodNotInitialized.into(),
-            Err(err) => Error::DbErr(err).into(),
-        }
+        let config = try_outcome!(req
+            .guard::<&State<service::config::Config>>()
+            .await
+            .map_error(|(status, _)| (
+                status,
+                Error::InternalServerError {
+                    reason: "Could not get a `&State<service::config::Config>` from a request."
+                        .to_string(),
+                }
+            )));
+
+        Outcome::Success(Notifier {
+            db,
+            notifier,
+            branding: &config.branding,
+        })
+        // match Query::server_config(db).await {
+        //     Ok(Some(_server_config)) => Outcome::Success(Notifier {
+        //         db,
+        //         notifier,
+        //         branding: &config.branding,
+        //     }),
+        //     Ok(None) => Error::PodNotInitialized.into(),
+        //     Err(err) => Error::DbErr(err).into(),
+        // }
     }
 }
 
@@ -82,7 +99,7 @@ impl<'r> Notifier<'r> {
 
         // Try sending
         self.notifier
-            .dispatch(notification)
+            .dispatch(self.branding, notification)
             .map_err(|e| NotifierError::Custom { reason: e })?;
 
         // Store status if undelivered
@@ -94,10 +111,11 @@ impl<'r> Notifier<'r> {
 
     pub async fn send_workspace_invitation(
         &self,
+        branding: &ConfigBranding,
         accept_token: Uuid,
         reject_token: Uuid,
     ) -> Result<(), NotifierError> {
-        let admin_site_root = PathBuf::from_str(&APP_CONF.branding.page_url.to_string()).unwrap();
+        let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
         self.send(&Notification::WorkspaceInvitation {
             accept_link: admin_site_root
                 .join(format!("invitations/accept/{accept_token}"))

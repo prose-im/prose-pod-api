@@ -91,12 +91,12 @@ fn test_rocket(
 }
 
 pub async fn rocket_test_client(
-    config: &Config,
+    config: Arc<Config>,
     server_ctl: Arc<Mutex<DummyServerCtl>>,
     notifier: Arc<Mutex<DummyNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(config, server_ctl, notifier))
+    Client::tracked(test_rocket(config.as_ref(), server_ctl, notifier))
         .await
         .expect("valid rocket instance")
 }
@@ -146,6 +146,7 @@ impl From<LocalResponse<'_>> for Response {
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 pub struct TestWorld {
+    config: Arc<Config>,
     server_ctl: Arc<Mutex<DummyServerCtl>>,
     notifier: Arc<Mutex<DummyNotifier>>,
     client: Client,
@@ -214,14 +215,15 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let config = Config::figment();
+        let config = Arc::new(Config::figment());
         let server_ctl = Arc::new(Mutex::new(DummyServerCtl::new(Default::default())));
         let notifier = Arc::new(Mutex::new(DummyNotifier::new(Default::default())));
 
         Self {
+            config: config.clone(),
             server_ctl: server_ctl.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(&config, server_ctl, notifier).await,
+            client: rocket_test_client(config, server_ctl, notifier).await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),

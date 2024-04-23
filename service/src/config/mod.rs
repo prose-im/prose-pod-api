@@ -17,7 +17,7 @@ use figment::{
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub api: ConfigApi,
     pub server: ConfigServer,
@@ -45,7 +45,7 @@ impl Config {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigApi {
     #[serde(default = "defaults::api_log_level")]
     pub log_level: String,
@@ -54,7 +54,7 @@ pub struct ConfigApi {
     pub admin_password: Option<String>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServer {
     pub domain: String,
     #[serde(default = "defaults::server_local_hostname")]
@@ -63,13 +63,13 @@ pub struct ConfigServer {
     pub admin_rest_api_port: u16,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigAssets {
     #[serde(default = "defaults::assets_path")]
     pub path: PathBuf,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
@@ -85,7 +85,7 @@ pub struct ConfigBranding {
     pub custom_html: Option<String>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkspaceInvitationChannel {
     Email,
@@ -105,7 +105,7 @@ impl From<entity::model::InvitationChannel> for WorkspaceInvitationChannel {
     }
 }
 
-#[derive(Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ConfigNotify {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
     pub workspace_invitation_channel: WorkspaceInvitationChannel,
@@ -113,7 +113,7 @@ pub struct ConfigNotify {
     pub email: Option<ConfigNotifyEmail>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigNotifyEmail {
     pub to: String,
     pub from: String,
@@ -132,7 +132,7 @@ pub struct ConfigNotifyEmail {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UuidDependencyMode {
     Normal,
@@ -147,7 +147,7 @@ impl Default for UuidDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifierDependencyMode {
     Live,
@@ -162,7 +162,7 @@ impl Default for NotifierDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ConfigDependencyModes {
     #[serde(default)]
     pub uuid: UuidDependencyMode,
