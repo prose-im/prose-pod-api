@@ -23,7 +23,8 @@ pub struct Config {
     pub server: ConfigServer,
     pub assets: ConfigAssets,
     pub branding: ConfigBranding,
-    pub notify: Option<ConfigNotify>,
+    #[serde(default)]
+    pub notify: ConfigNotify,
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub dependency_modes: ConfigDependencyModes,
@@ -85,7 +86,30 @@ pub struct ConfigBranding {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceInvitationChannel {
+    Email,
+}
+
+impl Default for WorkspaceInvitationChannel {
+    fn default() -> Self {
+        defaults::notify_workspace_invitation_channel()
+    }
+}
+
+impl From<entity::model::InvitationChannel> for WorkspaceInvitationChannel {
+    fn from(value: entity::model::InvitationChannel) -> Self {
+        match value {
+            entity::model::InvitationChannel::Email => Self::Email,
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Default)]
 pub struct ConfigNotify {
+    #[serde(default = "defaults::notify_workspace_invitation_channel")]
+    pub workspace_invitation_channel: WorkspaceInvitationChannel,
+    #[serde(default)]
     pub email: Option<ConfigNotifyEmail>,
 }
 
@@ -109,7 +133,7 @@ pub struct ConfigNotifyEmail {
 
 #[cfg(debug_assertions)]
 #[derive(Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum UuidDependencyMode {
     Normal,
     Incrementing,
@@ -124,7 +148,7 @@ impl Default for UuidDependencyMode {
 
 #[cfg(debug_assertions)]
 #[derive(Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum NotifierDependencyMode {
     Live,
     Logging,

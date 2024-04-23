@@ -8,7 +8,7 @@
 use entity::notification::NotificationPayload;
 use log::{debug, info};
 
-use crate::{config::ConfigNotify, APP_CONF};
+use crate::APP_CONF;
 
 use std::fmt::Debug;
 
@@ -18,9 +18,9 @@ pub type Notification = NotificationPayload;
 
 pub trait GenericNotifier: Debug + Sync + Send {
     fn name(&self) -> &'static str;
-    fn attempt(&self, config: &ConfigNotify, notification: &Notification) -> Result<(), String>;
+    fn attempt(&self, notification: &Notification) -> Result<(), String>;
 
-    fn dispatch(&self, notification: &Notification, config: &ConfigNotify) -> Result<(), String> {
+    fn dispatch(&self, notification: &Notification) -> Result<(), String> {
         info!(
             "Dispatching '{}' notification via '{}'…",
             notification.template(),
@@ -28,7 +28,7 @@ pub trait GenericNotifier: Debug + Sync + Send {
         );
 
         // Attempt notification dispatch
-        self.attempt(config, notification).map_err(|e| {
+        self.attempt(notification).map_err(|e| {
             format!(
                 "Failed dispatching '{}' notification via '{}': {e}",
                 notification.template(),

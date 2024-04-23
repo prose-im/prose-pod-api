@@ -3,7 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::config::ConfigNotify;
 use ::service::notifier::{GenericNotifier, Notification};
 
 use std::sync::Mutex;
@@ -30,11 +29,7 @@ impl GenericNotifier for DummyNotifier {
         "dummy_notifier"
     }
 
-    fn attempt(
-        &self,
-        _config: &ConfigNotify,
-        notification: &service::notifier::Notification,
-    ) -> Result<(), String> {
+    fn attempt(&self, notification: &service::notifier::Notification) -> Result<(), String> {
         let mut state = self.state.lock().unwrap();
         state.send_count += 1;
         state.sent.push(notification.clone());

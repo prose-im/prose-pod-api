@@ -7,6 +7,8 @@
 
 use std::path::PathBuf;
 
+use super::WorkspaceInvitationChannel;
+
 pub fn api_log_level() -> String {
     "error".to_string()
 }
@@ -29,6 +31,10 @@ pub fn assets_path() -> PathBuf {
 
 pub fn branding_page_title() -> String {
     "Prose Pod API".to_string()
+}
+
+pub fn notify_workspace_invitation_channel() -> WorkspaceInvitationChannel {
+    WorkspaceInvitationChannel::Email
 }
 
 pub fn notify_email_smtp_host() -> String {

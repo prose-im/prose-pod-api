@@ -28,7 +28,7 @@ use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
 use service::dependencies;
-use service::notifier::Notifier;
+use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
 use tokio::runtime::Handle;
@@ -87,9 +87,7 @@ fn test_rocket(
     prose_pod_api::custom_rocket(rocket::custom(figment), config)
         .manage(JWTService::new(JWTKey::custom("test_key")))
         .manage(ServerCtl::new(server_ctl))
-        .manage(dependencies::Notifier::new(Arc::new(Notifier::new(
-            notifier,
-        ))))
+        .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(

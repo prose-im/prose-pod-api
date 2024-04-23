@@ -5,11 +5,9 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod email;
 mod generic;
 
-mod email;
-
-use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
 pub use self::email::EmailNotifier;
@@ -18,20 +16,29 @@ pub use self::generic::{
 };
 
 #[derive(Debug)]
-pub struct Notifier {
-    pub implem: Arc<Mutex<dyn GenericNotifier>>,
+#[repr(transparent)]
+pub struct AnyNotifier {
+    implem: Arc<Mutex<dyn GenericNotifier>>,
 }
 
-impl Notifier {
+impl AnyNotifier {
     pub fn new(implem: Arc<Mutex<dyn GenericNotifier>>) -> Self {
         Self { implem }
     }
 }
 
-impl Deref for Notifier {
-    type Target = Arc<Mutex<dyn GenericNotifier>>;
+impl GenericNotifier for AnyNotifier {
+    fn name(&self) -> &'static str {
+        self.implem
+            .lock()
+            .expect("`GenericNotifier` lock poisonned")
+            .name()
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.implem
+    fn attempt(&self, notification: &Notification) -> Result<(), String> {
+        self.implem
+            .lock()
+            .expect("`GenericNotifier` lock poisonned")
+            .attempt(notification)
     }
 }

@@ -81,13 +81,8 @@ impl<'r> Notifier<'r> {
         model.insert(self.db).await?;
 
         // Try sending
-        let Some(notify_config) = &APP_CONF.notify else {
-            return Err(NotifierError::Custom {
-                reason: "Notifier not configured".to_string(),
-            });
-        };
         self.notifier
-            .dispatch(notification, notify_config)
+            .dispatch(notification)
             .map_err(|e| NotifierError::Custom { reason: e })?;
 
         // Store status if undelivered
