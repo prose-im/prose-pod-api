@@ -82,7 +82,6 @@ pub struct ConfigBranding {
     pub logo_url: SerdeUrl,
     pub website_url: SerdeUrl,
     pub support_url: SerdeUrl,
-    pub custom_html: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
