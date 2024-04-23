@@ -154,7 +154,7 @@ pub struct TestWorld {
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
     members: HashMap<String, (member::Model, String)>,
-    /// Map an email address to an invite.
+    /// Map an email address to an invitation.
     workspace_invitations: HashMap<EmailAddress, workspace_invitation::Model>,
     scenario_workspace_invitation: Option<(EmailAddress, workspace_invitation::Model)>,
     previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
