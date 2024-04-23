@@ -5,7 +5,7 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::notification::NotificationContent;
+use entity::notification::NotificationPayload;
 use log::{debug, info};
 
 use crate::{config::ConfigNotify, APP_CONF};
@@ -14,7 +14,7 @@ use std::fmt::Debug;
 
 pub(super) const DISPATCH_TIMEOUT_SECONDS: u64 = 10;
 
-pub type Notification = NotificationContent;
+pub type Notification = NotificationPayload;
 
 pub trait GenericNotifier: Debug + Sync + Send {
     fn name(&self) -> &'static str;
