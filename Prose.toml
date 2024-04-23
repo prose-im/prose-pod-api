@@ -26,7 +26,6 @@ logo_color = "#3458AD"
 logo_url = "https://raw.githubusercontent.com/prose-im/prose-medley/master/renders/logos/icon-app.svg"
 website_url = "https://prose.org/"
 support_url = "mailto:support@prose.org"
-custom_html = ""
 
 [notify]
 
@@ -40,3 +39,8 @@ smtp_port = 587
 smtp_username = "user-access"
 smtp_password = "user-password"
 smtp_encrypt = false
+
+[dependency_modes]
+
+uuid = "incrementing"
+notifier = "logging"
