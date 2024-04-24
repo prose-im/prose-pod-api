@@ -99,8 +99,11 @@ impl Error {
 
     pub fn add_headers(&self, response: &mut Response<'_>) {
         match self {
-            Self::Unauthorized | Self::BasicAuthError(_) => {
-                response.set_header(Header::new("WWW-Authenticate", "value"));
+            Self::Unauthorized => {
+                response.set_header(Header::new("WWW-Authenticate", r#"Bearer realm="Admin only area", charset="UTF-8""#));
+            },
+            Self::BasicAuthError(_) => {
+                response.set_header(Header::new("WWW-Authenticate", r#"Basic realm="Admin only area", charset="UTF-8""#));
             }
             _ => {}
         }
