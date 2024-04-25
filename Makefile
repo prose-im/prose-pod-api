@@ -15,5 +15,7 @@ format:
 	@(./.githooks/pre-commit)
 test:
 	cargo test --test behavior
+update-redoc:
+	wget https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
 %:
 	@:

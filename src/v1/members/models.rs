@@ -1,12 +1,15 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use utoipa::ToSchema;
+use serde::{Deserialize, Serialize};
 
-#[derive(ToSchema, Debug)]
+use entity::model::MemberRole;
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
     pub jid: String,
     pub name: String,
+    pub role: MemberRole,
 }

@@ -45,13 +45,6 @@ serde_json = "1"
 service = { path = "./service" }
 sha2 = "0.10"
 tokio = "1"
-# TODO: Add feature flag to disable `utoipa`
-# NOTE: (Rémi BARDON, 2024-04-23) It's not possible yet, because of a bug in `cfg_attr`.
-#   See <https://github.com/rust-lang/rust-analyzer/issues/13360> on rust-lang/rust-analyzer
-#   and <https://github.com/ProbablyClem/utoipauto/issues/13> on ProbablyClem/utoipauto.
-utoipa = { version = "4", features = ["rocket_extras"] }
-utoipa-swagger-ui = { version = "5", features = ["rocket"], optional = true }
-utoipauto = { version = "0.1" }
 uuid = "1"
 
 [dev-dependencies]
@@ -60,9 +53,6 @@ cucumber = { version = "0.20", features = ["tracing"] }
 linked-hash-map = "0.5"
 regex = "1"
 tracing-subscriber = "0.3"
-
-[features]
-swagger-ui = ["dep:utoipa-swagger-ui"]
 
 [[bin]]
 name = "prose-pod-api"

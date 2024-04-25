@@ -35,14 +35,6 @@ pub struct InviteMemberRequest {
 }
 
 /// Invite a new member.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success", body = InviteMemberResponse),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
@@ -119,14 +111,6 @@ pub(super) async fn invite_member<'r>(
 }
 
 /// Get workspace invitations.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success", body = Paginated<workspace_invitation::Model>),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
 #[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
 pub(super) async fn get_invitations(
     conn: Connection<'_, Db>,
@@ -177,28 +161,13 @@ impl From<workspace_invitation::Model> for WorkspaceInvitation {
 }
 
 /// Get information about a workspace invitation.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success", body = workspace_invitation::Model),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
-#[get("/v1/invitations/<_>")]
+#[get("/v1/invitations/<_>", rank = 2)]
 pub(super) fn get_invitation() -> Json<WorkspaceInvitation> {
     todo!()
 }
 
 /// Get information about an invitation from an accept or reject token.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success", body = GetWorkspaceInvitationByTokenResponse),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
-#[get("/v1/invitations?<token>&<token_type>", rank = 1)]
+#[get("/v1/invitations/<token>?<token_type>", rank = 1)]
 pub(super) async fn get_invitation_by_token(
     conn: Connection<'_, Db>,
     token: Uuid,
@@ -228,23 +197,10 @@ pub struct AcceptWorkspaceInvitationRequest {
     pub password: String,
 }
 
-/// Accept or reject a workspace invitation.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success"),
-        (status = 400, description = "Pod not initialized", body = Error),
-    )
-)]
-#[post(
-    "/v1/invitations/<invitation_id>?action=accept&<token>",
-    format = "json",
-    data = "<req>",
-    rank = 1
-)]
+/// Accept a workspace invitation.
+#[post("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
-    invitation_id: i32,
     token: Uuid,
     user_factory: UserFactory<'_>,
     req: Json<AcceptWorkspaceInvitationRequest>,
@@ -253,10 +209,11 @@ pub(super) async fn invitation_accept(
 
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
-    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
+    let invitation = Query::get_workspace_invitation_by_accept_token(db, &token)
         .await?
-        .ok_or(Error::NotFound {
-            reason: format!("No invitation with ID {invitation_id}"),
+        .ok_or_else(|| {
+            debug!("No invitation found for provided token");
+            Error::Unauthorized
         })?;
     if token != invitation.accept_token {
         debug!("Accept token is invalid");
@@ -275,18 +232,10 @@ pub(super) async fn invitation_accept(
     Ok(())
 }
 
-/// Reject an invitation.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 204, description = "Success"),
-        (status = 400, description = "Pod not initialized", body = Error),
-    )
-)]
-#[post("/v1/invitations/<invitation_id>?action=reject&<token>", rank = 3)]
+/// Reject a workspace invitation.
+#[post("/v1/invitations/<token>/reject")]
 pub(super) async fn invitation_reject(
     conn: Connection<'_, Db>,
-    invitation_id: i32,
     token: Uuid,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
@@ -295,10 +244,11 @@ pub(super) async fn invitation_reject(
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
 
-    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
+    let invitation = Query::get_workspace_invitation_by_reject_token(db, &token)
         .await?
-        .ok_or(Error::NotFound {
-            reason: format!("No invitation with ID {invitation_id}"),
+        .ok_or_else(|| {
+            debug!("No invitation found for provided token");
+            Error::Unauthorized
         })?;
     if token != invitation.reject_token {
         debug!("Reject token is invalid");
@@ -311,15 +261,7 @@ pub(super) async fn invitation_reject(
 }
 
 /// Resend a workspace invitation.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 200, description = "Success"),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
-#[post("/v1/invitations/<invitation_id>?action=resend", rank = 2)]
+#[post("/v1/invitations/<invitation_id>/resend")]
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
     config: &State<Config>,
@@ -355,14 +297,6 @@ pub(super) async fn invitation_resend(
 }
 
 /// Cancel a workspace invitation.
-#[utoipa::path(
-    tag = "Invitations",
-    responses(
-        (status = 204, description = "Success"),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 401, description = "Unauthorized", body = Error),
-    )
-)]
 #[delete("/v1/invitations/<invitation_id>")]
 pub(super) async fn invitation_cancel(
     conn: Connection<'_, Db>,

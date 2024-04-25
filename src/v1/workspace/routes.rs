@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::server_config;
@@ -10,27 +10,19 @@ use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{ActiveModelTrait as _, Set};
-use utoipa::ToSchema;
 
 use crate::error::Error;
 use crate::guards::{Db, LazyGuard, ServerConfig};
 
 pub type R<T> = Result<Json<T>, Error>;
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct GetWorkspaceNameResponse {
-    #[schema(example = "Crisp")]
     pub name: String,
 }
 
 /// Get the name of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        (status = 200, description = "Success", body = GetWorkspaceNameResponse)
-    )
-)]
 #[get("/v1/workspace/name")]
 pub(super) fn get_workspace_name(
     server_config: LazyGuard<ServerConfig>,
@@ -44,24 +36,15 @@ pub(super) fn get_workspace_name(
     Ok(response)
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct SetWorkspaceNameRequest {
-    #[schema(example = "Crisp")]
     pub name: String,
 }
 
 pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
 /// Set the name of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        // `utoipa` does not resolve type aliases,
-        // we need to set `body` to its concrete implementation.
-        (status = 200, description = "Success", body = GetWorkspaceNameResponse)
-    )
-)]
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub(super) async fn set_workspace_name(
     conn: Connection<'_, Db>,
@@ -83,19 +66,13 @@ pub(super) async fn set_workspace_name(
     Ok(response)
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct GetWorkspaceIconResponse {
     pub url: Option<String>,
 }
 
 /// Get the icon of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        (status = 200, description = "Success", body = GetWorkspaceIconResponse)
-    )
-)]
 #[get("/v1/workspace/icon")]
 pub(super) fn get_workspace_icon(
     server_config: LazyGuard<ServerConfig>,
@@ -139,44 +116,24 @@ pub(super) fn set_workspace_icon_file(mut _image: TempFile<'_>) -> Json<GetWorks
 }
 
 /// Get the details card of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        (status = 200, description = "Success", content_type = "text/vcard", body = String),
-    ),
-)]
 #[get("/v1/workspace/details-card")]
 pub(super) fn get_workspace_details_card() -> String {
     todo!()
 }
 
 /// Set the details card of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    request_body(content = String, content_type = "text/vcard"),
-    responses(
-        (status = 200, description = "Success"),
-    ),
-)]
 #[put("/v1/workspace/details-card", data = "<_vcard>")]
 pub(super) fn set_workspace_details_card(_vcard: String) {
     todo!()
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct GetWorkspaceAccentColorResponse {
-    #[schema(example = "#4233BE")]
     pub color: Option<String>,
 }
 
 /// Get the accent color of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        (status = 200, description = "Success", body = GetWorkspaceAccentColorResponse),
-    ),
-)]
 #[get("/v1/workspace/accent-color")]
 pub(super) fn get_workspace_accent_color(
     server_config: LazyGuard<ServerConfig>,
@@ -190,20 +147,13 @@ pub(super) fn get_workspace_accent_color(
     Ok(response)
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct SetWorkspaceAccentColorRequest {
-    #[schema(example = "#226EF2")]
     pub color: String,
 }
 
 /// Set the accent color of your workspace.
-#[utoipa::path(
-    tag = "Workspace",
-    responses(
-        (status = 200, description = "Success", body = GetWorkspaceAccentColorResponse)
-    )
-)]
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub(super) async fn set_workspace_accent_color(
     conn: Connection<'_, Db>,

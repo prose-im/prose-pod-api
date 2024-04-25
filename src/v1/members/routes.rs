@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::models::Member;
+use entity::model::MemberRole;
 use rocket::response::status;
 use rocket::serde::json::Json;
 use rocket::{get, put};
@@ -15,86 +16,48 @@ pub type R<T> = Result<Json<T>, Error>;
 pub type Created<T> = Result<status::Created<Json<T>>, Error>;
 
 /// Get all members
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[get("/v1/members")]
-pub(super) fn get_members() -> String {
-    let members = vec![
+pub(super) fn get_members() -> Json<Vec<Member>> {
+    vec![
         Member {
             jid: "valerian@crisp.chat".to_string(),
             name: "Valerian Saliou".to_string(),
+            role: MemberRole::Admin,
         },
         Member {
             jid: "baptiste@crisp.chat".to_string(),
             name: "Baptiste Jamin".to_string(),
+            role: MemberRole::Admin,
         },
-    ];
-    members
-        .iter()
-        .map(|m| format!("{:?}", m))
-        .collect::<Vec<_>>()
-        .join(",")
+    ]
+    .into()
 }
 
 /// Search for members.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[get("/v1/members/search")]
 pub(super) fn search_members() -> String {
     todo!()
 }
 
 /// Get information about one member.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[get("/v1/members/<_member_id>")]
 pub(super) fn get_member(_member_id: JIDUriParam) -> String {
     todo!()
 }
 
 /// Change a member's role.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[put("/v1/members/<_member_id>/role")]
 pub(super) fn set_member_role(_member_id: &str) -> String {
     todo!()
 }
 
 /// Change a member's Multi-Factor Authentication (MFA) status.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[put("/v1/members/<_member_id>/mfa")]
 pub(super) fn set_member_mfa(_member_id: &str) -> String {
     todo!()
 }
 
 /// Log a member out from all of its devices.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
 #[put("/v1/members/<_member_id>/logout")]
 pub(super) fn logout_member(_member_id: &str) -> String {
     todo!()

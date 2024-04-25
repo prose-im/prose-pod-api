@@ -15,7 +15,7 @@ use rocket::Route;
 
 pub(super) fn routes() -> Vec<Route> {
     vec![
-        routes![openapi, init, login],
+        routes![init, login],
         invitations::routes(),
         members::routes(),
         server::routes(),

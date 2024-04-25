@@ -8,15 +8,28 @@ After release 1.0, contributions will be more than welcome though!
 
 ## Tools you need
 
+### `sea-orm-cli`
+
+If you work on databse migrations, you will probably need `sea-orm-cli`:
+
 ```bash
 cargo install sea-orm-cli
 ```
+
+### `prosodyctl`
 
 To use `prosodyctl` locally, you need `prosodyctl` and its dependencies.
 
 ```bash
 brew install prosodyctl
 luarocks install luaunbound
+```
+
+## Updating dependencies
+
+```bash
+rustup upgrade && cargo update
+make update-redoc
 ```
 
 ## Testing

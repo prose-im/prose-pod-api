@@ -11,40 +11,12 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::sea_orm::{Set, TransactionTrait as _, TryIntoModel};
 use service::{Mutation, Query, ServerCtl};
-use utoipa::openapi::PathItemType::Put;
-use utoipa::OpenApi;
-use utoipauto::utoipauto;
 
 use crate::guards::{BasicAuth, Db, JWTService, UserFactory};
 
-use super::workspace::openapi_extensions;
 use crate::error::Error;
-use crate::v1::workspace::rocket_uri_macro_set_workspace_icon_file;
 
 pub type R<T> = Result<Json<T>, Error>;
-
-#[utoipauto(paths = "src/v1")]
-#[derive(OpenApi)]
-#[openapi()]
-pub struct ApiDoc;
-
-#[get("/v1/api-docs/openapi.json")]
-/// Construct the OpenAPI description file for this version of the API.
-pub(super) fn openapi() -> String {
-    let mut open_api = ApiDoc::openapi();
-
-    // Crate `utoipa` doesn't support request bodies with multiple content types,
-    // we need to override the definition manually.
-    open_api
-        .paths
-        .paths
-        .get_mut(&uri!(set_workspace_icon_file).to_string())
-        .unwrap()
-        .operations
-        .insert(Put, openapi_extensions::set_workspace_icon());
-
-    open_api.to_pretty_json().unwrap()
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct InitRequest {
@@ -62,14 +34,6 @@ pub struct AdminAccountInit {
 pub type InitResponse = server_config::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
-#[utoipa::path(
-    tag = "Misc",
-    responses(
-        (status = 200, description = "Success", body = InitRequest),
-        (status = 400, description = "Pod not initialized", body = Error),
-        (status = 409, description = "Pod already initialized", body = Error),
-    ),
-)]
 #[post("/v1/init", format = "json", data = "<req>")]
 pub(super) async fn init(
     conn: Connection<'_, Db>,

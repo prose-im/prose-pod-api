@@ -1,9 +1,8 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub(super) mod openapi_extensions;
 pub mod reactions;
 pub mod routes;
 
