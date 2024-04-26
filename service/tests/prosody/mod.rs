@@ -30,7 +30,7 @@ async fn given_everything_disabled(world: &mut TestWorld) -> Result<(), DbErr> {
 
 #[when("generating a new Prosody configuration file from the database")]
 fn when_generating_prosody_config(world: &mut TestWorld) {
-    let prosody_config = prosody_config_from_db(world.server_config.clone());
+    let prosody_config = prosody_config_from_db(world.server_config.to_owned(), &world.app_config);
     world.prosody_config = Some(prosody_config);
 }
 

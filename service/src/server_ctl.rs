@@ -10,10 +10,13 @@ use std::sync::{Arc, Mutex};
 use std::{fmt, io};
 
 use entity::model::{MemberRole, JID};
+use entity::server_config;
 use vcard_parser::error::VcardError;
 use vcard_parser::vcard::property::property_nickname::PropertyNickNameData;
 use vcard_parser::vcard::property::Property;
 use vcard_parser::vcard::Vcard;
+
+use crate::config::Config;
 
 pub struct ServerCtl {
     pub implem: Arc<Mutex<dyn ServerCtlImpl>>,
@@ -36,6 +39,11 @@ impl Deref for ServerCtl {
 /// Abstraction over ProsodyCtl in case we want to switch to another server.
 /// Also facilitates testing.
 pub trait ServerCtlImpl: Sync + Send {
+    fn save_config(
+        &self,
+        server_config: &server_config::Model,
+        app_config: &Config,
+    ) -> Result<(), Error>;
     fn reload(&self) -> Result<(), Error>;
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;

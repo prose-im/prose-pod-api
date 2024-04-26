@@ -9,6 +9,7 @@ use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
+use service::config::Config;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set};
 use service::{Query, ServerCtl};
 
@@ -18,6 +19,7 @@ use super::{Db, FromRequest, JID as JIDGuard};
 
 pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
+    app_config: &'r Config,
     server_ctl: &'r State<ServerCtl>,
     server_config: server_config::Model,
 }
@@ -55,9 +57,22 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
+
+        let app_config = try_outcome!(req
+            .guard::<&State<service::config::Config>>()
+            .await
+            .map_error(|(status, _)| (
+                status,
+                Error::InternalServerError {
+                    reason: "Could not get a `&State<service::config::Config>` from a request."
+                        .to_string(),
+                }
+            )));
+
         match Query::server_config(db).await {
             Ok(Some(server_config)) => Outcome::Success(ServerManager {
                 db,
+                app_config,
                 server_ctl,
                 server_config,
             }),
@@ -75,16 +90,18 @@ impl<'r> ServerManager<'r> {
         let config_before = &self.server_config;
         let mut active: server_config::ActiveModel = self.server_config.clone().into();
         update(&mut active);
-        let server_config = active.update(self.db).await?;
+        let server_conf = active.update(self.db).await?;
 
-        if server_config != *config_before {
-            self.server_ctl
-                .lock()
-                .expect("Serverctl lock poisonned")
-                .reload()?;
+        if server_conf != *config_before {
+            let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
+
+            // Save new server config
+            server_ctl.save_config(&server_conf, self.app_config)?;
+            // Reload server config
+            server_ctl.reload()?;
         }
 
-        Ok(server_config)
+        Ok(server_conf)
     }
 }
 

@@ -49,6 +49,7 @@ pub enum ProsodyConfigSection {
 #[derive(Debug, Eq, PartialEq, Default)]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
+    pub admins: Option<LinkedHashSet<JID>>,
     pub authentication: Option<AuthenticationProvider>,
     pub storage: Option<StorageConfig>,
     pub log: Option<LogConfig>,
@@ -59,7 +60,6 @@ pub struct ProsodySettings {
     pub http_interfaces: Option<Vec<Interface>>,
     pub https_ports: Option<Vec<u16>>,
     pub https_interfaces: Option<Vec<Interface>>,
-    pub admins: Option<LinkedHashSet<JID>>,
     pub modules_enabled: Option<LinkedHashSet<String>>,
     pub modules_disabled: Option<LinkedHashSet<String>>,
     pub ssl: Option<SSLConfig>,
@@ -76,6 +76,7 @@ pub struct ProsodySettings {
     pub contact_info: Option<ContactInfo>,
     pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub default_archive_policy: Option<bool>,
+    /// See <https://prosody.im/doc/modules/mod_mam>.
     pub max_archive_query_results: Option<u32>,
     pub upgrade_legacy_vcards: Option<bool>,
     pub groups_file: Option<PathBuf>,
@@ -87,9 +88,15 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
     pub restrict_room_creation: Option<RoomCreationRestriction>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
-    pub log_all_rooms: Option<bool>,
+    pub muc_log_all_rooms: Option<bool>,
+    /// See <https://prosody.im/doc/modules/mod_muc_mam>.
+    pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
+    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
+    pub init_admin_jid: Option<JID>,
+    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
+    pub init_admin_password_env_var_name: Option<String>,
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.

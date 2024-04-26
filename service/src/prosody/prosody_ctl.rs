@@ -3,8 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{MemberRole, JID};
+use entity::{
+    model::{MemberRole, JID},
+    server_config,
+};
 use std::{
+    fs::File,
     io::Write as _,
     path::PathBuf,
     process::{self, Command},
@@ -13,28 +17,24 @@ use std::{
 use tempfile::NamedTempFile;
 use vcard_parser::vcard::Vcard;
 
-use crate::server_ctl::*;
+use crate::{config::Config, prosody_config_from_db, server_ctl::*};
 
 /// Rust interface to [`prosodyctl`](https://prosody.im/doc/prosodyctl).
 #[derive(Debug, Default)]
 pub struct ProsodyCtl {
-    config_file_path: Option<PathBuf>,
+    config_file_path: PathBuf,
 }
 
 impl ProsodyCtl {
-    pub fn new(config_file_path: Option<PathBuf>) -> Self {
+    pub fn new(config_file_path: PathBuf) -> Self {
         Self { config_file_path }
     }
 
     fn config_args(&self) -> Vec<String> {
-        if let Some(config_file) = &self.config_file_path {
-            vec![
-                "--config".to_string(),
-                config_file.display().to_string(),
-            ]
-        } else {
-            vec![]
-        }
+        vec![
+            "--config".to_string(),
+            self.config_file_path.display().to_string(),
+        ]
     }
 
     fn run_prosodyctl<S: ToString>(&self, args: Vec<S>) -> Result<process::Output, Error> {
@@ -50,6 +50,19 @@ impl ProsodyCtl {
 }
 
 impl ServerCtlImpl for ProsodyCtl {
+    fn save_config(
+        &self,
+        server_config: &server_config::Model,
+        app_config: &Config,
+    ) -> Result<(), Error> {
+        let mut file = File::create(&self.config_file_path)?;
+        file.write_all(
+            prosody_config_from_db(server_config.to_owned(), app_config)
+                .to_string()
+                .as_bytes(),
+        )?;
+        Ok(())
+    }
     fn reload(&self) -> Result<(), Error> {
         self.run_prosodyctl(vec!["reload"]).map(|_| ())
     }

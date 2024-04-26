@@ -11,6 +11,7 @@ pub mod prosody;
 mod query;
 pub mod server_ctl;
 
+use config::Config;
 pub use mutation::*;
 pub use prosody::{prosody_config_from_db, ProsodyCtl};
 pub use query::*;
@@ -21,5 +22,5 @@ pub use sea_orm;
 pub use vcard_parser;
 
 pub trait ProseDefault {
-    fn prose_default() -> Self;
+    fn prose_default(app_config: &Config) -> Self;
 }
