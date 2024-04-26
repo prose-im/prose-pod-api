@@ -15,7 +15,7 @@ use iso8601_duration::Duration as ISODuration;
 use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::{self, ArrayType, Nullable, ValueTypeErr};
 use sea_orm::TryGetError;
-use serde::{de, Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use std::fmt::{Debug, Display};
 use std::ops::Deref;
@@ -148,6 +148,19 @@ impl<Content: DurationContent> Deref for Duration<Content> {
 }
 impl<Content: DurationContent> Eq for Duration<Content> {}
 
+impl<Content: DurationContent> Display for Duration<Content> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_iso_duration())
+    }
+}
+impl<Content: DurationContent> FromStr for Duration<Content> {
+    type Err = <Content as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Content::from_str(s).map(Self)
+    }
+}
+
 impl<Content: DurationContent> Serialize for Duration<Content> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -249,7 +262,7 @@ impl<Content: DurationContent> sea_query::Nullable for Duration<Content> {
     }
 }
 
-pub trait DurationContent: Copy + Eq + Into<ISODuration> + TryFrom<ISODuration> {
+pub trait DurationContent: Copy + Eq + Into<ISODuration> + TryFrom<ISODuration> + FromStr {
     fn type_name() -> String;
 }
 
@@ -268,13 +281,9 @@ impl TimeLike {
             Self::Hours(n) => n * Self::Minutes(60).seconds(),
         }
     }
-}
-
-impl Eq for TimeLike {}
-impl Into<ISODuration> for TimeLike {
     /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
     ///   As this situation will probably never happen, it's good enough.
-    fn into(self) -> ISODuration {
+    pub fn into_iso_duration(self) -> ISODuration {
         match self {
             Self::Seconds(n) => ISODuration::new(0., 0., 0., 0., 0., n as f32),
             Self::Minutes(n) => ISODuration::new(0., 0., 0., 0., n as f32, 0.),
@@ -282,16 +291,32 @@ impl Into<ISODuration> for TimeLike {
         }
     }
 }
+
+impl Eq for TimeLike {}
+impl Into<ISODuration> for TimeLike {
+    fn into(self) -> ISODuration {
+        self.into_iso_duration()
+    }
+}
 impl TryFrom<ISODuration> for TimeLike {
     type Error = &'static str;
 
+    /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
+    ///   As this situation will probably never happen, it's good enough.
     fn try_from(value: ISODuration) -> Result<Self, Self::Error> {
-        if let Some(hours) = value.num_hours() {
-            Ok(Self::Hours(hours as u32))
-        } else if let Some(minutes) = value.num_minutes() {
-            Ok(Self::Minutes(minutes as u32))
-        } else if let Some(seconds) = value.num_seconds() {
-            Ok(Self::Seconds(seconds as u32))
+        fn non_zero(n: f32) -> Option<u32> {
+            match n as u32 {
+                0 => None,
+                n => Some(n),
+            }
+        }
+
+        if let Some(hours) = value.num_hours().and_then(non_zero) {
+            Ok(Self::Hours(hours))
+        } else if let Some(minutes) = value.num_minutes().and_then(non_zero) {
+            Ok(Self::Minutes(minutes))
+        } else if let Some(seconds) = value.num_seconds().and_then(non_zero) {
+            Ok(Self::Seconds(seconds))
         } else {
             Err("Invalid duration")
         }
@@ -300,6 +325,19 @@ impl TryFrom<ISODuration> for TimeLike {
 impl DurationContent for TimeLike {
     fn type_name() -> String {
         stringify!(Time).to_owned()
+    }
+}
+impl Display for TimeLike {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.into_iso_duration())
+    }
+}
+impl FromStr for TimeLike {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let iso_duration = ISODuration::parse(s).map_err(|e| format!("Parse error: {e:?}"))?;
+        Self::try_from(iso_duration).map_err(ToString::to_string)
     }
 }
 
@@ -311,11 +349,10 @@ pub enum DateLike {
     Years(u32),
 }
 
-impl Eq for DateLike {}
-impl Into<ISODuration> for DateLike {
+impl DateLike {
     /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
     ///   As this situation will probably never happen, it's good enough.
-    fn into(self) -> ISODuration {
+    pub fn into_iso_duration(self) -> ISODuration {
         match self {
             Self::Days(n) => ISODuration::new(0., 0., n as f32, 0., 0., 0.),
             Self::Weeks(n) => ISODuration::new(0., 0., (n as f32) * 7., 0., 0., 0.),
@@ -324,20 +361,33 @@ impl Into<ISODuration> for DateLike {
         }
     }
 }
+impl Eq for DateLike {}
+impl Into<ISODuration> for DateLike {
+    fn into(self) -> ISODuration {
+        self.into_iso_duration()
+    }
+}
 impl TryFrom<ISODuration> for DateLike {
     type Error = &'static str;
 
     /// NOTE: This method is not correct, as a `f32` can overflow in a `u32`.
     ///   As this situation will probably never happen, it's good enough.
     fn try_from(value: ISODuration) -> Result<Self, Self::Error> {
-        if let Some(years) = value.num_years() {
-            Ok(Self::Years(years as u32))
-        } else if let Some(months) = value.num_months() {
-            Ok(Self::Months(months as u32))
-        } else if let Some(weeks) = value.num_weeks() {
-            Ok(Self::Weeks(weeks as u32))
-        } else if let Some(days) = value.num_days() {
-            Ok(Self::Days(days as u32))
+        fn non_zero(n: f32) -> Option<u32> {
+            match n as u32 {
+                0 => None,
+                n => Some(n),
+            }
+        }
+
+        if let Some(years) = value.num_years().and_then(non_zero) {
+            Ok(Self::Years(years))
+        } else if let Some(months) = value.num_months().and_then(non_zero) {
+            Ok(Self::Months(months))
+        } else if let Some(weeks) = value.num_weeks().and_then(non_zero) {
+            Ok(Self::Weeks(weeks))
+        } else if let Some(days) = value.num_days().and_then(non_zero) {
+            Ok(Self::Days(days))
         } else {
             Err("Invalid duration")
         }
@@ -348,8 +398,21 @@ impl DurationContent for DateLike {
         stringify!(Date).to_owned()
     }
 }
+impl Display for DateLike {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.into_iso_duration())
+    }
+}
+impl FromStr for DateLike {
+    type Err = String;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let iso_duration = ISODuration::parse(s).map_err(|e| format!("Parse error: {e:?}"))?;
+        Self::try_from(iso_duration).map_err(ToString::to_string)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum PossiblyInfinite<D> {
     Infinite,
     Finite(D),
@@ -374,6 +437,48 @@ impl<D> Into<Option<D>> for PossiblyInfinite<D> {
 }
 
 impl<D: Eq> Eq for PossiblyInfinite<D> {}
+
+impl<D: Display> Display for PossiblyInfinite<D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Infinite => write!(f, "infinite"),
+            Self::Finite(d) => write!(f, "{d}"),
+        }
+    }
+}
+
+impl<D: FromStr> FromStr for PossiblyInfinite<D> {
+    type Err = <D as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "infinite" => Ok(Self::Infinite),
+            d => D::from_str(d).map(Self::Finite),
+        }
+    }
+}
+
+impl<D: Display> Serialize for PossiblyInfinite<D> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.to_string().serialize(serializer)
+    }
+}
+
+impl<'de, Duration: FromStr> Deserialize<'de> for PossiblyInfinite<Duration>
+where
+    Duration::Err: Display,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Self::from_str(String::deserialize(deserializer)?.as_str())
+            .map_err(|err| serde::de::Error::custom(&err))
+    }
+}
 
 impl<D> From<PossiblyInfinite<D>> for sea_query::Value
 where
@@ -508,5 +613,67 @@ impl sea_query::ValueType for EmailAddress {
 impl Nullable for EmailAddress {
     fn null() -> Value {
         Value::String(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_duration_timelike_deserializing() -> Result<(), serde_json::Error> {
+        fn test(
+            str: &str,
+            expected: PossiblyInfinite<Duration<TimeLike>>,
+        ) -> Result<(), serde_json::Error> {
+            let value = json!(str);
+            let duration: PossiblyInfinite<Duration<TimeLike>> = serde_json::from_value(value)?;
+            assert_eq!(duration, expected, "{str}");
+            Ok(())
+        }
+        test("infinite", PossiblyInfinite::Infinite)?;
+        test(
+            "PT2S",
+            PossiblyInfinite::Finite(Duration(TimeLike::Seconds(2))),
+        )?;
+        test(
+            "PT3M",
+            PossiblyInfinite::Finite(Duration(TimeLike::Minutes(3))),
+        )?;
+        test(
+            "PT4H",
+            PossiblyInfinite::Finite(Duration(TimeLike::Hours(4))),
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_duration_datelike_deserializing() -> Result<(), serde_json::Error> {
+        fn test(
+            str: &str,
+            expected: PossiblyInfinite<Duration<DateLike>>,
+        ) -> Result<(), serde_json::Error> {
+            let value = json!(str);
+            let duration: PossiblyInfinite<Duration<DateLike>> = serde_json::from_value(value)?;
+            assert_eq!(duration, expected, "{str}");
+            Ok(())
+        }
+        test("infinite", PossiblyInfinite::Infinite)?;
+        test("P2D", PossiblyInfinite::Finite(Duration(DateLike::Days(2))))?;
+        test(
+            "P3W",
+            PossiblyInfinite::Finite(Duration(DateLike::Weeks(3))),
+        )?;
+        test(
+            "P4M",
+            PossiblyInfinite::Finite(Duration(DateLike::Months(4))),
+        )?;
+        test(
+            "P5Y",
+            PossiblyInfinite::Finite(Duration(DateLike::Years(5))),
+        )?;
+        Ok(())
     }
 }
