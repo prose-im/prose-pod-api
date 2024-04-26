@@ -18,6 +18,7 @@ RUN cargo install --path . --target x86_64-unknown-linux-musl $CARGO_INSTALL_EXT
 FROM alpine:latest
 
 COPY --from=build /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
+COPY --from=build /usr/src/prose-pod-api/static /static
 
 CMD ["prose-pod-api"]
 
