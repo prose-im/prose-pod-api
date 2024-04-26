@@ -198,7 +198,7 @@ pub struct AcceptWorkspaceInvitationRequest {
 }
 
 /// Accept a workspace invitation.
-#[post("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
+#[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
@@ -233,7 +233,7 @@ pub(super) async fn invitation_accept(
 }
 
 /// Reject a workspace invitation.
-#[post("/v1/invitations/<token>/reject")]
+#[put("/v1/invitations/<token>/reject")]
 pub(super) async fn invitation_reject(
     conn: Connection<'_, Db>,
     token: Uuid,
