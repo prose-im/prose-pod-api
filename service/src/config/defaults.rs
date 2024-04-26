@@ -25,6 +25,10 @@ pub fn server_admin_rest_api_port() -> u16 {
     5280
 }
 
+pub fn server_prosody_config_file_path() -> PathBuf {
+    PathBuf::from("/etc/prosody/prosody.cfg.lua")
+}
+
 pub fn assets_path() -> PathBuf {
     PathBuf::from("./res/assets/")
 }

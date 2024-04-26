@@ -55,6 +55,7 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "s2s_bidi";
+  "mam";
 }
 
 -- Path to SSL key and certificate for all server domains
@@ -88,12 +89,16 @@ limits = {
 
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
-cross_domain_websocket = true
 
 -- Specify server administrator
 contact_info = {
   admin = { "mailto:hostmaster@prose.org.local" };
 }
+
+-- MAM settings
+archive_expires_after = "never"
+default_archive_policy = true
+max_archive_query_results = 100
 
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
@@ -104,10 +109,45 @@ groups_file = "/etc/prosody/roster_groups.txt"
 -- Server hosts and components
 VirtualHost "prose.org.local"
 
+VirtualHost "admin.prose.org.local"
+  admins = { "prose-pod-api@admin.prose.org.local" }
+
+  -- Modules
+  modules_enabled = {
+    "admin_rest";
+    "init_admin";
+  }
+
+  -- HTTP settings
+  http_host = "prose-pod-server"
+  http_external_url = "http://prose-pod-server:5280"
+
+  -- mod_init_admin
+  init_admin_jid = "prose-pod-api@admin.prose.org.local"
+  init_admin_password_env_var_name = "PROSE_API__ADMIN_PASSWORD"
+
 Component "groups.prose.org.local" "muc"
   name = "Chatrooms"
 
+  -- Modules
+  modules_enabled = { "muc_mam" }
+
+  -- MAM settings
+  max_archive_query_results = 100
+
   restrict_room_creation = "local"
 
-  log_all_rooms = true
+  -- MUC settings
+  muc_log_all_rooms = true
+  muc_log_by_default = true
   muc_log_expires_after = "never"
+
+Component "upload.prose.org.local" "http_file_share"
+  name = "HTTP File Upload"
+
+  -- HTTP settings
+  http_file_share_size_limit = 20 * 1024 * 1024
+  http_file_share_daily_quota = 250 * 1024 * 1024
+  http_file_share_expires_after = -1
+  http_host = "localhost"
+  http_external_url = "http://localhost:5280"

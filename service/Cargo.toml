@@ -42,13 +42,6 @@ cucumber = "0.21"
 insta = "1"
 migration = { path = "../migration" }
 
-[features]
-mock = ["sea-orm/mock"]
-
 [[test]]
-name = "mock"
-required-features = ["mock"]
-
-[[test]]
-name = "cucumber"
+name = "behavior"
 harness = false

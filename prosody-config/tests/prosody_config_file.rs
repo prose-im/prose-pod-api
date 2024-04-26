@@ -19,6 +19,7 @@ fn test_prose_default_config() {
         ].into()),
         global_settings: vec![
             def("pidfile", "/var/run/prosody/prosody.pid").into(),
+            def("admins", vec!["prose-pod-api@admin.prose.org.local"]).into(),
             vec![
                 def("authentication", "internal_hashed"),
                 def("storage", "internal"),
@@ -113,7 +114,6 @@ fn test_prose_default_config() {
                 "Allow reverse-proxying to WebSocket service over insecure local HTTP",
                 vec![
                     def("consider_websocket_secure", true),
-                    def("cross_domain_websocket", true),
                 ],
             ),
             def("contact_info", vec![
@@ -135,6 +135,20 @@ fn test_prose_default_config() {
             def("groups_file", "/etc/prosody/roster_groups.txt")
                 .comment("Define server members groups file")
                 .into(),
+            Group::new(
+                "HTTP settings",
+                vec![
+                    def("http_host", "prose-pod-server"),
+                    def("http_external_url", "http://prose-pod-server:5280"),
+                ],
+            ),
+            Group::new(
+                "mod_init_admin",
+                vec![
+                    def("init_admin_jid", "prose-pod-api@admin.prose.org.local"),
+                    def("init_admin_password_env_var_name", "PROSE_API__ADMIN_PASSWORD"),
+                ],
+            ),
         ],
         additional_sections: vec![
             ProsodyConfigFileSection::VirtualHost {
@@ -148,18 +162,27 @@ fn test_prose_default_config() {
                 plugin: "muc".to_string(),
                 name: "Chatrooms".to_string(),
                 settings: vec![
-
                     Group::new(
                         "Modules",
                         vec![
                             def("modules_enabled", vec!["muc_mam"])
                         ],
                     ),
+                    Group::new(
+                        "MAM settings",
+                        vec![
+                            def("max_archive_query_results", 100),
+                        ],
+                    ),
                     def("restrict_room_creation", "local").into(),
-                    vec![
-                        def("log_all_rooms", true),
-                        def("muc_log_expires_after", "never"),
-                    ].into(),
+                    Group::new(
+                        "MUC settings",
+                        vec![
+                            def("muc_log_all_rooms", true),
+                            def("muc_log_by_default", true),
+                            def("muc_log_expires_after", "never"),
+                        ],
+                    ),
                 ],
             },
             ProsodyConfigFileSection::Component {
@@ -168,13 +191,16 @@ fn test_prose_default_config() {
                 plugin: "http_file_share".to_string(),
                 name: "HTTP File Upload".to_string(),
                 settings: vec![
-                    vec![
-                        def("http_file_share_size_limit", mult(20, mult(1024, 1024))),
-                        def("http_file_share_daily_quota", mult(250, mult(1024, 1024))),
-                        def("http_file_share_expires_after", -1),
-                        def("http_host", "localhost"),
-                        def("http_external_url", "http://localhost:5280/"),
-                    ].into(),
+                    Group::new(
+                        "HTTP settings",
+                        vec![
+                            def("http_file_share_size_limit", mult(20, mult(1024, 1024))),
+                            def("http_file_share_daily_quota", mult(250, mult(1024, 1024))),
+                            def("http_file_share_expires_after", -1),
+                            def("http_host", "localhost"),
+                            def("http_external_url", "http://localhost:5280"),
+                        ],
+                    ),
                 ],
             },
         ],

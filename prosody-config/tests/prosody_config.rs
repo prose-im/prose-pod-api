@@ -3,13 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use linked_hash_set::LinkedHashSet;
 use prosody_config::*;
 
 /// Value from <https://github.com/prose-im/prose-pod-system/blob/f2e353758e628c01c0923fc0e46491f1644354c9/server/etc/prosody/prosody.cfg.lua#L114>
 /// (with slight modifications for style consistency)
 #[test]
 fn test_prose_default_config() {
+    let api_jid = JID::new("prose-pod-api", "admin.prose.org.local");
     let default_config = ProsodyConfig {
         global_settings: ProsodySettings {
             pidfile: Some("/var/run/prosody/prosody.pid".into()),
@@ -32,7 +32,7 @@ fn test_prose_default_config() {
             http_interfaces: Some(vec![Interface::AllIPv4]),
             https_ports: Some(vec![]),
             https_interfaces: Some(vec![]),
-            admins: Some(LinkedHashSet::new()),
+            admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
             modules_enabled: Some(
                 vec![
                     "roster",
@@ -96,7 +96,6 @@ fn test_prose_default_config() {
                 .collect(),
             ),
             consider_websocket_secure: Some(true),
-            cross_domain_websocket: Some(true),
             contact_info: Some(ContactInfo {
                 abuse: vec![],
                 admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
@@ -110,6 +109,10 @@ fn test_prose_default_config() {
             max_archive_query_results: Some(100),
             upgrade_legacy_vcards: Some(true),
             groups_file: Some("/etc/prosody/roster_groups.txt".into()),
+            http_host: Some("prose-pod-server".to_owned()),
+            http_external_url: Some("http://prose-pod-server:5280".to_owned()),
+            init_admin_jid: Some(api_jid.to_owned()),
+            init_admin_password_env_var_name: Some("PROSE_API__ADMIN_PASSWORD".to_owned()),
             ..Default::default()
         },
         additional_sections: vec![
@@ -126,8 +129,10 @@ fn test_prose_default_config() {
                         vec!["muc_mam"].iter().map(ToString::to_string).collect(),
                     ),
                     restrict_room_creation: Some(RoomCreationRestriction::DomainOnly),
-                    log_all_rooms: Some(true),
+                    muc_log_all_rooms: Some(true),
+                    muc_log_by_default: Some(true),
                     muc_log_expires_after: Some(PossiblyInfinite::Infinite),
+                    max_archive_query_results: Some(100),
                     ..Default::default()
                 },
             },
@@ -140,7 +145,7 @@ fn test_prose_default_config() {
                     http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
                     http_file_share_expires_after: Some(PossiblyInfinite::Infinite),
                     http_host: Some("localhost".into()),
-                    http_external_url: Some("http://localhost:5280/".into()),
+                    http_external_url: Some("http://localhost:5280".into()),
                     ..Default::default()
                 },
             },

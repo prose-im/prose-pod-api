@@ -23,6 +23,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         }
 
         push_if_some(&mut res, option_def(None, "pidfile", self.pidfile));
+        push_if_some(&mut res, option_def(None, "admins", self.admins));
         push_if_some(
             &mut res,
             Group::flattened(
@@ -153,7 +154,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         push_if_some(
             &mut res,
             Group::flattened(
-                None,
+                "HTTP settings".into(),
                 vec![
                     option_def(
                         None,
@@ -186,10 +187,26 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         push_if_some(
             &mut res,
             Group::flattened(
-                None,
+                "MUC settings".into(),
                 vec![
-                    option_def(None, "log_all_rooms", self.log_all_rooms),
+                    option_def(None, "muc_log_all_rooms", self.muc_log_all_rooms),
+                    option_def(None, "muc_log_by_default", self.muc_log_by_default),
                     option_def(None, "muc_log_expires_after", self.muc_log_expires_after),
+                ],
+            ),
+        );
+
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                "mod_init_admin".into(),
+                vec![
+                    option_def(None, "init_admin_jid", self.init_admin_jid),
+                    option_def(
+                        None,
+                        "init_admin_password_env_var_name",
+                        self.init_admin_password_env_var_name,
+                    ),
                 ],
             ),
         );
@@ -241,6 +258,12 @@ impl ProsodyConfig {
         let mut file: ProsodyConfigFile = self.into();
         file.header = Some(header);
         file
+    }
+}
+
+impl Into<LuaValue> for JID {
+    fn into(self) -> LuaValue {
+        self.to_string().into()
     }
 }
 

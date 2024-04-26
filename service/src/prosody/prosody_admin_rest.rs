@@ -3,7 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{MemberRole, JID};
+use std::{fs::File, io::Write as _, path::PathBuf};
+
+use entity::{
+    model::{MemberRole, JID},
+    server_config,
+};
 use log::debug;
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::runtime::Handle;
@@ -11,13 +16,13 @@ use vcard_parser::vcard::Vcard;
 
 use crate::{config::Config, server_ctl::*};
 
-use super::AsProsody as _;
+use super::{prosody_config_from_db, AsProsody as _};
 
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
 #[derive(Debug)]
 pub struct ProsodyAdminRest {
-    admin_rest_api_host: String,
-    admin_rest_api_port: u16,
+    config_file_path: PathBuf,
+    admin_rest_api_url: String,
     api_auth_username: JID,
     api_auth_password: String,
 }
@@ -25,10 +30,10 @@ pub struct ProsodyAdminRest {
 impl ProsodyAdminRest {
     pub fn from_config(config: &Config) -> Self {
         Self {
-            admin_rest_api_host: config.server.local_hostname.clone(),
-            admin_rest_api_port: config.server.admin_rest_api_port,
+            config_file_path: config.server.prosody_config_file_path.to_owned(),
+            admin_rest_api_url: config.server.admin_rest_api_url(),
             api_auth_username: config.api_jid(),
-            api_auth_password: config.api.admin_password.clone().unwrap(),
+            api_auth_password: config.api.admin_password.to_owned().unwrap(),
         }
     }
 
@@ -74,16 +79,27 @@ impl ProsodyAdminRest {
     }
 
     fn url(&self, path: &str) -> String {
-        format!(
-            "http://{}:{}/admin_rest/{path}",
-            self.admin_rest_api_host, self.admin_rest_api_port
-        )
+        format!("{}/admin_rest/{path}", self.admin_rest_api_url)
     }
 }
 
 impl ServerCtlImpl for ProsodyAdminRest {
+    fn save_config(
+        &self,
+        server_config: &server_config::Model,
+        app_config: &Config,
+    ) -> Result<(), Error> {
+        let mut file = File::create(&self.config_file_path)?;
+        file.write_all(
+            prosody_config_from_db(server_config.to_owned(), app_config)
+                .to_string()
+                .as_bytes(),
+        )?;
+        Ok(())
+    }
     fn reload(&self) -> Result<(), Error> {
-        unimplemented!();
+        self.call(|client| client.put(self.url("reload")))
+            .map(|_| ())
     }
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {

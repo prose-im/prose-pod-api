@@ -4,13 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::JID;
-use ::migration::DbErr;
-use ::service::sea_orm::DatabaseConnection;
 use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::vcard_parser::vcard::Vcard;
-use ::service::{prosody_config_from_db, ProsodyConfigFile, Query};
+use ::service::{prosody_config_from_db, ProsodyConfigFile};
 use entity::model::MemberRole;
+use entity::server_config;
 use linked_hash_map::LinkedHashMap;
+use service::config::Config;
 
 use std::sync::Mutex;
 
@@ -33,21 +33,6 @@ pub struct DummyServerCtlState {
     pub vcards: LinkedHashMap<JID, Vcard>,
 }
 
-impl DummyServerCtlState {
-    pub async fn new(db: &DatabaseConnection) -> Result<Self, DbErr> {
-        let server_config = Query::server_config(db)
-            .await?
-            .expect("Workspace not initialized");
-        let prosody_config = prosody_config_from_db(server_config);
-        Ok(Self {
-            conf_reload_count: 0,
-            applied_config: Some(prosody_config),
-            users: LinkedHashMap::default(),
-            vcards: LinkedHashMap::default(),
-        })
-    }
-}
-
 impl DummyServerCtl {
     pub fn new(state: Mutex<DummyServerCtlState>) -> Self {
         Self { state }
@@ -55,6 +40,15 @@ impl DummyServerCtl {
 }
 
 impl ServerCtlImpl for DummyServerCtl {
+    fn save_config(
+        &self,
+        server_config: &server_config::Model,
+        app_config: &Config,
+    ) -> Result<(), Error> {
+        let mut state = self.state.lock().unwrap();
+        state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
+        Ok(())
+    }
     fn reload(&self) -> Result<(), Error> {
         let mut state = self.state.lock().unwrap();
         state.conf_reload_count += 1;
