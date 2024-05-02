@@ -15,7 +15,20 @@ format:
 	@(./.githooks/pre-commit)
 test:
 	cargo test --test behavior
+update: update-redoc
+# NOTE: `cargo update` updates all workspace member crates
+	@(echo '[INFO] Updating Rust dependencies…')
+	@(cargo update)
+
+# Check for outdated dependencies
+	@(if cargo install --list | grep -q '^cargo-edit v'; then \
+		echo '[INFO] Checking for outdated dependencies…'; \
+		cargo upgrade --dry-run --incompatible --pinned --verbose; \
+	else \
+		echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
+	fi)
 update-redoc:
-	wget https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
+	@(echo '[INFO] Updating Redoc…')
+	@(wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js)
 %:
 	@:
