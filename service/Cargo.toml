@@ -24,6 +24,11 @@ reqwest = { version = "0.12", features = [
     "json",
     "trust-dns",
 ], default-features = false }
+sea-orm = { version = "1.0.0-rc.3", features = [
+    "runtime-tokio-rustls",
+    "sqlx-sqlite",
+    #"macros",
+] }
 serde = { version = "1", features = ["derive"] }
 tempfile = "3"
 # https://github.com/launchbadge/sqlx/issues/3189
@@ -34,14 +39,6 @@ urlencoding = "2"
 url_serde = "0.2"
 uuid = { version = "1", features = ["v4"] }
 vcard_parser = "0.2"
-
-[dependencies.sea-orm]
-version = "1.0.0-rc.1"
-features = [
-    "runtime-tokio-rustls",
-    "sqlx-sqlite",
-    #"macros",
-]
 
 [dev-dependencies]
 cucumber = "0.20"
