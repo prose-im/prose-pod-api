@@ -9,12 +9,12 @@ use std::ops::Deref;
 use entity::model;
 use log::debug;
 use rocket::outcome::try_outcome;
-use rocket::request::{FromRequest, Outcome};
+use rocket::request::Outcome;
 use rocket::{Request, State};
 
 use crate::error::{self, Error};
 
-use super::{JWTService, JWT_JID_KEY};
+use super::{FromRequest, JWTService, JWT_JID_KEY};
 
 pub struct JID(model::JID);
 
@@ -33,11 +33,12 @@ impl<'r> FromRequest<'r> for JID {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         // NOTE: We only read the first "Authorization" header.
         let Some(auth) = req.headers().get("Authorization").next() else {
-            return Outcome::Error(Error::Unauthorized.into());
+            debug!("No 'Authorization' header found");
+            return Error::Unauthorized.into();
         };
         let Some(jwt) = auth.strip_prefix("Bearer ") else {
             debug!("The 'Authorization' header does not start with 'Bearer '");
-            return Outcome::Error(Error::Unauthorized.into());
+            return Error::Unauthorized.into();
         };
 
         let jwt_service =
@@ -54,7 +55,7 @@ impl<'r> FromRequest<'r> for JID {
             Ok(claims) => claims,
             Err(e) => {
                 debug!("The provided JWT is invalid: {e}");
-                return Outcome::Error(Error::Unauthorized.into());
+                return Error::Unauthorized.into();
             }
         };
         let Some(jid) = claims.get(JWT_JID_KEY) else {
@@ -62,7 +63,7 @@ impl<'r> FromRequest<'r> for JID {
                 "The provided JWT does not contain a '{}' claim",
                 JWT_JID_KEY
             );
-            return Outcome::Error(Error::Unauthorized.into());
+            return Error::Unauthorized.into();
         };
         match model::JID::try_from(jid.clone()) {
             Ok(jid) => Outcome::Success(Self(jid)),
@@ -71,7 +72,7 @@ impl<'r> FromRequest<'r> for JID {
                     "The JID present in the JWT could not be parsed to a valid JID: {}",
                     e
                 );
-                Outcome::Error(Error::Unauthorized.into())
+                Error::Unauthorized.into()
             }
         }
     }

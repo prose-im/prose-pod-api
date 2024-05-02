@@ -8,13 +8,26 @@ extern crate rocket;
 
 use prose_pod_api::custom_rocket;
 use prose_pod_api::guards::JWTService;
-use service::prosody::ProsodyCtl;
+use service::config::Config;
+use service::dependencies::Notifier;
+use service::prosody::ProsodyAdminRest;
 use service::ServerCtl;
 use std::sync::{Arc, Mutex};
 
 #[launch]
 fn rocket() -> _ {
-    custom_rocket(rocket::build())
-        .manage(JWTService::from_env())
-        .manage(ServerCtl::new(Arc::new(Mutex::new(ProsodyCtl::default()))))
+    env_logger::init();
+
+    let config = Config::figment();
+    let jwt_service = match JWTService::from_env() {
+        Ok(service) => service,
+        Err(err) => panic!("{err}"),
+    };
+
+    custom_rocket(rocket::build(), &config)
+        .manage(jwt_service)
+        .manage(ServerCtl::new(Arc::new(Mutex::new(
+            ProsodyAdminRest::from_config(&config),
+        ))))
+        .manage(Notifier::from_config(&config))
 }

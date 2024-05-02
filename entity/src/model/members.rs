@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::cmp;
+use std::str::FromStr;
 
 use sea_orm::sea_query::{self, ArrayType, Value, ValueTypeErr};
 use sea_orm::{ColumnType, TryGetError};
@@ -42,15 +43,23 @@ impl From<MemberRole> for sea_query::Value {
     }
 }
 
-impl TryFrom<String> for MemberRole {
-    type Error = String;
+impl FromStr for MemberRole {
+    type Err = String;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             MEMBER_ROLE_VALUE => Ok(Self::Member),
             ADMIN_ROLE_VALUE => Ok(Self::Admin),
             s => Err(format!("Unknown member role value: {:?}", s)),
         }
+    }
+}
+
+impl TryFrom<String> for MemberRole {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(value.as_str())
     }
 }
 

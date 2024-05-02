@@ -14,6 +14,6 @@ format-all:
 format:
 	@(./.githooks/pre-commit)
 test:
-	cargo test --test cucumber
+	cargo test --test behavior
 %:
 	@:

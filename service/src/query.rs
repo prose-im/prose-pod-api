@@ -4,9 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::{MemberRole, JID};
-use ::entity::prelude::*;
 use ::entity::server_config;
+use ::entity::{prelude::*, workspace_invitation};
+use chrono::{DateTime, Utc};
 use sea_orm::*;
+use uuid::Uuid;
 
 pub struct Query;
 
@@ -28,5 +30,55 @@ impl Query {
         };
 
         Ok(member.role == MemberRole::Admin)
+    }
+
+    pub async fn get_workspace_invitations(
+        db: &DbConn,
+        page_number: u64,
+        page_size: u64,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<(ItemsAndPagesNumber, Vec<workspace_invitation::Model>), DbErr> {
+        assert_ne!(
+            page_number, 0,
+            "`page_number` starts at 1 like in the public API."
+        );
+
+        let mut query =
+            WorkspaceInvitation::find().order_by_asc(workspace_invitation::Column::CreatedAt);
+        if let Some(until) = until {
+            query = query.filter(workspace_invitation::Column::CreatedAt.lte(until));
+        }
+        let pages = query.paginate(db, page_size);
+
+        let num_items_and_pages = pages.num_items_and_pages().await?;
+        let models = pages.fetch_page(page_number - 1).await?;
+        Ok((num_items_and_pages, models))
+    }
+
+    pub async fn get_workspace_invitation_by_id(
+        db: &DbConn,
+        id: &i32,
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find_by_id(*id).one(db).await
+    }
+
+    pub async fn get_workspace_invitation_by_accept_token(
+        db: &DbConn,
+        token: &Uuid,
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find()
+            .filter(workspace_invitation::Column::AcceptToken.eq(*token))
+            .one(db)
+            .await
+    }
+
+    pub async fn get_workspace_invitation_by_reject_token(
+        db: &DbConn,
+        token: &Uuid,
+    ) -> Result<Option<workspace_invitation::Model>, DbErr> {
+        workspace_invitation::Entity::find()
+            .filter(workspace_invitation::Column::RejectToken.eq(*token))
+            .one(db)
+            .await
     }
 }

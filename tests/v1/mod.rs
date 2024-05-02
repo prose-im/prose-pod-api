@@ -3,21 +3,24 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod invitations;
+pub mod members;
 pub mod server;
 pub mod workspace;
 
 use cucumber::{given, then, when};
-use entity::model::{MemberRole, JID};
+use entity::model::{self, MemberRole};
 use entity::{member, server_config};
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::JWTService;
-use prose_pod_api::v1::InitRequest;
+use prose_pod_api::v1::{AdminAccountInit, InitRequest};
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::sea_orm::{ActiveModelTrait, Set};
 use service::Mutation;
 
+use crate::cucumber_parameters::JID;
 use crate::TestWorld;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -26,14 +29,14 @@ pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
-    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+    let jid = model::JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
 
     let model = member::ActiveModel {
         id: Set(jid.to_string()),
         role: Set(MemberRole::Admin),
         ..Default::default()
     };
-    let model = model.insert(db).await.map_err(Error::DbErr)?;
+    let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;
@@ -47,14 +50,14 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
 async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
-    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+    let jid = model::JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
 
     let model = member::ActiveModel {
         id: Set(jid.to_string()),
         role: Set(MemberRole::Member),
         ..Default::default()
     };
-    let model = model.insert(db).await.map_err(Error::DbErr)?;
+    let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;
@@ -76,9 +79,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         workspace_name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
         ..Default::default()
     };
-    Mutation::create_server_config(db, form)
-        .await
-        .map_err(Error::DbErr)?;
+    Mutation::create_server_config(db, form).await?;
     Ok(())
 }
 
@@ -136,13 +137,22 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
 
 // INIT
 
-async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
+async fn init_workspace<'a>(
+    client: &'a Client,
+    admin_jid: &model::JID,
+    name: &str,
+) -> LocalResponse<'a> {
     client
         .post("/v1/init")
         .header(ContentType::JSON)
         .body(
             json!(InitRequest {
                 workspace_name: name.to_string(),
+                admin: AdminAccountInit {
+                    jid: admin_jid.clone(),
+                    password: "password".to_string(),
+                    nickname: admin_jid.node.replace(".", " "),
+                }
             })
             .to_string(),
         )
@@ -150,9 +160,9 @@ async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a>
         .await
 }
 
-#[when(expr = "a user initializes a workspace named {string}")]
-async fn when_workspace_init(world: &mut TestWorld, name: String) {
-    let res = init_workspace(&world.client, &name).await;
+#[when(expr = "<{jid}> initializes a workspace named {string}")]
+async fn when_workspace_init(world: &mut TestWorld, jid: JID, name: String) {
+    let res = init_workspace(&world.client, &jid, &name).await;
     world.result = Some(res.into());
 }
 
@@ -163,6 +173,11 @@ async fn test_init_workspace() -> Result<(), Box<dyn Error>> {
     let workspace_name = DEFAULT_WORKSPACE_NAME;
     let body = serde_json::to_string(&InitRequest {
         workspace_name: workspace_name.to_string(),
+        admin: AdminAccountInit {
+            jid: "test.admin@prose.org",
+            password: "password".to_string(),
+            nickname: "Test admin".to_string(),
+        },
     })?;
 
     let response = client.post("/v1/init").body(&body).dispatch().await;

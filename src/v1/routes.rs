@@ -3,19 +3,19 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
+use entity::model::{MemberRole, JID};
 use entity::server_config;
 use rocket::serde::json::Json;
 use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::sea_orm::{Set, TryIntoModel};
-use service::{Mutation, Query};
+use service::sea_orm::{Set, TransactionTrait as _, TryIntoModel};
+use service::{Mutation, Query, ServerCtl};
 use utoipa::openapi::PathItemType::Put;
 use utoipa::OpenApi;
 use utoipauto::utoipauto;
 
-use crate::guards::{Db, JWTService};
+use crate::guards::{BasicAuth, Db, JWTService, UserFactory};
 
 use super::workspace::openapi_extensions;
 use crate::error::Error;
@@ -49,16 +49,37 @@ pub(super) fn openapi() -> String {
 #[derive(Serialize, Deserialize)]
 pub struct InitRequest {
     pub workspace_name: String,
+    pub admin: AdminAccountInit,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AdminAccountInit {
+    pub jid: JID,
+    pub password: String,
+    pub nickname: String,
 }
 
 pub type InitResponse = server_config::Model;
 
 /// Initialize the Prose Pod and return the default configuration.
+#[utoipa::path(
+    tag = "Misc",
+    responses(
+        (status = 200, description = "Success", body = InitRequest),
+        (status = 400, description = "Pod not initialized", body = Error),
+        (status = 409, description = "Pod already initialized", body = Error),
+    ),
+)]
 #[post("/v1/init", format = "json", data = "<req>")]
-pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<InitResponse> {
+pub(super) async fn init(
+    conn: Connection<'_, Db>,
+    user_factory: UserFactory<'_>,
+    req: Json<InitRequest>,
+) -> R<InitResponse> {
     let db = conn.into_inner();
+    let txn = db.begin().await?;
 
-    let server_config = Query::server_config(db).await.map_err(Error::DbErr)?;
+    let server_config = Query::server_config(db).await?;
     let None = server_config else {
         return Err(Error::PodAlreadyInitialized);
     };
@@ -68,19 +89,31 @@ pub(super) async fn init(conn: Connection<'_, Db>, req: Json<InitRequest>) -> R<
         workspace_name: Set(req.workspace_name),
         ..Default::default()
     };
-    let server_config = Mutation::create_server_config(db, form)
-        .await
-        // TODO: Log as "Could not create server config"
-        .map_err(Error::DbErr)?
-        .try_into_model()
-        // TODO: Log as "Could not transform active model into model"
-        .map_err(Error::DbErr)?;
-    Ok(Json(server_config))
-}
+    // Initialize the server config in a transaction,
+    // to rollback if subsequent operations fail.
+    let server_config = Mutation::create_server_config(&txn, form)
+        .await?
+        .try_into_model()?;
 
-#[derive(Serialize, Deserialize)]
-pub struct LoginRequest {
-    pub jid: JID,
+    // NOTE: We can't rollback changes made to the XMPP server so let's do it
+    //   after "rollbackable" DB changes in case they fail. It's not perfect
+    //   but better than nothing.
+    // TODO: Find a way to rollback XMPP server changes.
+    user_factory
+        .create_user(
+            &txn,
+            &req.admin.jid,
+            &req.admin.password,
+            &req.admin.nickname,
+            &Some(MemberRole::Admin),
+        )
+        .await?;
+
+    // Commit the transaction only if the admin user was
+    // successfully created, to prevent inconsistent states.
+    txn.commit().await?;
+
+    Ok(Json(server_config))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -89,15 +122,19 @@ pub struct LoginResponse {
 }
 
 /// Log user in and return an authentication token.
-#[post("/v1/login", format = "json", data = "<req>")]
+#[post("/v1/login")]
 pub(super) fn login(
-    // conn: Connection<'_, Db>,
+    basic_auth: BasicAuth,
     jwt_service: &State<JWTService>,
-    req: Json<LoginRequest>,
+    server_ctl: &State<ServerCtl>,
 ) -> R<LoginResponse> {
-    // FIXME: Add password authentication, this is unsecure!
+    server_ctl
+        .implem
+        .lock()
+        .expect("Serverctl lock poisonned")
+        .test_user_password(&basic_auth.jid, &basic_auth.password)?;
 
-    let token = jwt_service.generate_jwt(&req.jid)?;
+    let token = jwt_service.generate_jwt(&basic_auth.jid)?;
 
     let response = LoginResponse { token }.into();
 

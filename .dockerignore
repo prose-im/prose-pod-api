@@ -1,0 +1,10 @@
+.git
+target/*
+.cargo
+ADRs
+.vscode
+.github
+scripts
+database*
+Prose.toml
+Rocket.toml

@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod models;
@@ -14,10 +14,6 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     routes![
         get_members,
-        invite_member,
-        get_invites,
-        get_invite,
-        cancel_invite,
         search_members,
         get_member,
         set_member_role,

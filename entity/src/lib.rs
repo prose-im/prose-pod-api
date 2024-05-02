@@ -8,4 +8,6 @@ pub mod prelude;
 pub mod model;
 
 pub mod member;
+pub mod notification;
 pub mod server_config;
+pub mod workspace_invitation;

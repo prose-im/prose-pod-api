@@ -3,12 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
 use rocket::outcome::try_outcome;
-use rocket::request::{FromRequest, Outcome};
+use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set};
@@ -16,28 +14,12 @@ use service::{Query, ServerCtl};
 
 use crate::error::{self, Error};
 
-use super::{Db, JID as JIDGuard};
+use super::{Db, FromRequest, JID as JIDGuard};
 
 pub struct ServerManager<'r> {
-    // NOTE: We have to wrap model in a `Result` instead of sending `Outcome::Error`
-    //   because when sending `Outcome::Error((Status::BadRequest, Error::PodNotInitialized))`
-    //   [Rocket's built-in catcher] doesn't use `impl Responder for Error` but instead
-    //   transforms the response to HTML (no matter the `Accept` header, which is weird)
-    //   saying "The request could not be understood by the server due to malformed syntax.".
-    //   We can't build our own [error catcher] as it does not have access to the error
-    //   sent via `Outcome::Error`.
-    //
-    //   [Rocket's built-in catcher]: https://rocket.rs/v0.5/guide/requests/#built-in-catcher
-    //   [error catcher]: https://rocket.rs/v0.5/guide/requests/#error-catchers
-    pub inner: Result<ServerManagerInner<'r>, Error>,
-}
-
-impl<'r> Deref for ServerManager<'r> {
-    type Target = Result<ServerManagerInner<'r>, Error>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
+    db: &'r DatabaseConnection,
+    server_ctl: &'r State<ServerCtl>,
+    server_config: server_config::Model,
 }
 
 #[rocket::async_trait]
@@ -53,17 +35,12 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
                 (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
             }));
 
-        let jid = try_outcome!(req.guard::<JIDGuard>().await);
+        let jid = try_outcome!(JIDGuard::from_request(req).await);
         match Query::is_admin(db, &jid).await {
             Ok(true) => {}
             Ok(false) => {
-                // NOTE: Returning `Error::Unauthorized.into()` would cause the error
-                //   to be caught by Rocket's built-in error catcher, not logging it
-                //   and returning an incorrect user-facing error.
-                //   See note on `ServerManager.inner`.
-                return Outcome::Success(Self {
-                    inner: Err(Error::Unauthorized),
-                });
+                debug!("<{}> is not an admin", jid.to_string());
+                return Error::Unauthorized.into();
             }
             Err(e) => return Error::DbErr(e).into(),
         }
@@ -78,27 +55,19 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
-        Outcome::Success(Self {
-            inner: match Query::server_config(db).await {
-                Ok(Some(server_config)) => Ok(ServerManagerInner {
-                    db,
-                    server_ctl,
-                    server_config,
-                }),
-                Ok(None) => Err(Error::PodNotInitialized),
-                Err(err) => Err(Error::DbErr(err)),
-            },
-        })
+        match Query::server_config(db).await {
+            Ok(Some(server_config)) => Outcome::Success(ServerManager {
+                db,
+                server_ctl,
+                server_config,
+            }),
+            Ok(None) => Error::PodNotInitialized.into(),
+            Err(err) => Error::DbErr(err).into(),
+        }
     }
 }
 
-pub struct ServerManagerInner<'r> {
-    db: &'r DatabaseConnection,
-    server_ctl: &'r State<ServerCtl>,
-    server_config: server_config::Model,
-}
-
-impl<'r> ServerManagerInner<'r> {
+impl<'r> ServerManager<'r> {
     async fn update<U>(&self, update: U) -> Result<server_config::Model, Error>
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
@@ -106,21 +75,20 @@ impl<'r> ServerManagerInner<'r> {
         let config_before = &self.server_config;
         let mut active: server_config::ActiveModel = self.server_config.clone().into();
         update(&mut active);
-        let server_config = active.update(self.db).await.map_err(Error::DbErr)?;
+        let server_config = active.update(self.db).await?;
 
         if server_config != *config_before {
             self.server_ctl
                 .lock()
                 .expect("Serverctl lock poisonned")
-                .reload()
-                .map_err(Error::ServerCtlErr)?;
+                .reload()?;
         }
 
         Ok(server_config)
     }
 }
 
-impl<'r> ServerManagerInner<'r> {
+impl<'r> ServerManager<'r> {
     // TODO: Use or delete the following comments
 
     // pub fn add_admin(&self, jid: JID) {

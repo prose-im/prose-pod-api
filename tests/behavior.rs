@@ -4,16 +4,20 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod cucumber_parameters;
-mod dummy_server_ctl;
+mod prelude;
 mod v1;
 
+use self::prelude::*;
+
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use cucumber::{then, World};
 use cucumber_parameters::HTTPStatus;
-use dummy_server_ctl::{DummyServerCtl, DummyServerCtlState};
-use entity::member;
+use dummy_notifier::DummyNotifier;
+use dummy_server_ctl::DummyServerCtl;
+use entity::model::EmailAddress;
+use entity::{member, workspace_invitation};
 use log::debug;
 use prose_pod_api::guards::{Db, JWTKey, JWTService};
 use rocket::figment::Figment;
@@ -22,10 +26,14 @@ use rocket::local::asynchronous::{Client, LocalResponse};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
+use service::config::Config;
+use service::dependencies;
+use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
 use tokio::runtime::Handle;
 use tokio::task;
+use uuid::Uuid;
 // use tracing_subscriber::{
 //     filter::{self, LevelFilter},
 //     fmt::format::{self, Format},
@@ -66,20 +74,29 @@ async fn main() {
     //     .run_and_exit("tests/features").await;
 }
 
-fn test_rocket(server_ctl: DummyServerCtl) -> Rocket<Build> {
+fn test_rocket(
+    config: &Config,
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
+) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
         .merge(("log_level", "off"))
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
-    prose_pod_api::custom_rocket(rocket::custom(figment))
+    prose_pod_api::custom_rocket(rocket::custom(figment), config)
         .manage(JWTService::new(JWTKey::custom("test_key")))
-        .manage(ServerCtl::new(Arc::new(Mutex::new(server_ctl))))
+        .manage(ServerCtl::new(server_ctl))
+        .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
-pub async fn rocket_test_client(server_ctl: DummyServerCtl) -> Client {
+pub async fn rocket_test_client(
+    config: Arc<Config>,
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
+) -> Client {
     debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(server_ctl))
+    Client::tracked(test_rocket(config.as_ref(), server_ctl, notifier))
         .await
         .expect("valid rocket instance")
 }
@@ -128,12 +145,18 @@ impl From<LocalResponse<'_>> for Response {
 
 #[derive(Debug, World)]
 #[world(init = Self::new)]
-struct TestWorld {
-    server_state: Arc<Mutex<DummyServerCtlState>>,
+pub struct TestWorld {
+    config: Arc<Config>,
+    server_ctl: Arc<Mutex<DummyServerCtl>>,
+    notifier: Arc<Mutex<DummyNotifier>>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
     members: HashMap<String, (member::Model, String)>,
+    /// Map an email address to an invitation.
+    workspace_invitations: HashMap<EmailAddress, workspace_invitation::Model>,
+    scenario_workspace_invitation: Option<(EmailAddress, workspace_invitation::Model)>,
+    previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
 }
 
 impl TestWorld {
@@ -147,17 +170,65 @@ impl TestWorld {
     fn db(&self) -> &DatabaseConnection {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
+
+    fn uuid_gen(&self) -> &dependencies::Uuid {
+        self.client.rocket().state::<dependencies::Uuid>().unwrap()
+    }
+
+    fn server_ctl(&self) -> MutexGuard<DummyServerCtl> {
+        self.server_ctl.lock().unwrap()
+    }
+
+    fn notifier(&self) -> MutexGuard<DummyNotifier> {
+        self.notifier.lock().unwrap()
+    }
+
+    fn token(&self, user: String) -> String {
+        self.members
+            .get(&user)
+            .expect("User must be created first")
+            .1
+            .clone()
+    }
+
+    fn scenario_workspace_invitation(&self) -> (EmailAddress, workspace_invitation::Model) {
+        self.scenario_workspace_invitation
+            .as_ref()
+            .expect("Current scenario invitation not stored by previous steps")
+            .clone()
+    }
+
+    fn previous_workspace_invitation_accept_token(&self, email_address: &EmailAddress) -> Uuid {
+        self.previous_workspace_invitation_accept_tokens
+            .get(email_address)
+            .expect("Previous invitation accept not stored in previous steps")
+            .clone()
+    }
+
+    fn workspace_invitation(&self, email_address: &EmailAddress) -> workspace_invitation::Model {
+        self.workspace_invitations
+            .get(email_address)
+            .expect("Invitation must be created first")
+            .clone()
+    }
 }
 
 impl TestWorld {
     async fn new() -> Self {
-        let state = Arc::new(Mutex::new(DummyServerCtlState::default()));
+        let config = Arc::new(Config::figment());
+        let server_ctl = Arc::new(Mutex::new(DummyServerCtl::new(Default::default())));
+        let notifier = Arc::new(Mutex::new(DummyNotifier::new(Default::default())));
 
         Self {
-            server_state: state.clone(),
-            client: rocket_test_client(DummyServerCtl::new(state)).await,
+            config: config.clone(),
+            server_ctl: server_ctl.clone(),
+            notifier: notifier.clone(),
+            client: rocket_test_client(config, server_ctl, notifier).await,
             result: None,
             members: HashMap::new(),
+            workspace_invitations: HashMap::new(),
+            scenario_workspace_invitation: None,
+            previous_workspace_invitation_accept_tokens: HashMap::new(),
         }
     }
 }
@@ -195,10 +266,22 @@ fn then_response_http_status(world: &mut TestWorld, status: HTTPStatus) {
 }
 
 #[then(expr = "the response should contain a {string} HTTP header")]
-fn then_response_header_contain(world: &mut TestWorld, header_name: String) {
+fn then_response_headers_contain(world: &mut TestWorld, header_name: String) {
     let res = world.result();
     assert!(
         res.headers.contains_key(&header_name),
+        "No '{}' header found. Headers: {:?}",
+        &header_name,
+        &res.headers.keys()
+    );
+}
+
+#[then(expr = "the {string} header should contain {string}")]
+fn then_response_header_equals(world: &mut TestWorld, header_name: String, header_value: String) {
+    let res = world.result();
+    assert_eq!(
+        res.headers.get(&header_name),
+        Some(&header_value),
         "No '{}' header found. Headers: {:?}",
         &header_name,
         &res.headers.keys()

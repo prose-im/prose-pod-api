@@ -1,2 +1,7 @@
-[default.databases]
-data = { url = "sqlite://database.sqlite" }
+[debug]
+# Max level to log. (off/normal/debug/critical)
+log_level = "normal"
+
+[default.databases.data]
+url = "sqlite://database.sqlite?mode=rwc"
+sqlx_logging = false

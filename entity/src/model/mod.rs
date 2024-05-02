@@ -3,20 +3,23 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub(crate) mod invitations;
 pub mod members;
 pub mod server_config;
 
+pub use invitations::*;
 pub use members::*;
 pub use server_config::*;
 
 use iso8601_duration::Duration as ISODuration;
 use sea_orm::entity::prelude::*;
-use sea_orm::sea_query::{self, ArrayType, ValueTypeErr};
+use sea_orm::sea_query::{self, ArrayType, Nullable, ValueTypeErr};
 use sea_orm::TryGetError;
 use serde::{de, Deserialize, Serialize};
 
 use std::fmt::{Debug, Display};
 use std::ops::Deref;
+use std::str::FromStr;
 
 // ===== JID =====
 
@@ -41,14 +44,22 @@ impl Display for JID {
     }
 }
 
+impl FromStr for JID {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.split_once("@") {
+            Some((node, domain)) => Ok(Self::new(node, domain)),
+            None => Err("The JID does not contain a '@'"),
+        }
+    }
+}
+
 impl TryFrom<String> for JID {
     type Error = &'static str;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.split_once("@") {
-            Some((node, domain)) => Ok(Self::new(node, domain)),
-            None => Err("The JID does not contain a '@'"),
-        }
+        Self::from_str(value.as_str())
     }
 }
 
@@ -69,6 +80,51 @@ impl<'de> Deserialize<'de> for JID {
         String::deserialize(deserializer)?
             .try_into()
             .map_err(|e| de::Error::custom(format!("{:?}", e)))
+    }
+}
+
+impl From<JID> for sea_query::Value {
+    fn from(value: JID) -> Self {
+        Self::String(Some(Box::new(value.to_string())))
+    }
+}
+
+impl sea_orm::TryGetable for JID {
+    fn try_get_by<I: sea_orm::ColIdx>(
+        res: &sea_orm::prelude::QueryResult,
+        index: I,
+    ) -> Result<Self, TryGetError> {
+        let value: String = res.try_get_by(index).map_err(TryGetError::DbErr)?;
+        Self::try_from(value)
+            // Technically, the value is not `null`, but we wouldn't want to unsafely unwrap here.
+            .map_err(|e| TryGetError::Null(format!("{:?}", e)))
+    }
+}
+
+impl sea_query::ValueType for JID {
+    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+        match v {
+            Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
+            _ => Err(ValueTypeErr),
+        }
+    }
+
+    fn type_name() -> String {
+        stringify!(JID).to_string()
+    }
+
+    fn array_type() -> ArrayType {
+        ArrayType::String
+    }
+
+    fn column_type() -> ColumnType {
+        ColumnType::string(None)
+    }
+}
+
+impl sea_query::Nullable for JID {
+    fn null() -> Value {
+        Value::String(None)
     }
 }
 
@@ -372,5 +428,85 @@ impl<D: sea_query::ValueType> sea_query::ValueType for PossiblyInfinite<D> {
 impl<D: sea_query::Nullable> sea_query::Nullable for PossiblyInfinite<D> {
     fn null() -> Value {
         D::null()
+    }
+}
+
+// ===== Email addresses =====
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub struct EmailAddress(email_address::EmailAddress);
+
+impl Deref for EmailAddress {
+    type Target = email_address::EmailAddress;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Display for EmailAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<EmailAddress> for sea_query::Value {
+    fn from(value: EmailAddress) -> Self {
+        Self::String(Some(Box::new(value.to_string())))
+    }
+}
+
+impl FromStr for EmailAddress {
+    type Err = email_address::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        email_address::EmailAddress::from_str(s).map(|e| EmailAddress(e))
+    }
+}
+
+impl TryFrom<String> for EmailAddress {
+    type Error = email_address::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(value.as_str())
+    }
+}
+
+impl sea_orm::TryGetable for EmailAddress {
+    fn try_get_by<I: sea_orm::ColIdx>(
+        res: &sea_orm::prelude::QueryResult,
+        index: I,
+    ) -> Result<Self, TryGetError> {
+        let value: String = res.try_get_by(index).map_err(TryGetError::DbErr)?;
+        Self::try_from(value)
+            // Technically, the value is not `null`, but we wouldn't want to unsafely unwrap here.
+            .map_err(|e| TryGetError::Null(format!("{:?}", e)))
+    }
+}
+
+impl sea_query::ValueType for EmailAddress {
+    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+        match v {
+            Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
+            _ => Err(ValueTypeErr),
+        }
+    }
+
+    fn type_name() -> String {
+        stringify!(EmailAddress).to_string()
+    }
+
+    fn array_type() -> ArrayType {
+        ArrayType::String
+    }
+
+    fn column_type() -> ColumnType {
+        ColumnType::string(None)
+    }
+}
+
+impl Nullable for EmailAddress {
+    fn null() -> Value {
+        Value::String(None)
     }
 }

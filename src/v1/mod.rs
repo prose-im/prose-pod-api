@@ -3,7 +3,8 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod members;
+pub mod invitations;
+pub mod members;
 pub mod routes;
 pub mod server;
 pub mod workspace;
@@ -15,6 +16,7 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     vec![
         routes![openapi, init, login],
+        invitations::routes(),
         members::routes(),
         server::routes(),
         workspace::routes(),

@@ -1,10 +1,18 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::models::Member;
-use rocket::{delete, get, post, put};
+use rocket::response::status;
+use rocket::serde::json::Json;
+use rocket::{get, put};
+
+use crate::error::Error;
+use crate::forms::JID as JIDUriParam;
+
+pub type R<T> = Result<Json<T>, Error>;
+pub type Created<T> = Result<status::Created<Json<T>>, Error>;
 
 /// Get all members
 #[utoipa::path(
@@ -32,54 +40,6 @@ pub(super) fn get_members() -> String {
         .join(",")
 }
 
-/// Invite a new member.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[post("/v1/members")]
-pub(super) fn invite_member() -> String {
-    todo!()
-}
-
-/// Get all member invitations.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[get("/v1/members/invites")]
-pub(super) fn get_invites() -> String {
-    todo!()
-}
-
-/// Get information about one member invitation.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[get("/v1/members/invites/<_invite_id>")]
-pub(super) fn get_invite(_invite_id: &str) -> String {
-    todo!()
-}
-
-/// Cancel one member invitation.
-#[utoipa::path(
-    tag = "Members",
-    responses(
-        (status = 200, description = "Success", body = String)
-    )
-)]
-#[delete("/v1/members/invites/<_invite_id>")]
-pub(super) fn cancel_invite(_invite_id: &str) -> String {
-    todo!()
-}
-
 /// Search for members.
 #[utoipa::path(
     tag = "Members",
@@ -100,7 +60,7 @@ pub(super) fn search_members() -> String {
     )
 )]
 #[get("/v1/members/<_member_id>")]
-pub(super) fn get_member(_member_id: &str) -> String {
+pub(super) fn get_member(_member_id: JIDUriParam) -> String {
     todo!()
 }
 
