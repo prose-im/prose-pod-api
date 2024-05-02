@@ -44,7 +44,6 @@ vcard_parser = "0.2"
 cucumber = "0.20"
 insta = "1"
 migration = { path = "../migration" }
-tokio = "1.20"
 
 [features]
 mock = ["sea-orm/mock"]
