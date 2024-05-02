@@ -11,13 +11,10 @@ path = "src/lib.rs"
 
 [dependencies]
 async-std = { version = "1", features = ["attributes", "tokio1"] }
+sea-orm-migration = { version = "1.0.0-rc.3", features = [
+    "runtime-tokio-rustls",
+    "sqlx-sqlite",
+] }
 # https://github.com/launchbadge/sqlx/issues/3189
 # https://github.com/launchbadge/sqlx/pull/3190
 time = "=0.3.34"
-
-[dependencies.sea-orm-migration]
-version = "1.0.0-rc.1"
-features = [
-  "runtime-tokio-rustls",
-  "sqlx-sqlite",
-]
