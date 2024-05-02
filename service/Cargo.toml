@@ -41,7 +41,7 @@ uuid = { version = "1", features = ["v4"] }
 vcard_parser = "0.2"
 
 [dev-dependencies]
-cucumber = "0.20"
+cucumber = "0.21"
 insta = "1"
 migration = { path = "../migration" }
 
