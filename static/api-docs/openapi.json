@@ -1,0 +1,1850 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "prose-pod-api",
+		"description": "Prose Pod API server.",
+		"contact": {
+			"name": "Valerian Saliou",
+			"email": "valerian@valeriansaliou.name"
+		},
+		"license": {
+			"name": "MPL-2.0"
+		},
+		"version": "0.2.0"
+	},
+	"paths": {
+		"/v1/init": {
+			"post": {
+				"tags": ["Misc"],
+				"summary": "Initialize the Prose Pod",
+				"description": "Initializes the Prose Pod and return the default configuration.",
+				"operationId": "init",
+				"security": [],
+				"requestBody": {
+					"required": true,
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/InitRequest" }
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"409": { "$ref": "#/components/responses/PodAlreadyInitialized" }
+				}
+			}
+		},
+		"/v1/login": {
+			"post": {
+				"tags": ["Misc"],
+				"summary": "Log in",
+				"description": "Logs a user in and returns an authentication token (using the JWT format).",
+				"operationId": "login",
+				"security": [
+					{ "BasicAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/LoginResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" }
+				}
+			}
+		},
+		"/v1/invitations": {
+			"get": {
+				"tags": ["Invitations"],
+				"summary": "Get all invitations",
+				"description": "Get all workspace invitations in a paginated manner.",
+				"operationId": "get_invitations",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "End of results",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+								}
+							}
+						}
+					},
+					"206": {
+						"description": "Partial results",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"post": {
+				"tags": ["Invitations"],
+				"summary": "Invite a member",
+				"description": "Invite a new member to the workspace.\n\nThe person will receive a notification with a link to join the workspace and create their account.",
+				"operationId": "invite_member",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"description": "Information about who to invite.",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/InviteMemberRequest" }
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+							}
+						},
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/invitations/{invitationIdOrToken}": {
+			"get": {
+				"tags": ["Invitations"],
+				"summary": "Get an invitation",
+				"description": "Get information about a workspace invitation.\n\nIf an accept or reject token is used in the path and `token_type` is provided as a query parameter, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).",
+				"operationId": "get_invitation",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/InvitationIdOrToken" },
+					{
+						"description": "Type of invitation token",
+						"in": "query",
+						"name": "token_type",
+						"schema": { "$ref": "#/components/schemas/InvitationTokenType" },
+						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/invitations/{invitationId}": {
+			"delete": {
+				"tags": ["Invitations"],
+				"summary": "Cancel an invitation",
+				"description": "Cancel a workspace invitation.",
+				"operationId": "invitation_cancel",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/InvitationId" }
+				],
+				"responses": {
+					"204": { "$ref": "#/components/responses/NoContent" },
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/invitations/{token}/accept": {
+			"put": {
+				"tags": ["Invitations"],
+				"summary": "Accept an invitation",
+				"description": "Accept a workspace invitation.",
+				"operationId": "invitation_accept",
+				"security": [],
+				"parameters": [
+					{ "$ref": "#/components/parameters/InvitationAcceptToken" }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/AcceptWorkspaceInvitationRequest" }
+						}
+					}
+				},
+				"responses": {
+					"204": { "$ref": "#/components/responses/NoContent" },
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"410": { "$ref": "#/components/responses/Gone" }
+				}
+			}
+		},
+		"/v1/invitations/{token}/reject": {
+			"put": {
+				"tags": ["Invitations"],
+				"summary": "Reject an invitation",
+				"description": "Reject a workspace invitation.",
+				"operationId": "invitation_reject",
+				"security": [],
+				"parameters": [
+					{ "$ref": "#/components/parameters/InvitationId" }
+				],
+				"responses": {
+					"204": { "$ref": "#/components/responses/NoContent" },
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"410": { "$ref": "#/components/responses/Gone" }
+				}
+			}
+		},
+		"/v1/invitations/{invitationId}/resend": {
+			"post": {
+				"tags": ["Invitations"],
+				"summary": "Resend an invitation",
+				"description": "Resend a workspace invitation.",
+				"operationId": "invitation_resend",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/InvitationId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/members": {
+			"get": {
+				"tags": ["Members"],
+				"summary": "Get all members",
+				"description": "Get all members in a paginated manner.",
+				"operationId": "get_members",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/PageNumber" },
+					{ "$ref": "#/components/parameters/PageSize" },
+					{ "$ref": "#/components/parameters/Until" }
+				],
+				"responses": {
+					"200": {
+						"description": "End of results",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/Member" }
+								}
+							}
+						}
+					},
+					"206": {
+						"description": "Partial results",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/Member" }
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/members/{memberId}": {
+			"get": {
+				"tags": ["Members"],
+				"summary": "Get a member",
+				"description": "Get information about one member.",
+				"operationId": "get_member",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/MemberId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/Member" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" },
+					"404": { "$ref": "#/components/responses/NotFound" }
+				}
+			}
+		},
+		"/v1/members/{memberId}/mfa": {
+			"put": {
+				"tags": ["Members"],
+				"summary": "Set member MFA status",
+				"description": "Change a member's Multi-Factor Authentication (MFA) status.",
+				"operationId": "set_member_mfa",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/MemberId" }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetMemberMfaRequest" }
+						}
+					}
+				},
+				"responses": {
+					"204": { "$ref": "#/components/responses/NoContent" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/members/{memberId}/role": {
+			"put": {
+				"tags": ["Members"],
+				"summary": "Set member role",
+				"description": "Change a member's role.",
+				"operationId": "set_member_role",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/MemberId" }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetMemberRoleRequest" }
+						}
+					}
+				},
+				"responses": {
+					"204": { "$ref": "#/components/responses/NoContent" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/compliance-tests": {
+			"get": {
+				"tags": ["Server / Compliance tests"],
+				"summary": "Get the results of all Compliance Suites executed on your server.",
+				"description": "Get the results of all Compliance Suites executed on your server.",
+				"operationId": "get_compliance_tests_results",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Server / Compliance tests"],
+				"summary": "Configure which Compliance Suites to test on your server.",
+				"description": "Configure which Compliance Suites to test on your server.",
+				"operationId": "set_compliance_test_suites",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/compliance-tests/{xepId}": {
+			"get": {
+				"tags": ["Server / Compliance tests"],
+				"summary": "Get the results of a Compliance Suite executed on your server.",
+				"description": "Get the results of a Compliance Suite executed on your server.",
+				"operationId": "get_compliance_suite_results",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/XepId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config": {
+			"get": {
+				"tags": ["Server / Configuration"],
+				"summary": "Get server config",
+				"description": "Get the current configuration of the XMPP server.",
+				"operationId": "get_server_config",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/allow-file-upload": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Change file upload settings",
+				"description": "Activate or deactivate file upload and sharing.",
+				"operationId": "set_file_upload_allowed",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetFileUploadingRequest" }
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/file-retention": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Change uploaded files retention",
+				"description": "Change the retention of uploaded files.",
+				"operationId": "set_file_retention",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetFileRetentionRequest" }
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/file-storage-encryption-scheme": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Change file storage encryption scheme",
+				"description": "Change the file storage encryption scheme.",
+				"operationId": "set_file_storage_encryption_scheme",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/message-archive-retention": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Change message archive retention",
+				"description": "Update message archive retention.",
+				"operationId": "set_message_archive_retention",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetMessageArchiveRetentionRequest" }
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/store-message-archive": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Activate or deactivate message archiving",
+				"description": "Activate or deactivate message archiving.",
+				"operationId": "set_message_archive_enabled",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetMessageArchivingRequest" }
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/connection-history": {
+			"get": {
+				"tags": ["Server / Connection History"],
+				"summary": "Get user connect history (aggregated for each user, eg. John connected 3 times today).",
+				"description": "Get user connect history (aggregated for each user, eg. John connected 3 times today).",
+				"operationId": "get_history",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/connection-history/audit-log": {
+			"get": {
+				"tags": ["Server / Connection History"],
+				"summary": "Get connection audit log (with countries and IP addresses).",
+				"description": "Get connection audit log (with countries and IP addresses).",
+				"operationId": "get_audit_log",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/connection-history/security-events": {
+			"get": {
+				"tags": ["Server / Connection History"],
+				"summary": "Get security events (eg. failed user logins).",
+				"description": "Get security events (eg. failed user logins).",
+				"operationId": "get_security_events",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/data/usage": {
+			"get": {
+				"tags": ["Server / Data Storage"],
+				"summary": "Get how much data is stored on the server for everyone at once.",
+				"description": "Get how much data is stored on the server for everyone at once.",
+				"operationId": "get_data_usage",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/data/usage-per-user/{memberId}": {
+			"get": {
+				"tags": ["Server / Data Storage"],
+				"summary": "Get how much data is stored on the server per-user.",
+				"description": "Get how much data is stored on the server per-user.",
+				"operationId": "get_data_usage_per_user",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref":"#/components/parameters/MemberId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/insights/active-users": {
+			"get": {
+				"tags": ["Server / Insights"],
+				"summary": "Get how many users are active.",
+				"description": "Get how many users are active.",
+				"operationId": "get_active_users",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							},
+							"text/event-stream": {
+								"description": "A stream (as Server Sent Events)",
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/insights/server-to-server-stats": {
+			"get": {
+				"tags": ["Server / Insights"],
+				"summary": "Get server-to-server stats (message stats to/from external servers).",
+				"description": "Get server-to-server stats (message stats to/from external servers).",
+				"operationId": "get_server_to_server_stats",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/logs": {
+			"get": {
+				"tags": ["Server / Logs"],
+				"summary": "Get server logs between two timestamps.",
+				"description": "Get server logs between two timestamps.",
+				"operationId": "get_server_logs",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							},
+							"text/event-stream": {
+								"description": "A stream (as Server Sent Events)",
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/accent-color": {
+			"get": {
+				"tags": ["Workspace"],
+				"summary": "Get the accent color of your workspace.",
+				"description": "Get the accent color of your workspace.",
+				"operationId": "get_workspace_accent_color",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceAccentColorResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Workspace"],
+				"summary": "Set the accent color of your workspace.",
+				"description": "Set the accent color of your workspace.",
+				"operationId": "set_workspace_accent_color",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SetWorkspaceAccentColorRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceAccentColorResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/details-card": {
+			"get": {
+				"tags": ["Workspace"],
+				"summary": "Get the details card of your workspace.",
+				"description": "Get the details card of your workspace.",
+				"operationId": "get_workspace_details_card",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"text/vcard": {
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Workspace"],
+				"summary": "Set the details card of your workspace.",
+				"description": "Set the details card of your workspace.",
+				"operationId": "set_workspace_details_card",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"text/vcard": {
+							"schema": {
+								"type": "string"
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Success",
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/icon": {
+			"get": {
+				"tags": ["Workspace"],
+				"summary": "Get workspace icon",
+				"description": "Get the icon of your workspace.",
+				"operationId": "get_workspace_icon",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceIconResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Workspace"],
+				"summary": "Set workspace icon",
+				"description": "Set the icon of your workspace.\nAccepted content types are: `image/jpeg`, `image/png`, `image/gif`, `image/webp` and `text/plain` (containing either the URL to an external image or a base64-encoded image).",
+				"operationId": "set_workspace_icon",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+					"description": "Workspace icon",
+					"content": {
+						"image/gif": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"image/jpeg": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"image/png": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"image/webp": {
+							"schema": {
+								"type": "string",
+								"format": "binary"
+							}
+						},
+						"text/plain": {
+							"schema": {
+								"oneOf": [
+									{
+										"type": "string",
+										"title": "URL to an external image",
+										"format": "uri",
+										"example": "https://avatars.githubusercontent.com/u/81181949?s=200&v=4"
+									},
+									{
+										"type": "string",
+										"title": "Base64 string",
+										"format": "base64",
+										"example": "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"
+									}
+								],
+								"title": "URL to an external image or base64-encoded image."
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceIconResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/name": {
+			"get": {
+				"tags": ["Workspace"],
+				"summary": "Get workspace name",
+				"description": "Get the name of your workspace.",
+				"operationId": "get_workspace_name",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceNameResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Workspace"],
+				"summary": "Set workspace name",
+				"description": "Set the name of your workspace.",
+				"operationId": "set_workspace_name",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"requestBody": {
+				  "required": true,
+ 					"content": {
+						"application/json": {
+ 							"schema": {  "$ref": "#/components/schemas/SetWorkspaceNameRequest" }
+						}
+ 					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/GetWorkspaceNameResponse" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/reactions": {
+			"get": {
+				"tags": ["Workspace / Reactions"],
+				"summary": "Get workspace reactions",
+				"description": "Get custom reactions defined in your workspace.",
+				"operationId": "get_workspace_reactions",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"post": {
+				"tags": ["Workspace / Reactions"],
+				"summary": "Add workspace reaction",
+				"description": "Add a custom reaction to your workspace.",
+				"operationId": "add_workspace_reaction",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace/reactions/{reactionId}": {
+			"get": {
+				"tags": ["Workspace / Reactions"],
+				"summary": "Get workspace reaction",
+				"description": "Get details about a custom reaction defined in your workspace.",
+				"operationId": "get_workspace_reaction",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/ReactionId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"put": {
+				"tags": ["Workspace / Reactions"],
+				"summary": "Edit workspace reaction",
+				"description": "Edit a custom reaction defined in your workspace.",
+				"operationId": "edit_workspace_reaction",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/ReactionId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
+			"delete": {
+				"tags": ["Workspace / Reactions"],
+				"summary": "Delete workspace reaction",
+				"description": "Delete a custom reaction from your workspace.",
+				"operationId": "delete_workspace_reaction",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/ReactionId" }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"Error": {
+				"type": "object",
+				"required": [
+					"reason"
+				],
+				"properties": {
+					"reason": {
+						"type": "string",
+						"enum": [
+							"bad_request",
+							"database_error",
+							"internal_server_error",
+							"not_found",
+							"not_implemented",
+							"pod_already_initialized",
+							"pod_not_initialized",
+							"unauthorized",
+							"forbidden"
+						],
+						"example": "bad_request"
+					}
+				}
+			},
+			"InvitationToken": {
+				"oneOf": [
+					{ "$ref": "#/components/schemas/InvitationAcceptToken" },
+					{ "$ref": "#/components/schemas/InvitationRejectToken" }
+				]
+			},
+			"InvitationAcceptToken": {
+				"type": "string",
+				"format": "uuid",
+				"example": "20edadc2-6c3b-4297-b92a-042f23249225"
+			},
+			"InvitationRejectToken": {
+				"type": "string",
+				"format": "uuid",
+				"example": "f2736e87-850e-4776-bb26-52c12a7d8bd8"
+			},
+			"InvitationTokenType": {
+				"type": "string",
+				"enum": ["accept", "reject"],
+				"example": "accept"
+			},
+			"AcceptWorkspaceInvitationRequest": {
+				"type": "object",
+				"required": [
+					"nickname",
+					"password"
+				],
+				"properties": {
+					"nickname": { "$ref": "#/components/schemas/Nickname" },
+					"password": { "$ref": "#/components/schemas/Password" }
+				}
+			},
+			"AdminAccountInit": {
+				"type": "object",
+				"required": [
+					"jid",
+					"password",
+					"nickname"
+				],
+				"properties": {
+					"jid": { "$ref": "#/components/schemas/JID" },
+					"nickname": { "$ref": "#/components/schemas/Nickname" },
+					"password": { "$ref": "#/components/schemas/Password" }
+				}
+			},
+			"GetWorkspaceAccentColorResponse": {
+				"type": "object",
+				"properties": {
+					"color": {
+						"type": "string",
+						"example": "#4233BE",
+						"nullable": true
+					}
+				}
+			},
+			"GetWorkspaceIconResponse": {
+				"type": "object",
+				"properties": {
+					"url": {
+						"type": "string",
+						"nullable": true
+					}
+				}
+			},
+			"GetWorkspaceNameResponse": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"properties": {
+					"name": { "$ref": "#/components/schemas/WorkspaceName" }
+				}
+			},
+			"InitRequest": {
+				"type": "object",
+				"required": [
+					"workspace_name",
+					"admin"
+				],
+				"properties": {
+					"admin": { "$ref": "#/components/schemas/AdminAccountInit" },
+					"workspace_name": { "$ref": "#/components/schemas/WorkspaceName" }
+				}
+			},
+			"ServerConfig": {
+				"required": [
+					"message_archive_enabled",
+					"message_archive_retention",
+					"file_upload_allowed",
+					"file_storage_encryption_scheme",
+					"file_storage_retention",
+					"mfa_required",
+					"minimum_tls_version",
+					"minimum_cipher_suite",
+					"federation_enabled",
+					"settings_backup_interval",
+					"user_data_backup_interval"
+				],
+				"properties": {
+					"message_archive_enabled": {
+						"type": "boolean",
+						"default": true
+					},
+					"message_archive_retention": {
+						"oneOf": [
+							{ "$ref": "#/components/schemas/DurationDateLike" },
+							{ "$ref": "#/components/schemas/DurationInfinite" }
+						],
+						"default": "infinite"
+					},
+					"file_upload_allowed": {
+						"type": "boolean",
+						"default": true
+					},
+					"file_storage_encryption_scheme": {
+						"type": "string",
+						"default": "AES-256"
+					},
+					"file_storage_retention": {
+						"oneOf": [
+							{ "$ref": "#/components/schemas/DurationDateLike" },
+							{ "$ref": "#/components/schemas/DurationInfinite" }
+						],
+						"default": "infinite"
+					},
+					"mfa_required": {
+						"title": "Require Multi-Factor Authentication",
+						"description": "Whether or not [Multi-Factor Authentication (MFA)](https://en.wikipedia.org/wiki/Multi-factor_authentication) is required for users to log into their account.",
+						"type": "boolean",
+						"default": true
+					},
+					"minimum_tls_version": {
+						"title": "Minimum SSL/TLS version",
+						"description": "The minimum SSL/[TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security).",
+						"type": "string",
+						"default": "1.2"
+					},
+					"minimum_cipher_suite": {
+						"title": "Minimum cipher suite (encryption strength)",
+						"description": "Accepting lower-security encryption ciphers let older user devices and servers connect to your server, but is also much less secure. A minimum cipher suite of High strength is recommended.",
+						"type": "string",
+						"enum": ["HIGH_STRENGTH"],
+						"default": "HIGH_STRENGTH"
+					},
+					"federation_enabled": {
+						"description": "Whether or not the XMPP server should support interdomain federation. For more information, see [RFC 6120, section 13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).",
+						"type": "boolean",
+						"default": true
+					},
+					"settings_backup_interval": {
+						"type": "string",
+						"format": "duration",
+						"default": "P1D"
+					},
+					"user_data_backup_interval": {
+						"type": "string",
+						"format": "duration",
+						"default": "P1W"
+					}
+				}
+			},
+			"DurationDateLike": {
+				"description": "A duration in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations) containing only date components.",
+				"type": "string",
+				"format": "duration",
+				"example": "P1Y"
+			},
+			"DurationTimeLike": {
+				"description": "A duration in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations) containing only time components.",
+				"type": "string",
+				"format": "duration",
+				"example": "PT4H"
+			},
+			"DurationInfinite": {
+				"type": "string",
+				"enum": ["infinite"]
+			},
+			"InviteMemberRequest": {
+				"allOf": [
+					{ "$ref": "#/components/schemas/InvitationContact" },
+					{
+						"type": "object",
+						"required": [
+							"username"
+						],
+						"properties": {
+							"pre_assigned_role": { "$ref": "#/components/schemas/MemberRole" },
+							"username": { "$ref": "#/components/schemas/Username" }
+						}
+					}
+				]
+			},
+			"SetMemberMfaRequest": {
+				"type": "object"
+			},
+			"SetMemberRoleRequest": {
+				"type": "object",
+				"required": [
+					"role"
+				],
+				"properties": {
+					"role": { "$ref": "#/components/schemas/MemberRole" }
+				}
+			},
+			"SetFileRetentionRequest": {
+				"type": "object",
+				"required": [
+					"file_retention"
+				],
+				"properties": {
+					"file_retention": {
+						"oneOf": [
+							{ "$ref": "#/components/schemas/DurationDateLike" },
+							{ "$ref": "#/components/schemas/DurationInfinite" }
+						]
+					}
+				}
+			},
+			"SetFileUploadingRequest": {
+				"type": "object",
+				"required": [
+					"file_upload_allowed"
+				],
+				"properties": {
+					"file_upload_allowed": {
+						"type": "boolean"
+					}
+				}
+			},
+			"SetMessageArchiveRetentionRequest": {
+				"type": "object",
+				"required": [
+					"message_archive_retention"
+				],
+				"properties": {
+					"message_archive_retention": {
+						"oneOf": [
+							{ "$ref": "#/components/schemas/DurationDateLike" },
+							{ "$ref": "#/components/schemas/DurationInfinite" }
+						]
+					}
+				}
+			},
+			"SetMessageArchivingRequest": {
+				"type": "object",
+				"required": [
+					"message_archive_enabled"
+				],
+				"properties": {
+					"message_archive_enabled": {
+						"type": "boolean"
+					}
+				}
+			},
+			"SetWorkspaceAccentColorRequest": {
+				"type": "object",
+				"required": [
+					"color"
+				],
+				"properties": {
+					"color": {
+						"type": "string",
+						"example": "#226EF2"
+					}
+				}
+			},
+			"SetWorkspaceNameRequest": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"properties": {
+					"name": { "$ref": "#/components/schemas/WorkspaceName" }
+				}
+			},
+			"WorkspaceInvitation": {
+				"type": "object",
+				"required": [
+					"invitation_id",
+					"created_at",
+					"status",
+					"jid",
+					"pre_assigned_role",
+					"contact",
+					"accept_token_expires_at"
+				],
+				"properties": {
+					"accept_token_expires_at": { "$ref": "#/components/schemas/DateTime" },
+					"contact": { "$ref": "#/components/schemas/InvitationContact" },
+					"created_at": { "$ref": "#/components/schemas/DateTime" },
+					"invitation_id": { "$ref": "#/components/schemas/InvitationId" },
+					"jid": { "$ref": "#/components/schemas/JID" },
+					"pre_assigned_role": { "$ref": "#/components/schemas/MemberRole" },
+					"status": { "$ref": "#/components/schemas/InvitationStatus" }
+				}
+			},
+			"JID": {
+				"summary": "A bare JID, as defined by [RFC 6120, section 2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).",
+				"type": "string",
+				"format": "jid",
+				"example": "remi@prose.org"
+			},
+			"MemberRole": {
+				"summary": "A member's role.",
+				"type": "string",
+				"enum": ["MEMBER", "ADMIN"]
+			},
+			"InvitationStatus": {
+				"summary": "The status of an invitation.",
+				"type": "string",
+				"enum": ["TO_SEND", "SENT", "SEND_FAILED"],
+				"example": "SENT"
+			},
+			"InvitationId": {
+				"summary": "The unique identifier of an invitation.",
+				"type": "integer",
+				"format": "int32",
+				"example": 42
+			},
+			"InvitationContact": {
+				"oneOf": [
+					{ "$ref": "#/components/schemas/InvitationContactEmail" }
+				],
+				"discriminator": {
+					"propertyName": "channel"
+				}
+			},
+			"InvitationContactEmail": {
+				"type": "object",
+				"required": [
+					"channel",
+					"email_address"
+				],
+				"properties": {
+					"channel": { "$ref": "#/components/schemas/InvitationChannel" },
+					"email_address": {
+						"type": "string",
+						"format": "email",
+						"summary": "An email address.",
+						"example": "remi@example.org"
+					}
+				}
+			},
+			"InvitationChannel": {
+				"type": "string",
+				"enum": ["email"],
+				"summary": "The channel used to invite someone.\n\nFor now only email is supported, but we could extend it to SMS for example."
+			},
+			"Username": {
+				"type": "string",
+				"summary": "The local part of a JID, as defined by [RFC 6120, section 2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).",
+				"example": "remi.bardon"
+			},
+			"Nickname": {
+				"type": "string",
+				"summary": "A vCard `NICKNAME` parameter, as defined in [RFC 6350, section 6.2.3](https://datatracker.ietf.org/doc/html/rfc6350#section-6.2.3).",
+				"example": "Rémi B."
+			},
+			"WorkspaceName": {
+				"type": "string",
+				"summary": "The name of a Prose workspace.",
+				"example": "Crisp"
+			},
+			"Password": {
+				"type": "string",
+				"format": "password",
+				"example": "HsV>dFx^P[m!jM+4W9wf5k:_t{8pSQ*?"
+			},
+			"DateTime": {
+				"type": "string",
+				"format": "date-time"
+			},
+			"LoginResponse": {
+				"type": "object",
+				"required": [
+					"token"
+				],
+				"properties": {
+					"token": {
+						"title": "An authentication token",
+						"summary": "summary",
+						"description": "description",
+						"type": "string",
+						"format": "jwt",
+						"example": "eyJhbGciOiJIUzI1NiJ9.eyJqaWQiOiJleGFtcGxlQHByb3NlLm9yZy5sb2NhbCJ9.y88lyu9q0dFx9zYxllJo3XUtNnyc3Z_ad3w1hsfTJQ0"
+					}
+				}
+			},
+			"Member": {
+				"type": "object",
+				"required": [
+					"jid",
+					"name",
+					"role"
+				],
+				"properties": {
+					"jid": { "$ref": "#/components/schemas/JID" },
+					"name": { "$ref": "#/components/schemas/Nickname" },
+					"role": { "$ref": "#/components/schemas/MemberRole" }
+				}
+			}
+		},
+		"headers": {
+			"Location": {
+				"description": "URL to the created resource. See [`Location` on MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location).",
+				"schema": {
+					"type": "string",
+					"format": "uri"
+				},
+				"example": "/v1/invitations/42"
+			},
+			"WWW-Authenticate": {
+				"description": "Standard `WWW-Authenticate` header. See [`WWW-Authenticate` on MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/WWW-Authenticate).",
+				"schema": {
+					"type": "string",
+					"format": "www-authenticate"
+				},
+				"example": "Bearer realm=\"Admin only area\", charset=\"UTF-8\""
+			}
+		},
+		"securitySchemes": {
+			"BasicAuth": {
+				"type": "http",
+				"scheme": "basic"
+			},
+			"BearerAuth": {
+				"type": "http",
+				"scheme": "bearer"
+			}
+		},
+		"responses": {
+			"NoContent": {
+				"description": "Success"
+			},
+			"PodAlreadyInitialized": {
+				"description": "Pod already initialized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "pod_already_initialized"
+						}
+					}
+				}
+			},
+			"PodNotInitialized": {
+				"description": "Pod not initialized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "pod_not_initialized"
+						}
+					}
+				}
+			},
+			"Unauthorized": {
+				"description": "Unauthorized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "unauthorized"
+						}
+					}
+				},
+				"headers": {
+					"WWW-Authenticate": { "$ref": "#/components/headers/WWW-Authenticate" }
+				}
+			},
+			"Forbidden": {
+				"description": "Forbidden",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "forbidden"
+						}
+					}
+				}
+			},
+			"NotFound": {
+				"description": "Object not found",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "not_found"
+						}
+					}
+				}
+			},
+			"Gone": {
+				"description": "Object does not exist",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "not_found"
+						}
+					}
+				}
+			}
+		},
+		"parameters": {
+			"InvitationId": {
+				"description": "Unique identifier of a workspace invitation",
+				"name": "invitationId",
+				"in": "path",
+				"schema": { "$ref": "#/components/schemas/InvitationId" },
+				"required": true
+			},
+			"InvitationIdOrToken": {
+				"description": "Unique identifier of a workspace invitation",
+				"name": "invitationIdOrToken",
+				"in": "path",
+				"schema": {
+					"oneOf": [
+						{ "$ref": "#/components/schemas/InvitationId" },
+						{ "$ref": "#/components/schemas/InvitationToken" }
+					]
+				},
+				"required": true
+			},
+			"InvitationToken": {
+				"description": "Invitation accept or reject token",
+				"in": "path",
+				"name": "token",
+				"schema": { "$ref": "#/components/schemas/InvitationToken" },
+				"required": true
+			},
+			"InvitationAcceptToken": {
+				"description": "Invitation accept token",
+				"in": "path",
+				"name": "token",
+				"schema": { "$ref": "#/components/schemas/InvitationAcceptToken" },
+				"required": true
+			},
+			"InvitationRejectToken": {
+				"description": "Invitation reject token",
+				"in": "path",
+				"name": "token",
+				"schema": { "$ref": "#/components/schemas/InvitationRejectToken" },
+				"required": true
+			},
+			"PageNumber": {
+				"in": "query",
+				"name": "page_number",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"default": 1,
+					"example": 2
+				}
+			},
+			"PageSize": {
+				"in": "query",
+				"name": "page_size",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"default": 20,
+					"example": 50
+				}
+			},
+			"Until": {
+				"in": "query",
+				"name": "until",
+				"schema": { "$ref": "#/components/schemas/DateTime" }
+			},
+			"MemberId": {
+				"name": "memberId",
+				"in": "path",
+				"required": true,
+				"schema": { "$ref": "#/components/schemas/JID" }
+			},
+			"XepId": {
+				"description": "Unique identifier of an [XMPP extension (XEP)](https://xmpp.org/extensions/).",
+				"name": "xepId",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"example": "XEP-0045"
+			},
+			"ReactionId": {
+				"name": "reactionId",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}

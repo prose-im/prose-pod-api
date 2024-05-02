@@ -10,10 +10,11 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 ## Accepted ADRs
 
 - [Describe Prose Pod API using the OpenAPI Specification](./2023-12-18-a-describe-with-openapi.md) (2023-12-18)
-- [Automatically detect OpenAPI routes](./2023-12-18-b-generate-openapi-description.md) (2023-12-18)
 - [Use SeaORM to interact with the SQLite database](./2023-12-21-a-use-sea-orm.md) (2023-12-21)
 - [Write tests with the Gherkin syntax](./2024-01-11-a-write-tests-in-gherkin.md) (2024-01-11)
 - [Interact with Prosody using a REST API](./2024-04-04-a-prosody-rest-api.md) (2024-04-04)
+- [Write the OpenAPI description file manually](./2024-04-25-a-write-openapi-manually.md) (2024-04-25)
+- [Expose API documentation route using Redoc (instead of Swagger UI)](./2024-04-25-b-use-redoc-instead-of-swagger-ui.md) (2024-04-25)
 
 ## Proposed ADRs
 
@@ -25,7 +26,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Deprecated ADRs
 
-- ø
+- [Automatically detect OpenAPI routes](./2023-12-18-b-generate-openapi-description.md) (2023-12-18)
 
 ## Rejected ADRs
 

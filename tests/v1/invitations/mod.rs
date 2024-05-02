@@ -87,9 +87,7 @@ async fn get_workspace_invitation_by_token<'a>(
     token_type: TokenType,
 ) -> LocalResponse<'a> {
     client
-        .get(format!(
-            "/v1/invitations?token={token}&token_type={token_type}"
-        ))
+        .get(format!("/v1/invitations/{token}?token_type={token_type}"))
         .header(Accept::JSON)
         .dispatch()
         .await
@@ -98,14 +96,11 @@ async fn get_workspace_invitation_by_token<'a>(
 async fn accept_workspace_invitation<'a>(
     client: &'a Client,
     token: Uuid,
-    invitation_id: i32,
     nickname: String,
     password: Option<String>,
 ) -> LocalResponse<'a> {
     client
-        .post(format!(
-            "/v1/invitations/{invitation_id}?action=accept&token={token}"
-        ))
+        .post(format!("/v1/invitations/{token}/accept"))
         .header(ContentType::JSON)
         .body(
             json!(AcceptWorkspaceInvitationRequest {
@@ -119,15 +114,9 @@ async fn accept_workspace_invitation<'a>(
         .await
 }
 
-async fn reject_workspace_invitation<'a>(
-    client: &'a Client,
-    token: Uuid,
-    invitation_id: i32,
-) -> LocalResponse<'a> {
+async fn reject_workspace_invitation<'a>(client: &'a Client, token: Uuid) -> LocalResponse<'a> {
     client
-        .post(format!(
-            "/v1/invitations/{invitation_id}?action=reject&token={token}"
-        ))
+        .post(format!("/v1/invitations/{token}/reject"))
         .header(Accept::JSON)
         .dispatch()
         .await
@@ -153,7 +142,7 @@ async fn workspace_invitation_admin_action<'a>(
     action: &'static str,
 ) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/invitations/{invitation_id}?action={action}"))
+        .post(format!("/v1/invitations/{invitation_id}/{action}"))
         .header(Accept::JSON)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .dispatch()
@@ -396,7 +385,6 @@ async fn when_invited_accepts_invitation(world: &mut TestWorld, email_address: E
     let res = accept_workspace_invitation(
         &world.client,
         invitation.accept_token,
-        invitation.id,
         email_address.0.local_part().to_string(),
         None,
     )
@@ -411,24 +399,16 @@ async fn when_invited_accepts_invitation_with_nickname(
     nickname: String,
 ) {
     let invitation = world.workspace_invitation(&email_address.0);
-    let res = accept_workspace_invitation(
-        &world.client,
-        invitation.accept_token,
-        invitation.id,
-        nickname,
-        None,
-    )
-    .await;
+    let res =
+        accept_workspace_invitation(&world.client, invitation.accept_token, nickname, None).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "<{email}> uses the previous invitation accept link they received")]
 async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
-    let workspace_invitation = world.workspace_invitation(&email_address);
     let res = accept_workspace_invitation(
         &world.client,
         world.previous_workspace_invitation_accept_token(&email_address),
-        workspace_invitation.id,
         email_address.0.local_part().to_string(),
         None,
     )
@@ -439,8 +419,7 @@ async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address:
 #[when(expr = "<{email}> rejects their invitation")]
 async fn when_invited_rejects_invitation(world: &mut TestWorld, email_address: EmailAddress) {
     let invitation = world.workspace_invitation(&email_address.0);
-    let res =
-        reject_workspace_invitation(&world.client, invitation.reject_token, invitation.id).await;
+    let res = reject_workspace_invitation(&world.client, invitation.reject_token).await;
     world.result = Some(res.into());
 }
 
