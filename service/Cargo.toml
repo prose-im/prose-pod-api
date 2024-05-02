@@ -31,9 +31,6 @@ sea-orm = { version = "1.0.0-rc.3", features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 tempfile = "3"
-# https://github.com/launchbadge/sqlx/issues/3189
-# https://github.com/launchbadge/sqlx/pull/3190
-time = "=0.3.34"
 tokio = "1"
 urlencoding = "2"
 url_serde = "0.2"
