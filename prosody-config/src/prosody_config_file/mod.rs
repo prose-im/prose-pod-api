@@ -10,12 +10,14 @@ use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
 use std::{hash::Hash, path::PathBuf};
 
+#[derive(Debug)]
 pub struct ProsodyConfigFile {
     pub header: Option<Group<LuaComment>>,
     pub global_settings: Vec<Group<LuaDefinition>>,
     pub additional_sections: Vec<ProsodyConfigFileSection>,
 }
 
+#[derive(Debug)]
 pub enum ProsodyConfigFileSection {
     VirtualHost {
         comments: Vec<LuaComment>,
@@ -33,6 +35,7 @@ pub enum ProsodyConfigFileSection {
 
 // ===== Atoms =====
 
+#[derive(Debug)]
 pub struct LuaComment(pub String);
 
 impl<S: ToString> From<S> for LuaComment {
@@ -43,7 +46,7 @@ impl<S: ToString> From<S> for LuaComment {
 
 /// When we want to group definitions together by topic for example,
 /// we can use groups to avoid printing empty lines in-between.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Group<T> {
     pub comment: Option<LuaComment>,
     pub elements: Vec<T>,
@@ -82,12 +85,14 @@ impl LuaDefinition {
     }
 }
 
+#[derive(Debug)]
 pub struct LuaDefinition {
     pub comment: Option<LuaComment>,
     pub key: String,
     pub value: LuaValue,
 }
 
+#[derive(Debug)]
 pub enum LuaNumber {
     Scalar(i64),
     Product(Box<LuaNumber>, Box<LuaNumber>),
@@ -123,6 +128,7 @@ impl From<u32> for LuaNumber {
     }
 }
 
+#[derive(Debug)]
 pub enum LuaValue {
     Bool(bool),
     Number(LuaNumber),

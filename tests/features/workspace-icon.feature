@@ -1,12 +1,12 @@
 Feature: Workspace icon
 
-  Scenario: API should warn if workspace has not been initialized when getting workspace icon
-    Given workspace has not been initialized
+  Scenario: API should warn if the workspace has not been initialized when getting workspace icon
+    Given the workspace has not been initialized
      When a user gets the workspace icon
      Then the user should receive 'Prose Pod not initialized'
 
   Scenario: Get workspace icon after initializing
-    Given workspace has been initialized
+    Given the workspace has been initialized
      When a user gets the workspace icon
      Then the call should succeed
       And the response content type should be JSON

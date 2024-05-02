@@ -3,26 +3,88 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod server;
 pub mod workspace;
 
-use crate::TestWorld;
 use cucumber::{given, then, when};
+use entity::model::{MemberRole, JID};
+use entity::{member, server_config};
+use prose_pod_api::error::Error;
+use prose_pod_api::guards::JWTService;
 use prose_pod_api::v1::InitRequest;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::sea_orm::{ActiveModelTrait, Set};
+use service::Mutation;
+
+use crate::TestWorld;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
-#[given("workspace has not been initialized")]
+#[given(regex = r"^(.+) is an admin$")]
+async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    let db = world.db();
+
+    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+
+    let model = member::ActiveModel {
+        id: Set(jid.to_string()),
+        role: Set(MemberRole::Admin),
+        ..Default::default()
+    };
+    let model = model.insert(db).await.map_err(Error::DbErr)?;
+
+    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
+    let token = jwt_service.generate_jwt(&jid)?;
+
+    world.members.insert(name, (model, token));
+
+    Ok(())
+}
+
+#[given(regex = r"^(.+) is (not an admin|a regular member)$")]
+async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    let db = world.db();
+
+    let jid = JID::new(name.to_lowercase().replace(" ", "-"), "test.org");
+
+    let model = member::ActiveModel {
+        id: Set(jid.to_string()),
+        role: Set(MemberRole::Member),
+        ..Default::default()
+    };
+    let model = model.insert(db).await.map_err(Error::DbErr)?;
+
+    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
+    let token = jwt_service.generate_jwt(&jid)?;
+
+    world.members.insert(name, (model, token));
+
+    Ok(())
+}
+
+#[given("the workspace has not been initialized")]
 fn given_workspace_not_initialized(_world: &mut TestWorld) {
     // Do nothing, as a new test client is always empty
 }
 
-#[given("workspace has been initialized")]
-async fn given_workspace_initialized(world: &mut TestWorld) {
-    let res = init_workspace(&world.client, DEFAULT_WORKSPACE_NAME).await;
-    assert_eq!(res.status(), Status::Ok);
+#[given("the workspace has been initialized")]
+async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
+    let db = world.db();
+    let form = server_config::ActiveModel {
+        workspace_name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
+        ..Default::default()
+    };
+    Mutation::create_server_config(db, form)
+        .await
+        .map_err(Error::DbErr)?;
+    Ok(())
+}
+
+#[given("nothing has changed since the initialization of the workspace")]
+fn given_nothing_changed(_world: &mut TestWorld) {
+    // Do nothing, even though we could performs checks
 }
 
 #[then("the user should receive 'Prose Pod not initialized'")]
@@ -62,6 +124,16 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
     );
 }
 
+// LOGIN
+
+// async fn login<'a>(client: &'a Client) -> LocalResponse<'a> {
+//     client
+//         .post("/v1/login")
+//         .header(ContentType::JSON)
+//         .dispatch()
+//         .await
+// }
+
 // INIT
 
 async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
@@ -78,14 +150,14 @@ async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a>
         .await
 }
 
-#[when(expr = "a user ititializes a workspace named {string}")]
+#[when(expr = "a user initializes a workspace named {string}")]
 async fn when_workspace_init(world: &mut TestWorld, name: String) {
     let res = init_workspace(&world.client, &name).await;
     world.result = Some(res.into());
 }
 
 #[tokio::test]
-async fn test_init_settings() -> Result<(), Box<dyn Error>> {
+async fn test_init_workspace() -> Result<(), Box<dyn Error>> {
     let client = rocket_test_client().await;
 
     let workspace_name = DEFAULT_WORKSPACE_NAME;

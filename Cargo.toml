@@ -14,7 +14,14 @@ authors = [
 ]
 
 [workspace]
-members = [".", "service", "entity", "migration", "prosody-config"]
+members = [
+    ".",
+    "entity",
+    "migration",
+    "prosody-config",
+    "prosodyctl",
+    "service",
+]
 
 [dependencies]
 async-stream = "0.3"
@@ -22,6 +29,9 @@ async-trait = "0.1"
 entity = { path = "./entity" }
 futures = "0.3"
 futures-util = { version = "0.3" }
+hmac = "0.12"
+iso8601-duration = { version = "0.2", features = ["serde"] }
+jwt = "0.16"
 log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
 rocket = { version = "0.5.0-rc.4", features = ["json"] }
@@ -29,6 +39,7 @@ sea-orm-rocket = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 service = { path = "./service" }
+sha2 = "0.10"
 tokio = "1.29"
 # TODO: Add feature flag to disable `utoipa`
 utoipa = { version = "4", features = ["rocket_extras"] }
@@ -36,7 +47,9 @@ utoipa-swagger-ui = { version = "5", features = ["rocket"] }
 utoipauto = "0.1"
 
 [dev-dependencies]
-cucumber = "0.20"
+# cucumber = "0.20"
+cucumber = { version = "0.20", features = ["tracing"] }
+tracing-subscriber = "0.3"
 
 [[bin]]
 name = "prose-pod-api"

@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 license = "MPL-2.0"
-authors = [
-    "Rémi Bardon <remi@remibardon.name>",
-]
+authors = ["Rémi Bardon <remi@remibardon.name>"]
 
 [dependencies]
 entity = { path = "../entity" }
+log = { version = "0.4", features = ["std"] }
+prosody-config = { path = "../prosody-config" }
 
 [dependencies.sea-orm]
-version = "0.12.10"
+version = "1.0.0-rc.1"
 features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
@@ -20,7 +20,10 @@ features = [
 ]
 
 [dev-dependencies]
-tokio = "1.20.0"
+cucumber = "0.20"
+insta = "1"
+migration = { path = "../migration" }
+tokio = "1.20"
 
 [features]
 mock = ["sea-orm/mock"]
@@ -28,3 +31,7 @@ mock = ["sea-orm/mock"]
 [[test]]
 name = "mock"
 required-features = ["mock"]
+
+[[test]]
+name = "cucumber"
+harness = false

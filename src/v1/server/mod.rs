@@ -4,9 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod backup;
+pub mod compliance_tests;
+pub mod config;
 pub mod connection_history;
 pub mod data;
-pub mod features;
 pub mod insights;
 pub mod logs;
 pub mod network;
@@ -17,9 +18,10 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     vec![
         backup::routes(),
+        compliance_tests::routes(),
+        config::routes(),
         connection_history::routes(),
         data::routes(),
-        features::routes(),
         insights::routes(),
         logs::routes(),
         network::routes(),
