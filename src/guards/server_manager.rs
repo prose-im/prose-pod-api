@@ -90,15 +90,22 @@ impl<'r> ServerManager<'r> {
         let config_before = &self.server_config;
         let mut active: server_config::ActiveModel = self.server_config.clone().into();
         update(&mut active);
+        trace!("Updating config in database…");
         let server_conf = active.update(self.db).await?;
 
         if server_conf != *config_before {
+            trace!("Server config has changed, reloading…");
+
             let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
 
             // Save new server config
+            trace!("Saving server config…");
             server_ctl.save_config(&server_conf, self.app_config)?;
             // Reload server config
+            trace!("Reloading server config…");
             server_ctl.reload()?;
+        } else {
+            trace!("Server config not changed, no need to reload.");
         }
 
         Ok(server_conf)
@@ -134,6 +141,10 @@ impl<'r> ServerManager<'r> {
         &self,
         new_state: bool,
     ) -> Result<server_config::Model, Error> {
+        trace!(
+            "Turning {} message archiving…",
+            if new_state { "on" } else { "off" }
+        );
         self.update(|active| {
             active.message_archive_enabled = Set(new_state);
         })
@@ -143,6 +154,7 @@ impl<'r> ServerManager<'r> {
         &self,
         new_state: PossiblyInfinite<Duration<DateLike>>,
     ) -> Result<server_config::Model, Error> {
+        trace!("Setting message archive retention to {new_state}…");
         self.update(|active| {
             active.message_archive_retention = Set(new_state);
         })
@@ -150,6 +162,10 @@ impl<'r> ServerManager<'r> {
     }
 
     pub async fn set_file_uploading(&self, new_state: bool) -> Result<server_config::Model, Error> {
+        trace!(
+            "Turning {} file uploading…",
+            if new_state { "on" } else { "off" }
+        );
         self.update(|active| {
             active.file_upload_allowed = Set(new_state);
         })
@@ -159,6 +175,7 @@ impl<'r> ServerManager<'r> {
         &self,
         new_state: PossiblyInfinite<Duration<DateLike>>,
     ) -> Result<server_config::Model, Error> {
+        trace!("Setting file retention to {new_state}…");
         self.update(|active| {
             active.file_storage_retention = Set(new_state);
         })
