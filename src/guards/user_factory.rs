@@ -9,10 +9,13 @@ use migration::ConnectionTrait;
 use rocket::outcome::try_outcome;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Request, State};
+use sea_orm_rocket::Connection;
 use service::sea_orm::{DbConn, TransactionTrait as _};
-use service::{Mutation, ServerCtl};
+use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
+
+use super::Db;
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
@@ -33,6 +36,21 @@ impl<'r> FromRequest<'r> for UserFactory<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
+
+        // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
+        // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
+        let db = try_outcome!(req
+            .guard::<Connection<'_, Db>>()
+            .await
+            .map(|conn| conn.into_inner())
+            .map_error(|(status, err)| {
+                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
+            }));
+        match Query::server_config(db).await {
+            Ok(Some(_)) => {}
+            Ok(None) => return Error::PodNotInitialized.into(),
+            Err(err) => return Error::DbErr(err).into(),
+        }
 
         Outcome::Success(Self { server_ctl })
     }

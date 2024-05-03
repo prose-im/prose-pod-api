@@ -23,12 +23,10 @@ fn rocket() -> _ {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
+    let server_ctl = ServerCtl::new(Arc::new(Mutex::new(ProsodyAdminRest::from_config(&config))));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
 
-    custom_rocket(rocket::build(), &config)
+    custom_rocket(rocket::build(), config, server_ctl)
         .manage(jwt_service)
-        .manage(ServerCtl::new(Arc::new(Mutex::new(
-            ProsodyAdminRest::from_config(&config),
-        ))))
         .manage(notifier)
 }
