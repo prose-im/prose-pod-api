@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::{Mutex, MutexGuard};
+
 use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
 use rocket::outcome::try_outcome;
@@ -20,8 +22,30 @@ use super::{Db, FromRequest, JID as JIDGuard};
 pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
     app_config: &'r Config,
-    server_ctl: &'r State<ServerCtl>,
-    server_config: server_config::Model,
+    server_ctl: &'r ServerCtl,
+    server_config: Mutex<server_config::Model>,
+}
+
+impl<'r> ServerManager<'r> {
+    pub(crate) fn new(
+        db: &'r DatabaseConnection,
+        app_config: &'r Config,
+        server_ctl: &'r ServerCtl,
+        server_config: server_config::Model,
+    ) -> Self {
+        Self {
+            db,
+            app_config,
+            server_ctl,
+            server_config: Mutex::new(server_config),
+        }
+    }
+
+    fn server_config(&self) -> MutexGuard<server_config::Model> {
+        self.server_config
+            .lock()
+            .expect("`server_config::Model` lock poisonned")
+    }
 }
 
 #[rocket::async_trait]
@@ -70,12 +94,12 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
             )));
 
         match Query::server_config(db).await {
-            Ok(Some(server_config)) => Outcome::Success(ServerManager {
+            Ok(Some(server_config)) => Outcome::Success(ServerManager::new(
                 db,
                 app_config,
                 server_ctl,
                 server_config,
-            }),
+            )),
             Ok(None) => Error::PodNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),
         }
@@ -87,28 +111,41 @@ impl<'r> ServerManager<'r> {
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
-        let config_before = &self.server_config;
-        let mut active: server_config::ActiveModel = self.server_config.clone().into();
+        let old_server_config = self.server_config().clone();
+
+        let mut active: server_config::ActiveModel = old_server_config.clone().into();
         update(&mut active);
         trace!("Updating config in database…");
-        let server_conf = active.update(self.db).await?;
+        let new_server_config = active.update(self.db).await?;
+        *self.server_config() = new_server_config.clone();
 
-        if server_conf != *config_before {
+        if new_server_config != old_server_config {
             trace!("Server config has changed, reloading…");
-
-            let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
-
-            // Save new server config
-            trace!("Saving server config…");
-            server_ctl.save_config(&server_conf, self.app_config)?;
-            // Reload server config
-            trace!("Reloading server config…");
-            server_ctl.reload()?;
+            self.reload(&new_server_config)?;
         } else {
-            trace!("Server config not changed, no need to reload.");
+            trace!("Server config hasn't changed, no need to reload.");
         }
 
-        Ok(server_conf)
+        Ok(new_server_config)
+    }
+
+    /// Reload the XMPP server using the server configuration stored in `self`.
+    pub(crate) fn reload_current(&self) -> Result<(), Error> {
+        self.reload(&self.server_config())
+    }
+
+    /// Reload the XMPP server using the server configuration passed as an argument.
+    fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
+        let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
+
+        // Save new server config
+        trace!("Saving server config…");
+        server_ctl.save_config(&server_config, self.app_config)?;
+        // Reload server config
+        trace!("Reloading XMPP server…");
+        server_ctl.reload()?;
+
+        Ok(())
     }
 }
 

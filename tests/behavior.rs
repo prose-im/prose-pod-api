@@ -84,10 +84,13 @@ fn test_rocket(
         .merge(("log_level", "off"))
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
-    prose_pod_api::custom_rocket(rocket::custom(figment), config)
-        .manage(JWTService::new(JWTKey::custom("test_key")))
-        .manage(ServerCtl::new(server_ctl))
-        .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
+    prose_pod_api::custom_rocket(
+        rocket::custom(figment),
+        config.to_owned(),
+        ServerCtl::new(server_ctl),
+    )
+    .manage(JWTService::new(JWTKey::custom("test_key")))
+    .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(
