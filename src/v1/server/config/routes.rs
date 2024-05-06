@@ -11,14 +11,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
 use crate::guards::{LazyGuard, ServerConfig as ServerConfigGuard, ServerManager};
-
-pub type R<T> = Result<Json<T>, Error>;
+use crate::v1::R;
 
 // TODO: Routes to restore defaults
 
 /// Get the current configuration of server features.
 #[get("/v1/server/config")]
-pub(super) async fn get_features_config(
+pub(super) async fn get_server_config(
     server_config: LazyGuard<ServerConfigGuard>,
 ) -> R<ServerConfig> {
     let model = server_config.inner?.model();

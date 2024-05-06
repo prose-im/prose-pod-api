@@ -19,7 +19,7 @@ use service::{
 
 use crate::error::{self, Error};
 
-use super::{Db, FromRequest, JID as JIDGuard};
+use super::{Db, LazyFromRequest, JID as JIDGuard};
 
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
@@ -28,7 +28,7 @@ pub struct Notifier<'r> {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Notifier<'r> {
+impl<'r> LazyFromRequest<'r> for Notifier<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

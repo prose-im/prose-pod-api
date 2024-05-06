@@ -6,4 +6,5 @@
 pub use super::member::Entity as Member;
 pub use super::notification::Entity as Notification;
 pub use super::server_config::Entity as ServerConfig;
+pub use super::workspace::Entity as Workspace;
 pub use super::workspace_invitation::Entity as WorkspaceInvitation;

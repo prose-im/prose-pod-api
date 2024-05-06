@@ -17,7 +17,7 @@ use service::{Query, ServerCtl};
 
 use crate::error::{self, Error};
 
-use super::{Db, FromRequest, JID as JIDGuard};
+use super::{Db, LazyFromRequest, JID as JIDGuard};
 
 pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
@@ -49,7 +49,7 @@ impl<'r> ServerManager<'r> {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for ServerManager<'r> {
+impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -100,7 +100,7 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
                 server_ctl,
                 server_config,
             )),
-            Ok(None) => Error::PodNotInitialized.into(),
+            Ok(None) => Error::ServerConfigNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),
         }
     }

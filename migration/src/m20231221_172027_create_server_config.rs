@@ -38,6 +38,7 @@ impl MigrationTrait for Migration {
                     .table(ServerConfig::Table)
                     .if_not_exists()
                     .col(pk_auto(ServerConfig::Id))
+                    .col(string(ServerConfig::Domain))
                     .col(
                         boolean(ServerConfig::MessageArchiveEnabled)
                             .default(DEFAULT_MESSAGE_ARCHIVE_ENABLED),
@@ -55,10 +56,6 @@ impl MigrationTrait for Migration {
                             .default(DEFAULT_FILE_ENCRYPTION_SCHEME),
                     )
                     .col(string(ServerConfig::FileStorageRetention).default(DEFAULT_FILE_RETENTION))
-                    .col(string(ServerConfig::WorkspaceName))
-                    .col(string_null(ServerConfig::WorkspaceIconUrl))
-                    .col(string_null(ServerConfig::WorkspaceVCardUrl))
-                    .col(string_null(ServerConfig::WorkspaceAccentColor))
                     .col(boolean(ServerConfig::MFARequired).default(DEFAULT_MFA_ENABLED))
                     .col(
                         string(ServerConfig::MinimumTLSVersion)
@@ -96,15 +93,12 @@ impl MigrationTrait for Migration {
 enum ServerConfig {
     Table,
     Id,
+    Domain,
     MessageArchiveEnabled,
     MessageArchiveRetention,
     FileUploadAllowed,
     FileStorageEncryptionScheme,
     FileStorageRetention,
-    WorkspaceName,
-    WorkspaceIconUrl,
-    WorkspaceVCardUrl,
-    WorkspaceAccentColor,
     MFARequired,
     MinimumTLSVersion,
     MinimumCipherSuite,

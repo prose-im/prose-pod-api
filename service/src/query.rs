@@ -4,8 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::{MemberRole, JID};
-use ::entity::server_config;
-use ::entity::{prelude::*, workspace_invitation};
+use ::entity::{prelude::*, server_config, workspace, workspace_invitation};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
@@ -16,6 +15,13 @@ impl Query {
     pub async fn server_config(db: &DbConn) -> Result<Option<server_config::Model>, DbErr> {
         ServerConfig::find()
             .order_by_asc(server_config::Column::Id)
+            .one(db)
+            .await
+    }
+
+    pub async fn workspace(db: &DbConn) -> Result<Option<workspace::Model>, DbErr> {
+        Workspace::find()
+            .order_by_asc(workspace::Column::Id)
             .one(db)
             .await
     }

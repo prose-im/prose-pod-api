@@ -3,7 +3,7 @@ Feature: Workspace icon
   Scenario: API should warn if the workspace has not been initialized when getting workspace icon
     Given the workspace has not been initialized
      When a user gets the workspace icon
-     Then the user should receive 'Prose Pod not initialized'
+     Then the user should receive 'Workspace not initialized'
 
   Scenario: Get workspace icon after initializing
     Given the workspace has been initialized

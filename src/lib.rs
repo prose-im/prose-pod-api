@@ -62,7 +62,7 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
         }
         Ok(None) => info!(
             "Not reloading the XMPP server: {}",
-            Error::PodNotInitialized
+            Error::ServerConfigNotInitialized
         ),
         Err(err) => error!("Not reloading the XMPP server: {err}"),
     }

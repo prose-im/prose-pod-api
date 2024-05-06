@@ -12,6 +12,7 @@ mod server_config;
 mod server_manager;
 mod user_factory;
 mod uuid_generator;
+mod workspace;
 
 use std::ops::Deref;
 
@@ -24,6 +25,7 @@ pub use server_config::*;
 pub use server_manager::*;
 pub use user_factory::*;
 pub use uuid_generator::*;
+pub use workspace::*;
 
 use rocket::http::Status;
 use rocket::request::Outcome;
@@ -55,7 +57,7 @@ impl<Inner> Deref for LazyGuard<Inner> {
 }
 
 #[rocket::async_trait]
-trait FromRequest<'r>: Sized {
+trait LazyFromRequest<'r>: Sized {
     type Error;
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>;
 }
@@ -63,8 +65,8 @@ trait FromRequest<'r>: Sized {
 #[rocket::async_trait]
 impl<'r, Inner> rocket::request::FromRequest<'r> for LazyGuard<Inner>
 where
-    Inner: FromRequest<'r>,
-    <Inner as FromRequest<'r>>::Error: Into<error::Error>,
+    Inner: LazyFromRequest<'r>,
+    <Inner as LazyFromRequest<'r>>::Error: Into<error::Error>,
 {
     type Error = error::Error;
 

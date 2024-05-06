@@ -7,7 +7,7 @@ use entity::model::{MemberRole, JID};
 use entity::workspace_invitation;
 use migration::ConnectionTrait;
 use rocket::outcome::try_outcome;
-use rocket::request::{FromRequest, Outcome};
+use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::sea_orm::{DbConn, TransactionTrait as _};
@@ -15,14 +15,14 @@ use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
 
-use super::Db;
+use super::{Db, LazyFromRequest};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserFactory<'r> {
+impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -48,7 +48,7 @@ impl<'r> FromRequest<'r> for UserFactory<'r> {
             }));
         match Query::server_config(db).await {
             Ok(Some(_)) => {}
-            Ok(None) => return Error::PodNotInitialized.into(),
+            Ok(None) => return Error::ServerConfigNotInitialized.into(),
             Err(err) => return Error::DbErr(err).into(),
         }
 

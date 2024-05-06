@@ -3,7 +3,7 @@ Feature: Workspace name
   Scenario: API should warn if the workspace has not been initialized when getting workspace name
     Given the workspace has not been initialized
      When a user gets the workspace name
-     Then the user should receive 'Prose Pod not initialized'
+     Then the user should receive 'Workspace not initialized'
 
   Scenario: Get workspace name after initializing
     Given the workspace has been initialized
