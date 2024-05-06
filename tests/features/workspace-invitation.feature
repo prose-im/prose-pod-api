@@ -1,7 +1,7 @@
 Feature: Inviting members
 
   Background:
-    Given the workspace has been initialized
+    Given the Prose Pod has been initialized
 
   """
   The intended way of inviting a new member to a Prose server
@@ -220,7 +220,8 @@ Feature: Inviting members
     Scenario: Rémi rejects an invitation
       Given <remi@personal.name> has been invited via email
        When <remi@personal.name> rejects their invitation
-       Then there should not be any invitation for <remi@personal.name> in the database
+       Then the call should succeed
+        And there should not be any invitation for <remi@personal.name> in the database
 
   """
   The invitation accept and reject links look like `/invitations/(accept|reject)/{uuid}`,

@@ -6,7 +6,7 @@
 use ::entity::model::JID;
 use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::vcard_parser::vcard::Vcard;
-use ::service::{prosody_config_from_db, ProsodyConfigFile};
+use ::service::{prosody_config_from_db, ProsodyConfigFile, ProsodyConfigFileSection};
 use entity::model::MemberRole;
 use entity::server_config;
 use linked_hash_map::LinkedHashMap;
@@ -57,6 +57,25 @@ impl ServerCtlImpl for DummyServerCtl {
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
         let mut state = self.state.lock().unwrap();
+
+        // Check that the domain exists in the Prosody configuration. If it's not the case,
+        // Prosody won't add the user. This happens if the server config wasn't initialized
+        // and Prosody wasn't reloaded with a full configuration.
+        let domain_exists = state.applied_config.as_ref().is_some_and(|config| {
+            config
+                .additional_sections
+                .iter()
+                .any(|section| match section {
+                    ProsodyConfigFileSection::VirtualHost { hostname, .. } => {
+                        hostname == &jid.domain
+                    }
+                    _ => false,
+                })
+        });
+        if !domain_exists {
+            return Err(Error::Other(format!("Domain {} not declared in the Prosody configuration. You might need to initialize the server configuration.", &jid.domain)));
+        }
+
         state.users.insert(
             jid.clone(),
             UserAccount {

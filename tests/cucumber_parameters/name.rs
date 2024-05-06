@@ -11,10 +11,10 @@ use cucumber::Parameter;
 /// The `{string}` parameter matches a full string with spaces, but requires quotes.
 /// This parameter matches a full string with spaces without requiring quotes.
 #[derive(Debug, Parameter)]
-#[param(name = "name", regex = r".+")]
-pub struct Name(pub String);
+#[param(name = "text", regex = r".+")]
+pub struct Text(pub String);
 
-impl Deref for Name {
+impl Deref for Text {
     type Target = String;
 
     fn deref(&self) -> &Self::Target {
@@ -22,7 +22,7 @@ impl Deref for Name {
     }
 }
 
-impl FromStr for Name {
+impl FromStr for Text {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

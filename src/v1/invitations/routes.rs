@@ -20,9 +20,7 @@ use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, LazyGuard, Notifier, UserFactory, UuidGenerator, JID as JIDGuard};
 use crate::responders::Paginated;
-
-pub type R<T> = Result<Json<T>, Error>;
-pub type Created<T> = Result<status::Created<Json<T>>, Error>;
+use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
@@ -202,10 +200,11 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
-    user_factory: UserFactory<'_>,
+    user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
+    let user_factory = user_factory.inner?;
 
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.

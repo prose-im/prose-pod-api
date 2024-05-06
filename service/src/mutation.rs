@@ -5,15 +5,16 @@
 
 use std::fmt;
 
-use crate::dependencies::Uuid;
 use ::entity::{
     member,
     model::{EmailAddress, MemberRole, JID},
-    server_config,
+    server_config, workspace,
     workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
 use sea_orm::{prelude::*, ActiveValue::NotSet, IntoActiveModel as _, Set};
+
+use crate::dependencies::Uuid;
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
@@ -23,8 +24,14 @@ impl Mutation {
     pub async fn create_server_config<'a, C: ConnectionTrait>(
         db: &C,
         form_data: server_config::ActiveModel,
-    ) -> Result<server_config::ActiveModel, DbErr> {
-        form_data.save(db).await
+    ) -> Result<server_config::Model, DbErr> {
+        form_data.insert(db).await
+    }
+    pub async fn create_workspace<'a, C: ConnectionTrait>(
+        db: &C,
+        form_data: workspace::ActiveModel,
+    ) -> Result<workspace::Model, DbErr> {
+        form_data.insert(db).await
     }
 
     // pub async fn update_server_config_by_id(

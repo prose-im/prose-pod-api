@@ -20,6 +20,7 @@ pub(super) fn routes() -> Vec<Route> {
 
 fn _routes() -> Vec<Route> {
     routes![
+        get_workspace,
         get_workspace_name,
         set_workspace_name,
         get_workspace_icon,

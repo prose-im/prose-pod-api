@@ -5,7 +5,7 @@
 
 use std::ops::Deref;
 
-use entity::server_config;
+use entity::workspace;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
 use sea_orm_rocket::Connection;
@@ -15,19 +15,19 @@ use crate::error::{self, Error};
 
 use super::{Db, LazyFromRequest};
 
-// TODO: Make it so we can call `server_config.field` directly
-// instead of `server_config.model.field`.
+// TODO: Make it so we can call `workspace.field` directly
+// instead of `workspace.model.field`.
 #[repr(transparent)]
-pub struct ServerConfig(server_config::Model);
+pub struct Workspace(workspace::Model);
 
-impl ServerConfig {
-    pub fn model(self) -> server_config::Model {
+impl Workspace {
+    pub fn model(self) -> workspace::Model {
         self.0
     }
 }
 
-impl Deref for ServerConfig {
-    type Target = server_config::Model;
+impl Deref for Workspace {
+    type Target = workspace::Model;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -35,7 +35,7 @@ impl Deref for ServerConfig {
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for ServerConfig {
+impl<'r> LazyFromRequest<'r> for Workspace {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -47,9 +47,9 @@ impl<'r> LazyFromRequest<'r> for ServerConfig {
                 (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
             }));
 
-        match Query::server_config(db).await {
-            Ok(Some(server_config)) => Outcome::Success(Self(server_config)),
-            Ok(None) => Error::ServerConfigNotInitialized.into(),
+        match Query::workspace(db).await {
+            Ok(Some(workspace)) => Outcome::Success(Self(workspace)),
+            Ok(None) => Error::WorkspaceNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),
         }
     }

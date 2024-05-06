@@ -17,7 +17,7 @@ pub use prosody::{prosody_config_from_db, ProsodyCtl};
 pub use query::*;
 pub use server_ctl::ServerCtl;
 
-pub use prosody_config::ProsodyConfigFile;
+pub use prosody_config::{ProsodyConfigFile, ProsodyConfigFileSection};
 pub use sea_orm;
 pub use vcard_parser;
 

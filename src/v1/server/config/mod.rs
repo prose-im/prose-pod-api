@@ -11,7 +11,7 @@ use rocket::Route;
 
 pub(super) fn routes() -> Vec<Route> {
     routes![
-        get_features_config,
+        get_server_config,
         store_message_archive,
         message_archive_retention,
         store_files,

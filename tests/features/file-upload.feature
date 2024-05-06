@@ -1,7 +1,7 @@
 Feature: File upload
 
   Background:
-    Given the workspace has been initialized
+    Given the Prose Pod has been initialized
 
   Rule: File uploading can be turned on and off
 

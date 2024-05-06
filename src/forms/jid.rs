@@ -8,11 +8,11 @@ use std::{fmt::Display, ops::Deref};
 
 use entity::model;
 use rocket::form::{self, FromFormField, ValueField};
-use rocket::http::uri::fmt::{FromUriParam, Query};
+use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
 
 #[derive(Debug, Eq)]
-pub struct JID(model::JID);
+pub struct JID(pub(crate) model::JID);
 
 impl<'v> FromFormField<'v> for JID {
     fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
@@ -20,6 +20,14 @@ impl<'v> FromFormField<'v> for JID {
             .map(Self)
             .ok()
             .ok_or(field.unexpected().with_name("invalid_jid").into())
+    }
+}
+
+impl FromUriParam<Path, model::JID> for JID {
+    type Target = String;
+
+    fn from_uri_param(param: model::JID) -> Self::Target {
+        param.to_string()
     }
 }
 
