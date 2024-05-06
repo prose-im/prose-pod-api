@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::model::{MemberRole, JID};
-use entity::workspace_invitation;
+use entity::{server_config, workspace_invitation};
 use migration::ConnectionTrait;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
@@ -66,7 +66,7 @@ impl<'r> UserFactory<'r> {
         role: &Option<MemberRole>,
     ) -> Result<(), Error> {
         // Create the user in database
-        Mutation::create_user(db, jid, role).await?;
+        Mutation::create_user(db, &jid.node, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -88,6 +88,7 @@ impl<'r> UserFactory<'r> {
     pub async fn accept_workspace_invitation(
         &self,
         db: &DbConn,
+        server_config: &server_config::Model,
         invitation: workspace_invitation::Model,
         password: &str,
         nickname: &str,
@@ -97,7 +98,10 @@ impl<'r> UserFactory<'r> {
         // Create the user
         self.create_user(
             &txn,
-            &invitation.jid,
+            &JID {
+                node: invitation.username.to_owned(),
+                domain: server_config.domain.to_owned(),
+            },
             password,
             nickname,
             &Some(invitation.pre_assigned_role),

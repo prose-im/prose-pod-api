@@ -19,7 +19,8 @@ use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
 use entity::{member, workspace_invitation};
 use log::debug;
-use prose_pod_api::guards::{Db, JWTKey, JWTService};
+use prose_pod_api::error::Error;
+use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -27,10 +28,10 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
-use service::dependencies;
 use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
+use service::{dependencies, Query};
 use tokio::runtime::Handle;
 use tokio::task;
 use uuid::Uuid;
@@ -172,6 +173,20 @@ impl TestWorld {
 
     fn db(&self) -> &DatabaseConnection {
         &Db::fetch(&self.client.rocket()).unwrap().conn
+    }
+
+    async fn server_manager(&self) -> Result<ServerManager, Error> {
+        let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
+        let db = self.db();
+        let server_config = Query::server_config(db)
+            .await?
+            .expect("Server config not initialized");
+        Ok(ServerManager::from(UnauthenticatedServerManager::new(
+            db,
+            &self.config,
+            server_ctl,
+            server_config,
+        )))
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {

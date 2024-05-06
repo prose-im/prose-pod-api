@@ -1,4 +1,3 @@
-@testing
 Feature: Prose Pod initialization
 
   Scenario: Initializing the workspace
@@ -41,8 +40,9 @@ Feature: Prose Pod initialization
     Given the server config has been initialized
       And the workspace has not been initialized
      When someone creates the first member "Rémi" with node "remi"
-     Then the call should not succeed
-      And the user should receive 'Workspace not initialized'
+     Then the call should succeed
+      And the HTTP status code should be Created
+      And the response should contain a "Location" HTTP header
 
   Scenario: Creating the first member before initializing the server config
     Given the workspace has been initialized

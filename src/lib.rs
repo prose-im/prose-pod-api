@@ -13,7 +13,7 @@ pub mod responders;
 pub mod v1;
 
 use error::Error;
-use guards::{Db, ServerManager};
+use guards::{Db, UnauthenticatedServerManager};
 
 use log::{debug, info};
 use migration::MigratorTrait;
@@ -55,7 +55,8 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
 
     match Query::server_config(db).await {
         Ok(Some(server_config)) => {
-            let server_manager = ServerManager::new(db, app_config, server_ctl, server_config);
+            let server_manager =
+                UnauthenticatedServerManager::new(db, app_config, server_ctl, server_config);
             if let Err(err) = server_manager.reload_current() {
                 error!("Could not initialize the XMPP server configuration: {err}");
             }

@@ -7,11 +7,12 @@ use std::fmt;
 
 use ::entity::{
     member,
-    model::{EmailAddress, MemberRole, JID},
+    model::{EmailAddress, MemberRole},
     server_config, workspace,
     workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
+use entity::model::JIDNode;
 use sea_orm::{prelude::*, ActiveValue::NotSet, IntoActiveModel as _, Set};
 
 use crate::dependencies::Uuid;
@@ -57,14 +58,14 @@ impl Mutation {
     pub async fn create_workspace_invitation(
         db: &DbConn,
         uuid: &Uuid,
-        jid: JID,
+        jid_node: &JIDNode,
         pre_assigned_role: MemberRole,
         contact: InvitationContact,
     ) -> Result<workspace_invitation::Model, DbErr> {
         let mut model = workspace_invitation::ActiveModel::new();
         let now = Utc::now();
         model.created_at = Set(now);
-        model.jid = Set(jid);
+        model.username = Set(jid_node.to_owned());
         model.pre_assigned_role = Set(pre_assigned_role);
         model.set_contact(contact);
         model.accept_token = Set(uuid.new_v4());
@@ -143,11 +144,11 @@ impl Mutation {
     /// Use `UserFactory` instead, to create users in both places at the same time.
     pub async fn create_user<'a, C: ConnectionTrait>(
         db: &C,
-        jid: &JID,
+        jid_node: &JIDNode,
         role: &Option<MemberRole>,
     ) -> Result<member::Model, MutationError> {
         let mut new_member = member::ActiveModel::new();
-        new_member.id = Set(jid.to_string());
+        new_member.set_username(jid_node);
         new_member.role = role.map(Set).unwrap_or(NotSet);
         new_member.insert(db).await.map_err(Into::into)
     }

@@ -3,18 +3,20 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{MemberRole, JID};
+use entity::model::{JIDNode, MemberRole, JID};
 use entity::{server_config, workspace};
 use rocket::response::status;
 use rocket::serde::json::Json;
+use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::config::Config as AppConfig;
 use service::sea_orm::Set;
-use service::{Mutation, Query};
+use service::{Mutation, Query, ServerCtl};
 
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
-use crate::guards::{Db, LazyGuard, ServerConfig, UserFactory};
+use crate::guards::{Db, LazyGuard, ServerConfig, UnauthenticatedServerManager, UserFactory};
 use crate::v1::members::rocket_uri_macro_get_member;
 use crate::v1::Created;
 
@@ -64,21 +66,19 @@ pub struct InitServerConfigRequest {
 #[put("/v1/server/config", format = "json", data = "<req>")]
 pub async fn init_server_config(
     conn: Connection<'_, Db>,
+    server_ctl: &State<ServerCtl>,
+    app_config: &State<AppConfig>,
     req: Json<InitServerConfigRequest>,
 ) -> Created<server_config::Model> {
     let db = conn.into_inner();
-
-    let server_config = Query::server_config(db).await?;
-    let None = server_config else {
-        return Err(Error::ServerConfigAlreadyInitialized);
-    };
 
     let req = req.into_inner();
     let form = server_config::ActiveModel {
         domain: Set(req.domain),
         ..Default::default()
     };
-    let server_config = Mutation::create_server_config(db, form).await?;
+    let server_config =
+        UnauthenticatedServerManager::init_server_config(db, server_ctl, app_config, form).await?;
 
     let resource_uri = uri!(crate::v1::server::config::get_server_config).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))
@@ -87,7 +87,7 @@ pub async fn init_server_config(
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
     /// JID node (e.g. `valerian` in `valerian@crisp.chat`).
-    pub username: String,
+    pub username: JIDNode,
     /// As the name suggests, a password.
     pub password: String,
     /// vCard NICKNAME (i.e. what will be displayed to users).
@@ -106,7 +106,10 @@ pub async fn init_first_member(
     let server_config = server_config.inner?;
     let user_factory = user_factory.inner?;
 
-    let jid = JID::new(req.username.to_owned(), server_config.domain.to_owned());
+    let jid = JID {
+        node: req.username.to_owned(),
+        domain: server_config.domain.to_owned(),
+    };
     user_factory
         .create_user(
             db,

@@ -4,10 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use cucumber::then;
-use entity::member;
+use entity::prelude::Member;
 use migration::DbErr;
 use service::{
-    sea_orm::EntityTrait,
     server_ctl::{self, ServerCtlImpl},
     vcard_parser::{
         constants::PropertyName,
@@ -25,7 +24,7 @@ use crate::{
 async fn then_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
     let db = world.db();
 
-    let member = member::Entity::find_by_id(jid.to_string())
+    let member = Member::find_by_username(&jid.node)
         .one(db)
         .await?
         .expect(&format!("Member {jid} not found"));

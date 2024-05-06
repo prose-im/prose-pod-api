@@ -263,6 +263,7 @@ Feature: Inviting members
 
     Scenario: Rémi joins using a custom nickname
       Given <remi@prose.org> has been invited via email
+        And the XMPP server domain is <prose.org>
        When <remi@prose.org> accepts their invitation using the nickname "Rémi B."
        Then the call should succeed
         And <remi@prose.org> should have the nickname "Rémi B."
