@@ -11,7 +11,7 @@ use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::sea_orm::{ActiveModelTrait, Set};
+use service::sea_orm::{ActiveModelTrait, Set, Unchanged};
 use service::Query;
 
 // WORKSPACE NAME
@@ -97,10 +97,11 @@ async fn set_workspace_icon_url<'a>(client: &'a Client, url: &str) -> LocalRespo
 async fn given_workspace_icon_url(world: &mut TestWorld, url: String) -> Result<(), Error> {
     let db = world.db();
     let form = entity::workspace::ActiveModel {
+        id: Unchanged(1),
         icon_url: Set(Some(url)),
         ..Default::default()
     };
-    form.save(db).await?;
+    form.update(db).await?;
     Ok(())
 }
 

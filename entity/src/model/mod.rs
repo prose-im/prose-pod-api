@@ -9,6 +9,7 @@ pub mod server_config;
 
 pub use invitations::*;
 pub use members::*;
+use serde_with::DeserializeFromStr;
 pub use server_config::*;
 
 use iso8601_duration::Duration as ISODuration;
@@ -21,20 +22,109 @@ use std::fmt::{Debug, Display};
 use std::ops::Deref;
 use std::str::FromStr;
 
+// ===== JID node =====
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq, Serialize, DeserializeFromStr)]
+#[repr(transparent)]
+pub struct JIDNode(String);
+
+impl Deref for JIDNode {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl FromStr for JIDNode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // FIXME: Perform validations
+        Ok(Self(s.to_owned()))
+    }
+}
+
+impl TryFrom<String> for JIDNode {
+    type Error = <Self as FromStr>::Err;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(value.as_str())
+    }
+}
+
+impl Display for JIDNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<EmailAddress> for JIDNode {
+    fn from(value: EmailAddress) -> Self {
+        // NOTE: Email adresses are already parsed, and their local part are equivalent to a JID node part.
+        Self(value.local_part().to_owned())
+    }
+}
+
+impl From<JIDNode> for sea_query::Value {
+    fn from(value: JIDNode) -> Self {
+        Self::String(Some(Box::new(value.to_string())))
+    }
+}
+
+impl sea_orm::TryGetable for JIDNode {
+    fn try_get_by<I: sea_orm::ColIdx>(
+        res: &sea_orm::prelude::QueryResult,
+        index: I,
+    ) -> Result<Self, TryGetError> {
+        let value: String = res.try_get_by(index).map_err(TryGetError::DbErr)?;
+        Self::try_from(value)
+            // Technically, the value is not `null`, but we wouldn't want to unsafely unwrap here.
+            .map_err(|e| TryGetError::Null(format!("{:?}", e)))
+    }
+}
+
+impl sea_query::ValueType for JIDNode {
+    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+        match v {
+            Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
+            _ => Err(ValueTypeErr),
+        }
+    }
+
+    fn type_name() -> String {
+        stringify!(JIDNode).to_string()
+    }
+
+    fn array_type() -> ArrayType {
+        ArrayType::String
+    }
+
+    fn column_type() -> ColumnType {
+        ColumnType::string(None)
+    }
+}
+
+impl sea_query::Nullable for JIDNode {
+    fn null() -> Value {
+        Value::String(None)
+    }
+}
+
 // ===== JID =====
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct JID {
-    pub node: String,
+    pub node: JIDNode,
     pub domain: String,
 }
 
 impl JID {
-    pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Self {
-        Self {
-            node: node.to_string(),
+    pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Result<Self, &'static str> {
+        Ok(Self {
+            node: JIDNode::from_str(node.to_string().as_str())?,
             domain: domain.to_string(),
-        }
+        })
     }
 }
 
@@ -49,7 +139,7 @@ impl FromStr for JID {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.split_once("@") {
-            Some((node, domain)) => Ok(Self::new(node, domain)),
+            Some((node, domain)) => Self::new(JIDNode::from_str(node)?, domain),
             None => Err("The JID does not contain a '@'"),
         }
     }

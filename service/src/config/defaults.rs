@@ -5,7 +5,9 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
+
+use entity::model::JIDNode;
 
 use super::WorkspaceInvitationChannel;
 
@@ -13,8 +15,8 @@ pub fn api_log_level() -> String {
     "error".to_string()
 }
 
-pub fn api_admin_node() -> String {
-    "prose-pod-api".to_string()
+pub fn api_admin_node() -> JIDNode {
+    JIDNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`")
 }
 
 pub fn server_local_hostname() -> String {

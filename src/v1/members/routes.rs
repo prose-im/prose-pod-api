@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::models::Member;
-use entity::model::MemberRole;
+use entity::model::{MemberRole, JID};
 use rocket::serde::json::Json;
 use rocket::{get, put};
 
@@ -15,12 +15,12 @@ use crate::forms::JID as JIDUriParam;
 pub(super) fn get_members() -> Json<Vec<Member>> {
     vec![
         Member {
-            jid: "valerian@crisp.chat".to_string(),
+            jid: JID::new("valerian", "crisp.chat").unwrap(),
             name: "Valerian Saliou".to_string(),
             role: MemberRole::Admin,
         },
         Member {
-            jid: "baptiste@crisp.chat".to_string(),
+            jid: JID::new("baptiste", "crisp.chat").unwrap(),
             name: "Baptiste Jamin".to_string(),
             role: MemberRole::Admin,
         },

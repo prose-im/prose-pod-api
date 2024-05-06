@@ -4,8 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use cucumber::{given, then, when};
+use entity::model::JIDNode;
 use entity::server_config;
 use prose_pod_api::error::Error;
+use prose_pod_api::guards::UnauthenticatedServerManager;
 use prose_pod_api::v1::init::{
     InitFirstAccountRequest, InitServerConfigRequest, InitWorkspaceRequest,
 };
@@ -13,7 +15,7 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::sea_orm::Set;
-use service::Mutation;
+use service::{Mutation, ServerCtl};
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -62,7 +64,20 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
         domain: Set(DEFAULT_DOMAIN.to_string()),
         ..Default::default()
     };
-    Mutation::create_server_config(db, form).await?;
+    UnauthenticatedServerManager::init_server_config(
+        db,
+        &ServerCtl::new(world.server_ctl.clone()),
+        world.config.as_ref(),
+        form,
+    )
+    .await?;
+    Ok(())
+}
+
+#[given(expr = "the XMPP server domain is <{text}>")]
+async fn given_server_domain(world: &mut TestWorld, domain: Text) -> Result<(), Error> {
+    let server_manager = world.server_manager().await?;
+    server_manager.set_domain(&domain).await?;
     Ok(())
 }
 
@@ -102,7 +117,7 @@ async fn init_server_config<'a>(client: &'a Client, domain: &str) -> LocalRespon
 
 async fn init_first_member<'a>(
     client: &'a Client,
-    node: &String,
+    node: &JIDNode,
     nickname: &String,
 ) -> LocalResponse<'a> {
     client
@@ -133,8 +148,8 @@ async fn when_init_server_config(world: &mut TestWorld, domain: Text) {
 }
 
 #[when(expr = "someone creates the first member {string} with node {string}")]
-async fn when_init_first_member(world: &mut TestWorld, nickname: String, node: String) {
-    let res = init_first_member(&world.client, &nickname, &node).await;
+async fn when_init_first_member(world: &mut TestWorld, nickname: String, node: JIDNode) {
+    let res = init_first_member(&world.client, &node, &nickname).await;
     world.result = Some(res.into());
 }
 

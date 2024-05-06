@@ -9,7 +9,7 @@ mod defaults;
 
 use std::path::PathBuf;
 
-use entity::model::JID;
+use entity::model::{JIDNode, JID};
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
@@ -43,10 +43,10 @@ impl Config {
     pub fn api_jid(&self) -> JID {
         // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
         //   to the Prose Pod and cannot be changed via configuration.
-        JID::new(
-            self.api.admin_node.to_owned(),
-            "admin.prose.org.local".to_owned(),
-        )
+        JID {
+            node: self.api.admin_node.to_owned(),
+            domain: "admin.prose.org.local".to_owned(),
+        }
     }
 }
 
@@ -55,7 +55,7 @@ pub struct ConfigApi {
     #[serde(default = "defaults::api_log_level")]
     pub log_level: String,
     #[serde(default = "defaults::api_admin_node")]
-    pub admin_node: String,
+    pub admin_node: JIDNode,
     pub admin_password: Option<String>,
 }
 

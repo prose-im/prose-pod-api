@@ -11,7 +11,7 @@ use crate::config::Config;
 use crate::ProseDefault;
 
 pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> ProsodyConfigFile {
-    let mut config = ProsodyConfig::prose_default(app_config);
+    let mut config = ProsodyConfig::prose_default(&model, app_config);
 
     let global_settings = &mut config.global_settings;
     let muc_settings = config
@@ -65,7 +65,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
 // ===== Default configuration =====
 
 impl ProseDefault for ProsodyConfig {
-    fn prose_default(app_config: &Config) -> Self {
+    fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self {
         let api_jid = match app_config.api_jid() {
             db::JID { node, domain } => JID::new(node, domain),
         };
@@ -163,7 +163,7 @@ impl ProseDefault for ProsodyConfig {
             },
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
-                    hostname: "prose.org.local".into(),
+                    hostname: server_config.domain.to_owned(),
                     settings: ProsodySettings::default(),
                 },
                 ProsodyConfigSection::VirtualHost {
@@ -189,7 +189,7 @@ impl ProseDefault for ProsodyConfig {
                     },
                 },
                 ProsodyConfigSection::Component {
-                    hostname: "groups.prose.org.local".into(),
+                    hostname: format!("groups.{}", server_config.domain),
                     plugin: "muc".into(),
                     name: "Chatrooms".into(),
                     settings: ProsodySettings {
