@@ -115,13 +115,13 @@ async fn init_server_config<'a>(client: &'a Client, domain: &str) -> LocalRespon
         .await
 }
 
-async fn init_first_member<'a>(
+async fn init_first_account<'a>(
     client: &'a Client,
     node: &JIDNode,
     nickname: &String,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/init/first-member")
+        .put("/v1/init/first-account")
         .header(ContentType::JSON)
         .body(
             json!(InitFirstAccountRequest {
@@ -147,9 +147,9 @@ async fn when_init_server_config(world: &mut TestWorld, domain: Text) {
     world.result = Some(res.into());
 }
 
-#[when(expr = "someone creates the first member {string} with node {string}")]
-async fn when_init_first_member(world: &mut TestWorld, nickname: String, node: JIDNode) {
-    let res = init_first_member(&world.client, &node, &nickname).await;
+#[when(expr = "someone creates the first account {string} with node {string}")]
+async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JIDNode) {
+    let res = init_first_account(&world.client, &node, &nickname).await;
     world.result = Some(res.into());
 }
 
@@ -205,6 +205,22 @@ async fn then_error_server_config_not_initialized(world: &mut TestWorld) {
         Some(
             json!({
                 "reason": "server_config_not_initialized",
+            })
+            .to_string()
+        )
+    );
+}
+
+#[then("the user should receive 'First account already created'")]
+async fn then_error_first_account_already_created(world: &mut TestWorld) {
+    let res = world.result();
+    assert_eq!(res.status, Status::Conflict);
+    assert_eq!(res.content_type, Some(ContentType::JSON));
+    assert_eq!(
+        res.body,
+        Some(
+            json!({
+                "reason": "first_account_already_created",
             })
             .to_string()
         )

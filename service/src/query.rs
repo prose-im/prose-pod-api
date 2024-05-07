@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::{JIDNode, MemberRole};
-use ::entity::{prelude::*, server_config, workspace, workspace_invitation};
+use ::entity::{member, prelude::*, server_config, workspace, workspace_invitation};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
@@ -86,5 +86,9 @@ impl Query {
             .filter(workspace_invitation::Column::RejectToken.eq(*token))
             .one(db)
             .await
+    }
+
+    pub async fn get_member_count(db: &DbConn) -> Result<u64, DbErr> {
+        member::Entity::find().count(db).await
     }
 }

@@ -28,14 +28,12 @@ pub struct InitWorkspaceRequest {
     pub accent_color: Option<String>,
 }
 
-pub type InitWorkspaceResponse = workspace::Model;
-
 /// Initialize the Prose Pod and return the default configuration.
 #[put("/v1/workspace", format = "json", data = "<req>")]
 pub async fn init_workspace(
     conn: Connection<'_, Db>,
     req: Json<InitWorkspaceRequest>,
-) -> Created<InitWorkspaceResponse> {
+) -> Created<workspace::Model> {
     let db = conn.into_inner();
 
     // Check that the workspace isn't already initialized.
@@ -95,14 +93,19 @@ pub struct InitFirstAccountRequest {
 }
 
 /// Initialize the Prose Pod and return the default configuration.
-#[put("/v1/init/first-member", format = "json", data = "<req>")]
-pub async fn init_first_member(
+#[put("/v1/init/first-account", format = "json", data = "<req>")]
+pub async fn init_first_account(
     conn: Connection<'_, Db>,
     server_config: LazyGuard<ServerConfig>,
     user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<()> {
     let db = conn.into_inner();
+
+    if Query::get_member_count(db).await? > 0 {
+        return Err(Error::FirstAccountAlreadyCreated);
+    }
+
     let server_config = server_config.inner?;
     let user_factory = user_factory.inner?;
 
