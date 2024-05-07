@@ -3,29 +3,11 @@
 # Configuration file
 # Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
 
-[api]
-
-log_level = "debug"
-
-[server]
-
-domain = "prose.org"
-
-[assets]
-
-path = "./res/assets/"
-
 [branding]
 
 page_title = "Prose Pod API"
 page_url = "https://admin.prose.org/"
 company_name = "Prose"
-icon_color = "#3458AD"
-icon_url = "https://media.githubusercontent.com/media/prose-im/prose-medley/master/renders/logos/icon-social.png"
-logo_color = "#3458AD"
-logo_url = "https://raw.githubusercontent.com/prose-im/prose-medley/master/renders/logos/icon-app.svg"
-website_url = "https://prose.org/"
-support_url = "mailto:support@prose.org"
 
 [notify]
 
