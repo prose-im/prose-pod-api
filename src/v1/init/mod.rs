@@ -13,6 +13,6 @@ pub(super) fn routes() -> Vec<Route> {
     routes![
         init_workspace,
         init_server_config,
-        init_first_member,
+        init_first_account,
     ]
 }

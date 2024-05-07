@@ -31,7 +31,7 @@ fn name_to_jid(name: &str) -> JID {
     }
 }
 
-#[given(regex = r"^(.+) is an admin$")]
+#[given(expr = "{} is an admin")]
 async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 

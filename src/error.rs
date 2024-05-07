@@ -36,6 +36,8 @@ pub enum Error {
     ServerConfigNotInitialized,
     /// XMPP server already initialized.
     ServerConfigAlreadyInitialized,
+    /// First XMPP accout already created.
+    FirstAccountAlreadyCreated,
     /// ServerCtl fail (e.g. execution of `prosodyctl` failed).
     ServerCtlErr(server_ctl::Error),
     /// Bad request (invalid data for example).
@@ -71,9 +73,9 @@ impl Error {
             Self::UnknownDbErr => Status::InternalServerError,
             Self::DbErr(_) => Status::InternalServerError,
             Self::WorkspaceNotInitialized | Self::ServerConfigNotInitialized => Status::BadRequest,
-            Self::WorkspaceAlreadyInitialized | Self::ServerConfigAlreadyInitialized => {
-                Status::Conflict
-            }
+            Self::WorkspaceAlreadyInitialized
+            | Self::ServerConfigAlreadyInitialized
+            | Self::FirstAccountAlreadyCreated => Status::Conflict,
             Self::ServerCtlErr(_) => Status::InternalServerError,
             Self::BadRequest { .. } => Status::BadRequest,
             Self::MutationErr(_) => Status::InternalServerError,
@@ -95,6 +97,7 @@ impl Error {
             Self::WorkspaceAlreadyInitialized => "workspace_already_initialized",
             Self::ServerConfigNotInitialized => "server_config_not_initialized",
             Self::ServerConfigAlreadyInitialized => "server_config_already_initialized",
+            Self::FirstAccountAlreadyCreated => "first_account_already_created",
             Self::ServerCtlErr(_) => "internal_server_error",
             Self::BadRequest { .. } => "bad_request",
             Self::MutationErr(MutationError::DbErr(_)) => "database_error",
@@ -173,6 +176,7 @@ impl fmt::Display for Error {
                 uri!(crate::v1::init::init_server_config)
             ),
             Self::ServerConfigAlreadyInitialized => write!(f, "XMPP server already initialized."),
+            Self::FirstAccountAlreadyCreated => write!(f, "First XMPP account already created."),
             Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
             Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
             Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
