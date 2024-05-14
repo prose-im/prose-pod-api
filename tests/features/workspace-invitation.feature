@@ -2,6 +2,7 @@ Feature: Inviting members
 
   Background:
     Given the Prose Pod has been initialized
+      And the XMPP server domain is <prose.org>
 
   """
   The intended way of inviting a new member to a Prose server
