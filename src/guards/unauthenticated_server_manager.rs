@@ -185,11 +185,11 @@ impl<'r> UnauthenticatedServerManager<'r> {
         //   after "rollbackable" DB changes in case they fail. It's not perfect
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
-        server_ctl
-            .implem
-            .lock()
-            .expect("Serverctl lock poisonned")
-            .save_config(&server_config, app_config)?;
+        {
+            let server_ctl = server_ctl.implem.lock().expect("Serverctl lock poisonned");
+            server_ctl.save_config(&server_config, app_config)?;
+            server_ctl.reload()?;
+        }
 
         // Commit the transaction only if the admin user was
         // successfully created, to prevent inconsistent states.

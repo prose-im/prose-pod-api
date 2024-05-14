@@ -92,6 +92,7 @@ impl ProseDefault for ProsodyConfig {
                 https_interfaces: Some(vec![]),
                 modules_enabled: Some(
                     vec![
+                        "auto_activate_hosts",
                         "roster",
                         "groups",
                         "saslauth",
