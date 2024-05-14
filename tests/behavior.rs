@@ -175,6 +175,17 @@ impl TestWorld {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
 
+    /// Sometimes we need to use the `ServerCtl` from "When" steps,
+    /// to avoid rewriting all of its logic in tests.
+    /// However, using the dummy attached to the Rocket will cause counters to increase
+    /// and this could impact "Then" steps.
+    /// This method resets the counters.
+    fn reset_server_ctl_counts(&self) {
+        let server_ctl = self.server_ctl();
+        let mut state = server_ctl.state.lock().unwrap();
+        state.conf_reload_count = 0;
+    }
+
     async fn server_manager(&self) -> Result<ServerManager, Error> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();

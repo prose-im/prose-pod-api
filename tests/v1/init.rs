@@ -71,11 +71,12 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
         form,
     )
     .await?;
+    world.reset_server_ctl_counts();
     Ok(())
 }
 
-#[given(expr = "the XMPP server domain is <{text}>")]
-async fn given_server_domain(world: &mut TestWorld, domain: Text) -> Result<(), Error> {
+#[given(expr = "the XMPP server domain is <{}>")]
+async fn given_server_domain(world: &mut TestWorld, domain: String) -> Result<(), Error> {
     let server_manager = world.server_manager().await?;
     server_manager.set_domain(&domain).await?;
     Ok(())
