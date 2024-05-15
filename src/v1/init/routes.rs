@@ -11,7 +11,7 @@ use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config as AppConfig;
-use service::sea_orm::Set;
+use service::sea_orm::{Set, TransactionTrait as _};
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::Error;
@@ -113,15 +113,17 @@ pub async fn init_first_account(
         node: req.username.to_owned(),
         domain: server_config.domain.to_owned(),
     };
+    let txn = db.begin().await?;
     user_factory
         .create_user(
-            db,
+            &txn,
             &jid,
             &req.password,
             &req.nickname,
             &Some(MemberRole::Admin),
         )
         .await?;
+    txn.commit().await?;
 
     let resource_uri = uri!(get_member(jid)).to_string();
     Ok(status::Created::new(resource_uri))

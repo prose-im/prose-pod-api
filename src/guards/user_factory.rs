@@ -5,12 +5,11 @@
 
 use entity::model::{MemberRole, JID};
 use entity::{server_config, workspace_invitation};
-use migration::ConnectionTrait;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
-use service::sea_orm::{DbConn, TransactionTrait as _};
+use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
@@ -57,16 +56,16 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 }
 
 impl<'r> UserFactory<'r> {
-    pub async fn create_user<'a, C: ConnectionTrait>(
+    pub async fn create_user<'a>(
         &self,
-        db: &C,
+        txn: &DatabaseTransaction,
         jid: &JID,
         password: &str,
         nickname: &str,
         role: &Option<MemberRole>,
     ) -> Result<(), Error> {
         // Create the user in database
-        Mutation::create_user(db, &jid.node, role).await?;
+        Mutation::create_user(txn, &jid.node, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
