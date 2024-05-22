@@ -40,7 +40,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
         role: Set(MemberRole::Admin),
         ..Default::default()
     };
-    model.set_username(&jid.node);
+    model.set_jid(&jid);
     let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
@@ -60,7 +60,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
         role: Set(MemberRole::Member),
         ..Default::default()
     };
-    model.set_username(&jid.node);
+    model.set_jid(&jid);
     let model = model.insert(db).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();

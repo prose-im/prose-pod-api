@@ -45,7 +45,7 @@ impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
             }));
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match Query::is_admin(db, &jid.node).await {
+        match Query::is_admin(db, &jid).await {
             Ok(true) => {}
             Ok(false) => {
                 debug!("<{}> is not an admin", jid.to_string());

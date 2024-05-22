@@ -6,7 +6,7 @@
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
 use uuid::Uuid;
 
-use crate::model::{EmailAddress, JIDNode, MemberRole};
+use crate::model::{EmailAddress, MemberRole, JID};
 
 pub use crate::model::invitations::*;
 
@@ -17,7 +17,7 @@ pub struct Model {
     pub id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
-    pub username: JIDNode,
+    pub jid: JID,
     pub pre_assigned_role: MemberRole,
     invitation_channel: InvitationChannel,
     email_address: Option<EmailAddress>,

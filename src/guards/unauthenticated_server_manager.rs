@@ -42,10 +42,14 @@ impl<'r> UnauthenticatedServerManager<'r> {
         }
     }
 
-    fn server_config(&self) -> MutexGuard<server_config::Model> {
+    fn server_config_mut(&self) -> MutexGuard<server_config::Model> {
         self.server_config
             .lock()
             .expect("`server_config::Model` lock poisonned")
+    }
+
+    pub fn server_config(&self) -> server_config::Model {
+        self.server_config_mut().to_owned()
     }
 }
 
@@ -102,13 +106,13 @@ impl<'r> UnauthenticatedServerManager<'r> {
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
-        let old_server_config = self.server_config().clone();
+        let old_server_config = self.server_config_mut().clone();
 
         let mut active: server_config::ActiveModel = old_server_config.clone().into();
         update(&mut active);
         trace!("Updating config in database…");
         let new_server_config = active.update(self.db).await?;
-        *self.server_config() = new_server_config.clone();
+        *self.server_config_mut() = new_server_config.clone();
 
         if new_server_config != old_server_config {
             trace!("Server config has changed, reloading…");
@@ -122,7 +126,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
     /// Reload the XMPP server using the server configuration stored in `self`.
     pub(crate) fn reload_current(&self) -> Result<(), Error> {
-        self.reload(&self.server_config())
+        self.reload(&self.server_config_mut())
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.

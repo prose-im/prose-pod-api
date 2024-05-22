@@ -3,7 +3,7 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::model::{JIDNode, MemberRole};
+use ::entity::model::{MemberRole, JID};
 use ::entity::{member, prelude::*, server_config, workspace, workspace_invitation};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
@@ -26,9 +26,9 @@ impl Query {
             .await
     }
 
-    pub async fn is_admin(db: &DbConn, jid_node: &JIDNode) -> Result<bool, DbErr> {
+    pub async fn is_admin(db: &DbConn, jid: &JID) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
-        let member = Member::find_by_username(jid_node).one(db).await?;
+        let member = Member::find_by_jid(jid).one(db).await?;
 
         // If the member is not found, do not send an error but rather send `false` as it is not an admin anyway.
         let Some(member) = member else {

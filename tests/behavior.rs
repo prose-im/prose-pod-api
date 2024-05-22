@@ -17,7 +17,7 @@ use cucumber_parameters::HTTPStatus;
 use dummy_notifier::DummyNotifier;
 use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
-use entity::{member, workspace_invitation};
+use entity::{member, server_config, workspace_invitation};
 use log::debug;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
@@ -198,6 +198,10 @@ impl TestWorld {
             server_ctl,
             server_config,
         )))
+    }
+
+    async fn server_config(&self) -> Result<server_config::Model, Error> {
+        Ok(self.server_manager().await?.server_config())
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {
