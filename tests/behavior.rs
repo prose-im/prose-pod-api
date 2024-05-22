@@ -175,7 +175,7 @@ impl TestWorld {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
 
-    /// Sometimes we need to use the `ServerCtl` from "When" steps,
+    /// Sometimes we need to use the `ServerCtl` from "Given" steps,
     /// to avoid rewriting all of its logic in tests.
     /// However, using the dummy attached to the Rocket will cause counters to increase
     /// and this could impact "Then" steps.
