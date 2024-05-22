@@ -55,7 +55,7 @@ pub(super) async fn invite_member<'r>(
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
-#[cfg(debug_assertions)] user_factory: LazyGuard<UserFactory<'_>>,
+    #[cfg(debug_assertions)] user_factory: LazyGuard<UserFactory<'_>>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
@@ -115,7 +115,7 @@ pub(super) async fn invite_member<'r>(
         .inspect_err(|err| {
             error!(
                 "Could not mark workspace invitation `{}` as `{}`: {err}",
-invitation.id,
+                invitation.id,
                 InvitationStatus::Sent
             )
         })?;
@@ -242,7 +242,7 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
-        user_factory: LazyGuard<UserFactory<'_>>,
+    user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     invitation_accept_(

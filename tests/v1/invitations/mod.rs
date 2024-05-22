@@ -152,7 +152,7 @@ async fn workspace_invitation_admin_action<'a>(
 
 #[given(expr = "<{email}> has been invited via email")]
 async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), Error> {
-let domain = world.server_config().await?.domain;
+    let domain = world.server_config().await?.domain;
     let email_address = email_address.0;
     let jid = &JID {
         node: email_address.to_owned().into(),
@@ -200,7 +200,7 @@ async fn given_pre_assigned_role(
 
 #[given(expr = "{int} people have been invited via email")]
 async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
-let domain = world.server_config().await?.domain;
+    let domain = world.server_config().await?.domain;
     for i in 0..n {
         let db = world.db();
         let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
