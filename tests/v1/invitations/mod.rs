@@ -484,15 +484,16 @@ async fn then_invitation_for_email(
 async fn then_no_invitation_for_email(
     world: &mut TestWorld,
     email_address: EmailAddress,
-) -> Result<(), DbErr> {
+) -> Result<(), Error> {
     let db = world.db();
     let count = workspace_invitation::Entity::find()
         .filter(workspace_invitation::Column::EmailAddress.eq(email_address.0.clone()))
         .count(db)
         .await?;
+    let server_domain = world.server_config().await?.domain;
     assert_eq!(
         count, 0,
-        "Found {count} invitation(s) for <{email_address}> in the database"
+        "Found {count} invitation(s) for <{email_address}> in the database. Server domain is `{server_domain}`."
     );
     Ok(())
 }
