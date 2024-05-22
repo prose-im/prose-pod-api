@@ -4,11 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::cmp;
+use std::fmt::Display;
 use std::str::FromStr;
 
 use sea_orm::sea_query::{self, ArrayType, Value, ValueTypeErr};
 use sea_orm::{ColumnType, TryGetError};
-use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 const MEMBER_ROLE_VALUE: &'static str = "MEMBER";
 const ADMIN_ROLE_VALUE: &'static str = "ADMIN";
@@ -16,7 +17,7 @@ const ADMIN_ROLE_VALUE: &'static str = "ADMIN";
 // NOTE: When adding a new case to this enum, make sure to update
 //   the `column_type` function in `impl sea_query::ValueType`
 //   and add a new migration to update the column size.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
 pub enum MemberRole {
     Member,
     Admin,
@@ -28,11 +29,11 @@ impl Default for MemberRole {
     }
 }
 
-impl ToString for MemberRole {
-    fn to_string(&self) -> String {
+impl Display for MemberRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Member => MEMBER_ROLE_VALUE.to_string(),
-            Self::Admin => ADMIN_ROLE_VALUE.to_string(),
+            Self::Member => write!(f, "{MEMBER_ROLE_VALUE}"),
+            Self::Admin => write!(f, "{ADMIN_ROLE_VALUE}"),
         }
     }
 }
