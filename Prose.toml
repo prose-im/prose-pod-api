@@ -22,7 +22,9 @@ smtp_username = "user-access"
 smtp_password = "user-password"
 smtp_encrypt = false
 
-[dependency_modes]
+[debug_only]
+automatically_accept_invitations = true
 
+[debug_only.dependency_modes]
 uuid = "incrementing"
 notifier = "logging"

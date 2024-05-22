@@ -55,6 +55,7 @@ pub(super) async fn invite_member<'r>(
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
+#[cfg(debug_assertions)] user_factory: LazyGuard<UserFactory<'_>>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
@@ -118,6 +119,31 @@ invitation.id,
                 InvitationStatus::Sent
             )
         })?;
+
+    #[cfg(debug_assertions)]
+    if config.debug_only.automatically_accept_invitations {
+        warn!(
+            "Config `{}` is turned on. The invitation created will be automatically accepted.",
+            stringify!(debug_only.automatically_accept_invitations),
+        );
+
+        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
+        let password = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+        invitation_accept_(
+            db,
+            invitation.accept_token.into(),
+            user_factory.inner?,
+            AcceptWorkspaceInvitationRequest {
+                nickname: req.username.to_string(),
+                password,
+            },
+        )
+        .await?;
+    }
 
     let resource_uri = uri!(get_invitation(invitation.id)).to_string();
     let response: WorkspaceInvitation = invitation.into();
@@ -216,14 +242,24 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
-    server_config: LazyGuard<ServerConfig>,
-    user_factory: LazyGuard<UserFactory<'_>>,
+        user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
-    let db = conn.into_inner();
-    let server_config = server_config.inner?;
-    let user_factory = user_factory.inner?;
+    invitation_accept_(
+        conn.into_inner(),
+        token,
+        user_factory.inner?,
+        req.into_inner(),
+    )
+    .await
+}
 
+async fn invitation_accept_(
+    db: &DatabaseConnection,
+    token: Uuid,
+    user_factory: UserFactory<'_>,
+    req: AcceptWorkspaceInvitationRequest,
+) -> Result<(), Error> {
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
     let invitation = Query::get_workspace_invitation_by_accept_token(db, &token)
@@ -243,7 +279,7 @@ pub(super) async fn invitation_accept(
     }
 
     user_factory
-        .accept_workspace_invitation(db, &server_config, invitation, &req.password, &req.nickname)
+        .accept_workspace_invitation(db, invitation, &req.password, &req.nickname)
         .await?;
 
     Ok(())
