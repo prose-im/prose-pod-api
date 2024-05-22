@@ -18,7 +18,8 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 
 ## Proposed ADRs
 
-- ø
+- [Write integration tests](./2024-05-15-a-integration-testing.md) (2024-05-15)
+- [Use Step CI for integration testing](./2024-05-15-b-step-ci-for-integration-testing.md) (2024-05-15)
 
 ## Superseded ADRs
 

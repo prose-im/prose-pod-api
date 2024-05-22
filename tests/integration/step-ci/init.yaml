@@ -1,0 +1,93 @@
+version: "1.1"
+name: Prose Pod initialization
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
+  #   `${{ env.host }}/api-docs`.
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: ${{ internet.domainName | fake }}
+
+tests:
+  initialize:
+    name: Initialize Prose Pod
+    steps:
+      - $ref: "#/components/steps/init_workspace"
+      - $ref: "#/components/steps/init_server"
+      - $ref: "#/components/steps/create_first_admin"
+      - $ref: "#/components/steps/log_admin_in"
+
+components:
+  steps:
+    init_workspace:
+      name: Initialize Prose workspace
+      http:
+        method: PUT
+        url: /v1/workspace
+        headers:
+          Content-Type: application/json
+        json:
+          name: ${{ company.name | fake }}
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Workspace
+    init_server:
+      name: Initialize XMPP server
+      http:
+        method: PUT
+        url: /v1/server/config
+        headers:
+          Content-Type: application/json
+        json:
+          domain: ${{ env.hostname }}
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/ServerConfig
+    create_first_admin:
+      name: Create first admin account
+      http:
+        method: PUT
+        url: /v1/init/first-account
+        headers:
+          Content-Type: application/json
+        json:
+          username: ${{ env.mainAdminUsername }}
+          password: ${{ env.mainAdminPassword }}
+          nickname: ${{ name.fullName | fake }}
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+    log_admin_in:
+      name: Log first admin in
+      http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: ${{ env.mainAdminUsername }}@${{ env.hostname }}
+            password: ${{ env.mainAdminPassword }}
+        captures:
+          token:
+            jsonpath: $.token
+        check:
+          status: 200
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/LoginResponse

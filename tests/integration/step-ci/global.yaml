@@ -1,0 +1,94 @@
+version: "1.1"
+name: Running Prose Pod (initialized)
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
+  #   `${{ env.host }}/api-docs`.
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: ${{ internet.domainName | fake }}
+
+# NOTE: `.` is not this file's path, it's the directory from which `stepci` is ran.
+# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/init_workspace"
+    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/init_server"
+    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/create_first_admin"
+
+tests:
+  inviteMembers:
+    name: Invite members
+    steps:
+      - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/log_admin_in"
+      - $ref: "#/components/steps/invite_member"
+      - name: List invitations
+        http:
+          method: GET
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              $ref: "#/components/headers/paginated_json"
+            schema:
+              type: array
+              items:
+                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+      # NOTE: We used a config flag to auto-accept invitations,
+      #   because otherwise we'd have no way to accept them.
+      - name: List members
+        http:
+          method: GET
+          url: /v1/members
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          headers:
+            $ref: "#/components/headers/paginated_json"
+          schema:
+            type: array
+            items:
+              $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+
+components:
+  steps:
+    invite_member:
+      name: Invite member
+      http:
+        method: POST
+        url: /v1/invitations
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        json:
+          username: ${{ internet.userName | fake }}
+          pre_assigned_role: MEMBER
+          channel: email
+          email_address: ${{ internet.email | fake }}
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+          jsonpath:
+            $.accept_token: null
+  headers:
+    paginated_json:
+      Content-Type: application/json
+      Pagination-Current-Page: /\d+/
+      Pagination-Page-Size: /\d+/
+      Pagination-Page-Count: /\d+/
+      Pagination-Item-Count: /\d+/
