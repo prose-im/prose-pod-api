@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::model::{MemberRole, JID};
-use entity::{server_config, workspace_invitation};
+use entity::{member, workspace_invitation};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
@@ -63,9 +63,9 @@ impl<'r> UserFactory<'r> {
         password: &str,
         nickname: &str,
         role: &Option<MemberRole>,
-    ) -> Result<(), Error> {
+    ) -> Result<member::Model, Error> {
         // Create the user in database
-        Mutation::create_user(txn, &jid, role).await?;
+        let member = Mutation::create_user(txn, &jid, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -81,7 +81,7 @@ impl<'r> UserFactory<'r> {
         server_ctl.create_vcard(jid, nickname)?;
         server_ctl.set_nickname(jid, nickname)?;
 
-        Ok(())
+        Ok(member)
     }
 
     pub async fn accept_workspace_invitation(

@@ -17,7 +17,7 @@ use service::{Mutation, Query, ServerCtl};
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
 use crate::guards::{Db, LazyGuard, ServerConfig, UnauthenticatedServerManager, UserFactory};
-use crate::v1::members::rocket_uri_macro_get_member;
+use crate::v1::members::{rocket_uri_macro_get_member, Member};
 use crate::v1::Created;
 
 #[derive(Default, Serialize, Deserialize)]
@@ -99,7 +99,7 @@ pub async fn init_first_account(
     server_config: LazyGuard<ServerConfig>,
     user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<InitFirstAccountRequest>,
-) -> Created<()> {
+) -> Created<Member> {
     let db = conn.into_inner();
 
     if Query::get_member_count(db).await? > 0 {
@@ -114,7 +114,7 @@ pub async fn init_first_account(
         domain: server_config.domain.to_owned(),
     };
     let txn = db.begin().await?;
-    user_factory
+    let member = user_factory
         .create_user(
             &txn,
             &jid,
@@ -126,5 +126,6 @@ pub async fn init_first_account(
     txn.commit().await?;
 
     let resource_uri = uri!(get_member(jid)).to_string();
-    Ok(status::Created::new(resource_uri))
+    let response = Member::from(member);
+    Ok(status::Created::new(resource_uri).body(response.into()))
 }

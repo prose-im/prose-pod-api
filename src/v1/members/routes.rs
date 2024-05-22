@@ -16,12 +16,12 @@ pub(super) fn get_members() -> Json<Vec<Member>> {
     vec![
         Member {
             jid: JID::new("valerian", "crisp.chat").unwrap(),
-            name: "Valerian Saliou".to_string(),
+            // name: "Valerian Saliou".to_string(),
             role: MemberRole::Admin,
         },
         Member {
             jid: JID::new("baptiste", "crisp.chat").unwrap(),
-            name: "Baptiste Jamin".to_string(),
+            // name: "Baptiste Jamin".to_string(),
             role: MemberRole::Admin,
         },
     ]
