@@ -13,6 +13,12 @@ use rocket::request::FromParam;
 #[derive(Debug, Eq)]
 pub struct Uuid(uuid::Uuid);
 
+impl From<uuid::Uuid> for Uuid {
+    fn from(value: uuid::Uuid) -> Self {
+        Self(value)
+    }
+}
+
 impl<'v> FromFormField<'v> for Uuid {
     fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
         uuid::Uuid::parse_str(field.value)
