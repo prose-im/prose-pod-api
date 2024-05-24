@@ -15,7 +15,8 @@ test-env-vars \
   PROSE_POD_API_DIR \
   PROSE_POD_SYSTEM_DIR;
 
-STEPCI_DIR="${PROSE_POD_API_DIR:?}"/tests/integration/step-ci;
+INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/tests/integration;
+STEPCI_DIR="${INTEGRATION_TESTS_DIR:?}"/step-ci;
 ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
 
 clean-prosody() {
@@ -24,7 +25,9 @@ clean-prosody() {
 start() {
   START_TIME=$(date +%s);
   clean-prosody;
-  ENV_FILE="${ENV_FILE:?}" docker compose -f "${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml up --detach;
+  ENV_FILE="${ENV_FILE:?}" \
+  PROSE_CONFIG_FILE="${PROSE_CONFIG_FILE:-"${INTEGRATION_TESTS_DIR:?}"/Prose-test.toml}" \
+  docker compose -f "${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml up --detach;
 }
 stop() {
   docker compose -f "${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml stop;
@@ -38,10 +41,20 @@ abort() {
 }
 
 stepci_run() {
-  # local jwt_signing_key=$(source "${ENV_FILE:?}" && echo "${JWT_SIGNING_KEY:?}");
-  # local admin_jwt=$(jwt encode --secret="${jwt_signing_key}" '{"jid": "example@prose.org"}');
-  start && stepci run "${STEPCI_DIR:?}/${1:?}.yaml" && stop || abort;
+  local test_file=${1:?};
+  local config_options=${2:-test};
+
+  printf "\n\033[1;34m$(for _ in $(seq 72); do printf "="; done)\n";
+  printf "Running '${test_file:?}' with config '${config_options}'";
+  printf "\n$(for _ in $(seq 72); do printf "="; done)\033[0m\n\n";
+
+  # NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
+  PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml" \
+  start && \
+  (cd "${STEPCI_DIR:?}" && stepci run "${test_file:?}.yaml") \
+  && stop || abort;
 }
 
 stepci_run init;
-stepci_run global;
+stepci_run members test-auto_accept_invitations;
+stepci_run invitations;

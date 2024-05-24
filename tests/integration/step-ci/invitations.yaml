@@ -1,5 +1,5 @@
 version: "1.1"
-name: Running Prose Pod (initialized)
+name: List invitations
 config:
   http:
     baseURL: ${{ env.host }}
@@ -18,16 +18,20 @@ env:
 before:
   name: "Before all (not a test)"
   steps:
-    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/init_workspace"
-    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/init_server"
-    - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/init_server"
+    - $ref: "init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+    - $ref: "#/components/steps/invite_member"
+    - $ref: "#/components/steps/invite_member"
+    - $ref: "#/components/steps/invite_member"
+    - $ref: "#/components/steps/invite_member"
+    - $ref: "#/components/steps/invite_member"
 
 tests:
-  inviteMembers:
-    name: Invite members
+  listInvitationsDefault:
+    name: Default
     steps:
-      - $ref: "./tests/integration/step-ci/init.yaml#/components/steps/log_admin_in"
-      - $ref: "#/components/steps/invite_member"
+      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List invitations
         http:
           method: GET
@@ -43,23 +47,32 @@ tests:
               type: array
               items:
                 $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
-      # NOTE: We used a config flag to auto-accept invitations,
-      #   because otherwise we'd have no way to accept them.
-      - name: List members
+            jsonpath:
+              $.length: 5
+  listInvitationsPage2:
+    name: Page 2
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: List invitations
         http:
           method: GET
-          url: /v1/members
-        auth:
-          bearer:
-            token: ${{ captures.token }}
-        check:
-          status: 200
-          headers:
-            $ref: "#/components/headers/paginated_json"
-          schema:
-            type: array
-            items:
-              $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+          url: /v1/invitations
+          params:
+            page_number: 2
+            page_size: 2
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 206
+            headers:
+              $ref: "#/components/headers/paginated_json"
+            schema:
+              type: array
+              items:
+                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+            jsonpath:
+              $.length: 2
 
 components:
   steps:

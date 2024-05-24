@@ -1,0 +1,14 @@
+# Prose Pod API
+# REST API for administrating a Prose Pod
+# Configuration file
+# Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
+
+[branding]
+page_url = "https://admin.prose.org/"
+company_name = "Prose"
+
+[debug_only]
+automatically_accept_invitations = true
+
+[debug_only.dependency_modes]
+notifier = "logging"
