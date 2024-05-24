@@ -34,6 +34,12 @@ make update-redoc
 
 ## Testing
 
+After you have setup your environment to run smoke tests and integration tests, you can run all of them in a single command using:
+
+```bash
+make test
+```
+
 ### Smoke testing
 
 As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md),
@@ -53,16 +59,10 @@ You could also run `cargo test` but it runs unit tests in `src/`, which we don't
 
 #### Installing dependencies
 
-For integration tests, we use [Artillery](https://www.artillery.io/). To install it, follow instructions at [Get Artillery – Artillery Docs](https://www.artillery.io/docs/get-started/get-artillery) or just run the following command if you don't have an exotic setup:
+For integration tests, we use [Step CI]. To install it, follow instructions at [Getting started | Step CI Docs](https://docs.stepci.com/guides/getting-started.html) or just run the following command if you don't have an exotic setup:
 
 ```bash
-npm install -g artillery@latest
-```
-
-Tests need an API key to run correctly, and since it expires we can't have a hard-coded test key. To allow generating JWTs from the testing script, you will need to install [`jwt-cli`](https://github.com/mike-engel/jwt-cli). For this, you can follow [`jwt-cli`'s installation instructions](https://github.com/mike-engel/jwt-cli?tab=readme-ov-file#installation) or just run:
-
-```bash
-cargo install jwt-cli
+npm install -g stepci
 ```
 
 #### Setting up environment
@@ -90,11 +90,7 @@ Then, run the tests using:
 make integration-test
 ```
 
-If you need to debug, you might need to see HTTP requests and responses. The good thing is that you can simply use Artillery's `DEBUG` environment variable as documented in [Debugging – HTTP Engine – Artillery Docs](https://www.artillery.io/docs/reference/engines/http#debugging). The most verbose version (not _that_ verbose actually) is:
-
-```bash
-DEBUG=http* make integration-test
-```
+If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
 
 ## Building the Docker image
 
@@ -110,3 +106,4 @@ docker build -t proseim/prose-pod-api --build-arg CARGO_INSTALL_EXTRA_ARGS='--de
 ```
 
 [Docker `ARG`]: https://docs.docker.com/reference/dockerfile/#arg "Dockerfile reference | Docker Docs"
+[Step CI]: https://stepci.com/ "Step CI homepage"
