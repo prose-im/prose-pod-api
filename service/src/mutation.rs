@@ -61,17 +61,22 @@ impl Mutation {
         pre_assigned_role: MemberRole,
         contact: InvitationContact,
     ) -> Result<workspace_invitation::Model, DbErr> {
-        let mut model = workspace_invitation::ActiveModel::new();
         let now = Utc::now();
-        model.created_at = Set(now);
-        model.jid = Set(jid.to_owned());
-        model.pre_assigned_role = Set(pre_assigned_role);
+        let mut model = workspace_invitation::ActiveModel {
+            id: NotSet,
+            created_at: Set(now),
+            status: NotSet,
+            jid: Set(jid.to_owned()),
+            pre_assigned_role: Set(pre_assigned_role),
+            invitation_channel: NotSet,
+            email_address: NotSet,
+            accept_token: Set(uuid.new_v4()),
+            accept_token_expires_at: Set(now
+                .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
+                .unwrap()),
+            reject_token: Set(uuid.new_v4()),
+        };
         model.set_contact(contact);
-        model.accept_token = Set(uuid.new_v4());
-        model.accept_token_expires_at = Set(now
-            .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
-            .unwrap());
-        model.reject_token = Set(uuid.new_v4());
         model.insert(db).await
     }
 
@@ -146,9 +151,13 @@ impl Mutation {
         jid: &JID,
         role: &Option<MemberRole>,
     ) -> Result<member::Model, MutationError> {
-        let mut new_member = member::ActiveModel::new();
+        let now = Utc::now();
+        let mut new_member = member::ActiveModel {
+            id: NotSet,
+            role: role.map(Set).unwrap_or(NotSet),
+            joined_at: Set(now),
+        };
         new_member.set_jid(jid);
-        new_member.role = role.map(Set).unwrap_or(NotSet);
         new_member.insert(db).await.map_err(Into::into)
     }
 

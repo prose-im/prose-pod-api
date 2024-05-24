@@ -88,6 +88,28 @@ impl Query {
             .await
     }
 
+    pub async fn get_members(
+        db: &DbConn,
+        page_number: u64,
+        page_size: u64,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<(ItemsAndPagesNumber, Vec<member::Model>), DbErr> {
+        assert_ne!(
+            page_number, 0,
+            "`page_number` starts at 1 like in the public API."
+        );
+
+        let mut query = Member::find().order_by_asc(member::Column::JoinedAt);
+        if let Some(until) = until {
+            query = query.filter(member::Column::JoinedAt.lte(until));
+        }
+        let pages = query.paginate(db, page_size);
+
+        let num_items_and_pages = pages.num_items_and_pages().await?;
+        let models = pages.fetch_page(page_number - 1).await?;
+        Ok((num_items_and_pages, models))
+    }
+
     pub async fn get_member_count(db: &DbConn) -> Result<u64, DbErr> {
         member::Entity::find().count(db).await
     }

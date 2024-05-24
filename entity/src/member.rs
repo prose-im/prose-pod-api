@@ -15,6 +15,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     id: String,
     pub role: MemberRole,
+    pub joined_at: DateTimeUtc,
 }
 
 impl Model {

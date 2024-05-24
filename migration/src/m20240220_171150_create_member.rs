@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(string(Member::Id).primary_key())
                     .col(string_len(Member::Role, 6).default(DEFAULT_MEMBER_ROLE))
+                    .col(timestamp_with_time_zone(Member::JoinedAt))
                     .to_owned(),
             )
             .await
@@ -32,4 +33,5 @@ enum Member {
     Table,
     Id,
     Role,
+    JoinedAt,
 }

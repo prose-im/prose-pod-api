@@ -4,28 +4,37 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::models::Member;
-use entity::model::{MemberRole, JID};
-use rocket::serde::json::Json;
+use chrono::{DateTime, Utc};
 use rocket::{get, put};
+use sea_orm_rocket::Connection;
+use service::Query;
 
-use crate::forms::JID as JIDUriParam;
+use crate::error::Error;
+use crate::forms::{Timestamp, JID as JIDUriParam};
+use crate::guards::Db;
+use crate::responders::Paginated;
 
-/// Get all members
-#[get("/v1/members")]
-pub(super) fn get_members() -> Json<Vec<Member>> {
-    vec![
-        Member {
-            jid: JID::new("valerian", "crisp.chat").unwrap(),
-            // name: "Valerian Saliou".to_string(),
-            role: MemberRole::Admin,
-        },
-        Member {
-            jid: JID::new("baptiste", "crisp.chat").unwrap(),
-            // name: "Baptiste Jamin".to_string(),
-            role: MemberRole::Admin,
-        },
-    ]
-    .into()
+#[get("/v1/members?<page_number>&<page_size>&<until>")]
+pub(super) async fn get_members(
+    conn: Connection<'_, Db>,
+    page_number: Option<u64>,
+    page_size: Option<u64>,
+    until: Option<Timestamp>,
+) -> Result<Paginated<Member>, Error> {
+    let db = conn.into_inner();
+    let page_number = page_number.unwrap_or(1);
+    let page_size = page_size.unwrap_or(20);
+    let until: Option<DateTime<Utc>> = match until {
+        Some(t) => Some(t.try_into()?),
+        None => None,
+    };
+    let (pages_metadata, members) = Query::get_members(db, page_number, page_size, until).await?;
+    Ok(Paginated::new(
+        members.into_iter().map(Into::into).collect(),
+        page_number,
+        page_size,
+        pages_metadata,
+    ))
 }
 
 /// Search for members.
