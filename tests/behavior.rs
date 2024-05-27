@@ -14,11 +14,11 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use cucumber::{then, World};
 use cucumber_parameters::HTTPStatus;
-use mock_notifier::MockNotifier;
-use mock_server_ctl::MockServerCtl;
 use entity::model::EmailAddress;
 use entity::{member, server_config, workspace_invitation};
 use log::debug;
+use mock_notifier::MockNotifier;
+use mock_server_ctl::MockServerCtl;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
