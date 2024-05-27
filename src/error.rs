@@ -50,6 +50,9 @@ pub enum Error {
     NotifierError(NotifierError),
     /// Basic authentication failed.
     BasicAuthError(AuthBasicError),
+    /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
+    /// to change the output format).
+    HTTPStatus(Status),
 }
 
 impl Error {
@@ -82,6 +85,7 @@ impl Error {
             Self::NotFound { .. } => Status::NotFound,
             Self::NotifierError(_) => Status::InternalServerError,
             Self::BasicAuthError(_) => Status::Unauthorized,
+            Self::HTTPStatus(s) => s.to_owned(),
         }
     }
 
@@ -105,6 +109,7 @@ impl Error {
             Self::NotFound { .. } => "not_found",
             Self::NotifierError(_) => "internal_server_error",
             Self::BasicAuthError(_) => "unauthorized",
+            Self::HTTPStatus(_) => "unknown",
         }
     }
 
@@ -183,6 +188,7 @@ impl fmt::Display for Error {
             Self::NotFound { reason } => write!(f, "Not found: {reason}"),
             Self::NotifierError(err) => write!(f, "Notifier error: {err}"),
             Self::BasicAuthError(err) => write!(f, "Basic auth error: {err}"),
+            Self::HTTPStatus(s) => write!(f, "{s}"),
         }
     }
 }

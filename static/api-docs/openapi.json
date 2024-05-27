@@ -1343,7 +1343,8 @@
 							"server_config_not_initialized",
 							"first_account_already_initialized",
 							"unauthorized",
-							"forbidden"
+							"forbidden",
+							"unknown"
 						],
 						"example": "bad_request"
 					}

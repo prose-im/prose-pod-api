@@ -58,3 +58,4 @@ stepci_run() {
 stepci_run init;
 stepci_run members test-auto_accept_invitations;
 stepci_run invitations;
+stepci_run errors;

@@ -19,7 +19,8 @@ use log::{debug, info};
 use migration::MigratorTrait;
 use rocket::fairing::{self, AdHoc};
 use rocket::fs::{FileServer, NamedFile};
-use rocket::{Build, Rocket};
+use rocket::http::Status;
+use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
 use service::config::Config;
 use service::dependencies::Uuid;
@@ -41,6 +42,7 @@ pub fn custom_rocket(
         .mount("/", v1::routes())
         .mount("/api-docs", FileServer::from("static/api-docs"))
         .mount("/api-docs", routes![redoc])
+        .register("/", catchers![default_catcher])
         .manage(Uuid::from_config(&config))
         .manage(config)
         .manage(server_ctl)
@@ -84,4 +86,9 @@ async fn redoc() -> Result<NamedFile, Error> {
         .map_err(|e| Error::NotFound {
             reason: format!("{e}"),
         })
+}
+
+#[catch(default)]
+fn default_catcher(status: Status, _request: &Request) -> Error {
+    Error::HTTPStatus(status)
 }
