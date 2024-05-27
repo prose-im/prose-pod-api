@@ -24,3 +24,10 @@ impl From<member::Model> for Member {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EnrichedMember {
+    pub jid: JID,
+    pub role: MemberRole,
+    pub nickname: Option<String>,
+}

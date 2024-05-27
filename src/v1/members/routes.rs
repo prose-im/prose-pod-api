@@ -3,15 +3,18 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use super::models::Member;
 use chrono::{DateTime, Utc};
+use rocket::response::stream::{Event, EventStream};
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
+use service::vcard_parser::constants::PropertyName;
+use service::vcard_parser::traits::HasValue;
 use service::Query;
 
+use super::models::{EnrichedMember, Member};
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::Db;
+use crate::guards::{Db, LazyGuard, ServerService};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
@@ -35,6 +38,50 @@ pub(super) async fn get_members(
         page_size,
         pages_metadata,
     ))
+}
+
+#[get("/v1/enrich-members?<jids..>")]
+pub(super) fn enrich_members<'r>(
+    conn: Connection<'r, Db>,
+    server_service: LazyGuard<ServerService<'r>>,
+    jids: Vec<JIDUriParam>,
+) -> Result<EventStream![Event + 'r], Error> {
+    let server_service = server_service.inner?;
+
+    Ok(EventStream! {
+        let db = conn.into_inner();
+        for jid in jids.iter() {
+            // yield Event::retry(Duration::from_secs(10));
+            let model = Query::get_member(db, jid).await.unwrap().unwrap();
+            let vcard = server_service.get_vcard(jid).unwrap();
+            let nickname = vcard
+                .and_then(|vcard| vcard.get_property_by_name(PropertyName::NICKNAME))
+                .map(|p| p.get_value().to_string());
+            let res = EnrichedMember {
+                jid: model.jid(),
+                role: model.role,
+                nickname,
+            };
+            yield Event::json(&res);
+            // yield Event::data(format!("{}", i)).id("cat").event("bar");
+            // yield Event::comment("silly boy");
+        }
+    })
+
+    // let db = conn.into_inner();
+    // let page_number = page_number.unwrap_or(1);
+    // let page_size = page_size.unwrap_or(20);
+    // let until: Option<DateTime<Utc>> = match until {
+    //     Some(t) => Some(t.try_into()?),
+    //     None => None,
+    // };
+    // let (pages_metadata, members) = Query::get_members(db, page_number, page_size, until).await?;
+    // Ok(Paginated::new(
+    //     members.into_iter().map(Into::into).collect(),
+    //     page_number,
+    //     page_size,
+    //     pages_metadata,
+    // ))
 }
 
 /// Get information about one member.

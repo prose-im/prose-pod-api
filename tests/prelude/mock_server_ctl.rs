@@ -16,6 +16,7 @@ use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct MockServerCtl {
+    pub(crate) online: bool,
     pub(crate) state: Mutex<MockServerCtlState>,
 }
 
@@ -35,7 +36,18 @@ pub struct MockServerCtlState {
 
 impl MockServerCtl {
     pub fn new(state: Mutex<MockServerCtlState>) -> Self {
-        Self { state }
+        Self {
+            online: true,
+            state,
+        }
+    }
+
+    fn check_online(&self) -> Result<(), Error> {
+        if self.online {
+            Ok(())
+        } else {
+            Err(Error::Other("XMPP server offline".to_owned()))?
+        }
     }
 }
 
@@ -45,17 +57,23 @@ impl ServerCtlImpl for MockServerCtl {
         server_config: &server_config::Model,
         app_config: &Config,
     ) -> Result<(), Error> {
+        self.check_online()?;
+
         let mut state = self.state.lock().unwrap();
         state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
         Ok(())
     }
     fn reload(&self) -> Result<(), Error> {
+        self.check_online()?;
+
         let mut state = self.state.lock().unwrap();
         state.conf_reload_count += 1;
         Ok(())
     }
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+        self.check_online()?;
+
         let mut state = self.state.lock().unwrap();
 
         // Check that the domain exists in the Prosody configuration. If it's not the case,
@@ -86,17 +104,23 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
     fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+        self.check_online()?;
+
         let mut state = self.state.lock().unwrap();
         state.users.remove(&jid);
         Ok(())
     }
     fn set_user_role(&self, _jid: &JID, _role: &MemberRole) -> Result<(), Error> {
+        self.check_online()?;
+
         // NOTE: The role is stored on our side in the database,
         //   our `DummyServerCtl` has nothing to save.
         Ok(())
     }
 
     fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
+        self.check_online()?;
+
         let state = self.state.lock().unwrap();
         Ok(state
             .users
@@ -106,9 +130,13 @@ impl ServerCtlImpl for MockServerCtl {
     }
 
     fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
+        self.check_online()?;
+
         Ok(self.state.lock().unwrap().vcards.get(jid).map(Clone::clone))
     }
     fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error> {
+        self.check_online()?;
+
         self.state
             .lock()
             .unwrap()

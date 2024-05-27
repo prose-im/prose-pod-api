@@ -32,8 +32,6 @@ use crate::{
     TestWorld,
 };
 
-const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
-
 async fn invite_member<'a>(
     client: &'a Client,
     token: &str,
@@ -165,7 +163,7 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
         db,
         world.uuid_gen(),
         jid,
-        DEFAULT_MEMBER_ROLE,
+        Default::default(),
         InvitationContact::Email {
             email_address: email_address.to_owned(),
         },
@@ -210,7 +208,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
             db,
             world.uuid_gen(),
             jid,
-            DEFAULT_MEMBER_ROLE,
+            Default::default(),
             InvitationContact::Email {
                 email_address: email_address.clone(),
             },

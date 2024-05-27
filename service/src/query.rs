@@ -26,6 +26,10 @@ impl Query {
             .await
     }
 
+    pub async fn get_member(db: &DbConn, jid: &JID) -> Result<Option<member::Model>, DbErr> {
+        Member::find_by_jid(jid).one(db).await
+    }
+
     pub async fn is_admin(db: &DbConn, jid: &JID) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
         let member = Member::find_by_jid(jid).one(db).await?;
