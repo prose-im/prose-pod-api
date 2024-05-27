@@ -37,12 +37,6 @@ pub(super) async fn get_members(
     ))
 }
 
-/// Search for members.
-#[get("/v1/members/search")]
-pub(super) fn search_members() -> String {
-    todo!()
-}
-
 /// Get information about one member.
 #[get("/v1/members/<jid>")]
 pub(super) fn get_member(jid: JIDUriParam) -> String {
