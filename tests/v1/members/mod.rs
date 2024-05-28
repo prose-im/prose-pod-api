@@ -25,6 +25,7 @@ use service::{
     Mutation,
 };
 
+use crate::cucumber_parameters::Array;
 use crate::{
     cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
@@ -104,6 +105,11 @@ async fn when_getting_members_page(
     let token = world.token(name);
     let res = list_members_paged(&world.client, token, page_number, page_size).await;
     world.result = Some(res.into());
+}
+
+#[when(expr = "{} gets detailed information about {array}")]
+async fn when_getting_members_details(world: &mut TestWorld, name: String, jids: Array<JIDParam>) {
+    todo!("{jids}")
 }
 
 #[then(expr = "they should see {int} member(s)")]

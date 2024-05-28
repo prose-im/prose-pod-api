@@ -59,6 +59,39 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     Ok(())
 }
 
+#[given(regex = "^(.+) is (online|offline)$")]
+async fn given_presence(
+    world: &mut TestWorld,
+    name: String,
+    presence: String,
+) -> Result<(), Error> {
+    let server_ctl = world.server_ctl();
+    let mut state = server_ctl.state.lock().unwrap();
+
+    let jid = name_to_jid(world, &name).await?;
+    match presence.as_str() {
+        "online" => state.online.insert(jid),
+        "offline" => state.online.remove(&jid),
+        p => panic!("Unexpected presence: '{p}'"),
+    };
+
+    Ok(())
+}
+
+#[given(expr = "{}'s avatar is {}")]
+async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
+    // let server_ctl = world.server_ctl();
+    // let mut state = server_ctl.state.lock().unwrap();
+
+    // let jid = name_to_jid(world, &name).await?;
+    // let mut default_vcard = Vcard::new(&name);
+    // let vcard = state.vcards.get_mut(&jid).unwrap_or(&mut default_vcard);
+
+    todo!();
+
+    // Ok(())
+}
+
 // LOGIN
 
 // async fn login<'a>(client: &'a Client) -> LocalResponse<'a> {

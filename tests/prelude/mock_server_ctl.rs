@@ -12,6 +12,7 @@ use entity::server_config;
 use linked_hash_map::LinkedHashMap;
 use service::config::Config;
 
+use std::collections::HashSet;
 use std::sync::Mutex;
 
 #[derive(Debug)]
@@ -32,6 +33,7 @@ pub struct MockServerCtlState {
     pub applied_config: Option<ProsodyConfigFile>,
     pub users: LinkedHashMap<JID, UserAccount>,
     pub vcards: LinkedHashMap<JID, Vcard>,
+    pub online: HashSet<JID>,
 }
 
 impl MockServerCtl {

@@ -2682,6 +2682,7 @@ dependencies = [
  "iso8601-duration",
  "iso8601-timestamp",
  "jwt",
+ "lazy_static",
  "linked-hash-map",
  "log",
  "migration",
