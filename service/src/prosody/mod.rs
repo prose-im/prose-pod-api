@@ -5,7 +5,6 @@
 
 mod prosody_admin_rest;
 mod prosody_config_from_db;
-mod prosody_ctl;
 
 use entity::model::MemberRole;
 pub use prosody_admin_rest::ProsodyAdminRest;

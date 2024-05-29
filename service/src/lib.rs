@@ -14,7 +14,7 @@ pub mod server_ctl;
 use config::Config;
 use entity::server_config::Model as ServerConfig;
 pub use mutation::*;
-pub use prosody::{prosody_config_from_db, ProsodyCtl};
+pub use prosody::prosody_config_from_db;
 pub use query::*;
 pub use server_ctl::ServerCtl;
 
