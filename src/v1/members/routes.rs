@@ -7,14 +7,12 @@ use chrono::{DateTime, Utc};
 use rocket::response::stream::{Event, EventStream};
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
-use service::vcard_parser::constants::PropertyName;
-use service::vcard_parser::traits::HasValue;
 use service::Query;
 
 use super::models::{EnrichedMember, Member};
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard, ServerService};
+use crate::guards::{Db, LazyGuard, XmppService};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
@@ -43,20 +41,20 @@ pub(super) async fn get_members(
 #[get("/v1/enrich-members?<jids..>")]
 pub(super) fn enrich_members<'r>(
     conn: Connection<'r, Db>,
-    server_service: LazyGuard<ServerService<'r>>,
+    xmpp_service: LazyGuard<XmppService>,
     jids: Vec<JIDUriParam>,
 ) -> Result<EventStream![Event + 'r], Error> {
-    let server_service = server_service.inner?;
+    let xmpp_service = xmpp_service.inner?;
 
     Ok(EventStream! {
         let db = conn.into_inner();
         for jid in jids.iter() {
             // yield Event::retry(Duration::from_secs(10));
             let model = Query::get_member(db, jid).await.unwrap().unwrap();
-            let vcard = server_service.get_vcard(jid).unwrap();
+            let vcard = xmpp_service.get_vcard(jid).unwrap();
             let nickname = vcard
-                .and_then(|vcard| vcard.get_property_by_name(PropertyName::NICKNAME))
-                .map(|p| p.get_value().to_string());
+                .and_then(|vcard| vcard.nickname.first().cloned())
+                .map(|p| p.value);
             let res = EnrichedMember {
                 jid: model.jid(),
                 role: model.role,

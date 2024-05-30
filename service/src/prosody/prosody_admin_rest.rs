@@ -12,7 +12,6 @@ use entity::{
 use log::debug;
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use tokio::runtime::Handle;
-use vcard_parser::vcard::Vcard;
 
 use crate::{config::Config, server_ctl::*};
 
@@ -56,7 +55,7 @@ impl ProsodyAdminRest {
                     Ok(response)
                 } else {
                     Err(Error::Other(format!(
-                        "Admin REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
+                        "Prosody Admin REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
                         response.status(),
                         response.headers().clone(),
                         response.text().await.unwrap_or("<nil>".to_string())
@@ -79,7 +78,7 @@ impl ProsodyAdminRest {
     }
 
     fn url(&self, path: &str) -> String {
-        format!("{}/admin_rest/{path}", self.admin_rest_api_url)
+        format!("{}/{path}", self.admin_rest_api_url)
     }
 }
 
@@ -147,35 +146,5 @@ impl ServerCtlImpl for ProsodyAdminRest {
             |res| res.status().is_success() || res.status() == StatusCode::UNAUTHORIZED,
         )
         .map(|res| res.status().is_success())
-    }
-
-    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
-        self.call(|client| {
-            client.get(format!(
-                "{}/{}",
-                self.url("vcards"),
-                urlencoding::encode(&jid.to_string())
-            ))
-        })
-        .and_then(|res| {
-            tokio::task::block_in_place(move || Handle::current().block_on(res.text()))
-                .map_err(Error::from)
-        })
-        .and_then(|vcard| {
-            let vcards = vcard_parser::parse_vcards(vcard.as_str())?;
-            Ok(vcards.into_iter().next())
-        })
-    }
-    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error> {
-        self.call(|client| {
-            client
-                .put(format!(
-                    "{}/{}",
-                    self.url("vcards"),
-                    urlencoding::encode(&jid.to_string())
-                ))
-                .body(vcard.export())
-        })
-        .map(|_| ())
     }
 }

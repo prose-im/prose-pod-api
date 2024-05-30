@@ -5,7 +5,7 @@
 
 use std::sync::{Mutex, MutexGuard};
 
-use entity::model::{DateLike, Duration, PossiblyInfinite, JID};
+use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
@@ -13,7 +13,6 @@ use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::config::Config as AppConfig;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use service::vcard_parser::vcard::Vcard;
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
@@ -254,13 +253,5 @@ impl<'r> UnauthenticatedServerManager<'r> {
             active.file_storage_retention = Set(new_state);
         })
         .await
-    }
-
-    pub fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
-        self.server_ctl
-            .lock()
-            .expect("ServerCtl lock poisonned")
-            .get_vcard(jid)
-            .map_err(Into::into)
     }
 }

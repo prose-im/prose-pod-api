@@ -11,10 +11,6 @@ use std::{fmt, io};
 
 use entity::model::{MemberRole, JID};
 use entity::server_config;
-use vcard_parser::error::VcardError;
-use vcard_parser::vcard::property::property_nickname::PropertyNickNameData;
-use vcard_parser::vcard::property::Property;
-use vcard_parser::vcard::Vcard;
 
 use crate::config::Config;
 
@@ -36,7 +32,7 @@ impl Deref for ServerCtl {
     }
 }
 
-/// Abstraction over ProsodyCtl in case we want to switch to another server.
+/// Abstraction over `prosodyctl` in case we want to switch to another server.
 /// Also facilitates testing.
 pub trait ServerCtlImpl: Sync + Send {
     fn save_config(
@@ -60,24 +56,6 @@ pub trait ServerCtlImpl: Sync + Send {
     }
 
     fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error>;
-
-    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error>;
-    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error>;
-
-    fn create_vcard(&self, jid: &JID, name: &str) -> Result<(), Error> {
-        let vcard = Vcard::new(name);
-        self.set_vcard(jid, &vcard)
-    }
-    fn set_nickname(&self, jid: &JID, nickname: &str) -> Result<(), Error> {
-        let mut vcard = self.get_vcard(jid)?.unwrap_or(Vcard::new(nickname));
-
-        vcard.set_property(
-            &PropertyNickNameData::try_from((None, nickname, vec![]))
-                .map(Property::PropertyNickName)?,
-        )?;
-
-        self.set_vcard(jid, &vcard)
-    }
 }
 
 #[derive(Debug)]
@@ -85,7 +63,6 @@ pub enum Error {
     IO(io::Error),
     CommandFailed(Output),
     Utf8Error(Utf8Error),
-    VcardError(VcardError),
     Other(String),
 }
 
@@ -101,7 +78,6 @@ impl fmt::Display for Error {
                 str::from_utf8(&output.stderr).unwrap(),
             ),
             Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
-            Self::VcardError(err) => write!(f, "vCard error: {err}"),
             Self::Other(err) => write!(f, "{err}"),
         }
     }
@@ -116,12 +92,6 @@ impl From<io::Error> for Error {
 impl From<Utf8Error> for Error {
     fn from(value: Utf8Error) -> Self {
         Self::Utf8Error(value)
-    }
-}
-
-impl From<VcardError> for Error {
-    fn from(value: VcardError) -> Self {
-        Self::VcardError(value)
     }
 }
 

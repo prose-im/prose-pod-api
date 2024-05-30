@@ -19,6 +19,14 @@ use service::Mutation;
 
 use crate::TestWorld;
 
+async fn test_jid(world: &TestWorld) -> Result<JID, Error> {
+    let domain = world.server_config().await?.domain;
+    Ok(model::JID {
+        node: JIDNode::from_str("test").unwrap(),
+        domain,
+    })
+}
+
 async fn name_to_jid(world: &TestWorld, name: &str) -> Result<JID, Error> {
     let jid_node = name.to_lowercase().replace(" ", "-");
     let domain = world.server_config().await?.domain;

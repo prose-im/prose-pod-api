@@ -14,6 +14,7 @@ mod unauthenticated_server_manager;
 mod user_factory;
 mod uuid_generator;
 mod workspace;
+mod xmpp_service;
 
 use std::ops::Deref;
 
@@ -28,6 +29,7 @@ pub use unauthenticated_server_manager::*;
 pub use user_factory::*;
 pub use uuid_generator::*;
 pub use workspace::*;
+pub use xmpp_service::*;
 
 use rocket::http::Status;
 use rocket::request::Outcome;

@@ -14,18 +14,12 @@ use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
 };
-use service::Query;
-use service::{
-    server_ctl::{self, ServerCtlImpl},
-    vcard_parser::{
-        constants::PropertyName,
-        traits::HasValue as _,
-        vcard::{self, property::property_nickname::PropertyNickNameData},
-    },
-    Mutation,
-};
+use service::xmpp::stanza::vcard::Nickname;
+use service::{xmpp_service, Query, XmppServiceContext};
+use service::{xmpp_service::XmppServiceImpl as _, Mutation};
 
 use crate::cucumber_parameters::Array;
+use crate::v1::test_jid;
 use crate::{
     cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
@@ -136,19 +130,16 @@ async fn then_nickname(
     world: &mut TestWorld,
     jid: JIDParam,
     nickname: String,
-) -> Result<(), server_ctl::Error> {
+) -> Result<(), xmpp_service::Error> {
+    let ctx = XmppServiceContext {
+        bare_jid: test_jid(world).await.unwrap(),
+    };
     let vcard = world
-        .server_ctl()
-        .get_vcard(&jid)?
+        .xmpp_service()
+        .get_vcard(&ctx, &jid)?
         .expect("vCard not found");
-    let properties = vcard.get_properties_by_name(PropertyName::NICKNAME);
-    let properties = properties
-        .iter()
-        .map(vcard::property::Property::get_value)
-        .collect::<Vec<_>>();
 
-    let expected = PropertyNickNameData::try_from((None, nickname.as_str(), vec![])).unwrap();
-    assert_eq!(properties, vec![expected.get_value()]);
+    assert_eq!(vcard.nickname, vec![Nickname { value: nickname }]);
 
     Ok(())
 }

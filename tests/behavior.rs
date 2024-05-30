@@ -19,6 +19,7 @@ use entity::{member, server_config, workspace_invitation};
 use log::debug;
 use mock_notifier::MockNotifier;
 use mock_server_ctl::MockServerCtl;
+use mock_xmpp_service::MockXmppService;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
@@ -31,7 +32,7 @@ use service::config::Config;
 use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
-use service::{dependencies, Query};
+use service::{dependencies, Query, XmppServiceInner};
 use tokio::runtime::Handle;
 use tokio::task;
 use uuid::Uuid;
@@ -78,6 +79,7 @@ async fn main() {
 fn test_rocket(
     config: &Config,
     server_ctl: Arc<Mutex<MockServerCtl>>,
+    xmpp_service: Arc<Mutex<MockXmppService>>,
     notifier: Arc<Mutex<MockNotifier>>,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
@@ -89,6 +91,7 @@ fn test_rocket(
         rocket::custom(figment),
         config.to_owned(),
         ServerCtl::new(server_ctl),
+        XmppServiceInner::new(xmpp_service),
     )
     .manage(JWTService::new(JWTKey::custom("test_key")))
     .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
@@ -97,12 +100,18 @@ fn test_rocket(
 pub async fn rocket_test_client(
     config: Arc<Config>,
     server_ctl: Arc<Mutex<MockServerCtl>>,
+    xmpp_service: Arc<Mutex<MockXmppService>>,
     notifier: Arc<Mutex<MockNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(config.as_ref(), server_ctl, notifier))
-        .await
-        .expect("valid rocket instance")
+    Client::tracked(test_rocket(
+        config.as_ref(),
+        server_ctl,
+        xmpp_service,
+        notifier,
+    ))
+    .await
+    .expect("valid rocket instance")
 }
 
 #[derive(Debug)]
@@ -152,6 +161,7 @@ impl From<LocalResponse<'_>> for Response {
 pub struct TestWorld {
     config: Arc<Config>,
     server_ctl: Arc<Mutex<MockServerCtl>>,
+    xmpp_service: Arc<Mutex<MockXmppService>>,
     notifier: Arc<Mutex<MockNotifier>>,
     client: Client,
     result: Option<Response>,
@@ -212,6 +222,10 @@ impl TestWorld {
         self.server_ctl.lock().unwrap()
     }
 
+    fn xmpp_service(&self) -> MutexGuard<MockXmppService> {
+        self.xmpp_service.lock().unwrap()
+    }
+
     fn notifier(&self) -> MutexGuard<MockNotifier> {
         self.notifier.lock().unwrap()
     }
@@ -249,14 +263,16 @@ impl TestWorld {
 impl TestWorld {
     async fn new() -> Self {
         let config = Arc::new(Config::figment());
-        let server_ctl = Arc::new(Mutex::new(MockServerCtl::new(Default::default())));
-        let notifier = Arc::new(Mutex::new(MockNotifier::new(Default::default())));
+        let server_ctl: Arc<Mutex<MockServerCtl>> = Arc::default();
+        let xmpp_service: Arc<Mutex<MockXmppService>> = Arc::default();
+        let notifier: Arc<Mutex<MockNotifier>> = Arc::default();
 
         Self {
             config: config.clone(),
             server_ctl: server_ctl.clone(),
+            xmpp_service: xmpp_service.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(config, server_ctl, notifier).await,
+            client: rocket_test_client(config, server_ctl, xmpp_service, notifier).await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),

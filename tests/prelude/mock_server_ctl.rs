@@ -5,7 +5,6 @@
 
 use ::entity::model::JID;
 use ::service::server_ctl::{Error, ServerCtlImpl};
-use ::service::vcard_parser::vcard::Vcard;
 use ::service::{prosody_config_from_db, ProsodyConfigFile, ProsodyConfigFileSection};
 use entity::model::MemberRole;
 use entity::server_config;
@@ -32,7 +31,6 @@ pub struct MockServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfigFile>,
     pub users: LinkedHashMap<JID, UserAccount>,
-    pub vcards: LinkedHashMap<JID, Vcard>,
     pub online: HashSet<JID>,
 }
 
@@ -50,6 +48,12 @@ impl MockServerCtl {
         } else {
             Err(Error::Other("XMPP server offline".to_owned()))?
         }
+    }
+}
+
+impl Default for MockServerCtl {
+    fn default() -> Self {
+        Self::new(Default::default())
     }
 }
 
@@ -129,21 +133,5 @@ impl ServerCtlImpl for MockServerCtl {
             .get(jid)
             .map(|user| user.password == password)
             .expect("User must be created first"))
-    }
-
-    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
-        self.check_online()?;
-
-        Ok(self.state.lock().unwrap().vcards.get(jid).map(Clone::clone))
-    }
-    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error> {
-        self.check_online()?;
-
-        self.state
-            .lock()
-            .unwrap()
-            .vcards
-            .insert(jid.clone(), vcard.clone());
-        Ok(())
     }
 }

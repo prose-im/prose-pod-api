@@ -8,7 +8,7 @@ use service::config::ConfigBranding;
 
 use std::sync::Mutex;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MockNotifier {
     pub(crate) state: Mutex<MockNotifierState>,
 }

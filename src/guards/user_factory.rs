@@ -14,10 +14,11 @@ use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest};
+use super::{Db, LazyFromRequest, XmppService};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
+    xmpp_service: XmppService,
 }
 
 #[rocket::async_trait]
@@ -36,6 +37,8 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
                     }
                 )));
 
+        let xmpp_service = try_outcome!(XmppService::from_request(req).await);
+
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
         let db = try_outcome!(req
@@ -51,7 +54,10 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
             Err(err) => return Error::DbErr(err).into(),
         }
 
-        Outcome::Success(Self { server_ctl })
+        Outcome::Success(Self {
+            server_ctl,
+            xmpp_service,
+        })
     }
 }
 
@@ -78,8 +84,8 @@ impl<'r> UserFactory<'r> {
             server_ctl.set_user_role(jid, &role)?;
         }
         // TODO: Create the vCard using a display name instead of the nickname
-        server_ctl.create_vcard(jid, nickname)?;
-        server_ctl.set_nickname(jid, nickname)?;
+        self.xmpp_service.create_vcard(jid, nickname)?;
+        self.xmpp_service.set_nickname(jid, nickname)?;
 
         Ok(member)
     }
