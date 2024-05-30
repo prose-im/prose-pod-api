@@ -10,7 +10,7 @@ use ::migration::{self, MigratorTrait};
 use cucumber::World;
 use prosody_config::ProsodyConfigFile;
 use sea_orm::*;
-use service::Mutation;
+use service::{config::Config, Mutation};
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
@@ -29,12 +29,15 @@ async fn main() {
 #[world(init = Self::new)]
 struct TestWorld {
     db: DatabaseConnection,
+    app_config: Config,
     server_config: ServerConfig,
     prosody_config: Option<ProsodyConfigFile>,
 }
 
 impl TestWorld {
     async fn new() -> Self {
+        let app_config = Config::figment();
+
         // Connecting SQLite
         let db = match Database::connect("sqlite::memory:").await {
             Ok(conn) => conn,
@@ -61,6 +64,7 @@ impl TestWorld {
 
         Self {
             db,
+            app_config,
             server_config,
             prosody_config: None,
         }
@@ -73,14 +77,3 @@ impl TestWorld {
         }
     }
 }
-
-// async fn setup_schema(db: &DbConn) -> Result<ExecResult, DbErr> {
-//     // Setup Schema helper
-//     let schema = Schema::new(DbBackend::Sqlite);
-
-//     // Derive from Entity
-//     let stmt: TableCreateStatement = schema.create_table_from_entity(server_config::Entity);
-
-//     // Execute create table statement
-//     db.execute(db.get_database_backend().build(&stmt)).await
-// }

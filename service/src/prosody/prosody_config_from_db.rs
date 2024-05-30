@@ -7,10 +7,11 @@ use entity::model as db;
 use entity::server_config::Model as ServerConfig;
 use prosody_config::*;
 
+use crate::config::Config;
 use crate::ProseDefault;
 
-pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfigFile {
-    let mut config = ProsodyConfig::prose_default();
+pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> ProsodyConfigFile {
+    let mut config = ProsodyConfig::prose_default(app_config);
 
     let global_settings = &mut config.global_settings;
     let muc_settings = config
@@ -47,7 +48,7 @@ pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfigFile {
                         model.file_storage_retention.into_prosody(),
                     ),
                     http_host: Some("localhost".into()),
-                    http_external_url: Some("http://localhost:5280/".into()),
+                    http_external_url: Some("http://localhost:5280".into()),
                     ..Default::default()
                 },
             })
@@ -64,7 +65,10 @@ pub fn prosody_config_from_db(model: ServerConfig) -> ProsodyConfigFile {
 // ===== Default configuration =====
 
 impl ProseDefault for ProsodyConfig {
-    fn prose_default() -> Self {
+    fn prose_default(app_config: &Config) -> Self {
+        let api_jid = match app_config.api_jid() {
+            db::JID { node, domain } => JID::new(node, domain),
+        };
         Self {
             global_settings: ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),
@@ -86,7 +90,6 @@ impl ProseDefault for ProsodyConfig {
                 http_interfaces: Some(vec![Interface::AllIPv4]),
                 https_ports: Some(vec![]),
                 https_interfaces: Some(vec![]),
-                admins: Some(Default::default()),
                 modules_enabled: Some(
                     vec![
                         "roster",
@@ -149,7 +152,7 @@ impl ProseDefault for ProsodyConfig {
                     .collect(),
                 ),
                 consider_websocket_secure: Some(true),
-                cross_domain_websocket: Some(true),
+                cross_domain_websocket: None,
                 contact_info: Some(ContactInfo {
                     admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
                     ..Default::default()
@@ -163,14 +166,38 @@ impl ProseDefault for ProsodyConfig {
                     hostname: "prose.org.local".into(),
                     settings: ProsodySettings::default(),
                 },
+                ProsodyConfigSection::VirtualHost {
+                    hostname: "admin.prose.org.local".into(),
+                    settings: ProsodySettings {
+                        admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
+                        modules_enabled: Some(
+                            vec![
+                                "admin_rest",
+                                "init_admin",
+                            ]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                        ),
+                        http_host: Some(app_config.server.local_hostname.to_owned()),
+                        http_external_url: Some(app_config.server.admin_rest_api_url()),
+                        init_admin_jid: Some(api_jid.to_owned()),
+                        init_admin_password_env_var_name: Some(
+                            "PROSE_API__ADMIN_PASSWORD".to_owned(),
+                        ),
+                        ..Default::default()
+                    },
+                },
                 ProsodyConfigSection::Component {
                     hostname: "groups.prose.org.local".into(),
                     plugin: "muc".into(),
                     name: "Chatrooms".into(),
                     settings: ProsodySettings {
                         restrict_room_creation: Some(RoomCreationRestriction::DomainOnly),
-                        log_all_rooms: Some(true),
+                        max_archive_query_results: Some(100),
+                        muc_log_all_rooms: Some(true),
                         muc_log_expires_after: Some(PossiblyInfinite::Infinite),
+                        muc_log_by_default: Some(true),
                         ..Default::default()
                     },
                 },

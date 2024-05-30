@@ -41,7 +41,12 @@ impl Config {
     }
 
     pub fn api_jid(&self) -> JID {
-        JID::new(self.api.admin_node.clone(), self.server.domain.clone())
+        // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
+        //   to the Prose Pod and cannot be changed via configuration.
+        JID::new(
+            self.api.admin_node.to_owned(),
+            "admin.prose.org.local".to_owned(),
+        )
     }
 }
 
@@ -61,6 +66,17 @@ pub struct ConfigServer {
     pub local_hostname: String,
     #[serde(default = "defaults::server_admin_rest_api_port")]
     pub admin_rest_api_port: u16,
+    #[serde(default = "defaults::server_prosody_config_file_path")]
+    pub prosody_config_file_path: PathBuf,
+}
+
+impl ConfigServer {
+    pub fn admin_rest_api_url(&self) -> String {
+        format!(
+            "http://{}:{}",
+            self.local_hostname, self.admin_rest_api_port
+        )
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
