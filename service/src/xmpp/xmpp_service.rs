@@ -7,9 +7,11 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use entity::model::JID;
+use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::VCard;
 
+use super::stanza::avatar::{self, AvatarData};
 use super::stanza::vcard::Nickname;
 use super::stanza_sender;
 
@@ -84,6 +86,20 @@ pub trait XmppServiceImpl: Send + Sync {
         }];
         self.set_vcard(ctx, jid, &vcard)
     }
+
+    fn get_avatar(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+        image_id: &Sha1HexAttribute,
+    ) -> R<Option<AvatarData>>;
+    fn set_avatar(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+        checksum: &avatar::ImageId,
+        base64_image_data: String,
+    ) -> R<()>;
 }
 
 pub type Error = XmppServiceError;
@@ -92,6 +108,8 @@ pub type Error = XmppServiceError;
 pub enum XmppServiceError {
     #[error("Could not send stanza: {0}")]
     StanzaSendFailure(#[from] stanza_sender::Error),
+    #[error("Unexpected stanza response")]
+    UnexpectedResponse,
     #[error("{0}")]
     Other(String),
 }

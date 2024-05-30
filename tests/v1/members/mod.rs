@@ -15,11 +15,10 @@ use rocket::{
     local::asynchronous::{Client, LocalResponse},
 };
 use service::xmpp::stanza::vcard::Nickname;
-use service::{xmpp_service, Query, XmppServiceContext};
-use service::{xmpp_service::XmppServiceImpl as _, Mutation};
+use service::Mutation;
+use service::{xmpp_service, Query};
 
 use crate::cucumber_parameters::Array;
-use crate::v1::test_jid;
 use crate::{
     cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
@@ -131,12 +130,9 @@ async fn then_nickname(
     jid: JIDParam,
     nickname: String,
 ) -> Result<(), xmpp_service::Error> {
-    let ctx = XmppServiceContext {
-        bare_jid: test_jid(world).await.unwrap(),
-    };
     let vcard = world
         .xmpp_service()
-        .get_vcard(&ctx, &jid)?
+        .get_vcard(&jid)?
         .expect("vCard not found");
 
     assert_eq!(vcard.nickname, vec![Nickname { value: nickname }]);

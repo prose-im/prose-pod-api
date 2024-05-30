@@ -5,5 +5,8 @@
 
 // See all at: https://xmpp.org/registrar/namespaces.html
 
+/// XEP-0084: User Avatar
+pub const AVATAR_DATA: &str = "urn:xmpp:avatar:data";
+
 /// XEP-0292: vCard4 Over XMPP
 pub const VCARD4: &str = "urn:ietf:params:xml:ns:vcard-4.0";

@@ -19,14 +19,6 @@ use service::Mutation;
 
 use crate::TestWorld;
 
-async fn test_jid(world: &TestWorld) -> Result<JID, Error> {
-    let domain = world.server_config().await?.domain;
-    Ok(model::JID {
-        node: JIDNode::from_str("test").unwrap(),
-        domain,
-    })
-}
-
 async fn name_to_jid(world: &TestWorld, name: &str) -> Result<JID, Error> {
     let jid_node = name.to_lowercase().replace(" ", "-");
     let domain = world.server_config().await?.domain;
@@ -88,16 +80,9 @@ async fn given_presence(
 
 #[given(expr = "{}'s avatar is {}")]
 async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
-    // let server_ctl = world.server_ctl();
-    // let mut state = server_ctl.state.lock().unwrap();
-
-    // let jid = name_to_jid(world, &name).await?;
-    // let mut default_vcard = Vcard::new(&name);
-    // let vcard = state.vcards.get_mut(&jid).unwrap_or(&mut default_vcard);
-
-    todo!();
-
-    // Ok(())
+    let jid = name_to_jid(world, &name).await?;
+    world.xmpp_service().set_avatar(&jid, avatar)?;
+    Ok(())
 }
 
 // LOGIN

@@ -8,6 +8,7 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 
 [dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
+base64 = "0.22"
 chrono = "0.4"
 entity = { path = "../entity" }
 figment = { version = "0.10", features = ["toml"] }

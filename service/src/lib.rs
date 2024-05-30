@@ -3,6 +3,8 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub extern crate xmpp_parsers;
+
 pub mod config;
 pub mod dependencies;
 mod mutation;

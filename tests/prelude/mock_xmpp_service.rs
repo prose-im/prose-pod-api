@@ -6,7 +6,11 @@
 use ::entity::model::JID;
 use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
-use service::{VCard, XmppServiceContext};
+use service::{
+    xmpp::stanza::avatar::{self, AvatarData},
+    xmpp_parsers::hashes::Sha1HexAttribute,
+    VCard, XmppServiceContext,
+};
 
 use std::sync::Mutex;
 
@@ -25,6 +29,7 @@ pub struct UserAccount {
 #[derive(Debug, Default)]
 pub struct MockXmppServiceState {
     pub vcards: LinkedHashMap<JID, VCard>,
+    pub avatars: LinkedHashMap<JID, AvatarData>,
 }
 
 impl MockXmppService {
@@ -50,20 +55,77 @@ impl Default for MockXmppService {
     }
 }
 
-impl XmppServiceImpl for MockXmppService {
-    fn get_vcard(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<Option<VCard>, Error> {
+impl MockXmppService {
+    pub fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, Error> {
         self.check_online()?;
 
-        Ok(self.state.lock().unwrap().vcards.get(jid).map(Clone::clone))
+        Ok(self
+            .state
+            .lock()
+            .unwrap()
+            .vcards
+            .get(jid)
+            .map(ToOwned::to_owned))
     }
-    fn set_vcard(&self, _ctx: &XmppServiceContext, jid: &JID, vcard: &VCard) -> Result<(), Error> {
+    pub fn set_vcard(&self, jid: &JID, vcard: &VCard) -> Result<(), Error> {
         self.check_online()?;
 
         self.state
             .lock()
             .unwrap()
             .vcards
-            .insert(jid.clone(), vcard.clone());
+            .insert(jid.to_owned(), vcard.to_owned());
         Ok(())
+    }
+
+    pub fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, Error> {
+        self.check_online()?;
+
+        Ok(self
+            .state
+            .lock()
+            .unwrap()
+            .avatars
+            .get(jid)
+            .map(ToOwned::to_owned))
+    }
+    pub fn set_avatar(&self, jid: &JID, base64_image_data: String) -> Result<(), Error> {
+        self.check_online()?;
+
+        self.state
+            .lock()
+            .unwrap()
+            .avatars
+            .insert(jid.to_owned(), AvatarData::Base64(base64_image_data));
+        Ok(())
+    }
+}
+
+impl XmppServiceImpl for MockXmppService {
+    fn get_vcard(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<Option<VCard>, Error> {
+        self.check_online()?;
+        self.get_vcard(jid)
+    }
+    fn set_vcard(&self, _ctx: &XmppServiceContext, jid: &JID, vcard: &VCard) -> Result<(), Error> {
+        self.check_online()?;
+        self.set_vcard(jid, vcard)
+    }
+
+    fn get_avatar(
+        &self,
+        _ctx: &XmppServiceContext,
+        jid: &JID,
+        _image_id: &Sha1HexAttribute,
+    ) -> Result<Option<AvatarData>, Error> {
+        self.get_avatar(jid)
+    }
+    fn set_avatar(
+        &self,
+        _ctx: &XmppServiceContext,
+        jid: &JID,
+        _checksum: &avatar::ImageId,
+        base64_image_data: String,
+    ) -> Result<(), Error> {
+        self.set_avatar(jid, base64_image_data)
     }
 }
