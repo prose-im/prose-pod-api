@@ -7,5 +7,6 @@
 # Rust
 target
 
-# Local databases
+# Local execution files
 *.sqlite
+*.log

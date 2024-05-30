@@ -9,7 +9,7 @@ license = "MPL-2.0"
 email_address = "0.2"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 rocket = { version = "0.5", features = ["json"] }
-sea-orm = { version = "1.0.0-rc.3" }
+sea-orm = { version = "1.0.0-rc.4" }
 serde = { version = "1", features = ["derive"] }
 serde_with = "3"
 uuid = "1"

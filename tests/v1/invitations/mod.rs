@@ -8,10 +8,11 @@ use std::str::FromStr as _;
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
-    model::{self, JIDNode},
+    model::{self, JIDNode, JID},
     workspace_invitation::{self, InvitationContact},
 };
 use migration::DbErr;
+use prose_pod_api::error::Error;
 use prose_pod_api::v1::invitations::{
     AcceptWorkspaceInvitationRequest, InvitationTokenType as TokenType, InviteMemberRequest,
     WorkspaceInvitation,
@@ -30,8 +31,6 @@ use crate::{
     cucumber_parameters::{EmailAddress, InvitationStatus, MemberRole, Text},
     TestWorld,
 };
-
-use super::init::DEFAULT_DOMAIN;
 
 const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
 
@@ -152,19 +151,23 @@ async fn workspace_invitation_admin_action<'a>(
 }
 
 #[given(expr = "<{email}> has been invited via email")]
-async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), DbErr> {
+async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), Error> {
+    let domain = world.server_config().await?.domain;
     let email_address = email_address.0;
-    let jid_node = &JIDNode::from(email_address.to_owned());
+    let jid = &JID {
+        node: email_address.to_owned().into(),
+        domain,
+    };
 
     // Create invitation
     let db = world.db();
     let model = Mutation::create_workspace_invitation(
         db,
         world.uuid_gen(),
-        jid_node,
+        jid,
         DEFAULT_MEMBER_ROLE,
         InvitationContact::Email {
-            email_address: email_address.clone(),
+            email_address: email_address.to_owned(),
         },
     )
     .await?;
@@ -196,16 +199,17 @@ async fn given_pre_assigned_role(
 }
 
 #[given(expr = "{int} people have been invited via email")]
-async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), DbErr> {
+async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
+    let domain = world.server_config().await?.domain;
     for i in 0..n {
         let db = world.db();
-        let jid_node = &JIDNode::try_from(format!("person.{i}")).unwrap();
+        let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
         let email_address =
-            model::EmailAddress::from_str(format!("person.{i}@{DEFAULT_DOMAIN}").as_str()).unwrap();
+            model::EmailAddress::from_str(format!("person.{i}@{domain}").as_str()).unwrap();
         let model = Mutation::create_workspace_invitation(
             db,
             world.uuid_gen(),
-            jid_node,
+            jid,
             DEFAULT_MEMBER_ROLE,
             InvitationContact::Email {
                 email_address: email_address.clone(),
@@ -480,15 +484,16 @@ async fn then_invitation_for_email(
 async fn then_no_invitation_for_email(
     world: &mut TestWorld,
     email_address: EmailAddress,
-) -> Result<(), DbErr> {
+) -> Result<(), Error> {
     let db = world.db();
     let count = workspace_invitation::Entity::find()
         .filter(workspace_invitation::Column::EmailAddress.eq(email_address.0.clone()))
         .count(db)
         .await?;
+    let server_domain = world.server_config().await?.domain;
     assert_eq!(
         count, 0,
-        "Found {count} invitation(s) for <{email_address}> in the database"
+        "Found {count} invitation(s) for <{email_address}> in the database. Server domain is `{server_domain}`."
     );
     Ok(())
 }

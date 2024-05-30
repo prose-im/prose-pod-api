@@ -145,6 +145,16 @@ impl FromStr for JID {
     }
 }
 
+impl From<EmailAddress> for JID {
+    fn from(value: EmailAddress) -> Self {
+        // NOTE: Email adresses are already parsed, and they are equivalent to a JID.
+        Self {
+            domain: value.domain().to_string(),
+            node: JIDNode::from(value),
+        }
+    }
+}
+
 impl TryFrom<String> for JID {
     type Error = &'static str;
 

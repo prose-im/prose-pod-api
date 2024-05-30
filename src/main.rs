@@ -19,6 +19,8 @@ fn rocket() -> _ {
     env_logger::init();
 
     let config = Config::figment();
+    #[cfg(debug_assertions)]
+    dbg!(&config);
     let jwt_service = match JWTService::from_env() {
         Ok(service) => service,
         Err(err) => panic!("{err}"),

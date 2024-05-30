@@ -29,7 +29,7 @@ impl Notifier {
 
     #[cfg(debug_assertions)]
     pub fn from_config(config: &Config) -> Result<Self, String> {
-        Ok(match config.dependency_modes.notifier {
+        Ok(match config.debug_only.dependency_modes.notifier {
             NotifierDependencyMode::Live => {
                 LiveNotifier::new(Arc::new(Mutex::new(EmailNotifier::new(config)?))).into()
             }

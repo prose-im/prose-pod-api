@@ -12,36 +12,29 @@ pub mod workspace;
 use std::str::FromStr;
 
 use cucumber::given;
-use entity::member;
 use entity::model::{self, JIDNode, MemberRole, JID};
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::JWTService;
-use service::sea_orm::{ActiveModelTrait, Set};
+use service::Mutation;
 
 use crate::TestWorld;
 
-use self::init::DEFAULT_DOMAIN;
-
-fn name_to_jid(name: &str) -> JID {
+async fn name_to_jid(world: &TestWorld, name: &str) -> Result<JID, Error> {
     let jid_node = name.to_lowercase().replace(" ", "-");
-    model::JID {
+    let domain = world.server_config().await?.domain;
+    Ok(model::JID {
         node: JIDNode::from_str(&jid_node)
             .expect(&format!("JID node '{}' constructed from '{}' is invalid. Choose a different name or improve this function.", jid_node, name)),
-        domain: DEFAULT_DOMAIN.to_owned(),
-    }
+        domain,
+    })
 }
 
 #[given(expr = "{} is an admin")]
 async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
-    let jid = name_to_jid(&name);
-    let mut model = member::ActiveModel {
-        role: Set(MemberRole::Admin),
-        ..Default::default()
-    };
-    model.set_username(&jid.node);
-    let model = model.insert(db).await?;
+    let jid = name_to_jid(world, &name).await?;
+    let model = Mutation::create_user(db, &jid, &Some(MemberRole::Admin)).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;
@@ -55,13 +48,8 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
 async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
-    let jid = name_to_jid(&name);
-    let mut model = member::ActiveModel {
-        role: Set(MemberRole::Member),
-        ..Default::default()
-    };
-    model.set_username(&jid.node);
-    let model = model.insert(db).await?;
+    let jid = name_to_jid(world, &name).await?;
+    let model = Mutation::create_user(db, &jid, &Some(MemberRole::Member)).await?;
 
     let jwt_service: &JWTService = world.client.rocket().state().unwrap();
     let token = jwt_service.generate_jwt(&jid)?;

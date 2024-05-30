@@ -28,7 +28,7 @@ pub struct Config {
     pub notify: ConfigNotify,
     #[cfg(debug_assertions)]
     #[serde(default)]
-    pub dependency_modes: ConfigDependencyModes,
+    pub debug_only: ConfigDebugOnly,
 }
 
 impl Config {
@@ -148,6 +148,15 @@ pub struct ConfigNotifyEmail {
 
     #[serde(default = "defaults::notify_email_smtp_encrypt")]
     pub smtp_encrypt: bool,
+}
+
+#[cfg(debug_assertions)]
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ConfigDebugOnly {
+    #[serde(default)]
+    pub automatically_accept_invitations: bool,
+    #[serde(default)]
+    pub dependency_modes: ConfigDependencyModes,
 }
 
 #[cfg(debug_assertions)]

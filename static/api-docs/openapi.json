@@ -31,6 +31,11 @@
 				"responses": {
 					"201": {
 						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/Member" }
+							}
+						},
 						"headers": {
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
@@ -71,6 +76,11 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
+				"parameters": [
+					{ "$ref": "#/components/parameters/PageNumber" },
+					{ "$ref": "#/components/parameters/PageSize" },
+					{ "$ref": "#/components/parameters/Until" }
+				],
 				"responses": {
 					"200": {
 						"description": "End of results",
@@ -81,6 +91,12 @@
 									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
 								}
 							}
+						},
+						"headers": {
+							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
+							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
+							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
+							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
 						}
 					},
 					"206": {
@@ -92,6 +108,12 @@
 									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
 								}
 							}
+						},
+						"headers": {
+							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
+							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
+							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
+							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
 						}
 					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
@@ -280,6 +302,12 @@
 									"items": { "$ref": "#/components/schemas/Member" }
 								}
 							}
+						},
+						"headers": {
+							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
+							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
+							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
+							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
 						}
 					},
 					"206": {
@@ -291,6 +319,12 @@
 									"items": { "$ref": "#/components/schemas/Member" }
 								}
 							}
+						},
+						"headers": {
+							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
+							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
+							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
+							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
 						}
 					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
@@ -1309,7 +1343,8 @@
 							"server_config_not_initialized",
 							"first_account_already_initialized",
 							"unauthorized",
-							"forbidden"
+							"forbidden",
+							"unknown"
 						],
 						"example": "bad_request"
 					}
@@ -1732,12 +1767,10 @@
 				"type": "object",
 				"required": [
 					"jid",
-					"name",
 					"role"
 				],
 				"properties": {
 					"jid": { "$ref": "#/components/schemas/JID" },
-					"name": { "$ref": "#/components/schemas/Nickname" },
 					"role": { "$ref": "#/components/schemas/MemberRole" }
 				}
 			}
@@ -1758,6 +1791,43 @@
 					"format": "www-authenticate"
 				},
 				"example": "Bearer realm=\"Admin only area\", charset=\"UTF-8\""
+			},
+			"PaginationCurrentPage": {
+			  "description": "Current pagination page (non standard header). Starts at `1`.",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1
+				},
+				"example": 1
+			},
+      "PaginationPageSize": {
+			  "description": "Size of a pagination page (non standard header). Starts at `1`.",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 1,
+					"default": 20
+				},
+				"example": 20
+			},
+      "PaginationPageCount": {
+			  "description": "Total number of pagination pages (non standard header). Warning: `Page-Count` will be `0` with `Current-Page` at `1` if there are no result.",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 0
+				},
+				"example": 3
+			},
+      "PaginationItemCount": {
+			  "description": "Total number of items (non standard header).",
+				"schema": {
+					"type": "integer",
+					"format": "int64",
+					"minimum": 0
+				},
+				"example": 42
 			}
 		},
 		"securitySchemes": {

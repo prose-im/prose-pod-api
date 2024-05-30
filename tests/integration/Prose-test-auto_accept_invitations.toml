@@ -4,27 +4,11 @@
 # Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
 
 [branding]
-
-page_title = "Prose Pod API"
 page_url = "https://admin.prose.org/"
 company_name = "Prose"
-
-[notify]
-
-[notify.email]
-
-from = "pod@prose.org"
-to = "pod@prose.org"
-
-smtp_host = "localhost"
-smtp_port = 587
-smtp_username = "user-access"
-smtp_password = "user-password"
-smtp_encrypt = false
 
 [debug_only]
 automatically_accept_invitations = true
 
 [debug_only.dependency_modes]
-uuid = "incrementing"
 notifier = "logging"

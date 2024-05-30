@@ -1,0 +1,60 @@
+version: "1.1"
+name: List members
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
+  #   `${{ env.host }}/api-docs`.
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: ${{ internet.domainName | fake }}
+
+# NOTE: `.` is not this file's path, it's the directory from which `stepci` is ran.
+# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/init_server"
+    - $ref: "init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+
+tests:
+  unprocessableBody:
+    name: Unprocessable body
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: Invite member
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            pre_assigned_role: ERROR
+          check:
+            status: 422
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Error
+            jsonpath:
+              $.accept_token: null
+
+components:
+  steps:
+    add_member:
+      # NOTE: We used a config flag to auto-accept invitations,
+      #   because otherwise we'd have no way to accept them.
+      $ref: "invitations.yaml#/components/steps/invite_member"
+  headers:
+    paginated_json:
+      Content-Type: application/json
+      Pagination-Current-Page: /\d+/
+      Pagination-Page-Size: /\d+/
+      Pagination-Page-Count: /\d+/
+      Pagination-Item-Count: /\d+/

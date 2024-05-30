@@ -5,25 +5,22 @@
 
 use serde::{Deserialize, Serialize};
 
-use entity::model::{MemberRole, JID};
+use entity::{
+    member,
+    model::{MemberRole, JID},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
     pub jid: JID,
-    pub name: String,
     pub role: MemberRole,
 }
 
-// impl From<(member::Model, String)> for Member {
-//     fn from(value: (member::Model, String)) -> Self {
-//         let (model, domain) = value;
-//         Self {
-//             jid: JID {
-//                 node: model.username().to_owned(),
-//                 domain: domain.to_owned(),
-//             },
-//             name: model.name.to_owned(),
-//             role: model.role,
-//         }
-//     }
-// }
+impl From<member::Model> for Member {
+    fn from(model: member::Model) -> Self {
+        Self {
+            jid: model.jid(),
+            role: model.role,
+        }
+    }
+}
