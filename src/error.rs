@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{fmt, io::Cursor};
@@ -28,10 +28,16 @@ pub enum Error {
     UnknownDbErr,
     /// SeaORM database error.
     DbErr(sea_orm::DbErr),
-    /// Prose Pod not yet initialized.
-    PodNotInitialized,
-    /// Prose Pod already initialized.
-    PodAlreadyInitialized,
+    /// Workspace not yet initialized.
+    WorkspaceNotInitialized,
+    /// Workspace already initialized.
+    WorkspaceAlreadyInitialized,
+    /// XMPP server not yet initialized.
+    ServerConfigNotInitialized,
+    /// XMPP server already initialized.
+    ServerConfigAlreadyInitialized,
+    /// First XMPP accout already created.
+    FirstAccountAlreadyCreated,
     /// ServerCtl fail (e.g. execution of `prosodyctl` failed).
     ServerCtlErr(server_ctl::Error),
     /// Bad request (invalid data for example).
@@ -66,8 +72,10 @@ impl Error {
             Self::Unauthorized => Status::Unauthorized,
             Self::UnknownDbErr => Status::InternalServerError,
             Self::DbErr(_) => Status::InternalServerError,
-            Self::PodNotInitialized => Status::BadRequest,
-            Self::PodAlreadyInitialized => Status::Conflict,
+            Self::WorkspaceNotInitialized | Self::ServerConfigNotInitialized => Status::BadRequest,
+            Self::WorkspaceAlreadyInitialized
+            | Self::ServerConfigAlreadyInitialized
+            | Self::FirstAccountAlreadyCreated => Status::Conflict,
             Self::ServerCtlErr(_) => Status::InternalServerError,
             Self::BadRequest { .. } => Status::BadRequest,
             Self::MutationErr(_) => Status::InternalServerError,
@@ -85,8 +93,11 @@ impl Error {
             Self::Unauthorized => "unauthorized",
             Self::UnknownDbErr => "database_error",
             Self::DbErr(_) => "database_error",
-            Self::PodNotInitialized => "pod_not_initialized",
-            Self::PodAlreadyInitialized => "pod_already_initialized",
+            Self::WorkspaceNotInitialized => "workspace_not_initialized",
+            Self::WorkspaceAlreadyInitialized => "workspace_already_initialized",
+            Self::ServerConfigNotInitialized => "server_config_not_initialized",
+            Self::ServerConfigAlreadyInitialized => "server_config_already_initialized",
+            Self::FirstAccountAlreadyCreated => "first_account_already_created",
             Self::ServerCtlErr(_) => "internal_server_error",
             Self::BadRequest { .. } => "bad_request",
             Self::MutationErr(MutationError::DbErr(_)) => "database_error",
@@ -153,12 +164,19 @@ impl fmt::Display for Error {
             Self::Unauthorized => write!(f, "Unauthorized"),
             Self::UnknownDbErr => write!(f, "Unknown database error"),
             Self::DbErr(err) => write!(f, "Database error: {err}"),
-            Self::PodNotInitialized => write!(
+            Self::WorkspaceNotInitialized => write!(
                 f,
-                "Prose Pod not initialized. Call `POST {}` to initialize it.",
-                uri!(crate::v1::init)
+                "Workspace not initialized. Call `PUT {}` to initialize it.",
+                uri!(crate::v1::init::init_workspace)
             ),
-            Self::PodAlreadyInitialized => write!(f, "Prose Pod already initialized."),
+            Self::WorkspaceAlreadyInitialized => write!(f, "Workspace already initialized."),
+            Self::ServerConfigNotInitialized => write!(
+                f,
+                "XMPP server not initialized. Call `PUT {}` to initialize it.",
+                uri!(crate::v1::init::init_server_config)
+            ),
+            Self::ServerConfigAlreadyInitialized => write!(f, "XMPP server already initialized."),
+            Self::FirstAccountAlreadyCreated => write!(f, "First XMPP account already created."),
             Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
             Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
             Self::MutationErr(err) => write!(f, "Mutation error: {err}"),

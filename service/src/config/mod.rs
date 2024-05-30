@@ -9,7 +9,7 @@ mod defaults;
 
 use std::path::PathBuf;
 
-use entity::model::JID;
+use entity::model::{JIDNode, JID};
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
@@ -19,9 +19,10 @@ use url_serde::SerdeUrl;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    #[serde(default)]
     pub api: ConfigApi,
+    #[serde(default)]
     pub server: ConfigServer,
-    pub assets: ConfigAssets,
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
@@ -43,25 +44,31 @@ impl Config {
     pub fn api_jid(&self) -> JID {
         // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
         //   to the Prose Pod and cannot be changed via configuration.
-        JID::new(
-            self.api.admin_node.to_owned(),
-            "admin.prose.org.local".to_owned(),
-        )
+        JID {
+            node: self.api.admin_node.to_owned(),
+            domain: "admin.prose.org.local".to_owned(),
+        }
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigApi {
-    #[serde(default = "defaults::api_log_level")]
-    pub log_level: String,
     #[serde(default = "defaults::api_admin_node")]
-    pub admin_node: String,
+    pub admin_node: JIDNode,
     pub admin_password: Option<String>,
+}
+
+impl Default for ConfigApi {
+    fn default() -> Self {
+        Self {
+            admin_node: defaults::api_admin_node(),
+            admin_password: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServer {
-    pub domain: String,
     #[serde(default = "defaults::server_local_hostname")]
     pub local_hostname: String,
     #[serde(default = "defaults::server_admin_rest_api_port")]
@@ -79,25 +86,22 @@ impl ConfigServer {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct ConfigAssets {
-    #[serde(default = "defaults::assets_path")]
-    pub path: PathBuf,
+impl Default for ConfigServer {
+    fn default() -> Self {
+        Self {
+            local_hostname: defaults::server_local_hostname(),
+            admin_rest_api_port: defaults::server_admin_rest_api_port(),
+            prosody_config_file_path: defaults::server_prosody_config_file_path(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
-
     pub page_url: SerdeUrl,
     pub company_name: String,
-    pub icon_color: String,
-    pub icon_url: SerdeUrl,
-    pub logo_color: String,
-    pub logo_url: SerdeUrl,
-    pub website_url: SerdeUrl,
-    pub support_url: SerdeUrl,
 }
 
 #[derive(Debug, Clone, Deserialize)]

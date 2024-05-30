@@ -5,7 +5,10 @@
 
 mod prosody;
 
-use ::entity::server_config::{self, Model as ServerConfig};
+use ::entity::{
+    server_config::{self, Model as ServerConfig},
+    workspace::{self},
+};
 use ::migration::{self, MigratorTrait};
 use cucumber::World;
 use prosody_config::ProsodyConfigFile;
@@ -49,17 +52,22 @@ impl TestWorld {
             panic!("Could not setup test database schema: {e}");
         }
 
-        let form = server_config::ActiveModel {
-            workspace_name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
+        let server_config = server_config::ActiveModel {
+            domain: Set("prose.test.org".to_string()),
             ..Default::default()
         };
-        let server_config = match Mutation::create_server_config(&db, form).await {
+        let server_config = match Mutation::create_server_config(&db, server_config).await {
             Ok(conf) => conf,
             Err(e) => panic!("Could not create server config: {e}"),
         };
-        let server_config = match server_config.try_into_model() {
+
+        let workspace = workspace::ActiveModel {
+            name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
+            ..Default::default()
+        };
+        let _workspace = match Mutation::create_workspace(&db, workspace).await {
             Ok(conf) => conf,
-            Err(e) => panic!("Could not transform active model into model: {e}"),
+            Err(e) => panic!("Could not create workspace: {e}"),
         };
 
         Self {

@@ -8,7 +8,7 @@ use std::str::FromStr as _;
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
-    model,
+    model::{self, JIDNode},
     workspace_invitation::{self, InvitationContact},
 };
 use migration::DbErr;
@@ -27,16 +27,18 @@ use service::{
 };
 
 use crate::{
-    cucumber_parameters::{EmailAddress, InvitationStatus, MemberRole, Name, JID},
+    cucumber_parameters::{EmailAddress, InvitationStatus, MemberRole, Text},
     TestWorld,
 };
+
+use super::init::DEFAULT_DOMAIN;
 
 const DEFAULT_MEMBER_ROLE: model::MemberRole = model::MemberRole::Member;
 
 async fn invite_member<'a>(
     client: &'a Client,
     token: &str,
-    username: &str,
+    username: &JIDNode,
     pre_assigned_role: MemberRole,
     contact: InvitationContact,
 ) -> LocalResponse<'a> {
@@ -46,7 +48,7 @@ async fn invite_member<'a>(
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .body(
             json!(InviteMemberRequest {
-                username: username.to_string(),
+                username: username.to_owned(),
                 pre_assigned_role: pre_assigned_role.0,
                 contact,
             })
@@ -100,7 +102,7 @@ async fn accept_workspace_invitation<'a>(
     password: Option<String>,
 ) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/invitations/{token}/accept"))
+        .put(format!("/v1/invitations/{token}/accept"))
         .header(ContentType::JSON)
         .body(
             json!(AcceptWorkspaceInvitationRequest {
@@ -116,7 +118,7 @@ async fn accept_workspace_invitation<'a>(
 
 async fn reject_workspace_invitation<'a>(client: &'a Client, token: Uuid) -> LocalResponse<'a> {
     client
-        .post(format!("/v1/invitations/{token}/reject"))
+        .put(format!("/v1/invitations/{token}/reject"))
         .header(Accept::JSON)
         .dispatch()
         .await
@@ -149,17 +151,17 @@ async fn workspace_invitation_admin_action<'a>(
         .await
 }
 
-#[given(expr = "<{jid}> has been invited via email")]
-async fn given_invited(world: &mut TestWorld, jid: JID) -> Result<(), DbErr> {
-    let email_address = model::EmailAddress::from_str(&jid.0.to_string()).unwrap();
-    let jid = jid.0;
+#[given(expr = "<{email}> has been invited via email")]
+async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), DbErr> {
+    let email_address = email_address.0;
+    let jid_node = &JIDNode::from(email_address.to_owned());
 
     // Create invitation
     let db = world.db();
     let model = Mutation::create_workspace_invitation(
         db,
         world.uuid_gen(),
-        jid,
+        jid_node,
         DEFAULT_MEMBER_ROLE,
         InvitationContact::Email {
             email_address: email_address.clone(),
@@ -197,13 +199,13 @@ async fn given_pre_assigned_role(
 async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), DbErr> {
     for i in 0..n {
         let db = world.db();
-        let jid = model::JID::from_str(format!("person.{i}@test.org").as_str()).unwrap();
+        let jid_node = &JIDNode::try_from(format!("person.{i}")).unwrap();
         let email_address =
-            model::EmailAddress::from_str(format!("person.{i}@test.org").as_str()).unwrap();
+            model::EmailAddress::from_str(format!("person.{i}@{DEFAULT_DOMAIN}").as_str()).unwrap();
         let model = Mutation::create_workspace_invitation(
             db,
             world.uuid_gen(),
-            jid,
+            jid_node,
             DEFAULT_MEMBER_ROLE,
             InvitationContact::Email {
                 email_address: email_address.clone(),
@@ -285,10 +287,10 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     Ok(())
 }
 
-#[when(expr = r#"{name} invites <{email}> as a(n) {member_role}"#)]
+#[when(expr = r#"{text} invites <{email}> as a(n) {member_role}"#)]
 async fn when_inviting(
     world: &mut TestWorld,
-    name: Name,
+    name: Text,
     email_address: EmailAddress,
     pre_assigned_role: MemberRole,
 ) {
@@ -297,7 +299,7 @@ async fn when_inviting(
     let res = invite_member(
         &world.client,
         &token,
-        email_address.clone().local_part(),
+        &JIDNode::from(email_address.to_owned()),
         pre_assigned_role,
         InvitationContact::Email { email_address },
     )
@@ -305,17 +307,17 @@ async fn when_inviting(
     world.result = Some(res.into());
 }
 
-#[when(expr = "{name} lists pending invitations")]
-async fn when_listing_workspace_invitations(world: &mut TestWorld, name: Name) {
+#[when(expr = "{text} lists pending invitations")]
+async fn when_listing_workspace_invitations(world: &mut TestWorld, name: Text) {
     let token = world.token(name.0);
     let res = list_workspace_invitations(&world.client, token).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "{name} lists pending invitations by pages of {int}")]
+#[when(expr = "{text} lists pending invitations by pages of {int}")]
 async fn when_listing_workspace_invitations_paged(
     world: &mut TestWorld,
-    name: Name,
+    name: Text,
     page_size: u64,
 ) {
     let token = world.token(name.0);
@@ -323,10 +325,10 @@ async fn when_listing_workspace_invitations_paged(
     world.result = Some(res.into());
 }
 
-#[when(expr = "{name} gets page {int} of pending invitations by pages of {int}")]
+#[when(expr = "{text} gets page {int} of pending invitations by pages of {int}")]
 async fn when_getting_workspace_invitations_page(
     world: &mut TestWorld,
-    name: Name,
+    name: Text,
     page_number: u64,
     page_size: u64,
 ) {
@@ -423,8 +425,8 @@ async fn when_invited_rejects_invitation(world: &mut TestWorld, email_address: E
     world.result = Some(res.into());
 }
 
-#[when(expr = "{name} resends the invitation")]
-async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Name) {
+#[when(expr = "{text} resends the invitation")]
+async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Text) {
     let token = world.token(name.0);
     let invitation = world.scenario_workspace_invitation().1;
     let res =
@@ -432,8 +434,8 @@ async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Nam
     world.result = Some(res.into());
 }
 
-#[when(expr = "{name} cancels the invitation")]
-async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Name) {
+#[when(expr = "{text} cancels the invitation")]
+async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Text) {
     let token = world.token(name.0);
     let invitation = world.scenario_workspace_invitation().1;
     let res = cancel_workspace_invitation(&world.client, token, invitation.id).await;

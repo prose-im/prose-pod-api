@@ -3,9 +3,8 @@
 // Copyright: 2023, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::model::{MemberRole, JID};
-use ::entity::server_config;
-use ::entity::{prelude::*, workspace_invitation};
+use ::entity::model::{JIDNode, MemberRole};
+use ::entity::{member, prelude::*, server_config, workspace, workspace_invitation};
 use chrono::{DateTime, Utc};
 use sea_orm::*;
 use uuid::Uuid;
@@ -20,9 +19,16 @@ impl Query {
             .await
     }
 
-    pub async fn is_admin(db: &DbConn, jid: &JID) -> Result<bool, DbErr> {
+    pub async fn workspace(db: &DbConn) -> Result<Option<workspace::Model>, DbErr> {
+        Workspace::find()
+            .order_by_asc(workspace::Column::Id)
+            .one(db)
+            .await
+    }
+
+    pub async fn is_admin(db: &DbConn, jid_node: &JIDNode) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
-        let member = Member::find_by_id(jid.to_string()).one(db).await?;
+        let member = Member::find_by_username(jid_node).one(db).await?;
 
         // If the member is not found, do not send an error but rather send `false` as it is not an admin anyway.
         let Some(member) = member else {
@@ -80,5 +86,9 @@ impl Query {
             .filter(workspace_invitation::Column::RejectToken.eq(*token))
             .one(db)
             .await
+    }
+
+    pub async fn get_member_count(db: &DbConn) -> Result<u64, DbErr> {
+        member::Entity::find().count(db).await
     }
 }

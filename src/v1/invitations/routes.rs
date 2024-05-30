@@ -3,9 +3,10 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::model::{MemberRole, JID};
+use ::entity::model::MemberRole;
 use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
+use entity::model::JIDNode;
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
@@ -18,16 +19,15 @@ use service::{Mutation, Query};
 use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, LazyGuard, Notifier, UserFactory, UuidGenerator, JID as JIDGuard};
+use crate::guards::{
+    Db, LazyGuard, Notifier, ServerConfig, UserFactory, UuidGenerator, JID as JIDGuard,
+};
 use crate::responders::Paginated;
-
-pub type R<T> = Result<Json<T>, Error>;
-pub type Created<T> = Result<status::Created<Json<T>>, Error>;
+use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
-    // TODO: Validate user input
-    pub username: String,
+    pub username: JIDNode,
     #[serde(default)]
     pub pre_assigned_role: MemberRole,
     #[serde(flatten)]
@@ -48,7 +48,7 @@ pub(super) async fn invite_member<'r>(
     let jid = jid.inner?;
 
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !Query::is_admin(db, &jid).await? {
+    if !Query::is_admin(db, &jid.node).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
@@ -56,7 +56,7 @@ pub(super) async fn invite_member<'r>(
     let invitation = Mutation::create_workspace_invitation(
         db,
         &uuid_gen,
-        JID::new(req.username.clone(), config.server.domain.clone()),
+        &req.username,
         req.pre_assigned_role,
         req.contact.clone(),
     )
@@ -140,7 +140,7 @@ pub struct WorkspaceInvitation {
     pub invitation_id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
-    pub jid: JID,
+    pub username: JIDNode,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
     pub accept_token_expires_at: DateTimeUtc,
@@ -152,7 +152,7 @@ impl From<workspace_invitation::Model> for WorkspaceInvitation {
             invitation_id: value.id,
             created_at: value.created_at,
             status: value.status,
-            jid: value.jid.clone(),
+            username: value.username.to_owned(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,
@@ -202,10 +202,13 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
-    user_factory: UserFactory<'_>,
+    server_config: LazyGuard<ServerConfig>,
+    user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     let db = conn.into_inner();
+    let server_config = server_config.inner?;
+    let user_factory = user_factory.inner?;
 
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
@@ -226,7 +229,7 @@ pub(super) async fn invitation_accept(
     }
 
     user_factory
-        .accept_workspace_invitation(db, invitation, &req.password, &req.nickname)
+        .accept_workspace_invitation(db, &server_config, invitation, &req.password, &req.nickname)
         .await?;
 
     Ok(())
@@ -273,7 +276,7 @@ pub(super) async fn invitation_resend(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await? {
+    if !Query::is_admin(db, &jid.node).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
@@ -307,7 +310,7 @@ pub(super) async fn invitation_cancel(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await? {
+    if !Query::is_admin(db, &jid.node).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }

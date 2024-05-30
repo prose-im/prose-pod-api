@@ -4,6 +4,7 @@ mod m20231221_172027_create_server_config;
 mod m20240220_171150_create_member;
 mod m20240320_095326_create_workspace_invitation;
 mod m20240326_160834_create_notification;
+mod m20240506_080027_create_workspace;
 
 pub struct Migrator;
 
@@ -15,6 +16,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240220_171150_create_member::Migration),
             Box::new(m20240320_095326_create_workspace_invitation::Migration),
             Box::new(m20240326_160834_create_notification::Migration),
+            Box::new(m20240506_080027_create_workspace::Migration),
         ]
     }
 }

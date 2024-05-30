@@ -3,29 +3,36 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{DateLike, Duration, PossiblyInfinite};
-use entity::server_config;
+use std::ops::Deref;
+
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
-use rocket::{Request, State};
+use rocket::Request;
 use sea_orm_rocket::Connection;
-use service::config::Config;
-use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set};
-use service::{Query, ServerCtl};
+use service::Query;
 
 use crate::error::{self, Error};
 
-use super::{Db, FromRequest, JID as JIDGuard};
+use super::{Db, LazyFromRequest, UnauthenticatedServerManager, JID as JIDGuard};
 
-pub struct ServerManager<'r> {
-    db: &'r DatabaseConnection,
-    app_config: &'r Config,
-    server_ctl: &'r State<ServerCtl>,
-    server_config: server_config::Model,
+pub struct ServerManager<'r>(UnauthenticatedServerManager<'r>);
+
+impl<'r> From<UnauthenticatedServerManager<'r>> for ServerManager<'r> {
+    fn from(inner: UnauthenticatedServerManager<'r>) -> Self {
+        Self(inner)
+    }
+}
+
+impl<'r> Deref for ServerManager<'r> {
+    type Target = UnauthenticatedServerManager<'r>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for ServerManager<'r> {
+impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -38,7 +45,7 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
             }));
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match Query::is_admin(db, &jid).await {
+        match Query::is_admin(db, &jid.node).await {
             Ok(true) => {}
             Ok(false) => {
                 debug!("<{}> is not an admin", jid.to_string());
@@ -47,121 +54,8 @@ impl<'r> FromRequest<'r> for ServerManager<'r> {
             Err(e) => return Error::DbErr(e).into(),
         }
 
-        let server_ctl =
-            try_outcome!(req
-                .guard::<&State<ServerCtl>>()
-                .await
-                .map_error(|(status, _)| (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
-                    }
-                )));
-
-        let app_config = try_outcome!(req
-            .guard::<&State<service::config::Config>>()
+        UnauthenticatedServerManager::from_request(req)
             .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<service::config::Config>` from a request."
-                        .to_string(),
-                }
-            )));
-
-        match Query::server_config(db).await {
-            Ok(Some(server_config)) => Outcome::Success(ServerManager {
-                db,
-                app_config,
-                server_ctl,
-                server_config,
-            }),
-            Ok(None) => Error::PodNotInitialized.into(),
-            Err(err) => Error::DbErr(err).into(),
-        }
-    }
-}
-
-impl<'r> ServerManager<'r> {
-    async fn update<U>(&self, update: U) -> Result<server_config::Model, Error>
-    where
-        U: FnOnce(&mut server_config::ActiveModel) -> (),
-    {
-        let config_before = &self.server_config;
-        let mut active: server_config::ActiveModel = self.server_config.clone().into();
-        update(&mut active);
-        let server_conf = active.update(self.db).await?;
-
-        if server_conf != *config_before {
-            let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
-
-            // Save new server config
-            server_ctl.save_config(&server_conf, self.app_config)?;
-            // Reload server config
-            server_ctl.reload()?;
-        }
-
-        Ok(server_conf)
-    }
-}
-
-impl<'r> ServerManager<'r> {
-    // TODO: Use or delete the following comments
-
-    // pub fn add_admin(&self, jid: JID) {
-    //     todo!()
-    // }
-    // pub fn remove_admin(&self, jid: &JID) {
-    //     todo!()
-    // }
-
-    // pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
-    //     todo!()
-    // }
-    // pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-    // /// Sets the time that an over-limit session is suspended for
-    // /// (`limits_resolution` in Prosody).
-    // ///
-    // /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
-    // /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    // pub fn set_timeout(&self, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-
-    pub async fn set_message_archiving(
-        &self,
-        new_state: bool,
-    ) -> Result<server_config::Model, Error> {
-        self.update(|active| {
-            active.message_archive_enabled = Set(new_state);
-        })
-        .await
-    }
-    pub async fn set_message_archive_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<server_config::Model, Error> {
-        self.update(|active| {
-            active.message_archive_retention = Set(new_state);
-        })
-        .await
-    }
-
-    pub async fn set_file_uploading(&self, new_state: bool) -> Result<server_config::Model, Error> {
-        self.update(|active| {
-            active.file_upload_allowed = Set(new_state);
-        })
-        .await
-    }
-    pub async fn set_file_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<server_config::Model, Error> {
-        self.update(|active| {
-            active.file_storage_retention = Set(new_state);
-        })
-        .await
+            .map(Self)
     }
 }

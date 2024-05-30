@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto(WorkspaceInvitation::Id))
                     .col(timestamp_with_time_zone(WorkspaceInvitation::CreatedAt))
-                    .col(string(WorkspaceInvitation::Jid))
+                    .col(string(WorkspaceInvitation::Username))
                     .col(
                         string(WorkspaceInvitation::Status)
                             .default(DEFAULT_WORKSPACE_INVITATION_STATUS),
@@ -43,7 +43,7 @@ enum WorkspaceInvitation {
     Table,
     Id,
     CreatedAt,
-    Jid,
+    Username,
     Status,
     PreAssignedRole,
     InvitationChannel,

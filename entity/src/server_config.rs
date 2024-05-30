@@ -14,15 +14,12 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_deserializing)]
     pub id: i32,
+    pub domain: String,
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
     pub file_upload_allowed: bool,
     pub file_storage_encryption_scheme: String,
     pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
-    pub workspace_name: String,
-    pub workspace_icon_url: Option<String>,
-    pub workspace_v_card_url: Option<String>,
-    pub workspace_accent_color: Option<String>,
     pub mfa_required: bool,
     pub minimum_tls_version: String,
     pub minimum_cipher_suite: String,

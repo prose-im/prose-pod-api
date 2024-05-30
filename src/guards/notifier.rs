@@ -19,7 +19,7 @@ use service::{
 
 use crate::error::{self, Error};
 
-use super::{Db, FromRequest, JID as JIDGuard};
+use super::{Db, LazyFromRequest, JID as JIDGuard};
 
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
@@ -28,7 +28,7 @@ pub struct Notifier<'r> {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Notifier<'r> {
+impl<'r> LazyFromRequest<'r> for Notifier<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -52,7 +52,7 @@ impl<'r> FromRequest<'r> for Notifier<'r> {
             )));
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match Query::is_admin(db, &jid).await {
+        match Query::is_admin(db, &jid.node).await {
             Ok(true) => {}
             Ok(false) => {
                 debug!("<{}> is not an admin", jid.to_string());

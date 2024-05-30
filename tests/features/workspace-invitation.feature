@@ -1,7 +1,8 @@
 Feature: Inviting members
 
   Background:
-    Given the workspace has been initialized
+    Given the Prose Pod has been initialized
+      And the XMPP server domain is <prose.org>
 
   """
   The intended way of inviting a new member to a Prose server
@@ -220,7 +221,8 @@ Feature: Inviting members
     Scenario: Rémi rejects an invitation
       Given <remi@personal.name> has been invited via email
        When <remi@personal.name> rejects their invitation
-       Then there should not be any invitation for <remi@personal.name> in the database
+       Then the call should succeed
+        And there should not be any invitation for <remi@personal.name> in the database
 
   """
   The invitation accept and reject links look like `/invitations/(accept|reject)/{uuid}`,
@@ -262,6 +264,7 @@ Feature: Inviting members
 
     Scenario: Rémi joins using a custom nickname
       Given <remi@prose.org> has been invited via email
+        And the XMPP server domain is <prose.org>
        When <remi@prose.org> accepts their invitation using the nickname "Rémi B."
        Then the call should succeed
         And <remi@prose.org> should have the nickname "Rémi B."

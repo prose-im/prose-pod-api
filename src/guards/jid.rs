@@ -14,7 +14,7 @@ use rocket::{Request, State};
 
 use crate::error::{self, Error};
 
-use super::{FromRequest, JWTService, JWT_JID_KEY};
+use super::{JWTService, LazyFromRequest, JWT_JID_KEY};
 
 pub struct JID(model::JID);
 
@@ -27,7 +27,7 @@ impl Deref for JID {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for JID {
+impl<'r> LazyFromRequest<'r> for JID {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

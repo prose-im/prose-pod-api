@@ -19,7 +19,8 @@ use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
 use entity::{member, workspace_invitation};
 use log::debug;
-use prose_pod_api::guards::{Db, JWTKey, JWTService};
+use prose_pod_api::error::Error;
+use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -27,10 +28,10 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
-use service::dependencies;
 use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
 use service::ServerCtl;
+use service::{dependencies, Query};
 use tokio::runtime::Handle;
 use tokio::task;
 use uuid::Uuid;
@@ -84,10 +85,13 @@ fn test_rocket(
         .merge(("log_level", "off"))
         .merge(("databases.data.sqlx_logging", false))
         .merge(("databases.data.sql_log_level", "off"));
-    prose_pod_api::custom_rocket(rocket::custom(figment), config)
-        .manage(JWTService::new(JWTKey::custom("test_key")))
-        .manage(ServerCtl::new(server_ctl))
-        .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
+    prose_pod_api::custom_rocket(
+        rocket::custom(figment),
+        config.to_owned(),
+        ServerCtl::new(server_ctl),
+    )
+    .manage(JWTService::new(JWTKey::custom("test_key")))
+    .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(
@@ -169,6 +173,31 @@ impl TestWorld {
 
     fn db(&self) -> &DatabaseConnection {
         &Db::fetch(&self.client.rocket()).unwrap().conn
+    }
+
+    /// Sometimes we need to use the `ServerCtl` from "When" steps,
+    /// to avoid rewriting all of its logic in tests.
+    /// However, using the dummy attached to the Rocket will cause counters to increase
+    /// and this could impact "Then" steps.
+    /// This method resets the counters.
+    fn reset_server_ctl_counts(&self) {
+        let server_ctl = self.server_ctl();
+        let mut state = server_ctl.state.lock().unwrap();
+        state.conf_reload_count = 0;
+    }
+
+    async fn server_manager(&self) -> Result<ServerManager, Error> {
+        let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
+        let db = self.db();
+        let server_config = Query::server_config(db)
+            .await?
+            .expect("Server config not initialized");
+        Ok(ServerManager::from(UnauthenticatedServerManager::new(
+            db,
+            &self.config,
+            server_ctl,
+            server_config,
+        )))
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {

@@ -4,22 +4,25 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::model::{MemberRole, JID};
-use entity::workspace_invitation;
+use entity::{server_config, workspace_invitation};
 use migration::ConnectionTrait;
 use rocket::outcome::try_outcome;
-use rocket::request::{FromRequest, Outcome};
+use rocket::request::Outcome;
 use rocket::{Request, State};
+use sea_orm_rocket::Connection;
 use service::sea_orm::{DbConn, TransactionTrait as _};
-use service::{Mutation, ServerCtl};
+use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
+
+use super::{Db, LazyFromRequest};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserFactory<'r> {
+impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -33,6 +36,21 @@ impl<'r> FromRequest<'r> for UserFactory<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
+
+        // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
+        // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
+        let db = try_outcome!(req
+            .guard::<Connection<'_, Db>>()
+            .await
+            .map(|conn| conn.into_inner())
+            .map_error(|(status, err)| {
+                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
+            }));
+        match Query::server_config(db).await {
+            Ok(Some(_)) => {}
+            Ok(None) => return Error::ServerConfigNotInitialized.into(),
+            Err(err) => return Error::DbErr(err).into(),
+        }
 
         Outcome::Success(Self { server_ctl })
     }
@@ -48,7 +66,7 @@ impl<'r> UserFactory<'r> {
         role: &Option<MemberRole>,
     ) -> Result<(), Error> {
         // Create the user in database
-        Mutation::create_user(db, jid, role).await?;
+        Mutation::create_user(db, &jid.node, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -70,6 +88,7 @@ impl<'r> UserFactory<'r> {
     pub async fn accept_workspace_invitation(
         &self,
         db: &DbConn,
+        server_config: &server_config::Model,
         invitation: workspace_invitation::Model,
         password: &str,
         nickname: &str,
@@ -79,7 +98,10 @@ impl<'r> UserFactory<'r> {
         // Create the user
         self.create_user(
             &txn,
-            &invitation.jid,
+            &JID {
+                node: invitation.username.to_owned(),
+                domain: server_config.domain.to_owned(),
+            },
             password,
             nickname,
             &Some(invitation.pre_assigned_role),

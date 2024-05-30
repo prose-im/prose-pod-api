@@ -1,7 +1,7 @@
 Feature: Message archive
 
   Background:
-    Given the workspace has been initialized
+    Given the Prose Pod has been initialized
 
   Rule: Message archiving can be turned on and off
 

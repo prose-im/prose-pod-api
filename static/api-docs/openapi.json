@@ -13,29 +13,30 @@
 		"version": "0.2.0"
 	},
 	"paths": {
-		"/v1/init": {
-			"post": {
-				"tags": ["Misc"],
-				"summary": "Initialize the Prose Pod",
-				"description": "Initializes the Prose Pod and return the default configuration.",
-				"operationId": "init",
+		"/v1/init/first-account": {
+			"put": {
+				"tags": ["Init"],
+				"summary": "Initialize the the first XMPP account",
+				"description": "Initializes the first XMPP account on the server. It will be given the `ADMIN` role and this user will have to log in before making subsequent requests (like inviting other users). After one account is created, this unauthenticated route will always return `409 Conflict` to prevent unauthenticated users from creating admin accounts.",
+				"operationId": "init_first_account",
 				"security": [],
 				"requestBody": {
 					"required": true,
-					"application/json": {
-						"schema": { "$ref": "#/components/schemas/InitRequest" }
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/InitFirstAccountRequest" }
+						}
 					}
 				},
 				"responses": {
-					"200": {
+					"201": {
 						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"409": { "$ref": "#/components/responses/PodAlreadyInitialized" }
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"409": { "$ref": "#/components/responses/FirstAccountAlreadyCreated" }
 				}
 			}
 		},
@@ -126,7 +127,7 @@
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -160,7 +161,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -180,7 +181,7 @@
 				],
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -206,7 +207,7 @@
 				},
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"410": { "$ref": "#/components/responses/Gone" }
 				}
 			}
@@ -223,7 +224,7 @@
 				],
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"410": { "$ref": "#/components/responses/Gone" }
 				}
 			}
@@ -249,7 +250,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -455,6 +456,35 @@
 			}
 		},
 		"/v1/server/config": {
+			"put": {
+				"tags": ["Init"],
+				"summary": "Initialize the XMPP server",
+				"description": "Initializes the XMPP server and returns its default configuration.",
+				"operationId": "init_server_config",
+				"security": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/InitServerConfigRequest" }
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						},
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
+						}
+					},
+					"409": { "$ref": "#/components/responses/ServerConfigAlreadyInitialized" }
+				}
+			},
 			"get": {
 				"tags": ["Server / Configuration"],
 				"summary": "Get server config",
@@ -472,7 +502,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -504,7 +534,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -536,7 +566,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -560,7 +590,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -592,7 +622,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -624,7 +654,7 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/PodNotInitialized" },
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -842,6 +872,37 @@
 					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/workspace": {
+			"put": {
+				"tags": ["Init"],
+				"summary": "Initialize the workspace",
+				"description": "Initializes the workspace and returns its default configuration.",
+				"operationId": "init_workspace",
+				"security": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/InitWorkspaceRequest" }
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/Workspace" }
+							}
+						},
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
+						}
+					},
+					"409": { "$ref": "#/components/responses/WorkspaceAlreadyInitialized" }
 				}
 			}
 		},
@@ -1242,8 +1303,11 @@
 							"internal_server_error",
 							"not_found",
 							"not_implemented",
-							"pod_already_initialized",
-							"pod_not_initialized",
+							"workspace_already_initialized",
+							"workspace_not_initialized",
+							"server_config_already_initialized",
+							"server_config_not_initialized",
+							"first_account_already_initialized",
 							"unauthorized",
 							"forbidden"
 						],
@@ -1283,27 +1347,10 @@
 					"password": { "$ref": "#/components/schemas/Password" }
 				}
 			},
-			"AdminAccountInit": {
-				"type": "object",
-				"required": [
-					"jid",
-					"password",
-					"nickname"
-				],
-				"properties": {
-					"jid": { "$ref": "#/components/schemas/JID" },
-					"nickname": { "$ref": "#/components/schemas/Nickname" },
-					"password": { "$ref": "#/components/schemas/Password" }
-				}
-			},
 			"GetWorkspaceAccentColorResponse": {
 				"type": "object",
 				"properties": {
-					"color": {
-						"type": "string",
-						"example": "#4233BE",
-						"nullable": true
-					}
+					"color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
 				}
 			},
 			"GetWorkspaceIconResponse": {
@@ -1324,19 +1371,55 @@
 					"name": { "$ref": "#/components/schemas/WorkspaceName" }
 				}
 			},
-			"InitRequest": {
+			"InitWorkspaceRequest": {
 				"type": "object",
 				"required": [
-					"workspace_name",
-					"admin"
+					"name"
 				],
 				"properties": {
-					"admin": { "$ref": "#/components/schemas/AdminAccountInit" },
-					"workspace_name": { "$ref": "#/components/schemas/WorkspaceName" }
+					"name": { "$ref": "#/components/schemas/WorkspaceName" }
+				}
+			},
+			"InitServerConfigRequest": {
+				"type": "object",
+				"required": [
+					"domain"
+				],
+				"properties": {
+					"domain": {
+						"type": "string",
+						"example": "crisp.chat"
+					}
+				}
+			},
+			"InitFirstAccountRequest": {
+				"type": "object",
+				"required": [
+					"username",
+					"password",
+					"nickname"
+				],
+				"properties": {
+					"username": { "$ref": "#/components/schemas/Username" },
+					"password": { "$ref": "#/components/schemas/Password" },
+					"nickname": { "$ref": "#/components/schemas/Nickname" }
+				}
+			},
+			"Workspace": {
+				"type": "object",
+				"required": [
+					"name",
+					"accent_color"
+				],
+				"properties": {
+					"name": { "$ref": "#/components/schemas/WorkspaceName" },
+					"accent_color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
 				}
 			},
 			"ServerConfig": {
+				"type": "object",
 				"required": [
+					"domain",
 					"message_archive_enabled",
 					"message_archive_retention",
 					"file_upload_allowed",
@@ -1350,6 +1433,10 @@
 					"user_data_backup_interval"
 				],
 				"properties": {
+					"domain": {
+						"type": "string",
+						"example": "crisp.chat"
+					},
 					"message_archive_enabled": {
 						"type": "boolean",
 						"default": true
@@ -1511,10 +1598,7 @@
 					"color"
 				],
 				"properties": {
-					"color": {
-						"type": "string",
-						"example": "#226EF2"
-					}
+					"color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
 				}
 			},
 			"SetWorkspaceNameRequest": {
@@ -1614,6 +1698,11 @@
 				"summary": "The name of a Prose workspace.",
 				"example": "Crisp"
 			},
+			"WorkspaceAccentColor": {
+				"type": "string",
+				"example": "#4233BE",
+				"nullable": true
+			},
 			"Password": {
 				"type": "string",
 				"format": "password",
@@ -1685,24 +1774,57 @@
 			"NoContent": {
 				"description": "Success"
 			},
-			"PodAlreadyInitialized": {
-				"description": "Pod already initialized",
+			"WorkspaceAlreadyInitialized": {
+				"description": "Workspace already initialized",
 				"content": {
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "pod_already_initialized"
+							"reason": "workspace_already_initialized"
 						}
 					}
 				}
 			},
-			"PodNotInitialized": {
-				"description": "Pod not initialized",
+			"WorkspaceNotInitialized": {
+				"description": "Workspace not initialized",
 				"content": {
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "pod_not_initialized"
+							"reason": "workspace_not_initialized"
+						}
+					}
+				}
+			},
+			"ServerConfigAlreadyInitialized": {
+				"description": "XMPP server already initialized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "server_config_already_initialized"
+						}
+					}
+				}
+			},
+			"ServerConfigNotInitialized": {
+				"description": "XMPP server not initialized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "server_config_not_initialized"
+						}
+					}
+				}
+			},
+			"FirstAccountAlreadyCreated": {
+				"description": "First account already created",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "first_account_already_created"
 						}
 					}
 				}

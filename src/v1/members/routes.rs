@@ -4,28 +4,23 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::models::Member;
-use entity::model::MemberRole;
-use rocket::response::status;
+use entity::model::{MemberRole, JID};
 use rocket::serde::json::Json;
 use rocket::{get, put};
 
-use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
-
-pub type R<T> = Result<Json<T>, Error>;
-pub type Created<T> = Result<status::Created<Json<T>>, Error>;
 
 /// Get all members
 #[get("/v1/members")]
 pub(super) fn get_members() -> Json<Vec<Member>> {
     vec![
         Member {
-            jid: "valerian@crisp.chat".to_string(),
+            jid: JID::new("valerian", "crisp.chat").unwrap(),
             name: "Valerian Saliou".to_string(),
             role: MemberRole::Admin,
         },
         Member {
-            jid: "baptiste@crisp.chat".to_string(),
+            jid: JID::new("baptiste", "crisp.chat").unwrap(),
             name: "Baptiste Jamin".to_string(),
             role: MemberRole::Admin,
         },
@@ -40,8 +35,9 @@ pub(super) fn search_members() -> String {
 }
 
 /// Get information about one member.
-#[get("/v1/members/<_member_id>")]
-pub(super) fn get_member(_member_id: JIDUriParam) -> String {
+#[get("/v1/members/<jid>")]
+pub(super) fn get_member(jid: JIDUriParam) -> String {
+    let _jid = jid;
     todo!()
 }
 
