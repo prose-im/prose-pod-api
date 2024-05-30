@@ -14,11 +14,11 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use cucumber::{then, World};
 use cucumber_parameters::HTTPStatus;
-use dummy_notifier::DummyNotifier;
-use dummy_server_ctl::DummyServerCtl;
 use entity::model::EmailAddress;
-use entity::{member, workspace_invitation};
+use entity::{member, server_config, workspace_invitation};
 use log::debug;
+use mock_notifier::MockNotifier;
+use mock_server_ctl::MockServerCtl;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
@@ -77,8 +77,8 @@ async fn main() {
 
 fn test_rocket(
     config: &Config,
-    server_ctl: Arc<Mutex<DummyServerCtl>>,
-    notifier: Arc<Mutex<DummyNotifier>>,
+    server_ctl: Arc<Mutex<MockServerCtl>>,
+    notifier: Arc<Mutex<MockNotifier>>,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -96,8 +96,8 @@ fn test_rocket(
 
 pub async fn rocket_test_client(
     config: Arc<Config>,
-    server_ctl: Arc<Mutex<DummyServerCtl>>,
-    notifier: Arc<Mutex<DummyNotifier>>,
+    server_ctl: Arc<Mutex<MockServerCtl>>,
+    notifier: Arc<Mutex<MockNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(config.as_ref(), server_ctl, notifier))
@@ -151,8 +151,8 @@ impl From<LocalResponse<'_>> for Response {
 #[world(init = Self::new)]
 pub struct TestWorld {
     config: Arc<Config>,
-    server_ctl: Arc<Mutex<DummyServerCtl>>,
-    notifier: Arc<Mutex<DummyNotifier>>,
+    server_ctl: Arc<Mutex<MockServerCtl>>,
+    notifier: Arc<Mutex<MockNotifier>>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -175,9 +175,9 @@ impl TestWorld {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
 
-    /// Sometimes we need to use the `ServerCtl` from "When" steps,
+    /// Sometimes we need to use the `ServerCtl` from "Given" steps,
     /// to avoid rewriting all of its logic in tests.
-    /// However, using the dummy attached to the Rocket will cause counters to increase
+    /// However, using the mock attached to the Rocket will cause counters to increase
     /// and this could impact "Then" steps.
     /// This method resets the counters.
     fn reset_server_ctl_counts(&self) {
@@ -200,15 +200,19 @@ impl TestWorld {
         )))
     }
 
+    async fn server_config(&self) -> Result<server_config::Model, Error> {
+        Ok(self.server_manager().await?.server_config())
+    }
+
     fn uuid_gen(&self) -> &dependencies::Uuid {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl(&self) -> MutexGuard<DummyServerCtl> {
+    fn server_ctl(&self) -> MutexGuard<MockServerCtl> {
         self.server_ctl.lock().unwrap()
     }
 
-    fn notifier(&self) -> MutexGuard<DummyNotifier> {
+    fn notifier(&self) -> MutexGuard<MockNotifier> {
         self.notifier.lock().unwrap()
     }
 
@@ -245,8 +249,8 @@ impl TestWorld {
 impl TestWorld {
     async fn new() -> Self {
         let config = Arc::new(Config::figment());
-        let server_ctl = Arc::new(Mutex::new(DummyServerCtl::new(Default::default())));
-        let notifier = Arc::new(Mutex::new(DummyNotifier::new(Default::default())));
+        let server_ctl = Arc::new(Mutex::new(MockServerCtl::new(Default::default())));
+        let notifier = Arc::new(Mutex::new(MockNotifier::new(Default::default())));
 
         Self {
             config: config.clone(),

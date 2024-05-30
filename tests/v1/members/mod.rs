@@ -24,7 +24,7 @@ use crate::{
 async fn then_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
     let db = world.db();
 
-    let member = Member::find_by_username(&jid.node)
+    let member = Member::find_by_jid(&jid)
         .one(db)
         .await?
         .expect(&format!("Member {jid} not found"));

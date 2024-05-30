@@ -15,8 +15,8 @@ use service::config::Config;
 use std::sync::Mutex;
 
 #[derive(Debug)]
-pub struct DummyServerCtl {
-    pub(crate) state: Mutex<DummyServerCtlState>,
+pub struct MockServerCtl {
+    pub(crate) state: Mutex<MockServerCtlState>,
 }
 
 #[derive(Debug)]
@@ -26,20 +26,20 @@ pub struct UserAccount {
 }
 
 #[derive(Debug, Default)]
-pub struct DummyServerCtlState {
+pub struct MockServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfigFile>,
     pub users: LinkedHashMap<JID, UserAccount>,
     pub vcards: LinkedHashMap<JID, Vcard>,
 }
 
-impl DummyServerCtl {
-    pub fn new(state: Mutex<DummyServerCtlState>) -> Self {
+impl MockServerCtl {
+    pub fn new(state: Mutex<MockServerCtlState>) -> Self {
         Self { state }
     }
 }
 
-impl ServerCtlImpl for DummyServerCtl {
+impl ServerCtlImpl for MockServerCtl {
     fn save_config(
         &self,
         server_config: &server_config::Model,

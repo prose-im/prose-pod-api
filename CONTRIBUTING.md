@@ -34,6 +34,14 @@ make update-redoc
 
 ## Testing
 
+After you have setup your environment to run smoke tests and integration tests, you can run all of them in a single command using:
+
+```bash
+make test
+```
+
+### Smoke testing
+
 As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md),
 we are using Gherkin and Cucumber to run tests. Therefore, you can use this command to run the tests:
 
@@ -46,6 +54,43 @@ You could also run `cargo test` but it runs unit tests in `src/`, which we don't
 > [!TIP]
 > While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
 > and then use `cargo test --test behavior -- --tags '@testing'` to run only matching `Scenario`s.
+
+### Integration testing
+
+#### Installing dependencies
+
+For integration tests, we use [Step CI]. To install it, follow instructions at [Getting started | Step CI Docs](https://docs.stepci.com/guides/getting-started.html) or just run the following command if you don't have an exotic setup:
+
+```bash
+npm install -g stepci
+```
+
+#### Setting up environment
+
+You also need to clone [prose-pod-server](https://github.com/prose-im/prose-pod-server) and [prose-pod-system](https://github.com/prose-im/prose-pod-system). Once that done, you will need to set environment variables so our testing script can pick up the locations:
+
+```bash
+export PROSE_POD_API_DIR=???
+export PROSE_POD_SYSTEM_DIR=???
+```
+
+Finally, since integration tests run on final containers, you have to build `prose-pod-server` and `prose-pod-api`:
+
+```bash
+docker build -t proseim/prose-pod-api "${PROSE_POD_API_DIR:?}"
+PROSE_POD_SERVER_DIR=???
+docker build -t proseim/prose-pod-server "${PROSE_POD_SERVER_DIR:?}"
+```
+
+#### Running tests
+
+Then, run the tests using:
+
+```bash
+make integration-test
+```
+
+If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
 
 ## Building the Docker image
 
@@ -61,3 +106,4 @@ docker build -t proseim/prose-pod-api --build-arg CARGO_INSTALL_EXTRA_ARGS='--de
 ```
 
 [Docker `ARG`]: https://docs.docker.com/reference/dockerfile/#arg "Dockerfile reference | Docker Docs"
+[Step CI]: https://stepci.com/ "Step CI homepage"

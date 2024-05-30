@@ -32,7 +32,7 @@ impl Uuid {
     #[cfg(debug_assertions)]
     pub fn from_config(config: &Config) -> Self {
         Self {
-            generator: match config.dependency_modes.uuid {
+            generator: match config.debug_only.dependency_modes.uuid {
                 UuidDependencyMode::Normal => Arc::new(LiveUuidGenerator),
                 UuidDependencyMode::Incrementing => Arc::new(IncrementingUuidGenerator::new()),
             },

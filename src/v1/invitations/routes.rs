@@ -6,7 +6,9 @@
 use ::entity::model::MemberRole;
 use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
-use entity::model::JIDNode;
+use entity::model::{JIDNode, JID};
+#[cfg(debug_assertions)]
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
@@ -34,21 +36,33 @@ pub struct InviteMemberRequest {
     pub contact: InvitationContact,
 }
 
+impl InviteMemberRequest {
+    fn jid(&self, server_config: &ServerConfig) -> JID {
+        JID {
+            node: self.username.to_owned(),
+            domain: server_config.domain.to_owned(),
+        }
+    }
+}
+
 /// Invite a new member.
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
     uuid_gen: UuidGenerator,
     config: &State<Config>,
+    server_config: LazyGuard<ServerConfig>,
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
+    #[cfg(debug_assertions)] user_factory: LazyGuard<UserFactory<'_>>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
-    let jid = jid.inner?;
+    let server_config = server_config.inner?;
 
+    let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !Query::is_admin(db, &jid.node).await? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
@@ -56,7 +70,7 @@ pub(super) async fn invite_member<'r>(
     let invitation = Mutation::create_workspace_invitation(
         db,
         &uuid_gen,
-        &req.username,
+        &req.jid(&server_config),
         req.pre_assigned_role,
         req.contact.clone(),
     )
@@ -100,10 +114,36 @@ pub(super) async fn invite_member<'r>(
         .await
         .inspect_err(|err| {
             error!(
-                "Could not mark workspace invitation as `{}`: {err}",
+                "Could not mark workspace invitation `{}` as `{}`: {err}",
+                invitation.id,
                 InvitationStatus::Sent
             )
         })?;
+
+    #[cfg(debug_assertions)]
+    if config.debug_only.automatically_accept_invitations {
+        warn!(
+            "Config `{}` is turned on. The invitation created will be automatically accepted.",
+            stringify!(debug_only.automatically_accept_invitations),
+        );
+
+        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
+        let password = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+        invitation_accept_(
+            db,
+            invitation.accept_token.into(),
+            user_factory.inner?,
+            AcceptWorkspaceInvitationRequest {
+                nickname: req.username.to_string(),
+                password,
+            },
+        )
+        .await?;
+    }
 
     let resource_uri = uri!(get_invitation(invitation.id)).to_string();
     let response: WorkspaceInvitation = invitation.into();
@@ -140,7 +180,7 @@ pub struct WorkspaceInvitation {
     pub invitation_id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
-    pub username: JIDNode,
+    pub jid: JID,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
     pub accept_token_expires_at: DateTimeUtc,
@@ -152,7 +192,7 @@ impl From<workspace_invitation::Model> for WorkspaceInvitation {
             invitation_id: value.id,
             created_at: value.created_at,
             status: value.status,
-            username: value.username.to_owned(),
+            jid: value.jid.to_owned(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,
@@ -202,14 +242,24 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
     token: Uuid,
-    server_config: LazyGuard<ServerConfig>,
     user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
-    let db = conn.into_inner();
-    let server_config = server_config.inner?;
-    let user_factory = user_factory.inner?;
+    invitation_accept_(
+        conn.into_inner(),
+        token,
+        user_factory.inner?,
+        req.into_inner(),
+    )
+    .await
+}
 
+async fn invitation_accept_(
+    db: &DatabaseConnection,
+    token: Uuid,
+    user_factory: UserFactory<'_>,
+    req: AcceptWorkspaceInvitationRequest,
+) -> Result<(), Error> {
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
     let invitation = Query::get_workspace_invitation_by_accept_token(db, &token)
@@ -229,7 +279,7 @@ pub(super) async fn invitation_accept(
     }
 
     user_factory
-        .accept_workspace_invitation(db, &server_config, invitation, &req.password, &req.nickname)
+        .accept_workspace_invitation(db, invitation, &req.password, &req.nickname)
         .await?;
 
     Ok(())
@@ -276,7 +326,7 @@ pub(super) async fn invitation_resend(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid.node).await? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
@@ -310,7 +360,7 @@ pub(super) async fn invitation_cancel(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid.node).await? {
+    if !Query::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }

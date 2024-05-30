@@ -13,8 +13,11 @@ format-all:
 	cargo fmt
 format:
 	@(./.githooks/pre-commit)
-test:
+test: smoke-test integration-test
+smoke-test:
 	cargo test --test behavior
+integration-test:
+	@(./scripts/integration-test.sh)
 update: update-redoc
 # NOTE: `cargo update` updates all workspace member crates
 	@(echo '[INFO] Updating Rust dependencies…')

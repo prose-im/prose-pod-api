@@ -15,6 +15,8 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 - [Interact with Prosody using a REST API](./2024-04-04-a-prosody-rest-api.md) (2024-04-04)
 - [Write the OpenAPI description file manually](./2024-04-25-a-write-openapi-manually.md) (2024-04-25)
 - [Expose API documentation route using Redoc (instead of Swagger UI)](./2024-04-25-b-use-redoc-instead-of-swagger-ui.md) (2024-04-25)
+- [Write integration tests](./2024-05-15-a-integration-testing.md) (2024-05-15)
+- [Use Step CI for integration testing](./2024-05-15-b-step-ci-for-integration-testing.md) (2024-05-15)
 
 ## Proposed ADRs
 

@@ -9,23 +9,23 @@ use service::config::ConfigBranding;
 use std::sync::Mutex;
 
 #[derive(Debug)]
-pub struct DummyNotifier {
-    pub(crate) state: Mutex<DummyNotifierState>,
+pub struct MockNotifier {
+    pub(crate) state: Mutex<MockNotifierState>,
 }
 
 #[derive(Debug, Default)]
-pub struct DummyNotifierState {
+pub struct MockNotifierState {
     pub send_count: usize,
     pub sent: Vec<Notification>,
 }
 
-impl DummyNotifier {
-    pub fn new(state: Mutex<DummyNotifierState>) -> Self {
+impl MockNotifier {
+    pub fn new(state: Mutex<MockNotifierState>) -> Self {
         Self { state }
     }
 }
 
-impl GenericNotifier for DummyNotifier {
+impl GenericNotifier for MockNotifier {
     fn name(&self) -> &'static str {
         "dummy_notifier"
     }

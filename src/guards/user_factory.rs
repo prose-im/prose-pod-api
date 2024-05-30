@@ -4,13 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::model::{MemberRole, JID};
-use entity::{server_config, workspace_invitation};
-use migration::ConnectionTrait;
+use entity::{member, workspace_invitation};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
-use service::sea_orm::{DbConn, TransactionTrait as _};
+use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
@@ -57,16 +56,16 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 }
 
 impl<'r> UserFactory<'r> {
-    pub async fn create_user<'a, C: ConnectionTrait>(
+    pub async fn create_user<'a>(
         &self,
-        db: &C,
+        txn: &DatabaseTransaction,
         jid: &JID,
         password: &str,
         nickname: &str,
         role: &Option<MemberRole>,
-    ) -> Result<(), Error> {
+    ) -> Result<member::Model, Error> {
         // Create the user in database
-        Mutation::create_user(db, &jid.node, role).await?;
+        let member = Mutation::create_user(txn, &jid, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -82,13 +81,12 @@ impl<'r> UserFactory<'r> {
         server_ctl.create_vcard(jid, nickname)?;
         server_ctl.set_nickname(jid, nickname)?;
 
-        Ok(())
+        Ok(member)
     }
 
     pub async fn accept_workspace_invitation(
         &self,
         db: &DbConn,
-        server_config: &server_config::Model,
         invitation: workspace_invitation::Model,
         password: &str,
         nickname: &str,
@@ -98,10 +96,7 @@ impl<'r> UserFactory<'r> {
         // Create the user
         self.create_user(
             &txn,
-            &JID {
-                node: invitation.username.to_owned(),
-                domain: server_config.domain.to_owned(),
-            },
+            &invitation.jid,
             password,
             nickname,
             &Some(invitation.pre_assigned_role),
