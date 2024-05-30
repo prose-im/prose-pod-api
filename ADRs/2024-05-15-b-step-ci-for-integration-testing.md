@@ -3,7 +3,7 @@
 - Date: **2024-05-15**
 - Author: **Rémi Bardon <[remi@remibardon.name](mailto:remi@remibardon.name)>**
 <!-- Proposed|Accepted|Rejected, with date and channel if applicable -->
-- Status: **Proposed**
+- Status: **Accepted** via [#18](https://github.com/prose-im/prose-pod-api/pull/18) (2024-05-30)
 <!-- "ø" or a nested unordered list linking to other ADRs and their date -->
 - Relates to:
   - [Write integration tests](./2024-05-15-a-integration-testing.md) (2024-05-15)
