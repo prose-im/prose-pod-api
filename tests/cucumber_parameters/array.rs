@@ -14,11 +14,11 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 lazy_static! {
-    static ref RE: Regex = Regex::new(r"^([^, ]+)(?:, ([^, ])+)*(?: and ([^ ])+)?$").unwrap();
+    static ref RE: Regex = Regex::new(r"^([^, ]+)(?:, ([^, ])+)*(?: and ([^ ]+))?$").unwrap();
 }
 
 #[derive(Debug, Parameter)]
-#[param(name = "array", regex = r"([^, ]+)(, [^, ]+)*( and [^ ]+)?")]
+#[param(name = "array", regex = r"((?:[^, ]+)(?:, [^, ]+)*(?: and [^ ]+)?)")]
 pub struct Array<P: Parameter>(pub Vec<P>);
 
 impl<P: Parameter> Deref for Array<P> {
@@ -37,7 +37,7 @@ where
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let captures = RE.captures(s).unwrap();
-        let captures_iter = captures.iter().flatten();
+        let captures_iter = captures.iter().skip(1).flatten();
         let mut res = Vec::with_capacity(captures_iter.clone().count());
         for capture in captures_iter {
             res.push(P::from_str(capture.as_str())?);
