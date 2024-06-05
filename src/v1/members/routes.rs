@@ -15,16 +15,20 @@ use service::Query;
 use super::models::*;
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard, XmppService};
+use crate::guards::{Db, LazyGuard, XmppService, JID as JIDGuard};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
 pub(super) async fn get_members(
     conn: Connection<'_, Db>,
+    jid: LazyGuard<JIDGuard>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
 ) -> Result<Paginated<Member>, Error> {
+    // Make sure the user is logged in.
+    let _ = jid.inner?;
+
     let db = conn.into_inner();
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);

@@ -35,6 +35,22 @@ Feature: Members list
         And the "Pagination-Page-Size" header should contain "20"
         And the "Pagination-Page-Count" header should contain "3"
 
+  Rule: One needs to be authenticated in order to list members
+
+    Scenario: Not authenticated
+      When someone lists members without authenticating
+      Then the HTTP status code should be Unauthorized
+
+    Scenario Outline: Bad token
+      When someone lists members using <token> as Bearer token
+      Then the HTTP status code should be Unauthorized
+
+    Examples:
+      | token |
+      | "undefined" |
+      | "" |
+      | "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqaWQiOiJqb2huLmRvZUBleGFtcGxlLm9yZyJ9.C5mKZHGQhjTv8Td43yLcZ9S3-MQlDHexhaxlLWr6ixg" |
+
   Rule: Listing members should not interact with the XMPP server
 
     Scenario: XMPP server offline

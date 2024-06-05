@@ -27,13 +27,16 @@ use crate::{
 
 use super::name_to_jid;
 
+async fn list_members_<'a>(client: &'a Client, token: Option<String>) -> LocalResponse<'a> {
+    let mut req = client.get("/v1/members").header(Accept::JSON);
+    if let Some(token) = token {
+        req = req.header(Header::new("Authorization", format!("Bearer {token}")));
+    }
+    req.dispatch().await
+}
+
 async fn list_members<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
-    client
-        .get("/v1/members")
-        .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
-        .dispatch()
-        .await
+    list_members_(client, Some(token)).await
 }
 
 async fn list_members_paged<'a>(
@@ -93,21 +96,33 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     Ok(())
 }
 
-#[when(expr = "{} lists members")]
+#[when(expr = "{word} lists members")]
 async fn when_listing_members(world: &mut TestWorld, name: String) {
     let token = world.token(name);
     let res = list_members(&world.client, token).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "{} lists members by pages of {int}")]
+#[when("someone lists members without authenticating")]
+async fn when_listing_members_unauthenticated(world: &mut TestWorld) {
+    let res = list_members_(&world.client, None).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "someone lists members using {string} as Bearer token")]
+async fn when_listing_members_custom_token(world: &mut TestWorld, token: String) {
+    let res = list_members(&world.client, token).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{word} lists members by pages of {int}")]
 async fn when_listing_members_paged(world: &mut TestWorld, name: String, page_size: u64) {
     let token = world.token(name);
     let res = list_members_paged(&world.client, token, 1, page_size).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "{} gets page {int} of members by pages of {int}")]
+#[when(expr = "{word} gets page {int} of members by pages of {int}")]
 async fn when_getting_members_page(
     world: &mut TestWorld,
     name: String,
@@ -119,7 +134,7 @@ async fn when_getting_members_page(
     world.result = Some(res.into());
 }
 
-#[when(expr = "{} gets detailed information about {array}")]
+#[when(expr = "{word} gets detailed information about {array}")]
 async fn when_getting_members_details(world: &mut TestWorld, name: String, names: Array<Text>) {
     let token = world.token(name);
     let mut jids = Vec::with_capacity(names.len());
