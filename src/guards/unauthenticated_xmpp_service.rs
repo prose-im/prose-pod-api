@@ -8,15 +8,20 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
+use service::config::Config;
 use service::{xmpp_service, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 
-use super::{LazyFromRequest, JID as JIDGuard};
+use super::LazyFromRequest;
 
-pub struct XmppService(xmpp_service::XmppService);
+/// Same as `XmppService` but uses Prose Pod API's JID instead of the logged in user's.
+///
+/// WARN: Use only in places where the route doesn't support authentication like when
+///   accepting or rejecting a workspace invitation. Otherwise, use `XmppService`.
+pub struct UnauthenticatedXmppService(xmpp_service::XmppService);
 
-impl Deref for XmppService {
+impl Deref for UnauthenticatedXmppService {
     type Target = xmpp_service::XmppService;
 
     fn deref(&self) -> &Self::Target {
@@ -24,14 +29,14 @@ impl Deref for XmppService {
     }
 }
 
-impl Into<xmpp_service::XmppService> for XmppService {
+impl Into<xmpp_service::XmppService> for UnauthenticatedXmppService {
     fn into(self) -> xmpp_service::XmppService {
         self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for XmppService {
+impl<'r> LazyFromRequest<'r> for UnauthenticatedXmppService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -45,9 +50,17 @@ impl<'r> LazyFromRequest<'r> for XmppService {
                         .to_string(),
                 }
             )));
-        let jid = try_outcome!(JIDGuard::from_request(req).await);
+        let config = try_outcome!(req
+            .guard::<&State<Config>>()
+            .await
+            .map_error(|(status, _)| (
+                status,
+                Error::InternalServerError {
+                    reason: "Could not get a `&State<Config>` from a request.".to_string(),
+                }
+            )));
         let xmpp_service_ctx = XmppServiceContext {
-            bare_jid: jid.to_owned(),
+            bare_jid: config.api_jid(),
         };
         let xmpp_service =
             xmpp_service::XmppService::new(xmpp_service_inner.inner().clone(), xmpp_service_ctx);

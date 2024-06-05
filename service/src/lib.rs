@@ -5,6 +5,7 @@
 
 pub extern crate xmpp_parsers;
 
+mod avatar_metadata;
 pub mod config;
 pub mod dependencies;
 mod mutation;

@@ -13,11 +13,11 @@ use xmpp_parsers::iq::Iq;
 
 use crate::{
     config::Config,
-    xmpp::stanza_sender::{Error, StanzaSenderInner, R},
+    xmpp::stanza_sender::{Error, StanzaSenderError, StanzaSenderInner},
 };
 
 /// Rust interface to [`mod_http_rest`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_rest).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProsodyRest {
     rest_api_url: String,
 }
@@ -31,7 +31,7 @@ impl ProsodyRest {
 }
 
 impl StanzaSenderInner for ProsodyRest {
-    fn send_iq(&self, iq: Iq) -> R<Option<Element>> {
+    fn send_iq(&self, iq: Iq) -> Result<Option<Element>, StanzaSenderError> {
         let client = Client::new();
         let element: Element = iq.into();
         let request = client

@@ -22,7 +22,8 @@ use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{
-    Db, LazyGuard, Notifier, ServerConfig, UserFactory, UuidGenerator, JID as JIDGuard,
+    Db, LazyGuard, Notifier, ServerConfig, UnauthenticatedUserFactory, UserFactory, UuidGenerator,
+    JID as JIDGuard,
 };
 use crate::responders::Paginated;
 use crate::v1::{Created, R};
@@ -241,14 +242,14 @@ pub struct AcceptWorkspaceInvitationRequest {
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
+    user_factory: LazyGuard<UnauthenticatedUserFactory<'_>>,
     token: Uuid,
-    user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     invitation_accept_(
         conn.into_inner(),
         token,
-        user_factory.inner?,
+        user_factory.inner?.into(),
         req.into_inner(),
     )
     .await

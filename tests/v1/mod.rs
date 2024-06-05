@@ -59,7 +59,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     Ok(())
 }
 
-#[given(regex = "^(.+) is (online|offline)$")]
+#[given(regex = "^(\\w+) is (online|offline)$")]
 async fn given_presence(
     world: &mut TestWorld,
     name: String,
@@ -81,7 +81,14 @@ async fn given_presence(
 #[given(expr = "{}'s avatar is {}")]
 async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    world.xmpp_service().set_avatar(&jid, avatar)?;
+    world.xmpp_service().set_avatar(&jid, Some(avatar))?;
+    Ok(())
+}
+
+#[given(expr = "{} has no avatar")]
+async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    let jid = name_to_jid(world, &name).await?;
+    world.xmpp_service().set_avatar(&jid, None)?;
     Ok(())
 }
 

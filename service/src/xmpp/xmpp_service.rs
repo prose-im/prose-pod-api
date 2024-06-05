@@ -7,11 +7,10 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use entity::model::JID;
-use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::VCard;
 
-use super::stanza::avatar::{self, AvatarData};
+use super::stanza::avatar::AvatarData;
 use super::stanza::vcard::Nickname;
 use super::stanza_sender;
 
@@ -47,39 +46,66 @@ impl XmppServiceInner {
     }
 }
 
-pub type R<T> = Result<T, XmppServiceError>;
-
 impl XmppService {
     fn implem(&self) -> MutexGuard<dyn XmppServiceImpl + 'static> {
         self.deref().lock().unwrap()
     }
 
-    pub fn get_vcard(&self, jid: &JID) -> R<Option<VCard>> {
+    pub fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, XmppServiceError> {
         self.implem().get_vcard(&self.ctx, jid)
     }
-    pub fn set_vcard(&self, jid: &JID, vcard: &VCard) -> R<()> {
+    pub fn set_vcard(&self, jid: &JID, vcard: &VCard) -> Result<(), XmppServiceError> {
         self.implem().set_vcard(&self.ctx, jid, vcard)
     }
-    pub fn create_vcard(&self, jid: &JID, name: &str) -> R<()> {
+    pub fn create_vcard(&self, jid: &JID, name: &str) -> Result<(), XmppServiceError> {
         self.implem().create_vcard(&self.ctx, jid, name)
     }
-    pub fn set_nickname(&self, jid: &JID, nickname: &str) -> R<()> {
+    pub fn set_nickname(&self, jid: &JID, nickname: &str) -> Result<(), XmppServiceError> {
         self.implem().set_nickname(&self.ctx, jid, nickname)
+    }
+
+    pub fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, XmppServiceError> {
+        self.implem().get_avatar(&self.ctx, jid)
+    }
+    pub fn set_avatar(&self, jid: &JID, png_data: String) -> Result<(), XmppServiceError> {
+        self.implem().set_avatar(&self.ctx, jid, png_data)
+    }
+    pub fn disable_avatar(&self, jid: &JID) -> Result<(), XmppServiceError> {
+        self.implem().disable_avatar(&self.ctx, jid)
     }
 }
 
 pub trait XmppServiceImpl: Send + Sync {
-    fn get_vcard(&self, ctx: &XmppServiceContext, jid: &JID) -> R<Option<VCard>>;
-    fn set_vcard(&self, ctx: &XmppServiceContext, jid: &JID, vcard: &VCard) -> R<()>;
+    fn get_vcard(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+    ) -> Result<Option<VCard>, XmppServiceError>;
+    fn set_vcard(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+        vcard: &VCard,
+    ) -> Result<(), XmppServiceError>;
 
-    fn create_vcard(&self, ctx: &XmppServiceContext, jid: &JID, name: &str) -> R<()> {
+    fn create_vcard(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+        name: &str,
+    ) -> Result<(), XmppServiceError> {
         let mut vcard = VCard::new();
         vcard.nickname.push(Nickname {
             value: name.to_owned(),
         });
         self.set_vcard(ctx, jid, &vcard)
     }
-    fn set_nickname(&self, ctx: &XmppServiceContext, jid: &JID, nickname: &str) -> R<()> {
+    fn set_nickname(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &JID,
+        nickname: &str,
+    ) -> Result<(), XmppServiceError> {
         let mut vcard = self.get_vcard(ctx, jid)?.unwrap_or_default();
         vcard.nickname = vec![Nickname {
             value: nickname.to_owned(),
@@ -91,15 +117,16 @@ pub trait XmppServiceImpl: Send + Sync {
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
-        image_id: &Sha1HexAttribute,
-    ) -> R<Option<AvatarData>>;
+    ) -> Result<Option<AvatarData>, XmppServiceError>;
+    // TODO: Allow other MIME types
+    // TODO: Allow setting an avatar pointing to a URL
     fn set_avatar(
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
-        checksum: &avatar::ImageId,
-        base64_image_data: String,
-    ) -> R<()>;
+        png_data: String,
+    ) -> Result<(), XmppServiceError>;
+    fn disable_avatar(&self, ctx: &XmppServiceContext, jid: &JID) -> Result<(), XmppServiceError>;
 }
 
 pub type Error = XmppServiceError;

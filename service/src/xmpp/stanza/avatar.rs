@@ -6,14 +6,23 @@
 use std::borrow::Cow;
 
 use base64::{engine::general_purpose, DecodeError, Engine as _};
+use serde::{Deserialize, Serialize};
 use xmpp_parsers::sha1::{Digest, Sha1};
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Serialize, Deserialize)]
 pub struct ImageId(String);
 
-impl std::fmt::Display for ImageId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl AsRef<str> for ImageId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::str::FromStr for ImageId {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(ImageId(s.to_string()))
     }
 }
 
@@ -23,6 +32,12 @@ where
 {
     fn from(s: T) -> ImageId {
         ImageId(s.into())
+    }
+}
+
+impl std::fmt::Display for ImageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

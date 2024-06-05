@@ -11,7 +11,7 @@ use prose_pod_api::guards::JWTService;
 use service::config::Config;
 use service::dependencies::{Notifier, UUIDStanzaIdProvider};
 use service::prosody::{ProsodyAdminRest, ProsodyRest};
-use service::xmpp::{LiveXmppService, StanzaSender};
+use service::xmpp::{LiveXmppService, StanzaSender, UserAccountService};
 use service::{ServerCtl, XmppServiceInner};
 use std::sync::{Arc, Mutex};
 
@@ -29,9 +29,14 @@ fn rocket() -> _ {
     let server_ctl = ServerCtl::new(Arc::new(Mutex::new(ProsodyAdminRest::from_config(&config))));
     let stanza_sender = StanzaSender::from(ProsodyRest::from_config(&config));
     let stanza_id_provider = Box::new(UUIDStanzaIdProvider);
+    let user_account_service = UserAccountService {
+        stanza_sender: stanza_sender.clone(),
+        stanza_id_provider: stanza_id_provider.clone(),
+    };
     let xmpp_service = XmppServiceInner::new(Arc::new(Mutex::new(LiveXmppService {
         stanza_sender,
         stanza_id_provider,
+        user_account_service,
     })));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
 

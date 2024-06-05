@@ -11,6 +11,7 @@ pub trait StanzaIdProvider: Send + Sync {
     fn new_id(&self) -> String;
 }
 
+#[derive(Clone)]
 pub struct UUIDStanzaIdProvider;
 
 impl StanzaIdProvider for UUIDStanzaIdProvider {

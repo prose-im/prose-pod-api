@@ -3,13 +3,16 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::ops::Deref;
+
 use chrono::{DateTime, Utc};
+use rocket::form::Strict;
 use rocket::response::stream::{Event, EventStream};
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use service::Query;
 
-use super::models::{EnrichedMember, Member};
+use super::models::*;
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
 use crate::guards::{Db, LazyGuard, XmppService};
@@ -40,26 +43,48 @@ pub(super) async fn get_members(
 
 #[get("/v1/enrich-members?<jids..>")]
 pub(super) fn enrich_members<'r>(
-    conn: Connection<'r, Db>,
     xmpp_service: LazyGuard<XmppService>,
-    jids: Vec<JIDUriParam>,
+    jids: Strict<JIDs>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let xmpp_service = xmpp_service.inner?;
+    let jids = jids.into_inner();
 
     Ok(EventStream! {
-        let db = conn.into_inner();
+        yield Event::data(format!("{jids}")).id("cat").event("bar");
         for jid in jids.iter() {
+            trace!("Enriching `{jid}`…");
+
             // yield Event::retry(Duration::from_secs(10));
-            let model = Query::get_member(db, jid).await.unwrap().unwrap();
-            let vcard = xmpp_service.get_vcard(jid).unwrap();
+
+            let vcard = match xmpp_service.get_vcard(jid) {
+                Ok(vcard) => vcard,
+                Err(err) => {
+                    error!("Could not get `{jid}`'s vCard: {err}");
+                    continue
+                },
+            };
             let nickname = vcard
                 .and_then(|vcard| vcard.nickname.first().cloned())
                 .map(|p| p.value);
-            let res = EnrichedMember {
-                jid: model.jid(),
-                role: model.role,
-                nickname,
+
+            let avatar = match xmpp_service.get_avatar(jid) {
+                Ok(Some(avatar)) => Some(avatar.base64().to_string()),
+                Ok(None) => {
+                    debug!("`{jid}` has no avatar.");
+                    None
+                },
+                Err(err) => {
+                    error!("Could not get `{jid}`'s avatar: {err}");
+                    None
+                },
             };
+
+            let res = EnrichedMember {
+                jid: jid.deref().to_owned(),
+                nickname,
+                avatar,
+            };
+            // dbg!(&res);
             yield Event::json(&res);
             // yield Event::data(format!("{}", i)).id("cat").event("bar");
             // yield Event::comment("silly boy");

@@ -12,7 +12,7 @@ use self::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use cucumber::{then, World};
+use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use entity::model::EmailAddress;
 use entity::{member, server_config, workspace_invitation};
@@ -35,12 +35,12 @@ use service::ServerCtl;
 use service::{dependencies, Query, XmppServiceInner};
 use tokio::runtime::Handle;
 use tokio::task;
+use tracing_subscriber::{
+    filter::{self, LevelFilter},
+    fmt::format::{self, Format},
+    layer::{Layer, SubscriberExt as _},
+};
 use uuid::Uuid;
-// use tracing_subscriber::{
-//     filter::{self, LevelFilter},
-//     fmt::format::{self, Format},
-//     layer::{Layer, SubscriberExt as _},
-// };
 
 #[tokio::main]
 async fn main() {
@@ -50,23 +50,23 @@ async fn main() {
     // Run tests and ignore undefined steps, but show logs
     // NOTE: Needs the "tracing" feature enabled for `cucumber`
     TestWorld::cucumber()
-        .init_tracing()
-        // .configure_and_init_tracing(
-        //     format::DefaultFields::new(),
-        //     Format::default(),
-        //     |fmt_layer| {
-        //         tracing_subscriber::registry()
-        //             .with(
-        //                 filter::Targets::new()
-        //                     .with_targets(vec![
-        //                         ("rocket", LevelFilter::WARN),
-        //                         ("sea_orm_migration", LevelFilter::WARN),
-        //                         ("rocket::server", LevelFilter::TRACE),
-        //                     ])
-        //                     .and_then(fmt_layer)
-        //             )
-        //     },
-        // )
+        // .init_tracing()
+        .configure_and_init_tracing(
+            format::DefaultFields::new(),
+            Format::default(),
+            |fmt_layer| {
+                tracing_subscriber::registry().with(
+                    filter::Targets::new()
+                        .with_targets(vec![
+                            ("rocket", LevelFilter::ERROR),
+                            ("sea_orm_migration", LevelFilter::WARN),
+                            ("rocket::server", LevelFilter::WARN),
+                            ("prose_pod_api", LevelFilter::WARN),
+                        ])
+                        .and_then(fmt_layer),
+                )
+            },
+        )
         .run("tests/features")
         .await;
 
@@ -282,6 +282,12 @@ impl TestWorld {
     }
 }
 
+#[given("the XMPP server is offline")]
+fn given_xmpp_server_offline(world: &mut TestWorld) {
+    world.xmpp_service().online = false;
+    world.server_ctl().online = false;
+}
+
 #[then("the call should succeed")]
 fn then_response_ok(world: &mut TestWorld) {
     let res = world.result();
@@ -334,5 +340,27 @@ fn then_response_header_equals(world: &mut TestWorld, header_name: String, heade
         "No '{}' header found. Headers: {:?}",
         &header_name,
         &res.headers.keys()
+    );
+}
+
+#[then("the response is a SSE stream")]
+fn then_response_is_sse_stream(world: &mut TestWorld) {
+    let res = world.result();
+    assert_eq!(res.content_type, Some(ContentType::EventStream));
+}
+
+#[then(expr = "one SSE event is {string}")]
+async fn then_sse_event(world: &mut TestWorld, value: String) {
+    let res = world.result();
+    let events = res
+        .body()
+        .split("\n\n")
+        .map(ToString::to_string)
+        .collect::<Vec<String>>();
+    // Unescape double quotes
+    let expected = value.replace(r#"\""#, r#"""#);
+    assert!(
+        events.contains(&expected),
+        "events: {events:?}\nexpected: {expected:?}"
     );
 }

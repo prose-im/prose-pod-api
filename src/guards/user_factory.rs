@@ -10,7 +10,7 @@ use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
-use service::{Mutation, Query, ServerCtl};
+use service::{xmpp_service, Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
 
@@ -18,7 +18,7 @@ use super::{Db, LazyFromRequest, XmppService};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
-    xmpp_service: XmppService,
+    xmpp_service: xmpp_service::XmppService,
 }
 
 #[rocket::async_trait]
@@ -56,12 +56,22 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 
         Outcome::Success(Self {
             server_ctl,
-            xmpp_service,
+            xmpp_service: xmpp_service.into(),
         })
     }
 }
 
 impl<'r> UserFactory<'r> {
+    pub(super) fn new(
+        server_ctl: &'r State<ServerCtl>,
+        xmpp_service: xmpp_service::XmppService,
+    ) -> Self {
+        Self {
+            server_ctl,
+            xmpp_service,
+        }
+    }
+
     pub async fn create_user<'a>(
         &self,
         txn: &DatabaseTransaction,

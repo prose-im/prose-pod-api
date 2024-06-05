@@ -6,8 +6,10 @@
 pub(crate) mod live_xmpp_service;
 pub mod stanza;
 pub(crate) mod stanza_sender;
+mod user_account_service;
 mod util;
 pub mod xmpp_service;
 
 pub use live_xmpp_service::LiveXmppService;
 pub use stanza_sender::StanzaSender;
+pub use user_account_service::UserAccountService;

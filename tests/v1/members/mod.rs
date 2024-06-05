@@ -17,12 +17,15 @@ use rocket::{
 use service::xmpp::stanza::vcard::Nickname;
 use service::Mutation;
 use service::{xmpp_service, Query};
+use urlencoding::encode;
 
-use crate::cucumber_parameters::Array;
+use crate::cucumber_parameters::{Array, Text};
 use crate::{
     cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
 };
+
+use super::name_to_jid;
 
 async fn list_members<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
     client
@@ -49,6 +52,27 @@ async fn list_members_paged<'a>(
         .await
 }
 
+async fn enrich_members<'a>(
+    client: &'a Client,
+    token: String,
+    jids: Vec<JID>,
+) -> LocalResponse<'a> {
+    client
+        .get(format!(
+            "/v1/enrich-members?{}",
+            jids.iter()
+                .map(ToString::to_string)
+                .map(|s| encode(&s).to_string())
+                .map(|s| format!("jids={s}"))
+                .collect::<Vec<_>>()
+                .join("&")
+        ))
+        .header(Accept::JSON)
+        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .dispatch()
+        .await
+}
+
 #[given(expr = "the workspace has {int} member(s)")]
 async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
@@ -67,11 +91,6 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
         world.members.insert(jid.to_string(), (model, token));
     }
     Ok(())
-}
-
-#[given("the XMPP server is offline")]
-fn given_xmpp_server_offline(world: &mut TestWorld) {
-    world.server_ctl.lock().unwrap().online = false;
 }
 
 #[when(expr = "{} lists members")]
@@ -101,8 +120,14 @@ async fn when_getting_members_page(
 }
 
 #[when(expr = "{} gets detailed information about {array}")]
-async fn when_getting_members_details(world: &mut TestWorld, name: String, jids: Array<JIDParam>) {
-    todo!("{jids}")
+async fn when_getting_members_details(world: &mut TestWorld, name: String, names: Array<Text>) {
+    let token = world.token(name);
+    let mut jids = Vec::with_capacity(names.len());
+    for name in names.iter() {
+        jids.push(name_to_jid(world, name).await.unwrap());
+    }
+    let res = enrich_members(&world.client, token, jids).await;
+    world.result = Some(res.into());
 }
 
 #[then(expr = "they should see {int} member(s)")]
