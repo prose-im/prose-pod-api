@@ -5,9 +5,9 @@
 
 use rocket::State;
 use serde::{Deserialize, Serialize};
-use service::ServerCtl;
+use service::AuthService;
 
-use crate::guards::{BasicAuth, JWTService};
+use crate::guards::BasicAuth;
 use crate::v1::R;
 
 #[derive(Serialize, Deserialize)]
@@ -17,20 +17,10 @@ pub struct LoginResponse {
 
 /// Log user in and return an authentication token.
 #[post("/v1/login")]
-pub(super) fn login(
-    basic_auth: BasicAuth,
-    jwt_service: &State<JWTService>,
-    server_ctl: &State<ServerCtl>,
-) -> R<LoginResponse> {
-    server_ctl
-        .implem
-        .lock()
-        .expect("Serverctl lock poisonned")
-        .test_user_password(&basic_auth.jid, &basic_auth.password)?;
-
-    let token = jwt_service.generate_jwt(&basic_auth.jid)?;
-
+pub(super) fn login(basic_auth: BasicAuth, auth_service: &State<AuthService>) -> R<LoginResponse> {
+    let token = auth_service
+        .implem()
+        .log_in(&basic_auth.jid, &basic_auth.password)?;
     let response = LoginResponse { token }.into();
-
     Ok(response)
 }

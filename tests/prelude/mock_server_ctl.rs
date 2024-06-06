@@ -12,12 +12,12 @@ use linked_hash_map::LinkedHashMap;
 use service::config::Config;
 
 use std::collections::HashSet;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 pub struct MockServerCtl {
     pub(crate) online: bool,
-    pub(crate) state: Mutex<MockServerCtlState>,
+    pub(crate) state: Arc<Mutex<MockServerCtlState>>,
 }
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ pub struct MockServerCtlState {
 }
 
 impl MockServerCtl {
-    pub fn new(state: Mutex<MockServerCtlState>) -> Self {
+    pub fn new(state: Arc<Mutex<MockServerCtlState>>) -> Self {
         Self {
             online: true,
             state,
@@ -122,16 +122,5 @@ impl ServerCtlImpl for MockServerCtl {
         // NOTE: The role is stored on our side in the database,
         //   our `DummyServerCtl` has nothing to save.
         Ok(())
-    }
-
-    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
-        self.check_online()?;
-
-        let state = self.state.lock().unwrap();
-        Ok(state
-            .users
-            .get(jid)
-            .map(|user| user.password == password)
-            .expect("User must be created first"))
     }
 }

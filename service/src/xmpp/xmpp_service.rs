@@ -135,8 +135,6 @@ pub type Error = XmppServiceError;
 pub enum XmppServiceError {
     #[error("Could not send stanza: {0}")]
     StanzaSendFailure(#[from] stanza_sender::Error),
-    #[error("Unexpected stanza response")]
-    UnexpectedResponse,
     #[error("{0}")]
     Other(String),
 }

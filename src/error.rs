@@ -10,7 +10,9 @@ use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
-use service::{sea_orm, MutationError};
+#[cfg(debug_assertions)]
+use service::JWTError;
+use service::{sea_orm, AuthError, MutationError};
 use service::{server_ctl, xmpp_service};
 
 use crate::guards::NotifierError;
@@ -231,5 +233,25 @@ impl From<MutationError> for Error {
 impl From<AuthBasicError> for Error {
     fn from(value: AuthBasicError) -> Self {
         Self::BasicAuthError(value)
+    }
+}
+
+impl From<AuthError> for Error {
+    fn from(value: AuthError) -> Self {
+        match value {
+            AuthError::InvalidCredentials => Self::Unauthorized,
+            e => Self::InternalServerError {
+                reason: format!("Auth error: {e}"),
+            },
+        }
+    }
+}
+
+#[cfg(debug_assertions)]
+impl From<JWTError> for Error {
+    fn from(value: JWTError) -> Self {
+        Self::InternalServerError {
+            reason: format!("JWT error: {value}"),
+        }
     }
 }

@@ -11,10 +11,11 @@ use log::debug;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
+use service::{AuthService, JWT_JID_KEY};
 
 use crate::error::{self, Error};
 
-use super::{JWTService, LazyFromRequest, JWT_JID_KEY};
+use super::LazyFromRequest;
 
 pub struct JID(model::JID);
 
@@ -41,17 +42,17 @@ impl<'r> LazyFromRequest<'r> for JID {
             return Error::Unauthorized.into();
         };
 
-        let jwt_service =
+        let auth_service =
             try_outcome!(req
-                .guard::<&State<JWTService>>()
+                .guard::<&State<AuthService>>()
                 .await
                 .map_error(|(status, _)| (
                     status,
                     Error::InternalServerError {
-                        reason: "Could not get a `&State<JWTService>` from a request.".to_string(),
+                        reason: "Could not get a `&State<AuthService>` from a request.".to_string(),
                     }
                 )));
-        let claims: BTreeMap<String, String> = match jwt_service.verify(jwt) {
+        let claims: BTreeMap<String, String> = match auth_service.implem().verify(jwt) {
             Ok(claims) => claims,
             Err(e) => {
                 debug!("The provided JWT is invalid: {e}");

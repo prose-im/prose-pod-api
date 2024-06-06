@@ -8,8 +8,8 @@ use std::cmp::max;
 use cucumber::{given, then, when};
 use entity::{model::JID, prelude::Member};
 use migration::DbErr;
+use prose_pod_api::error::Error;
 use prose_pod_api::v1::members::Member as MemberDTO;
-use prose_pod_api::{error::Error, guards::JWTService};
 use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
@@ -88,8 +88,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
         let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
         let model = Mutation::create_user(db, jid, &None).await?;
 
-        let jwt_service: &JWTService = world.client.rocket().state().unwrap();
-        let token = jwt_service.generate_jwt(&jid)?;
+        let token = world.jwt_service().generate_jwt_(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));
     }

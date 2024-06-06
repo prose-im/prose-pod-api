@@ -87,10 +87,9 @@ impl XmppServiceImpl for LiveXmppService {
             payload: IqType::Get(Element::builder("vcard", ns::VCARD4).build()),
         };
 
-        let response = self
-            .stanza_sender
-            .send_iq(iq)?
-            .ok_or(XmppServiceError::UnexpectedResponse)?;
+        let Some(response) = self.stanza_sender.send_iq(iq)? else {
+            return Ok(None);
+        };
 
         let vcard =
             VCard::try_from(response).map_err(|e| XmppServiceError::Other(format!("{e}")))?;
@@ -141,15 +140,16 @@ impl XmppServiceImpl for LiveXmppService {
             ),
         };
 
-        let response = self
-            .stanza_sender
-            .send_iq(iq)?
-            .ok_or(XmppServiceError::UnexpectedResponse)?;
+        let Some(response) = self.stanza_sender.send_iq(iq.clone())? else {
+            return Ok(None);
+        };
 
         let PubSub::Items(items) =
             PubSub::try_from(response).map_err(|e| XmppServiceError::Other(format!("{e}")))?
         else {
-            return Err(XmppServiceError::UnexpectedResponse);
+            return Err(XmppServiceError::Other(format!(
+                "Received no pubsub item when getting avatar data.\n  stanza: {iq:?}"
+            )));
         };
 
         let avatar = items

@@ -54,12 +54,12 @@ pub trait ServerCtlImpl: Sync + Send {
         self.add_user(jid, password)
             .and_then(|_| self.set_user_role(jid, role))
     }
-
-    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error>;
 }
 
-#[derive(Debug)]
-pub enum Error {
+pub type Error = ServerCtlError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum ServerCtlError {
     IO(io::Error),
     CommandFailed(Output),
     Utf8Error(Utf8Error),

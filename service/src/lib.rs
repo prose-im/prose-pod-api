@@ -5,9 +5,11 @@
 
 pub extern crate xmpp_parsers;
 
+mod auth_service;
 mod avatar_metadata;
 pub mod config;
 pub mod dependencies;
+mod jwt_service;
 mod mutation;
 pub mod notifier;
 pub mod prosody;
@@ -15,8 +17,10 @@ mod query;
 pub mod server_ctl;
 pub mod xmpp;
 
+pub use auth_service::{AuthError, AuthService, AuthServiceImpl, LiveAuthService};
 use config::Config;
 use entity::{model::JID, server_config::Model as ServerConfig};
+pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation::*;
 pub use prosody::prosody_config_from_db;
 pub use query::*;

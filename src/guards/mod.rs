@@ -6,7 +6,6 @@
 mod basic_auth;
 mod db;
 mod jid;
-mod jwt_service;
 mod notifier;
 mod server_config;
 mod server_manager;
@@ -23,7 +22,6 @@ use std::ops::Deref;
 pub use basic_auth::*;
 pub use db::*;
 pub use jid::*;
-pub use jwt_service::*;
 pub use notifier::*;
 pub use server_config::*;
 pub use server_manager::*;

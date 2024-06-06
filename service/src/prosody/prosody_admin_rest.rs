@@ -10,7 +10,7 @@ use entity::{
     server_config,
 };
 use log::debug;
-use reqwest::{Client, RequestBuilder, Response, StatusCode};
+use reqwest::{Client, RequestBuilder, Response};
 use tokio::runtime::Handle;
 
 use crate::{config::Config, server_ctl::*};
@@ -36,22 +36,20 @@ impl ProsodyAdminRest {
         }
     }
 
-    fn call_unauthenticated<
-        Req: FnOnce(&Client) -> RequestBuilder,
-        Accept: FnOnce(&Response) -> bool,
-    >(
-        &self,
-        make_req: Req,
-        accept: Accept,
-    ) -> Result<Response, Error> {
+    fn call(&self, make_req: impl FnOnce(&Client) -> RequestBuilder) -> Result<Response, Error> {
         let client = Client::new();
-        let request = make_req(&client).build()?;
+        let request = make_req(&client)
+            .basic_auth(
+                self.api_auth_username.to_string(),
+                Some(self.api_auth_password.clone()),
+            )
+            .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
                 let response = client.execute(request).await?;
-                if accept(&response) {
+                if response.status().is_success() {
                     Ok(response)
                 } else {
                     Err(Error::Other(format!(
@@ -63,18 +61,6 @@ impl ProsodyAdminRest {
                 }
             })
         })
-    }
-
-    fn call<F: FnOnce(&Client) -> RequestBuilder>(&self, make_req: F) -> Result<Response, Error> {
-        self.call_unauthenticated(
-            |client| {
-                make_req(client).basic_auth(
-                    self.api_auth_username.to_string(),
-                    Some(self.api_auth_password.clone()),
-                )
-            },
-            |res| res.status().is_success(),
-        )
     }
 
     fn url(&self, path: &str) -> String {
@@ -134,17 +120,5 @@ impl ServerCtlImpl for ProsodyAdminRest {
                 .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
         })
         .map(|_| ())
-    }
-
-    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
-        self.call_unauthenticated(
-            |client| {
-                client
-                    .get(self.url("ping"))
-                    .basic_auth(jid.to_string(), Some(password.to_string()))
-            },
-            |res| res.status().is_success() || res.status() == StatusCode::UNAUTHORIZED,
-        )
-        .map(|res| res.status().is_success())
     }
 }

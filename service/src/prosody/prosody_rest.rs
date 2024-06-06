@@ -5,6 +5,7 @@
 
 use std::str::FromStr as _;
 
+use entity::model::JID;
 use log::debug;
 use minidom::Element;
 use reqwest::Client;
@@ -20,12 +21,16 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProsodyRest {
     rest_api_url: String,
+    api_auth_username: JID,
+    api_auth_password: String,
 }
 
 impl ProsodyRest {
     pub fn from_config(config: &Config) -> Self {
         Self {
             rest_api_url: config.server.rest_api_url(),
+            api_auth_username: config.api_jid(),
+            api_auth_password: config.api.admin_password.to_owned().unwrap(),
         }
     }
 }
@@ -36,8 +41,12 @@ impl StanzaSenderInner for ProsodyRest {
         let element: Element = iq.into();
         let request = client
             .post(self.rest_api_url.to_owned())
-            .header("Content-Type", "text/xml")
+            .header("Content-Type", "application/xmpp+xml")
             .body(String::from(&element))
+            .basic_auth(
+                self.api_auth_username.node.to_string(),
+                Some(self.api_auth_password.clone()),
+            )
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 

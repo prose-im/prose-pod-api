@@ -10,18 +10,19 @@ mod v1;
 use self::prelude::*;
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use entity::model::EmailAddress;
 use entity::{member, server_config, workspace_invitation};
 use log::debug;
+use mock_auth_service::MockAuthService;
 use mock_notifier::MockNotifier;
-use mock_server_ctl::MockServerCtl;
+use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::MockXmppService;
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
+use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -31,8 +32,8 @@ use serde::Deserialize;
 use service::config::Config;
 use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
-use service::ServerCtl;
-use service::{dependencies, Query, XmppServiceInner};
+use service::{dependencies, JWTKey, JWTService, Query, XmppServiceInner};
+use service::{AuthService, ServerCtl};
 use tokio::runtime::Handle;
 use tokio::task;
 use tracing_subscriber::{
@@ -80,6 +81,7 @@ fn test_rocket(
     config: &Config,
     server_ctl: Arc<Mutex<MockServerCtl>>,
     xmpp_service: Arc<Mutex<MockXmppService>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
     notifier: Arc<Mutex<MockNotifier>>,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
@@ -93,7 +95,7 @@ fn test_rocket(
         ServerCtl::new(server_ctl),
         XmppServiceInner::new(xmpp_service),
     )
-    .manage(JWTService::new(JWTKey::custom("test_key")))
+    .manage(AuthService::new(auth_service))
     .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
@@ -101,6 +103,7 @@ pub async fn rocket_test_client(
     config: Arc<Config>,
     server_ctl: Arc<Mutex<MockServerCtl>>,
     xmpp_service: Arc<Mutex<MockXmppService>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
     notifier: Arc<Mutex<MockNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
@@ -108,6 +111,7 @@ pub async fn rocket_test_client(
         config.as_ref(),
         server_ctl,
         xmpp_service,
+        auth_service,
         notifier,
     ))
     .await
@@ -161,6 +165,7 @@ impl From<LocalResponse<'_>> for Response {
 pub struct TestWorld {
     config: Arc<Config>,
     server_ctl: Arc<Mutex<MockServerCtl>>,
+    jwt_service: Arc<RwLock<JWTService>>,
     xmpp_service: Arc<Mutex<MockXmppService>>,
     notifier: Arc<Mutex<MockNotifier>>,
     client: Client,
@@ -222,6 +227,10 @@ impl TestWorld {
         self.server_ctl.lock().unwrap()
     }
 
+    fn jwt_service(&self) -> RwLockReadGuard<JWTService> {
+        self.jwt_service.read().unwrap()
+    }
+
     fn xmpp_service(&self) -> MutexGuard<MockXmppService> {
         self.xmpp_service.lock().unwrap()
     }
@@ -263,16 +272,25 @@ impl TestWorld {
 impl TestWorld {
     async fn new() -> Self {
         let config = Arc::new(Config::figment());
-        let server_ctl: Arc<Mutex<MockServerCtl>> = Arc::default();
+        let mock_server_ctl_state = Arc::new(Mutex::new(MockServerCtlState::default()));
+        let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
+        let server_ctl: Arc<Mutex<MockServerCtl>> = Arc::new(Mutex::new(mock_server_ctl));
         let xmpp_service: Arc<Mutex<MockXmppService>> = Arc::default();
         let notifier: Arc<Mutex<MockNotifier>> = Arc::default();
+        let jwt_service = Arc::new(RwLock::new(JWTService::new(JWTKey::custom("test_key"))));
+        let auth_service = Arc::new(RwLock::new(MockAuthService::new(
+            jwt_service.clone(),
+            mock_server_ctl_state,
+        )));
 
         Self {
             config: config.clone(),
             server_ctl: server_ctl.clone(),
             xmpp_service: xmpp_service.clone(),
+            jwt_service: jwt_service.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(config, server_ctl, xmpp_service, notifier).await,
+            client: rocket_test_client(config, server_ctl, xmpp_service, auth_service, notifier)
+                .await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),

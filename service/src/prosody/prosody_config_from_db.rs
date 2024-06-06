@@ -173,6 +173,8 @@ impl ProseDefault for ProsodyConfig {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
                             vec![
+                                "http_oauth2",
+                                "rest",
                                 "admin_rest",
                                 "init_admin",
                             ]

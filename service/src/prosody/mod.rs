@@ -5,11 +5,13 @@
 
 mod prosody_admin_rest;
 mod prosody_config_from_db;
+mod prosody_oauth2;
 mod prosody_rest;
 
 use entity::model::MemberRole;
 pub use prosody_admin_rest::ProsodyAdminRest;
 pub use prosody_config_from_db::prosody_config_from_db;
+pub use prosody_oauth2::{ProsodyOAuth2, ProsodyOAuth2Error};
 pub use prosody_rest::ProsodyRest;
 
 // ===== Mapping to Prosody =====

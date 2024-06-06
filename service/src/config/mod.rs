@@ -78,6 +78,12 @@ pub struct ConfigServer {
 }
 
 impl ConfigServer {
+    pub fn oauth2_api_url(&self) -> String {
+        format!(
+            "http://{}:{}/http_oauth2",
+            self.local_hostname, self.admin_rest_api_port
+        )
+    }
     pub fn rest_api_url(&self) -> String {
         format!(
             "http://{}:{}/rest",

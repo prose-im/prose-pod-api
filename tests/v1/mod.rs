@@ -14,7 +14,6 @@ use std::str::FromStr;
 use cucumber::given;
 use entity::model::{self, JIDNode, MemberRole, JID};
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::JWTService;
 use service::Mutation;
 
 use crate::TestWorld;
@@ -36,8 +35,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
     let model = Mutation::create_user(db, &jid, &Some(MemberRole::Admin)).await?;
 
-    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
-    let token = jwt_service.generate_jwt(&jid)?;
+    let token = world.jwt_service().generate_jwt_(&jid)?;
 
     world.members.insert(name, (model, token));
 
@@ -51,8 +49,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     let jid = name_to_jid(world, &name).await?;
     let model = Mutation::create_user(db, &jid, &Some(MemberRole::Member)).await?;
 
-    let jwt_service: &JWTService = world.client.rocket().state().unwrap();
-    let token = jwt_service.generate_jwt(&jid)?;
+    let token = world.jwt_service().generate_jwt_(&jid)?;
 
     world.members.insert(name, (model, token));
 
