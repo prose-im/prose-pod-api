@@ -2,7 +2,7 @@
 
 ## How to contribute?
 
-This project is still in its very early stage. Until it reaches release 1.0, please do not send contributions as they will probably slow us down more than anything.
+This project is still in its very early stage. Until it reaches release 1.0, please do not send contributions as they will probably slow us down more than anything. Before the 1.0 release, files will be cleaned up, moved around and refactored. Until then it will be quite messy because of very frequent substantial changes.
 
 After release 1.0, contributions will be more than welcome though!
 
