@@ -47,6 +47,15 @@ pub struct LiveAuthService {
     prosody_oauth2: ProsodyOAuth2,
 }
 
+impl LiveAuthService {
+    pub fn new(jwt_service: JWTService, prosody_oauth2: ProsodyOAuth2) -> Self {
+        Self {
+            jwt_service,
+            prosody_oauth2,
+        }
+    }
+}
+
 impl AuthServiceImpl for LiveAuthService {
     fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError> {
         let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password)? else {

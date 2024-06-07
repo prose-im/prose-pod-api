@@ -9,10 +9,10 @@ extern crate rocket;
 use prose_pod_api::custom_rocket;
 use service::config::Config;
 use service::dependencies::{Notifier, UUIDStanzaIdProvider};
-use service::prosody::{ProsodyAdminRest, ProsodyRest};
+use service::prosody::{ProsodyAdminRest, ProsodyOAuth2, ProsodyRest};
 use service::xmpp::{LiveXmppService, StanzaSender, UserAccountService};
-use service::{JWTService, ServerCtl, XmppServiceInner};
-use std::sync::{Arc, Mutex};
+use service::{AuthService, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
+use std::sync::{Arc, Mutex, RwLock};
 
 #[launch]
 fn rocket() -> _ {
@@ -37,11 +37,14 @@ fn rocket() -> _ {
         stanza_id_provider,
         user_account_service,
     })));
+    let prosody_oauth2 = ProsodyOAuth2::from_config(&config);
+    let auth_service = AuthService::new(Arc::new(RwLock::new(LiveAuthService::new(
+        jwt_service,
+        prosody_oauth2,
+    ))));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
 
-    todo!("Manage AuthService");
-
     custom_rocket(rocket::build(), config, server_ctl, xmpp_service)
-        .manage(jwt_service)
+        .manage(auth_service)
         .manage(notifier)
 }
