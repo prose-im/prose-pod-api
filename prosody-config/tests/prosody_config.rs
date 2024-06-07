@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prosody_config::*;
+use prosody_config::{utils::def, *};
 
 /// Value from <https://github.com/prose-im/prose-pod-system/blob/f2e353758e628c01c0923fc0e46491f1644354c9/server/etc/prosody/prosody.cfg.lua#L114>
 /// (with slight modifications for style consistency)
@@ -111,11 +111,23 @@ fn test_prose_default_config() {
             groups_file: Some("/etc/prosody/roster_groups.txt".into()),
             http_host: Some("prose-pod-server".to_owned()),
             http_external_url: Some("http://prose-pod-server:5280".to_owned()),
-            init_admin_jid: Some(api_jid.to_owned()),
-            init_admin_password_env_var_name: Some("PROSE_API__ADMIN_PASSWORD".to_owned()),
+            custom_settings: vec![Group::new(
+                "mod_init_admin",
+                vec![
+                    def("init_admin_jid", api_jid.to_owned()),
+                    def(
+                        "init_admin_password_env_var_name",
+                        "PROSE_API__ADMIN_PASSWORD",
+                    ),
+                ],
+            )],
             ..Default::default()
         },
         additional_sections: vec![
+            ProsodyConfigSection::VirtualHost {
+                hostname: "admin.prose.org.local".into(),
+                settings: ProsodySettings::default(),
+            },
             ProsodyConfigSection::VirtualHost {
                 hostname: "prose.org.local".into(),
                 settings: ProsodySettings::default(),

@@ -196,20 +196,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             ),
         );
 
-        push_if_some(
-            &mut res,
-            Group::flattened(
-                "mod_init_admin".into(),
-                vec![
-                    option_def(None, "init_admin_jid", self.init_admin_jid),
-                    option_def(
-                        None,
-                        "init_admin_password_env_var_name",
-                        self.init_admin_password_env_var_name,
-                    ),
-                ],
-            ),
-        );
+        res.append(self.custom_settings.clone().as_mut());
 
         res
     }

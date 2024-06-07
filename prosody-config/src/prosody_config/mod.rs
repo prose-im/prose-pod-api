@@ -11,6 +11,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 use crate::model::*;
+use crate::prosody_config_file::{Group, LuaDefinition};
 
 /// Prosody configuration.
 ///
@@ -93,10 +94,7 @@ pub struct ProsodySettings {
     pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
-    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
-    pub init_admin_jid: Option<JID>,
-    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
-    pub init_admin_password_env_var_name: Option<String>,
+    pub custom_settings: Vec<Group<LuaDefinition>>,
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.

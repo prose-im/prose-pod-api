@@ -153,6 +153,11 @@ fn test_prose_default_config() {
         additional_sections: vec![
             ProsodyConfigFileSection::VirtualHost {
                 comments: vec![],
+                hostname: "admin.prose.org.local".to_string(),
+                settings: vec![],
+            },
+            ProsodyConfigFileSection::VirtualHost {
+                comments: vec![],
                 hostname: "prose.org.local".to_string(),
                 settings: vec![],
             },
