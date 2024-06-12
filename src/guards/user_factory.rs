@@ -10,15 +10,19 @@ use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
-use service::{xmpp_service, Mutation, Query, ServerCtl};
+use service::{
+    xmpp_service, AuthService, Mutation, Query, ServerCtl, XmppServiceContext, XmppServiceInner,
+};
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest, XmppService};
+use super::jwt::JWT;
+use super::{Db, LazyFromRequest};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
-    xmpp_service: xmpp_service::XmppService,
+    auth_service: &'r State<AuthService>,
+    xmpp_service_inner: &'r State<XmppServiceInner>,
 }
 
 #[rocket::async_trait]
@@ -36,8 +40,26 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
-
-        let xmpp_service = try_outcome!(XmppService::from_request(req).await);
+        let auth_service =
+            try_outcome!(req
+                .guard::<&State<AuthService>>()
+                .await
+                .map_error(|(status, _)| (
+                    status,
+                    Error::InternalServerError {
+                        reason: "Could not get a `&State<AuthService>` from a request.".to_string(),
+                    }
+                )));
+        let xmpp_service_inner = try_outcome!(req
+            .guard::<&State<XmppServiceInner>>()
+            .await
+            .map_error(|(status, _)| (
+                status,
+                Error::InternalServerError {
+                    reason: "Could not get a `&State<XmppServiceInner>` from a request."
+                        .to_string(),
+                }
+            )));
 
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
@@ -56,7 +78,8 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 
         Outcome::Success(Self {
             server_ctl,
-            xmpp_service: xmpp_service.into(),
+            auth_service,
+            xmpp_service_inner,
         })
     }
 }
@@ -64,11 +87,13 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 impl<'r> UserFactory<'r> {
     pub(super) fn new(
         server_ctl: &'r State<ServerCtl>,
-        xmpp_service: xmpp_service::XmppService,
+        auth_service: &'r State<AuthService>,
+        xmpp_service_inner: &'r State<XmppServiceInner>,
     ) -> Self {
         Self {
             server_ctl,
-            xmpp_service,
+            auth_service,
+            xmpp_service_inner,
         }
     }
 
@@ -93,9 +118,24 @@ impl<'r> UserFactory<'r> {
         if let Some(role) = role {
             server_ctl.set_user_role(jid, &role)?;
         }
+
+        let jwt = self.auth_service.implem().log_in(jid, password)?;
+        let jwt =
+            JWT::try_from(&jwt, self.auth_service).map_err(|e| Error::InternalServerError {
+                reason: format!("The just-created JWT is invalid: {e}"),
+            })?;
+        let prosody_token = jwt.prosody_token()?;
+
+        let ctx = XmppServiceContext {
+            full_jid: jid.to_owned(),
+            prosody_token,
+        };
+        let xmpp_service =
+            xmpp_service::XmppService::new(self.xmpp_service_inner.inner().clone(), ctx);
+
         // TODO: Create the vCard using a display name instead of the nickname
-        self.xmpp_service.create_vcard(jid, nickname)?;
-        self.xmpp_service.set_nickname(jid, nickname)?;
+        xmpp_service.create_vcard(jid, nickname)?;
+        xmpp_service.set_nickname(jid, nickname)?;
 
         Ok(member)
     }

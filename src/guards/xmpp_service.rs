@@ -12,7 +12,7 @@ use service::{xmpp_service, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 
-use super::{LazyFromRequest, JID as JIDGuard};
+use super::{LazyFromRequest, JWT};
 
 pub struct XmppService(xmpp_service::XmppService);
 
@@ -45,12 +45,20 @@ impl<'r> LazyFromRequest<'r> for XmppService {
                         .to_string(),
                 }
             )));
-        let jid = try_outcome!(JIDGuard::from_request(req).await);
-        let xmpp_service_ctx = XmppServiceContext {
-            bare_jid: jid.to_owned(),
+        let jwt = try_outcome!(JWT::from_request(req).await);
+        let jid = match jwt.jid() {
+            Ok(jid) => jid,
+            Err(err) => return Outcome::Error(err.into()),
         };
-        let xmpp_service =
-            xmpp_service::XmppService::new(xmpp_service_inner.inner().clone(), xmpp_service_ctx);
+        let prosody_token = match jwt.prosody_token() {
+            Ok(prosody_token) => prosody_token,
+            Err(err) => return Outcome::Error(err.into()),
+        };
+        let ctx = XmppServiceContext {
+            full_jid: jid,
+            prosody_token,
+        };
+        let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner.inner().clone(), ctx);
 
         Outcome::Success(Self(xmpp_service))
     }

@@ -74,9 +74,8 @@ impl UserAccountService {
                 publish_options: None,
             },
         );
-        iq.from = Some(into_jid(&ctx.bare_jid));
         iq.to = Some(into_jid(jid));
-        self.stanza_sender.send_iq(iq)?;
+        self.stanza_sender.send_iq(iq, &ctx.prosody_token)?;
         Ok(())
     }
     pub fn set_avatar_image(
@@ -106,9 +105,8 @@ impl UserAccountService {
                 publish_options: None,
             },
         );
-        iq.from = Some(into_jid(&ctx.bare_jid));
         iq.to = Some(into_jid(jid));
-        self.stanza_sender.send_iq(iq)?;
+        self.stanza_sender.send_iq(iq, &ctx.prosody_token)?;
         Ok(())
     }
 }

@@ -34,7 +34,8 @@ impl Deref for XmppService {
 }
 
 pub struct XmppServiceContext {
-    pub bare_jid: JID,
+    pub full_jid: JID,
+    pub prosody_token: String,
 }
 
 #[derive(Clone)]

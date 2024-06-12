@@ -6,6 +6,7 @@
 use entity::model as db;
 use entity::server_config::Model as ServerConfig;
 use prosody_config::*;
+use utils::def;
 
 use crate::config::Config;
 use crate::ProseDefault;
@@ -86,7 +87,7 @@ impl ProseDefault for ProsodyConfig {
                 interfaces: Some(vec![Interface::AllIPv4]),
                 c2s_ports: Some(vec![5222]),
                 s2s_ports: Some(vec![5269]),
-                http_ports: Some(vec![5280]),
+                http_ports: Some(vec![app_config.server.http_port]),
                 http_interfaces: Some(vec![Interface::AllIPv4]),
                 https_ports: Some(vec![]),
                 https_interfaces: Some(vec![]),
@@ -165,7 +166,26 @@ impl ProseDefault for ProsodyConfig {
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
                     hostname: server_config.domain.to_owned(),
-                    settings: ProsodySettings::default(),
+                    settings: ProsodySettings {
+                        modules_enabled: Some(
+                            vec![
+                                "rest",
+                                "http_oauth2",
+                            ]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                        ),
+                        http_host: Some(app_config.server.local_hostname.to_owned()),
+                        custom_settings: vec![Group::new(
+                            "mod_http_oauth2",
+                            vec![def(
+                                "allowed_oauth2_grant_types",
+                                vec!["password"],
+                            )],
+                        )],
+                        ..Default::default()
+                    },
                 },
                 ProsodyConfigSection::VirtualHost {
                     hostname: "admin.prose.org.local".into(),
@@ -173,7 +193,6 @@ impl ProseDefault for ProsodyConfig {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
                             vec![
-                                "http_oauth2",
                                 "rest",
                                 "admin_rest",
                                 "init_admin",
@@ -182,12 +201,20 @@ impl ProseDefault for ProsodyConfig {
                             .map(ToString::to_string)
                             .collect(),
                         ),
-                        http_host: Some(app_config.server.local_hostname.to_owned()),
-                        http_external_url: Some(app_config.server.admin_rest_api_url()),
-                        init_admin_jid: Some(api_jid.to_owned()),
-                        init_admin_password_env_var_name: Some(
-                            "PROSE_API__ADMIN_PASSWORD".to_owned(),
-                        ),
+                        http_host: Some(app_config.server.local_hostname_admin.to_owned()),
+                        custom_settings: vec![
+                            // See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
+                            Group::new(
+                                "mod_init_admin",
+                                vec![
+                                    def("init_admin_jid", api_jid.to_owned()),
+                                    def(
+                                        "init_admin_password_env_var_name",
+                                        "PROSE_API__ADMIN_PASSWORD",
+                                    ),
+                                ],
+                            ),
+                        ],
                         ..Default::default()
                     },
                 },

@@ -71,29 +71,25 @@ impl Default for ConfigApi {
 pub struct ConfigServer {
     #[serde(default = "defaults::server_local_hostname")]
     pub local_hostname: String,
-    #[serde(default = "defaults::server_admin_rest_api_port")]
-    pub admin_rest_api_port: u16,
+    #[serde(default = "defaults::server_local_hostname_admin")]
+    pub local_hostname_admin: String,
+    #[serde(default = "defaults::server_http_port")]
+    pub http_port: u16,
     #[serde(default = "defaults::server_prosody_config_file_path")]
     pub prosody_config_file_path: PathBuf,
 }
 
 impl ConfigServer {
     pub fn oauth2_api_url(&self) -> String {
-        format!(
-            "http://{}:{}/http_oauth2",
-            self.local_hostname, self.admin_rest_api_port
-        )
+        format!("http://{}:{}/oauth2", self.local_hostname, self.http_port)
     }
     pub fn rest_api_url(&self) -> String {
-        format!(
-            "http://{}:{}/rest",
-            self.local_hostname, self.admin_rest_api_port
-        )
+        format!("http://{}:{}/rest", self.local_hostname, self.http_port)
     }
     pub fn admin_rest_api_url(&self) -> String {
         format!(
             "http://{}:{}/admin_rest",
-            self.local_hostname, self.admin_rest_api_port
+            self.local_hostname_admin, self.http_port
         )
     }
 }
@@ -102,7 +98,8 @@ impl Default for ConfigServer {
     fn default() -> Self {
         Self {
             local_hostname: defaults::server_local_hostname(),
-            admin_rest_api_port: defaults::server_admin_rest_api_port(),
+            local_hostname_admin: defaults::server_local_hostname_admin(),
+            http_port: defaults::server_http_port(),
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
         }
     }

@@ -19,7 +19,11 @@ pub fn server_local_hostname() -> String {
     "prose-pod-server".to_string()
 }
 
-pub fn server_admin_rest_api_port() -> u16 {
+pub fn server_local_hostname_admin() -> String {
+    "prose-pod-server-admin".to_string()
+}
+
+pub fn server_http_port() -> u16 {
     5280
 }
 

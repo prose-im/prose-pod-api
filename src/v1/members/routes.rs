@@ -46,26 +46,29 @@ pub(super) async fn get_members(
 }
 
 #[get("/v1/enrich-members?<jids..>")]
-pub(super) fn enrich_members<'r>(
+pub(super) fn enrich_members(
     xmpp_service: LazyGuard<XmppService>,
     jids: Strict<JIDs>,
-) -> Result<EventStream![Event + 'r], Error> {
+) -> Result<EventStream![], Error> {
     let xmpp_service = xmpp_service.inner?;
     let jids = jids.into_inner();
 
     Ok(EventStream! {
-        yield Event::data(format!("{jids}")).id("cat").event("bar");
         for jid in jids.iter() {
             trace!("Enriching `{jid}`…");
 
-            // yield Event::retry(Duration::from_secs(10));
-
             let vcard = match xmpp_service.get_vcard(jid) {
-                Ok(vcard) => vcard,
-                Err(err) => {
-                    error!("Could not get `{jid}`'s vCard: {err}");
-                    continue
+                Ok(Some(vcard)) => Some(vcard),
+                Ok(None) => {
+                    debug!("`{jid}` has no vCard.");
+                    None
                 },
+                Err(err) => {
+                    // Log error
+                    error!("Could not get `{jid}`'s vCard: {err}");
+                    // But dismiss it
+                    None
+                }
             };
             let nickname = vcard
                 .and_then(|vcard| vcard.nickname.first().cloned())
@@ -78,7 +81,9 @@ pub(super) fn enrich_members<'r>(
                     None
                 },
                 Err(err) => {
+                    // Log error
                     error!("Could not get `{jid}`'s avatar: {err}");
+                    // But dismiss it
                     None
                 },
             };
@@ -88,27 +93,10 @@ pub(super) fn enrich_members<'r>(
                 nickname,
                 avatar,
             };
-            // dbg!(&res);
-            yield Event::json(&res);
-            // yield Event::data(format!("{}", i)).id("cat").event("bar");
-            // yield Event::comment("silly boy");
+            dbg!(&res);
+            yield Event::json(&res).id(jid.to_string());
         }
     })
-
-    // let db = conn.into_inner();
-    // let page_number = page_number.unwrap_or(1);
-    // let page_size = page_size.unwrap_or(20);
-    // let until: Option<DateTime<Utc>> = match until {
-    //     Some(t) => Some(t.try_into()?),
-    //     None => None,
-    // };
-    // let (pages_metadata, members) = Query::get_members(db, page_number, page_size, until).await?;
-    // Ok(Paginated::new(
-    //     members.into_iter().map(Into::into).collect(),
-    //     page_number,
-    //     page_size,
-    //     pages_metadata,
-    // ))
 }
 
 /// Get information about one member.

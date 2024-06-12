@@ -5,7 +5,6 @@
 
 use std::str::FromStr as _;
 
-use entity::model::JID;
 use log::debug;
 use minidom::Element;
 use reqwest::Client;
@@ -21,46 +20,55 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProsodyRest {
     rest_api_url: String,
-    api_auth_username: JID,
-    api_auth_password: String,
 }
 
 impl ProsodyRest {
     pub fn from_config(config: &Config) -> Self {
         Self {
             rest_api_url: config.server.rest_api_url(),
-            api_auth_username: config.api_jid(),
-            api_auth_password: config.api.admin_password.to_owned().unwrap(),
         }
     }
 }
 
 impl StanzaSenderInner for ProsodyRest {
-    fn send_iq(&self, iq: Iq) -> Result<Option<Element>, StanzaSenderError> {
+    fn send_iq(&self, iq: Iq, token: &str) -> Result<Option<Element>, StanzaSenderError> {
         let client = Client::new();
         let element: Element = iq.into();
         let request = client
             .post(self.rest_api_url.to_owned())
             .header("Content-Type", "application/xmpp+xml")
             .body(String::from(&element))
-            .basic_auth(
-                self.api_auth_username.node.to_string(),
-                Some(self.api_auth_password.clone()),
-            )
+            .bearer_auth(token)
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
-                let response = client.execute(request).await?;
+                let (response, request_clone) = {
+                    let request_clone = request.try_clone();
+                    (client.execute(request).await?, request_clone)
+                };
                 if response.status().is_success() {
                     Ok(response)
                 } else {
-                    Err(Error::Other(format!(
+                    let mut err = format!(
                         "Prosody REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
                         response.status(),
                         response.headers().clone(),
-                        response.text().await.unwrap_or("<nil>".to_string())
+                        response.text().await.unwrap_or("<nil>".to_string()),
+                    );
+                    if let Some(request) = request_clone {
+                        err.push_str(&format!(
+                            "\n  Request headers: {:?}\n  Request body: {:?}",
+                            request.headers().clone(),
+                            request
+                                .body()
+                                .and_then(|body| body.as_bytes())
+                                .map(std::str::from_utf8),
+                        ));
+                    }
+                    Err(Error::Other(format!(
+                        "Unexpected Prosody REST API response: {err}"
                     )))
                 }
             })

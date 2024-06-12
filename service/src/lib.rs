@@ -17,7 +17,9 @@ mod query;
 pub mod server_ctl;
 pub mod xmpp;
 
-pub use auth_service::{AuthError, AuthService, AuthServiceImpl, LiveAuthService};
+pub use auth_service::{
+    AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
+};
 use config::Config;
 use entity::{model::JID, server_config::Model as ServerConfig};
 pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};

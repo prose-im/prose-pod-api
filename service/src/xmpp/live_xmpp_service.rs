@@ -32,6 +32,7 @@ impl LiveXmppService {
     pub fn load_latest_avatar_metadata(
         &self,
         from: &JID,
+        token: &str,
     ) -> Result<Option<AvatarMetadata>, XmppServiceError> {
         let metadata = self
             .stanza_sender
@@ -42,6 +43,7 @@ impl LiveXmppService {
                 )
                 .set_to(from.clone())
                 .set_max_items(1),
+                token,
             )?
             .unwrap_or_default()
             .find_first_payload::<avatar::Metadata>("metadata", xmpp_parsers::ns::AVATAR_METADATA)
@@ -81,13 +83,13 @@ impl XmppServiceImpl for LiveXmppService {
         jid: &JID,
     ) -> Result<Option<VCard>, XmppServiceError> {
         let iq = Iq {
-            from: Some(into_jid(&ctx.bare_jid)),
+            from: None,
             to: Some(into_jid(jid)),
             id: self.stanza_id_provider.new_id(),
             payload: IqType::Get(Element::builder("vcard", ns::VCARD4).build()),
         };
 
-        let Some(response) = self.stanza_sender.send_iq(iq)? else {
+        let Some(response) = self.stanza_sender.send_iq(iq, &ctx.prosody_token)? else {
             return Ok(None);
         };
 
@@ -103,9 +105,8 @@ impl XmppServiceImpl for LiveXmppService {
         vcard: &VCard,
     ) -> Result<(), XmppServiceError> {
         let mut iq = Iq::from_set(self.stanza_id_provider.new_id(), vcard.clone());
-        iq.from = Some(into_jid(&ctx.bare_jid));
         iq.to = Some(into_jid(jid));
-        self.stanza_sender.send_iq(iq)?;
+        self.stanza_sender.send_iq(iq, &ctx.prosody_token)?;
         Ok(())
     }
 
@@ -114,13 +115,14 @@ impl XmppServiceImpl for LiveXmppService {
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<AvatarData>, XmppServiceError> {
-        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid)? else {
+        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, &ctx.prosody_token)?
+        else {
             return Ok(None);
         };
         let image_id = avatar_metadata.checksum;
 
         let iq = Iq {
-            from: Some(into_jid(&ctx.bare_jid)),
+            from: None,
             to: Some(into_jid(jid)),
             id: self.stanza_id_provider.new_id(),
             payload: IqType::Get(
@@ -140,7 +142,7 @@ impl XmppServiceImpl for LiveXmppService {
             ),
         };
 
-        let Some(response) = self.stanza_sender.send_iq(iq.clone())? else {
+        let Some(response) = self.stanza_sender.send_iq(iq.clone(), &ctx.prosody_token)? else {
             return Ok(None);
         };
 

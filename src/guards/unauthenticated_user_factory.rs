@@ -9,11 +9,11 @@ use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
-use service::{Query, ServerCtl};
+use service::{AuthService, Query, ServerCtl, XmppServiceInner};
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest, UnauthenticatedXmppService, UserFactory};
+use super::{Db, LazyFromRequest, UserFactory};
 
 pub struct UnauthenticatedUserFactory<'r>(UserFactory<'r>);
 
@@ -46,8 +46,26 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedUserFactory<'r> {
                         reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
                     }
                 )));
-
-        let xmpp_service = try_outcome!(UnauthenticatedXmppService::from_request(req).await);
+        let auth_service =
+            try_outcome!(req
+                .guard::<&State<AuthService>>()
+                .await
+                .map_error(|(status, _)| (
+                    status,
+                    Error::InternalServerError {
+                        reason: "Could not get a `&State<AuthService>` from a request.".to_string(),
+                    }
+                )));
+        let xmpp_service_inner = try_outcome!(req
+            .guard::<&State<XmppServiceInner>>()
+            .await
+            .map_error(|(status, _)| (
+                status,
+                Error::InternalServerError {
+                    reason: "Could not get a `&State<XmppServiceInner>` from a request."
+                        .to_string(),
+                }
+            )));
 
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
@@ -64,6 +82,10 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedUserFactory<'r> {
             Err(err) => return Error::DbErr(err).into(),
         }
 
-        Outcome::Success(Self(UserFactory::new(server_ctl, xmpp_service.into())))
+        Outcome::Success(Self(UserFactory::new(
+            server_ctl,
+            auth_service,
+            xmpp_service_inner,
+        )))
     }
 }

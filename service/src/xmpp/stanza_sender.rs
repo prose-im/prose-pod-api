@@ -42,13 +42,14 @@ impl<T: StanzaSenderInner + 'static> From<T> for StanzaSender {
 }
 
 pub trait StanzaSenderInner: Sync + Send {
-    fn send_iq(&self, iq: Iq) -> Result<Option<Element>, StanzaSenderError>;
+    fn send_iq(&self, iq: Iq, token: &str) -> Result<Option<Element>, StanzaSenderError>;
     fn query_pubsub_node(
         &self,
         query: PubSubQuery,
+        token: &str,
     ) -> Result<Option<Vec<pubsub::Item>>, StanzaSenderError> {
         let response = self
-            .send_iq(query.build())?
+            .send_iq(query.build(), token)?
             .ok_or(StanzaSenderError::UnexpectedResponse)?;
 
         let pubsub::PubSub::Items(items) = pubsub::PubSub::try_from(response)

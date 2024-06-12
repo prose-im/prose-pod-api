@@ -26,7 +26,6 @@ tests:
   unprocessableBody:
     name: Unprocessable body
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: Invite member
         http:
           method: POST

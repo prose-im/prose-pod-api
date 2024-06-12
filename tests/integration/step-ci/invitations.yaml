@@ -31,7 +31,6 @@ tests:
   listInvitationsDefault:
     name: Default
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List invitations
         http:
           method: GET
@@ -52,7 +51,6 @@ tests:
   listInvitationsPage2:
     name: Page 2
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List invitations
         http:
           method: GET

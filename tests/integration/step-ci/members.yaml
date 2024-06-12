@@ -25,12 +25,12 @@ before:
     - $ref: "#/components/steps/add_member"
     - $ref: "#/components/steps/add_member"
     - $ref: "#/components/steps/add_member"
+    # - FIXME: Set some member's avatar and nickname and test it in the "Enrich members" route
 
 tests:
   listMembersDefault:
     name: Default
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List members
         http:
           method: GET
@@ -52,7 +52,6 @@ tests:
   listMembersPage2:
     name: Page 2
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List members
         http:
           method: GET
@@ -73,6 +72,78 @@ tests:
                 $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
             jsonpath:
               $.length: 2
+  enrichMembers:
+    name: Enrich members list
+    steps:
+      - name: List members
+        http:
+          method: GET
+          url: /v1/members
+          params:
+            page_number: 1
+            page_size: 3
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 206
+          captures:
+            # TODO: Once [stepci/stepci#226](https://github.com/stepci/stepci/issues/226) is resolved,
+            #   Remove hard-coded captures and use this one instead.
+            # allMembersJids:
+            #   jsonpath: $[*].jid
+            jid1:
+              jsonpath: $[0].jid
+            jid2:
+              jsonpath: $[1].jid
+            jid3:
+              jsonpath: $[2].jid
+      - name: Enrich members (list as individual "jids" query params)
+        sse:
+          # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
+          #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
+          url: ${{ env.host }}/v1/enrich-members?jids=${{ captures.jid1 }}&jids=${{ captures.jid2 }}&jids=${{ captures.jid3 }}
+          timeout: 2000
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            messages:
+              - id: ${{ captures.jid1 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
+              - id: ${{ captures.jid2 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
+              - id: ${{ captures.jid3 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
+      - name: Enrich members (list as individual "jids[]" query params)
+        sse:
+          # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
+          #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
+          url: ${{ env.host }}/v1/enrich-members?jids[]=${{ captures.jid1 }}&jids[]=${{ captures.jid2 }}&jids[]=${{ captures.jid3 }}
+          timeout: 2000
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            messages:
+              - id: ${{ captures.jid1 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
+              - id: ${{ captures.jid2 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
+              - id: ${{ captures.jid3 }}
+                jsonpath:
+                  $.nickname: null
+                  $.avatar: null
 
 components:
   steps:
