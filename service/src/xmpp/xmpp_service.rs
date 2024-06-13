@@ -7,6 +7,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use entity::model::JID;
+use log::debug;
 
 use crate::VCard;
 
@@ -107,6 +108,7 @@ pub trait XmppServiceImpl: Send + Sync {
         jid: &JID,
         nickname: &str,
     ) -> Result<(), XmppServiceError> {
+        debug!("Setting {jid}'s nickname to {nickname}…");
         let mut vcard = self.get_vcard(ctx, jid)?.unwrap_or_default();
         vcard.nickname = vec![Nickname {
             value: nickname.to_owned(),
