@@ -78,7 +78,9 @@ async fn given_presence(
 #[given(expr = "{}'s avatar is {}")]
 async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    world.xmpp_service().set_avatar(&jid, Some(avatar))?;
+    world
+        .xmpp_service()
+        .set_avatar(&jid, Some(avatar.into_bytes()))?;
     Ok(())
 }
 

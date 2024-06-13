@@ -68,7 +68,7 @@ impl XmppService {
     pub fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, XmppServiceError> {
         self.implem().get_avatar(&self.ctx, jid)
     }
-    pub fn set_avatar(&self, jid: &JID, png_data: String) -> Result<(), XmppServiceError> {
+    pub fn set_avatar(&self, jid: &JID, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
         self.implem().set_avatar(&self.ctx, jid, png_data)
     }
     pub fn disable_avatar(&self, jid: &JID) -> Result<(), XmppServiceError> {
@@ -125,7 +125,7 @@ pub trait XmppServiceImpl: Send + Sync {
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
-        png_data: String,
+        png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError>;
     fn disable_avatar(&self, ctx: &XmppServiceContext, jid: &JID) -> Result<(), XmppServiceError>;
 }

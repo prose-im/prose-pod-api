@@ -86,14 +86,14 @@ impl MockXmppService {
             .map(ToOwned::to_owned)
             .flatten())
     }
-    pub fn set_avatar(&self, jid: &JID, image_data: Option<String>) -> Result<(), Error> {
+    pub fn set_avatar(&self, jid: &JID, image_data: Option<Vec<u8>>) -> Result<(), Error> {
         self.check_online()?;
 
         self.state
             .lock()
             .unwrap()
             .avatars
-            .insert(jid.to_owned(), image_data.map(AvatarData::Base64));
+            .insert(jid.to_owned(), image_data.map(AvatarData::Data));
         Ok(())
     }
 }
@@ -117,7 +117,7 @@ impl XmppServiceImpl for MockXmppService {
         &self,
         _ctx: &XmppServiceContext,
         jid: &JID,
-        image_data: String,
+        image_data: Vec<u8>,
     ) -> Result<(), Error> {
         self.set_avatar(jid, Some(image_data))
     }

@@ -167,10 +167,10 @@ impl XmppServiceImpl for LiveXmppService {
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
-        png_data: String,
+        png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError> {
-        let image_data_len = png_data.as_str().len();
-        let image_data = AvatarData::Data(png_data.into_bytes());
+        let image_data_len = png_data.len();
+        let image_data = AvatarData::Data(png_data);
 
         // TODO: Allow specifying width and height
         let metadata = AvatarMetadata {
