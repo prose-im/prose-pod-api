@@ -9,6 +9,7 @@ company_name = "Prose"
 
 [debug_only]
 automatically_accept_invitations = true
+insecure_password_on_auto_accept_invitation = true
 
 [debug_only.dependency_modes]
 notifier = "logging"

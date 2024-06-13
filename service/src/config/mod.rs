@@ -164,6 +164,10 @@ pub struct ConfigNotifyEmail {
 pub struct ConfigDebugOnly {
     #[serde(default)]
     pub automatically_accept_invitations: bool,
+    /// When automatically accepting invitations during testing, one might want to authenticate
+    /// the created member. With this flag turned on, the member's password will be their JID.
+    #[serde(default)]
+    pub insecure_password_on_auto_accept_invitation: bool,
     #[serde(default)]
     pub dependency_modes: ConfigDependencyModes,
 }
