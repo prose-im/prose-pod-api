@@ -5,11 +5,15 @@
 
 use std::ops::Deref;
 
+use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
+use entity::model::JID;
 use rocket::form::Strict;
 use rocket::response::stream::{Event, EventStream};
+use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
+use serde::{Deserialize, Serialize};
 use service::Query;
 
 use super::models::*;
@@ -122,4 +126,82 @@ pub(super) fn set_member_mfa(_member_id: &str) -> String {
 #[put("/v1/members/<_member_id>/logout")]
 pub(super) fn logout_member(_member_id: &str) -> String {
     todo!()
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetMemberNicknameRequest {
+    nickname: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetMemberNicknameResponse {
+    jid: JID,
+    nickname: String,
+}
+
+/// Change a member's nickname.
+#[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
+pub(super) fn set_member_nickname(
+    member_id: JIDUriParam,
+    jid: LazyGuard<JIDGuard>,
+    xmpp_service: LazyGuard<XmppService>,
+    req: Json<SetMemberNicknameRequest>,
+) -> Result<Json<SetMemberNicknameResponse>, Error> {
+    let jid = jid.inner?;
+    let xmpp_service = xmpp_service.inner?;
+
+    if jid.deref() != member_id.deref() {
+        Err(Error::Unauthorized)?
+    }
+
+    xmpp_service.set_nickname(&jid, &req.nickname)?;
+
+    Ok(SetMemberNicknameResponse {
+        jid: jid.to_owned(),
+        nickname: req.nickname.to_owned(),
+    }
+    .into())
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetMemberAvatarRequest {
+    // Base64 encoded image
+    image: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetMemberAvatarResponse {
+    jid: JID,
+    // Base64 encoded image
+    image: String,
+}
+
+/// Change a member's avatar.
+#[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
+pub(super) fn set_member_avatar(
+    member_id: JIDUriParam,
+    jid: LazyGuard<JIDGuard>,
+    xmpp_service: LazyGuard<XmppService>,
+    req: Json<SetMemberAvatarRequest>,
+) -> Result<Json<SetMemberAvatarResponse>, Error> {
+    let jid = jid.inner?;
+    let xmpp_service = xmpp_service.inner?;
+
+    if jid.deref() != member_id.deref() {
+        Err(Error::Unauthorized)?
+    }
+
+    let image_data = general_purpose::STANDARD
+        .decode(req.image.to_owned())
+        .map_err(|err| Error::BadRequest {
+            reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
+        })?;
+
+    xmpp_service.set_avatar(&jid, image_data)?;
+
+    Ok(SetMemberAvatarResponse {
+        jid: jid.to_owned(),
+        image: req.image.to_owned(),
+    }
+    .into())
 }

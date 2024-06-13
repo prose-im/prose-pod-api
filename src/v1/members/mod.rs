@@ -19,5 +19,7 @@ pub(super) fn routes() -> Vec<Route> {
         set_member_role,
         set_member_mfa,
         logout_member,
+        set_member_nickname,
+        set_member_avatar,
     ]
 }

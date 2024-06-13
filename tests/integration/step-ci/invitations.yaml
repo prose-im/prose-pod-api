@@ -87,6 +87,9 @@ components:
           pre_assigned_role: MEMBER
           channel: email
           email_address: ${{ internet.email | fake }}
+        captures:
+          lastInvitationJid:
+            jsonpath: $.jid
         check:
           status: 201
           headers:
@@ -96,6 +99,21 @@ components:
             $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
           jsonpath:
             $.accept_token: null
+    log_last_invited_member_in:
+      name: Log last invited member in
+      http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: ${{ captures.lastInvitationJid }}
+            # NOTE: The password is the JID thanks to the `debug_only.insecure_password_on_auto_accept_invitation` config flag.
+            password: ${{ captures.lastInvitationJid }}
+        captures:
+          lastInvitedMemberToken:
+            jsonpath: $.token
+        check:
+          status: 200
   headers:
     paginated_json:
       Content-Type: application/json
