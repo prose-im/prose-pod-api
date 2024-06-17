@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::process::Output;
 use std::str::{self, Utf8Error};
 use std::sync::{Arc, Mutex};
@@ -60,7 +61,8 @@ pub type Error = ServerCtlError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCtlError {
-    IO(io::Error),
+    CannotOpenConfigFile(PathBuf, io::Error),
+    CannotWriteConfigFile(PathBuf, io::Error),
     CommandFailed(Output),
     Utf8Error(Utf8Error),
     Other(String),
@@ -69,7 +71,16 @@ pub enum ServerCtlError {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IO(err) => write!(f, "IO error: {err}"),
+            Self::CannotOpenConfigFile(path, err) => write!(
+                f,
+                "Cannot create Prosody config file at path `{}`: {err}",
+                path.display()
+            ),
+            Self::CannotWriteConfigFile(path, err) => write!(
+                f,
+                "Cannot write Prosody config file at path `{}`: {err}",
+                path.display()
+            ),
             Self::CommandFailed(output) => write!(
                 f,
                 "Command failed ({}):\nstdout: {}\nstderr: {}",
@@ -80,12 +91,6 @@ impl fmt::Display for Error {
             Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
             Self::Other(err) => write!(f, "{err}"),
         }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        Self::IO(value)
     }
 }
 
