@@ -154,7 +154,7 @@ pub(super) fn set_member_nickname(
         Err(Error::Unauthorized)?
     }
 
-    xmpp_service.set_nickname(&jid, &req.nickname)?;
+    xmpp_service.set_own_nickname(&req.nickname)?;
 
     Ok(SetMemberNicknameResponse {
         jid: jid.to_owned(),
@@ -197,7 +197,7 @@ pub(super) fn set_member_avatar(
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 
-    xmpp_service.set_avatar(&jid, image_data)?;
+    xmpp_service.set_own_avatar(image_data)?;
 
     Ok(SetMemberAvatarResponse {
         jid: jid.to_owned(),

@@ -3,76 +3,60 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::str::FromStr as _;
+
 use entity::model::JID;
 use log::debug;
-use minidom::Element;
-use xmpp_parsers::avatar;
-use xmpp_parsers::iq::{Iq, IqType};
-use xmpp_parsers::pubsub::pubsub::Items;
-use xmpp_parsers::pubsub::{self, NodeName, PubSub};
+use prose_xmpp::mods::{self, AvatarData};
+use prose_xmpp::stanza::avatar::{self, ImageId};
+use tokio::runtime::Handle;
+use xmpp_parsers::hashes::Sha1HexAttribute;
 
-use crate::avatar_metadata::AvatarMetadata;
-use crate::dependencies::StanzaIdProvider;
-use crate::{into_jid, VCard, XmppServiceError};
+use crate::config::Config;
+use crate::prosody::ProsodyRest;
+use crate::xmpp_service::VCard;
+use crate::{into_bare_jid, into_full_jid, into_jid, XmppServiceError};
 
-use super::stanza::avatar::AvatarData;
-use super::stanza::ns;
-use super::stanza_sender::StanzaSender;
-use super::user_account_service::UserAccountService;
-use super::util::{PubSubItemsExt, PubSubQuery};
+use super::xmpp_client::XMPPClient;
 use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
 
 pub struct LiveXmppService {
-    pub stanza_sender: StanzaSender,
-    pub stanza_id_provider: Box<dyn StanzaIdProvider>,
-    pub user_account_service: UserAccountService,
+    pub rest_api_url: String,
 }
 
 impl LiveXmppService {
+    pub fn from_config(config: &Config) -> Self {
+        Self {
+            rest_api_url: config.server.rest_api_url(),
+        }
+    }
+
+    async fn xmpp_client(&self, ctx: &XmppServiceContext) -> Result<XMPPClient, XmppServiceError> {
+        let rest_api_url = self.rest_api_url.clone();
+        let xmpp_client = XMPPClient::builder()
+            .set_connector_provider(ProsodyRest::provider(rest_api_url))
+            .build();
+        xmpp_client
+            .connect(&into_full_jid(&ctx.full_jid), ctx.prosody_token.clone())
+            .await
+            .map_err(XmppServiceError::from)?;
+        Ok(xmpp_client)
+    }
     pub fn load_latest_avatar_metadata(
         &self,
         from: &JID,
-        token: &str,
-    ) -> Result<Option<AvatarMetadata>, XmppServiceError> {
-        let metadata = self
-            .stanza_sender
-            .query_pubsub_node(
-                PubSubQuery::new(
-                    self.stanza_id_provider.new_id(),
-                    xmpp_parsers::ns::AVATAR_METADATA,
-                )
-                .set_to(from.clone())
-                .set_max_items(1),
-                token,
-            )?
-            .unwrap_or_default()
-            .find_first_payload::<avatar::Metadata>("metadata", xmpp_parsers::ns::AVATAR_METADATA)
-            .map_err(|e| XmppServiceError::Other(format!("{e}")))?;
-
-        let Some(mut metadata) = metadata else {
-            return Ok(None);
-        };
-
-        if metadata.infos.is_empty() {
-            return Ok(None);
-        }
-
-        let info = metadata.infos.swap_remove(0);
-
-        Ok(Some(info.into()))
-    }
-}
-
-impl From<avatar::Info> for AvatarMetadata {
-    fn from(value: avatar::Info) -> Self {
-        AvatarMetadata {
-            bytes: value.bytes as usize,
-            mime_type: value.type_,
-            checksum: value.id.to_base64().into(),
-            width: value.width,
-            height: value.height,
-            url: value.url,
-        }
+        ctx: &XmppServiceContext,
+    ) -> Result<Option<avatar::Info>, XmppServiceError> {
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let xmpp_client = self.xmpp_client(ctx).await?;
+                let profile = xmpp_client.get_mod::<mods::Profile>();
+                profile
+                    .load_latest_avatar_metadata(&into_bare_jid(from))
+                    .await
+                    .map_err(Into::into)
+            })
+        })
     }
 }
 
@@ -82,32 +66,32 @@ impl XmppServiceImpl for LiveXmppService {
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<VCard>, XmppServiceError> {
-        let iq = Iq {
-            from: None,
-            to: Some(into_jid(jid)),
-            id: self.stanza_id_provider.new_id(),
-            payload: IqType::Get(Element::builder("vcard", ns::VCARD4).build()),
-        };
-
-        let Some(response) = self.stanza_sender.send_iq(iq, &ctx.prosody_token)? else {
-            return Ok(None);
-        };
-
-        let vcard =
-            VCard::try_from(response).map_err(|e| XmppServiceError::Other(format!("{e}")))?;
-
-        Ok(Some(vcard))
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let xmpp_client = self.xmpp_client(ctx).await?;
+                let profile = xmpp_client.get_mod::<mods::Profile>();
+                profile
+                    .load_vcard(into_bare_jid(jid))
+                    .await
+                    .map_err(Into::into)
+            })
+        })
     }
-    fn set_vcard(
+    fn set_own_vcard(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
         vcard: &VCard,
     ) -> Result<(), XmppServiceError> {
-        let mut iq = Iq::from_set(self.stanza_id_provider.new_id(), vcard.clone());
-        iq.to = Some(into_jid(jid));
-        self.stanza_sender.send_iq(iq, &ctx.prosody_token)?;
-        Ok(())
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let xmpp_client = self.xmpp_client(ctx).await?;
+                let profile = xmpp_client.get_mod::<mods::Profile>();
+                profile
+                    .set_vcard(vcard.to_owned())
+                    .await
+                    .map_err(Into::into)
+            })
+        })
     }
 
     fn get_avatar(
@@ -115,99 +99,68 @@ impl XmppServiceImpl for LiveXmppService {
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<AvatarData>, XmppServiceError> {
-        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, &ctx.prosody_token)?
-        else {
+        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx)? else {
             return Ok(None);
         };
-        let image_id = avatar_metadata.checksum;
+        let image_id = avatar_metadata.id;
 
-        let iq = Iq {
-            from: None,
-            to: Some(into_jid(jid)),
-            id: self.stanza_id_provider.new_id(),
-            payload: IqType::Get(
-                PubSub::Items(Items {
-                    max_items: Some(1),
-                    node: NodeName(ns::AVATAR_DATA.to_string()),
-                    subid: None,
-                    items: vec![
-                        pubsub::pubsub::Item(xmpp_parsers::pubsub::Item {
-                            id: Some(pubsub::ItemId(image_id.to_string())),
-                            publisher: None,
-                            payload: None,
-                        }),
-                    ],
-                })
-                .into(),
-            ),
-        };
-
-        let Some(response) = self.stanza_sender.send_iq(iq.clone(), &ctx.prosody_token)? else {
-            return Ok(None);
-        };
-
-        let PubSub::Items(items) =
-            PubSub::try_from(response).map_err(|e| XmppServiceError::Other(format!("{e}")))?
-        else {
-            return Err(XmppServiceError::Other(format!(
-                "Received no pubsub item when getting avatar data.\n  stanza: {iq:?}"
-            )));
-        };
-
-        let avatar = items
-            .items
-            .first()
-            .and_then(|item| item.payload.to_owned())
-            .map(|payload| AvatarData::Base64(payload.text()));
-
-        Ok(avatar)
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let xmpp_client = self.xmpp_client(ctx).await?;
+                let profile = xmpp_client.get_mod::<mods::Profile>();
+                profile
+                    .load_avatar_image(
+                        into_jid(jid),
+                        &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
+                    )
+                    .await
+                    .map_err(Into::into)
+            })
+        })
     }
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
-    fn set_avatar(
+    fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
         png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError> {
-        let image_data_len = png_data.len();
-        let image_data = AvatarData::Data(png_data);
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                let xmpp_client = self.xmpp_client(ctx).await?;
+                let profile = xmpp_client.get_mod::<mods::Profile>();
 
-        // TODO: Allow specifying width and height
-        let metadata = AvatarMetadata {
-            bytes: image_data_len,
-            mime_type: "image/png".to_string(),
-            checksum: image_data
-                .generate_sha1_checksum()
-                .map_err(|err| {
-                    XmppServiceError::Other(format!("Could not generate avatar checksum: {err}"))
-                })?
-                .as_ref()
-                .into(),
-            width: None,
-            height: None,
-            url: None,
-        };
+                let image_data_len = png_data.len();
+                let image_data = AvatarData::Data(png_data);
+                let checksum: ImageId = image_data
+                    .generate_sha1_checksum()
+                    .map_err(|err| {
+                        XmppServiceError::Other(format!(
+                            "Could not generate avatar checksum: {err}"
+                        ))
+                    })?
+                    .as_ref()
+                    .into();
 
-        debug!("Uploading avatar…");
-        self.user_account_service
-            .set_avatar_image(
-                ctx,
-                jid,
-                &metadata.checksum,
-                image_data.base64().to_string(),
-            )
-            .map_err(|err| XmppServiceError::Other(format!("Could not upload avatar: {err}")))?;
+                debug!("Uploading avatar…");
+                profile
+                    .set_avatar_image(&checksum, image_data.base64())
+                    .await
+                    .map_err(|err| {
+                        XmppServiceError::Other(format!("Could not upload avatar: {err}"))
+                    })?;
 
-        debug!("Uploading avatar metadata…");
-        self.user_account_service
-            .set_avatar_metadata(ctx, jid, &metadata)
-            .map_err(|err| {
-                XmppServiceError::Other(format!("Could not upload avatar metadata: {err}"))
-            })?;
+                debug!("Uploading avatar metadata…");
+                profile
+                    // TODO: Allow specifying width and height
+                    // TODO: Support other MIME types
+                    .set_avatar_metadata(image_data_len, &checksum, "image/png", None, None)
+                    .await
+                    .map_err(|err| {
+                        XmppServiceError::Other(format!("Could not upload avatar metadata: {err}"))
+                    })?;
 
-        Ok(())
-    }
-    fn disable_avatar(&self, ctx: &XmppServiceContext, jid: &JID) -> Result<(), XmppServiceError> {
-        todo!()
+                Ok(())
+            })
+        })
     }
 }

@@ -6,9 +6,9 @@
 use ::entity::model::JID;
 use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
-use service::{xmpp::stanza::avatar::AvatarData, VCard, XmppServiceContext};
+use service::{prose_xmpp::mods::AvatarData, xmpp_service::VCard, XmppServiceContext};
 
-use std::sync::Mutex;
+use std::{fmt::Debug, sync::Mutex};
 
 #[derive(Debug)]
 pub struct MockXmppService {
@@ -83,7 +83,7 @@ impl MockXmppService {
             .unwrap()
             .avatars
             .get(jid)
-            .map(ToOwned::to_owned)
+            .cloned()
             .flatten())
     }
     pub fn set_avatar(&self, jid: &JID, image_data: Option<Vec<u8>>) -> Result<(), Error> {
@@ -102,8 +102,8 @@ impl XmppServiceImpl for MockXmppService {
     fn get_vcard(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<Option<VCard>, Error> {
         self.get_vcard(jid)
     }
-    fn set_vcard(&self, _ctx: &XmppServiceContext, jid: &JID, vcard: &VCard) -> Result<(), Error> {
-        self.set_vcard(jid, vcard)
+    fn set_own_vcard(&self, ctx: &XmppServiceContext, vcard: &VCard) -> Result<(), Error> {
+        self.set_vcard(&ctx.full_jid, vcard)
     }
 
     fn get_avatar(
@@ -113,15 +113,7 @@ impl XmppServiceImpl for MockXmppService {
     ) -> Result<Option<AvatarData>, Error> {
         self.get_avatar(jid)
     }
-    fn set_avatar(
-        &self,
-        _ctx: &XmppServiceContext,
-        jid: &JID,
-        image_data: Vec<u8>,
-    ) -> Result<(), Error> {
-        self.set_avatar(jid, Some(image_data))
-    }
-    fn disable_avatar(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<(), Error> {
-        self.set_avatar(jid, None)
+    fn set_own_avatar(&self, ctx: &XmppServiceContext, image_data: Vec<u8>) -> Result<(), Error> {
+        self.set_avatar(&ctx.full_jid, Some(image_data))
     }
 }

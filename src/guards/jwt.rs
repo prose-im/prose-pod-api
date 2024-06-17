@@ -10,6 +10,7 @@ use log::debug;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
+use secrecy::Secret;
 use service::{AuthService, JWT_JID_KEY, JWT_PROSODY_TOKEN_KEY};
 
 use crate::error::{self, Error};
@@ -76,11 +77,11 @@ impl JWT {
             Error::Unauthorized
         })
     }
-    pub fn prosody_token(&self) -> Result<String, <Self as LazyFromRequest>::Error> {
+    pub fn prosody_token(&self) -> Result<Secret<String>, <Self as LazyFromRequest>::Error> {
         let Some(token) = self.claims.get(JWT_PROSODY_TOKEN_KEY) else {
             debug!("The provided JWT does not contain a '{JWT_PROSODY_TOKEN_KEY}' claim");
             Err(Error::Unauthorized)?
         };
-        Ok(token.to_owned())
+        Ok(token.to_owned().into())
     }
 }

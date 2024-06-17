@@ -14,8 +14,7 @@ use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
 };
-use service::xmpp::stanza::vcard::Nickname;
-use service::Mutation;
+use service::{prose_xmpp::stanza::vcard::Nickname, Mutation};
 use service::{xmpp_service, Query};
 use urlencoding::encode;
 

@@ -8,9 +8,9 @@ extern crate rocket;
 
 use prose_pod_api::custom_rocket;
 use service::config::Config;
-use service::dependencies::{Notifier, UUIDStanzaIdProvider};
-use service::prosody::{ProsodyAdminRest, ProsodyOAuth2, ProsodyRest};
-use service::xmpp::{LiveXmppService, StanzaSender, UserAccountService};
+use service::dependencies::Notifier;
+use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
+use service::xmpp::LiveXmppService;
 use service::{AuthService, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -26,17 +26,8 @@ fn rocket() -> _ {
         Err(err) => panic!("{err}"),
     };
     let server_ctl = ServerCtl::new(Arc::new(Mutex::new(ProsodyAdminRest::from_config(&config))));
-    let stanza_sender = StanzaSender::from(ProsodyRest::from_config(&config));
-    let stanza_id_provider = Box::new(UUIDStanzaIdProvider);
-    let user_account_service = UserAccountService {
-        stanza_sender: stanza_sender.clone(),
-        stanza_id_provider: stanza_id_provider.clone(),
-    };
-    let xmpp_service = XmppServiceInner::new(Arc::new(Mutex::new(LiveXmppService {
-        stanza_sender,
-        stanza_id_provider,
-        user_account_service,
-    })));
+    let xmpp_service =
+        XmppServiceInner::new(Arc::new(Mutex::new(LiveXmppService::from_config(&config))));
     let prosody_oauth2 = ProsodyOAuth2::from_config(&config);
     let auth_service = AuthService::new(Arc::new(RwLock::new(LiveAuthService::new(
         jwt_service,

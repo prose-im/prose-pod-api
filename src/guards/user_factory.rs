@@ -134,8 +134,8 @@ impl<'r> UserFactory<'r> {
             xmpp_service::XmppService::new(self.xmpp_service_inner.inner().clone(), ctx);
 
         // TODO: Create the vCard using a display name instead of the nickname
-        xmpp_service.create_vcard(jid, nickname)?;
-        xmpp_service.set_nickname(jid, nickname)?;
+        xmpp_service.create_own_vcard(nickname)?;
+        // xmpp_service.set_own_nickname(nickname)?;
 
         Ok(member)
     }
