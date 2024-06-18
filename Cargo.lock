@@ -3839,6 +3839,7 @@ dependencies = [
  "figment",
  "form_urlencoded",
  "hmac",
+ "indexmap 2.2.6",
  "insta",
  "jwt",
  "lettre",

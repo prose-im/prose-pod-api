@@ -21,6 +21,7 @@ ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
 
 clean-prosody() {
   rm -rf "${PROSE_POD_SYSTEM_DIR:?}"/server/pod/var/lib/prosody/*%2e*;
+  rm -rf "${PROSE_POD_SYSTEM_DIR:?}"/server/pod/etc/prosody/roster_groups.txt;
 }
 start() {
   START_TIME=$(date +%s);

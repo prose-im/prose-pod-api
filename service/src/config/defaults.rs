@@ -31,6 +31,10 @@ pub fn server_prosody_config_file_path() -> PathBuf {
     PathBuf::from("/etc/prosody/prosody.cfg.lua")
 }
 
+pub fn server_prosody_groups_file_path() -> PathBuf {
+    PathBuf::from("/etc/prosody/roster_groups.txt")
+}
+
 pub fn branding_page_title() -> String {
     "Prose Pod API".to_string()
 }
