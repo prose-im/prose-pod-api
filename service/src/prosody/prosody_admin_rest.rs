@@ -92,6 +92,10 @@ impl ProsodyAdminRest {
         Ok(buf.lines().skip(1).map(ToOwned::to_owned).collect())
     }
 
+    fn create_groups_file(&self) -> Result<(), Error> {
+        self.update_team_members(|_| {})
+    }
+
     fn update_team_members<R>(
         &self,
         update: impl FnOnce(&mut IndexSet<String>) -> R,
@@ -142,6 +146,11 @@ impl ServerCtlImpl for ProsodyAdminRest {
         let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
         file.write_all(prosody_config.to_string().as_bytes())
             .map_err(|e| Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
+
+        if prosody_config.all_enabled_modules().contains("groups") {
+            self.create_groups_file()?;
+        }
+
         Ok(())
     }
     fn reload(&self) -> Result<(), Error> {

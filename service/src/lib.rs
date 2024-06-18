@@ -30,7 +30,7 @@ pub use server_ctl::ServerCtl;
 use uuid::Uuid;
 pub use xmpp::xmpp_service::{self, *};
 
-pub use prosody_config::{ProsodyConfigFile, ProsodyConfigFileSection};
+pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;
 
 trait ProseDefault {

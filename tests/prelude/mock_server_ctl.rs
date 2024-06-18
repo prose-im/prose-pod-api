@@ -5,11 +5,12 @@
 
 use ::entity::model::JID;
 use ::service::server_ctl::{Error, ServerCtlImpl};
-use ::service::{prosody_config_from_db, ProsodyConfigFile, ProsodyConfigFileSection};
+use ::service::{prosody_config_from_db, ProsodyConfigSection};
 use entity::model::MemberRole;
 use entity::server_config;
 use linked_hash_map::LinkedHashMap;
 use service::config::Config;
+use service::prosody::ProsodyConfig;
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -29,7 +30,7 @@ pub struct UserAccount {
 #[derive(Debug, Default)]
 pub struct MockServerCtlState {
     pub conf_reload_count: usize,
-    pub applied_config: Option<ProsodyConfigFile>,
+    pub applied_config: Option<ProsodyConfig>,
     pub users: LinkedHashMap<JID, UserAccount>,
     pub online: HashSet<JID>,
 }
@@ -90,9 +91,7 @@ impl ServerCtlImpl for MockServerCtl {
                 .additional_sections
                 .iter()
                 .any(|section| match section {
-                    ProsodyConfigFileSection::VirtualHost { hostname, .. } => {
-                        hostname == &jid.domain
-                    }
+                    ProsodyConfigSection::VirtualHost { hostname, .. } => hostname == &jid.domain,
                     _ => false,
                 })
         });
