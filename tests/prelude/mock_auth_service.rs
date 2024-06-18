@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use ::entity::model::JID;
-use service::{AuthError, AuthServiceImpl, JWTError, JWTService};
+use service::{AuthError, AuthServiceImpl, JWTError, JWTService, JWT_PROSODY_TOKEN_KEY};
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -37,6 +37,18 @@ impl MockAuthService {
             Err(AuthError::Other("XMPP server offline".to_owned()))?
         }
     }
+
+    pub fn log_in_unchecked(&self, jid: &JID) -> Result<String, AuthError> {
+        let token = self
+            .jwt_service
+            .read()
+            .unwrap()
+            .generate_jwt(jid, |claims| {
+                claims.insert(JWT_PROSODY_TOKEN_KEY, "dummy-prosody-token".to_owned());
+            })?;
+
+        Ok(token)
+    }
 }
 
 impl AuthServiceImpl for MockAuthService {
@@ -54,9 +66,7 @@ impl AuthServiceImpl for MockAuthService {
             Err(AuthError::InvalidCredentials)?
         }
 
-        let token = self.jwt_service.read().unwrap().generate_jwt_(jid)?;
-
-        Ok(token)
+        self.log_in_unchecked(jid)
     }
     fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {
         self.jwt_service.read().unwrap().verify(jwt)

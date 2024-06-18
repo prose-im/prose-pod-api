@@ -89,11 +89,10 @@ impl MockXmppService {
     pub fn set_avatar(&self, jid: &JID, image_data: Option<Vec<u8>>) -> Result<(), Error> {
         self.check_online()?;
 
-        self.state
-            .lock()
-            .unwrap()
-            .avatars
-            .insert(jid.to_owned(), image_data.map(AvatarData::Data));
+        self.state.lock().unwrap().avatars.insert(
+            jid.to_owned(),
+            image_data.map(|d| AvatarData::Base64(String::from_utf8(d).unwrap())),
+        );
         Ok(())
     }
 }

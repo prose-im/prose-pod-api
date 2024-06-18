@@ -97,8 +97,7 @@ pub(super) fn enrich_members(
                 nickname,
                 avatar,
             };
-            dbg!(&res);
-            yield Event::json(&res).id(jid.to_string());
+            yield Event::json(&res).id(jid.to_string()).event("member");
         }
     })
 }

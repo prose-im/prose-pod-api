@@ -14,8 +14,7 @@ use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
 };
-use service::{prose_xmpp::stanza::vcard::Nickname, Mutation};
-use service::{xmpp_service, Query};
+use service::{prose_xmpp::stanza::vcard::Nickname, xmpp_service, Mutation, Query};
 use urlencoding::encode;
 
 use crate::cucumber_parameters::{Array, Text};
@@ -86,8 +85,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
         let db = world.db();
         let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
         let model = Mutation::create_user(db, jid, &None).await?;
-
-        let token = world.jwt_service().generate_jwt_(&jid)?;
+        let token = world.auth_service().log_in_unchecked(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));
     }

@@ -27,7 +27,7 @@ impl JWTService {
         Ok(Self { jwt_key })
     }
 
-    pub(crate) fn generate_jwt(
+    pub fn generate_jwt(
         &self,
         jid: &JID,
         add_claims: impl FnOnce(&mut BTreeMap<&str, String>) -> (),
@@ -38,12 +38,6 @@ impl JWTService {
         claims.insert(JWT_JID_KEY, jid.to_string());
         add_claims(&mut claims);
         claims.sign_with_key(&jwt_key).map_err(JWTError::Sign)
-    }
-
-    /// WARN: Use only in tests!
-    #[cfg(debug_assertions)]
-    pub fn generate_jwt_(&self, jid: &JID) -> Result<String, JWTError> {
-        self.generate_jwt(jid, |_| {})
     }
 
     pub fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {

@@ -56,14 +56,30 @@ async fn main() {
             format::DefaultFields::new(),
             Format::default(),
             |fmt_layer| {
+                let mut targets = vec![
+                    ("rocket", LevelFilter::ERROR),
+                    ("sea_orm_migration", LevelFilter::WARN),
+                    ("rocket::server", LevelFilter::WARN),
+                ];
+
+                let running_few_scenarios = std::env::args()
+                    .collect::<Vec<_>>()
+                    .contains(&"--tags".to_owned());
+                if running_few_scenarios {
+                    targets.append(&mut vec![
+                        ("prose_pod_api", LevelFilter::TRACE),
+                        ("service", LevelFilter::TRACE),
+                    ]);
+                } else {
+                    targets.append(&mut vec![
+                        ("prose_pod_api", LevelFilter::WARN),
+                        ("service", LevelFilter::WARN),
+                    ]);
+                }
+
                 tracing_subscriber::registry().with(
                     filter::Targets::new()
-                        .with_targets(vec![
-                            ("rocket", LevelFilter::ERROR),
-                            ("sea_orm_migration", LevelFilter::WARN),
-                            ("rocket::server", LevelFilter::WARN),
-                            ("prose_pod_api", LevelFilter::WARN),
-                        ])
+                        .with_targets(targets)
                         .and_then(fmt_layer),
                 )
             },
@@ -165,7 +181,7 @@ impl From<LocalResponse<'_>> for Response {
 pub struct TestWorld {
     config: Arc<Config>,
     server_ctl: Arc<Mutex<MockServerCtl>>,
-    jwt_service: Arc<RwLock<JWTService>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
     xmpp_service: Arc<Mutex<MockXmppService>>,
     notifier: Arc<Mutex<MockNotifier>>,
     client: Client,
@@ -227,8 +243,8 @@ impl TestWorld {
         self.server_ctl.lock().unwrap()
     }
 
-    fn jwt_service(&self) -> RwLockReadGuard<JWTService> {
-        self.jwt_service.read().unwrap()
+    fn auth_service(&self) -> RwLockReadGuard<MockAuthService> {
+        self.auth_service.read().unwrap()
     }
 
     fn xmpp_service(&self) -> MutexGuard<MockXmppService> {
@@ -287,7 +303,7 @@ impl TestWorld {
             config: config.clone(),
             server_ctl: server_ctl.clone(),
             xmpp_service: xmpp_service.clone(),
-            jwt_service: jwt_service.clone(),
+            auth_service: auth_service.clone(),
             notifier: notifier.clone(),
             client: rocket_test_client(config, server_ctl, xmpp_service, auth_service, notifier)
                 .await,
@@ -375,8 +391,11 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
         .split("\n\n")
         .map(ToString::to_string)
         .collect::<Vec<String>>();
-    // Unescape double quotes
-    let expected = value.replace(r#"\""#, r#"""#);
+    let expected = value
+        // Unescape double quotes
+        .replace(r#"\""#, r#"""#)
+        // Unescape newlines
+        .replace("\\n", "\n");
     assert!(
         events.contains(&expected),
         "events: {events:?}\nexpected: {expected:?}"

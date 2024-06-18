@@ -35,7 +35,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
     let model = Mutation::create_user(db, &jid, &Some(MemberRole::Admin)).await?;
 
-    let token = world.jwt_service().generate_jwt_(&jid)?;
+    let token = world.auth_service().log_in_unchecked(&jid)?;
 
     world.members.insert(name, (model, token));
 
@@ -49,7 +49,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     let jid = name_to_jid(world, &name).await?;
     let model = Mutation::create_user(db, &jid, &Some(MemberRole::Member)).await?;
 
-    let token = world.jwt_service().generate_jwt_(&jid)?;
+    let token = world.auth_service().log_in_unchecked(&jid)?;
 
     world.members.insert(name, (model, token));
 
