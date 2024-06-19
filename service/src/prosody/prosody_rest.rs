@@ -107,10 +107,11 @@ impl ConnectionTrait for Connection {
         };
 
         let client = HTTPClient::new();
+        let request_body = String::from(&stanza);
         let request = client
             .post(self.rest_api_url.to_owned())
             .header("Content-Type", "application/xmpp+xml")
-            .body(String::from(&stanza))
+            .body(request_body)
             .bearer_auth(token.expose_secret())
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
@@ -140,14 +141,13 @@ impl ConnectionTrait for Connection {
                     }
                     return Err(anyhow!("Unexpected Prosody REST API response: {err}"));
                 }
-                let body = response.text().await?;
-                let xml = format!(r#"<wrapper xmlns="jabber:client">{}</wrapper>"#, body);
+                let response_body = response.text().await?;
+                let xml = format!(r#"<wrapper xmlns="jabber:client">{response_body}</wrapper>"#);
                 let wrapper = xml.parse::<Element>()?;
                 let stanza = wrapper
                     .get_child("iq", "jabber:client")
                     .expect(&format!(
-                        "Prosody response is not an `iq` stanza (`{}`).",
-                        body
+                        "Prosody response is not an `iq` stanza (`{response_body}`).",
                     ))
                     .to_owned();
                 self.receive_stanza(stanza).await;
