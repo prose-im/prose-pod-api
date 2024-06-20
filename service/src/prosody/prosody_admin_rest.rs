@@ -3,31 +3,29 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    fs::File,
-    io::{Read, Write as _},
-    path::PathBuf,
-};
+use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
 use entity::{
     model::{MemberRole, JID},
     server_config,
 };
-use indexmap::IndexSet;
 use log::debug;
-use reqwest::{Client, RequestBuilder, Response};
+use reqwest::{header::HeaderMap, Client, Method, RequestBuilder, Response, StatusCode};
 use tokio::runtime::Handle;
 
 use crate::{config::Config, server_ctl::*};
 
 use super::{prosody_config_from_db, AsProsody as _};
 
+const TEAM_GROUP_ID: &'static str = "team";
+const TEAM_GROUP_NAME: &'static str = "Team";
+
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
 #[derive(Debug)]
 pub struct ProsodyAdminRest {
     config_file_path: PathBuf,
-    groups_file_path: PathBuf,
     admin_rest_api_url: String,
+    admin_rest_api_on_main_host_url: String,
     api_auth_username: JID,
     api_auth_password: String,
 }
@@ -36,14 +34,32 @@ impl ProsodyAdminRest {
     pub fn from_config(config: &Config) -> Self {
         Self {
             config_file_path: config.server.prosody_config_file_path.to_owned(),
-            groups_file_path: config.server.prosody_groups_file_path.to_owned(),
             admin_rest_api_url: config.server.admin_rest_api_url(),
+            admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
             api_auth_username: config.api_jid(),
             api_auth_password: config.api.admin_password.to_owned().unwrap(),
         }
     }
 
     fn call(&self, make_req: impl FnOnce(&Client) -> RequestBuilder) -> Result<Response, Error> {
+        self.call_(make_req, |response| async {
+            if response.status().is_success() {
+                Ok(response)
+            } else {
+                Err(ResponseData {
+                    status: response.status(),
+                    headers: response.headers().clone(),
+                    body: response.text().await.unwrap_or("<nil>".into()),
+                })
+            }
+        })
+    }
+
+    fn call_<T, F: Future<Output = Result<T, ResponseData>>>(
+        &self,
+        make_req: impl FnOnce(&Client) -> RequestBuilder,
+        map_res: impl FnOnce(Response) -> F,
+    ) -> Result<T, Error> {
         let client = Client::new();
         let request = make_req(&client)
             .basic_auth(
@@ -55,16 +71,39 @@ impl ProsodyAdminRest {
 
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
-                let response = client.execute(request).await?;
-                if response.status().is_success() {
-                    Ok(response)
-                } else {
-                    Err(Error::Other(format!(
-                        "Prosody Admin REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
-                        response.status(),
-                        response.headers().clone(),
-                        response.text().await.unwrap_or("<nil>".to_string())
-                    )))
+                let (response, request_clone) = {
+                    let request_clone = request.try_clone();
+                    (
+                        client.execute(request).await.map_err(|err| {
+                            Error::Other(format!("Prosody Admin REST API call failed: {err}"))
+                        })?,
+                        request_clone,
+                    )
+                };
+                match map_res(response).await {
+                    Ok(res) => Ok(res),
+                    Err(response) => {
+                        let mut err = "Prosody Admin REST API call failed.".to_owned();
+                        if let Some(request) = request_clone {
+                            err.push_str(&format!(
+                                "\n  Request: {} {}\n  Request headers: {:?}\n  Request body: {:?}",
+                                request.method(),
+                                request.url().to_string(),
+                                request.headers().clone(),
+                                request
+                                    .body()
+                                    .and_then(|body| body.as_bytes())
+                                    .map(std::str::from_utf8),
+                            ));
+                        }
+                        err.push_str(&format!(
+                            "\n  Response status: {}\n  Response headers: {:?}\n  Response body: {}",
+                            response.status,
+                            response.headers,
+                            response.body,
+                        ));
+                        Err(Error::Other(err))
+                    }
                 }
             })
         })
@@ -73,66 +112,71 @@ impl ProsodyAdminRest {
     fn url(&self, path: &str) -> String {
         format!("{}/{path}", self.admin_rest_api_url)
     }
-
-    /// Reads Prosody's [`mod_groups`](https://prosody.im/doc/modules/mod_groups) confguration file
-    /// and returns the list of JIDs defined in the `[Team]` section.
-    /// If the file does not exist, this method returns an empty list.
-    fn team_members(&self) -> Result<IndexSet<String>, Error> {
-        let mut file = match File::open(&self.groups_file_path) {
-            Ok(f) => f,
-            Err(_) => return Ok(IndexSet::new()),
-        };
-        let mut buf = String::new();
-        file.read_to_string(&mut buf).map_err(|e| {
-            Error::Other(format!(
-                "Cannot read `mod_groups` config file at `{}`: {e}",
-                self.groups_file_path.display()
-            ))
-        })?;
-        Ok(buf.lines().skip(1).map(ToOwned::to_owned).collect())
+    fn url_on_main_host(&self, path: &str) -> String {
+        format!("{}/{path}", self.admin_rest_api_on_main_host_url)
     }
 
-    fn create_groups_file(&self) -> Result<(), Error> {
-        self.update_team_members(|_| {})
-    }
-
-    fn update_team_members<R>(
-        &self,
-        update: impl FnOnce(&mut IndexSet<String>) -> R,
-    ) -> Result<(), Error> {
-        // Parse the current file and update the list
-        let mut team_members = self.team_members()?;
-        update(&mut team_members);
-
-        // Try to create the file
-        let mut file = File::create(&self.groups_file_path).map_err(|e| {
-            Error::Other(format!(
-                "Cannot create `mod_groups` config file at `{}`: {e}",
-                self.groups_file_path.display()
-            ))
-        })?;
-
-        // Serialize the new file
-        let mut file_contents = Vec::with_capacity(team_members.iter().map(String::len).sum());
-        writeln!(&mut file_contents, "[Team]").unwrap();
-        for jid in team_members {
-            writeln!(&mut file_contents, "{jid}").map_err(|e| {
-                Error::Other(format!(
-                    "Cannot serialize `mod_groups` config file (jid='{jid}'): {e}"
+    fn create_team_group(&self) -> Result<(), Error> {
+        self.call(|client| {
+            client
+                .put(format!(
+                    "{}/{TEAM_GROUP_ID}",
+                    self.url_on_main_host("groups")
                 ))
-            })?;
-        }
-
-        // Write the file contents
-        file.write_all(&file_contents).map_err(|e| {
-            Error::Other(format!(
-                "Cannot write `mod_groups` config file at `{}`: {e}",
-                self.groups_file_path.display()
-            ))
+                .body(format!(r#"{{"name":"{TEAM_GROUP_NAME}"}}"#))
         })?;
-
         Ok(())
     }
+
+    fn update_team_members(&self, method: Method, jid: &JID) -> Result<(), Error> {
+        let add_member = |client: &Client| {
+            client.request(
+                method,
+                format!(
+                    "{}/{TEAM_GROUP_ID}/members/{}",
+                    self.url_on_main_host("groups"),
+                    urlencoding::encode(&jid.node.to_string())
+                ),
+            )
+        };
+        let map_res = |response: Response| async {
+            let status = response.status();
+            let headers = response.headers().clone();
+            let body = response.text().await.unwrap_or("<nil>".into());
+            if status.is_success() {
+                Ok(Ok(()))
+            } else if body.as_str() == r#"{"result":"group-not-found"}"# {
+                Ok(Err(AddMemberFailed::GroupNotFound))
+            } else {
+                Err(ResponseData {
+                    status,
+                    headers,
+                    body,
+                })
+            }
+        };
+
+        // Try to add the member
+        match self.call_(add_member.clone(), map_res)? {
+            Ok(_) => Ok(()),
+            // If group wasn't found, try to create it and add the member again
+            Err(AddMemberFailed::GroupNotFound) => {
+                self.create_team_group()?;
+                self.call(add_member)?;
+                Ok(())
+            }
+        }
+    }
+}
+
+struct ResponseData {
+    status: StatusCode,
+    headers: HeaderMap,
+    body: String,
+}
+
+enum AddMemberFailed {
+    GroupNotFound,
 }
 
 impl ServerCtlImpl for ProsodyAdminRest {
@@ -146,10 +190,6 @@ impl ServerCtlImpl for ProsodyAdminRest {
         let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
         file.write_all(prosody_config.to_string().as_bytes())
             .map_err(|e| Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
-
-        if prosody_config.all_enabled_modules().contains("groups") {
-            self.create_groups_file()?;
-        }
 
         Ok(())
     }
@@ -170,14 +210,14 @@ impl ServerCtlImpl for ProsodyAdminRest {
                 .body(format!(r#"{{"password":"{}"}}"#, password))
         })?;
 
-        // Update groups file (add the user to everyone's roster)
-        self.update_team_members(|m| m.insert(jid.to_string()))?;
+        // Add the user to everyone's roster
+        self.update_team_members(Method::PUT, jid)?;
 
         Ok(())
     }
     fn remove_user(&self, jid: &JID) -> Result<(), Error> {
-        // Update groups file (remove the user from everyone's roster)
-        self.update_team_members(|m| m.shift_remove(&jid.to_string()))?;
+        // Remove the user from everyone's roster
+        self.update_team_members(Method::DELETE, jid)?;
 
         // Delete the user
         self.call(|client| {

@@ -137,7 +137,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     vec![
                         "auto_activate_hosts",
                         "roster",
-                        "groups",
+                        "groups_internal",
                         "saslauth",
                         "tls",
                         "dialback",
@@ -202,30 +202,42 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     ..Default::default()
                 }),
                 upgrade_legacy_vcards: Some(true),
-                groups_file: Some("/etc/prosody/roster_groups.txt".into()),
                 ..Default::default()
             },
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
                     hostname: server_config.domain.to_owned(),
                     settings: ProsodySettings {
+                        admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
                             vec![
                                 "rest",
                                 "http_oauth2",
+                                "admin_rest",
+                                // "init_admin",
                             ]
                             .into_iter()
                             .map(ToString::to_string)
                             .collect(),
                         ),
                         http_host: Some(app_config.server.local_hostname.to_owned()),
-                        custom_settings: vec![Group::new(
-                            "mod_http_oauth2",
-                            vec![def(
-                                "allowed_oauth2_grant_types",
-                                vec!["password"],
-                            )],
-                        )],
+                        custom_settings: vec![
+                            Group::new(
+                                "mod_http_oauth2",
+                                vec![def(
+                                    "allowed_oauth2_grant_types",
+                                    vec!["password"],
+                                )],
+                            ),
+                            // // See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
+                            // Group::new(
+                            //     "mod_init_admin",
+                            //     vec![def(
+                            //         "init_admin_jid",
+                            //         api_jid.to_owned(),
+                            //     )],
+                            // ),
+                        ],
                         ..Default::default()
                     },
                 },
@@ -235,7 +247,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
                             vec![
-                                "rest",
                                 "admin_rest",
                                 "init_admin",
                             ]

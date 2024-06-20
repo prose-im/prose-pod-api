@@ -32,7 +32,7 @@ https_interfaces = {}
 -- Modules
 modules_enabled = {
   "roster";
-  "groups";
+  "groups_internal";
   "saslauth";
   "tls";
   "dialback";

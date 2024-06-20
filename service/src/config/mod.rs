@@ -77,9 +77,6 @@ pub struct ConfigServer {
     pub http_port: u16,
     #[serde(default = "defaults::server_prosody_config_file_path")]
     pub prosody_config_file_path: PathBuf,
-    /// See <https://prosody.im/doc/modules/mod_groups>.
-    #[serde(default = "defaults::server_prosody_groups_file_path")]
-    pub prosody_groups_file_path: PathBuf,
 }
 
 impl ConfigServer {
@@ -95,6 +92,12 @@ impl ConfigServer {
             self.local_hostname_admin, self.http_port
         )
     }
+    pub fn admin_rest_api_on_main_host_url(&self) -> String {
+        format!(
+            "http://{}:{}/admin_rest",
+            self.local_hostname, self.http_port
+        )
+    }
 }
 
 impl Default for ConfigServer {
@@ -104,7 +107,6 @@ impl Default for ConfigServer {
             local_hostname_admin: defaults::server_local_hostname_admin(),
             http_port: defaults::server_http_port(),
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
-            prosody_groups_file_path: defaults::server_prosody_groups_file_path(),
         }
     }
 }
