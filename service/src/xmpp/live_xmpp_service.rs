@@ -86,10 +86,9 @@ impl XmppServiceImpl for LiveXmppService {
             Handle::current().block_on(async move {
                 let xmpp_client = self.xmpp_client(ctx).await?;
                 let profile = xmpp_client.get_mod::<mods::Profile>();
-                profile
-                    .set_vcard(vcard.to_owned())
-                    .await
-                    .map_err(Into::into)
+                profile.set_vcard(vcard.to_owned()).await?;
+                profile.publish_vcard(vcard.to_owned()).await?;
+                Ok(())
             })
         })
     }
