@@ -725,16 +725,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-foundation"
-version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91e195e091a93c46f7102ec7818a2aa394e1e1771c3ab4825963fa03e45afb8f"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1104,14 +1094,14 @@ dependencies = [
 
 [[package]]
 name = "enum-as-inner"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9720bba047d567ffc8a3cba48bf19126600e249ab7f128e9233e6376976a116"
+checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.66",
 ]
 
 [[package]]
@@ -1256,21 +1246,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "foreign-types"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
-dependencies = [
- "foreign-types-shared",
-]
-
-[[package]]
-name = "foreign-types-shared"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
@@ -1618,6 +1593,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hickory-proto"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07698b8420e2f0d6447a436ba999ec85d8fbf2a398bbd737b82cac4a2e96e512"
+dependencies = [
+ "async-trait",
+ "cfg-if",
+ "data-encoding",
+ "enum-as-inner",
+ "futures-channel",
+ "futures-io",
+ "futures-util",
+ "idna 0.4.0",
+ "ipnet",
+ "once_cell",
+ "rand",
+ "thiserror",
+ "tinyvec",
+ "tokio",
+ "tracing",
+ "url 2.5.2",
+]
+
+[[package]]
+name = "hickory-resolver"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28757f23aa75c98f254cf0405e6d8c25b831b32921b050a66692427679b1f243"
+dependencies = [
+ "cfg-if",
+ "futures-util",
+ "hickory-proto",
+ "ipconfig",
+ "lru-cache",
+ "once_cell",
+ "parking_lot",
+ "rand",
+ "resolv-conf",
+ "smallvec",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "hkdf"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1805,7 +1825,7 @@ dependencies = [
  "rustls 0.23.10",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.26.0",
  "tower-service",
  "webpki-roots 0.26.3",
 ]
@@ -1864,17 +1884,6 @@ name = "idna"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
-dependencies = [
- "matches",
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
  "matches",
  "unicode-bidi",
@@ -2074,21 +2083,10 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "jid"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4a52cacd869b804660986b10aa2076c3a4b6da644c7198f9fd0b613f4a7b249"
-dependencies = [
- "memchr",
- "minidom 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "stringprep",
-]
-
-[[package]]
-name = "jid"
-version = "0.10.0"
 source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
  "memchr",
- "minidom 0.15.2 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
+ "minidom",
  "stringprep",
 ]
 
@@ -2339,18 +2337,9 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 [[package]]
 name = "minidom"
 version = "0.15.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f45614075738ce1b77a1768912a60c0227525971b03e09122a05b8a34a2a6278"
-dependencies = [
- "rxml 0.9.1",
-]
-
-[[package]]
-name = "minidom"
-version = "0.15.2"
 source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
- "rxml 0.11.0",
+ "rxml",
 ]
 
 [[package]]
@@ -2396,23 +2385,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "version_check",
-]
-
-[[package]]
-name = "native-tls"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8614eb2c83d59d1c8cc974dd3f920198647674a0a035e1af1fa58707e317466"
-dependencies = [
- "libc",
- "log",
- "openssl",
- "openssl-probe",
- "openssl-sys",
- "schannel",
- "security-framework",
- "security-framework-sys",
- "tempfile",
 ]
 
 [[package]]
@@ -2533,50 +2505,6 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
-
-[[package]]
-name = "openssl"
-version = "0.10.64"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95a0481286a310808298130d22dd1fef0fa571e05a8f44ec801801e84b216b1f"
-dependencies = [
- "bitflags 2.5.0",
- "cfg-if",
- "foreign-types",
- "libc",
- "once_cell",
- "openssl-macros",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-macros"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.66",
-]
-
-[[package]]
-name = "openssl-probe"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
-
-[[package]]
-name = "openssl-sys"
-version = "0.9.102"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
- "vcpkg",
-]
 
 [[package]]
 name = "ordered-float"
@@ -2951,7 +2879,7 @@ dependencies = [
 [[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#49604a7e504374ada365f845064c82d985522024"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#08bcce90012de7a374b4658ee736258107e73a86"
 dependencies = [
  "convert_case",
  "quote",
@@ -2961,12 +2889,12 @@ dependencies = [
 [[package]]
 name = "prose-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#49604a7e504374ada365f845064c82d985522024"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#08bcce90012de7a374b4658ee736258107e73a86"
 
 [[package]]
 name = "prose-wasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#49604a7e504374ada365f845064c82d985522024"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#08bcce90012de7a374b4658ee736258107e73a86"
 dependencies = [
  "futures",
  "gloo-timers 0.3.0",
@@ -2979,15 +2907,15 @@ dependencies = [
 [[package]]
 name = "prose-xmpp"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#49604a7e504374ada365f845064c82d985522024"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=master#08bcce90012de7a374b4658ee736258107e73a86"
 dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.21.7",
  "chrono",
  "futures",
- "jid 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "minidom 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jid",
+ "minidom",
  "parking_lot",
  "prose-proc-macros",
  "prose-utils",
@@ -3002,7 +2930,7 @@ dependencies = [
  "tokio-xmpp",
  "tracing",
  "uuid",
- "xmpp-parsers 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xmpp-parsers",
 ]
 
 [[package]]
@@ -3281,7 +3209,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.26.0",
  "tower-service",
  "url 2.5.2",
  "wasm-bindgen",
@@ -3476,15 +3404,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
-name = "rustc_version"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
-dependencies = [
- "semver",
-]
-
-[[package]]
 name = "rustix"
 version = "0.37.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3517,6 +3436,7 @@ version = "0.21.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f56a14d1f48b391359b22f731fd4bd7e43c97f3c50eee276f3aa09c94784d3e"
 dependencies = [
+ "log",
  "ring",
  "rustls-webpki 0.101.7",
  "sct",
@@ -3591,32 +3511,15 @@ checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
 
 [[package]]
 name = "rxml"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a98f186c7a2f3abbffb802984b7f1dfd65dac8be1aafdaabbca4137f53f0dff7"
-dependencies = [
- "bytes",
- "pin-project-lite",
- "rxml_validation 0.9.1",
- "smartstring",
- "tokio",
-]
-
-[[package]]
-name = "rxml"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8c38aa8ee2678031de37d80d1dd9815b62939a68f93a9148184355fa44d65fb"
 dependencies = [
  "bytes",
- "rxml_validation 0.11.0",
+ "pin-project-lite",
+ "rxml_validation",
+ "tokio",
 ]
-
-[[package]]
-name = "rxml_validation"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22a197350ece202f19a166d1ad6d9d6de145e1d2a8ef47db299abe164dbd7530"
 
 [[package]]
 name = "rxml_validation"
@@ -3645,24 +3548,14 @@ dependencies = [
 [[package]]
 name = "sasl"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27a9f72398d92896188b100e5224a4f190c9abe5273b98cb1b5a61505be3143e"
+source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "getrandom",
  "hmac",
  "pbkdf2",
- "sha-1",
+ "sha1",
  "sha2",
-]
-
-[[package]]
-name = "schannel"
-version = "0.1.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
-dependencies = [
- "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3894,35 +3787,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "security-framework"
-version = "2.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c627723fd09706bacdb5cf41499e95098555af3c3c29d014dc3c458ef6be11c0"
-dependencies = [
- "bitflags 2.5.0",
- "core-foundation",
- "core-foundation-sys",
- "libc",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework-sys"
-version = "2.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317936bbbd05227752583946b9e66d7ce3b489f84e11a94a510b4437fef407d7"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
-
-[[package]]
-name = "semver"
-version = "1.0.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
-
-[[package]]
 name = "serde"
 version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4022,7 +3886,7 @@ dependencies = [
  "lettre",
  "log",
  "migration",
- "minidom 0.15.2 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
+ "minidom",
  "parking_lot",
  "prose-xmpp",
  "prosody-config",
@@ -4038,18 +3902,7 @@ dependencies = [
  "url_serde",
  "urlencoding",
  "uuid",
- "xmpp-parsers 0.20.0 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
-]
-
-[[package]]
-name = "sha-1"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
+ "xmpp-parsers",
 ]
 
 [[package]]
@@ -4148,17 +4001,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.66",
-]
-
-[[package]]
-name = "smartstring"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
-dependencies = [
- "autocfg",
- "static_assertions",
- "version_check",
 ]
 
 [[package]]
@@ -4735,12 +4577,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-native-tls"
-version = "0.3.1"
+name = "tokio-rustls"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbae76ab933c85776efabc971569dd6119c580d8f5d448769dec1764bf796ef2"
+checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
 dependencies = [
- "native-tls",
+ "rustls 0.21.12",
  "tokio",
 ]
 
@@ -4782,26 +4624,23 @@ dependencies = [
 [[package]]
 name = "tokio-xmpp"
 version = "3.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5f8badad7d8859131f2eccd1447c5f3cca6171429fe172acfed4acb1f2f62c3"
+source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
  "bytes",
  "futures",
- "idna 0.4.0",
+ "hickory-resolver",
+ "idna 0.5.0",
  "log",
- "minidom 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "native-tls",
+ "minidom",
  "rand",
- "rustc_version",
- "rxml 0.9.1",
+ "rxml",
  "sasl",
  "tokio",
- "tokio-native-tls",
+ "tokio-rustls 0.24.1",
  "tokio-stream",
  "tokio-util",
- "trust-dns-proto",
- "trust-dns-resolver",
- "xmpp-parsers 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webpki-roots 0.25.4",
+ "xmpp-parsers",
 ]
 
 [[package]]
@@ -4936,51 +4775,6 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
-]
-
-[[package]]
-name = "trust-dns-proto"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7f83d1e4a0e4358ac54c5c3681e5d7da5efc5a7a632c90bb6d6669ddd9bc26"
-dependencies = [
- "async-trait",
- "cfg-if",
- "data-encoding",
- "enum-as-inner",
- "futures-channel",
- "futures-io",
- "futures-util",
- "idna 0.2.3",
- "ipnet",
- "lazy_static",
- "rand",
- "smallvec",
- "thiserror",
- "tinyvec",
- "tokio",
- "tracing",
- "url 2.5.2",
-]
-
-[[package]]
-name = "trust-dns-resolver"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aff21aa4dcefb0a1afbfac26deb0adc93888c7d295fb63ab273ef276ba2b7cfe"
-dependencies = [
- "cfg-if",
- "futures-util",
- "ipconfig",
- "lazy_static",
- "lru-cache",
- "parking_lot",
- "resolv-conf",
- "smallvec",
- "thiserror",
- "tokio",
- "tracing",
- "trust-dns-proto",
 ]
 
 [[package]]
@@ -5581,32 +5375,14 @@ dependencies = [
 [[package]]
 name = "xmpp-parsers"
 version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0905d294e6e7f7668f4b3ca9c4a6343fd85355d21c44d2f1c8b1c027394048e"
-dependencies = [
- "base64 0.21.7",
- "blake2",
- "chrono",
- "digest",
- "jid 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "minidom 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc_version",
- "sha1",
- "sha2",
- "sha3",
-]
-
-[[package]]
-name = "xmpp-parsers"
-version = "0.20.0"
 source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
  "base64 0.22.1",
  "blake2",
  "chrono",
  "digest",
- "jid 0.10.0 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
- "minidom 0.15.2 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
+ "jid",
+ "minidom",
  "sha1",
  "sha2",
  "sha3",
@@ -5618,8 +5394,8 @@ name = "xso"
 version = "0.0.2"
 source = "git+https://gitlab.com/nesium/xmpp-rs?branch=main#0b4f77cc82a23cd0ac27d78396f9581f22d7b6fc"
 dependencies = [
- "minidom 0.15.2 (git+https://gitlab.com/nesium/xmpp-rs?branch=main)",
- "rxml 0.11.0",
+ "minidom",
+ "rxml",
 ]
 
 [[package]]
