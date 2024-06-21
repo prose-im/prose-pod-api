@@ -117,7 +117,7 @@ tests:
           url: /v1/members
           params:
             page_number: 1
-            page_size: 3
+            page_size: 4
           auth:
             bearer:
               token: ${{ captures.token }}
@@ -125,7 +125,8 @@ tests:
             status: 206
           captures:
             jid3:
-              jsonpath: $[2].jid
+              # NOTE: `$[0]` is the first admin, `$[1]` and `$[2]` are respectively `captures.jid1` and  `captures.jid2`
+              jsonpath: $[3].jid
       - name: Enrich members (list as individual "jids" query params)
         sse:
           # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
@@ -136,19 +137,7 @@ tests:
             bearer:
               token: ${{ captures.token }}
           check:
-            messages:
-              - id: ${{ captures.jid1 }}
-                jsonpath:
-                  $.nickname: ${{ captures.nickname1 }}
-                  $.avatar: ${{ env.exampleAvatar }}
-              - id: ${{ captures.jid2 }}
-                jsonpath:
-                  $.nickname: ${{ captures.nickname2 }}
-                  $.avatar: null
-              - id: ${{ captures.jid3 }}
-                jsonpath:
-                  $.nickname: null
-                  $.avatar: null
+            $ref: "#/tests/enrichMembers/check"
       - name: Enrich members (list as individual "jids[]" query params)
         sse:
           # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
@@ -159,19 +148,27 @@ tests:
             bearer:
               token: ${{ captures.token }}
           check:
-            messages:
-              - id: ${{ captures.jid1 }}
-                jsonpath:
-                  $.nickname: null
-                  $.avatar: null
-              - id: ${{ captures.jid2 }}
-                jsonpath:
-                  $.nickname: null
-                  $.avatar: null
-              - id: ${{ captures.jid3 }}
-                jsonpath:
-                  $.nickname: null
-                  $.avatar: null
+            $ref: "#/tests/enrichMembers/check"
+    # NOTE: `check` was put here so it could be reused in two places using `$ref` (which does not support array traversal)
+    check:
+      messages:
+        - id: ${{ captures.jid1 }}
+          type: enriched-member
+          jsonpath:
+            $.nickname: ${{ captures.nickname1 }}
+            $.avatar: ${{ env.exampleAvatar }}
+        - id: ${{ captures.jid2 }}
+          type: enriched-member
+          jsonpath:
+            $.nickname: ${{ captures.nickname2 }}
+            $.avatar: null
+        - id: ${{ captures.jid3 }}
+          type: enriched-member
+          jsonpath:
+            # NOTE: Since we haven't set a nickname, `nickname` should be the local part of the JID here.
+            #   There's no easy way to process `captures.jid3` this way in Step CI so let's just not check for it.
+            # $.nickname: ???
+            $.avatar: null
 
 components:
   steps:
