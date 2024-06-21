@@ -6,7 +6,7 @@
 use std::str::FromStr as _;
 
 use entity::model::JID;
-use log::debug;
+use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
 use prose_xmpp::stanza::avatar::{self, ImageId};
 use tokio::runtime::Handle;
@@ -86,8 +86,15 @@ impl XmppServiceImpl for LiveXmppService {
             Handle::current().block_on(async move {
                 let xmpp_client = self.xmpp_client(ctx).await?;
                 let profile = xmpp_client.get_mod::<mods::Profile>();
+
+                trace!("Setting {}'s vCard…", ctx.full_jid);
                 profile.set_vcard(vcard.to_owned()).await?;
+                debug!("Set {}'s vCard", ctx.full_jid);
+
+                trace!("Publishing {}'s vCard…", ctx.full_jid);
                 profile.publish_vcard(vcard.to_owned()).await?;
+                debug!("Published {}'s vCard", ctx.full_jid);
+
                 Ok(())
             })
         })
