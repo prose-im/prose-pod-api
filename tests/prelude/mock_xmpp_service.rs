@@ -16,12 +16,6 @@ pub struct MockXmppService {
     pub(crate) state: Mutex<MockXmppServiceState>,
 }
 
-#[derive(Debug)]
-pub struct UserAccount {
-    pub jid: JID,
-    pub password: String,
-}
-
 #[derive(Debug, Default)]
 pub struct MockXmppServiceState {
     pub vcards: LinkedHashMap<JID, VCard>,
