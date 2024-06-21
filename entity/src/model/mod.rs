@@ -41,7 +41,7 @@ impl FromStr for JIDNode {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // FIXME: Perform validations
-        Ok(Self(s.to_owned()))
+        Ok(Self(s.to_owned().to_lowercase()))
     }
 }
 
@@ -55,7 +55,7 @@ impl TryFrom<String> for JIDNode {
 
 impl Display for JIDNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.0, f)
+        Display::fmt(&self.0.to_lowercase(), f)
     }
 }
 
