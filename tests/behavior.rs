@@ -16,6 +16,7 @@ use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use entity::model::EmailAddress;
 use entity::{member, server_config, workspace_invitation};
+use lazy_static::lazy_static;
 use log::debug;
 use mock_auth_service::MockAuthService;
 use mock_notifier::MockNotifier;
@@ -23,6 +24,7 @@ use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::MockXmppService;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
+use regex::Regex;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -383,13 +385,18 @@ fn then_response_is_sse_stream(world: &mut TestWorld) {
     assert_eq!(res.content_type, Some(ContentType::EventStream));
 }
 
+lazy_static! {
+    static ref UNEXPECTED_SEMICOLON_REGEX: Regex = Regex::new(r"\n:(\n|$)").unwrap();
+}
+
 #[then(expr = "one SSE event is {string}")]
 async fn then_sse_event(world: &mut TestWorld, value: String) {
     let res = world.result();
     let events = res
         .body()
         .split("\n\n")
-        .map(ToString::to_string)
+        // Fix random "\n:" inconsistently added by Rocket for no apparent reason
+        .map(|s| UNEXPECTED_SEMICOLON_REGEX.replace_all(s, "$1").to_string())
         .collect::<Vec<String>>();
     let expected = value
         // Unescape double quotes
