@@ -58,6 +58,11 @@ pub(super) fn enrich_members(
     let jids = jids.into_inner();
 
     Ok(EventStream! {
+        fn logged(event: Event) -> Event {
+            trace!("Sending {event:?}…");
+            event
+        }
+
         for jid in jids.iter() {
             trace!("Enriching `{jid}`…");
 
@@ -97,10 +102,10 @@ pub(super) fn enrich_members(
                 nickname,
                 avatar,
             };
-            yield Event::json(&res).id(jid.to_string()).event("enriched-member");
+            yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 
-        yield Event::empty().event("end").id("end").with_comment("End of stream");
+        yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
     })
 }
 
