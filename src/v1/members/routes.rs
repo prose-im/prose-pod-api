@@ -99,6 +99,8 @@ pub(super) fn enrich_members(
             };
             yield Event::json(&res).id(jid.to_string()).event("enriched-member");
         }
+
+        yield Event::empty().event("end").id("end").with_comment("End of stream");
     })
 }
 
