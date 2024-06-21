@@ -7,7 +7,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use log::debug;
+use log::{debug, trace};
 use minidom::Element;
 use parking_lot::RwLock;
 use prose_xmpp::{
@@ -108,6 +108,7 @@ impl ConnectionTrait for Connection {
 
         let client = HTTPClient::new();
         let request_body = String::from(&stanza);
+        trace!("request_body: {request_body:?}");
         let request = client
             .post(self.rest_api_url.to_owned())
             .header("Content-Type", "application/xmpp+xml")
@@ -142,6 +143,7 @@ impl ConnectionTrait for Connection {
                     return Err(anyhow!("Unexpected Prosody REST API response: {err}"));
                 }
                 let response_body = response.text().await?;
+                trace!("response_body: {response_body:?}");
                 let xml = format!(r#"<wrapper xmlns="jabber:client">{response_body}</wrapper>"#);
                 let wrapper = xml.parse::<Element>()?;
                 let stanza = wrapper
