@@ -68,7 +68,7 @@ async fn enrich_members<'a>(
                 .collect::<Vec<_>>()
                 .join("&")
         ))
-        .header(Accept::JSON)
+        .header(Accept::EventStream)
         .header(Header::new("Authorization", format!("Bearer {token}")))
         .dispatch()
         .await
