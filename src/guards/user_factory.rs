@@ -112,7 +112,7 @@ impl<'r> UserFactory<'r> {
         //   after "rollbackable" DB changes in case they fail. It's not perfect
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
-        let server_ctl = self.server_ctl.lock().expect("Serverctl lock poisonned");
+        let server_ctl = self.server_ctl.read().expect("Serverctl lock poisonned");
 
         server_ctl.add_user(jid, password)?;
         if let Some(role) = role {

@@ -63,7 +63,7 @@ async fn given_presence(
     presence: String,
 ) -> Result<(), Error> {
     let server_ctl = world.server_ctl();
-    let mut state = server_ctl.state.lock().unwrap();
+    let mut state = server_ctl.state.write().unwrap();
 
     let jid = name_to_jid(world, &name).await?;
     match presence.as_str() {

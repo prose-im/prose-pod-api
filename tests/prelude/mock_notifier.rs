@@ -6,11 +6,11 @@
 use ::service::notifier::{GenericNotifier, Notification};
 use service::config::ConfigBranding;
 
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 #[derive(Debug, Default)]
 pub struct MockNotifier {
-    pub(crate) state: Mutex<MockNotifierState>,
+    pub(crate) state: RwLock<MockNotifierState>,
 }
 
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ pub struct MockNotifierState {
 }
 
 impl MockNotifier {
-    pub fn new(state: Mutex<MockNotifierState>) -> Self {
+    pub fn new(state: RwLock<MockNotifierState>) -> Self {
         Self { state }
     }
 }
@@ -35,7 +35,7 @@ impl GenericNotifier for MockNotifier {
         _branding: &ConfigBranding,
         notification: &service::notifier::Notification,
     ) -> Result<(), String> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.write().unwrap();
         state.send_count += 1;
         state.sent.push(notification.clone());
         Ok(())

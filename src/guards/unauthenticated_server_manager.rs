@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{RwLock, RwLockWriteGuard};
 
 use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
@@ -24,7 +24,7 @@ pub struct UnauthenticatedServerManager<'r> {
     db: &'r DatabaseConnection,
     app_config: &'r AppConfig,
     server_ctl: &'r ServerCtl,
-    server_config: Mutex<server_config::Model>,
+    server_config: RwLock<server_config::Model>,
 }
 
 impl<'r> UnauthenticatedServerManager<'r> {
@@ -38,13 +38,13 @@ impl<'r> UnauthenticatedServerManager<'r> {
             db,
             app_config,
             server_ctl,
-            server_config: Mutex::new(server_config),
+            server_config: RwLock::new(server_config),
         }
     }
 
-    fn server_config_mut(&self) -> MutexGuard<server_config::Model> {
+    fn server_config_mut(&self) -> RwLockWriteGuard<server_config::Model> {
         self.server_config
-            .lock()
+            .write()
             .expect("`server_config::Model` lock poisonned")
     }
 
@@ -131,7 +131,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
     /// Reload the XMPP server using the server configuration passed as an argument.
     fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
-        let server_ctl = self.server_ctl.lock().expect("ServerCtl lock poisonned");
+        let server_ctl = self.server_ctl.read().expect("ServerCtl lock poisonned");
 
         // Save new server config
         trace!("Saving server config…");
@@ -190,7 +190,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
         {
-            let server_ctl = server_ctl.implem.lock().expect("Serverctl lock poisonned");
+            let server_ctl = server_ctl.implem.read().expect("Serverctl lock poisonned");
             server_ctl.save_config(&server_config, app_config)?;
             server_ctl.reload()?;
         }

@@ -8,7 +8,7 @@
 mod email;
 mod generic;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use crate::config::ConfigBranding;
 
@@ -20,11 +20,11 @@ pub use self::generic::{
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct AnyNotifier {
-    implem: Arc<Mutex<dyn GenericNotifier>>,
+    implem: Arc<RwLock<dyn GenericNotifier>>,
 }
 
 impl AnyNotifier {
-    pub fn new(implem: Arc<Mutex<dyn GenericNotifier>>) -> Self {
+    pub fn new(implem: Arc<RwLock<dyn GenericNotifier>>) -> Self {
         Self { implem }
     }
 }
@@ -32,7 +32,7 @@ impl AnyNotifier {
 impl GenericNotifier for AnyNotifier {
     fn name(&self) -> &'static str {
         self.implem
-            .lock()
+            .read()
             .expect("`GenericNotifier` lock poisonned")
             .name()
     }
@@ -43,7 +43,7 @@ impl GenericNotifier for AnyNotifier {
         notification: &Notification,
     ) -> Result<(), String> {
         self.implem
-            .lock()
+            .read()
             .expect("`GenericNotifier` lock poisonned")
             .attempt(branding, notification)
     }

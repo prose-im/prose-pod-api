@@ -12,7 +12,7 @@ use service::dependencies::Notifier;
 use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
 use service::xmpp::LiveXmppService;
 use service::{AuthService, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 #[launch]
 fn rocket() -> _ {
@@ -25,9 +25,11 @@ fn rocket() -> _ {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
-    let server_ctl = ServerCtl::new(Arc::new(Mutex::new(ProsodyAdminRest::from_config(&config))));
+    let server_ctl = ServerCtl::new(Arc::new(RwLock::new(ProsodyAdminRest::from_config(
+        &config,
+    ))));
     let xmpp_service =
-        XmppServiceInner::new(Arc::new(Mutex::new(LiveXmppService::from_config(&config))));
+        XmppServiceInner::new(Arc::new(RwLock::new(LiveXmppService::from_config(&config))));
     let prosody_oauth2 = ProsodyOAuth2::from_config(&config);
     let auth_service = AuthService::new(Arc::new(RwLock::new(LiveAuthService::new(
         jwt_service,

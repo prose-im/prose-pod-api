@@ -7,7 +7,7 @@ use ::entity::model::JID;
 use service::{AuthError, AuthServiceImpl, JWTError, JWTService, JWT_PROSODY_TOKEN_KEY};
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use crate::mock_server_ctl::MockServerCtlState;
 
@@ -15,13 +15,13 @@ use crate::mock_server_ctl::MockServerCtlState;
 pub struct MockAuthService {
     pub online: bool,
     jwt_service: Arc<RwLock<JWTService>>,
-    pub mock_server_ctl_state: Arc<Mutex<MockServerCtlState>>,
+    pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
 }
 
 impl MockAuthService {
     pub fn new(
         jwt_service: Arc<RwLock<JWTService>>,
-        mock_server_ctl_state: Arc<Mutex<MockServerCtlState>>,
+        mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
     ) -> Self {
         Self {
             online: true,
@@ -55,7 +55,7 @@ impl AuthServiceImpl for MockAuthService {
     fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError> {
         self.check_online()?;
 
-        let state = self.mock_server_ctl_state.lock().unwrap();
+        let state = self.mock_server_ctl_state.read().unwrap();
         let valid_credentials = state
             .users
             .get(jid)

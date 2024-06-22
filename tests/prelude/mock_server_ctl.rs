@@ -13,12 +13,12 @@ use service::config::Config;
 use service::prosody::ProsodyConfig;
 
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
 pub struct MockServerCtl {
     pub(crate) online: bool,
-    pub(crate) state: Arc<Mutex<MockServerCtlState>>,
+    pub(crate) state: Arc<RwLock<MockServerCtlState>>,
 }
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub struct MockServerCtlState {
 }
 
 impl MockServerCtl {
-    pub fn new(state: Arc<Mutex<MockServerCtlState>>) -> Self {
+    pub fn new(state: Arc<RwLock<MockServerCtlState>>) -> Self {
         Self {
             online: true,
             state,
@@ -66,14 +66,14 @@ impl ServerCtlImpl for MockServerCtl {
     ) -> Result<(), Error> {
         self.check_online()?;
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.write().unwrap();
         state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
         Ok(())
     }
     fn reload(&self) -> Result<(), Error> {
         self.check_online()?;
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.write().unwrap();
         state.conf_reload_count += 1;
         Ok(())
     }
@@ -81,7 +81,7 @@ impl ServerCtlImpl for MockServerCtl {
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
         self.check_online()?;
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.write().unwrap();
 
         // Check that the domain exists in the Prosody configuration. If it's not the case,
         // Prosody won't add the user. This happens if the server config wasn't initialized
@@ -111,7 +111,7 @@ impl ServerCtlImpl for MockServerCtl {
     fn remove_user(&self, jid: &JID) -> Result<(), Error> {
         self.check_online()?;
 
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.write().unwrap();
         state.users.remove(&jid);
         Ok(())
     }

@@ -8,12 +8,12 @@ use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
 use service::{prose_xmpp::mods::AvatarData, xmpp_service::VCard, XmppServiceContext};
 
-use std::{fmt::Debug, sync::Mutex};
+use std::{fmt::Debug, sync::RwLock};
 
 #[derive(Debug)]
 pub struct MockXmppService {
     pub(crate) online: bool,
-    pub(crate) state: Mutex<MockXmppServiceState>,
+    pub(crate) state: RwLock<MockXmppServiceState>,
 }
 
 #[derive(Debug, Default)]
@@ -23,7 +23,7 @@ pub struct MockXmppServiceState {
 }
 
 impl MockXmppService {
-    pub fn new(state: Mutex<MockXmppServiceState>) -> Self {
+    pub fn new(state: RwLock<MockXmppServiceState>) -> Self {
         Self {
             online: true,
             state,
@@ -41,7 +41,7 @@ impl MockXmppService {
 
 impl Default for MockXmppService {
     fn default() -> Self {
-        Self::new(Mutex::default())
+        Self::new(RwLock::default())
     }
 }
 
@@ -51,7 +51,7 @@ impl MockXmppService {
 
         Ok(self
             .state
-            .lock()
+            .read()
             .unwrap()
             .vcards
             .get(jid)
@@ -61,7 +61,7 @@ impl MockXmppService {
         self.check_online()?;
 
         self.state
-            .lock()
+            .write()
             .unwrap()
             .vcards
             .insert(jid.to_owned(), vcard.to_owned());
@@ -73,7 +73,7 @@ impl MockXmppService {
 
         Ok(self
             .state
-            .lock()
+            .read()
             .unwrap()
             .avatars
             .get(jid)
@@ -83,7 +83,7 @@ impl MockXmppService {
     pub fn set_avatar(&self, jid: &JID, image_data: Option<Vec<u8>>) -> Result<(), Error> {
         self.check_online()?;
 
-        self.state.lock().unwrap().avatars.insert(
+        self.state.write().unwrap().avatars.insert(
             jid.to_owned(),
             image_data.map(|d| AvatarData::Base64(String::from_utf8(d).unwrap())),
         );

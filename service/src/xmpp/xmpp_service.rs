@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 use entity::model::JID;
 use log::debug;
@@ -25,7 +25,7 @@ impl XmppService {
 }
 
 impl Deref for XmppService {
-    type Target = Mutex<dyn XmppServiceImpl>;
+    type Target = RwLock<dyn XmppServiceImpl>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner.0
@@ -38,10 +38,10 @@ pub struct XmppServiceContext {
 }
 
 #[derive(Clone)]
-pub struct XmppServiceInner(Arc<Mutex<dyn XmppServiceImpl>>);
+pub struct XmppServiceInner(Arc<RwLock<dyn XmppServiceImpl>>);
 
 impl XmppServiceInner {
-    pub fn new(implem: Arc<Mutex<dyn XmppServiceImpl>>) -> Self {
+    pub fn new(implem: Arc<RwLock<dyn XmppServiceImpl>>) -> Self {
         Self(implem)
     }
 }
@@ -49,8 +49,8 @@ impl XmppServiceInner {
 pub type VCard = prose_xmpp::stanza::VCard4;
 
 impl XmppService {
-    fn implem(&self) -> MutexGuard<dyn XmppServiceImpl + 'static> {
-        self.deref().lock().unwrap()
+    fn implem(&self) -> RwLockReadGuard<dyn XmppServiceImpl + 'static> {
+        self.deref().read().unwrap()
     }
 
     pub fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, XmppServiceError> {
