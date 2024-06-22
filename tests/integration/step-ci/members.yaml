@@ -108,8 +108,8 @@ tests:
                 $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
             jsonpath:
               $.length: 2
-  enrichMembers:
-    name: Enrich members list
+  enrichMembersStream:
+    name: Enrich members list (stream)
     steps:
       - name: List members
         http:
@@ -127,28 +127,32 @@ tests:
             jid3:
               # NOTE: `$[0]` is the first admin, `$[1]` and `$[2]` are respectively `captures.jid1` and  `captures.jid2`
               jsonpath: $[3].jid
-      - name: Enrich members (list as individual "jids" query params)
+      - name: Enrich members (list as individual "jids" query params) (stream)
         sse:
           # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
           #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
           url: ${{ env.host }}/v1/enrich-members?jids=${{ captures.jid1 }}&jids=${{ captures.jid2 }}&jids=${{ captures.jid3 }}
           timeout: 2000
+          headers:
+            Accept: text/event-stream
           auth:
             bearer:
               token: ${{ captures.token }}
           check:
-            $ref: "#/tests/enrichMembers/check"
-      - name: Enrich members (list as individual "jids[]" query params)
+            $ref: "#/tests/enrichMembersStream/check"
+      - name: Enrich members (list as individual "jids[]" query params) (stream)
         sse:
           # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
           #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
           url: ${{ env.host }}/v1/enrich-members?jids[]=${{ captures.jid1 }}&jids[]=${{ captures.jid2 }}&jids[]=${{ captures.jid3 }}
           timeout: 2000
+          headers:
+            Accept: text/event-stream
           auth:
             bearer:
               token: ${{ captures.token }}
           check:
-            $ref: "#/tests/enrichMembers/check"
+            $ref: "#/tests/enrichMembersStream/check"
     # NOTE: `check` was put here so it could be reused in two places using `$ref` (which does not support array traversal)
     check:
       messages:
@@ -169,6 +173,63 @@ tests:
             #   There's no easy way to process `captures.jid3` this way in Step CI so let's just not check for it.
             # $.nickname: ???
             $.avatar: null
+  enrichMembers:
+    name: Enrich members list
+    steps:
+      - name: List members
+        http:
+          method: GET
+          url: /v1/members
+          params:
+            page_number: 1
+            page_size: 4
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 206
+          captures:
+            jid3:
+              # NOTE: `$[0]` is the first admin, `$[1]` and `$[2]` are respectively `captures.jid1` and  `captures.jid2`
+              jsonpath: $[3].jid
+      - name: Enrich members (list as individual "jids" query params)
+        http:
+          method: GET
+          url: /v1/enrich-members
+          timeout: 2000
+          params: "jids=${{ captures.jid1 }}&jids=${{ captures.jid2 }}&jids=${{ captures.jid3 }}"
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            $ref: "#/tests/enrichMembers/check"
+      - name: Enrich members (list as individual "jids[]" query params)
+        http:
+          method: GET
+          url: /v1/enrich-members?jids[]=${{ captures.jid1 }}&jids[]=${{ captures.jid2 }}&jids[]=${{ captures.jid3 }}
+          timeout: 2000
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            $ref: "#/tests/enrichMembers/check"
+    # NOTE: `check` was put here so it could be reused in two places using `$ref` (which does not support array traversal)
+    check:
+      status: 200
+      headers:
+        Content-Type: application/json
+      # jsonpath:
+      # FIXME: If [stepci/liquidless#10](https://github.com/stepci/liquidless/issues/10) is accepted,
+      #   and after it's resolved, uncomment the checks below.
+      #   Until then, we'll rely in checks made when testing the SSE stream equivalent.
+      # $.['${{ captures.jid1 }}'].nickname: ${{ captures.nickname1 }}
+      # $.['${{ captures.jid1 }}'].avatar: ${{ env.exampleAvatar }}
+      # $.['${{ captures.jid2 }}'].nickname: ${{ captures.nickname2 }}
+      # $.['${{ captures.jid2 }}'].avatar: null
+      # # NOTE: Since we haven't set a nickname, `nickname` should be the local part of the JID here.
+      # #   There's no easy way to process `captures.jid3` this way in Step CI so let's just not check for it.
+      # # $.['${{ captures.jid3 }}'].nickname: ???
+      # $.['${{ captures.jid3 }}'].avatar: null
 
 components:
   steps:

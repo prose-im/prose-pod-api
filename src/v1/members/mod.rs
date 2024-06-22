@@ -15,6 +15,7 @@ pub(super) fn routes() -> Vec<Route> {
     routes![
         get_members,
         enrich_members,
+        enrich_members_stream,
         get_member,
         set_member_role,
         set_member_mfa,

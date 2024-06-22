@@ -3,6 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::collections::HashMap;
 use std::ops::Deref;
 
 use base64::{engine::general_purpose, Engine as _};
@@ -49,8 +50,64 @@ pub(super) async fn get_members(
     ))
 }
 
-#[get("/v1/enrich-members?<jids..>")]
+fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
+    trace!("Enriching `{jid}`…");
+
+    let vcard = match xmpp_service.get_vcard(jid) {
+        Ok(Some(vcard)) => Some(vcard),
+        Ok(None) => {
+            debug!("`{jid}` has no vCard.");
+            None
+        }
+        Err(err) => {
+            // Log error
+            error!("Could not get `{jid}`'s vCard: {err}");
+            // But dismiss it
+            None
+        }
+    };
+    let nickname = vcard
+        .and_then(|vcard| vcard.nickname.first().cloned())
+        .map(|p| p.value);
+
+    let avatar = match xmpp_service.get_avatar(jid) {
+        Ok(Some(avatar)) => Some(avatar.base64().to_string()),
+        Ok(None) => {
+            debug!("`{jid}` has no avatar.");
+            None
+        }
+        Err(err) => {
+            // Log error
+            error!("Could not get `{jid}`'s avatar: {err}");
+            // But dismiss it
+            None
+        }
+    };
+
+    EnrichedMember {
+        jid: jid.to_owned(),
+        nickname,
+        avatar,
+    }
+}
+
+#[get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub(super) fn enrich_members(
+    xmpp_service: LazyGuard<XmppService>,
+    jids: Strict<JIDs>,
+) -> Result<Json<HashMap<JID, EnrichedMember>>, Error> {
+    let xmpp_service = xmpp_service.inner?;
+    let jids = jids.into_inner();
+
+    let mut res = HashMap::with_capacity(jids.len());
+    for jid in jids.iter() {
+        res.insert(jid.deref().to_owned(), enriched_member(&xmpp_service, jid));
+    }
+    Ok(res.into())
+}
+
+#[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
+pub(super) fn enrich_members_stream(
     xmpp_service: LazyGuard<XmppService>,
     jids: Strict<JIDs>,
 ) -> Result<EventStream![], Error> {
@@ -64,44 +121,7 @@ pub(super) fn enrich_members(
         }
 
         for jid in jids.iter() {
-            trace!("Enriching `{jid}`…");
-
-            let vcard = match xmpp_service.get_vcard(jid) {
-                Ok(Some(vcard)) => Some(vcard),
-                Ok(None) => {
-                    debug!("`{jid}` has no vCard.");
-                    None
-                },
-                Err(err) => {
-                    // Log error
-                    error!("Could not get `{jid}`'s vCard: {err}");
-                    // But dismiss it
-                    None
-                }
-            };
-            let nickname = vcard
-                .and_then(|vcard| vcard.nickname.first().cloned())
-                .map(|p| p.value);
-
-            let avatar = match xmpp_service.get_avatar(jid) {
-                Ok(Some(avatar)) => Some(avatar.base64().to_string()),
-                Ok(None) => {
-                    debug!("`{jid}` has no avatar.");
-                    None
-                },
-                Err(err) => {
-                    // Log error
-                    error!("Could not get `{jid}`'s avatar: {err}");
-                    // But dismiss it
-                    None
-                },
-            };
-
-            let res = EnrichedMember {
-                jid: jid.deref().to_owned(),
-                nickname,
-                avatar,
-            };
+            let res = enriched_member(&xmpp_service, jid);
             yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 
