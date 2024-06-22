@@ -116,7 +116,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
         if new_server_config != old_server_config {
             trace!("Server config has changed, reloading…");
-            self.reload(&new_server_config)?;
+            self.reload(&new_server_config).await?;
         } else {
             trace!("Server config hasn't changed, no need to reload.");
         }
@@ -125,12 +125,12 @@ impl<'r> UnauthenticatedServerManager<'r> {
     }
 
     /// Reload the XMPP server using the server configuration stored in `self`.
-    pub(crate) fn reload_current(&self) -> Result<(), Error> {
-        self.reload(&self.server_config_mut())
+    pub(crate) async fn reload_current(&self) -> Result<(), Error> {
+        self.reload(&self.server_config_mut()).await
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
-    fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
+    async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
         let server_ctl = self.server_ctl.read().expect("ServerCtl lock poisonned");
 
         // Save new server config
@@ -138,7 +138,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         server_ctl.save_config(&server_config, self.app_config)?;
         // Reload server config
         trace!("Reloading XMPP server…");
-        server_ctl.reload()?;
+        server_ctl.reload().await?;
 
         Ok(())
     }
@@ -192,7 +192,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         {
             let server_ctl = server_ctl.implem.read().expect("Serverctl lock poisonned");
             server_ctl.save_config(&server_config, app_config)?;
-            server_ctl.reload()?;
+            server_ctl.reload().await?;
         }
 
         // Commit the transaction only if the admin user was

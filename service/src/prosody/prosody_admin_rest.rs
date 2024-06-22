@@ -11,7 +11,6 @@ use entity::{
 };
 use log::debug;
 use reqwest::{header::HeaderMap, Client, Method, RequestBuilder, Response, StatusCode};
-use tokio::runtime::Handle;
 
 use crate::{config::Config, server_ctl::*};
 
@@ -41,7 +40,10 @@ impl ProsodyAdminRest {
         }
     }
 
-    fn call(&self, make_req: impl FnOnce(&Client) -> RequestBuilder) -> Result<Response, Error> {
+    async fn call(
+        &self,
+        make_req: impl FnOnce(&Client) -> RequestBuilder,
+    ) -> Result<Response, Error> {
         self.call_(make_req, |response| async {
             if response.status().is_success() {
                 Ok(response)
@@ -53,9 +55,10 @@ impl ProsodyAdminRest {
                 })
             }
         })
+        .await
     }
 
-    fn call_<T, F: Future<Output = Result<T, ResponseData>>>(
+    async fn call_<T, F: Future<Output = Result<T, ResponseData>>>(
         &self,
         make_req: impl FnOnce(&Client) -> RequestBuilder,
         map_res: impl FnOnce(Response) -> F,
@@ -69,44 +72,38 @@ impl ProsodyAdminRest {
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let (response, request_clone) = {
-                    let request_clone = request.try_clone();
-                    (
-                        client.execute(request).await.map_err(|err| {
-                            Error::Other(format!("Prosody Admin REST API call failed: {err}"))
-                        })?,
-                        request_clone,
-                    )
-                };
-                match map_res(response).await {
-                    Ok(res) => Ok(res),
-                    Err(response) => {
-                        let mut err = "Prosody Admin REST API call failed.".to_owned();
-                        if let Some(request) = request_clone {
-                            err.push_str(&format!(
-                                "\n  Request: {} {}\n  Request headers: {:?}\n  Request body: {:?}",
-                                request.method(),
-                                request.url().to_string(),
-                                request.headers().clone(),
-                                request
-                                    .body()
-                                    .and_then(|body| body.as_bytes())
-                                    .map(std::str::from_utf8),
-                            ));
-                        }
-                        err.push_str(&format!(
-                            "\n  Response status: {}\n  Response headers: {:?}\n  Response body: {}",
-                            response.status,
-                            response.headers,
-                            response.body,
-                        ));
-                        Err(Error::Other(err))
-                    }
+        let (response, request_clone) = {
+            let request_clone = request.try_clone();
+            (
+                client.execute(request).await.map_err(|err| {
+                    Error::Other(format!("Prosody Admin REST API call failed: {err}"))
+                })?,
+                request_clone,
+            )
+        };
+        match map_res(response).await {
+            Ok(res) => Ok(res),
+            Err(response) => {
+                let mut err = "Prosody Admin REST API call failed.".to_owned();
+                if let Some(request) = request_clone {
+                    err.push_str(&format!(
+                        "\n  Request: {} {}\n  Request headers: {:?}\n  Request body: {:?}",
+                        request.method(),
+                        request.url().to_string(),
+                        request.headers().clone(),
+                        request
+                            .body()
+                            .and_then(|body| body.as_bytes())
+                            .map(std::str::from_utf8),
+                    ));
                 }
-            })
-        })
+                err.push_str(&format!(
+                    "\n  Response status: {}\n  Response headers: {:?}\n  Response body: {}",
+                    response.status, response.headers, response.body,
+                ));
+                Err(Error::Other(err))
+            }
+        }
     }
 
     fn url(&self, path: &str) -> String {
@@ -116,7 +113,7 @@ impl ProsodyAdminRest {
         format!("{}/{path}", self.admin_rest_api_on_main_host_url)
     }
 
-    fn create_team_group(&self) -> Result<(), Error> {
+    async fn create_team_group(&self) -> Result<(), Error> {
         self.call(|client| {
             client
                 .put(format!(
@@ -124,11 +121,12 @@ impl ProsodyAdminRest {
                     self.url_on_main_host("groups")
                 ))
                 .body(format!(r#"{{"name":"{TEAM_GROUP_NAME}"}}"#))
-        })?;
+        })
+        .await?;
         Ok(())
     }
 
-    fn update_team_members(&self, method: Method, jid: &JID) -> Result<(), Error> {
+    async fn update_team_members(&self, method: Method, jid: &JID) -> Result<(), Error> {
         let add_member = |client: &Client| {
             client.request(
                 method,
@@ -157,12 +155,12 @@ impl ProsodyAdminRest {
         };
 
         // Try to add the member
-        match self.call_(add_member.clone(), map_res)? {
+        match self.call_(add_member.clone(), map_res).await? {
             Ok(_) => Ok(()),
             // If group wasn't found, try to create it and add the member again
             Err(AddMemberFailed::GroupNotFound) => {
-                self.create_team_group()?;
-                self.call(add_member)?;
+                self.create_team_group().await?;
+                self.call(add_member).await?;
                 Ok(())
             }
         }
@@ -179,6 +177,7 @@ enum AddMemberFailed {
     GroupNotFound,
 }
 
+#[async_trait::async_trait]
 impl ServerCtlImpl for ProsodyAdminRest {
     fn save_config(
         &self,
@@ -193,12 +192,13 @@ impl ServerCtlImpl for ProsodyAdminRest {
 
         Ok(())
     }
-    fn reload(&self) -> Result<(), Error> {
+    async fn reload(&self) -> Result<(), Error> {
         self.call(|client| client.put(self.url("reload")))
+            .await
             .map(|_| ())
     }
 
-    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+    async fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
         // Create the user
         self.call(|client| {
             client
@@ -208,16 +208,17 @@ impl ServerCtlImpl for ProsodyAdminRest {
                     urlencoding::encode(&jid.to_string())
                 ))
                 .body(format!(r#"{{"password":"{}"}}"#, password))
-        })?;
+        })
+        .await?;
 
         // Add the user to everyone's roster
-        self.update_team_members(Method::PUT, jid)?;
+        self.update_team_members(Method::PUT, jid).await?;
 
         Ok(())
     }
-    fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+    async fn remove_user(&self, jid: &JID) -> Result<(), Error> {
         // Remove the user from everyone's roster
-        self.update_team_members(Method::DELETE, jid)?;
+        self.update_team_members(Method::DELETE, jid).await?;
 
         // Delete the user
         self.call(|client| {
@@ -226,11 +227,12 @@ impl ServerCtlImpl for ProsodyAdminRest {
                 self.url("user"),
                 urlencoding::encode(&jid.to_string())
             ))
-        })?;
+        })
+        .await?;
 
         Ok(())
     }
-    fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error> {
+    async fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error> {
         self.call(|client| {
             client
                 .patch(format!(
@@ -240,6 +242,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
                 ))
                 .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
         })
-        .map(|_| ())
+        .await?;
+        Ok(())
     }
 }

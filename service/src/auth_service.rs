@@ -36,9 +36,10 @@ impl AuthService {
     }
 }
 
+#[async_trait::async_trait]
 pub trait AuthServiceImpl: Sync + Send {
     /// Generates a token from a username and password.
-    fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError>;
+    async fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError>;
     fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError>;
 }
 
@@ -56,9 +57,10 @@ impl LiveAuthService {
     }
 }
 
+#[async_trait::async_trait]
 impl AuthServiceImpl for LiveAuthService {
-    fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError> {
-        let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password)? else {
+    async fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError> {
+        let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password).await? else {
             Err(AuthError::InvalidCredentials)?
         };
 

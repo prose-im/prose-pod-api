@@ -50,10 +50,10 @@ pub(super) async fn get_members(
     ))
 }
 
-fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
+async fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
     trace!("Enriching `{jid}`…");
 
-    let vcard = match xmpp_service.get_vcard(jid) {
+    let vcard = match xmpp_service.get_vcard(jid).await {
         Ok(Some(vcard)) => Some(vcard),
         Ok(None) => {
             debug!("`{jid}` has no vCard.");
@@ -70,7 +70,7 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
         .and_then(|vcard| vcard.nickname.first().cloned())
         .map(|p| p.value);
 
-    let avatar = match xmpp_service.get_avatar(jid) {
+    let avatar = match xmpp_service.get_avatar(jid).await {
         Ok(Some(avatar)) => Some(avatar.base64().to_string()),
         Ok(None) => {
             debug!("`{jid}` has no avatar.");
@@ -92,7 +92,7 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub(super) fn enrich_members(
+pub(super) async fn enrich_members(
     xmpp_service: LazyGuard<XmppService>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<JID, EnrichedMember>>, Error> {
@@ -101,13 +101,16 @@ pub(super) fn enrich_members(
 
     let mut res = HashMap::with_capacity(jids.len());
     for jid in jids.iter() {
-        res.insert(jid.deref().to_owned(), enriched_member(&xmpp_service, jid));
+        res.insert(
+            jid.deref().to_owned(),
+            enriched_member(&xmpp_service, jid).await,
+        );
     }
     Ok(res.into())
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub(super) fn enrich_members_stream(
+pub(super) async fn enrich_members_stream(
     xmpp_service: LazyGuard<XmppService>,
     jids: Strict<JIDs>,
 ) -> Result<EventStream![], Error> {
@@ -121,7 +124,7 @@ pub(super) fn enrich_members_stream(
         }
 
         for jid in jids.iter() {
-            let res = enriched_member(&xmpp_service, jid);
+            let res = enriched_member(&xmpp_service, jid).await;
             yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 
@@ -167,7 +170,7 @@ pub struct SetMemberNicknameResponse {
 
 /// Change a member's nickname.
 #[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
-pub(super) fn set_member_nickname(
+pub(super) async fn set_member_nickname(
     member_id: JIDUriParam,
     jid: LazyGuard<JIDGuard>,
     xmpp_service: LazyGuard<XmppService>,
@@ -180,7 +183,7 @@ pub(super) fn set_member_nickname(
         Err(Error::Unauthorized)?
     }
 
-    xmpp_service.set_own_nickname(&req.nickname)?;
+    xmpp_service.set_own_nickname(&req.nickname).await?;
 
     Ok(SetMemberNicknameResponse {
         jid: jid.to_owned(),
@@ -204,7 +207,7 @@ pub struct SetMemberAvatarResponse {
 
 /// Change a member's avatar.
 #[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
-pub(super) fn set_member_avatar(
+pub(super) async fn set_member_avatar(
     member_id: JIDUriParam,
     jid: LazyGuard<JIDGuard>,
     xmpp_service: LazyGuard<XmppService>,
@@ -223,7 +226,7 @@ pub(super) fn set_member_avatar(
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 
-    xmpp_service.set_own_avatar(image_data)?;
+    xmpp_service.set_own_avatar(image_data).await?;
 
     Ok(SetMemberAvatarResponse {
         jid: jid.to_owned(),

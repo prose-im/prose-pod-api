@@ -114,12 +114,12 @@ impl<'r> UserFactory<'r> {
         // TODO: Find a way to rollback XMPP server changes.
         let server_ctl = self.server_ctl.read().expect("Serverctl lock poisonned");
 
-        server_ctl.add_user(jid, password)?;
+        server_ctl.add_user(jid, password).await?;
         if let Some(role) = role {
-            server_ctl.set_user_role(jid, &role)?;
+            server_ctl.set_user_role(jid, &role).await?;
         }
 
-        let jwt = self.auth_service.implem().log_in(jid, password)?;
+        let jwt = self.auth_service.implem().log_in(jid, password).await?;
         let jwt =
             JWT::try_from(&jwt, self.auth_service).map_err(|e| Error::InternalServerError {
                 reason: format!("The just-created JWT is invalid: {e}"),

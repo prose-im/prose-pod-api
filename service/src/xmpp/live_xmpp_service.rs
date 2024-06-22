@@ -9,7 +9,6 @@ use entity::model::JID;
 use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
 use prose_xmpp::stanza::avatar::{self, ImageId};
-use tokio::runtime::Handle;
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::config::Config;
@@ -42,131 +41,108 @@ impl LiveXmppService {
             .map_err(XmppServiceError::from)?;
         Ok(xmpp_client)
     }
-    pub fn load_latest_avatar_metadata(
+    pub async fn load_latest_avatar_metadata(
         &self,
         from: &JID,
         ctx: &XmppServiceContext,
     ) -> Result<Option<avatar::Info>, XmppServiceError> {
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let xmpp_client = self.xmpp_client(ctx).await?;
-                let profile = xmpp_client.get_mod::<mods::Profile>();
-                profile
-                    .load_latest_avatar_metadata(&into_bare_jid(from))
-                    .await
-                    .map_err(Into::into)
-            })
-        })
+        let xmpp_client = self.xmpp_client(ctx).await?;
+        let profile = xmpp_client.get_mod::<mods::Profile>();
+        profile
+            .load_latest_avatar_metadata(&into_bare_jid(from))
+            .await
+            .map_err(Into::into)
     }
 }
 
+#[async_trait::async_trait]
 impl XmppServiceImpl for LiveXmppService {
-    fn get_vcard(
+    async fn get_vcard(
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<VCard>, XmppServiceError> {
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let xmpp_client = self.xmpp_client(ctx).await?;
-                let profile = xmpp_client.get_mod::<mods::Profile>();
-                profile
-                    .load_vcard(into_bare_jid(jid))
-                    .await
-                    .map_err(Into::into)
-            })
-        })
+        let xmpp_client = self.xmpp_client(ctx).await?;
+        let profile = xmpp_client.get_mod::<mods::Profile>();
+        profile
+            .load_vcard(into_bare_jid(jid))
+            .await
+            .map_err(Into::into)
     }
-    fn set_own_vcard(
+    async fn set_own_vcard(
         &self,
         ctx: &XmppServiceContext,
         vcard: &VCard,
     ) -> Result<(), XmppServiceError> {
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let xmpp_client = self.xmpp_client(ctx).await?;
-                let profile = xmpp_client.get_mod::<mods::Profile>();
+        let xmpp_client = self.xmpp_client(ctx).await?;
+        let profile = xmpp_client.get_mod::<mods::Profile>();
 
-                trace!("Setting {}'s vCard…", ctx.full_jid);
-                profile.set_vcard(vcard.to_owned()).await?;
-                debug!("Set {}'s vCard", ctx.full_jid);
+        trace!("Setting {}'s vCard…", ctx.full_jid);
+        profile.set_vcard(vcard.to_owned()).await?;
+        debug!("Set {}'s vCard", ctx.full_jid);
 
-                trace!("Publishing {}'s vCard…", ctx.full_jid);
-                profile.publish_vcard(vcard.to_owned()).await?;
-                debug!("Published {}'s vCard", ctx.full_jid);
+        trace!("Publishing {}'s vCard…", ctx.full_jid);
+        profile.publish_vcard(vcard.to_owned()).await?;
+        debug!("Published {}'s vCard", ctx.full_jid);
 
-                Ok(())
-            })
-        })
+        Ok(())
     }
 
-    fn get_avatar(
+    async fn get_avatar(
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<AvatarData>, XmppServiceError> {
-        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx)? else {
+        let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx).await? else {
             return Ok(None);
         };
         let image_id = avatar_metadata.id;
 
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let xmpp_client = self.xmpp_client(ctx).await?;
-                let profile = xmpp_client.get_mod::<mods::Profile>();
-                profile
-                    .load_avatar_image(
-                        into_jid(jid),
-                        &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
-                    )
-                    .await
-                    .map_err(Into::into)
-            })
-        })
+        let xmpp_client = self.xmpp_client(ctx).await?;
+        let profile = xmpp_client.get_mod::<mods::Profile>();
+        profile
+            .load_avatar_image(
+                into_jid(jid),
+                &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
+            )
+            .await
+            .map_err(Into::into)
     }
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
-    fn set_own_avatar(
+    async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
         png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError> {
-        tokio::task::block_in_place(move || {
-            Handle::current().block_on(async move {
-                let xmpp_client = self.xmpp_client(ctx).await?;
-                let profile = xmpp_client.get_mod::<mods::Profile>();
+        let xmpp_client = self.xmpp_client(ctx).await?;
+        let profile = xmpp_client.get_mod::<mods::Profile>();
 
-                let image_data_len = png_data.len();
-                let image_data = AvatarData::Data(png_data);
-                let checksum: ImageId = image_data
-                    .generate_sha1_checksum()
-                    .map_err(|err| {
-                        XmppServiceError::Other(format!(
-                            "Could not generate avatar checksum: {err}"
-                        ))
-                    })?
-                    .as_ref()
-                    .into();
+        let image_data_len = png_data.len();
+        let image_data = AvatarData::Data(png_data);
+        let checksum: ImageId = image_data
+            .generate_sha1_checksum()
+            .map_err(|err| {
+                XmppServiceError::Other(format!("Could not generate avatar checksum: {err}"))
+            })?
+            .as_ref()
+            .into();
 
-                debug!("Uploading avatar…");
-                profile
-                    .set_avatar_image(&checksum, image_data.base64())
-                    .await
-                    .map_err(|err| {
-                        XmppServiceError::Other(format!("Could not upload avatar: {err}"))
-                    })?;
+        debug!("Uploading avatar…");
+        profile
+            .set_avatar_image(&checksum, image_data.base64())
+            .await
+            .map_err(|err| XmppServiceError::Other(format!("Could not upload avatar: {err}")))?;
 
-                debug!("Uploading avatar metadata…");
-                profile
-                    // TODO: Allow specifying width and height
-                    // TODO: Support other MIME types
-                    .set_avatar_metadata(image_data_len, &checksum, "image/png", None, None)
-                    .await
-                    .map_err(|err| {
-                        XmppServiceError::Other(format!("Could not upload avatar metadata: {err}"))
-                    })?;
+        debug!("Uploading avatar metadata…");
+        profile
+            // TODO: Allow specifying width and height
+            // TODO: Support other MIME types
+            .set_avatar_metadata(image_data_len, &checksum, "image/png", None, None)
+            .await
+            .map_err(|err| {
+                XmppServiceError::Other(format!("Could not upload avatar metadata: {err}"))
+            })?;
 
-                Ok(())
-            })
-        })
+        Ok(())
     }
 }

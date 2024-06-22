@@ -53,40 +53,41 @@ impl XmppService {
         self.deref().read().unwrap()
     }
 
-    pub fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, XmppServiceError> {
-        self.implem().get_vcard(&self.ctx, jid)
+    pub async fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, XmppServiceError> {
+        self.implem().get_vcard(&self.ctx, jid).await
     }
-    pub fn set_own_vcard(&self, vcard: &VCard) -> Result<(), XmppServiceError> {
-        self.implem().set_own_vcard(&self.ctx, vcard)
+    pub async fn set_own_vcard(&self, vcard: &VCard) -> Result<(), XmppServiceError> {
+        self.implem().set_own_vcard(&self.ctx, vcard).await
     }
-    pub fn create_own_vcard(&self, name: &str) -> Result<(), XmppServiceError> {
-        self.implem().create_own_vcard(&self.ctx, name)
+    pub async fn create_own_vcard(&self, name: &str) -> Result<(), XmppServiceError> {
+        self.implem().create_own_vcard(&self.ctx, name).await
     }
-    pub fn set_own_nickname(&self, nickname: &str) -> Result<(), XmppServiceError> {
-        self.implem().set_own_nickname(&self.ctx, nickname)
+    pub async fn set_own_nickname(&self, nickname: &str) -> Result<(), XmppServiceError> {
+        self.implem().set_own_nickname(&self.ctx, nickname).await
     }
 
-    pub fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, XmppServiceError> {
-        self.implem().get_avatar(&self.ctx, jid)
+    pub async fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, XmppServiceError> {
+        self.implem().get_avatar(&self.ctx, jid).await
     }
-    pub fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
-        self.implem().set_own_avatar(&self.ctx, png_data)
+    pub async fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
+        self.implem().set_own_avatar(&self.ctx, png_data).await
     }
 }
 
+#[async_trait::async_trait]
 pub trait XmppServiceImpl: Send + Sync {
-    fn get_vcard(
+    async fn get_vcard(
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<VCard>, XmppServiceError>;
-    fn set_own_vcard(
+    async fn set_own_vcard(
         &self,
         ctx: &XmppServiceContext,
         vcard: &VCard,
     ) -> Result<(), XmppServiceError>;
 
-    fn create_own_vcard(
+    async fn create_own_vcard(
         &self,
         ctx: &XmppServiceContext,
         name: &str,
@@ -95,29 +96,32 @@ pub trait XmppServiceImpl: Send + Sync {
         vcard.nickname.push(Nickname {
             value: name.to_owned(),
         });
-        self.set_own_vcard(ctx, &vcard)
+        self.set_own_vcard(ctx, &vcard).await
     }
-    fn set_own_nickname(
+    async fn set_own_nickname(
         &self,
         ctx: &XmppServiceContext,
         nickname: &str,
     ) -> Result<(), XmppServiceError> {
         debug!("Setting {}'s nickname to {nickname}…", ctx.full_jid);
-        let mut vcard = self.get_vcard(ctx, &ctx.full_jid)?.unwrap_or_default();
+        let mut vcard = self
+            .get_vcard(ctx, &ctx.full_jid)
+            .await?
+            .unwrap_or_default();
         vcard.nickname = vec![Nickname {
             value: nickname.to_owned(),
         }];
-        self.set_own_vcard(ctx, &vcard)
+        self.set_own_vcard(ctx, &vcard).await
     }
 
-    fn get_avatar(
+    async fn get_avatar(
         &self,
         ctx: &XmppServiceContext,
         jid: &JID,
     ) -> Result<Option<AvatarData>, XmppServiceError>;
     // TODO: Allow other MIME types
     // TODO: Allow setting an avatar pointing to a URL
-    fn set_own_avatar(
+    async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
         png_data: Vec<u8>,
