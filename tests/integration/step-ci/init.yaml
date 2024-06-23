@@ -4,9 +4,6 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
-  #   `${{ env.host }}/api-docs`.
   host: http://127.0.0.1:8000
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
@@ -38,7 +35,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Workspace
+            $ref: openapi.json#/components/schemas/Workspace
     init_server:
       name: Initialize XMPP server
       http:
@@ -54,7 +51,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/ServerConfig
+            $ref: openapi.json#/components/schemas/ServerConfig
     create_first_admin:
       name: Create first admin account
       http:
@@ -72,7 +69,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+            $ref: openapi.json#/components/schemas/Member
     log_admin_in:
       name: Log first admin in
       http:
@@ -90,4 +87,4 @@ components:
           headers:
             Content-Type: application/json
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/LoginResponse
+            $ref: openapi.json#/components/schemas/LoginResponse

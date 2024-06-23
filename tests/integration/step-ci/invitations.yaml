@@ -4,9 +4,6 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
-  #   `${{ env.host }}/api-docs`.
   host: http://127.0.0.1:8000
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
@@ -45,7 +42,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
             jsonpath:
               $.length: 5
   listInvitationsPage2:
@@ -68,7 +65,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
             jsonpath:
               $.length: 2
 
@@ -96,7 +93,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+            $ref: openapi.json#/components/schemas/WorkspaceInvitation
           jsonpath:
             $.accept_token: null
     log_last_invited_member_in:

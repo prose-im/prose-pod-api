@@ -81,7 +81,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+                $ref: openapi.json#/components/schemas/Member
             jsonpath:
               # 4 created members + main admin account
               $.length: 5
@@ -105,7 +105,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Member
+                $ref: openapi.json#/components/schemas/Member
             jsonpath:
               $.length: 2
   enrichMembersStream:
