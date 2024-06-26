@@ -92,6 +92,10 @@ make integration-test
 
 If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
 
+> [!TIP]
+> Step CI collects analytics when it's used, which is fine, but it also means `stepci` will fail if it can't reach the analytics server.
+> If you need to run tests offline, run `export STEPCI_DISABLE_ANALYTICS=true` before running the tests.
+
 ## Building the Docker image
 
 ```bash
