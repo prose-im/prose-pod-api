@@ -29,7 +29,7 @@ impl AuthService {
 }
 
 impl AuthService {
-    pub fn implem<'a>(&'a self) -> RwLockReadGuard<'a, dyn AuthServiceImpl + 'static> {
+    pub fn implem(&self) -> RwLockReadGuard<dyn AuthServiceImpl + 'static> {
         self.implem
             .read()
             .expect(&format!("`{}` lock poisonned", stringify!(AuthService)))
