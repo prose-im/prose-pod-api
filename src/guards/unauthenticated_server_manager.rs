@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{RwLock, RwLockWriteGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use entity::model::{DateLike, Duration, PossiblyInfinite};
 use entity::server_config;
@@ -13,6 +13,7 @@ use rocket::{Request, State};
 use sea_orm_rocket::Connection;
 use service::config::Config as AppConfig;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
+use service::server_ctl::ServerCtlImpl;
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
@@ -50,6 +51,10 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
     pub fn server_config(&self) -> server_config::Model {
         self.server_config_mut().to_owned()
+    }
+
+    fn server_ctl(&self) -> RwLockReadGuard<dyn ServerCtlImpl> {
+        self.server_ctl.read().expect("`ServerCtl` lock poisonned")
     }
 }
 
@@ -126,19 +131,18 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
     /// Reload the XMPP server using the server configuration stored in `self`.
     pub(crate) async fn reload_current(&self) -> Result<(), Error> {
-        self.reload(&self.server_config_mut()).await
+        self.reload(&self.server_config()).await
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
     async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
-        let server_ctl = self.server_ctl.read().expect("ServerCtl lock poisonned");
-
         // Save new server config
         trace!("Saving server config…");
-        server_ctl.save_config(&server_config, self.app_config)?;
+        self.server_ctl()
+            .save_config(&server_config, self.app_config)?;
         // Reload server config
         trace!("Reloading XMPP server…");
-        server_ctl.reload().await?;
+        self.server_ctl().reload().await?;
 
         Ok(())
     }
