@@ -25,7 +25,7 @@ lettre = { version = "0.11", features = [
 log = { version = "0.4", features = ["std"] }
 minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", branch = "master" }
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", rev = "d8f24c758bcf51960a4aebf96229b79b7b96cda0" }
 prosody-config = { path = "../prosody-config" }
 reqwest = { version = "0.12", features = [
     "blocking",
