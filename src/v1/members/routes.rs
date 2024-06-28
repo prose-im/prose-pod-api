@@ -61,7 +61,7 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
         }
         Err(err) => {
             // Log error
-            error!("Could not get `{jid}`'s vCard: {err}");
+            warn!("Could not get `{jid}`'s vCard: {err}");
             // But dismiss it
             None
         }
@@ -78,7 +78,7 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
         }
         Err(err) => {
             // Log error
-            error!("Could not get `{jid}`'s avatar: {err}");
+            warn!("Could not get `{jid}`'s avatar: {err}");
             // But dismiss it
             None
         }
