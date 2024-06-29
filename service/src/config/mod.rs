@@ -71,17 +71,31 @@ impl Default for ConfigApi {
 pub struct ConfigServer {
     #[serde(default = "defaults::server_local_hostname")]
     pub local_hostname: String,
-    #[serde(default = "defaults::server_admin_rest_api_port")]
-    pub admin_rest_api_port: u16,
+    #[serde(default = "defaults::server_local_hostname_admin")]
+    pub local_hostname_admin: String,
+    #[serde(default = "defaults::server_http_port")]
+    pub http_port: u16,
     #[serde(default = "defaults::server_prosody_config_file_path")]
     pub prosody_config_file_path: PathBuf,
 }
 
 impl ConfigServer {
+    pub fn oauth2_api_url(&self) -> String {
+        format!("http://{}:{}/oauth2", self.local_hostname, self.http_port)
+    }
+    pub fn rest_api_url(&self) -> String {
+        format!("http://{}:{}/rest", self.local_hostname, self.http_port)
+    }
     pub fn admin_rest_api_url(&self) -> String {
         format!(
-            "http://{}:{}",
-            self.local_hostname, self.admin_rest_api_port
+            "http://{}:{}/admin_rest",
+            self.local_hostname_admin, self.http_port
+        )
+    }
+    pub fn admin_rest_api_on_main_host_url(&self) -> String {
+        format!(
+            "http://{}:{}/admin_rest",
+            self.local_hostname, self.http_port
         )
     }
 }
@@ -90,7 +104,8 @@ impl Default for ConfigServer {
     fn default() -> Self {
         Self {
             local_hostname: defaults::server_local_hostname(),
-            admin_rest_api_port: defaults::server_admin_rest_api_port(),
+            local_hostname_admin: defaults::server_local_hostname_admin(),
+            http_port: defaults::server_http_port(),
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
         }
     }
@@ -155,6 +170,10 @@ pub struct ConfigNotifyEmail {
 pub struct ConfigDebugOnly {
     #[serde(default)]
     pub automatically_accept_invitations: bool,
+    /// When automatically accepting invitations during testing, one might want to authenticate
+    /// the created member. With this flag turned on, the member's password will be their JID.
+    #[serde(default)]
+    pub insecure_password_on_auto_accept_invitation: bool,
     #[serde(default)]
     pub dependency_modes: ConfigDependencyModes,
 }

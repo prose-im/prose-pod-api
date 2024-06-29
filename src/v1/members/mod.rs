@@ -14,9 +14,13 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     routes![
         get_members,
+        enrich_members,
+        enrich_members_stream,
         get_member,
         set_member_role,
         set_member_mfa,
         logout_member,
+        set_member_nickname,
+        set_member_avatar,
     ]
 }

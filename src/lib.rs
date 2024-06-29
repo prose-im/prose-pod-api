@@ -24,13 +24,14 @@ use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
 use service::config::Config;
 use service::dependencies::Uuid;
-use service::{Query, ServerCtl};
+use service::{Query, ServerCtl, XmppServiceInner};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
     rocket: Rocket<Build>,
     config: Config,
     server_ctl: ServerCtl,
+    xmpp_service: XmppServiceInner,
 ) -> Rocket<Build> {
     rocket
         .attach(Db::init())
@@ -46,6 +47,7 @@ pub fn custom_rocket(
         .manage(Uuid::from_config(&config))
         .manage(config)
         .manage(server_ctl)
+        .manage(xmpp_service)
 }
 
 async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {

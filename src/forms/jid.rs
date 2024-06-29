@@ -11,7 +11,7 @@ use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
 
-#[derive(Debug, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct JID(pub(crate) model::JID);
 
 impl<'v> FromFormField<'v> for JID {

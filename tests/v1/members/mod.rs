@@ -3,25 +3,152 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use cucumber::then;
-use entity::prelude::Member;
-use migration::DbErr;
-use service::{
-    server_ctl::{self, ServerCtlImpl},
-    vcard_parser::{
-        constants::PropertyName,
-        traits::HasValue as _,
-        vcard::{self, property::property_nickname::PropertyNickNameData},
-    },
-};
+use std::cmp::max;
 
+use cucumber::{given, then, when};
+use entity::{model::JID, prelude::Member};
+use migration::DbErr;
+use prose_pod_api::error::Error;
+use prose_pod_api::v1::members::Member as MemberDTO;
+use rocket::{
+    http::{Accept, Header},
+    local::asynchronous::{Client, LocalResponse},
+};
+use service::{prose_xmpp::stanza::vcard::Nickname, xmpp_service, Mutation, Query};
+use urlencoding::encode;
+
+use crate::cucumber_parameters::{Array, Text};
 use crate::{
-    cucumber_parameters::{MemberRole, JID},
+    cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
 };
 
+use super::name_to_jid;
+
+async fn list_members_<'a>(client: &'a Client, token: Option<String>) -> LocalResponse<'a> {
+    let mut req = client.get("/v1/members").header(Accept::JSON);
+    if let Some(token) = token {
+        req = req.header(Header::new("Authorization", format!("Bearer {token}")));
+    }
+    req.dispatch().await
+}
+
+async fn list_members<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
+    list_members_(client, Some(token)).await
+}
+
+async fn list_members_paged<'a>(
+    client: &'a Client,
+    token: String,
+    page_number: u64,
+    page_size: u64,
+) -> LocalResponse<'a> {
+    client
+        .get(format!(
+            "/v1/members?page_number={page_number}&page_size={page_size}"
+        ))
+        .header(Accept::JSON)
+        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .dispatch()
+        .await
+}
+
+async fn enrich_members<'a>(
+    client: &'a Client,
+    token: String,
+    jids: Vec<JID>,
+) -> LocalResponse<'a> {
+    client
+        .get(format!(
+            "/v1/enrich-members?{}",
+            jids.iter()
+                .map(ToString::to_string)
+                .map(|s| encode(&s).to_string())
+                .map(|s| format!("jids={s}"))
+                .collect::<Vec<_>>()
+                .join("&")
+        ))
+        .header(Accept::EventStream)
+        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .dispatch()
+        .await
+}
+
+#[given(expr = "the workspace has {int} member(s)")]
+async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
+    let domain = world.server_config().await?.domain;
+    let n = {
+        let db = world.db();
+        max(0u64, n - Query::get_member_count(db).await?)
+    };
+    for i in 0..n {
+        let db = world.db();
+        let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
+        let model = Mutation::create_user(db, jid, &None).await?;
+        let token = world.auth_service().log_in_unchecked(&jid)?;
+
+        world.members.insert(jid.to_string(), (model, token));
+    }
+    Ok(())
+}
+
+#[when(expr = "{word} lists members")]
+async fn when_listing_members(world: &mut TestWorld, name: String) {
+    let token = world.token(name);
+    let res = list_members(&world.client, token).await;
+    world.result = Some(res.into());
+}
+
+#[when("someone lists members without authenticating")]
+async fn when_listing_members_unauthenticated(world: &mut TestWorld) {
+    let res = list_members_(&world.client, None).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "someone lists members using {string} as Bearer token")]
+async fn when_listing_members_custom_token(world: &mut TestWorld, token: String) {
+    let res = list_members(&world.client, token).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{word} lists members by pages of {int}")]
+async fn when_listing_members_paged(world: &mut TestWorld, name: String, page_size: u64) {
+    let token = world.token(name);
+    let res = list_members_paged(&world.client, token, 1, page_size).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{word} gets page {int} of members by pages of {int}")]
+async fn when_getting_members_page(
+    world: &mut TestWorld,
+    name: String,
+    page_number: u64,
+    page_size: u64,
+) {
+    let token = world.token(name);
+    let res = list_members_paged(&world.client, token, page_number, page_size).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{word} gets detailed information about {array}")]
+async fn when_getting_members_details(world: &mut TestWorld, name: String, names: Array<Text>) {
+    let token = world.token(name);
+    let mut jids = Vec::with_capacity(names.len());
+    for name in names.iter() {
+        jids.push(name_to_jid(world, name).await.unwrap());
+    }
+    let res = enrich_members(&world.client, token, jids).await;
+    world.result = Some(res.into());
+}
+
+#[then(expr = "they should see {int} member(s)")]
+fn then_n_members(world: &mut TestWorld, n: usize) {
+    let res: Vec<MemberDTO> = world.result().body_into();
+    assert_eq!(res.len(), n)
+}
+
 #[then(expr = "<{jid}> should have the {member_role} role")]
-async fn then_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<(), DbErr> {
+async fn then_role(world: &mut TestWorld, jid: JIDParam, role: MemberRole) -> Result<(), DbErr> {
     let db = world.db();
 
     let member = Member::find_by_jid(&jid)
@@ -36,21 +163,15 @@ async fn then_role(world: &mut TestWorld, jid: JID, role: MemberRole) -> Result<
 #[then(expr = "<{jid}> should have the nickname {string}")]
 async fn then_nickname(
     world: &mut TestWorld,
-    jid: JID,
+    jid: JIDParam,
     nickname: String,
-) -> Result<(), server_ctl::Error> {
+) -> Result<(), xmpp_service::Error> {
     let vcard = world
-        .server_ctl()
+        .xmpp_service()
         .get_vcard(&jid)?
         .expect("vCard not found");
-    let properties = vcard.get_properties_by_name(PropertyName::NICKNAME);
-    let properties = properties
-        .iter()
-        .map(vcard::property::Property::get_value)
-        .collect::<Vec<_>>();
 
-    let expected = PropertyNickNameData::try_from((None, nickname.as_str(), vec![])).unwrap();
-    assert_eq!(properties, vec![expected.get_value()]);
+    assert_eq!(vcard.nickname, vec![Nickname { value: nickname }]);
 
     Ok(())
 }

@@ -32,7 +32,7 @@ https_interfaces = {}
 -- Modules
 modules_enabled = {
   "roster";
-  "groups";
+  "groups_internal";
   "saslauth";
   "tls";
   "dialback";
@@ -114,6 +114,8 @@ VirtualHost "admin.prose.org.local"
 
   -- Modules
   modules_enabled = {
+    "http_oauth2";
+    "rest";
     "admin_rest";
     "init_admin";
   }

@@ -10,17 +10,21 @@ mod v1;
 use self::prelude::*;
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use cucumber::{then, World};
+use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use entity::model::EmailAddress;
 use entity::{member, server_config, workspace_invitation};
+use lazy_static::lazy_static;
 use log::debug;
+use mock_auth_service::MockAuthService;
 use mock_notifier::MockNotifier;
-use mock_server_ctl::MockServerCtl;
+use mock_server_ctl::{MockServerCtl, MockServerCtlState};
+use mock_xmpp_service::MockXmppService;
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::{Db, JWTKey, JWTService, ServerManager, UnauthenticatedServerManager};
+use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
+use regex::Regex;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
@@ -30,16 +34,16 @@ use serde::Deserialize;
 use service::config::Config;
 use service::notifier::AnyNotifier;
 use service::sea_orm::DatabaseConnection;
-use service::ServerCtl;
-use service::{dependencies, Query};
+use service::{dependencies, JWTKey, JWTService, Query, XmppServiceInner};
+use service::{AuthService, ServerCtl};
 use tokio::runtime::Handle;
 use tokio::task;
+use tracing_subscriber::{
+    filter::{self, LevelFilter},
+    fmt::format::{self, Format},
+    layer::{Layer, SubscriberExt as _},
+};
 use uuid::Uuid;
-// use tracing_subscriber::{
-//     filter::{self, LevelFilter},
-//     fmt::format::{self, Format},
-//     layer::{Layer, SubscriberExt as _},
-// };
 
 #[tokio::main]
 async fn main() {
@@ -49,23 +53,39 @@ async fn main() {
     // Run tests and ignore undefined steps, but show logs
     // NOTE: Needs the "tracing" feature enabled for `cucumber`
     TestWorld::cucumber()
-        .init_tracing()
-        // .configure_and_init_tracing(
-        //     format::DefaultFields::new(),
-        //     Format::default(),
-        //     |fmt_layer| {
-        //         tracing_subscriber::registry()
-        //             .with(
-        //                 filter::Targets::new()
-        //                     .with_targets(vec![
-        //                         ("rocket", LevelFilter::WARN),
-        //                         ("sea_orm_migration", LevelFilter::WARN),
-        //                         ("rocket::server", LevelFilter::TRACE),
-        //                     ])
-        //                     .and_then(fmt_layer)
-        //             )
-        //     },
-        // )
+        // .init_tracing()
+        .configure_and_init_tracing(
+            format::DefaultFields::new(),
+            Format::default(),
+            |fmt_layer| {
+                let mut targets = vec![
+                    ("rocket", LevelFilter::ERROR),
+                    ("sea_orm_migration", LevelFilter::WARN),
+                    ("rocket::server", LevelFilter::WARN),
+                ];
+
+                let running_few_scenarios = std::env::args()
+                    .collect::<Vec<_>>()
+                    .contains(&"--tags".to_owned());
+                if running_few_scenarios {
+                    targets.append(&mut vec![
+                        ("prose_pod_api", LevelFilter::TRACE),
+                        ("service", LevelFilter::TRACE),
+                    ]);
+                } else {
+                    targets.append(&mut vec![
+                        ("prose_pod_api", LevelFilter::WARN),
+                        ("service", LevelFilter::WARN),
+                    ]);
+                }
+
+                tracing_subscriber::registry().with(
+                    filter::Targets::new()
+                        .with_targets(targets)
+                        .and_then(fmt_layer),
+                )
+            },
+        )
         .run("tests/features")
         .await;
 
@@ -77,8 +97,10 @@ async fn main() {
 
 fn test_rocket(
     config: &Config,
-    server_ctl: Arc<Mutex<MockServerCtl>>,
-    notifier: Arc<Mutex<MockNotifier>>,
+    server_ctl: Arc<RwLock<MockServerCtl>>,
+    xmpp_service: Arc<RwLock<MockXmppService>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
+    notifier: Arc<RwLock<MockNotifier>>,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -89,20 +111,29 @@ fn test_rocket(
         rocket::custom(figment),
         config.to_owned(),
         ServerCtl::new(server_ctl),
+        XmppServiceInner::new(xmpp_service),
     )
-    .manage(JWTService::new(JWTKey::custom("test_key")))
+    .manage(AuthService::new(auth_service))
     .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(
     config: Arc<Config>,
-    server_ctl: Arc<Mutex<MockServerCtl>>,
-    notifier: Arc<Mutex<MockNotifier>>,
+    server_ctl: Arc<RwLock<MockServerCtl>>,
+    xmpp_service: Arc<RwLock<MockXmppService>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
+    notifier: Arc<RwLock<MockNotifier>>,
 ) -> Client {
     debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(config.as_ref(), server_ctl, notifier))
-        .await
-        .expect("valid rocket instance")
+    Client::tracked(test_rocket(
+        config.as_ref(),
+        server_ctl,
+        xmpp_service,
+        auth_service,
+        notifier,
+    ))
+    .await
+    .expect("valid rocket instance")
 }
 
 #[derive(Debug)]
@@ -151,8 +182,10 @@ impl From<LocalResponse<'_>> for Response {
 #[world(init = Self::new)]
 pub struct TestWorld {
     config: Arc<Config>,
-    server_ctl: Arc<Mutex<MockServerCtl>>,
-    notifier: Arc<Mutex<MockNotifier>>,
+    server_ctl: Arc<RwLock<MockServerCtl>>,
+    auth_service: Arc<RwLock<MockAuthService>>,
+    xmpp_service: Arc<RwLock<MockXmppService>>,
+    notifier: Arc<RwLock<MockNotifier>>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -182,7 +215,7 @@ impl TestWorld {
     /// This method resets the counters.
     fn reset_server_ctl_counts(&self) {
         let server_ctl = self.server_ctl();
-        let mut state = server_ctl.state.lock().unwrap();
+        let mut state = server_ctl.state.write().unwrap();
         state.conf_reload_count = 0;
     }
 
@@ -208,12 +241,28 @@ impl TestWorld {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl(&self) -> MutexGuard<MockServerCtl> {
-        self.server_ctl.lock().unwrap()
+    fn server_ctl(&self) -> RwLockReadGuard<MockServerCtl> {
+        self.server_ctl.read().unwrap()
     }
 
-    fn notifier(&self) -> MutexGuard<MockNotifier> {
-        self.notifier.lock().unwrap()
+    fn server_ctl_mut(&self) -> RwLockWriteGuard<MockServerCtl> {
+        self.server_ctl.write().unwrap()
+    }
+
+    fn auth_service(&self) -> RwLockReadGuard<MockAuthService> {
+        self.auth_service.read().unwrap()
+    }
+
+    fn xmpp_service(&self) -> RwLockReadGuard<MockXmppService> {
+        self.xmpp_service.read().unwrap()
+    }
+
+    fn xmpp_service_mut(&self) -> RwLockWriteGuard<MockXmppService> {
+        self.xmpp_service.write().unwrap()
+    }
+
+    fn notifier(&self) -> RwLockReadGuard<MockNotifier> {
+        self.notifier.read().unwrap()
     }
 
     fn token(&self, user: String) -> String {
@@ -249,14 +298,25 @@ impl TestWorld {
 impl TestWorld {
     async fn new() -> Self {
         let config = Arc::new(Config::figment());
-        let server_ctl = Arc::new(Mutex::new(MockServerCtl::new(Default::default())));
-        let notifier = Arc::new(Mutex::new(MockNotifier::new(Default::default())));
+        let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
+        let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
+        let server_ctl: Arc<RwLock<MockServerCtl>> = Arc::new(RwLock::new(mock_server_ctl));
+        let xmpp_service: Arc<RwLock<MockXmppService>> = Arc::default();
+        let notifier: Arc<RwLock<MockNotifier>> = Arc::default();
+        let jwt_service = Arc::new(RwLock::new(JWTService::new(JWTKey::custom("test_key"))));
+        let auth_service = Arc::new(RwLock::new(MockAuthService::new(
+            jwt_service.clone(),
+            mock_server_ctl_state,
+        )));
 
         Self {
             config: config.clone(),
             server_ctl: server_ctl.clone(),
+            xmpp_service: xmpp_service.clone(),
+            auth_service: auth_service.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(config, server_ctl, notifier).await,
+            client: rocket_test_client(config, server_ctl, xmpp_service, auth_service, notifier)
+                .await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),
@@ -264,6 +324,12 @@ impl TestWorld {
             previous_workspace_invitation_accept_tokens: HashMap::new(),
         }
     }
+}
+
+#[given("the XMPP server is offline")]
+fn given_xmpp_server_offline(world: &mut TestWorld) {
+    world.xmpp_service_mut().online = false;
+    world.server_ctl_mut().online = false;
 }
 
 #[then("the call should succeed")]
@@ -318,5 +384,35 @@ fn then_response_header_equals(world: &mut TestWorld, header_name: String, heade
         "No '{}' header found. Headers: {:?}",
         &header_name,
         &res.headers.keys()
+    );
+}
+
+#[then("the response is a SSE stream")]
+fn then_response_is_sse_stream(world: &mut TestWorld) {
+    let res = world.result();
+    assert_eq!(res.content_type, Some(ContentType::EventStream));
+}
+
+lazy_static! {
+    static ref UNEXPECTED_SEMICOLON_REGEX: Regex = Regex::new(r"\n:(\n|$)").unwrap();
+}
+
+#[then(expr = "one SSE event is {string}")]
+async fn then_sse_event(world: &mut TestWorld, value: String) {
+    let res = world.result();
+    let events = res
+        .body()
+        .split("\n\n")
+        // Fix random "\n:" inconsistently added by Rocket for no apparent reason
+        .map(|s| UNEXPECTED_SEMICOLON_REGEX.replace_all(s, "$1").to_string())
+        .collect::<Vec<String>>();
+    let expected = value
+        // Unescape double quotes
+        .replace(r#"\""#, r#"""#)
+        // Unescape newlines
+        .replace("\\n", "\n");
+    assert!(
+        events.contains(&expected),
+        "events: {events:?}\nexpected: {expected:?}"
     );
 }

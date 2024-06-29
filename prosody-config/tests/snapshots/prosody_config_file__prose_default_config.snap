@@ -10,7 +10,7 @@ expression: result
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
 
-admins = { "prose-pod-api@prose.org.local" }
+admins = { "prose-pod-api@admin.prose.org.local" }
 
 authentication = "internal_hashed"
 storage = "internal"
@@ -112,10 +112,12 @@ http_host = "prose-pod-server"
 http_external_url = "http://prose-pod-server:5280"
 
 -- mod_init_admin
-init_admin_jid = "prose-pod-api@prose.org.local"
+init_admin_jid = "prose-pod-api@admin.prose.org.local"
 init_admin_password_env_var_name = "PROSE_API__ADMIN_PASSWORD"
 
 -- Server hosts and components
+VirtualHost "admin.prose.org.local"
+
 VirtualHost "prose.org.local"
 
 Component "groups.prose.org.local" "muc"

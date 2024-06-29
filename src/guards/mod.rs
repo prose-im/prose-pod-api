@@ -6,28 +6,32 @@
 mod basic_auth;
 mod db;
 mod jid;
-mod jwt_service;
+mod jwt;
 mod notifier;
 mod server_config;
 mod server_manager;
 mod unauthenticated_server_manager;
+mod unauthenticated_user_factory;
 mod user_factory;
 mod uuid_generator;
 mod workspace;
+mod xmpp_service;
 
 use std::ops::Deref;
 
 pub use basic_auth::*;
 pub use db::*;
 pub use jid::*;
-pub use jwt_service::*;
+use jwt::JWT;
 pub use notifier::*;
 pub use server_config::*;
 pub use server_manager::*;
 pub use unauthenticated_server_manager::*;
+pub use unauthenticated_user_factory::*;
 pub use user_factory::*;
 pub use uuid_generator::*;
 pub use workspace::*;
+pub use xmpp_service::*;
 
 use rocket::http::Status;
 use rocket::request::Outcome;

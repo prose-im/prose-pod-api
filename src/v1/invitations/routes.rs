@@ -22,7 +22,8 @@ use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{
-    Db, LazyGuard, Notifier, ServerConfig, UserFactory, UuidGenerator, JID as JIDGuard,
+    Db, LazyGuard, Notifier, ServerConfig, UnauthenticatedUserFactory, UserFactory, UuidGenerator,
+    JID as JIDGuard,
 };
 use crate::responders::Paginated;
 use crate::v1::{Created, R};
@@ -123,16 +124,24 @@ pub(super) async fn invite_member<'r>(
     #[cfg(debug_assertions)]
     if config.debug_only.automatically_accept_invitations {
         warn!(
-            "Config `{}` is turned on. The invitation created will be automatically accepted.",
+            "Config `{}` is turned on. The created invitation will be automatically accepted.",
             stringify!(debug_only.automatically_accept_invitations),
         );
 
-        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-        let password = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(32)
-            .map(char::from)
-            .collect();
+        let password = if config
+            .debug_only
+            .insecure_password_on_auto_accept_invitation
+        {
+            // Use JID as password to make password predictable
+            invitation.jid.to_string()
+        } else {
+            // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
+            thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(32)
+                .map(char::from)
+                .collect()
+        };
         invitation_accept_(
             db,
             invitation.accept_token.into(),
@@ -241,14 +250,14 @@ pub struct AcceptWorkspaceInvitationRequest {
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
+    user_factory: LazyGuard<UnauthenticatedUserFactory<'_>>,
     token: Uuid,
-    user_factory: LazyGuard<UserFactory<'_>>,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     invitation_accept_(
         conn.into_inner(),
         token,
-        user_factory.inner?,
+        user_factory.inner?.into(),
         req.into_inner(),
     )
     .await

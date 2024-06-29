@@ -11,6 +11,7 @@ use std::hash::Hash;
 use std::path::PathBuf;
 
 use crate::model::*;
+use crate::prosody_config_file::{Group, LuaDefinition};
 
 /// Prosody configuration.
 ///
@@ -26,13 +27,13 @@ use crate::model::*;
 /// > Prosody defaults.
 ///
 /// See <https://prosody.im/doc/configure>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProsodyConfig {
     pub global_settings: ProsodySettings,
     pub additional_sections: Vec<ProsodyConfigSection>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ProsodyConfigSection {
     VirtualHost {
         hostname: String,
@@ -46,7 +47,22 @@ pub enum ProsodyConfigSection {
     },
 }
 
-#[derive(Debug, Eq, PartialEq, Default)]
+impl ProsodyConfigSection {
+    pub fn hostname(&self) -> &String {
+        match self {
+            Self::VirtualHost { hostname, .. } => hostname,
+            Self::Component { hostname, .. } => hostname,
+        }
+    }
+    pub fn settings(&self) -> &ProsodySettings {
+        match self {
+            Self::VirtualHost { settings, .. } => settings,
+            Self::Component { settings, .. } => settings,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
     pub admins: Option<LinkedHashSet<JID>>,
@@ -93,14 +109,11 @@ pub struct ProsodySettings {
     pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
-    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
-    pub init_admin_jid: Option<JID>,
-    /// See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
-    pub init_admin_password_env_var_name: Option<String>,
+    pub custom_settings: Vec<Group<LuaDefinition>>,
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AuthenticationProvider {
     /// Plaintext passwords stored using built-in storage.
     InternalPlain,
@@ -115,7 +128,7 @@ pub enum AuthenticationProvider {
 }
 
 /// See <https://prosody.im/doc/storage>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
     Raw(StorageBackend),
@@ -126,7 +139,7 @@ pub enum StorageConfig {
 }
 
 /// See <https://prosody.im/doc/storage#backends>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
@@ -141,7 +154,7 @@ pub enum StorageBackend {
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Interface {
     /// All IPv4 interfaces.
     AllIPv4,
@@ -152,7 +165,7 @@ pub enum Interface {
 }
 
 /// See <https://prosody.im/doc/logging>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LogConfig {
     /// One value (file path, `"*syslog"` or `"*console"`).
     Raw(LogLevelValue),
@@ -165,7 +178,7 @@ pub enum LogConfig {
 }
 
 /// See <https://prosody.im/doc/logging>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LogLevelValue {
     /// A file path, relative to the config file.
     FilePath(PathBuf),
@@ -177,7 +190,7 @@ pub enum LogLevelValue {
     Syslog,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum LogLevel {
     Debug,
     Info,
@@ -186,7 +199,7 @@ pub enum LogLevel {
 }
 
 /// See <https://prosody.im/doc/certificates#installing_the_certificate>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SSLConfig {
     /// Automatic location.
     ///
@@ -202,7 +215,7 @@ pub enum SSLConfig {
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum ConnectionType {
     /// "c2s"
     ClientToServer,
@@ -213,14 +226,14 @@ pub enum ConnectionType {
 }
 
 /// See <https://prosody.im/doc/modules/mod_limits>.
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct ConnectionLimits {
     pub rate: Option<DataRate>,
     pub burst: Option<Duration<TimeLike>>,
 }
 
 /// See <https://prosody.im/doc/modules/mod_server_contact_info#configuration>.
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct ContactInfo {
     pub abuse: Vec<String>,
     pub admin: Vec<String>,
@@ -231,7 +244,7 @@ pub struct ContactInfo {
 }
 
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RoomCreationRestriction {
     /// Restrict room creation to server admins defined in the Prosody config.
     AdminsOnly,

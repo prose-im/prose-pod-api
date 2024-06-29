@@ -2,7 +2,7 @@
 
 ## How to contribute?
 
-This project is still in its very early stage. Until it reaches release 1.0, please do not send contributions as they will probably slow us down more than anything.
+This project is still in its very early stage. Until it reaches release 1.0, please do not send contributions as they will probably slow us down more than anything. Before the 1.0 release, files will be cleaned up, moved around and refactored. Until then it will be quite messy because of very frequent substantial changes.
 
 After release 1.0, contributions will be more than welcome though!
 
@@ -91,6 +91,10 @@ make integration-test
 ```
 
 If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
+
+> [!TIP]
+> Step CI collects analytics when it's used, which is fine, but it also means `stepci` will fail if it can't reach the analytics server.
+> If you need to run tests offline, run `export STEPCI_DISABLE_ANALYTICS=true` before running the tests.
 
 ## Building the Docker image
 

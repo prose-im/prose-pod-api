@@ -11,9 +11,8 @@ use ::entity::{
 };
 use ::migration::{self, MigratorTrait};
 use cucumber::World;
-use prosody_config::ProsodyConfigFile;
 use sea_orm::*;
-use service::{config::Config, Mutation};
+use service::{config::Config, prosody::ProsodyConfig, Mutation};
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
@@ -34,7 +33,7 @@ struct TestWorld {
     db: DatabaseConnection,
     app_config: Config,
     server_config: ServerConfig,
-    prosody_config: Option<ProsodyConfigFile>,
+    prosody_config: Option<ProsodyConfig>,
 }
 
 impl TestWorld {
@@ -78,7 +77,7 @@ impl TestWorld {
         }
     }
 
-    fn prosody_config(&self) -> &ProsodyConfigFile {
+    fn prosody_config(&self) -> &ProsodyConfig {
         match &self.prosody_config {
             Some(config) => config,
             None => panic!("No config generated"),

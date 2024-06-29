@@ -5,18 +5,20 @@
 
 use ::entity::model::JID;
 use ::service::server_ctl::{Error, ServerCtlImpl};
-use ::service::vcard_parser::vcard::Vcard;
-use ::service::{prosody_config_from_db, ProsodyConfigFile, ProsodyConfigFileSection};
+use ::service::{prosody_config_from_db, ProsodyConfigSection};
 use entity::model::MemberRole;
 use entity::server_config;
 use linked_hash_map::LinkedHashMap;
 use service::config::Config;
+use service::prosody::ProsodyConfig;
 
-use std::sync::Mutex;
+use std::collections::HashSet;
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
 pub struct MockServerCtl {
-    pub(crate) state: Mutex<MockServerCtlState>,
+    pub(crate) online: bool,
+    pub(crate) state: Arc<RwLock<MockServerCtlState>>,
 }
 
 #[derive(Debug)]
@@ -28,14 +30,31 @@ pub struct UserAccount {
 #[derive(Debug, Default)]
 pub struct MockServerCtlState {
     pub conf_reload_count: usize,
-    pub applied_config: Option<ProsodyConfigFile>,
+    pub applied_config: Option<ProsodyConfig>,
     pub users: LinkedHashMap<JID, UserAccount>,
-    pub vcards: LinkedHashMap<JID, Vcard>,
+    pub online: HashSet<JID>,
 }
 
 impl MockServerCtl {
-    pub fn new(state: Mutex<MockServerCtlState>) -> Self {
-        Self { state }
+    pub fn new(state: Arc<RwLock<MockServerCtlState>>) -> Self {
+        Self {
+            online: true,
+            state,
+        }
+    }
+
+    fn check_online(&self) -> Result<(), Error> {
+        if self.online {
+            Ok(())
+        } else {
+            Err(Error::Other("XMPP server offline".to_owned()))?
+        }
+    }
+}
+
+impl Default for MockServerCtl {
+    fn default() -> Self {
+        Self::new(Default::default())
     }
 }
 
@@ -45,18 +64,24 @@ impl ServerCtlImpl for MockServerCtl {
         server_config: &server_config::Model,
         app_config: &Config,
     ) -> Result<(), Error> {
-        let mut state = self.state.lock().unwrap();
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
         state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
         Ok(())
     }
     fn reload(&self) -> Result<(), Error> {
-        let mut state = self.state.lock().unwrap();
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
         state.conf_reload_count += 1;
         Ok(())
     }
 
     fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
-        let mut state = self.state.lock().unwrap();
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
 
         // Check that the domain exists in the Prosody configuration. If it's not the case,
         // Prosody won't add the user. This happens if the server config wasn't initialized
@@ -66,9 +91,7 @@ impl ServerCtlImpl for MockServerCtl {
                 .additional_sections
                 .iter()
                 .any(|section| match section {
-                    ProsodyConfigFileSection::VirtualHost { hostname, .. } => {
-                        hostname == &jid.domain
-                    }
+                    ProsodyConfigSection::VirtualHost { hostname, .. } => hostname == &jid.domain,
                     _ => false,
                 })
         });
@@ -86,34 +109,17 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
     fn remove_user(&self, jid: &JID) -> Result<(), Error> {
-        let mut state = self.state.lock().unwrap();
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
         state.users.remove(&jid);
         Ok(())
     }
     fn set_user_role(&self, _jid: &JID, _role: &MemberRole) -> Result<(), Error> {
+        self.check_online()?;
+
         // NOTE: The role is stored on our side in the database,
         //   our `DummyServerCtl` has nothing to save.
-        Ok(())
-    }
-
-    fn test_user_password(&self, jid: &JID, password: &str) -> Result<bool, Error> {
-        let state = self.state.lock().unwrap();
-        Ok(state
-            .users
-            .get(jid)
-            .map(|user| user.password == password)
-            .expect("User must be created first"))
-    }
-
-    fn get_vcard(&self, jid: &JID) -> Result<Option<Vcard>, Error> {
-        Ok(self.state.lock().unwrap().vcards.get(jid).map(Clone::clone))
-    }
-    fn set_vcard(&self, jid: &JID, vcard: &Vcard) -> Result<(), Error> {
-        self.state
-            .lock()
-            .unwrap()
-            .vcards
-            .insert(jid.clone(), vcard.clone());
         Ok(())
     }
 }

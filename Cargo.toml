@@ -26,25 +26,24 @@ members = [
 [dependencies]
 async-stream = "0.3"
 async-trait = "0.1"
+base64 = "0.22"
 chrono = "0.4"
 entity = { path = "./entity" }
 env_logger = "0.11"
 futures = "0.3"
 futures-util = { version = "0.3" }
-hmac = "0.12"
 http-auth-basic = "0.3"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 iso8601-timestamp = "0.2"
-jwt = "0.16"
 log = { version = "0.4", features = ["std"] }
 migration = { path = "./migration" }
 rand = "0.8"
 rocket = { version = "0.5", features = ["json"] }
 sea-orm-rocket = "0.5"
+secrecy = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 service = { path = "./service" }
-sha2 = "0.10"
 # https://github.com/time-rs/time/issues/681
 time = "=0.3.36"
 tokio = "1"
@@ -53,9 +52,11 @@ uuid = "1"
 [dev-dependencies]
 # cucumber = "0.21"
 cucumber = { version = "0.21", features = ["tracing"] }
+lazy_static = "1"
 linked-hash-map = "0.5"
 regex = "1"
 tracing-subscriber = "0.3"
+urlencoding = "2"
 
 [[bin]]
 name = "prose-pod-api"

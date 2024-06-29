@@ -4,9 +4,6 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
-  #   `${{ env.host }}/api-docs`.
   host: http://127.0.0.1:8000
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
@@ -26,7 +23,6 @@ tests:
   unprocessableBody:
     name: Unprocessable body
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: Invite member
         http:
           method: POST
@@ -41,7 +37,7 @@ tests:
             headers:
               Content-Type: application/json
             schema:
-              $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/Error
+              $ref: openapi.json#/components/schemas/Error
             jsonpath:
               $.accept_token: null
 

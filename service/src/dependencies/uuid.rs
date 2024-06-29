@@ -71,24 +71,24 @@ mod live {
 #[cfg(debug_assertions)]
 mod incrementing {
     use super::UuidGenerator;
-    use std::sync::Mutex;
+    use std::sync::RwLock;
 
     #[derive(Debug)]
     pub(super) struct IncrementingUuidGenerator {
-        value: Mutex<u32>,
+        value: RwLock<u32>,
     }
 
     impl IncrementingUuidGenerator {
         pub(super) fn new() -> Self {
             Self {
-                value: Mutex::new(0),
+                value: RwLock::new(0),
             }
         }
     }
 
     impl UuidGenerator for IncrementingUuidGenerator {
         fn new_v4(&self) -> uuid::Uuid {
-            let mut value = self.value.lock().unwrap();
+            let mut value = self.value.write().unwrap();
             let res = uuid::Uuid::from_u128(0x40000000000000000000u128 + *value as u128);
             *value += 1;
             res

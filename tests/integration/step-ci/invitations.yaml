@@ -4,9 +4,6 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
-  #   `${{ env.host }}/api-docs`.
   host: http://127.0.0.1:8000
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
@@ -31,7 +28,6 @@ tests:
   listInvitationsDefault:
     name: Default
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List invitations
         http:
           method: GET
@@ -46,13 +42,12 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
             jsonpath:
               $.length: 5
   listInvitationsPage2:
     name: Page 2
     steps:
-      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: List invitations
         http:
           method: GET
@@ -70,7 +65,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
             jsonpath:
               $.length: 2
 
@@ -89,15 +84,33 @@ components:
           pre_assigned_role: MEMBER
           channel: email
           email_address: ${{ internet.email | fake }}
+        captures:
+          lastInvitationJid:
+            jsonpath: $.jid
         check:
           status: 201
           headers:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: http://127.0.0.1:8000/api-docs/openapi.json#/components/schemas/WorkspaceInvitation
+            $ref: openapi.json#/components/schemas/WorkspaceInvitation
           jsonpath:
             $.accept_token: null
+    log_last_invited_member_in:
+      name: Log last invited member in
+      http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: ${{ captures.lastInvitationJid }}
+            # NOTE: The password is the JID thanks to the `debug_only.insecure_password_on_auto_accept_invitation` config flag.
+            password: ${{ captures.lastInvitationJid }}
+        captures:
+          lastInvitedMemberToken:
+            jsonpath: $.token
+        check:
+          status: 200
   headers:
     paginated_json:
       Content-Type: application/json

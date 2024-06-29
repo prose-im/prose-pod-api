@@ -10,8 +10,10 @@ use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
-use service::server_ctl;
-use service::{sea_orm, MutationError};
+#[cfg(debug_assertions)]
+use service::JWTError;
+use service::{sea_orm, AuthError, MutationError};
+use service::{server_ctl, xmpp_service};
 
 use crate::guards::NotifierError;
 
@@ -38,8 +40,10 @@ pub enum Error {
     ServerConfigAlreadyInitialized,
     /// First XMPP accout already created.
     FirstAccountAlreadyCreated,
-    /// ServerCtl fail (e.g. execution of `prosodyctl` failed).
+    /// `ServerCtl` fail (e.g. execution of `prosodyctl` failed).
     ServerCtlErr(server_ctl::Error),
+    /// `XmppService` fail.
+    XmppServiceErr(xmpp_service::Error),
     /// Bad request (invalid data for example).
     BadRequest { reason: String },
     /// Service error while mutation an entity.
@@ -79,7 +83,7 @@ impl Error {
             Self::WorkspaceAlreadyInitialized
             | Self::ServerConfigAlreadyInitialized
             | Self::FirstAccountAlreadyCreated => Status::Conflict,
-            Self::ServerCtlErr(_) => Status::InternalServerError,
+            Self::ServerCtlErr(_) | Self::XmppServiceErr(_) => Status::InternalServerError,
             Self::BadRequest { .. } => Status::BadRequest,
             Self::MutationErr(_) => Status::InternalServerError,
             Self::NotFound { .. } => Status::NotFound,
@@ -102,7 +106,7 @@ impl Error {
             Self::ServerConfigNotInitialized => "server_config_not_initialized",
             Self::ServerConfigAlreadyInitialized => "server_config_already_initialized",
             Self::FirstAccountAlreadyCreated => "first_account_already_created",
-            Self::ServerCtlErr(_) => "internal_server_error",
+            Self::ServerCtlErr(_) | Self::XmppServiceErr(_) => "internal_server_error",
             Self::BadRequest { .. } => "bad_request",
             Self::MutationErr(MutationError::DbErr(_)) => "database_error",
             Self::MutationErr(MutationError::EntityNotFound { .. }) => "not_found",
@@ -183,6 +187,7 @@ impl fmt::Display for Error {
             Self::ServerConfigAlreadyInitialized => write!(f, "XMPP server already initialized."),
             Self::FirstAccountAlreadyCreated => write!(f, "First XMPP account already created."),
             Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
+            Self::XmppServiceErr(err) => write!(f, "XmppService error: {err}"),
             Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
             Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
             Self::NotFound { reason } => write!(f, "Not found: {reason}"),
@@ -213,6 +218,12 @@ impl From<server_ctl::Error> for Error {
     }
 }
 
+impl From<xmpp_service::Error> for Error {
+    fn from(value: xmpp_service::Error) -> Self {
+        Self::XmppServiceErr(value)
+    }
+}
+
 impl From<MutationError> for Error {
     fn from(value: MutationError) -> Self {
         Self::MutationErr(value)
@@ -222,5 +233,25 @@ impl From<MutationError> for Error {
 impl From<AuthBasicError> for Error {
     fn from(value: AuthBasicError) -> Self {
         Self::BasicAuthError(value)
+    }
+}
+
+impl From<AuthError> for Error {
+    fn from(value: AuthError) -> Self {
+        match value {
+            AuthError::InvalidCredentials => Self::Unauthorized,
+            e => Self::InternalServerError {
+                reason: format!("Auth error: {e}"),
+            },
+        }
+    }
+}
+
+#[cfg(debug_assertions)]
+impl From<JWTError> for Error {
+    fn from(value: JWTError) -> Self {
+        Self::InternalServerError {
+            reason: format!("JWT error: {value}"),
+        }
     }
 }

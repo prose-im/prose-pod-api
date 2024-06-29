@@ -6,6 +6,7 @@
 // Custom Cucumber parameters
 // See <https://cucumber-rs.github.io/cucumber/current/writing/capturing.html#custom-parameters>
 
+mod array;
 mod duration;
 mod email_address;
 mod http_status;
@@ -15,6 +16,7 @@ mod member_role;
 mod text;
 mod toggle_state;
 
+pub use array::*;
 pub use duration::*;
 pub use email_address::*;
 pub use http_status::*;
