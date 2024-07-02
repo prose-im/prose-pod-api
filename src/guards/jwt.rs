@@ -23,7 +23,7 @@ pub struct JWT {
 
 impl JWT {
     pub fn try_from(jwt: &str, auth_service: &AuthService) -> Result<Self, String> {
-        match auth_service.implem().verify(jwt) {
+        match auth_service.verify(jwt) {
             Ok(claims) => Ok(Self { claims }),
             Err(e) => Err(format!("JWT is could not be verified: {e}")),
         }

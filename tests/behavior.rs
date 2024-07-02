@@ -19,9 +19,9 @@ use entity::{member, server_config, workspace_invitation};
 use lazy_static::lazy_static;
 use log::debug;
 use mock_auth_service::MockAuthService;
-use mock_notifier::MockNotifier;
+use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
-use mock_xmpp_service::MockXmppService;
+use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
 use regex::Regex;
@@ -96,11 +96,11 @@ async fn main() {
 }
 
 fn test_rocket(
-    config: &Config,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
-    xmpp_service: Arc<RwLock<MockXmppService>>,
-    auth_service: Arc<RwLock<MockAuthService>>,
-    notifier: Arc<RwLock<MockNotifier>>,
+    config: Config,
+    server_ctl: Box<MockServerCtl>,
+    xmpp_service: Box<MockXmppService>,
+    auth_service: Box<MockAuthService>,
+    notifier: Box<MockNotifier>,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -109,7 +109,7 @@ fn test_rocket(
         .merge(("databases.data.sql_log_level", "off"));
     prose_pod_api::custom_rocket(
         rocket::custom(figment),
-        config.to_owned(),
+        config,
         ServerCtl::new(server_ctl),
         XmppServiceInner::new(xmpp_service),
     )
@@ -118,15 +118,15 @@ fn test_rocket(
 }
 
 pub async fn rocket_test_client(
-    config: Arc<Config>,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
-    xmpp_service: Arc<RwLock<MockXmppService>>,
-    auth_service: Arc<RwLock<MockAuthService>>,
-    notifier: Arc<RwLock<MockNotifier>>,
+    config: Config,
+    server_ctl: Box<MockServerCtl>,
+    xmpp_service: Box<MockXmppService>,
+    auth_service: Box<MockAuthService>,
+    notifier: Box<MockNotifier>,
 ) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(
-        config.as_ref(),
+        config,
         server_ctl,
         xmpp_service,
         auth_service,
@@ -181,11 +181,11 @@ impl From<LocalResponse<'_>> for Response {
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 pub struct TestWorld {
-    config: Arc<Config>,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
-    auth_service: Arc<RwLock<MockAuthService>>,
-    xmpp_service: Arc<RwLock<MockXmppService>>,
-    notifier: Arc<RwLock<MockNotifier>>,
+    config: Config,
+    server_ctl: Box<MockServerCtl>,
+    auth_service: Box<MockAuthService>,
+    xmpp_service: Box<MockXmppService>,
+    notifier: Box<MockNotifier>,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -214,9 +214,7 @@ impl TestWorld {
     /// and this could impact "Then" steps.
     /// This method resets the counters.
     fn reset_server_ctl_counts(&self) {
-        let server_ctl = self.server_ctl();
-        let mut state = server_ctl.state.write().unwrap();
-        state.conf_reload_count = 0;
+        self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
     async fn server_manager(&self) -> Result<ServerManager, Error> {
@@ -241,28 +239,20 @@ impl TestWorld {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl(&self) -> RwLockReadGuard<MockServerCtl> {
-        self.server_ctl.read().unwrap()
+    fn server_ctl_state(&self) -> RwLockReadGuard<MockServerCtlState> {
+        self.server_ctl.state.read().unwrap()
     }
 
-    fn server_ctl_mut(&self) -> RwLockWriteGuard<MockServerCtl> {
-        self.server_ctl.write().unwrap()
+    fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
+        self.server_ctl.state.write().unwrap()
     }
 
-    fn auth_service(&self) -> RwLockReadGuard<MockAuthService> {
-        self.auth_service.read().unwrap()
+    fn xmpp_service_state_mut(&self) -> RwLockWriteGuard<MockXmppServiceState> {
+        self.xmpp_service.state.write().unwrap()
     }
 
-    fn xmpp_service(&self) -> RwLockReadGuard<MockXmppService> {
-        self.xmpp_service.read().unwrap()
-    }
-
-    fn xmpp_service_mut(&self) -> RwLockWriteGuard<MockXmppService> {
-        self.xmpp_service.write().unwrap()
-    }
-
-    fn notifier(&self) -> RwLockReadGuard<MockNotifier> {
-        self.notifier.read().unwrap()
+    fn notifier_state(&self) -> RwLockReadGuard<MockNotifierState> {
+        self.notifier.state.read().unwrap()
     }
 
     fn token(&self, user: String) -> String {
@@ -297,26 +287,29 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let config = Arc::new(Config::figment());
+        let config = Config::figment();
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
-        let server_ctl: Arc<RwLock<MockServerCtl>> = Arc::new(RwLock::new(mock_server_ctl));
-        let xmpp_service: Arc<RwLock<MockXmppService>> = Arc::default();
-        let notifier: Arc<RwLock<MockNotifier>> = Arc::default();
-        let jwt_service = Arc::new(RwLock::new(JWTService::new(JWTKey::custom("test_key"))));
-        let auth_service = Arc::new(RwLock::new(MockAuthService::new(
-            jwt_service.clone(),
-            mock_server_ctl_state,
-        )));
+        let mock_xmpp_service = MockXmppService::default();
+        let mock_notifier = MockNotifier::default();
+        let jwt_service = JWTService::new(JWTKey::custom("test_key"));
+        let mock_auth_service =
+            MockAuthService::new(jwt_service, Default::default(), mock_server_ctl_state);
 
         Self {
             config: config.clone(),
-            server_ctl: server_ctl.clone(),
-            xmpp_service: xmpp_service.clone(),
-            auth_service: auth_service.clone(),
-            notifier: notifier.clone(),
-            client: rocket_test_client(config, server_ctl, xmpp_service, auth_service, notifier)
-                .await,
+            server_ctl: Box::new(mock_server_ctl.clone()),
+            xmpp_service: Box::new(mock_xmpp_service.clone()),
+            auth_service: Box::new(mock_auth_service.clone()),
+            notifier: Box::new(mock_notifier.clone()),
+            client: rocket_test_client(
+                config,
+                Box::new(mock_server_ctl.clone()),
+                Box::new(mock_xmpp_service.clone()),
+                Box::new(mock_auth_service.clone()),
+                Box::new(mock_notifier.clone()),
+            )
+            .await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),
@@ -328,8 +321,8 @@ impl TestWorld {
 
 #[given("the XMPP server is offline")]
 fn given_xmpp_server_offline(world: &mut TestWorld) {
-    world.xmpp_service_mut().online = false;
-    world.server_ctl_mut().online = false;
+    world.xmpp_service_state_mut().online = false;
+    world.server_ctl_state_mut().online = false;
 }
 
 #[then("the call should succeed")]

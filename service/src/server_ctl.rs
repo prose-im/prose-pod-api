@@ -7,7 +7,6 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::Output;
 use std::str::{self, Utf8Error};
-use std::sync::{Arc, RwLock};
 use std::{fmt, io};
 
 use entity::model::{MemberRole, JID};
@@ -16,17 +15,17 @@ use entity::server_config;
 use crate::config::Config;
 
 pub struct ServerCtl {
-    pub implem: Arc<RwLock<dyn ServerCtlImpl>>,
+    pub implem: Box<dyn ServerCtlImpl>,
 }
 
 impl ServerCtl {
-    pub fn new(implem: Arc<RwLock<dyn ServerCtlImpl>>) -> Self {
+    pub fn new(implem: Box<dyn ServerCtlImpl>) -> Self {
         Self { implem }
     }
 }
 
 impl Deref for ServerCtl {
-    type Target = Arc<RwLock<dyn ServerCtlImpl>>;
+    type Target = Box<dyn ServerCtlImpl>;
 
     fn deref(&self) -> &Self::Target {
         &self.implem

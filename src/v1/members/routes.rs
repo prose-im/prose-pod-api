@@ -92,8 +92,8 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub(super) fn enrich_members(
-    xmpp_service: LazyGuard<XmppService>,
+pub(super) fn enrich_members<'r>(
+    xmpp_service: LazyGuard<XmppService<'r>>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<JID, EnrichedMember>>, Error> {
     let xmpp_service = xmpp_service.inner?;
@@ -107,10 +107,10 @@ pub(super) fn enrich_members(
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub(super) fn enrich_members_stream(
-    xmpp_service: LazyGuard<XmppService>,
+pub(super) fn enrich_members_stream<'r>(
+    xmpp_service: LazyGuard<XmppService<'r>>,
     jids: Strict<JIDs>,
-) -> Result<EventStream![], Error> {
+) -> Result<EventStream![Event + 'r], Error> {
     let xmpp_service = xmpp_service.inner?;
     let jids = jids.into_inner();
 

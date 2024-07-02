@@ -67,7 +67,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     UnauthenticatedServerManager::init_server_config(
         db,
         &ServerCtl::new(world.server_ctl.clone()),
-        world.config.as_ref(),
+        &world.config,
         form,
     )
     .await?;

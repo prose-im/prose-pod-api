@@ -15,9 +15,8 @@ use service::prosody::ProsodyConfig;
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct MockServerCtl {
-    pub(crate) online: bool,
     pub(crate) state: Arc<RwLock<MockServerCtlState>>,
 }
 
@@ -27,24 +26,22 @@ pub struct UserAccount {
     pub password: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MockServerCtlState {
+    pub online: bool,
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfig>,
     pub users: LinkedHashMap<JID, UserAccount>,
-    pub online: HashSet<JID>,
+    pub online_members: HashSet<JID>,
 }
 
 impl MockServerCtl {
     pub fn new(state: Arc<RwLock<MockServerCtlState>>) -> Self {
-        Self {
-            online: true,
-            state,
-        }
+        Self { state }
     }
 
     fn check_online(&self) -> Result<(), Error> {
-        if self.online {
+        if self.state.read().unwrap().online {
             Ok(())
         } else {
             Err(Error::Other("XMPP server offline".to_owned()))?
@@ -52,9 +49,15 @@ impl MockServerCtl {
     }
 }
 
-impl Default for MockServerCtl {
+impl Default for MockServerCtlState {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self {
+            online: true,
+            conf_reload_count: Default::default(),
+            applied_config: Default::default(),
+            users: Default::default(),
+            online_members: Default::default(),
+        }
     }
 }
 

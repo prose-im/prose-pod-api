@@ -11,14 +11,11 @@ use crate::TestWorld;
 
 #[then(expr = "{int} email(s) should have been sent")]
 fn then_n_emails_sent(world: &mut TestWorld, n: usize) {
-    assert_eq!(world.notifier().state.read().unwrap().send_count, n);
+    assert_eq!(world.notifier_state().send_count, n);
 }
 
 #[then(expr = "the email body should match {string}")]
 fn then_email_matches(world: &mut TestWorld, pattern: Regex) {
-    let email = notification_message(
-        &world.config.branding,
-        &world.notifier().state.read().unwrap().sent[0],
-    );
+    let email = notification_message(&world.config.branding, &world.notifier_state().sent[0]);
     assert!(pattern.is_match(&email));
 }

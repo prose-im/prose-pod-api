@@ -3,10 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, RwLock, RwLockReadGuard},
-};
+use std::{collections::BTreeMap, ops::Deref};
 
 use entity::model::JID;
 
@@ -19,20 +16,20 @@ use crate::{
 pub const JWT_PROSODY_TOKEN_KEY: &'static str = "prosody_token";
 
 pub struct AuthService {
-    implem: Arc<RwLock<dyn AuthServiceImpl>>,
+    implem: Box<dyn AuthServiceImpl>,
 }
 
 impl AuthService {
-    pub fn new(implem: Arc<RwLock<dyn AuthServiceImpl>>) -> Self {
+    pub fn new(implem: Box<dyn AuthServiceImpl>) -> Self {
         Self { implem }
     }
 }
 
-impl AuthService {
-    pub fn implem<'a>(&'a self) -> RwLockReadGuard<'a, dyn AuthServiceImpl + 'static> {
-        self.implem
-            .read()
-            .expect(&format!("`{}` lock poisonned", stringify!(AuthService)))
+impl Deref for AuthService {
+    type Target = Box<dyn AuthServiceImpl>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.implem
     }
 }
 

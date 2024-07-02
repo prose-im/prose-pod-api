@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 #[cfg(debug_assertions)]
 use crate::config::NotifierDependencyMode;
@@ -24,14 +24,14 @@ pub struct Notifier {
 impl Notifier {
     #[cfg(not(debug_assertions))]
     pub fn from_config(config: &Config) -> Result<Self, String> {
-        Ok(LiveNotifier::new(Arc::new(RwLock::new(EmailNotifier::new(config)?))).into())
+        Ok(LiveNotifier::new(Box::new(EmailNotifier::new(config)?)).into())
     }
 
     #[cfg(debug_assertions)]
     pub fn from_config(config: &Config) -> Result<Self, String> {
         Ok(match config.debug_only.dependency_modes.notifier {
             NotifierDependencyMode::Live => {
-                LiveNotifier::new(Arc::new(RwLock::new(EmailNotifier::new(config)?))).into()
+                LiveNotifier::new(Box::new(EmailNotifier::new(config)?)).into()
             }
             NotifierDependencyMode::Logging => Self {
                 implem: Arc::new(LoggingNotifier),

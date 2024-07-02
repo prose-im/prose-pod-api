@@ -14,24 +14,24 @@ use crate::error::{self, Error};
 
 use super::{LazyFromRequest, JWT};
 
-pub struct XmppService(xmpp_service::XmppService);
+pub struct XmppService<'r>(xmpp_service::XmppService<'r>);
 
-impl Deref for XmppService {
-    type Target = xmpp_service::XmppService;
+impl<'r> Deref for XmppService<'r> {
+    type Target = xmpp_service::XmppService<'r>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Into<xmpp_service::XmppService> for XmppService {
-    fn into(self) -> xmpp_service::XmppService {
+impl<'r> Into<xmpp_service::XmppService<'r>> for XmppService<'r> {
+    fn into(self) -> xmpp_service::XmppService<'r> {
         self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for XmppService {
+impl<'r> LazyFromRequest<'r> for XmppService<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -58,7 +58,7 @@ impl<'r> LazyFromRequest<'r> for XmppService {
             full_jid: jid,
             prosody_token,
         };
-        let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner.inner().clone(), ctx);
+        let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner, ctx);
 
         Outcome::Success(Self(xmpp_service))
     }
