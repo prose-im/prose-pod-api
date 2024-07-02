@@ -25,8 +25,11 @@ fn rocket() -> _ {
         Err(err) => panic!("{err}"),
     };
     let prosody_admin_rest = ProsodyAdminRest::from_config(&config);
-    let server_ctl = ServerCtl::new(Box::new(prosody_admin_rest));
-    let xmpp_service = XmppServiceInner::new(Box::new(LiveXmppService::from_config(&config)));
+    let server_ctl = ServerCtl::new(Box::new(prosody_admin_rest.clone()));
+    let xmpp_service = XmppServiceInner::new(Box::new(LiveXmppService::from_config(
+        &config,
+        Box::new(prosody_admin_rest),
+    )));
     let prosody_oauth2 = ProsodyOAuth2::from_config(&config);
     let auth_service =
         AuthService::new(Box::new(LiveAuthService::new(jwt_service, prosody_oauth2)));

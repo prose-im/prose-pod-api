@@ -62,9 +62,10 @@ async fn given_presence(
     name: String,
     presence: String,
 ) -> Result<(), Error> {
-    let mut state = world.server_ctl_state_mut();
+    let mut state = world.xmpp_service_state_mut();
 
     let jid = name_to_jid(world, &name).await?;
+    println!("{} is {}\n", name, presence);
     match presence.as_str() {
         "online" => state.online_members.insert(jid),
         "offline" => state.online_members.remove(&jid),

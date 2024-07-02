@@ -84,10 +84,18 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
         }
     };
 
+    let online = xmpp_service
+        .is_connected(jid)
+        // Log error
+        .inspect_err(|err| warn!("Could not get `{jid}`'s online status: {err}"))
+        // But dismiss it
+        .ok();
+
     EnrichedMember {
         jid: jid.to_owned(),
         nickname,
         avatar,
+        online,
     }
 }
 
