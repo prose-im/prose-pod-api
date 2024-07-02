@@ -455,7 +455,7 @@
 									"items": {
 										"oneOf": [
 											{ "$ref": "#/components/schemas/sse-events/enriched-member" },
-											{ "$ref": "#/components/schemas/sse-events/end" },
+											{ "$ref": "#/components/schemas/sse-events/end" }
 										],
 										"discriminator": {
 											"propertyName": "event"
@@ -1643,7 +1643,7 @@
 				"properties": {
 					"jid": { "$ref": "#/components/schemas/JID" },
 					"nickname": { "$ref": "#/components/schemas/Nickname" },
-					"avatar": { "$ref": "#/components/schemas/Avatar" },
+					"avatar": { "$ref": "#/components/schemas/Avatar" }
 				}
 			},
 			"SetFileRetentionRequest": {
@@ -1855,7 +1855,7 @@
 					"required": [
 						"event",
 						"id",
-						"data",
+						"data"
 					],
 					"properties": {
 						"event": {
@@ -1872,7 +1872,7 @@
 					"required": [
 						"event",
 						"id",
-						"comment",
+						"comment"
 					],
 					"properties": {
 						"event": {
