@@ -5,7 +5,7 @@
 
 use entity::model::JID;
 use log::debug;
-use reqwest::{Client, RequestBuilder, Response, StatusCode};
+use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
@@ -14,22 +14,24 @@ use crate::config::Config;
 /// Rust interface to [`mod_http_oauth2`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_oauth2).
 #[derive(Debug, Clone)]
 pub struct ProsodyOAuth2 {
+    http_client: HttpClient,
     base_url: String,
 }
 
 impl ProsodyOAuth2 {
-    pub fn from_config(config: &Config) -> Self {
+    pub fn from_config(config: &Config, http_client: HttpClient) -> Self {
         Self {
+            http_client,
             base_url: config.server.oauth2_api_url(),
         }
     }
 
     fn call(
         &self,
-        make_req: impl FnOnce(&Client) -> RequestBuilder,
+        make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
         accept: impl FnOnce(&Response) -> bool,
     ) -> Result<Response, Error> {
-        let client = Client::new();
+        let client = self.http_client.clone();
         let request = make_req(&client)
             .build()
             .map_err(Error::CannotBuildRequest)?;

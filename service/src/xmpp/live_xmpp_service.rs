@@ -9,6 +9,7 @@ use entity::model::JID;
 use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
 use prose_xmpp::stanza::avatar::{self, ImageId};
+use reqwest::Client as HttpClient;
 use tokio::runtime::Handle;
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
@@ -22,6 +23,7 @@ use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
 use super::NonStandardXmppClient;
 
 pub struct LiveXmppService {
+    http_client: HttpClient,
     pub rest_api_url: String,
     pub non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
 }
@@ -29,18 +31,21 @@ pub struct LiveXmppService {
 impl LiveXmppService {
     pub fn from_config(
         config: &Config,
+        http_client: HttpClient,
         non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
     ) -> Self {
         Self {
+            http_client,
             rest_api_url: config.server.rest_api_url(),
             non_standard_xmpp_client,
         }
     }
 
     async fn xmpp_client(&self, ctx: &XmppServiceContext) -> Result<XMPPClient, XmppServiceError> {
+        let http_client = self.http_client.clone();
         let rest_api_url = self.rest_api_url.clone();
         let xmpp_client = XMPPClient::builder()
-            .set_connector_provider(ProsodyRest::provider(rest_api_url))
+            .set_connector_provider(ProsodyRest::provider(http_client, rest_api_url))
             .build();
         xmpp_client
             .connect(&into_full_jid(&ctx.full_jid), ctx.prosody_token.clone())

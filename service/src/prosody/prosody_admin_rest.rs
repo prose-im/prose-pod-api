@@ -11,7 +11,9 @@ use entity::{
     server_config,
 };
 use log::debug;
-use reqwest::{header::HeaderMap, Client, Method, RequestBuilder, Response, StatusCode};
+use reqwest::{
+    header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
+};
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
@@ -25,6 +27,7 @@ const TEAM_GROUP_NAME: &'static str = "Team";
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
 #[derive(Debug, Clone)]
 pub struct ProsodyAdminRest {
+    http_client: HttpClient,
     config_file_path: PathBuf,
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
@@ -33,8 +36,9 @@ pub struct ProsodyAdminRest {
 }
 
 impl ProsodyAdminRest {
-    pub fn from_config(config: &Config) -> Self {
+    pub fn from_config(config: &Config, http_client: HttpClient) -> Self {
         Self {
+            http_client,
             config_file_path: config.server.prosody_config_file_path.to_owned(),
             admin_rest_api_url: config.server.admin_rest_api_url(),
             admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
@@ -43,7 +47,10 @@ impl ProsodyAdminRest {
         }
     }
 
-    fn call(&self, make_req: impl FnOnce(&Client) -> RequestBuilder) -> Result<Response, Error> {
+    fn call(
+        &self,
+        make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
+    ) -> Result<Response, Error> {
         self.call_(make_req, |response| async {
             if response.status().is_success() {
                 Ok(response)
@@ -59,10 +66,10 @@ impl ProsodyAdminRest {
 
     fn call_<T, F: Future<Output = Result<T, ResponseData>>>(
         &self,
-        make_req: impl FnOnce(&Client) -> RequestBuilder,
+        make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
         map_res: impl FnOnce(Response) -> F,
     ) -> Result<T, Error> {
-        let client = Client::new();
+        let client = self.http_client.clone();
         let request = make_req(&client)
             .basic_auth(
                 self.api_auth_username.to_string(),
@@ -131,7 +138,7 @@ impl ProsodyAdminRest {
     }
 
     fn update_team_members(&self, method: Method, jid: &JID) -> Result<(), Error> {
-        let add_member = |client: &Client| {
+        let add_member = |client: &HttpClient| {
             client.request(
                 method,
                 format!(

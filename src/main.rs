@@ -11,7 +11,7 @@ use service::config::Config;
 use service::dependencies::Notifier;
 use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
 use service::xmpp::LiveXmppService;
-use service::{AuthService, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
+use service::{AuthService, HttpClient, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
 
 #[launch]
 fn rocket() -> _ {
@@ -24,13 +24,15 @@ fn rocket() -> _ {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
-    let prosody_admin_rest = ProsodyAdminRest::from_config(&config);
+    let http_client = HttpClient::new();
+    let prosody_admin_rest = ProsodyAdminRest::from_config(&config, http_client.clone());
     let server_ctl = ServerCtl::new(Box::new(prosody_admin_rest.clone()));
     let xmpp_service = XmppServiceInner::new(Box::new(LiveXmppService::from_config(
         &config,
+        http_client.clone(),
         Box::new(prosody_admin_rest),
     )));
-    let prosody_oauth2 = ProsodyOAuth2::from_config(&config);
+    let prosody_oauth2 = ProsodyOAuth2::from_config(&config, http_client.clone());
     let auth_service =
         AuthService::new(Box::new(LiveAuthService::new(jwt_service, prosody_oauth2)));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
