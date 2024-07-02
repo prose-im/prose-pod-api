@@ -131,7 +131,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
     /// Reload the XMPP server using the server configuration passed as an argument.
     fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
-        let server_ctl = self.server_ctl.read().expect("ServerCtl lock poisonned");
+        let server_ctl = self.server_ctl;
 
         // Save new server config
         trace!("Saving server config…");
@@ -190,7 +190,6 @@ impl<'r> UnauthenticatedServerManager<'r> {
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
         {
-            let server_ctl = server_ctl.implem.read().expect("Serverctl lock poisonned");
             server_ctl.save_config(&server_config, app_config)?;
             server_ctl.reload()?;
         }

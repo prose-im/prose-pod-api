@@ -5,15 +5,17 @@
 
 use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
+use async_trait::async_trait;
 use entity::{
     model::{MemberRole, JID},
     server_config,
 };
 use log::debug;
 use reqwest::{header::HeaderMap, Client, Method, RequestBuilder, Response, StatusCode};
+use serde::Deserialize;
 use tokio::runtime::Handle;
 
-use crate::{config::Config, server_ctl::*};
+use crate::{config::Config, server_ctl::*, xmpp::NonStandardXmppClient};
 
 use super::{prosody_config_from_db, AsProsody as _};
 
@@ -21,7 +23,7 @@ const TEAM_GROUP_ID: &'static str = "team";
 const TEAM_GROUP_NAME: &'static str = "Team";
 
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProsodyAdminRest {
     config_file_path: PathBuf,
     admin_rest_api_url: String,
@@ -242,4 +244,25 @@ impl ServerCtlImpl for ProsodyAdminRest {
         })
         .map(|_| ())
     }
+}
+
+#[async_trait]
+impl NonStandardXmppClient for ProsodyAdminRest {
+    async fn is_connected(&self, jid: &JID) -> Result<bool, anyhow::Error> {
+        let response = self.call(|client| {
+            client.get(format!(
+                "{}/{}/connected",
+                self.url("user"),
+                urlencoding::encode(&jid.to_string()),
+            ))
+        })?;
+        let body = response.text().await?;
+        let res: ConnectedResponse = serde_json::from_str(&body)?;
+        Ok(res.connected)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ConnectedResponse {
+    connected: bool,
 }

@@ -72,6 +72,10 @@ impl XmppService {
     pub fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
         self.implem().set_own_avatar(&self.ctx, png_data)
     }
+
+    pub fn is_connected(&self, jid: &JID) -> Result<bool, XmppServiceError> {
+        self.implem().is_connected(&self.ctx, jid)
+    }
 }
 
 pub trait XmppServiceImpl: Send + Sync {
@@ -122,6 +126,8 @@ pub trait XmppServiceImpl: Send + Sync {
         ctx: &XmppServiceContext,
         png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError>;
+
+    fn is_connected(&self, ctx: &XmppServiceContext, jid: &JID) -> Result<bool, XmppServiceError>;
 }
 
 pub type Error = XmppServiceError;

@@ -62,13 +62,13 @@ async fn given_presence(
     name: String,
     presence: String,
 ) -> Result<(), Error> {
-    let server_ctl = world.server_ctl();
-    let mut state = server_ctl.state.write().unwrap();
+    let xmpp_service = world.xmpp_service_mut();
+    let mut state = xmpp_service.state.write().unwrap();
 
     let jid = name_to_jid(world, &name).await?;
     match presence.as_str() {
-        "online" => state.online.insert(jid),
-        "offline" => state.online.remove(&jid),
+        "online" => state.connected.insert(jid),
+        "offline" => state.connected.remove(&jid),
         p => panic!("Unexpected presence: '{p}'"),
     };
 

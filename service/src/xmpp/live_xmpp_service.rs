@@ -19,15 +19,21 @@ use crate::{into_bare_jid, into_full_jid, into_jid, XmppServiceError};
 
 use super::xmpp_client::XMPPClient;
 use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
+use super::NonStandardXmppClient;
 
 pub struct LiveXmppService {
     pub rest_api_url: String,
+    pub non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
 }
 
 impl LiveXmppService {
-    pub fn from_config(config: &Config) -> Self {
+    pub fn from_config(
+        config: &Config,
+        non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
+    ) -> Self {
         Self {
             rest_api_url: config.server.rest_api_url(),
+            non_standard_xmpp_client,
         }
     }
 
@@ -166,6 +172,17 @@ impl XmppServiceImpl for LiveXmppService {
                     })?;
 
                 Ok(())
+            })
+        })
+    }
+
+    fn is_connected(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<bool, XmppServiceError> {
+        tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                self.non_standard_xmpp_client
+                    .is_connected(jid)
+                    .await
+                    .map_err(XmppServiceError::from)
             })
         })
     }
