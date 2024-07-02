@@ -112,14 +112,14 @@ impl<'r> UserFactory<'r> {
         //   after "rollbackable" DB changes in case they fail. It's not perfect
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
-        let server_ctl = self.server_ctl.read().expect("Serverctl lock poisonned");
+        let server_ctl = self.server_ctl;
 
         server_ctl.add_user(jid, password)?;
         if let Some(role) = role {
             server_ctl.set_user_role(jid, &role)?;
         }
 
-        let jwt = self.auth_service.implem().log_in(jid, password)?;
+        let jwt = self.auth_service.log_in(jid, password)?;
         let jwt =
             JWT::try_from(&jwt, self.auth_service).map_err(|e| Error::InternalServerError {
                 reason: format!("The just-created JWT is invalid: {e}"),
@@ -130,8 +130,7 @@ impl<'r> UserFactory<'r> {
             full_jid: jid.to_owned(),
             prosody_token,
         };
-        let xmpp_service =
-            xmpp_service::XmppService::new(self.xmpp_service_inner.inner().clone(), ctx);
+        let xmpp_service = xmpp_service::XmppService::new(self.xmpp_service_inner.inner(), ctx);
 
         // TODO: Create the vCard using a display name instead of the nickname
         xmpp_service.create_own_vcard(nickname)?;

@@ -6,11 +6,11 @@
 use ::service::notifier::{GenericNotifier, Notification};
 use service::config::ConfigBranding;
 
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MockNotifier {
-    pub(crate) state: RwLock<MockNotifierState>,
+    pub(crate) state: Arc<RwLock<MockNotifierState>>,
 }
 
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ pub struct MockNotifierState {
 }
 
 impl MockNotifier {
-    pub fn new(state: RwLock<MockNotifierState>) -> Self {
+    pub fn new(state: Arc<RwLock<MockNotifierState>>) -> Self {
         Self { state }
     }
 }

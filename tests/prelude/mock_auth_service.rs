@@ -11,27 +11,33 @@ use std::sync::{Arc, RwLock};
 
 use crate::mock_server_ctl::MockServerCtlState;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MockAuthService {
-    pub online: bool,
-    jwt_service: Arc<RwLock<JWTService>>,
+    jwt_service: JWTService,
+    pub(crate) state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
+}
+
+#[derive(Debug)]
+pub struct MockAuthServiceState {
+    pub online: bool,
 }
 
 impl MockAuthService {
     pub fn new(
-        jwt_service: Arc<RwLock<JWTService>>,
+        jwt_service: JWTService,
+        state: Arc<RwLock<MockAuthServiceState>>,
         mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
     ) -> Self {
         Self {
-            online: true,
             jwt_service,
+            state,
             mock_server_ctl_state,
         }
     }
 
     fn check_online(&self) -> Result<(), AuthError> {
-        if self.online {
+        if self.state.read().unwrap().online {
             Ok(())
         } else {
             Err(AuthError::Other("XMPP server offline".to_owned()))?
@@ -39,15 +45,17 @@ impl MockAuthService {
     }
 
     pub fn log_in_unchecked(&self, jid: &JID) -> Result<String, AuthError> {
-        let token = self
-            .jwt_service
-            .read()
-            .unwrap()
-            .generate_jwt(jid, |claims| {
-                claims.insert(JWT_PROSODY_TOKEN_KEY, "dummy-prosody-token".to_owned());
-            })?;
+        let token = self.jwt_service.generate_jwt(jid, |claims| {
+            claims.insert(JWT_PROSODY_TOKEN_KEY, "dummy-prosody-token".to_owned());
+        })?;
 
         Ok(token)
+    }
+}
+
+impl Default for MockAuthServiceState {
+    fn default() -> Self {
+        Self { online: true }
     }
 }
 
@@ -69,6 +77,6 @@ impl AuthServiceImpl for MockAuthService {
         self.log_in_unchecked(jid)
     }
     fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {
-        self.jwt_service.read().unwrap().verify(jwt)
+        self.jwt_service.verify(jwt)
     }
 }

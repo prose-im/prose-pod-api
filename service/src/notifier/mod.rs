@@ -8,7 +8,7 @@
 mod email;
 mod generic;
 
-use std::sync::{Arc, RwLock};
+use std::ops::Deref;
 
 use crate::config::ConfigBranding;
 
@@ -20,21 +20,26 @@ pub use self::generic::{
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct AnyNotifier {
-    implem: Arc<RwLock<dyn GenericNotifier>>,
+    implem: Box<dyn GenericNotifier>,
 }
 
 impl AnyNotifier {
-    pub fn new(implem: Arc<RwLock<dyn GenericNotifier>>) -> Self {
+    pub fn new(implem: Box<dyn GenericNotifier>) -> Self {
         Self { implem }
+    }
+}
+
+impl Deref for AnyNotifier {
+    type Target = Box<dyn GenericNotifier>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.implem
     }
 }
 
 impl GenericNotifier for AnyNotifier {
     fn name(&self) -> &'static str {
-        self.implem
-            .read()
-            .expect("`GenericNotifier` lock poisonned")
-            .name()
+        self.deref().name()
     }
 
     fn attempt(
@@ -42,9 +47,6 @@ impl GenericNotifier for AnyNotifier {
         branding: &ConfigBranding,
         notification: &Notification,
     ) -> Result<(), String> {
-        self.implem
-            .read()
-            .expect("`GenericNotifier` lock poisonned")
-            .attempt(branding, notification)
+        self.deref().attempt(branding, notification)
     }
 }

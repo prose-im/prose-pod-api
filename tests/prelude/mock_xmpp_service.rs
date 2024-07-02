@@ -8,30 +8,30 @@ use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
 use service::{prose_xmpp::mods::AvatarData, xmpp_service::VCard, XmppServiceContext};
 
-use std::{fmt::Debug, sync::RwLock};
+use std::{
+    fmt::Debug,
+    sync::{Arc, RwLock},
+};
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct MockXmppService {
-    pub(crate) online: bool,
-    pub(crate) state: RwLock<MockXmppServiceState>,
+    pub(crate) state: Arc<RwLock<MockXmppServiceState>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MockXmppServiceState {
+    pub online: bool,
     pub vcards: LinkedHashMap<JID, VCard>,
     pub avatars: LinkedHashMap<JID, Option<AvatarData>>,
 }
 
 impl MockXmppService {
-    pub fn new(state: RwLock<MockXmppServiceState>) -> Self {
-        Self {
-            online: true,
-            state,
-        }
+    pub fn new(state: Arc<RwLock<MockXmppServiceState>>) -> Self {
+        Self { state }
     }
 
     fn check_online(&self) -> Result<(), Error> {
-        if self.online {
+        if self.state.read().unwrap().online {
             Ok(())
         } else {
             Err(Error::Other("XMPP server offline".to_owned()))?
@@ -39,9 +39,13 @@ impl MockXmppService {
     }
 }
 
-impl Default for MockXmppService {
+impl Default for MockXmppServiceState {
     fn default() -> Self {
-        Self::new(RwLock::default())
+        Self {
+            online: true,
+            vcards: Default::default(),
+            avatars: Default::default(),
+        }
     }
 }
 
