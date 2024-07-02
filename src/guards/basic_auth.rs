@@ -3,18 +3,18 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr;
+use std::str::FromStr as _;
 
-use entity::model::JID;
 use http_auth_basic::Credentials;
 use log::debug;
 use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
+use service::prose_xmpp::BareJid;
 
 use crate::error::{self, Error};
 
 pub struct BasicAuth {
-    pub jid: JID,
+    pub jid: BareJid,
     pub password: String,
 }
 
@@ -29,7 +29,7 @@ impl<'r> FromRequest<'r> for BasicAuth {
             return Error::Unauthorized.into();
         };
         match Credentials::from_header(auth.to_string()) {
-            Ok(creds) => match JID::from_str(&creds.user_id) {
+            Ok(creds) => match BareJid::from_str(&creds.user_id) {
                 Ok(jid) => Outcome::Success(Self {
                     jid,
                     password: creds.password,

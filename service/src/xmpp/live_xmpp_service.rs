@@ -5,18 +5,19 @@
 
 use std::str::FromStr as _;
 
-use entity::model::JID;
 use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
 use prose_xmpp::stanza::avatar::{self, ImageId};
+use prose_xmpp::{BareJid, IDProvider};
 use reqwest::Client as HttpClient;
 use tokio::runtime::Handle;
 use xmpp_parsers::hashes::Sha1HexAttribute;
+use xmpp_parsers::jid::ResourcePart;
 
 use crate::config::Config;
 use crate::prosody::ProsodyRest;
 use crate::xmpp_service::VCard;
-use crate::{into_bare_jid, into_full_jid, into_jid, XmppServiceError};
+use crate::XmppServiceError;
 
 use super::xmpp_client::XMPPClient;
 use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
@@ -26,6 +27,7 @@ pub struct LiveXmppService {
     http_client: HttpClient,
     pub rest_api_url: String,
     pub non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
+    id_provider: Box<dyn IDProvider>,
 }
 
 impl LiveXmppService {
@@ -33,11 +35,13 @@ impl LiveXmppService {
         config: &Config,
         http_client: HttpClient,
         non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
+        id_provider: Box<dyn IDProvider>,
     ) -> Self {
         Self {
             http_client,
             rest_api_url: config.server.rest_api_url(),
             non_standard_xmpp_client,
+            id_provider,
         }
     }
 
@@ -48,14 +52,18 @@ impl LiveXmppService {
             .set_connector_provider(ProsodyRest::provider(http_client, rest_api_url))
             .build();
         xmpp_client
-            .connect(&into_full_jid(&ctx.full_jid), ctx.prosody_token.clone())
+            .connect(
+                &ctx.bare_jid
+                    .with_resource(&ResourcePart::new(&self.id_provider.new_id()).unwrap()),
+                ctx.prosody_token.clone(),
+            )
             .await
             .map_err(XmppServiceError::from)?;
         Ok(xmpp_client)
     }
     pub fn load_latest_avatar_metadata(
         &self,
-        from: &JID,
+        from: &BareJid,
         ctx: &XmppServiceContext,
     ) -> Result<Option<avatar::Info>, XmppServiceError> {
         tokio::task::block_in_place(move || {
@@ -63,7 +71,7 @@ impl LiveXmppService {
                 let xmpp_client = self.xmpp_client(ctx).await?;
                 let profile = xmpp_client.get_mod::<mods::Profile>();
                 profile
-                    .load_latest_avatar_metadata(&into_bare_jid(from))
+                    .load_latest_avatar_metadata(from)
                     .await
                     .map_err(Into::into)
             })
@@ -75,16 +83,13 @@ impl XmppServiceImpl for LiveXmppService {
     fn get_vcard(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
+        jid: &BareJid,
     ) -> Result<Option<VCard>, XmppServiceError> {
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
                 let xmpp_client = self.xmpp_client(ctx).await?;
                 let profile = xmpp_client.get_mod::<mods::Profile>();
-                profile
-                    .load_vcard(into_bare_jid(jid))
-                    .await
-                    .map_err(Into::into)
+                profile.load_vcard(jid.to_owned()).await.map_err(Into::into)
             })
         })
     }
@@ -98,13 +103,13 @@ impl XmppServiceImpl for LiveXmppService {
                 let xmpp_client = self.xmpp_client(ctx).await?;
                 let profile = xmpp_client.get_mod::<mods::Profile>();
 
-                trace!("Setting {}'s vCard…", ctx.full_jid);
+                trace!("Setting {}'s vCard…", ctx.bare_jid);
                 profile.set_vcard(vcard.to_owned()).await?;
-                debug!("Set {}'s vCard", ctx.full_jid);
+                debug!("Set {}'s vCard", ctx.bare_jid);
 
-                trace!("Publishing {}'s vCard…", ctx.full_jid);
+                trace!("Publishing {}'s vCard…", ctx.bare_jid);
                 profile.publish_vcard(vcard.to_owned()).await?;
-                debug!("Published {}'s vCard", ctx.full_jid);
+                debug!("Published {}'s vCard", ctx.bare_jid);
 
                 Ok(())
             })
@@ -114,7 +119,7 @@ impl XmppServiceImpl for LiveXmppService {
     fn get_avatar(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
+        jid: &BareJid,
     ) -> Result<Option<AvatarData>, XmppServiceError> {
         let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx)? else {
             return Ok(None);
@@ -127,7 +132,7 @@ impl XmppServiceImpl for LiveXmppService {
                 let profile = xmpp_client.get_mod::<mods::Profile>();
                 profile
                     .load_avatar_image(
-                        into_jid(jid),
+                        jid.to_owned(),
                         &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
                     )
                     .await
@@ -181,7 +186,11 @@ impl XmppServiceImpl for LiveXmppService {
         })
     }
 
-    fn is_connected(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<bool, XmppServiceError> {
+    fn is_connected(
+        &self,
+        _ctx: &XmppServiceContext,
+        jid: &BareJid,
+    ) -> Result<bool, XmppServiceError> {
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
                 self.non_standard_xmpp_client

@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
 use log::debug;
+use prose_xmpp::BareJid;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
 use serde::Deserialize;
 use tokio::runtime::Handle;
@@ -73,8 +73,12 @@ impl ProsodyOAuth2 {
 impl ProsodyOAuth2 {
     /// Returns an OAuth2 token or `None` if credentials are incorrect.
     /// Returns `Err` if the call failed.
-    pub fn log_in(&self, jid: &JID, password: &str) -> Result<Option<String>, ProsodyOAuth2Error> {
-        let jid = jid.to_string().to_lowercase();
+    pub fn log_in(
+        &self,
+        jid: &BareJid,
+        password: &str,
+    ) -> Result<Option<String>, ProsodyOAuth2Error> {
+        let jid = jid.to_string();
         let response = self.call(
             |client| {
                 client

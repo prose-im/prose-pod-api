@@ -3,12 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{MemberRole, JID};
+use entity::model::MemberRole;
 use entity::{member, workspace_invitation};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use sea_orm_rocket::Connection;
+use service::prose_xmpp::BareJid;
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
 use service::{
     xmpp_service, AuthService, Mutation, Query, ServerCtl, XmppServiceContext, XmppServiceInner,
@@ -100,7 +101,7 @@ impl<'r> UserFactory<'r> {
     pub async fn create_user<'a>(
         &self,
         txn: &DatabaseTransaction,
-        jid: &JID,
+        jid: &BareJid,
         password: &str,
         nickname: &str,
         role: &Option<MemberRole>,
@@ -127,7 +128,7 @@ impl<'r> UserFactory<'r> {
         let prosody_token = jwt.prosody_token()?;
 
         let ctx = XmppServiceContext {
-            full_jid: jid.to_owned(),
+            bare_jid: jid.to_owned(),
             prosody_token,
         };
         let xmpp_service = xmpp_service::XmppService::new(self.xmpp_service_inner.inner(), ctx);

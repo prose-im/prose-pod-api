@@ -6,7 +6,7 @@
 use std::cmp::max;
 
 use cucumber::{given, then, when};
-use entity::{model::JID, prelude::Member};
+use entity::prelude::Member;
 use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::v1::members::Member as MemberDTO;
@@ -14,7 +14,10 @@ use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
 };
-use service::{prose_xmpp::stanza::vcard::Nickname, xmpp_service, Mutation, Query};
+use service::{
+    prose_xmpp::{stanza::vcard::Nickname, BareJid},
+    xmpp_service, Mutation, Query,
+};
 use urlencoding::encode;
 
 use crate::cucumber_parameters::{Array, Text};
@@ -56,7 +59,7 @@ async fn list_members_paged<'a>(
 async fn enrich_members<'a>(
     client: &'a Client,
     token: String,
-    jids: Vec<JID>,
+    jids: Vec<BareJid>,
 ) -> LocalResponse<'a> {
     client
         .get(format!(
@@ -83,8 +86,8 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     };
     for i in 0..n {
         let db = world.db();
-        let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
-        let model = Mutation::create_user(db, jid, &None).await?;
+        let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
+        let model = Mutation::create_user(db, &jid, &None).await?;
         let token = world.auth_service.log_in_unchecked(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));

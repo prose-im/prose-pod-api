@@ -8,7 +8,7 @@ use std::str::FromStr as _;
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use entity::{
-    model::{self, JIDNode, JID},
+    model::{self, JIDNode},
     workspace_invitation::{self, InvitationContact},
 };
 use migration::DbErr;
@@ -23,6 +23,7 @@ use rocket::{
 };
 use serde_json::json;
 use service::{
+    prose_xmpp::BareJid,
     sea_orm::{prelude::*, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set},
     Mutation, MutationError,
 };
@@ -152,17 +153,15 @@ async fn workspace_invitation_admin_action<'a>(
 async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     let email_address = email_address.0;
-    let jid = &JID {
-        node: email_address.to_owned().into(),
-        domain,
-    };
+    let username = email_address.local_part();
+    let jid = BareJid::new(&format!("{username}@{domain}")).unwrap();
 
     // Create invitation
     let db = world.db();
     let model = Mutation::create_workspace_invitation(
         db,
         world.uuid_gen(),
-        jid,
+        &jid,
         Default::default(),
         InvitationContact::Email {
             email_address: email_address.to_owned(),
@@ -201,13 +200,12 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     for i in 0..n {
         let db = world.db();
-        let jid = &JID::new(format!("person.{i}"), domain.to_owned()).unwrap();
-        let email_address =
-            model::EmailAddress::from_str(format!("person.{i}@{domain}").as_str()).unwrap();
+        let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
+        let email_address = model::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
         let model = Mutation::create_workspace_invitation(
             db,
             world.uuid_gen(),
-            jid,
+            &jid,
             Default::default(),
             InvitationContact::Email {
                 email_address: email_address.clone(),

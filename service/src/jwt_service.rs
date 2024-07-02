@@ -3,9 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::JID;
 use hmac::{Hmac, Mac};
 use jwt::{SignWithKey as _, VerifyWithKey as _};
+use prose_xmpp::BareJid;
 use sha2::Sha256;
 use std::{collections::BTreeMap, env};
 
@@ -29,7 +29,7 @@ impl JWTService {
 
     pub fn generate_jwt(
         &self,
-        jid: &JID,
+        jid: &BareJid,
         add_claims: impl FnOnce(&mut BTreeMap<&str, String>) -> (),
     ) -> Result<String, JWTError> {
         let jwt_key = self.jwt_key.as_hmac_sha_256()?;

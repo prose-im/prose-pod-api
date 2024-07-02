@@ -8,13 +8,13 @@ use std::ops::Deref;
 
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
-use entity::model::JID;
 use rocket::form::Strict;
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::prose_xmpp::BareJid;
 use service::Query;
 
 use super::models::*;
@@ -50,7 +50,7 @@ pub(super) async fn get_members(
     ))
 }
 
-fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
+fn enriched_member(xmpp_service: &XmppService, jid: &BareJid) -> EnrichedMember {
     trace!("Enriching `{jid}`…");
 
     let vcard = match xmpp_service.get_vcard(jid) {
@@ -103,7 +103,7 @@ fn enriched_member(xmpp_service: &XmppService, jid: &JID) -> EnrichedMember {
 pub(super) fn enrich_members<'r>(
     xmpp_service: LazyGuard<XmppService<'r>>,
     jids: Strict<JIDs>,
-) -> Result<Json<HashMap<JID, EnrichedMember>>, Error> {
+) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let xmpp_service = xmpp_service.inner?;
     let jids = jids.into_inner();
 
@@ -169,7 +169,7 @@ pub struct SetMemberNicknameRequest {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetMemberNicknameResponse {
-    jid: JID,
+    jid: BareJid,
     nickname: String,
 }
 
@@ -205,7 +205,7 @@ pub struct SetMemberAvatarRequest {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetMemberAvatarResponse {
-    jid: JID,
+    jid: BareJid,
     // Base64 encoded image
     image: String,
 }

@@ -9,6 +9,7 @@ extern crate rocket;
 use prose_pod_api::custom_rocket;
 use service::config::Config;
 use service::dependencies::Notifier;
+use service::prose_xmpp::UUIDProvider;
 use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
 use service::xmpp::LiveXmppService;
 use service::{AuthService, HttpClient, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
@@ -31,6 +32,7 @@ fn rocket() -> _ {
         &config,
         http_client.clone(),
         Box::new(prosody_admin_rest),
+        Box::new(UUIDProvider::new()),
     )));
     let prosody_oauth2 = ProsodyOAuth2::from_config(&config, http_client.clone());
     let auth_service =

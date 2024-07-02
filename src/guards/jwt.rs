@@ -4,13 +4,14 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
-use entity::model;
 use log::debug;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use secrecy::Secret;
+use service::prose_xmpp::BareJid;
 use service::{AuthService, JWT_JID_KEY, JWT_PROSODY_TOKEN_KEY};
 
 use crate::error::{self, Error};
@@ -67,12 +68,12 @@ impl<'r> LazyFromRequest<'r> for JWT {
 }
 
 impl JWT {
-    pub fn jid(&self) -> Result<model::JID, <Self as LazyFromRequest>::Error> {
+    pub fn jid(&self) -> Result<BareJid, <Self as LazyFromRequest>::Error> {
         let Some(jid) = self.claims.get(JWT_JID_KEY) else {
             debug!("The provided JWT does not contain a '{JWT_JID_KEY}' claim");
             Err(Error::Unauthorized)?
         };
-        model::JID::try_from(jid.clone()).map_err(|e| {
+        BareJid::from_str(jid.as_str()).map_err(|e| {
             debug!("The JID present in the JWT could not be parsed to a valid JID: {e}");
             Error::Unauthorized
         })

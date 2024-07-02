@@ -6,7 +6,7 @@
 use ::entity::model::MemberRole;
 use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
-use entity::model::{JIDNode, JID};
+use entity::model::JIDNode;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use rocket::response::status::{self, NoContent};
@@ -15,6 +15,7 @@ use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config;
+use service::prose_xmpp::BareJid;
 use service::sea_orm::{prelude::*, EntityTrait};
 use service::{Mutation, Query};
 
@@ -26,6 +27,7 @@ use crate::guards::{
     JID as JIDGuard,
 };
 use crate::responders::Paginated;
+use crate::util::{bare_jid_from_username, to_bare_jid};
 use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
@@ -38,11 +40,8 @@ pub struct InviteMemberRequest {
 }
 
 impl InviteMemberRequest {
-    fn jid(&self, server_config: &ServerConfig) -> JID {
-        JID {
-            node: self.username.to_owned(),
-            domain: server_config.domain.to_owned(),
-        }
+    fn jid(&self, server_config: &ServerConfig) -> Result<BareJid, Error> {
+        bare_jid_from_username(self.username.to_string(), server_config)
     }
 }
 
@@ -71,7 +70,7 @@ pub(super) async fn invite_member<'r>(
     let invitation = Mutation::create_workspace_invitation(
         db,
         &uuid_gen,
-        &req.jid(&server_config),
+        &req.jid(&server_config)?,
         req.pre_assigned_role,
         req.contact.clone(),
     )
@@ -189,7 +188,7 @@ pub struct WorkspaceInvitation {
     pub invitation_id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
-    pub jid: JID,
+    pub jid: BareJid,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
     pub accept_token_expires_at: DateTimeUtc,
@@ -201,7 +200,7 @@ impl From<workspace_invitation::Model> for WorkspaceInvitation {
             invitation_id: value.id,
             created_at: value.created_at,
             status: value.status,
-            jid: value.jid.to_owned(),
+            jid: to_bare_jid(&value.jid).unwrap(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,

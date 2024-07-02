@@ -3,11 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr;
+use std::str::FromStr as _;
 
+use jid::BareJid;
 use sea_orm::{entity::prelude::*, Set};
 
-use crate::model::{MemberRole, JID};
+use crate::model::MemberRole;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "member")]
@@ -19,19 +20,19 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn jid(&self) -> JID {
-        JID::from_str(&self.id).unwrap()
+    pub fn jid(&self) -> BareJid {
+        BareJid::from_str(&self.id).unwrap()
     }
 }
 
 impl ActiveModel {
-    pub fn set_jid(&mut self, jid: &JID) {
+    pub fn set_jid(&mut self, jid: &BareJid) {
         self.id = Set(jid.to_string());
     }
 }
 
 impl Entity {
-    pub fn find_by_jid(jid: &JID) -> Select<Self> {
+    pub fn find_by_jid(jid: &BareJid) -> Select<Self> {
         Self::find_by_id(jid.to_string())
     }
 }

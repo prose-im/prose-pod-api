@@ -7,15 +7,17 @@
 
 mod defaults;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
-use entity::model::{JIDNode, JID};
+use entity::model::JIDNode;
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use prose_xmpp::BareJid;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
+use xmpp_parsers::jid::{DomainPart, NodePart};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -41,13 +43,13 @@ impl Config {
             .expect("Could not read config")
     }
 
-    pub fn api_jid(&self) -> JID {
+    pub fn api_jid(&self) -> BareJid {
         // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
         //   to the Prose Pod and cannot be changed via configuration.
-        JID {
-            node: self.api.admin_node.to_owned(),
-            domain: "admin.prose.org.local".to_owned(),
-        }
+        BareJid::from_parts(
+            Some(&NodePart::from_str(&self.api.admin_node).unwrap()),
+            &DomainPart::from_str("admin.prose.org.local").unwrap(),
+        )
     }
 }
 

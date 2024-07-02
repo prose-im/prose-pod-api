@@ -9,23 +9,22 @@ pub mod members;
 pub mod server;
 pub mod workspace;
 
-use std::str::FromStr;
-
 use cucumber::given;
-use entity::model::{self, JIDNode, MemberRole, JID};
+use entity::model::MemberRole;
 use prose_pod_api::error::Error;
-use service::Mutation;
+use service::{prose_xmpp::BareJid, Mutation};
 
 use crate::TestWorld;
 
-async fn name_to_jid(world: &TestWorld, name: &str) -> Result<JID, Error> {
-    let jid_node = name.to_lowercase().replace(" ", "-");
+async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
     let domain = world.server_config().await?.domain;
-    Ok(model::JID {
-        node: JIDNode::from_str(&jid_node)
-            .expect(&format!("JID node '{}' constructed from '{}' is invalid. Choose a different name or improve this function.", jid_node, name)),
-        domain,
-    })
+    Ok(
+        BareJid::new(&format!("{name}@{domain}")).map_err(|err| Error::InternalServerError {
+            reason: format!(
+                "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
+            ),
+        })?,
+    )
 }
 
 #[given(expr = "{} is an admin")]
