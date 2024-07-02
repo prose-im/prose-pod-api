@@ -14,14 +14,7 @@ authors = [
 ]
 
 [workspace]
-members = [
-    ".",
-    "entity",
-    "migration",
-    "prosody-config",
-    "prosodyctl",
-    "service",
-]
+members = [".", "entity", "migration", "prosody-config", "service"]
 
 [dependencies]
 async-stream = "0.3"
