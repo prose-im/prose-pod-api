@@ -8,7 +8,7 @@ use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
 use service::{prose_xmpp::mods::AvatarData, xmpp_service::VCard, XmppServiceContext};
 
-use std::{fmt::Debug, sync::RwLock};
+use std::{collections::HashSet, fmt::Debug, sync::RwLock};
 
 #[derive(Debug)]
 pub struct MockXmppService {
@@ -20,6 +20,7 @@ pub struct MockXmppService {
 pub struct MockXmppServiceState {
     pub vcards: LinkedHashMap<JID, VCard>,
     pub avatars: LinkedHashMap<JID, Option<AvatarData>>,
+    pub connected: HashSet<JID>,
 }
 
 impl MockXmppService {
@@ -89,6 +90,12 @@ impl MockXmppService {
         );
         Ok(())
     }
+
+    fn is_connected(&self, jid: &JID) -> Result<bool, Error> {
+        self.check_online()?;
+
+        Ok(self.state.read().unwrap().connected.contains(jid))
+    }
 }
 
 impl XmppServiceImpl for MockXmppService {
@@ -108,5 +115,9 @@ impl XmppServiceImpl for MockXmppService {
     }
     fn set_own_avatar(&self, ctx: &XmppServiceContext, image_data: Vec<u8>) -> Result<(), Error> {
         self.set_avatar(&ctx.full_jid, Some(image_data))
+    }
+
+    fn is_connected(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<bool, Error> {
+        self.is_connected(jid)
     }
 }

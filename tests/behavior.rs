@@ -97,7 +97,7 @@ async fn main() {
 
 fn test_rocket(
     config: &Config,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
+    server_ctl: Box<MockServerCtl>,
     xmpp_service: Arc<RwLock<MockXmppService>>,
     auth_service: Arc<RwLock<MockAuthService>>,
     notifier: Arc<RwLock<MockNotifier>>,
@@ -119,7 +119,7 @@ fn test_rocket(
 
 pub async fn rocket_test_client(
     config: Arc<Config>,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
+    server_ctl: Box<MockServerCtl>,
     xmpp_service: Arc<RwLock<MockXmppService>>,
     auth_service: Arc<RwLock<MockAuthService>>,
     notifier: Arc<RwLock<MockNotifier>>,
@@ -182,7 +182,7 @@ impl From<LocalResponse<'_>> for Response {
 #[world(init = Self::new)]
 pub struct TestWorld {
     config: Arc<Config>,
-    server_ctl: Arc<RwLock<MockServerCtl>>,
+    server_ctl: MockServerCtl,
     auth_service: Arc<RwLock<MockAuthService>>,
     xmpp_service: Arc<RwLock<MockXmppService>>,
     notifier: Arc<RwLock<MockNotifier>>,
@@ -214,9 +214,7 @@ impl TestWorld {
     /// and this could impact "Then" steps.
     /// This method resets the counters.
     fn reset_server_ctl_counts(&self) {
-        let server_ctl = self.server_ctl();
-        let mut state = server_ctl.state.write().unwrap();
-        state.conf_reload_count = 0;
+        self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
     async fn server_manager(&self) -> Result<ServerManager, Error> {
@@ -241,12 +239,12 @@ impl TestWorld {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl(&self) -> RwLockReadGuard<MockServerCtl> {
-        self.server_ctl.read().unwrap()
+    fn server_ctl_state(&self) -> RwLockReadGuard<MockServerCtlState> {
+        self.server_ctl.state.read().unwrap()
     }
 
-    fn server_ctl_mut(&self) -> RwLockWriteGuard<MockServerCtl> {
-        self.server_ctl.write().unwrap()
+    fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
+        self.server_ctl.state.write().unwrap()
     }
 
     fn auth_service(&self) -> RwLockReadGuard<MockAuthService> {
@@ -300,7 +298,6 @@ impl TestWorld {
         let config = Arc::new(Config::figment());
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
-        let server_ctl: Arc<RwLock<MockServerCtl>> = Arc::new(RwLock::new(mock_server_ctl));
         let xmpp_service: Arc<RwLock<MockXmppService>> = Arc::default();
         let notifier: Arc<RwLock<MockNotifier>> = Arc::default();
         let jwt_service = Arc::new(RwLock::new(JWTService::new(JWTKey::custom("test_key"))));
@@ -311,12 +308,18 @@ impl TestWorld {
 
         Self {
             config: config.clone(),
-            server_ctl: server_ctl.clone(),
+            server_ctl: mock_server_ctl.clone(),
             xmpp_service: xmpp_service.clone(),
             auth_service: auth_service.clone(),
             notifier: notifier.clone(),
-            client: rocket_test_client(config, server_ctl, xmpp_service, auth_service, notifier)
-                .await,
+            client: rocket_test_client(
+                config,
+                Box::new(mock_server_ctl.clone()),
+                xmpp_service,
+                auth_service,
+                notifier,
+            )
+            .await,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),
@@ -329,7 +332,7 @@ impl TestWorld {
 #[given("the XMPP server is offline")]
 fn given_xmpp_server_offline(world: &mut TestWorld) {
     world.xmpp_service_mut().online = false;
-    world.server_ctl_mut().online = false;
+    world.server_ctl_state_mut().online = false;
 }
 
 #[then("the call should succeed")]

@@ -31,6 +31,7 @@ impl From<member::Model> for Member {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EnrichedMember {
     pub jid: JID,
+    pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,
 }
