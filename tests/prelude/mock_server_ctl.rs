@@ -12,7 +12,6 @@ use linked_hash_map::LinkedHashMap;
 use service::config::Config;
 use service::prosody::ProsodyConfig;
 
-use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Default, Clone)]
@@ -32,7 +31,6 @@ pub struct MockServerCtlState {
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfig>,
     pub users: LinkedHashMap<JID, UserAccount>,
-    pub online_members: HashSet<JID>,
 }
 
 impl MockServerCtl {
@@ -56,7 +54,6 @@ impl Default for MockServerCtlState {
             conf_reload_count: Default::default(),
             applied_config: Default::default(),
             users: Default::default(),
-            online_members: Default::default(),
         }
     }
 }

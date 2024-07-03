@@ -9,6 +9,7 @@ use linked_hash_map::LinkedHashMap;
 use service::{prose_xmpp::mods::AvatarData, xmpp_service::VCard, XmppServiceContext};
 
 use std::{
+    collections::HashSet,
     fmt::Debug,
     sync::{Arc, RwLock},
 };
@@ -23,6 +24,7 @@ pub struct MockXmppServiceState {
     pub online: bool,
     pub vcards: LinkedHashMap<JID, VCard>,
     pub avatars: LinkedHashMap<JID, Option<AvatarData>>,
+    pub online_members: HashSet<JID>,
 }
 
 impl MockXmppService {
@@ -45,6 +47,7 @@ impl Default for MockXmppServiceState {
             online: true,
             vcards: Default::default(),
             avatars: Default::default(),
+            online_members: Default::default(),
         }
     }
 }
@@ -93,6 +96,12 @@ impl MockXmppService {
         );
         Ok(())
     }
+
+    fn is_connected(&self, jid: &JID) -> Result<bool, Error> {
+        self.check_online()?;
+
+        Ok(self.state.read().unwrap().online_members.contains(jid))
+    }
 }
 
 impl XmppServiceImpl for MockXmppService {
@@ -112,5 +121,9 @@ impl XmppServiceImpl for MockXmppService {
     }
     fn set_own_avatar(&self, ctx: &XmppServiceContext, image_data: Vec<u8>) -> Result<(), Error> {
         self.set_avatar(&ctx.full_jid, Some(image_data))
+    }
+
+    fn is_connected(&self, _ctx: &XmppServiceContext, jid: &JID) -> Result<bool, Error> {
+        self.is_connected(jid)
     }
 }
