@@ -1,12 +1,12 @@
 [package]
 name = "prose-pod-api"
-version = "0.2.0"
+version = { workspace = true }
 description = "Prose Pod API server."
 readme = "README.md"
-license = "MPL-2.0"
-edition = "2021"
-homepage = "https://github.com/prose-im/prose-pod-api"
-repository = "https://github.com/prose-im/prose-pod-api.git"
+license = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
 publish = false
 authors = [
     "Valerian Saliou <valerian@valeriansaliou.name>",
@@ -15,6 +15,13 @@ authors = [
 
 [workspace]
 members = [".", "entity", "migration", "prosody-config", "service"]
+
+[workspace.package]
+version = "0.2.0"
+license = "MPL-2.0"
+edition = "2021"
+homepage = "https://github.com/prose-im/prose-pod-api"
+repository = "https://github.com/prose-im/prose-pod-api.git"
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
