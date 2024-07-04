@@ -12,8 +12,8 @@ use rocket::{outcome::try_outcome, request::Outcome, Request, State};
 use service::{
     config::ConfigBranding,
     notifier::Notification,
+    repositories::MemberRepository,
     sea_orm::{prelude::*, ActiveModelBehavior, DatabaseConnection, Set},
-    Query,
 };
 
 use crate::error::{self, Error};
@@ -45,7 +45,7 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
             )));
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match Query::is_admin(db, &jid).await {
+        match MemberRepository::is_admin(db, &jid).await {
             Ok(true) => {}
             Ok(false) => {
                 debug!("<{}> is not an admin", jid.to_string());

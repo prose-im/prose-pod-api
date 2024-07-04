@@ -12,7 +12,11 @@ use ::entity::{
 use ::migration::{self, MigratorTrait};
 use cucumber::World;
 use sea_orm::*;
-use service::{config::Config, prosody::ProsodyConfig, Mutation};
+use service::{
+    config::Config,
+    prosody::ProsodyConfig,
+    repositories::{ServerConfigRepository, WorkspaceRepository},
+};
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
@@ -55,7 +59,7 @@ impl TestWorld {
             domain: Set("prose.test.org".to_string()),
             ..Default::default()
         };
-        let server_config = match Mutation::create_server_config(&db, server_config).await {
+        let server_config = match ServerConfigRepository::create(&db, server_config).await {
             Ok(conf) => conf,
             Err(e) => panic!("Could not create server config: {e}"),
         };
@@ -64,7 +68,7 @@ impl TestWorld {
             name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
             ..Default::default()
         };
-        let _workspace = match Mutation::create_workspace(&db, workspace).await {
+        let _workspace = match WorkspaceRepository::create(&db, workspace).await {
             Ok(conf) => conf,
             Err(e) => panic!("Could not create workspace: {e}"),
         };

@@ -16,7 +16,8 @@ use rocket::{
 };
 use service::{
     prose_xmpp::{stanza::vcard::Nickname, BareJid},
-    xmpp_service, Mutation, Query,
+    repositories::MemberRepository,
+    xmpp_service,
 };
 use urlencoding::encode;
 
@@ -82,12 +83,12 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     let n = {
         let db = world.db();
-        max(0u64, n - Query::get_member_count(db).await?)
+        max(0u64, n - MemberRepository::count(db).await?)
     };
     for i in 0..n {
         let db = world.db();
         let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
-        let model = Mutation::create_user(db, &jid, &None).await?;
+        let model = MemberRepository::create(db, &jid, &None).await?;
         let token = world.auth_service.log_in_unchecked(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));

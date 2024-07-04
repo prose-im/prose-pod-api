@@ -14,8 +14,9 @@ use prose_pod_api::v1::init::{
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::repositories::WorkspaceRepository;
 use service::sea_orm::Set;
-use service::{Mutation, ServerCtl};
+use service::ServerCtl;
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -48,7 +49,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
         ..Default::default()
     };
-    Mutation::create_workspace(db, form).await?;
+    WorkspaceRepository::create(db, form).await?;
     Ok(())
 }
 

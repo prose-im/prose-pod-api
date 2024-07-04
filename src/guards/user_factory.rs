@@ -9,10 +9,9 @@ use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use service::prose_xmpp::BareJid;
+use service::repositories::{InvitationRepository, MemberRepository, ServerConfigRepository};
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
-use service::{
-    xmpp_service, AuthService, Mutation, Query, ServerCtl, XmppServiceContext, XmppServiceInner,
-};
+use service::{xmpp_service, AuthService, ServerCtl, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 
@@ -64,7 +63,7 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
         let db = try_outcome!(database_connection(req).await);
-        match Query::server_config(db).await {
+        match ServerConfigRepository::get(db).await {
             Ok(Some(_)) => {}
             Ok(None) => return Error::ServerConfigNotInitialized.into(),
             Err(err) => return Error::DbErr(err).into(),
@@ -100,7 +99,7 @@ impl<'r> UserFactory<'r> {
         role: &Option<MemberRole>,
     ) -> Result<member::Model, Error> {
         // Create the user in database
-        let member = Mutation::create_user(txn, &jid, role).await?;
+        let member = MemberRepository::create(txn, &jid, role).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -153,7 +152,7 @@ impl<'r> UserFactory<'r> {
         .await?;
 
         // Delete the invitation from database
-        Mutation::accept_workspace_invitation(&txn, invitation).await?;
+        InvitationRepository::accept(&txn, invitation).await?;
 
         // Commit the transaction if everything went well
         txn.commit().await?;

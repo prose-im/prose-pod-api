@@ -8,7 +8,7 @@ use std::ops::Deref;
 use entity::server_config;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use service::Query;
+use service::repositories::ServerConfigRepository;
 
 use crate::error::{self, Error};
 
@@ -40,7 +40,7 @@ impl<'r> LazyFromRequest<'r> for ServerConfig {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
 
-        match Query::server_config(db).await {
+        match ServerConfigRepository::get(db).await {
             Ok(Some(server_config)) => Outcome::Success(Self(server_config)),
             Ok(None) => Error::ServerConfigNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),

@@ -12,7 +12,7 @@ pub mod workspace;
 use cucumber::given;
 use entity::model::MemberRole;
 use prose_pod_api::error::Error;
-use service::{prose_xmpp::BareJid, Mutation};
+use service::{prose_xmpp::BareJid, repositories::MemberRepository};
 
 use crate::TestWorld;
 
@@ -32,7 +32,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
     let jid = name_to_jid(world, &name).await?;
-    let model = Mutation::create_user(db, &jid, &Some(MemberRole::Admin)).await?;
+    let model = MemberRepository::create(db, &jid, &Some(MemberRole::Admin)).await?;
 
     let token = world.auth_service.log_in_unchecked(&jid)?;
 
@@ -46,7 +46,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     let db = world.db();
 
     let jid = name_to_jid(world, &name).await?;
-    let model = Mutation::create_user(db, &jid, &Some(MemberRole::Member)).await?;
+    let model = MemberRepository::create(db, &jid, &Some(MemberRole::Member)).await?;
 
     let token = world.auth_service.log_in_unchecked(&jid)?;
 

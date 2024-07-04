@@ -24,8 +24,9 @@ use rocket::{
 use serde_json::json;
 use service::{
     prose_xmpp::BareJid,
+    repositories::InvitationRepository,
     sea_orm::{prelude::*, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set},
-    Mutation, MutationError,
+    MutationError,
 };
 
 use crate::{
@@ -158,7 +159,7 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
 
     // Create invitation
     let db = world.db();
-    let model = Mutation::create_workspace_invitation(
+    let model = InvitationRepository::create(
         db,
         world.uuid_gen(),
         &jid,
@@ -202,7 +203,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
         let db = world.db();
         let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
         let email_address = model::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
-        let model = Mutation::create_workspace_invitation(
+        let model = InvitationRepository::create(
             db,
             world.uuid_gen(),
             &jid,
@@ -223,7 +224,7 @@ async fn given_invitation_received(
     email_address: EmailAddress,
 ) -> Result<(), MutationError> {
     let db = world.db();
-    Mutation::update_workspace_invitation_status_by_email(
+    InvitationRepository::update_status_by_email(
         db,
         email_address.0,
         model::InvitationStatus::Sent,
@@ -243,8 +244,7 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
     // Resend invitation
     let db = world.db();
-    let model =
-        Mutation::resend_workspace_invitation(db, world.uuid_gen(), invitation_before).await?;
+    let model = InvitationRepository::resend(db, world.uuid_gen(), invitation_before).await?;
 
     // Store current invitation data
     world
@@ -278,7 +278,7 @@ async fn given_invitation_expired(world: &mut TestWorld) -> Result<(), MutationE
 #[given("the invitation did not go through")]
 async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), MutationError> {
     let db = world.db();
-    Mutation::update_workspace_invitation_status(
+    InvitationRepository::update_status(
         db,
         world.scenario_workspace_invitation().1,
         model::InvitationStatus::SendFailed,

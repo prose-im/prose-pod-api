@@ -15,7 +15,7 @@ use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::prose_xmpp::BareJid;
-use service::Query;
+use service::repositories::MemberRepository;
 
 use super::models::*;
 use crate::error::Error;
@@ -41,7 +41,8 @@ pub(super) async fn get_members(
         Some(t) => Some(t.try_into()?),
         None => None,
     };
-    let (pages_metadata, members) = Query::get_members(db, page_number, page_size, until).await?;
+    let (pages_metadata, members) =
+        MemberRepository::get_all(db, page_number, page_size, until).await?;
     Ok(Paginated::new(
         members.into_iter().map(Into::into).collect(),
         page_number,

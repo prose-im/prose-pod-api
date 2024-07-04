@@ -9,8 +9,8 @@ use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::repositories::WorkspaceRepository;
 use service::sea_orm::{ActiveModelTrait as _, Set};
-use service::Query;
 
 use crate::error::Error;
 use crate::guards::{Db, LazyGuard, Workspace};
@@ -18,7 +18,7 @@ use crate::v1::R;
 
 #[get("/v1/workspace")]
 pub async fn get_workspace(conn: Connection<'_, Db>) -> R<workspace::Model> {
-    match Query::workspace(conn.into_inner()).await? {
+    match WorkspaceRepository::get(conn.into_inner()).await? {
         Some(workspace) => Ok(workspace.into()),
         None => Err(Error::WorkspaceNotInitialized),
     }
