@@ -4,6 +4,16 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
+use prose_pod_core::config::Config;
+use prose_pod_core::prose_xmpp::BareJid;
+use prose_pod_core::repositories::{
+    InvitationContact, InvitationCreateForm, InvitationRepository, InvitationStatus,
+    MemberRepository,
+};
+use prose_pod_core::sea_orm::prelude::*;
+use prose_pod_core::util::to_bare_jid;
+use prose_pod_core::JIDNode;
+use prose_pod_core::MemberRole;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use rocket::response::status::{self, NoContent};
@@ -11,16 +21,6 @@ use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::config::Config;
-use service::prose_xmpp::BareJid;
-use service::repositories::{
-    InvitationContact, InvitationCreateForm, InvitationRepository, InvitationStatus,
-    MemberRepository,
-};
-use service::sea_orm::prelude::*;
-use service::util::to_bare_jid;
-use service::JIDNode;
-use service::MemberRole;
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
@@ -196,8 +196,8 @@ pub struct WorkspaceInvitation {
     pub accept_token_expires_at: DateTimeUtc,
 }
 
-impl From<service::repositories::Invitation> for WorkspaceInvitation {
-    fn from(value: service::repositories::Invitation) -> Self {
+impl From<prose_pod_core::repositories::Invitation> for WorkspaceInvitation {
+    fn from(value: prose_pod_core::repositories::Invitation) -> Self {
         Self {
             invitation_id: value.id,
             created_at: value.created_at,

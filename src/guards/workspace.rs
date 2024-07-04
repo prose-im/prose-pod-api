@@ -5,15 +5,15 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::repositories::WorkspaceRepository;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use service::repositories::WorkspaceRepository;
 
 use crate::error::{self, Error};
 
 use super::{database_connection, LazyFromRequest};
 
-type WorkspaceModel = service::repositories::Workspace;
+type WorkspaceModel = prose_pod_core::repositories::Workspace;
 
 // TODO: Make it so we can call `workspace.field` directly
 // instead of `workspace.model.field`.

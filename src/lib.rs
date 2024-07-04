@@ -18,15 +18,15 @@ use guards::{Db, UnauthenticatedServerManager};
 
 use log::{debug, info};
 use migration::MigratorTrait;
+use prose_pod_core::config::Config;
+use prose_pod_core::dependencies::Uuid;
+use prose_pod_core::repositories::ServerConfigRepository;
+use prose_pod_core::{ServerCtl, XmppServiceInner};
 use rocket::fairing::{self, AdHoc};
 use rocket::fs::{FileServer, NamedFile};
 use rocket::http::Status;
 use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
-use service::config::Config;
-use service::dependencies::Uuid;
-use service::repositories::ServerConfigRepository;
-use service::{ServerCtl, XmppServiceInner};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(

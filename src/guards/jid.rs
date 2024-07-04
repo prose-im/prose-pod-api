@@ -5,10 +5,10 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::prose_xmpp::BareJid;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::prose_xmpp::BareJid;
 
 use crate::error::{self};
 

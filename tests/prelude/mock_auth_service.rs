@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::prose_xmpp::BareJid;
-use service::{AuthError, AuthServiceImpl, JWTError, JWTService, JWT_PROSODY_TOKEN_KEY};
+use prose_pod_core::prose_xmpp::BareJid;
+use prose_pod_core::{AuthError, AuthServiceImpl, JWTError, JWTService, JWT_PROSODY_TOKEN_KEY};
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};

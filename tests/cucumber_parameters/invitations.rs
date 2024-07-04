@@ -9,7 +9,7 @@ use cucumber::Parameter;
 
 // ===== Invitation channel =====
 
-type InvitationChannelModel = service::repositories::InvitationChannel;
+type InvitationChannelModel = prose_pod_core::repositories::InvitationChannel;
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_channel", regex = r"Email")]
@@ -36,7 +36,7 @@ impl FromStr for InvitationChannel {
 
 // ===== Invitation status =====
 
-type InvitationStatusModel = service::repositories::InvitationStatus;
+type InvitationStatusModel = prose_pod_core::repositories::InvitationStatus;
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]

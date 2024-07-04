@@ -7,11 +7,11 @@
 // - <https://github.com/SeaQL/sea-orm/blob/53ec0e15488ea71d5da71b1d3ac3f2d9a3b2b97d/examples/rocket_example/api/src/pool.rs>
 
 use async_trait::async_trait;
+use prose_pod_core::sea_orm;
 use sea_orm_rocket::{
     rocket::{figment::Figment, request::Outcome, Request},
     Config, Connection, Database,
 };
-use service::sea_orm;
 use std::time::Duration;
 
 use crate::error::Error;

@@ -6,14 +6,14 @@
 use std::{fmt, io::Cursor};
 
 use http_auth_basic::AuthBasicError;
+#[cfg(debug_assertions)]
+use prose_pod_core::JWTError;
+use prose_pod_core::{sea_orm, AuthError, MutationError};
+use prose_pod_core::{server_ctl, xmpp_service};
 use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
-#[cfg(debug_assertions)]
-use service::JWTError;
-use service::{sea_orm, AuthError, MutationError};
-use service::{server_ctl, xmpp_service};
 
 use crate::guards::NotifierError;
 

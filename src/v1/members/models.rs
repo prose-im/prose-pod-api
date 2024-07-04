@@ -5,12 +5,12 @@
 
 use std::{fmt::Display, ops::Deref};
 
+use prose_pod_core::{prose_xmpp::BareJid, MemberRole};
 use serde::{Deserialize, Serialize};
-use service::{prose_xmpp::BareJid, MemberRole};
 
 use crate::forms::JID as JIDUriParam;
 
-type MemberModel = service::repositories::Member;
+type MemberModel = prose_pod_core::repositories::Member;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {

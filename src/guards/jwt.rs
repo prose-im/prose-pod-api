@@ -7,12 +7,12 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use log::debug;
+use prose_pod_core::prose_xmpp::BareJid;
+use prose_pod_core::{AuthService, JWT_JID_KEY, JWT_PROSODY_TOKEN_KEY};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use secrecy::Secret;
-use service::prose_xmpp::BareJid;
-use service::{AuthService, JWT_JID_KEY, JWT_PROSODY_TOKEN_KEY};
 
 use crate::error::{self, Error};
 

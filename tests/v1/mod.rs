@@ -11,7 +11,7 @@ pub mod workspace;
 
 use cucumber::given;
 use prose_pod_api::error::Error;
-use service::{
+use prose_pod_core::{
     prose_xmpp::BareJid,
     repositories::{MemberCreateForm, MemberRepository},
     MemberRole,

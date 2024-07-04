@@ -13,19 +13,19 @@ use prose_pod_api::v1::invitations::{
     AcceptWorkspaceInvitationRequest, InvitationTokenType as TokenType, InviteMemberRequest,
     WorkspaceInvitation,
 };
-use rocket::{
-    http::{Accept, ContentType, Header},
-    local::asynchronous::{Client, LocalResponse},
-};
-use serde_json::json;
-use service::repositories::InvitationContact;
-use service::JIDNode;
-use service::{
+use prose_pod_core::repositories::InvitationContact;
+use prose_pod_core::JIDNode;
+use prose_pod_core::{
     prose_xmpp::BareJid,
     repositories::{InvitationCreateForm, InvitationRepository},
     sea_orm::{prelude::*, IntoActiveModel as _, Set},
     MutationError,
 };
+use rocket::{
+    http::{Accept, ContentType, Header},
+    local::asynchronous::{Client, LocalResponse},
+};
+use serde_json::json;
 
 use crate::{
     cucumber_parameters::{EmailAddress, InvitationStatus, MemberRole, Text},
@@ -201,7 +201,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     for i in 0..n {
         let email_address =
-            service::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
+            prose_pod_core::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
         let model = InvitationRepository::create(
             world.db(),
             InvitationCreateForm {
@@ -229,7 +229,7 @@ async fn given_invitation_received(
     InvitationRepository::update_status_by_email(
         db,
         email_address.0,
-        service::repositories::InvitationStatus::Sent,
+        prose_pod_core::repositories::InvitationStatus::Sent,
     )
     .await?;
     Ok(())
@@ -283,7 +283,7 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     InvitationRepository::update_status(
         db,
         world.scenario_workspace_invitation().1,
-        service::repositories::InvitationStatus::SendFailed,
+        prose_pod_core::repositories::InvitationStatus::SendFailed,
     )
     .await?;
     Ok(())

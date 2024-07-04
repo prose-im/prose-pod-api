@@ -3,19 +3,19 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_pod_core::config::Config as AppConfig;
+use prose_pod_core::repositories::{
+    MemberRepository, ServerConfig, ServerConfigCreateForm, Workspace, WorkspaceCreateForm,
+    WorkspaceRepository,
+};
+use prose_pod_core::sea_orm::TransactionTrait as _;
+use prose_pod_core::ServerCtl;
+use prose_pod_core::{JIDNode, MemberRole};
 use rocket::response::status;
 use rocket::serde::json::Json;
 use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::config::Config as AppConfig;
-use service::repositories::{
-    MemberRepository, ServerConfig, ServerConfigCreateForm, Workspace, WorkspaceCreateForm,
-    WorkspaceRepository,
-};
-use service::sea_orm::TransactionTrait as _;
-use service::ServerCtl;
-use service::{JIDNode, MemberRole};
 
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;

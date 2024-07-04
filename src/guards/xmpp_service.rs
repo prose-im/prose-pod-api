@@ -5,10 +5,10 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::{xmpp_service, XmppServiceContext, XmppServiceInner};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use service::{xmpp_service, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 

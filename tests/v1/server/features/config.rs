@@ -6,11 +6,11 @@
 use cucumber::{given, then, when};
 use migration::DbErr;
 use prose_pod_api::v1::server::config::*;
+use prose_pod_core::repositories::ServerConfigRepository;
+use prose_pod_core::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
 use rocket::http::{ContentType, Header};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::repositories::ServerConfigRepository;
-use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
 
 use crate::cucumber_parameters::{Duration, ToggleState};
 use crate::TestWorld;

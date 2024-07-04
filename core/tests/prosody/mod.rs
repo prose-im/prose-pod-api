@@ -3,9 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::prosody_config_from_db;
 use cucumber::{given, then, when};
 use insta::assert_snapshot;
+use prose_pod_core::prosody_config_from_db;
 use sea_orm::*;
 
 use crate::TestWorld;

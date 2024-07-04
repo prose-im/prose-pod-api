@@ -5,7 +5,7 @@
 
 use std::ops::Deref;
 
-use ::service::dependencies::Uuid;
+use prose_pod_core::dependencies::Uuid;
 use rocket::{
     request::{FromRequest, Outcome},
     Request, State,

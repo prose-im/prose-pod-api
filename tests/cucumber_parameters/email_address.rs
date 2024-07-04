@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::EmailAddress as EmailAddressEntityModel;
+use prose_pod_core::EmailAddress as EmailAddressEntityModel;
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use cucumber::Parameter;

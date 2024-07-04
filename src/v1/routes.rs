@@ -3,9 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_pod_core::AuthService;
 use rocket::State;
 use serde::{Deserialize, Serialize};
-use service::AuthService;
 
 use crate::guards::BasicAuth;
 use crate::v1::R;

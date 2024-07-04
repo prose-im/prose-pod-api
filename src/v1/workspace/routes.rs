@@ -3,14 +3,14 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_pod_core::deprecated::WorkspaceActiveModel;
+use prose_pod_core::repositories::{Workspace, WorkspaceRepository};
+use prose_pod_core::sea_orm::{ActiveModelTrait as _, Set};
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::deprecated::WorkspaceActiveModel;
-use service::repositories::{Workspace, WorkspaceRepository};
-use service::sea_orm::{ActiveModelTrait as _, Set};
 
 use crate::error::Error;
 use crate::guards::{self, Db, LazyGuard};

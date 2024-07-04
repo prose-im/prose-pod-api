@@ -5,15 +5,15 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::repositories::ServerConfigRepository;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use service::repositories::ServerConfigRepository;
 
 use crate::error::{self, Error};
 
 use super::{database_connection, LazyFromRequest};
 
-type ServerConfigModel = service::repositories::ServerConfig;
+type ServerConfigModel = prose_pod_core::repositories::ServerConfig;
 
 // TODO: Make it so we can call `server_config.field` directly
 // instead of `server_config.model.field`.

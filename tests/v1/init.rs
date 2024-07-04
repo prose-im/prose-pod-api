@@ -9,11 +9,13 @@ use prose_pod_api::guards::UnauthenticatedServerManager;
 use prose_pod_api::v1::init::{
     InitFirstAccountRequest, InitServerConfigRequest, InitWorkspaceRequest,
 };
+use prose_pod_core::repositories::{
+    ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository,
+};
+use prose_pod_core::{JIDNode, ServerCtl};
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
-use service::{JIDNode, ServerCtl};
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;

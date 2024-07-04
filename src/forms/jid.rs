@@ -6,10 +6,10 @@
 use std::str::FromStr;
 use std::{fmt::Display, ops::Deref};
 
+use prose_pod_core::prose_xmpp::BareJid;
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
-use service::prose_xmpp::BareJid;
 
 #[derive(Debug, Clone, Eq)]
 pub struct JID(pub(crate) BareJid);

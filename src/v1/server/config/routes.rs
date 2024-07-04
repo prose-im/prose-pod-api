@@ -3,11 +3,11 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_pod_core::deprecated::{DateLike, Duration, PossiblyInfinite};
+use prose_pod_core::repositories::ServerConfig;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use serde::{Deserialize, Serialize};
-use service::deprecated::{DateLike, Duration, PossiblyInfinite};
-use service::repositories::ServerConfig;
 
 use crate::error::Error;
 use crate::guards::{self, LazyGuard, ServerManager};

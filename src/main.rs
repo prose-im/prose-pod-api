@@ -7,12 +7,14 @@
 extern crate rocket;
 
 use prose_pod_api::custom_rocket;
-use service::config::Config;
-use service::dependencies::Notifier;
-use service::prose_xmpp::UUIDProvider;
-use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
-use service::xmpp::LiveXmppService;
-use service::{AuthService, HttpClient, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
+use prose_pod_core::config::Config;
+use prose_pod_core::dependencies::Notifier;
+use prose_pod_core::prose_xmpp::UUIDProvider;
+use prose_pod_core::prosody::{ProsodyAdminRest, ProsodyOAuth2};
+use prose_pod_core::xmpp::LiveXmppService;
+use prose_pod_core::{
+    AuthService, HttpClient, JWTService, LiveAuthService, ServerCtl, XmppServiceInner,
+};
 
 #[launch]
 fn rocket() -> _ {

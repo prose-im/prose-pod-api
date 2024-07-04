@@ -3,9 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::xmpp_service::{Error, XmppServiceImpl};
 use linked_hash_map::LinkedHashMap;
-use service::{
+use prose_pod_core::xmpp_service::{Error, XmppServiceImpl};
+use prose_pod_core::{
     prose_xmpp::{mods::AvatarData, BareJid},
     xmpp_service::VCard,
     XmppServiceContext,

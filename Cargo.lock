@@ -2862,6 +2862,7 @@ dependencies = [
  "linked-hash-map",
  "log",
  "migration",
+ "prose-pod-core",
  "rand",
  "regex",
  "rocket",
@@ -2869,12 +2870,48 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
- "service",
  "time",
  "tokio",
  "tracing-subscriber",
  "urlencoding",
  "uuid",
+]
+
+[[package]]
+name = "prose-pod-core"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "cucumber",
+ "entity",
+ "figment",
+ "form_urlencoded",
+ "hmac",
+ "insta",
+ "jwt",
+ "lettre",
+ "log",
+ "migration",
+ "minidom",
+ "parking_lot",
+ "prose-xmpp",
+ "prosody-config",
+ "reqwest",
+ "sea-orm",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "url_serde",
+ "urlencoding",
+ "uuid",
+ "xmpp-parsers",
 ]
 
 [[package]]
@@ -3863,43 +3900,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.66",
-]
-
-[[package]]
-name = "service"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "chrono",
- "cucumber",
- "entity",
- "figment",
- "form_urlencoded",
- "hmac",
- "insta",
- "jwt",
- "lettre",
- "log",
- "migration",
- "minidom",
- "parking_lot",
- "prose-xmpp",
- "prosody-config",
- "reqwest",
- "sea-orm",
- "secrecy",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror",
- "tokio",
- "url_serde",
- "urlencoding",
- "uuid",
- "xmpp-parsers",
 ]
 
 [[package]]

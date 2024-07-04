@@ -6,13 +6,13 @@
 use std::{fmt, path::PathBuf, str::FromStr as _};
 
 use migration::DbErr;
-use rocket::{outcome::try_outcome, request::Outcome, Request, State};
-use service::{
+use prose_pod_core::{
     config::ConfigBranding,
     notifier::Notification,
     repositories::{MemberRepository, NotificationCreateForm, NotificationRepository},
     sea_orm::{prelude::*, DatabaseConnection},
 };
+use rocket::{outcome::try_outcome, request::Outcome, Request, State};
 
 use crate::error::{self, Error};
 
@@ -20,7 +20,7 @@ use super::{database_connection, LazyFromRequest, JID as JIDGuard};
 
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
-    notifier: &'r State<service::dependencies::Notifier>,
+    notifier: &'r State<prose_pod_core::dependencies::Notifier>,
     branding: &'r ConfigBranding,
 }
 
@@ -31,13 +31,13 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
         let notifier = try_outcome!(req
-            .guard::<&State<service::dependencies::Notifier>>()
+            .guard::<&State<prose_pod_core::dependencies::Notifier>>()
             .await
             .map_error(|(status, _)| (
                 status,
                 Error::InternalServerError {
                     reason:
-                        "Could not get a `&State<service::dependencies::Notifier>` from a request."
+                        "Could not get a `&State<prose_pod_core::dependencies::Notifier>` from a request."
                             .to_string(),
                 }
             )));
@@ -53,13 +53,14 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
         }
 
         let config = try_outcome!(req
-            .guard::<&State<service::config::Config>>()
+            .guard::<&State<prose_pod_core::config::Config>>()
             .await
             .map_error(|(status, _)| (
                 status,
                 Error::InternalServerError {
-                    reason: "Could not get a `&State<service::config::Config>` from a request."
-                        .to_string(),
+                    reason:
+                        "Could not get a `&State<prose_pod_core::config::Config>` from a request."
+                            .to_string(),
                 }
             )));
 

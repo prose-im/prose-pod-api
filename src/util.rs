@@ -5,7 +5,7 @@
 
 use std::str::FromStr as _;
 
-use service::{
+use prose_pod_core::{
     prose_xmpp::BareJid,
     repositories::ServerConfig,
     xmpp_parsers::jid::{DomainPart, NodePart},

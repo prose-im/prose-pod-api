@@ -8,14 +8,14 @@ mod prosody;
 use ::entity::server_config::Model as ServerConfig;
 use ::migration::{self, MigratorTrait};
 use cucumber::World;
-use sea_orm::*;
-use service::{
+use prose_pod_core::{
     config::Config,
     prosody::ProsodyConfig,
     repositories::{
         ServerConfigCreateForm, ServerConfigRepository, WorkspaceCreateForm, WorkspaceRepository,
     },
 };
+use sea_orm::*;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 

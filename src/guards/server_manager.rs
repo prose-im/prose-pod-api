@@ -5,10 +5,10 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::repositories::MemberRepository;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::repositories::MemberRepository;
 
 use crate::error::{self, Error};
 

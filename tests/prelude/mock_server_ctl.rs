@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use linked_hash_map::LinkedHashMap;
-use service::{
+use prose_pod_core::{
     config::Config,
     prose_xmpp::BareJid,
     prosody::ProsodyConfig,

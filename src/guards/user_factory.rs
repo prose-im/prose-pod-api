@@ -3,17 +3,17 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::{Request, State};
-use service::prose_xmpp::BareJid;
-use service::repositories::{
+use prose_pod_core::prose_xmpp::BareJid;
+use prose_pod_core::repositories::{
     Invitation, InvitationRepository, Member, MemberCreateForm, MemberRepository,
     ServerConfigRepository,
 };
-use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
-use service::MemberRole;
-use service::{xmpp_service, AuthService, ServerCtl, XmppServiceContext, XmppServiceInner};
+use prose_pod_core::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
+use prose_pod_core::MemberRole;
+use prose_pod_core::{xmpp_service, AuthService, ServerCtl, XmppServiceContext, XmppServiceInner};
+use rocket::outcome::try_outcome;
+use rocket::request::Outcome;
+use rocket::{Request, State};
 
 use crate::error::{self, Error};
 

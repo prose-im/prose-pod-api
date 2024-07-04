@@ -22,6 +22,14 @@ use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
+use prose_pod_core::config::Config;
+use prose_pod_core::notifier::AnyNotifier;
+use prose_pod_core::repositories::{
+    EmailAddress, Invitation, Member, ServerConfig, ServerConfigRepository,
+};
+use prose_pod_core::sea_orm::DatabaseConnection;
+use prose_pod_core::{dependencies, JWTKey, JWTService, XmppServiceInner};
+use prose_pod_core::{AuthService, ServerCtl};
 use regex::Regex;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
@@ -29,14 +37,6 @@ use rocket::local::asynchronous::{Client, LocalResponse};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
-use service::config::Config;
-use service::notifier::AnyNotifier;
-use service::repositories::{
-    EmailAddress, Invitation, Member, ServerConfig, ServerConfigRepository,
-};
-use service::sea_orm::DatabaseConnection;
-use service::{dependencies, JWTKey, JWTService, XmppServiceInner};
-use service::{AuthService, ServerCtl};
 use tokio::runtime::Handle;
 use tokio::task;
 use tracing_subscriber::{

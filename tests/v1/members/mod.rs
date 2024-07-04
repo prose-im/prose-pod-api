@@ -9,14 +9,14 @@ use cucumber::{given, then, when};
 use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::v1::members::Member as MemberDTO;
-use rocket::{
-    http::{Accept, Header},
-    local::asynchronous::{Client, LocalResponse},
-};
-use service::{
+use prose_pod_core::{
     prose_xmpp::{stanza::vcard::Nickname, BareJid},
     repositories::{MemberCreateForm, MemberRepository},
     xmpp_service,
+};
+use rocket::{
+    http::{Accept, Header},
+    local::asynchronous::{Client, LocalResponse},
 };
 use urlencoding::encode;
 

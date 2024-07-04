@@ -5,14 +5,16 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
+use prose_pod_core::config::Config as AppConfig;
+use prose_pod_core::deprecated::{DateLike, Duration, PossiblyInfinite, ServerConfigActiveModel};
+use prose_pod_core::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
+use prose_pod_core::sea_orm::{
+    ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _,
+};
+use prose_pod_core::ServerCtl;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use service::config::Config as AppConfig;
-use service::deprecated::{DateLike, Duration, PossiblyInfinite, ServerConfigActiveModel};
-use service::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
-use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use service::ServerCtl;
 
 use crate::error::{self, Error};
 
@@ -71,13 +73,14 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
                 )));
 
         let app_config = try_outcome!(req
-            .guard::<&State<service::config::Config>>()
+            .guard::<&State<prose_pod_core::config::Config>>()
             .await
             .map_error(|(status, _)| (
                 status,
                 Error::InternalServerError {
-                    reason: "Could not get a `&State<service::config::Config>` from a request."
-                        .to_string(),
+                    reason:
+                        "Could not get a `&State<prose_pod_core::config::Config>` from a request."
+                            .to_string(),
                 }
             )));
 

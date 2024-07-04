@@ -5,11 +5,11 @@
 
 use std::ops::Deref;
 
+use prose_pod_core::repositories::ServerConfigRepository;
+use prose_pod_core::{AuthService, ServerCtl, XmppServiceInner};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use service::repositories::ServerConfigRepository;
-use service::{AuthService, ServerCtl, XmppServiceInner};
 
 use crate::error::{self, Error};
 

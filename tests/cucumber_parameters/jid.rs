@@ -6,7 +6,7 @@
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use service::prose_xmpp::BareJid;
+use prose_pod_core::prose_xmpp::BareJid;
 
 #[derive(Debug, Parameter)]
 #[param(name = "jid", regex = r"[^<]+@[^>]+")]

@@ -7,9 +7,9 @@ use std::str::FromStr as _;
 
 use http_auth_basic::Credentials;
 use log::debug;
+use prose_pod_core::prose_xmpp::BareJid;
 use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
-use service::prose_xmpp::BareJid;
 
 use crate::error::{self, Error};
 

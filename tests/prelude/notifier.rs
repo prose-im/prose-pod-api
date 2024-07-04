@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::notifier::notification_message;
 use cucumber::then;
+use prose_pod_core::notifier::notification_message;
 use regex::Regex;
 
 use crate::TestWorld;

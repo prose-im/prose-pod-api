@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_pod_core::sea_orm::ItemsAndPagesNumber;
 use rocket::{http::Header, response::Responder, serde::json::Json};
-use service::sea_orm::ItemsAndPagesNumber;
 
 #[derive(Responder)]
 #[response(content_type = "json")]

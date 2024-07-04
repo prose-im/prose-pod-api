@@ -7,10 +7,10 @@ use crate::TestWorld;
 use cucumber::{given, then, when};
 use migration::DbErr;
 use prose_pod_api::v1::workspace::*;
+use prose_pod_core::repositories::WorkspaceRepository;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::repositories::WorkspaceRepository;
 
 // WORKSPACE NAME
 

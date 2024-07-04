@@ -8,14 +8,14 @@ use std::ops::Deref;
 
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
+use prose_pod_core::prose_xmpp::BareJid;
+use prose_pod_core::repositories::MemberRepository;
 use rocket::form::Strict;
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::prose_xmpp::BareJid;
-use service::repositories::MemberRepository;
 
 use super::models::*;
 use crate::error::Error;
