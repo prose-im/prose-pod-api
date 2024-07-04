@@ -10,10 +10,10 @@ mod auth_service;
 pub mod config;
 pub mod dependencies;
 mod jwt_service;
-mod mutation;
+mod mutation_error;
 pub mod notifier;
 pub mod prosody;
-mod query;
+pub mod repositories;
 pub mod server_ctl;
 pub mod xmpp;
 
@@ -23,9 +23,8 @@ pub use auth_service::{
 use config::Config;
 use entity::server_config::Model as ServerConfig;
 pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
-pub use mutation::*;
+pub use mutation_error::*;
 pub use prosody::prosody_config_from_db;
-pub use query::*;
 pub use reqwest::Client as HttpClient;
 pub use server_ctl::ServerCtl;
 pub use xmpp::xmpp_service::{self, *};

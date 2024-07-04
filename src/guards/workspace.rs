@@ -8,7 +8,7 @@ use std::ops::Deref;
 use entity::workspace;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use service::Query;
+use service::repositories::WorkspaceRepository;
 
 use crate::error::{self, Error};
 
@@ -40,7 +40,7 @@ impl<'r> LazyFromRequest<'r> for Workspace {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
 
-        match Query::workspace(db).await {
+        match WorkspaceRepository::get(db).await {
             Ok(Some(workspace)) => Outcome::Success(Self(workspace)),
             Ok(None) => Error::WorkspaceNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),

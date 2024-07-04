@@ -11,8 +11,8 @@ use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::repositories::WorkspaceRepository;
 use service::sea_orm::{ActiveModelTrait, Set, Unchanged};
-use service::Query;
 
 // WORKSPACE NAME
 
@@ -66,7 +66,7 @@ async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
 #[then(expr = "the workspace should be named {string}")]
 async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
     let db = world.db();
-    let workspace = Query::workspace(db)
+    let workspace = WorkspaceRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(workspace.name, name);
@@ -135,7 +135,7 @@ async fn then_workspace_icon_url_should_be(
     url: String,
 ) -> Result<(), DbErr> {
     let db = world.db();
-    let workspace = Query::workspace(db)
+    let workspace = WorkspaceRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(workspace.icon_url, Some(url));

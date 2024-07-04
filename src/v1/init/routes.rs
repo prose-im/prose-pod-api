@@ -11,8 +11,9 @@ use rocket::State;
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config as AppConfig;
+use service::repositories::{MemberRepository, WorkspaceRepository};
 use service::sea_orm::{Set, TransactionTrait as _};
-use service::{Mutation, Query, ServerCtl};
+use service::ServerCtl;
 
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
@@ -40,7 +41,7 @@ pub async fn init_workspace(
     let db = conn.into_inner();
 
     // Check that the workspace isn't already initialized.
-    let None = Query::workspace(db).await? else {
+    let None = WorkspaceRepository::get(db).await? else {
         return Err(Error::WorkspaceAlreadyInitialized);
     };
 
@@ -50,7 +51,7 @@ pub async fn init_workspace(
         accent_color: Set(req.accent_color),
         ..Default::default()
     };
-    let workspace = Mutation::create_workspace(db, form).await?;
+    let workspace = WorkspaceRepository::create(db, form).await?;
 
     let resource_uri = uri!(crate::v1::workspace::get_workspace).to_string();
     Ok(status::Created::new(resource_uri).body(workspace.into()))
@@ -105,7 +106,7 @@ pub async fn init_first_account(
 ) -> Created<Member> {
     let db = conn.into_inner();
 
-    if Query::get_member_count(db).await? > 0 {
+    if MemberRepository::count(db).await? > 0 {
         return Err(Error::FirstAccountAlreadyCreated);
     }
 

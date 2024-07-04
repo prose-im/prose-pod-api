@@ -9,8 +9,8 @@ use prose_pod_api::v1::server::config::*;
 use rocket::http::{ContentType, Header};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set};
-use service::Query;
+use service::repositories::ServerConfigRepository;
+use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
 
 use crate::cucumber_parameters::{Duration, ToggleState};
 use crate::TestWorld;
@@ -58,7 +58,7 @@ async fn set_message_archive_retention<'a>(
 #[given(expr = "message archiving is {toggle}")]
 async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
@@ -73,7 +73,7 @@ async fn given_message_archive_retention(
     duration: Duration,
 ) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
@@ -113,7 +113,7 @@ async fn when_set_message_archive_retention(
 #[then(expr = "message archiving is {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(server_config.message_archive_enabled, state.as_bool());
@@ -126,7 +126,7 @@ async fn then_message_archive_retention(
     duration: Duration,
 ) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(server_config.message_archive_retention, duration.into());
@@ -176,7 +176,7 @@ async fn set_file_retention<'a>(
 #[given(expr = "file uploading is {toggle}")]
 async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
@@ -188,7 +188,7 @@ async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resu
 #[given(expr = "the file retention is set to {duration}")]
 async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
@@ -224,7 +224,7 @@ async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: 
 #[then(expr = "file uploading is {toggle}")]
 async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(server_config.file_upload_allowed, state.as_bool());
@@ -234,7 +234,7 @@ async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resul
 #[then(expr = "the file retention is set to {duration}")]
 async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
     let db = world.db();
-    let server_config = Query::server_config(db)
+    let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(server_config.file_storage_retention, duration.into());

@@ -8,7 +8,7 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::Query;
+use service::repositories::MemberRepository;
 
 use crate::error::{self, Error};
 
@@ -38,7 +38,7 @@ impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
         let db = try_outcome!(database_connection(req).await);
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match Query::is_admin(db, &jid).await {
+        match MemberRepository::is_admin(db, &jid).await {
             Ok(true) => {}
             Ok(false) => {
                 debug!("<{}> is not an admin", jid.to_string());

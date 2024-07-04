@@ -11,8 +11,9 @@ use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use service::config::Config as AppConfig;
+use service::repositories::ServerConfigRepository;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use service::{Mutation, Query, ServerCtl};
+use service::ServerCtl;
 
 use crate::error::{self, Error};
 
@@ -81,7 +82,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
                 }
             )));
 
-        match Query::server_config(db).await {
+        match ServerConfigRepository::get(db).await {
             Ok(Some(server_config)) => Outcome::Success(UnauthenticatedServerManager::new(
                 db,
                 app_config,
@@ -168,7 +169,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         app_config: &AppConfig,
         server_config: server_config::ActiveModel,
     ) -> Result<server_config::Model, Error> {
-        let None = Query::server_config(db).await? else {
+        let None = ServerConfigRepository::get(db).await? else {
             return Err(Error::ServerConfigAlreadyInitialized);
         };
 
@@ -176,7 +177,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
 
         // Initialize the server config in a transaction,
         // to rollback if subsequent operations fail.
-        let server_config = Mutation::create_server_config(&txn, server_config).await?;
+        let server_config = ServerConfigRepository::create(&txn, server_config).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect

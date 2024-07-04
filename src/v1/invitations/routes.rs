@@ -16,8 +16,8 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config;
 use service::prose_xmpp::BareJid;
+use service::repositories::{InvitationRepository, MemberRepository};
 use service::sea_orm::{prelude::*, EntityTrait};
-use service::{Mutation, Query};
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
@@ -62,12 +62,12 @@ pub(super) async fn invite_member<'r>(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !Query::is_admin(db, &jid).await? {
+    if !MemberRepository::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
-    let invitation = Mutation::create_workspace_invitation(
+    let invitation = InvitationRepository::create(
         db,
         &uuid_gen,
         &req.jid(&server_config)?,
@@ -86,31 +86,27 @@ pub(super) async fn invite_member<'r>(
         .await
     {
         error!("Could not send workspace invitation: {err}");
-        Mutation::update_workspace_invitation_status(
-            db,
-            invitation.clone(),
-            InvitationStatus::SendFailed,
-        )
-        .await
-        .map_or_else(
-            |err| {
-                error!(
-                    "Could not mark workspace invitation `{}` as `{}`: {err}",
-                    invitation.id,
-                    InvitationStatus::SendFailed
-                )
-            },
-            |_| {
-                debug!(
-                    "Marked invitation `{}` as `{}`",
-                    invitation.id,
-                    InvitationStatus::SendFailed
-                )
-            },
-        );
+        InvitationRepository::update_status(db, invitation.clone(), InvitationStatus::SendFailed)
+            .await
+            .map_or_else(
+                |err| {
+                    error!(
+                        "Could not mark workspace invitation `{}` as `{}`: {err}",
+                        invitation.id,
+                        InvitationStatus::SendFailed
+                    )
+                },
+                |_| {
+                    debug!(
+                        "Marked invitation `{}` as `{}`",
+                        invitation.id,
+                        InvitationStatus::SendFailed
+                    )
+                },
+            );
     };
 
-    Mutation::update_workspace_invitation_status(db, invitation.clone(), InvitationStatus::Sent)
+    InvitationRepository::update_status(db, invitation.clone(), InvitationStatus::Sent)
         .await
         .inspect_err(|err| {
             error!(
@@ -174,7 +170,7 @@ pub(super) async fn get_invitations(
         None => None,
     };
     let (pages_metadata, invitations) =
-        Query::get_workspace_invitations(db, page_number, page_size, until).await?;
+        InvitationRepository::get_all(db, page_number, page_size, until).await?;
     Ok(Paginated::new(
         invitations.into_iter().map(Into::into).collect(),
         page_number,
@@ -223,12 +219,8 @@ pub(super) async fn get_invitation_by_token(
 ) -> R<WorkspaceInvitation> {
     let db = conn.into_inner();
     let invitation = match token_type {
-        InvitationTokenType::Accept => {
-            Query::get_workspace_invitation_by_accept_token(db, &token).await
-        }
-        InvitationTokenType::Reject => {
-            Query::get_workspace_invitation_by_reject_token(db, &token).await
-        }
+        InvitationTokenType::Accept => InvitationRepository::get_by_accept_token(db, &token).await,
+        InvitationTokenType::Reject => InvitationRepository::get_by_reject_token(db, &token).await,
     }?;
     let Some(invitation) = invitation else {
         debug!("No invitation found for provided token");
@@ -270,7 +262,7 @@ async fn invitation_accept_(
 ) -> Result<(), Error> {
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
-    let invitation = Query::get_workspace_invitation_by_accept_token(db, &token)
+    let invitation = InvitationRepository::get_by_accept_token(db, &token)
         .await?
         .ok_or_else(|| {
             debug!("No invitation found for provided token");
@@ -305,7 +297,7 @@ pub(super) async fn invitation_reject(
     // NOTE: We don't check that the invitation status is "SENT"
     //   because it would cause a lot of useless edge cases.
 
-    let invitation = Query::get_workspace_invitation_by_reject_token(db, &token)
+    let invitation = InvitationRepository::get_by_reject_token(db, &token)
         .await?
         .ok_or_else(|| {
             debug!("No invitation found for provided token");
@@ -334,12 +326,12 @@ pub(super) async fn invitation_resend(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await? {
+    if !MemberRepository::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }
 
-    let invitation = Query::get_workspace_invitation_by_id(db, &invitation_id)
+    let invitation = InvitationRepository::get_by_id(db, &invitation_id)
         .await?
         .ok_or(Error::NotFound {
             reason: format!("Could not find the invitation with id '{invitation_id}'"),
@@ -368,7 +360,7 @@ pub(super) async fn invitation_cancel(
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
-    if !Query::is_admin(db, &jid).await? {
+    if !MemberRepository::is_admin(db, &jid).await? {
         debug!("<{}> is not an admin", jid.to_string());
         return Err(Error::Unauthorized);
     }

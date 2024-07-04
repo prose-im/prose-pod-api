@@ -25,7 +25,8 @@ use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
 use service::config::Config;
 use service::dependencies::Uuid;
-use service::{Query, ServerCtl, XmppServiceInner};
+use service::repositories::ServerConfigRepository;
+use service::{ServerCtl, XmppServiceInner};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
@@ -58,7 +59,7 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
     let server_ctl = rocket.state().unwrap();
     let app_config = rocket.state().unwrap();
 
-    match Query::server_config(db).await {
+    match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => {
             let server_manager =
                 UnauthenticatedServerManager::new(db, app_config, server_ctl, server_config);

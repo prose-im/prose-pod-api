@@ -8,7 +8,8 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use service::{AuthService, Query, ServerCtl, XmppServiceInner};
+use service::repositories::ServerConfigRepository;
+use service::{AuthService, ServerCtl, XmppServiceInner};
 
 use crate::error::{self, Error};
 
@@ -69,7 +70,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedUserFactory<'r> {
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
         let db = try_outcome!(database_connection(req).await);
-        match Query::server_config(db).await {
+        match ServerConfigRepository::get(db).await {
             Ok(Some(_)) => {}
             Ok(None) => return Error::ServerConfigNotInitialized.into(),
             Err(err) => return Error::DbErr(err).into(),

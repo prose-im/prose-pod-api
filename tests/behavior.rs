@@ -33,8 +33,9 @@ use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
 use service::notifier::AnyNotifier;
+use service::repositories::ServerConfigRepository;
 use service::sea_orm::DatabaseConnection;
-use service::{dependencies, JWTKey, JWTService, Query, XmppServiceInner};
+use service::{dependencies, JWTKey, JWTService, XmppServiceInner};
 use service::{AuthService, ServerCtl};
 use tokio::runtime::Handle;
 use tokio::task;
@@ -220,7 +221,7 @@ impl TestWorld {
     async fn server_manager(&self) -> Result<ServerManager, Error> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();
-        let server_config = Query::server_config(db)
+        let server_config = ServerConfigRepository::get(db)
             .await?
             .expect("Server config not initialized");
         Ok(ServerManager::from(UnauthenticatedServerManager::new(
