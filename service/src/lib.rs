@@ -11,7 +11,6 @@ pub mod config;
 pub mod dependencies;
 mod jwt_service;
 mod mutation_error;
-pub mod notifier;
 pub mod prosody;
 pub mod repositories;
 pub mod server_ctl;
@@ -22,6 +21,7 @@ pub use auth_service::{
     AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
 };
 use config::Config;
+pub use dependencies::any_notifier as notifier;
 pub use entity::model::{EmailAddress, JIDNode, MemberRole};
 use entity::server_config::Model as ServerConfig;
 pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
