@@ -8,12 +8,11 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use sea_orm_rocket::Connection;
 use service::Query;
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest, UnauthenticatedServerManager, JID as JIDGuard};
+use super::{database_connection, LazyFromRequest, UnauthenticatedServerManager, JID as JIDGuard};
 
 pub struct ServerManager<'r>(UnauthenticatedServerManager<'r>);
 
@@ -36,13 +35,7 @@ impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
 
         let jid = try_outcome!(JIDGuard::from_request(req).await);
         match Query::is_admin(db, &jid).await {

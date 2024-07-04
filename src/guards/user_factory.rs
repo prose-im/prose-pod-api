@@ -8,7 +8,6 @@ use entity::{member, workspace_invitation};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use sea_orm_rocket::Connection;
 use service::prose_xmpp::BareJid;
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
 use service::{
@@ -18,7 +17,7 @@ use service::{
 use crate::error::{self, Error};
 
 use super::jwt::JWT;
-use super::{Db, LazyFromRequest};
+use super::{database_connection, LazyFromRequest};
 
 pub struct UserFactory<'r> {
     server_ctl: &'r State<ServerCtl>,
@@ -64,13 +63,7 @@ impl<'r> LazyFromRequest<'r> for UserFactory<'r> {
 
         // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
         match Query::server_config(db).await {
             Ok(Some(_)) => {}
             Ok(None) => return Error::ServerConfigNotInitialized.into(),

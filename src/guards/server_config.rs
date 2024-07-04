@@ -8,12 +8,11 @@ use std::ops::Deref;
 use entity::server_config;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use sea_orm_rocket::Connection;
 use service::Query;
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest};
+use super::{database_connection, LazyFromRequest};
 
 // TODO: Make it so we can call `server_config.field` directly
 // instead of `server_config.model.field`.
@@ -39,13 +38,7 @@ impl<'r> LazyFromRequest<'r> for ServerConfig {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
 
         match Query::server_config(db).await {
             Ok(Some(server_config)) => Outcome::Success(Self(server_config)),
