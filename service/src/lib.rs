@@ -26,6 +26,7 @@ pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation::*;
 pub use prosody::prosody_config_from_db;
 pub use query::*;
+pub use reqwest::Client as HttpClient;
 pub use server_ctl::ServerCtl;
 use uuid::Uuid;
 pub use xmpp::xmpp_service::{self, *};

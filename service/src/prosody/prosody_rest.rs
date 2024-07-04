@@ -17,7 +17,7 @@ use prose_xmpp::{
         Connector as ConnectorTrait,
     },
 };
-use reqwest::Client as HTTPClient;
+use reqwest::Client as HttpClient;
 use secrecy::{ExposeSecret as _, Secret};
 use tokio::runtime::Handle;
 use xmpp_parsers::FullJid;
@@ -29,10 +29,11 @@ pub struct ProsodyRest {
 }
 
 impl ProsodyRest {
-    pub fn provider(rest_api_url: String) -> ConnectorProvider {
+    pub fn provider(http_client: HttpClient, rest_api_url: String) -> ConnectorProvider {
         Box::new(move || {
             Box::new(Self {
                 connection: Connection {
+                    http_client: http_client.clone(),
                     rest_api_url: rest_api_url.clone(),
                     prosody_token: Default::default(),
                     inner: Default::default(),
@@ -62,6 +63,7 @@ impl ConnectorTrait for ProsodyRest {
 
 #[derive(Debug, Clone)]
 pub struct Connection {
+    http_client: HttpClient,
     rest_api_url: String,
     prosody_token: Arc<RwLock<Option<Secret<String>>>>,
     inner: Arc<ConnectionInner>,
@@ -92,6 +94,7 @@ impl Connection {
         let guard = self.inner.event_handler.read();
         let event_handler = guard.as_ref().expect("No event handler registered");
         let conn = Connection {
+            http_client: self.http_client.clone(),
             inner: self.inner.clone(),
             rest_api_url: self.rest_api_url.clone(),
             prosody_token: self.prosody_token.clone(),
@@ -106,7 +109,7 @@ impl ConnectionTrait for Connection {
             Err(anyhow!("Logic error: Cannot authenticate Prosody REST API call. Call `ProsodyRest.connect` before `Connection.send_stanza`."))?
         };
 
-        let client = HTTPClient::new();
+        let client = self.http_client.clone();
         let request_body = String::from(&stanza);
         trace!("request_body: {request_body:?}");
         let request = client
