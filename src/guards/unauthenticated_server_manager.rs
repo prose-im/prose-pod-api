@@ -10,14 +10,13 @@ use entity::server_config;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use sea_orm_rocket::Connection;
 use service::config::Config as AppConfig;
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
 use service::{Mutation, Query, ServerCtl};
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest};
+use super::{database_connection, LazyFromRequest};
 
 /// WARN: Use only in initialization routes! Otherwise use `ServerManager`.
 pub struct UnauthenticatedServerManager<'r> {
@@ -58,13 +57,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
 
         let server_ctl =
             try_outcome!(req

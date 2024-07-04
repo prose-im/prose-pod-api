@@ -9,7 +9,6 @@ use chrono::Utc;
 use entity::notification;
 use migration::DbErr;
 use rocket::{outcome::try_outcome, request::Outcome, Request, State};
-use sea_orm_rocket::Connection;
 use service::{
     config::ConfigBranding,
     notifier::Notification,
@@ -19,7 +18,7 @@ use service::{
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest, JID as JIDGuard};
+use super::{database_connection, LazyFromRequest, JID as JIDGuard};
 
 pub struct Notifier<'r> {
     db: &'r DatabaseConnection,
@@ -32,13 +31,7 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
         let notifier = try_outcome!(req
             .guard::<&State<service::dependencies::Notifier>>()
             .await

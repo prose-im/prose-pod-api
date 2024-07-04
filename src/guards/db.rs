@@ -7,10 +7,14 @@
 // - <https://github.com/SeaQL/sea-orm/blob/53ec0e15488ea71d5da71b1d3ac3f2d9a3b2b97d/examples/rocket_example/api/src/pool.rs>
 
 use async_trait::async_trait;
-use sea_orm::ConnectOptions;
-use sea_orm_rocket::{rocket::figment::Figment, Config, Database};
+use sea_orm_rocket::{
+    rocket::{figment::Figment, request::Outcome, Request},
+    Config, Connection, Database,
+};
 use service::sea_orm;
 use std::time::Duration;
+
+use crate::error::Error;
 
 #[derive(Database, Debug)]
 #[database("data")]
@@ -29,7 +33,7 @@ impl sea_orm_rocket::Pool for SeaOrmPool {
 
     async fn init(figment: &Figment) -> Result<Self, Self::Error> {
         let config = figment.extract::<Config>().unwrap();
-        let mut options: ConnectOptions = config.url.into();
+        let mut options: sea_orm::ConnectOptions = config.url.into();
         options
             .max_connections(config.max_connections as u32)
             .min_connections(config.min_connections.unwrap_or_default())
@@ -46,4 +50,13 @@ impl sea_orm_rocket::Pool for SeaOrmPool {
     fn borrow(&self) -> &Self::Connection {
         &self.conn
     }
+}
+
+pub(super) async fn database_connection<'r, 'a>(
+    req: &'r Request<'a>,
+) -> Outcome<&'r sea_orm::DatabaseConnection, Error> {
+    req.guard::<Connection<'_, Db>>()
+        .await
+        .map(|conn| conn.into_inner())
+        .map_error(|(status, err)| (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr)))
 }

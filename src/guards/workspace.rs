@@ -8,12 +8,11 @@ use std::ops::Deref;
 use entity::workspace;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
-use sea_orm_rocket::Connection;
 use service::Query;
 
 use crate::error::{self, Error};
 
-use super::{Db, LazyFromRequest};
+use super::{database_connection, LazyFromRequest};
 
 // TODO: Make it so we can call `workspace.field` directly
 // instead of `workspace.model.field`.
@@ -39,13 +38,7 @@ impl<'r> LazyFromRequest<'r> for Workspace {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(req
-            .guard::<Connection<'_, Db>>()
-            .await
-            .map(|conn| conn.into_inner())
-            .map_error(|(status, err)| {
-                (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr))
-            }));
+        let db = try_outcome!(database_connection(req).await);
 
         match Query::workspace(db).await {
             Ok(Some(workspace)) => Outcome::Success(Self(workspace)),
