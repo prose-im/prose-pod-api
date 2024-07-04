@@ -182,10 +182,10 @@ impl From<LocalResponse<'_>> for Response {
 #[world(init = Self::new)]
 pub struct TestWorld {
     config: Config,
-    server_ctl: Box<MockServerCtl>,
-    auth_service: Box<MockAuthService>,
-    xmpp_service: Box<MockXmppService>,
-    notifier: Box<MockNotifier>,
+    server_ctl: MockServerCtl,
+    auth_service: MockAuthService,
+    xmpp_service: MockXmppService,
+    notifier: MockNotifier,
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
@@ -298,10 +298,6 @@ impl TestWorld {
 
         Self {
             config: config.clone(),
-            server_ctl: Box::new(mock_server_ctl.clone()),
-            xmpp_service: Box::new(mock_xmpp_service.clone()),
-            auth_service: Box::new(mock_auth_service.clone()),
-            notifier: Box::new(mock_notifier.clone()),
             client: rocket_test_client(
                 config,
                 Box::new(mock_server_ctl.clone()),
@@ -315,6 +311,10 @@ impl TestWorld {
             workspace_invitations: HashMap::new(),
             scenario_workspace_invitation: None,
             previous_workspace_invitation_accept_tokens: HashMap::new(),
+            server_ctl: mock_server_ctl,
+            xmpp_service: mock_xmpp_service,
+            auth_service: mock_auth_service,
+            notifier: mock_notifier,
         }
     }
 }
