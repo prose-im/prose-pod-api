@@ -14,8 +14,6 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
-use entity::model::EmailAddress;
-use entity::{member, server_config, workspace_invitation};
 use lazy_static::lazy_static;
 use log::debug;
 use mock_auth_service::MockAuthService;
@@ -33,7 +31,9 @@ use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
 use service::notifier::AnyNotifier;
-use service::repositories::ServerConfigRepository;
+use service::repositories::{
+    EmailAddress, Invitation, Member, ServerConfig, ServerConfigRepository,
+};
 use service::sea_orm::DatabaseConnection;
 use service::{dependencies, JWTKey, JWTService, XmppServiceInner};
 use service::{AuthService, ServerCtl};
@@ -190,10 +190,10 @@ pub struct TestWorld {
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
-    members: HashMap<String, (member::Model, String)>,
+    members: HashMap<String, (Member, String)>,
     /// Map an email address to an invitation.
-    workspace_invitations: HashMap<EmailAddress, workspace_invitation::Model>,
-    scenario_workspace_invitation: Option<(EmailAddress, workspace_invitation::Model)>,
+    workspace_invitations: HashMap<EmailAddress, Invitation>,
+    scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
     previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
 }
 
@@ -232,7 +232,7 @@ impl TestWorld {
         )))
     }
 
-    async fn server_config(&self) -> Result<server_config::Model, Error> {
+    async fn server_config(&self) -> Result<ServerConfig, Error> {
         Ok(self.server_manager().await?.server_config())
     }
 
@@ -264,7 +264,7 @@ impl TestWorld {
             .clone()
     }
 
-    fn scenario_workspace_invitation(&self) -> (EmailAddress, workspace_invitation::Model) {
+    fn scenario_workspace_invitation(&self) -> (EmailAddress, Invitation) {
         self.scenario_workspace_invitation
             .as_ref()
             .expect("Current scenario invitation not stored by previous steps")
@@ -278,7 +278,7 @@ impl TestWorld {
             .clone()
     }
 
-    fn workspace_invitation(&self, email_address: &EmailAddress) -> workspace_invitation::Model {
+    fn workspace_invitation(&self, email_address: &EmailAddress) -> Invitation {
         self.workspace_invitations
             .get(email_address)
             .expect("Invitation must be created first")

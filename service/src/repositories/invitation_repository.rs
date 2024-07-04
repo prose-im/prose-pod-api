@@ -4,17 +4,20 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, TimeDelta, Utc};
-use entity::{
-    model::{EmailAddress, InvitationContact, InvitationStatus, MemberRole},
-    workspace_invitation::{ActiveModel, Column, Entity, Model},
-};
+use entity::workspace_invitation::{ActiveModel, Column, Entity, Model};
 use prose_xmpp::BareJid;
 use sea_orm::{
-    prelude::*, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set,
+    prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,
+    Set,
 };
 use uuid::Uuid;
 
 use crate::{dependencies, MutationError};
+
+pub use entity::model::{
+    EmailAddress, InvitationChannel, InvitationContact, InvitationStatus, MemberRole,
+};
+pub type Invitation = Model;
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
@@ -22,33 +25,15 @@ pub enum InvitationRepository {}
 
 impl InvitationRepository {
     pub async fn create(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
+        form: impl Into<InvitationCreateForm>,
         uuid: &dependencies::Uuid,
-        jid: &BareJid,
-        pre_assigned_role: MemberRole,
-        contact: InvitationContact,
     ) -> Result<Model, DbErr> {
-        let now = Utc::now();
-        let mut model = ActiveModel {
-            id: NotSet,
-            created_at: Set(now),
-            status: NotSet,
-            jid: Set(jid.to_owned().into()),
-            pre_assigned_role: Set(pre_assigned_role),
-            invitation_channel: NotSet,
-            email_address: NotSet,
-            accept_token: Set(uuid.new_v4()),
-            accept_token_expires_at: Set(now
-                .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
-                .unwrap()),
-            reject_token: Set(uuid.new_v4()),
-        };
-        model.set_contact(contact);
-        model.insert(db).await
+        form.into().into_active_model(uuid).insert(db).await
     }
 
     pub async fn get_all(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
@@ -69,18 +54,24 @@ impl InvitationRepository {
         Ok((num_items_and_pages, models))
     }
 
-    pub async fn get_by_id(db: &DbConn, id: &i32) -> Result<Option<Model>, DbErr> {
+    pub async fn get_by_id(db: &impl ConnectionTrait, id: &i32) -> Result<Option<Model>, DbErr> {
         Entity::find_by_id(*id).one(db).await
     }
 
-    pub async fn get_by_accept_token(db: &DbConn, token: &Uuid) -> Result<Option<Model>, DbErr> {
+    pub async fn get_by_accept_token(
+        db: &impl ConnectionTrait,
+        token: &Uuid,
+    ) -> Result<Option<Model>, DbErr> {
         Entity::find()
             .filter(Column::AcceptToken.eq(*token))
             .one(db)
             .await
     }
 
-    pub async fn get_by_reject_token(db: &DbConn, token: &Uuid) -> Result<Option<Model>, DbErr> {
+    pub async fn get_by_reject_token(
+        db: &impl ConnectionTrait,
+        token: &Uuid,
+    ) -> Result<Option<Model>, DbErr> {
         Entity::find()
             .filter(Column::RejectToken.eq(*token))
             .one(db)
@@ -88,7 +79,7 @@ impl InvitationRepository {
     }
 
     pub async fn update_status_by_id(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         id: i32,
         status: InvitationStatus,
     ) -> Result<Model, MutationError> {
@@ -105,7 +96,7 @@ impl InvitationRepository {
     }
 
     pub async fn update_status_by_email(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         email_address: EmailAddress,
         status: InvitationStatus,
     ) -> Result<Model, MutationError> {
@@ -125,7 +116,7 @@ impl InvitationRepository {
     }
 
     pub async fn update_status(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         model: Model,
         status: InvitationStatus,
     ) -> Result<Model, MutationError> {
@@ -137,7 +128,7 @@ impl InvitationRepository {
     }
 
     pub async fn resend(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         uuid: &dependencies::Uuid,
         model: Model,
     ) -> Result<Model, MutationError> {
@@ -153,11 +144,55 @@ impl InvitationRepository {
 
     /// Accept a user invitation (i.e. delete it from database).
     /// To also create the associated user at the same time, use `UserFactory`.
-    pub async fn accept<'a, C: ConnectionTrait>(
-        db: &C,
-        invitation: Model,
-    ) -> Result<(), MutationError> {
+    pub async fn accept(db: &impl ConnectionTrait, invitation: Model) -> Result<(), MutationError> {
         invitation.delete(db).await?;
         Ok(())
+    }
+
+    pub async fn count_for_email_address(
+        db: &impl ConnectionTrait,
+        email_address: EmailAddress,
+    ) -> Result<u64, DbErr> {
+        Entity::find()
+            .filter(Column::EmailAddress.eq(email_address))
+            .count(db)
+            .await
+    }
+
+    pub async fn delete_by_id(
+        db: &impl ConnectionTrait,
+        invitation_id: i32,
+    ) -> Result<DeleteResult, DbErr> {
+        Entity::delete_by_id(invitation_id).exec(db).await
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InvitationCreateForm {
+    pub jid: BareJid,
+    pub pre_assigned_role: Option<MemberRole>,
+    pub contact: InvitationContact,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+impl InvitationCreateForm {
+    fn into_active_model(self, uuid: &dependencies::Uuid) -> ActiveModel {
+        let created_at = self.created_at.unwrap_or_else(Utc::now);
+        let mut res = ActiveModel {
+            id: NotSet,
+            created_at: Set(created_at),
+            status: NotSet,
+            jid: Set(self.jid.to_owned().into()),
+            pre_assigned_role: Set(self.pre_assigned_role.unwrap_or_default()),
+            invitation_channel: NotSet,
+            email_address: NotSet,
+            accept_token: Set(uuid.new_v4()),
+            accept_token_expires_at: Set(created_at
+                .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
+                .unwrap()),
+            reject_token: Set(uuid.new_v4()),
+        };
+        res.set_contact(self.contact);
+        res
     }
 }

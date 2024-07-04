@@ -5,10 +5,10 @@
 
 use std::str::FromStr as _;
 
-use entity::server_config::Model as ServerConfig;
 use service::{
     prose_xmpp::BareJid,
-    xmpp_parsers::jid::{self, DomainPart, NodePart},
+    repositories::ServerConfig,
+    xmpp_parsers::jid::{DomainPart, NodePart},
 };
 
 use crate::error::Error;
@@ -29,8 +29,4 @@ pub fn bare_jid_from_username(
             }
         })?,
     ))
-}
-
-pub fn to_bare_jid(jid: &entity::model::JID) -> Result<BareJid, jid::Error> {
-    BareJid::new(jid.to_string().as_str())
 }

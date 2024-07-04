@@ -3,14 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::server_ctl::{Error, ServerCtlImpl};
-use ::service::{prosody_config_from_db, ProsodyConfigSection};
-use entity::model::MemberRole;
-use entity::server_config;
 use linked_hash_map::LinkedHashMap;
-use service::config::Config;
-use service::prose_xmpp::BareJid;
-use service::prosody::ProsodyConfig;
+use service::{
+    config::Config,
+    prose_xmpp::BareJid,
+    prosody::ProsodyConfig,
+    prosody_config_from_db,
+    repositories::ServerConfig,
+    server_ctl::{Error, ServerCtlImpl},
+    MemberRole, ProsodyConfigSection,
+};
 
 use std::sync::{Arc, RwLock};
 
@@ -59,11 +61,7 @@ impl Default for MockServerCtlState {
 }
 
 impl ServerCtlImpl for MockServerCtl {
-    fn save_config(
-        &self,
-        server_config: &server_config::Model,
-        app_config: &Config,
-    ) -> Result<(), Error> {
+    fn save_config(&self, server_config: &ServerConfig, app_config: &Config) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();

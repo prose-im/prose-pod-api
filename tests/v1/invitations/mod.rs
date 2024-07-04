@@ -7,10 +7,6 @@ use std::str::FromStr as _;
 
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
-use entity::{
-    model::{self, JIDNode},
-    workspace_invitation::{self, InvitationContact},
-};
 use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::v1::invitations::{
@@ -22,10 +18,12 @@ use rocket::{
     local::asynchronous::{Client, LocalResponse},
 };
 use serde_json::json;
+use service::repositories::InvitationContact;
+use service::JIDNode;
 use service::{
     prose_xmpp::BareJid,
-    repositories::InvitationRepository,
-    sea_orm::{prelude::*, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, Set},
+    repositories::{InvitationCreateForm, InvitationRepository},
+    sea_orm::{prelude::*, IntoActiveModel as _, Set},
     MutationError,
 };
 
@@ -158,15 +156,17 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
     let jid = BareJid::new(&format!("{username}@{domain}")).unwrap();
 
     // Create invitation
-    let db = world.db();
     let model = InvitationRepository::create(
-        db,
-        world.uuid_gen(),
-        &jid,
-        Default::default(),
-        InvitationContact::Email {
-            email_address: email_address.to_owned(),
+        world.db(),
+        InvitationCreateForm {
+            jid,
+            pre_assigned_role: None,
+            contact: InvitationContact::Email {
+                email_address: email_address.to_owned(),
+            },
+            created_at: None,
         },
+        world.uuid_gen(),
     )
     .await?;
 
@@ -200,17 +200,19 @@ async fn given_pre_assigned_role(
 async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     for i in 0..n {
-        let db = world.db();
-        let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
-        let email_address = model::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
+        let email_address =
+            service::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
         let model = InvitationRepository::create(
-            db,
-            world.uuid_gen(),
-            &jid,
-            Default::default(),
-            InvitationContact::Email {
-                email_address: email_address.clone(),
+            world.db(),
+            InvitationCreateForm {
+                jid: BareJid::new(&format!("person.{i}@{domain}")).unwrap(),
+                pre_assigned_role: None,
+                contact: InvitationContact::Email {
+                    email_address: email_address.to_owned(),
+                },
+                created_at: None,
             },
+            world.uuid_gen(),
         )
         .await?;
         world.workspace_invitations.insert(email_address, model);
@@ -227,7 +229,7 @@ async fn given_invitation_received(
     InvitationRepository::update_status_by_email(
         db,
         email_address.0,
-        model::InvitationStatus::Sent,
+        service::repositories::InvitationStatus::Sent,
     )
     .await?;
     Ok(())
@@ -281,7 +283,7 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     InvitationRepository::update_status(
         db,
         world.scenario_workspace_invitation().1,
-        model::InvitationStatus::SendFailed,
+        service::repositories::InvitationStatus::SendFailed,
     )
     .await?;
     Ok(())
@@ -464,11 +466,8 @@ async fn then_invitation_for_email(
     world: &mut TestWorld,
     email_address: EmailAddress,
 ) -> Result<(), DbErr> {
-    let db = world.db();
-    let count = workspace_invitation::Entity::find()
-        .filter(workspace_invitation::Column::EmailAddress.eq(email_address.0.clone()))
-        .count(db)
-        .await?;
+    let count =
+        InvitationRepository::count_for_email_address(world.db(), email_address.0.clone()).await?;
     assert_eq!(
         count, 1,
         "Found {count} workspace_invitation(s) for <{email_address}> in the database"
@@ -481,11 +480,8 @@ async fn then_no_invitation_for_email(
     world: &mut TestWorld,
     email_address: EmailAddress,
 ) -> Result<(), Error> {
-    let db = world.db();
-    let count = workspace_invitation::Entity::find()
-        .filter(workspace_invitation::Column::EmailAddress.eq(email_address.0.clone()))
-        .count(db)
-        .await?;
+    let count =
+        InvitationRepository::count_for_email_address(world.db(), email_address.0.clone()).await?;
     let server_domain = world.server_config().await?.domain;
     assert_eq!(
         count, 0,

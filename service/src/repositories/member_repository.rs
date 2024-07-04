@@ -4,41 +4,31 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use entity::{
-    member::{ActiveModel, Column, Entity, Model},
-    model::MemberRole,
-};
+use entity::member::{ActiveModel, Column, Entity, Model};
 use prose_xmpp::BareJid;
 use sea_orm::{prelude::*, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
 
-use crate::MutationError;
+pub type Member = Model;
+pub use entity::model::MemberRole;
 
 pub enum MemberRepository {}
 
 impl MemberRepository {
     /// Create the user in database but NOT on the XMPP server.
     /// Use `UserFactory` instead, to create users in both places at the same time.
-    pub async fn create<'a, C: ConnectionTrait>(
-        db: &C,
-        jid: &BareJid,
-        role: &Option<MemberRole>,
-    ) -> Result<Model, MutationError> {
-        let now = Utc::now();
-        let mut new_member = ActiveModel {
-            id: NotSet,
-            role: role.map(Set).unwrap_or(NotSet),
-            joined_at: Set(now),
-        };
-        new_member.set_jid(&jid.to_owned().into());
-        new_member.insert(db).await.map_err(Into::into)
+    pub async fn create(
+        db: &impl ConnectionTrait,
+        form: impl Into<MemberCreateForm>,
+    ) -> Result<Model, DbErr> {
+        form.into().into_active_model().insert(db).await
     }
 
-    pub async fn get(db: &DbConn, jid: &BareJid) -> Result<Option<Model>, DbErr> {
+    pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Model>, DbErr> {
         Entity::find_by_jid(&jid.to_owned().into()).one(db).await
     }
 
     pub async fn get_all(
-        db: &DbConn,
+        db: &impl ConnectionTrait,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
@@ -59,11 +49,11 @@ impl MemberRepository {
         Ok((num_items_and_pages, models))
     }
 
-    pub async fn count(db: &DbConn) -> Result<u64, DbErr> {
+    pub async fn count(db: &impl ConnectionTrait) -> Result<u64, DbErr> {
         Entity::find().count(db).await
     }
 
-    pub async fn is_admin(db: &DbConn, jid: &BareJid) -> Result<bool, DbErr> {
+    pub async fn is_admin(db: &impl ConnectionTrait, jid: &BareJid) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
         let member = Entity::find_by_jid(&jid.to_owned().into()).one(db).await?;
 
@@ -73,5 +63,24 @@ impl MemberRepository {
         };
 
         Ok(member.role == MemberRole::Admin)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MemberCreateForm {
+    pub jid: BareJid,
+    pub role: Option<MemberRole>,
+    pub joined_at: Option<DateTime<Utc>>,
+}
+
+impl MemberCreateForm {
+    fn into_active_model(self) -> ActiveModel {
+        let mut res = ActiveModel {
+            role: self.role.map(Set).unwrap_or(NotSet),
+            joined_at: Set(self.joined_at.unwrap_or_else(Utc::now)),
+            ..Default::default()
+        };
+        res.set_jid(&self.jid);
+        res
     }
 }

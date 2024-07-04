@@ -5,15 +5,13 @@
 
 use std::{fmt, path::PathBuf, str::FromStr as _};
 
-use chrono::Utc;
-use entity::notification;
 use migration::DbErr;
 use rocket::{outcome::try_outcome, request::Outcome, Request, State};
 use service::{
     config::ConfigBranding,
     notifier::Notification,
-    repositories::MemberRepository,
-    sea_orm::{prelude::*, ActiveModelBehavior, DatabaseConnection, Set},
+    repositories::{MemberRepository, NotificationCreateForm, NotificationRepository},
+    sea_orm::{prelude::*, DatabaseConnection},
 };
 
 use crate::error::{self, Error};
@@ -70,25 +68,20 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
             notifier,
             branding: &config.branding,
         })
-        // match Query::server_config(db).await {
-        //     Ok(Some(_server_config)) => Outcome::Success(Notifier {
-        //         db,
-        //         notifier,
-        //         branding: &config.branding,
-        //     }),
-        //     Ok(None) => Error::PodNotInitialized.into(),
-        //     Err(err) => Error::DbErr(err).into(),
-        // }
     }
 }
 
 impl<'r> Notifier<'r> {
     async fn send(&self, notification: &Notification) -> Result<(), NotifierError> {
         // Store in DB
-        let mut model = notification::ActiveModel::new();
-        model.created_at = Set(Utc::now());
-        model.set_content(notification);
-        model.insert(self.db).await?;
+        NotificationRepository::create(
+            self.db,
+            NotificationCreateForm {
+                content: notification,
+                created_at: None,
+            },
+        )
+        .await?;
 
         // Try sending
         self.notifier

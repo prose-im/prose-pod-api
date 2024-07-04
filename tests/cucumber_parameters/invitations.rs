@@ -6,16 +6,17 @@
 use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use entity::model;
 
 // ===== Invitation channel =====
 
+type InvitationChannelModel = service::repositories::InvitationChannel;
+
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_channel", regex = r"Email")]
-pub struct InvitationChannel(model::InvitationChannel);
+pub struct InvitationChannel(InvitationChannelModel);
 
 impl Deref for InvitationChannel {
-    type Target = model::InvitationChannel;
+    type Target = InvitationChannelModel;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -27,7 +28,7 @@ impl FromStr for InvitationChannel {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Email" => Ok(Self(model::InvitationChannel::Email)),
+            "Email" => Ok(Self(InvitationChannelModel::Email)),
             s => Err(format!("Invalid `InvitationChannel`: {s}")),
         }
     }
@@ -35,12 +36,14 @@ impl FromStr for InvitationChannel {
 
 // ===== Invitation status =====
 
+type InvitationStatusModel = service::repositories::InvitationStatus;
+
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]
-pub struct InvitationStatus(pub model::InvitationStatus);
+pub struct InvitationStatus(pub InvitationStatusModel);
 
 impl Deref for InvitationStatus {
-    type Target = model::InvitationStatus;
+    type Target = InvitationStatusModel;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -48,9 +51,9 @@ impl Deref for InvitationStatus {
 }
 
 impl FromStr for InvitationStatus {
-    type Err = <model::InvitationStatus as FromStr>::Err;
+    type Err = <InvitationStatusModel as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        model::InvitationStatus::from_str(s).map(InvitationStatus)
+        InvitationStatusModel::from_str(s).map(InvitationStatus)
     }
 }

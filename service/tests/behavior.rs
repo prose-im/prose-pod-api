@@ -5,17 +5,16 @@
 
 mod prosody;
 
-use ::entity::{
-    server_config::{self, Model as ServerConfig},
-    workspace::{self},
-};
+use ::entity::server_config::Model as ServerConfig;
 use ::migration::{self, MigratorTrait};
 use cucumber::World;
 use sea_orm::*;
 use service::{
     config::Config,
     prosody::ProsodyConfig,
-    repositories::{ServerConfigRepository, WorkspaceRepository},
+    repositories::{
+        ServerConfigCreateForm, ServerConfigRepository, WorkspaceCreateForm, WorkspaceRepository,
+    },
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -55,23 +54,21 @@ impl TestWorld {
             panic!("Could not setup test database schema: {e}");
         }
 
-        let server_config = server_config::ActiveModel {
-            domain: Set("prose.test.org".to_string()),
-            ..Default::default()
+        let server_config = ServerConfigCreateForm {
+            domain: "prose.test.org".to_string(),
         };
         let server_config = match ServerConfigRepository::create(&db, server_config).await {
             Ok(conf) => conf,
             Err(e) => panic!("Could not create server config: {e}"),
         };
 
-        let workspace = workspace::ActiveModel {
-            name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
-            ..Default::default()
+        let workspace = WorkspaceCreateForm {
+            name: DEFAULT_WORKSPACE_NAME.to_string(),
+            accent_color: None,
         };
-        let _workspace = match WorkspaceRepository::create(&db, workspace).await {
-            Ok(conf) => conf,
-            Err(e) => panic!("Could not create workspace: {e}"),
-        };
+        if let Err(err) = WorkspaceRepository::create(&db, workspace).await {
+            panic!("Could not create workspace: {err}")
+        }
 
         Self {
             db,
