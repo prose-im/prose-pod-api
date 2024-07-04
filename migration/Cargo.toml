@@ -1,9 +1,9 @@
 [package]
 name = "migration"
-version = "0.1.0"
-edition = "2021"
+version = { workspace = true }
+edition = { workspace = true }
 publish = false
-license = "MPL-2.0"
+license = { workspace = true }
 
 [lib]
 name = "migration"
