@@ -3,21 +3,21 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::workspace;
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::repositories::WorkspaceRepository;
+use service::deprecated::WorkspaceActiveModel;
+use service::repositories::{Workspace, WorkspaceRepository};
 use service::sea_orm::{ActiveModelTrait as _, Set};
 
 use crate::error::Error;
-use crate::guards::{Db, LazyGuard, Workspace};
+use crate::guards::{self, Db, LazyGuard};
 use crate::v1::R;
 
 #[get("/v1/workspace")]
-pub async fn get_workspace(conn: Connection<'_, Db>) -> R<workspace::Model> {
+pub async fn get_workspace(conn: Connection<'_, Db>) -> R<Workspace> {
     match WorkspaceRepository::get(conn.into_inner()).await? {
         Some(workspace) => Ok(workspace.into()),
         None => Err(Error::WorkspaceNotInitialized),
@@ -32,7 +32,9 @@ pub struct GetWorkspaceNameResponse {
 
 /// Get the name of your workspace.
 #[get("/v1/workspace/name")]
-pub(super) fn get_workspace_name(workspace: LazyGuard<Workspace>) -> R<GetWorkspaceNameResponse> {
+pub(super) fn get_workspace_name(
+    workspace: LazyGuard<guards::Workspace>,
+) -> R<GetWorkspaceNameResponse> {
     let workspace = workspace.inner?.model();
     let response = GetWorkspaceNameResponse {
         name: workspace.name,
@@ -54,13 +56,13 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub(super) async fn set_workspace_name(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
+    workspace: LazyGuard<guards::Workspace>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> R<SetWorkspaceNameResponse> {
     let db = conn.into_inner();
     let workspace = workspace.inner?.model();
 
-    let mut active: workspace::ActiveModel = workspace.into();
+    let mut active: WorkspaceActiveModel = workspace.into();
     active.name = Set(req.name.clone());
     let workspace = active.update(db).await?;
 
@@ -80,7 +82,9 @@ pub struct GetWorkspaceIconResponse {
 
 /// Get the icon of your workspace.
 #[get("/v1/workspace/icon")]
-pub(super) fn get_workspace_icon(workspace: LazyGuard<Workspace>) -> R<GetWorkspaceIconResponse> {
+pub(super) fn get_workspace_icon(
+    workspace: LazyGuard<guards::Workspace>,
+) -> R<GetWorkspaceIconResponse> {
     let workspace = workspace.inner?.model();
     let response = GetWorkspaceIconResponse {
         url: workspace.icon_url,
@@ -94,14 +98,14 @@ pub(super) fn get_workspace_icon(workspace: LazyGuard<Workspace>) -> R<GetWorksp
 #[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
 pub(super) async fn set_workspace_icon_string(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
+    workspace: LazyGuard<guards::Workspace>,
     string: String,
 ) -> R<GetWorkspaceIconResponse> {
     let db = conn.into_inner();
     let workspace = workspace.inner?.model();
 
     // TODO: Validate `string`
-    let mut active: workspace::ActiveModel = workspace.into();
+    let mut active: WorkspaceActiveModel = workspace.into();
     active.icon_url = Set(Some(string));
     let workspace = active.update(db).await?;
 
@@ -140,7 +144,7 @@ pub struct GetWorkspaceAccentColorResponse {
 /// Get the accent color of your workspace.
 #[get("/v1/workspace/accent-color")]
 pub(super) fn get_workspace_accent_color(
-    workspace: LazyGuard<Workspace>,
+    workspace: LazyGuard<guards::Workspace>,
 ) -> R<GetWorkspaceAccentColorResponse> {
     let workspace = workspace.inner?.model();
     let response = GetWorkspaceAccentColorResponse {
@@ -161,14 +165,14 @@ pub struct SetWorkspaceAccentColorRequest {
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub(super) async fn set_workspace_accent_color(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
+    workspace: LazyGuard<guards::Workspace>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> R<GetWorkspaceAccentColorResponse> {
     let db = conn.into_inner();
     let workspace = workspace.inner?.model();
 
     // TODO: Validate `string`
-    let mut active: workspace::ActiveModel = workspace.into();
+    let mut active: WorkspaceActiveModel = workspace.into();
     active.accent_color = Set(Some(req.color.clone()));
     let workspace = active.update(db).await?;
 

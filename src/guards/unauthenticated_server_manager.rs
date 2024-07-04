@@ -5,13 +5,12 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
-use entity::model::{DateLike, Duration, PossiblyInfinite};
-use entity::server_config;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use service::config::Config as AppConfig;
-use service::repositories::ServerConfigRepository;
+use service::deprecated::{DateLike, Duration, PossiblyInfinite, ServerConfigActiveModel};
+use service::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
 use service::ServerCtl;
 
@@ -24,7 +23,7 @@ pub struct UnauthenticatedServerManager<'r> {
     db: &'r DatabaseConnection,
     app_config: &'r AppConfig,
     server_ctl: &'r ServerCtl,
-    server_config: RwLock<server_config::Model>,
+    server_config: RwLock<ServerConfig>,
 }
 
 impl<'r> UnauthenticatedServerManager<'r> {
@@ -32,7 +31,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         db: &'r DatabaseConnection,
         app_config: &'r AppConfig,
         server_ctl: &'r ServerCtl,
-        server_config: server_config::Model,
+        server_config: ServerConfig,
     ) -> Self {
         Self {
             db,
@@ -42,13 +41,13 @@ impl<'r> UnauthenticatedServerManager<'r> {
         }
     }
 
-    fn server_config_mut(&self) -> RwLockWriteGuard<server_config::Model> {
+    fn server_config_mut(&self) -> RwLockWriteGuard<ServerConfig> {
         self.server_config
             .write()
-            .expect("`server_config::Model` lock poisonned")
+            .expect("`ServerConfig` lock poisonned")
     }
 
-    pub fn server_config(&self) -> server_config::Model {
+    pub fn server_config(&self) -> ServerConfig {
         self.server_config_mut().to_owned()
     }
 }
@@ -96,13 +95,13 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
 }
 
 impl<'r> UnauthenticatedServerManager<'r> {
-    async fn update<U>(&self, update: U) -> Result<server_config::Model, Error>
+    async fn update<U>(&self, update: U) -> Result<ServerConfig, Error>
     where
-        U: FnOnce(&mut server_config::ActiveModel) -> (),
+        U: FnOnce(&mut ServerConfigActiveModel) -> (),
     {
         let old_server_config = self.server_config_mut().clone();
 
-        let mut active: server_config::ActiveModel = old_server_config.clone().into();
+        let mut active: ServerConfigActiveModel = old_server_config.clone().into();
         update(&mut active);
         trace!("Updating config in database…");
         let new_server_config = active.update(self.db).await?;
@@ -124,7 +123,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
-    fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
+    fn reload(&self, server_config: &ServerConfig) -> Result<(), Error> {
         let server_ctl = self.server_ctl;
 
         // Save new server config
@@ -167,8 +166,8 @@ impl<'r> UnauthenticatedServerManager<'r> {
         db: &DatabaseConnection,
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
-        server_config: server_config::ActiveModel,
-    ) -> Result<server_config::Model, Error> {
+        server_config: impl Into<ServerConfigCreateForm>,
+    ) -> Result<ServerConfig, Error> {
         let None = ServerConfigRepository::get(db).await? else {
             return Err(Error::ServerConfigAlreadyInitialized);
         };
@@ -195,7 +194,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         Ok(server_config)
     }
 
-    pub async fn set_domain(&self, domain: &str) -> Result<server_config::Model, Error> {
+    pub async fn set_domain(&self, domain: &str) -> Result<ServerConfig, Error> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {
             active.domain = Set(domain.to_owned());
@@ -203,10 +202,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         .await
     }
 
-    pub async fn set_message_archiving(
-        &self,
-        new_state: bool,
-    ) -> Result<server_config::Model, Error> {
+    pub async fn set_message_archiving(&self, new_state: bool) -> Result<ServerConfig, Error> {
         trace!(
             "Turning {} message archiving…",
             if new_state { "on" } else { "off" }
@@ -219,7 +215,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
     pub async fn set_message_archive_retention(
         &self,
         new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<server_config::Model, Error> {
+    ) -> Result<ServerConfig, Error> {
         trace!("Setting message archive retention to {new_state}…");
         self.update(|active| {
             active.message_archive_retention = Set(new_state);
@@ -227,7 +223,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
         .await
     }
 
-    pub async fn set_file_uploading(&self, new_state: bool) -> Result<server_config::Model, Error> {
+    pub async fn set_file_uploading(&self, new_state: bool) -> Result<ServerConfig, Error> {
         trace!(
             "Turning {} file uploading…",
             if new_state { "on" } else { "off" }
@@ -240,7 +236,7 @@ impl<'r> UnauthenticatedServerManager<'r> {
     pub async fn set_file_retention(
         &self,
         new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<server_config::Model, Error> {
+    ) -> Result<ServerConfig, Error> {
         trace!("Setting file retention to {new_state}…");
         self.update(|active| {
             active.file_storage_retention = Set(new_state);

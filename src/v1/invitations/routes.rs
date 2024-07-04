@@ -3,10 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::model::MemberRole;
-use ::entity::workspace_invitation::{self, InvitationContact, InvitationStatus};
 use chrono::{DateTime, Utc};
-use entity::model::JIDNode;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use rocket::response::status::{self, NoContent};
@@ -16,8 +13,14 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config;
 use service::prose_xmpp::BareJid;
-use service::repositories::{InvitationRepository, MemberRepository};
-use service::sea_orm::{prelude::*, EntityTrait};
+use service::repositories::{
+    InvitationContact, InvitationCreateForm, InvitationRepository, InvitationStatus,
+    MemberRepository,
+};
+use service::sea_orm::prelude::*;
+use service::util::to_bare_jid;
+use service::JIDNode;
+use service::MemberRole;
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
@@ -27,7 +30,7 @@ use crate::guards::{
     JID as JIDGuard,
 };
 use crate::responders::Paginated;
-use crate::util::{bare_jid_from_username, to_bare_jid};
+use crate::util::bare_jid_from_username;
 use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
@@ -69,10 +72,13 @@ pub(super) async fn invite_member<'r>(
 
     let invitation = InvitationRepository::create(
         db,
+        InvitationCreateForm {
+            jid: req.jid(&server_config)?,
+            pre_assigned_role: Some(req.pre_assigned_role.clone()),
+            contact: req.contact.clone(),
+            created_at: None,
+        },
         &uuid_gen,
-        &req.jid(&server_config)?,
-        req.pre_assigned_role,
-        req.contact.clone(),
     )
     .await?;
 
@@ -190,8 +196,8 @@ pub struct WorkspaceInvitation {
     pub accept_token_expires_at: DateTimeUtc,
 }
 
-impl From<workspace_invitation::Model> for WorkspaceInvitation {
-    fn from(value: workspace_invitation::Model) -> Self {
+impl From<service::repositories::Invitation> for WorkspaceInvitation {
+    fn from(value: service::repositories::Invitation) -> Self {
         Self {
             invitation_id: value.id,
             created_at: value.created_at,
@@ -365,9 +371,7 @@ pub(super) async fn invitation_cancel(
         return Err(Error::Unauthorized);
     }
 
-    workspace_invitation::Entity::delete_by_id(invitation_id)
-        .exec(db)
-        .await?;
+    InvitationRepository::delete_by_id(db, invitation_id).await?;
 
     Ok(NoContent)
 }

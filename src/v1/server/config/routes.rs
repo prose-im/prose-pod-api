@@ -3,14 +3,14 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{DateLike, Duration, PossiblyInfinite};
-use entity::server_config::Model as ServerConfig;
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use serde::{Deserialize, Serialize};
+use service::deprecated::{DateLike, Duration, PossiblyInfinite};
+use service::repositories::ServerConfig;
 
 use crate::error::Error;
-use crate::guards::{LazyGuard, ServerConfig as ServerConfigGuard, ServerManager};
+use crate::guards::{self, LazyGuard, ServerManager};
 use crate::v1::R;
 
 // TODO: Routes to restore defaults
@@ -18,7 +18,7 @@ use crate::v1::R;
 /// Get the current configuration of server features.
 #[get("/v1/server/config")]
 pub(super) async fn get_server_config(
-    server_config: LazyGuard<ServerConfigGuard>,
+    server_config: LazyGuard<guards::ServerConfig>,
 ) -> R<ServerConfig> {
     let model = server_config.inner?.model();
     Ok(model.into())

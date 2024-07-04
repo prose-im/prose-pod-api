@@ -2852,7 +2852,6 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "cucumber",
- "entity",
  "env_logger",
  "futures",
  "futures-util",

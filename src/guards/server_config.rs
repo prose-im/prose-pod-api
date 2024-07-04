@@ -5,7 +5,6 @@
 
 use std::ops::Deref;
 
-use entity::server_config;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
 use service::repositories::ServerConfigRepository;
@@ -14,19 +13,21 @@ use crate::error::{self, Error};
 
 use super::{database_connection, LazyFromRequest};
 
+type ServerConfigModel = service::repositories::ServerConfig;
+
 // TODO: Make it so we can call `server_config.field` directly
 // instead of `server_config.model.field`.
 #[repr(transparent)]
-pub struct ServerConfig(server_config::Model);
+pub struct ServerConfig(ServerConfigModel);
 
 impl ServerConfig {
-    pub fn model(self) -> server_config::Model {
+    pub fn model(self) -> ServerConfigModel {
         self.0
     }
 }
 
 impl Deref for ServerConfig {
-    type Target = server_config::Model;
+    type Target = ServerConfigModel;
 
     fn deref(&self) -> &Self::Target {
         &self.0

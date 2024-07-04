@@ -100,7 +100,6 @@ async-stream = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
-entity = { workspace = true }
 env_logger = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }

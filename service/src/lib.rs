@@ -15,12 +15,14 @@ pub mod notifier;
 pub mod prosody;
 pub mod repositories;
 pub mod server_ctl;
+pub mod util;
 pub mod xmpp;
 
 pub use auth_service::{
     AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
 };
 use config::Config;
+pub use entity::model::{EmailAddress, JIDNode, MemberRole};
 use entity::server_config::Model as ServerConfig;
 pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation_error::*;
@@ -31,6 +33,15 @@ pub use xmpp::xmpp_service::{self, *};
 
 pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;
+
+// TODO: Move all code which depends on this into `service`
+pub mod deprecated {
+    pub use entity::{
+        model::{DateLike, Duration, PossiblyInfinite},
+        server_config::ActiveModel as ServerConfigActiveModel,
+        workspace::ActiveModel as WorkspaceActiveModel,
+    };
+}
 
 trait ProseDefault {
     fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self;

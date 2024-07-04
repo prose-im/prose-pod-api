@@ -5,10 +5,12 @@
 
 mod invitation_repository;
 mod member_repository;
+mod notification_repository;
 mod server_config_repository;
 mod workspace_repository;
 
-pub use invitation_repository::InvitationRepository;
-pub use member_repository::MemberRepository;
-pub use server_config_repository::ServerConfigRepository;
-pub use workspace_repository::WorkspaceRepository;
+pub use invitation_repository::*;
+pub use member_repository::*;
+pub use notification_repository::*;
+pub use server_config_repository::*;
+pub use workspace_repository::*;

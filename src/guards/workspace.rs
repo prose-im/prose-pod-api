@@ -5,7 +5,6 @@
 
 use std::ops::Deref;
 
-use entity::workspace;
 use rocket::Request;
 use rocket::{outcome::try_outcome, request::Outcome};
 use service::repositories::WorkspaceRepository;
@@ -14,19 +13,21 @@ use crate::error::{self, Error};
 
 use super::{database_connection, LazyFromRequest};
 
+type WorkspaceModel = service::repositories::Workspace;
+
 // TODO: Make it so we can call `workspace.field` directly
 // instead of `workspace.model.field`.
 #[repr(transparent)]
-pub struct Workspace(workspace::Model);
+pub struct Workspace(WorkspaceModel);
 
 impl Workspace {
-    pub fn model(self) -> workspace::Model {
+    pub fn model(self) -> WorkspaceModel {
         self.0
     }
 }
 
 impl Deref for Workspace {
-    type Target = workspace::Model;
+    type Target = WorkspaceModel;
 
     fn deref(&self) -> &Self::Target {
         &self.0

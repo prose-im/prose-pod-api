@@ -3,14 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::MemberRole;
-use entity::{member, workspace_invitation};
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use service::prose_xmpp::BareJid;
-use service::repositories::{InvitationRepository, MemberRepository, ServerConfigRepository};
+use service::repositories::{
+    Invitation, InvitationRepository, Member, MemberCreateForm, MemberRepository,
+    ServerConfigRepository,
+};
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
+use service::MemberRole;
 use service::{xmpp_service, AuthService, ServerCtl, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
@@ -97,9 +99,17 @@ impl<'r> UserFactory<'r> {
         password: &str,
         nickname: &str,
         role: &Option<MemberRole>,
-    ) -> Result<member::Model, Error> {
+    ) -> Result<Member, Error> {
         // Create the user in database
-        let member = MemberRepository::create(txn, &jid, role).await?;
+        let member = MemberRepository::create(
+            txn,
+            MemberCreateForm {
+                jid: jid.to_owned(),
+                role: role.to_owned(),
+                joined_at: None,
+            },
+        )
+        .await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -135,7 +145,7 @@ impl<'r> UserFactory<'r> {
     pub async fn accept_workspace_invitation(
         &self,
         db: &DbConn,
-        invitation: workspace_invitation::Model,
+        invitation: Invitation,
         password: &str,
         nickname: &str,
     ) -> Result<(), Error> {

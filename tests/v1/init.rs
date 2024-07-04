@@ -4,8 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use cucumber::{given, then, when};
-use entity::model::JIDNode;
-use entity::server_config;
 use prose_pod_api::error::Error;
 use prose_pod_api::guards::UnauthenticatedServerManager;
 use prose_pod_api::v1::init::{
@@ -14,9 +12,8 @@ use prose_pod_api::v1::init::{
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::repositories::WorkspaceRepository;
-use service::sea_orm::Set;
-use service::ServerCtl;
+use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
+use service::{JIDNode, ServerCtl};
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -44,12 +41,11 @@ fn given_workspace_not_initialized(_world: &mut TestWorld) {
 
 #[given("the workspace has been initialized")]
 async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let db = world.db();
-    let form = entity::workspace::ActiveModel {
-        name: Set(DEFAULT_WORKSPACE_NAME.to_string()),
-        ..Default::default()
+    let form = WorkspaceCreateForm {
+        name: DEFAULT_WORKSPACE_NAME.to_string(),
+        accent_color: None,
     };
-    WorkspaceRepository::create(db, form).await?;
+    WorkspaceRepository::create(world.db(), form).await?;
     Ok(())
 }
 
@@ -60,13 +56,11 @@ fn given_server_config_not_initialized(_world: &mut TestWorld) {
 
 #[given("the server config has been initialized")]
 async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let db = world.db();
-    let form = server_config::ActiveModel {
-        domain: Set(DEFAULT_DOMAIN.to_string()),
-        ..Default::default()
+    let form = ServerConfigCreateForm {
+        domain: DEFAULT_DOMAIN.to_string(),
     };
     UnauthenticatedServerManager::init_server_config(
-        db,
+        world.db(),
         &ServerCtl::new(Box::new(world.server_ctl.clone())),
         &world.config,
         form,

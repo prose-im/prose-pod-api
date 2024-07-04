@@ -6,13 +6,11 @@
 use crate::TestWorld;
 use cucumber::{given, then, when};
 use migration::DbErr;
-use prose_pod_api::error::Error;
 use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::repositories::WorkspaceRepository;
-use service::sea_orm::{ActiveModelTrait, Set, Unchanged};
 
 // WORKSPACE NAME
 
@@ -35,14 +33,8 @@ async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse
 }
 
 #[given(expr = "the workspace is named {string}")]
-async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let db = world.db();
-    let form = entity::workspace::ActiveModel {
-        name: Set(name),
-        ..Default::default()
-    };
-    form.save(db).await?;
-    Ok(())
+async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
+    WorkspaceRepository::set_name(world.db(), name).await
 }
 
 #[when("a user gets the workspace name")]
@@ -94,15 +86,8 @@ async fn set_workspace_icon_url<'a>(client: &'a Client, url: &str) -> LocalRespo
 }
 
 #[given(expr = "the workspace icon URL is {string}")]
-async fn given_workspace_icon_url(world: &mut TestWorld, url: String) -> Result<(), Error> {
-    let db = world.db();
-    let form = entity::workspace::ActiveModel {
-        id: Unchanged(1),
-        icon_url: Set(Some(url)),
-        ..Default::default()
-    };
-    form.update(db).await?;
-    Ok(())
+async fn given_workspace_icon_url(world: &mut TestWorld, url: String) -> Result<(), DbErr> {
+    WorkspaceRepository::set_icon_url(world.db(), Some(url)).await
 }
 
 #[when("a user gets the workspace icon")]
