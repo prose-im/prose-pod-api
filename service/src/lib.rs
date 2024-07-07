@@ -6,30 +6,27 @@
 pub extern crate prose_xmpp;
 pub extern crate xmpp_parsers;
 
-mod auth_service;
 pub mod config;
 pub mod dependencies;
-mod jwt_service;
 mod mutation_error;
 pub mod prosody;
 pub mod repositories;
-pub mod server_ctl;
+pub mod services;
 pub mod util;
-pub mod xmpp;
 
-pub use auth_service::{
-    AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
-};
+// pub use auth_service::{
+//     AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
+// };
 use config::Config;
 pub use dependencies::any_notifier as notifier;
 pub use entity::model::{EmailAddress, JIDNode, MemberRole};
 use entity::server_config::Model as ServerConfig;
-pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
+// pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation_error::*;
 pub use prosody::prosody_config_from_db;
 pub use reqwest::Client as HttpClient;
-pub use server_ctl::ServerCtl;
-pub use xmpp::xmpp_service::{self, *};
+// pub use server_ctl::ServerCtl;
+// pub use xmpp::xmpp_service::{self, *};
 
 pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;

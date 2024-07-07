@@ -12,7 +12,7 @@ use service::config::Config as AppConfig;
 use service::deprecated::{DateLike, Duration, PossiblyInfinite, ServerConfigActiveModel};
 use service::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
 use service::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use service::ServerCtl;
+use service::services::server_ctl::ServerCtl;
 
 use crate::error::{self, Error};
 

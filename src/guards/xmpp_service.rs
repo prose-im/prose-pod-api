@@ -8,7 +8,7 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
-use service::{xmpp_service, XmppServiceContext, XmppServiceInner};
+use service::services::xmpp_service::{self, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 

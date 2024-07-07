@@ -16,7 +16,7 @@ use rocket::{
 use service::{
     prose_xmpp::{stanza::vcard::Nickname, BareJid},
     repositories::{MemberCreateForm, MemberRepository},
-    xmpp_service,
+    services::xmpp_service,
 };
 use urlencoding::encode;
 

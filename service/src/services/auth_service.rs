@@ -8,9 +8,8 @@ use std::{collections::BTreeMap, ops::Deref};
 use prose_xmpp::BareJid;
 
 use crate::{
-    jwt_service::JWTError,
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
-    JWTService,
+    services::jwt_service::{JWTError, JWTService},
 };
 
 pub const JWT_PROSODY_TOKEN_KEY: &'static str = "prosody_token";
@@ -70,6 +69,8 @@ impl AuthServiceImpl for LiveAuthService {
         self.jwt_service.verify(jwt)
     }
 }
+
+pub type Error = AuthError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {

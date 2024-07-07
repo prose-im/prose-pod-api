@@ -10,7 +10,7 @@ use service::{
     prosody::ProsodyConfig,
     prosody_config_from_db,
     repositories::ServerConfig,
-    server_ctl::{Error, ServerCtlImpl},
+    services::server_ctl::{Error, ServerCtlImpl},
     MemberRole, ProsodyConfigSection,
 };
 

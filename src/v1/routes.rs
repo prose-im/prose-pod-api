@@ -5,7 +5,7 @@
 
 use rocket::State;
 use serde::{Deserialize, Serialize};
-use service::AuthService;
+use service::services::auth_service::AuthService;
 
 use crate::guards::BasicAuth;
 use crate::v1::R;

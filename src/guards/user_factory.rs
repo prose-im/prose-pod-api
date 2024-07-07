@@ -12,8 +12,12 @@ use service::repositories::{
     ServerConfigRepository,
 };
 use service::sea_orm::{DatabaseTransaction, DbConn, TransactionTrait as _};
+use service::services::{
+    auth_service::AuthService,
+    server_ctl::ServerCtl,
+    xmpp_service::{self, XmppServiceContext, XmppServiceInner},
+};
 use service::MemberRole;
-use service::{xmpp_service, AuthService, ServerCtl, XmppServiceContext, XmppServiceInner};
 
 use crate::error::{self, Error};
 

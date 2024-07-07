@@ -14,7 +14,7 @@ use service::repositories::{
     WorkspaceRepository,
 };
 use service::sea_orm::TransactionTrait as _;
-use service::ServerCtl;
+use service::services::server_ctl::ServerCtl;
 use service::{JIDNode, MemberRole};
 
 use crate::error::Error;

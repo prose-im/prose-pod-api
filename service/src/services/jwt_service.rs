@@ -9,7 +9,7 @@ use prose_xmpp::BareJid;
 use sha2::Sha256;
 use std::{collections::BTreeMap, env};
 
-pub const ENV_JWT_SIGNING_KEY: &'static str = "JWT_SIGNING_KEY";
+const ENV_JWT_SIGNING_KEY: &'static str = "JWT_SIGNING_KEY";
 pub const JWT_JID_KEY: &'static str = "jid";
 
 #[derive(Debug, Clone)]
@@ -45,6 +45,8 @@ impl JWTService {
         jwt.verify_with_key(&jwt_key).map_err(JWTError::Verify)
     }
 }
+
+pub type Error = JWTError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JWTError {

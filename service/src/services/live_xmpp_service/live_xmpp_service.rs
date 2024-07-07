@@ -16,12 +16,10 @@ use xmpp_parsers::jid::ResourcePart;
 
 use crate::config::Config;
 use crate::prosody::ProsodyRest;
-use crate::xmpp_service::VCard;
-use crate::XmppServiceError;
+use crate::services::xmpp_service::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl};
 
+use super::non_standard_xmpp_client::NonStandardXmppClient;
 use super::xmpp_client::XMPPClient;
-use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
-use super::NonStandardXmppClient;
 
 pub struct LiveXmppService {
     http_client: HttpClient,

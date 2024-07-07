@@ -11,6 +11,8 @@ use prose_xmpp::stanza::vcard::Nickname;
 use prose_xmpp::{BareJid, ConnectionError, RequestError};
 use secrecy::Secret;
 
+pub use super::live_xmpp_service::LiveXmppService;
+
 pub struct XmppService<'r> {
     inner: &'r XmppServiceInner,
     ctx: XmppServiceContext,

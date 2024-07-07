@@ -13,7 +13,7 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
-use service::{JIDNode, ServerCtl};
+use service::{services::server_ctl::ServerCtl, JIDNode};
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;

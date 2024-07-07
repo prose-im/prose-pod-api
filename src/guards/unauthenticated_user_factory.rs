@@ -9,7 +9,9 @@ use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::{Request, State};
 use service::repositories::ServerConfigRepository;
-use service::{AuthService, ServerCtl, XmppServiceInner};
+use service::services::{
+    auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
+};
 
 use crate::error::{self, Error};
 

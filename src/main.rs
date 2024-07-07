@@ -11,8 +11,14 @@ use service::config::Config;
 use service::dependencies::Notifier;
 use service::prose_xmpp::UUIDProvider;
 use service::prosody::{ProsodyAdminRest, ProsodyOAuth2};
-use service::xmpp::LiveXmppService;
-use service::{AuthService, HttpClient, JWTService, LiveAuthService, ServerCtl, XmppServiceInner};
+use service::services::xmpp_service::LiveXmppService;
+use service::services::{
+    auth_service::{AuthService, LiveAuthService},
+    jwt_service::JWTService,
+    server_ctl::ServerCtl,
+    xmpp_service::XmppServiceInner,
+};
+use service::HttpClient;
 
 #[launch]
 fn rocket() -> _ {

@@ -12,7 +12,10 @@ use rocket::request::Outcome;
 use rocket::{Request, State};
 use secrecy::Secret;
 use service::prose_xmpp::BareJid;
-use service::{AuthService, JWT_JID_KEY, JWT_PROSODY_TOKEN_KEY};
+use service::services::{
+    auth_service::{AuthService, JWT_PROSODY_TOKEN_KEY},
+    jwt_service::JWT_JID_KEY,
+};
 
 use crate::error::{self, Error};
 

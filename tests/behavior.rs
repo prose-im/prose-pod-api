@@ -30,13 +30,18 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
 use service::config::Config;
+use service::dependencies;
 use service::notifier::AnyNotifier;
 use service::repositories::{
     EmailAddress, Invitation, Member, ServerConfig, ServerConfigRepository,
 };
 use service::sea_orm::DatabaseConnection;
-use service::{dependencies, JWTKey, JWTService, XmppServiceInner};
-use service::{AuthService, ServerCtl};
+use service::services::{
+    auth_service::AuthService,
+    jwt_service::{JWTKey, JWTService},
+    server_ctl::ServerCtl,
+    xmpp_service::XmppServiceInner,
+};
 use tokio::runtime::Handle;
 use tokio::task;
 use tracing_subscriber::{

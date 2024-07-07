@@ -26,7 +26,7 @@ use sea_orm_rocket::Database;
 use service::config::Config;
 use service::dependencies::Uuid;
 use service::repositories::ServerConfigRepository;
-use service::{ServerCtl, XmppServiceInner};
+use service::services::{server_ctl::ServerCtl, xmpp_service::XmppServiceInner};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
