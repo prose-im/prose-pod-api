@@ -5,7 +5,6 @@
 
 pub(crate) mod live_xmpp_service;
 mod non_standard_xmpp_client;
-pub mod stanza;
 mod xmpp_client;
 pub mod xmpp_service;
 
