@@ -14,19 +14,13 @@ pub mod repositories;
 pub mod services;
 pub mod util;
 
-// pub use auth_service::{
-//     AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
-// };
 use config::Config;
 pub use dependencies::any_notifier as notifier;
 pub use entity::model::{EmailAddress, JIDNode, MemberRole};
 use entity::server_config::Model as ServerConfig;
-// pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation_error::*;
 pub use prosody::prosody_config_from_db;
 pub use reqwest::Client as HttpClient;
-// pub use server_ctl::ServerCtl;
-// pub use xmpp::xmpp_service::{self, *};
 
 pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;
