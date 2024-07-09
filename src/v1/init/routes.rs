@@ -15,13 +15,12 @@ use service::repositories::{
 };
 use service::sea_orm::TransactionTrait as _;
 use service::services::server_ctl::ServerCtl;
+use service::services::server_manager::ServerManager;
 use service::{JIDNode, MemberRole};
 
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
-use crate::guards::{
-    self, Db, LazyGuard, UnauthenticatedServerManager, UnauthenticatedUserService,
-};
+use crate::guards::{self, Db, LazyGuard, UnauthenticatedUserService};
 use crate::util::bare_jid_from_username;
 use crate::v1::members::{rocket_uri_macro_get_member, Member};
 use crate::v1::Created;
@@ -88,8 +87,7 @@ pub async fn init_server_config(
     let db = conn.into_inner();
     let req = req.into_inner();
 
-    let server_config =
-        UnauthenticatedServerManager::init_server_config(db, server_ctl, app_config, req).await?;
+    let server_config = ServerManager::init_server_config(db, server_ctl, app_config, req).await?;
 
     let resource_uri = uri!(crate::v1::server::config::get_server_config).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))

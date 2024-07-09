@@ -8,9 +8,10 @@ use rocket::{get, put};
 use serde::{Deserialize, Serialize};
 use service::deprecated::{DateLike, Duration, PossiblyInfinite};
 use service::repositories::ServerConfig;
+use service::services::server_manager::ServerManager;
 
 use crate::error::Error;
-use crate::guards::{self, LazyGuard, ServerManager};
+use crate::guards::{self, LazyGuard};
 use crate::v1::R;
 
 // TODO: Routes to restore defaults

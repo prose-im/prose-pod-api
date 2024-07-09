@@ -14,7 +14,7 @@ mod util;
 pub mod v1;
 
 use error::Error;
-use guards::{Db, UnauthenticatedServerManager};
+use guards::Db;
 
 use log::{debug, info};
 use migration::MigratorTrait;
@@ -27,6 +27,7 @@ use service::config::Config;
 use service::dependencies::{Notifier, Uuid};
 use service::repositories::ServerConfigRepository;
 use service::services::jwt_service::JWTService;
+use service::services::server_manager::ServerManager;
 use service::services::{
     auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
 };
@@ -70,8 +71,7 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
 
     match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => {
-            let server_manager =
-                UnauthenticatedServerManager::new(db, app_config, server_ctl, server_config);
+            let server_manager = ServerManager::new(db, app_config, server_ctl, server_config);
             if let Err(err) = server_manager.reload_current() {
                 error!("Could not initialize the XMPP server configuration: {err}");
             }

@@ -3,32 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::repositories::MemberRepository;
+use service::{repositories::MemberRepository, services::server_manager::ServerManager};
 
 use crate::error::{self, Error};
 
 use super::{database_connection, LazyFromRequest, UnauthenticatedServerManager, JID as JIDGuard};
-
-pub struct ServerManager<'r>(UnauthenticatedServerManager<'r>);
-
-impl<'r> From<UnauthenticatedServerManager<'r>> for ServerManager<'r> {
-    fn from(inner: UnauthenticatedServerManager<'r>) -> Self {
-        Self(inner)
-    }
-}
-
-impl<'r> Deref for ServerManager<'r> {
-    type Target = UnauthenticatedServerManager<'r>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
@@ -49,6 +31,6 @@ impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
 
         UnauthenticatedServerManager::from_request(req)
             .await
-            .map(Self)
+            .map(|m| m.0)
     }
 }

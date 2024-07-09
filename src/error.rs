@@ -14,7 +14,9 @@ use service::services::invitation_service::InvitationAcceptError;
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
 use service::services::user_service::{self, UserCreateError};
-use service::services::{auth_service, invitation_service, server_ctl, xmpp_service};
+use service::services::{
+    auth_service, invitation_service, server_ctl, server_manager, xmpp_service,
+};
 use service::{sea_orm, MutationError};
 
 use crate::guards::NotifierError;
@@ -283,5 +285,17 @@ impl From<invitation_service::Error> for Error {
 impl From<InvitationAcceptError> for Error {
     fn from(value: InvitationAcceptError) -> Self {
         invitation_service::Error::from(value).into()
+    }
+}
+
+impl From<server_manager::Error> for Error {
+    fn from(value: server_manager::Error) -> Self {
+        match value {
+            server_manager::Error::ServerConfigAlreadyInitialized => {
+                Self::ServerConfigAlreadyInitialized
+            }
+            server_manager::Error::ServerCtl(err) => Self::ServerCtlErr(err),
+            server_manager::Error::DbErr(err) => Self::DbErr(err),
+        }
     }
 }

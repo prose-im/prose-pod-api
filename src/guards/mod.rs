@@ -25,7 +25,6 @@ pub use db::*;
 pub use jid::*;
 pub use notifier::*;
 pub use server_config::*;
-pub use server_manager::*;
 pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;
 pub use unauthenticated_user_service::*;

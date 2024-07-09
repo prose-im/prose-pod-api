@@ -21,7 +21,7 @@ use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
+use prose_pod_api::guards::Db;
 use regex::Regex;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
@@ -36,6 +36,7 @@ use service::repositories::{
     EmailAddress, Invitation, Member, ServerConfig, ServerConfigRepository,
 };
 use service::sea_orm::DatabaseConnection;
+use service::services::server_manager::ServerManager;
 use service::services::{
     auth_service::AuthService,
     jwt_service::{JWTKey, JWTService},
@@ -233,12 +234,12 @@ impl TestWorld {
         let server_config = ServerConfigRepository::get(db)
             .await?
             .expect("Server config not initialized");
-        Ok(ServerManager::from(UnauthenticatedServerManager::new(
+        Ok(ServerManager::new(
             db,
             &self.config,
             server_ctl,
             server_config,
-        )))
+        ))
     }
 
     async fn server_config(&self) -> Result<ServerConfig, Error> {

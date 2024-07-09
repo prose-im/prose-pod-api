@@ -5,7 +5,6 @@
 
 use cucumber::{given, then, when};
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::UnauthenticatedServerManager;
 use prose_pod_api::v1::init::{
     InitFirstAccountRequest, InitServerConfigRequest, InitWorkspaceRequest,
 };
@@ -13,6 +12,7 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
+use service::services::server_manager::ServerManager;
 use service::{services::server_ctl::ServerCtl, JIDNode};
 use std::sync::Arc;
 
@@ -60,7 +60,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     let form = ServerConfigCreateForm {
         domain: DEFAULT_DOMAIN.to_string(),
     };
-    UnauthenticatedServerManager::init_server_config(
+    ServerManager::init_server_config(
         world.db(),
         &ServerCtl::new(Arc::new(world.server_ctl.clone())),
         &world.config,
