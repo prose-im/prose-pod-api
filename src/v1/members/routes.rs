@@ -16,11 +16,12 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::prose_xmpp::BareJid;
 use service::repositories::MemberRepository;
+use service::services::xmpp_service::XmppService;
 
 use super::models::*;
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard, XmppService};
+use crate::guards::{Db, LazyGuard};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]

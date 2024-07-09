@@ -3,35 +3,18 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
+use rocket::{outcome::try_outcome, request::Outcome, Request};
+use service::{
+    prose_xmpp::BareJid,
+    services::{
+        jwt_service::JWT,
+        xmpp_service::{XmppService, XmppServiceContext, XmppServiceInner},
+    },
+};
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::Request;
-use service::prose_xmpp::BareJid;
-use service::services::jwt_service::JWT;
-use service::services::xmpp_service::{self, XmppServiceContext, XmppServiceInner};
-
-use crate::error::Error;
 use crate::request_state;
 
 use super::LazyFromRequest;
-
-pub struct XmppService<'r>(xmpp_service::XmppService<'r>);
-
-impl<'r> Deref for XmppService<'r> {
-    type Target = xmpp_service::XmppService<'r>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'r> Into<xmpp_service::XmppService<'r>> for XmppService<'r> {
-    fn into(self) -> xmpp_service::XmppService<'r> {
-        self.0
-    }
-}
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for XmppService<'r> {
@@ -47,7 +30,7 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
             Ok(prosody_token) => prosody_token,
             Err(err) => {
                 debug!("Invalid JWT: {err}");
-                return Outcome::Error(Error::Unauthorized.into());
+                return Outcome::Error(Self::Error::Unauthorized.into());
             }
         };
 
@@ -55,8 +38,6 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
             bare_jid,
             prosody_token,
         };
-        let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner, ctx);
-
-        Outcome::Success(Self(xmpp_service))
+        Outcome::Success(XmppService::new(xmpp_service_inner, ctx))
     }
 }
