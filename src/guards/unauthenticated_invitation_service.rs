@@ -37,15 +37,6 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedInvitationService<'r> {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let user_service = try_outcome!(UnauthenticatedUserService::from_request(req).await).0;
 
-        // // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
-        // // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)
-        // let db = try_outcome!(database_connection(req).await);
-        // match ServerConfigRepository::get(db).await {
-        //     Ok(Some(_)) => {}
-        //     Ok(None) => return Error::ServerConfigNotInitialized.into(),
-        //     Err(err) => return Error::DbErr(err).into(),
-        // }
-
         Outcome::Success(Self(InvitationService::new(user_service)))
     }
 }
