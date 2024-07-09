@@ -15,7 +15,7 @@ use service::config::Config;
 use service::prose_xmpp::BareJid;
 use service::repositories::{
     InvitationContact, InvitationCreateForm, InvitationRepository, InvitationStatus,
-    MemberRepository,
+    MemberRepository, ServerConfig,
 };
 use service::sea_orm::prelude::*;
 use service::services::invitation_service::InvitationService;
@@ -28,7 +28,7 @@ use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{
-    Db, LazyGuard, ServerConfig, UnauthenticatedInvitationService, UuidGenerator, JID as JIDGuard,
+    Db, LazyGuard, UnauthenticatedInvitationService, UuidGenerator, JID as JIDGuard,
 };
 use crate::responders::Paginated;
 use crate::util::bare_jid_from_username;

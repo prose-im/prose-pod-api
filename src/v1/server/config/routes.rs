@@ -11,17 +11,15 @@ use service::repositories::ServerConfig;
 use service::services::server_manager::ServerManager;
 
 use crate::error::Error;
-use crate::guards::{self, LazyGuard};
+use crate::guards::LazyGuard;
 use crate::v1::R;
 
 // TODO: Routes to restore defaults
 
 /// Get the current configuration of server features.
 #[get("/v1/server/config")]
-pub(super) async fn get_server_config(
-    server_config: LazyGuard<guards::ServerConfig>,
-) -> R<ServerConfig> {
-    let model = server_config.inner?.model();
+pub(super) async fn get_server_config(server_config: LazyGuard<ServerConfig>) -> R<ServerConfig> {
+    let model = server_config.inner?;
     Ok(model.into())
 }
 
