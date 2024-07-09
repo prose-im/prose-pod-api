@@ -8,6 +8,7 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
+use service::prose_xmpp::BareJid;
 use service::services::jwt_service::JWT;
 use service::services::xmpp_service::{self, XmppServiceContext, XmppServiceInner};
 
@@ -39,14 +40,9 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
 
+        let bare_jid = try_outcome!(BareJid::from_request(req).await);
+
         let jwt = try_outcome!(JWT::from_request(req).await);
-        let jid = match jwt.jid() {
-            Ok(jid) => jid,
-            Err(err) => {
-                debug!("Invalid JWT: {err}");
-                return Outcome::Error(Error::Unauthorized.into());
-            }
-        };
         let prosody_token = match jwt.prosody_token() {
             Ok(prosody_token) => prosody_token,
             Err(err) => {
@@ -54,8 +50,9 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
                 return Outcome::Error(Error::Unauthorized.into());
             }
         };
+
         let ctx = XmppServiceContext {
-            bare_jid: jid,
+            bare_jid,
             prosody_token,
         };
         let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner, ctx);

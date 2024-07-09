@@ -27,9 +27,7 @@ use service::MemberRole;
 use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{
-    Db, LazyGuard, UnauthenticatedInvitationService, UuidGenerator, JID as JIDGuard,
-};
+use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService, UuidGenerator};
 use crate::responders::Paginated;
 use crate::util::bare_jid_from_username;
 use crate::v1::{Created, R};
@@ -56,7 +54,7 @@ pub(super) async fn invite_member<'r>(
     uuid_gen: UuidGenerator,
     config: &State<Config>,
     server_config: LazyGuard<ServerConfig>,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
     #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService<'_>>,
@@ -325,7 +323,7 @@ pub(super) async fn invitation_reject(
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
     config: &State<Config>,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     notifier: LazyGuard<Notifier<'_>>,
     invitation_id: i32,
 ) -> Result<(), Error> {
@@ -360,7 +358,7 @@ pub(super) async fn invitation_resend(
 #[delete("/v1/invitations/<invitation_id>")]
 pub(super) async fn invitation_cancel(
     conn: Connection<'_, Db>,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();

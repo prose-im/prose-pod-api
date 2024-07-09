@@ -20,13 +20,13 @@ use service::repositories::MemberRepository;
 use super::models::*;
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard, XmppService, JID as JIDGuard};
+use crate::guards::{Db, LazyGuard, XmppService};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
 pub(super) async fn get_members(
     conn: Connection<'_, Db>,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
@@ -178,7 +178,7 @@ pub struct SetMemberNicknameResponse {
 #[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
 pub(super) fn set_member_nickname(
     member_id: JIDUriParam,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
@@ -215,7 +215,7 @@ pub struct SetMemberAvatarResponse {
 #[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
 pub(super) fn set_member_avatar(
     member_id: JIDUriParam,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {

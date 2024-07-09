@@ -8,10 +8,9 @@ use sea_orm_rocket::{
     rocket::{request::Outcome, Request},
     Connection,
 };
-use service::{repositories::MemberRepository, sea_orm::DatabaseConnection};
+use service::{prose_xmpp::BareJid, repositories::MemberRepository, sea_orm::DatabaseConnection};
 
 use crate::error::Error;
-use crate::guards;
 
 use super::{Db, LazyFromRequest as _};
 
@@ -52,7 +51,7 @@ pub(super) async fn check_caller_is_admin<'r, 'a>(
         Some(db) => db,
         None => try_outcome!(database_connection(req).await),
     };
-    let jid = try_outcome!(guards::JID::from_request(req).await);
+    let jid = try_outcome!(BareJid::from_request(req).await);
     match MemberRepository::is_admin(db, &jid).await {
         Ok(true) => Outcome::Success(()),
         Ok(false) => {
