@@ -6,28 +6,18 @@
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::{repositories::MemberRepository, services::server_manager::ServerManager};
+use service::services::server_manager::ServerManager;
 
-use crate::error::{self, Error};
+use crate::error;
 
-use super::{database_connection, LazyFromRequest, UnauthenticatedServerManager, JID as JIDGuard};
+use super::{util::check_caller_is_admin, LazyFromRequest, UnauthenticatedServerManager};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let db = try_outcome!(database_connection(req).await);
-
-        let jid = try_outcome!(JIDGuard::from_request(req).await);
-        match MemberRepository::is_admin(db, &jid).await {
-            Ok(true) => {}
-            Ok(false) => {
-                debug!("<{}> is not an admin", jid.to_string());
-                return Error::Unauthorized.into();
-            }
-            Err(e) => return Error::DbErr(e).into(),
-        }
+        try_outcome!(check_caller_is_admin(req, None).await);
 
         UnauthenticatedServerManager::from_request(req)
             .await

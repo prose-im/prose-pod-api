@@ -11,7 +11,7 @@ use service::services::{server_ctl::ServerCtl, server_manager::ServerManager};
 
 use crate::error::{self, Error};
 
-use super::{database_connection, LazyFromRequest};
+use super::{util::database_connection, LazyFromRequest};
 
 /// WARN: Use only in initialization routes! Otherwise use `guards::ServerManager`.
 pub struct UnauthenticatedServerManager<'r>(pub(super) ServerManager<'r>);

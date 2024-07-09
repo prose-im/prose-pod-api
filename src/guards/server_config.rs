@@ -11,7 +11,7 @@ use service::repositories::ServerConfigRepository;
 
 use crate::error::{self, Error};
 
-use super::{database_connection, LazyFromRequest};
+use super::{util::database_connection, LazyFromRequest};
 
 type ServerConfigModel = service::repositories::ServerConfig;
 

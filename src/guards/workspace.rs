@@ -9,7 +9,7 @@ use service::repositories::WorkspaceRepository;
 
 use crate::error::{self, Error};
 
-use super::{database_connection, LazyFromRequest};
+use super::{util::database_connection, LazyFromRequest};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for service::repositories::Workspace {

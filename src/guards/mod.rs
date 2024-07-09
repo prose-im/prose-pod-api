@@ -14,6 +14,7 @@ mod unauthenticated_invitation_service;
 mod unauthenticated_server_manager;
 mod unauthenticated_user_service;
 mod user_service;
+mod util;
 mod uuid_generator;
 mod workspace;
 mod xmpp_service;

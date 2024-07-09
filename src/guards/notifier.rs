@@ -4,12 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{outcome::try_outcome, request::Outcome, Request, State};
-use service::{repositories::MemberRepository, services::notifier::Notifier};
+use service::services::notifier::Notifier;
 
 use crate::error::{self, Error};
-use crate::guards;
+use crate::guards::util::check_caller_is_admin;
 
-use super::{database_connection, LazyFromRequest};
+use super::{util::database_connection, LazyFromRequest};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for Notifier<'r> {
@@ -17,6 +17,9 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
+
+        try_outcome!(check_caller_is_admin(req, Some(db)).await);
+
         let notifier = try_outcome!(req
             .guard::<&State<service::dependencies::Notifier>>()
             .await
@@ -28,16 +31,6 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
                             .to_string(),
                 }
             )));
-
-        let jid = try_outcome!(guards::JID::from_request(req).await);
-        match MemberRepository::is_admin(db, &jid).await {
-            Ok(true) => {}
-            Ok(false) => {
-                debug!("<{}> is not an admin", jid.to_string());
-                return Error::Unauthorized.into();
-            }
-            Err(e) => return Error::DbErr(e).into(),
-        }
 
         let config = try_outcome!(req
             .guard::<&State<service::config::Config>>()
