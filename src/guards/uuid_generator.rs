@@ -5,13 +5,9 @@
 
 use std::ops::Deref;
 
-use ::service::dependencies::Uuid;
-use rocket::{
-    request::{FromRequest, Outcome},
-    Request,
-};
+use service::dependencies::Uuid;
 
-use crate::request_state;
+use super::prelude::*;
 
 pub struct UuidGenerator(Uuid);
 
@@ -24,8 +20,8 @@ impl Deref for UuidGenerator {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UuidGenerator {
-    type Error = crate::error::Error;
+impl<'r> LazyFromRequest<'r> for UuidGenerator {
+    type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         request_state!(req, Uuid).map(|state| Self(state.clone()))

@@ -3,24 +3,19 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::Request;
 use service::{
     repositories::ServerConfig,
     services::{server_ctl::ServerCtl, server_manager::ServerManager},
 };
 
-use crate::request_state;
+use super::prelude::*;
 
-use super::{util::database_connection, LazyFromRequest};
-
-/// WARN: Use only in initialization routes! Otherwise use `guards::ServerManager`.
+/// WARN: Use only in initialization routes! Otherwise use `ServerManager` directly.
 pub struct UnauthenticatedServerManager<'r>(pub(super) ServerManager<'r>);
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
-    type Error = crate::error::Error;
+    type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);

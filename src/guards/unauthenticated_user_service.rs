@@ -5,18 +5,14 @@
 
 use std::ops::Deref;
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::Request;
-use service::services::user_service::UserService;
 use service::services::{
-    auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
+    auth_service::AuthService, server_ctl::ServerCtl, user_service::UserService,
+    xmpp_service::XmppServiceInner,
 };
 
-use crate::request_state;
+use super::prelude::*;
 
-use super::LazyFromRequest;
-
+/// WARN: Use only in initialization routes! Otherwise use `UserService` directly.
 pub struct UnauthenticatedUserService<'r>(pub(super) UserService<'r>);
 
 impl<'r> Deref for UnauthenticatedUserService<'r> {
@@ -35,7 +31,7 @@ impl<'r> Into<UserService<'r>> for UnauthenticatedUserService<'r> {
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService<'r> {
-    type Error = crate::error::Error;
+    type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let server_ctl = try_outcome!(request_state!(req, ServerCtl));

@@ -51,7 +51,7 @@ impl InviteMemberRequest {
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
-    uuid_gen: UuidGenerator,
+    uuid_gen: LazyGuard<UuidGenerator>,
     config: &State<Config>,
     server_config: LazyGuard<ServerConfig>,
     jid: LazyGuard<BareJid>,
@@ -61,6 +61,7 @@ pub(super) async fn invite_member<'r>(
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
+    let uuid_gen = uuid_gen.inner?;
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.

@@ -5,16 +5,11 @@
 
 use std::ops::Deref;
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::Request;
 use service::services::invitation_service::InvitationService;
 
-use crate::error;
+use super::{prelude::*, UnauthenticatedUserService};
 
-use super::{LazyFromRequest, UnauthenticatedUserService};
-
-pub struct UnauthenticatedInvitationService<'r>(InvitationService<'r>);
+pub struct UnauthenticatedInvitationService<'r>(pub(super) InvitationService<'r>);
 
 impl<'r> Deref for UnauthenticatedInvitationService<'r> {
     type Target = InvitationService<'r>;

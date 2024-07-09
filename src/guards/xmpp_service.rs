@@ -3,7 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{outcome::try_outcome, request::Outcome, Request};
 use service::{
     prose_xmpp::BareJid,
     services::{
@@ -12,13 +11,11 @@ use service::{
     },
 };
 
-use crate::request_state;
-
-use super::LazyFromRequest;
+use super::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for XmppService<'r> {
-    type Error = crate::error::Error;
+    type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
@@ -30,7 +27,7 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
             Ok(prosody_token) => prosody_token,
             Err(err) => {
                 debug!("Invalid JWT: {err}");
-                return Outcome::Error(Self::Error::Unauthorized.into());
+                return Outcome::Error(Error::Unauthorized.into());
             }
         };
 

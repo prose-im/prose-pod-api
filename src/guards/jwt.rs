@@ -4,15 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use log::debug;
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::Request;
 use service::services::jwt_service::{JWTService, JWT};
 
-use crate::error::{self, Error};
-use crate::request_state;
-
-use super::LazyFromRequest;
+use super::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for JWT {

@@ -28,9 +28,16 @@ pub use unauthenticated_server_manager::*;
 pub use unauthenticated_user_service::*;
 pub use uuid_generator::*;
 
+use prelude::*;
 use rocket::http::Status;
-use rocket::request::Outcome;
-use rocket::Request;
+
+mod prelude {
+    pub(super) use super::util::*;
+    pub(super) use super::LazyFromRequest;
+    pub use crate::error::{self, Error};
+    pub use crate::request_state;
+    pub use rocket::{outcome::try_outcome, request::Outcome, Request};
+}
 
 use crate::error::{self, Error};
 

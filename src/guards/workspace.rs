@@ -3,13 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::Request;
-use rocket::{outcome::try_outcome, request::Outcome};
 use service::repositories::WorkspaceRepository;
 
-use crate::error::{self, Error};
-
-use super::{util::database_connection, LazyFromRequest};
+use super::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for service::repositories::Workspace {
