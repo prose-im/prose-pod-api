@@ -19,6 +19,7 @@ use service::repositories::{
 };
 use service::sea_orm::prelude::*;
 use service::services::invitation_service::InvitationService;
+use service::services::notifier::Notifier;
 use service::util::to_bare_jid;
 use service::JIDNode;
 use service::MemberRole;
@@ -27,8 +28,7 @@ use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{
-    Db, LazyGuard, Notifier, ServerConfig, UnauthenticatedInvitationService, UuidGenerator,
-    JID as JIDGuard,
+    Db, LazyGuard, ServerConfig, UnauthenticatedInvitationService, UuidGenerator, JID as JIDGuard,
 };
 use crate::responders::Paginated;
 use crate::util::bare_jid_from_username;

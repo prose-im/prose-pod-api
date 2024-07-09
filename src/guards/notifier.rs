@@ -3,26 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt, path::PathBuf, str::FromStr as _};
-
-use migration::DbErr;
 use rocket::{outcome::try_outcome, request::Outcome, Request, State};
-use service::{
-    config::ConfigBranding,
-    notifier::Notification,
-    repositories::{MemberRepository, NotificationCreateForm, NotificationRepository},
-    sea_orm::{prelude::*, DatabaseConnection},
-};
+use service::{repositories::MemberRepository, services::notifier::Notifier};
 
 use crate::error::{self, Error};
+use crate::guards;
 
-use super::{database_connection, LazyFromRequest, JID as JIDGuard};
-
-pub struct Notifier<'r> {
-    db: &'r DatabaseConnection,
-    notifier: &'r State<service::dependencies::Notifier>,
-    branding: &'r ConfigBranding,
-}
+use super::{database_connection, LazyFromRequest};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for Notifier<'r> {
@@ -42,7 +29,7 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
                 }
             )));
 
-        let jid = try_outcome!(JIDGuard::from_request(req).await);
+        let jid = try_outcome!(guards::JID::from_request(req).await);
         match MemberRepository::is_admin(db, &jid).await {
             Ok(true) => {}
             Ok(false) => {
@@ -63,78 +50,6 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
                 }
             )));
 
-        Outcome::Success(Notifier {
-            db,
-            notifier,
-            branding: &config.branding,
-        })
-    }
-}
-
-impl<'r> Notifier<'r> {
-    async fn send(&self, notification: &Notification) -> Result<(), NotifierError> {
-        // Store in DB
-        NotificationRepository::create(
-            self.db,
-            NotificationCreateForm {
-                content: notification,
-                created_at: None,
-            },
-        )
-        .await?;
-
-        // Try sending
-        self.notifier
-            .dispatch(self.branding, notification)
-            .map_err(|e| NotifierError::Custom { reason: e })?;
-
-        // Store status if undelivered
-
-        // Delete if delivered
-
-        Ok(())
-    }
-
-    pub async fn send_workspace_invitation(
-        &self,
-        branding: &ConfigBranding,
-        accept_token: Uuid,
-        reject_token: Uuid,
-    ) -> Result<(), NotifierError> {
-        let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
-        self.send(&Notification::WorkspaceInvitation {
-            accept_link: admin_site_root
-                .join(format!("invitations/accept/{accept_token}"))
-                .display()
-                .to_string(),
-            reject_link: admin_site_root
-                .join(format!("invitations/reject/{reject_token}"))
-                .display()
-                .to_string(),
-        })
-        .await
-    }
-}
-
-#[derive(Debug)]
-pub enum NotifierError {
-    DbErr(DbErr),
-    Custom { reason: String },
-}
-
-impl fmt::Display for NotifierError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DbErr(err) => write!(f, "Database error: {err}"),
-            Self::Custom { reason } => write!(f, "{reason}"),
-        }
-    }
-}
-
-impl std::error::Error for NotifierError {}
-
-impl From<DbErr> for NotifierError {
-    fn from(value: DbErr) -> Self {
-        Self::DbErr(value)
+        Outcome::Success(Self::new(db, notifier, &config.branding))
     }
 }

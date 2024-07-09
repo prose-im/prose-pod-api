@@ -23,7 +23,6 @@ use std::ops::Deref;
 pub use basic_auth::*;
 pub use db::*;
 pub use jid::*;
-pub use notifier::*;
 pub use server_config::*;
 pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;

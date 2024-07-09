@@ -15,11 +15,9 @@ use service::services::invitation_service::InvitationAcceptError;
 use service::services::jwt_service;
 use service::services::user_service::{self, UserCreateError};
 use service::services::{
-    auth_service, invitation_service, server_ctl, server_manager, xmpp_service,
+    auth_service, invitation_service, notifier, server_ctl, server_manager, xmpp_service,
 };
 use service::{sea_orm, MutationError};
-
-use crate::guards::NotifierError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -55,7 +53,7 @@ pub enum Error {
     /// Could not find the desired entity.
     NotFound { reason: String },
     /// Could not send a notification.
-    NotifierError(NotifierError),
+    NotifierError(notifier::Error),
     /// Basic authentication failed.
     BasicAuthError(AuthBasicError),
     /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
@@ -210,8 +208,8 @@ impl From<sea_orm::DbErr> for Error {
     }
 }
 
-impl From<NotifierError> for Error {
-    fn from(value: NotifierError) -> Self {
+impl From<notifier::Error> for Error {
+    fn from(value: notifier::Error) -> Self {
         Self::NotifierError(value)
     }
 }
