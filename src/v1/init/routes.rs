@@ -20,7 +20,7 @@ use service::{JIDNode, MemberRole};
 use crate::error::Error;
 use crate::forms::JID as JIDUriParam;
 use crate::guards::{
-    self, Db, LazyGuard, UnauthenticatedServerManager, UnauthenticatedUserFactory,
+    self, Db, LazyGuard, UnauthenticatedServerManager, UnauthenticatedUserService,
 };
 use crate::util::bare_jid_from_username;
 use crate::v1::members::{rocket_uri_macro_get_member, Member};
@@ -110,7 +110,7 @@ pub struct InitFirstAccountRequest {
 pub async fn init_first_account(
     conn: Connection<'_, Db>,
     server_config: LazyGuard<guards::ServerConfig>,
-    user_factory: LazyGuard<UnauthenticatedUserFactory<'_>>,
+    user_service: LazyGuard<UnauthenticatedUserService<'_>>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
     let db = conn.into_inner();
@@ -120,11 +120,11 @@ pub async fn init_first_account(
     }
 
     let server_config = server_config.inner?;
-    let user_factory = user_factory.inner?;
+    let user_service = user_service.inner?;
 
     let jid = bare_jid_from_username(req.username.to_string(), &server_config)?;
     let txn = db.begin().await?;
-    let member = user_factory
+    let member = user_service
         .create_user(
             &txn,
             &jid,

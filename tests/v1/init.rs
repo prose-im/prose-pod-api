@@ -14,6 +14,7 @@ use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
 use service::{services::server_ctl::ServerCtl, JIDNode};
+use std::sync::Arc;
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -61,7 +62,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     };
     UnauthenticatedServerManager::init_server_config(
         world.db(),
-        &ServerCtl::new(Box::new(world.server_ctl.clone())),
+        &ServerCtl::new(Arc::new(world.server_ctl.clone())),
         &world.config,
         form,
     )

@@ -103,10 +103,11 @@ async fn main() {
 
 fn test_rocket(
     config: Config,
-    server_ctl: Box<MockServerCtl>,
-    xmpp_service: Box<MockXmppService>,
-    auth_service: Box<MockAuthService>,
+    server_ctl: Arc<MockServerCtl>,
+    xmpp_service: Arc<MockXmppService>,
+    auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
+    jwt_service: JWTService,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -118,17 +119,19 @@ fn test_rocket(
         config,
         ServerCtl::new(server_ctl),
         XmppServiceInner::new(xmpp_service),
+        AuthService::new(auth_service),
+        dependencies::Notifier::from(AnyNotifier::new(notifier)),
+        jwt_service,
     )
-    .manage(AuthService::new(auth_service))
-    .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(
     config: Config,
-    server_ctl: Box<MockServerCtl>,
-    xmpp_service: Box<MockXmppService>,
-    auth_service: Box<MockAuthService>,
+    server_ctl: Arc<MockServerCtl>,
+    xmpp_service: Arc<MockXmppService>,
+    auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
+    jwt_service: JWTService,
 ) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(
@@ -137,6 +140,7 @@ pub async fn rocket_test_client(
         xmpp_service,
         auth_service,
         notifier,
+        jwt_service,
     ))
     .await
     .expect("valid rocket instance")
@@ -299,17 +303,21 @@ impl TestWorld {
         let mock_xmpp_service = MockXmppService::default();
         let mock_notifier = MockNotifier::default();
         let jwt_service = JWTService::new(JWTKey::custom("test_key"));
-        let mock_auth_service =
-            MockAuthService::new(jwt_service, Default::default(), mock_server_ctl_state);
+        let mock_auth_service = MockAuthService::new(
+            jwt_service.clone(),
+            Default::default(),
+            mock_server_ctl_state,
+        );
 
         Self {
             config: config.clone(),
             client: rocket_test_client(
                 config,
-                Box::new(mock_server_ctl.clone()),
-                Box::new(mock_xmpp_service.clone()),
-                Box::new(mock_auth_service.clone()),
+                Arc::new(mock_server_ctl.clone()),
+                Arc::new(mock_xmpp_service.clone()),
+                Arc::new(mock_auth_service.clone()),
                 Box::new(mock_notifier.clone()),
+                jwt_service,
             )
             .await,
             result: None,

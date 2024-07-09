@@ -10,9 +10,11 @@ use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
+use service::services::invitation_service::InvitationAcceptError;
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
-use service::services::{auth_service, server_ctl, xmpp_service};
+use service::services::user_service::{self, UserCreateError};
+use service::services::{auth_service, invitation_service, server_ctl, xmpp_service};
 use service::{sea_orm, MutationError};
 
 use crate::guards::NotifierError;
@@ -253,5 +255,33 @@ impl From<jwt_service::Error> for Error {
         Self::InternalServerError {
             reason: format!("JWT error: {value}"),
         }
+    }
+}
+
+impl From<user_service::Error> for Error {
+    fn from(value: user_service::Error) -> Self {
+        Self::InternalServerError {
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<UserCreateError> for Error {
+    fn from(value: UserCreateError) -> Self {
+        user_service::Error::from(value).into()
+    }
+}
+
+impl From<invitation_service::Error> for Error {
+    fn from(value: invitation_service::Error) -> Self {
+        Self::InternalServerError {
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<InvitationAcceptError> for Error {
+    fn from(value: InvitationAcceptError) -> Self {
+        invitation_service::Error::from(value).into()
     }
 }

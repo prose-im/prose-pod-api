@@ -8,11 +8,11 @@ use std::ops::Deref;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
-use service::prose_xmpp::BareJid;
+use service::{prose_xmpp::BareJid, services::jwt_service::JWT};
 
 use crate::error::{self};
 
-use super::{LazyFromRequest, JWT};
+use super::LazyFromRequest;
 
 pub struct JID(BareJid);
 
@@ -32,7 +32,10 @@ impl<'r> LazyFromRequest<'r> for JID {
         let jwt = try_outcome!(JWT::from_request(req).await);
         match jwt.jid() {
             Ok(jid) => Outcome::Success(Self(jid)),
-            Err(err) => Outcome::Error(err.into()),
+            Err(err) => {
+                debug!("Invalid JWT: {err}");
+                Outcome::Error(Self::Error::Unauthorized.into())
+            }
         }
     }
 }

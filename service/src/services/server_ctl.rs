@@ -3,10 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::Output;
 use std::str::{self, Utf8Error};
+use std::sync::Arc;
 use std::{fmt, io};
 
 use entity::model::MemberRole;
@@ -15,18 +17,19 @@ use prose_xmpp::BareJid;
 
 use crate::config::Config;
 
+#[derive(Debug, Clone)]
 pub struct ServerCtl {
-    pub implem: Box<dyn ServerCtlImpl>,
+    pub implem: Arc<dyn ServerCtlImpl>,
 }
 
 impl ServerCtl {
-    pub fn new(implem: Box<dyn ServerCtlImpl>) -> Self {
+    pub fn new(implem: Arc<dyn ServerCtlImpl>) -> Self {
         Self { implem }
     }
 }
 
 impl Deref for ServerCtl {
-    type Target = Box<dyn ServerCtlImpl>;
+    type Target = Arc<dyn ServerCtlImpl>;
 
     fn deref(&self) -> &Self::Target {
         &self.implem
@@ -35,7 +38,7 @@ impl Deref for ServerCtl {
 
 /// Abstraction over `prosodyctl` in case we want to switch to another server.
 /// Also facilitates testing.
-pub trait ServerCtlImpl: Sync + Send {
+pub trait ServerCtlImpl: Debug + Sync + Send {
     fn save_config(
         &self,
         server_config: &server_config::Model,

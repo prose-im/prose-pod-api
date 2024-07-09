@@ -18,6 +18,7 @@ use service::repositories::{
     MemberRepository,
 };
 use service::sea_orm::prelude::*;
+use service::services::invitation_service::InvitationService;
 use service::util::to_bare_jid;
 use service::JIDNode;
 use service::MemberRole;
@@ -26,7 +27,7 @@ use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{
-    Db, LazyGuard, Notifier, ServerConfig, UnauthenticatedUserFactory, UserFactory, UuidGenerator,
+    Db, LazyGuard, Notifier, ServerConfig, UnauthenticatedInvitationService, UuidGenerator,
     JID as JIDGuard,
 };
 use crate::responders::Paginated;
@@ -58,7 +59,7 @@ pub(super) async fn invite_member<'r>(
     jid: LazyGuard<JIDGuard>,
     notifier: LazyGuard<Notifier<'_>>,
     req: Json<InviteMemberRequest>,
-    #[cfg(debug_assertions)] user_factory: LazyGuard<UserFactory<'_>>,
+    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService<'_>>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
@@ -146,7 +147,7 @@ pub(super) async fn invite_member<'r>(
         invitation_accept_(
             db,
             invitation.accept_token.into(),
-            user_factory.inner?,
+            &invitation_service.inner?.into(),
             AcceptWorkspaceInvitationRequest {
                 nickname: req.username.to_string(),
                 password,
@@ -247,14 +248,14 @@ pub struct AcceptWorkspaceInvitationRequest {
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
     conn: Connection<'_, Db>,
-    user_factory: LazyGuard<UnauthenticatedUserFactory<'_>>,
+    invitation_service: LazyGuard<UnauthenticatedInvitationService<'_>>,
     token: Uuid,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     invitation_accept_(
         conn.into_inner(),
         token,
-        user_factory.inner?.into(),
+        &invitation_service.inner?.into(),
         req.into_inner(),
     )
     .await
@@ -263,7 +264,7 @@ pub(super) async fn invitation_accept(
 async fn invitation_accept_(
     db: &DatabaseConnection,
     token: Uuid,
-    user_factory: UserFactory<'_>,
+    invitation_service: &InvitationService<'_>,
     req: AcceptWorkspaceInvitationRequest,
 ) -> Result<(), Error> {
     // NOTE: We don't check that the invitation status is "SENT"
@@ -284,8 +285,8 @@ async fn invitation_accept_(
         });
     }
 
-    user_factory
-        .accept_workspace_invitation(db, invitation, &req.password, &req.nickname)
+    invitation_service
+        .accept(db, invitation, &req.password, &req.nickname)
         .await?;
 
     Ok(())

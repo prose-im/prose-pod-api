@@ -6,8 +6,12 @@
 use hmac::{Hmac, Mac};
 use jwt::{SignWithKey as _, VerifyWithKey as _};
 use prose_xmpp::BareJid;
+use secrecy::Secret;
 use sha2::Sha256;
 use std::{collections::BTreeMap, env};
+use xmpp_parsers::jid;
+
+use super::auth_service::JWT_PROSODY_TOKEN_KEY;
 
 const ENV_JWT_SIGNING_KEY: &'static str = "JWT_SIGNING_KEY";
 pub const JWT_JID_KEY: &'static str = "jid";
@@ -55,7 +59,45 @@ pub enum JWTError {
     #[error("Could not verify JWT claims: {0}")]
     Verify(jwt::Error),
     #[error("{0}")]
+    InvalidClaim(#[from] InvalidJwtClaimError),
+    #[error("{0}")]
     Other(String),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidJwtClaimError {
+    #[error("The provided JWT does not contain a '{0}' claim")]
+    MissingClaim(String),
+    #[error("The JID present in the JWT could not be parsed to a valid JID: {0}")]
+    InvalidJid(#[from] jid::Error),
+}
+
+pub struct JWT {
+    pub claims: BTreeMap<String, String>,
+}
+
+impl JWT {
+    pub fn try_from(jwt: &str, jwt_service: &JWTService) -> Result<Self, JWTError> {
+        jwt_service.verify(jwt).map(|claims| Self { claims })
+    }
+}
+
+impl JWT {
+    pub fn jid(&self) -> Result<BareJid, InvalidJwtClaimError> {
+        let Some(jid) = self.claims.get(JWT_JID_KEY) else {
+            return Err(InvalidJwtClaimError::MissingClaim(JWT_JID_KEY.to_owned()));
+        };
+        let jid = BareJid::new(jid.as_str())?;
+        Ok(jid)
+    }
+    pub fn prosody_token(&self) -> Result<Secret<String>, InvalidJwtClaimError> {
+        let Some(token) = self.claims.get(JWT_PROSODY_TOKEN_KEY) else {
+            return Err(InvalidJwtClaimError::MissingClaim(
+                JWT_PROSODY_TOKEN_KEY.to_owned(),
+            ));
+        };
+        Ok(token.to_owned().into())
+    }
 }
 
 #[derive(Debug, Clone)]

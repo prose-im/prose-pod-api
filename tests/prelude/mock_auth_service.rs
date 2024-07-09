@@ -4,12 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::prose_xmpp::BareJid;
+use service::services::jwt_service::JWT;
 use service::services::{
     auth_service::{self, AuthServiceImpl, JWT_PROSODY_TOKEN_KEY},
     jwt_service::{self, JWTService},
 };
 
-use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use crate::mock_server_ctl::MockServerCtlState;
@@ -79,7 +79,7 @@ impl AuthServiceImpl for MockAuthService {
 
         self.log_in_unchecked(jid)
     }
-    fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, jwt_service::Error> {
-        self.jwt_service.verify(jwt)
+    fn verify(&self, jwt: &str) -> Result<JWT, jwt_service::Error> {
+        JWT::try_from(jwt, &self.jwt_service)
     }
 }

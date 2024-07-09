@@ -3,7 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::Debug;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use log::debug;
 use prose_xmpp::mods::AvatarData;
@@ -25,7 +27,7 @@ impl<'r> XmppService<'r> {
 }
 
 impl<'r> Deref for XmppService<'r> {
-    type Target = Box<dyn XmppServiceImpl>;
+    type Target = Arc<dyn XmppServiceImpl>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner.0
@@ -37,10 +39,11 @@ pub struct XmppServiceContext {
     pub prosody_token: Secret<String>,
 }
 
-pub struct XmppServiceInner(Box<dyn XmppServiceImpl>);
+#[derive(Debug, Clone)]
+pub struct XmppServiceInner(Arc<dyn XmppServiceImpl>);
 
 impl XmppServiceInner {
-    pub fn new(implem: Box<dyn XmppServiceImpl>) -> Self {
+    pub fn new(implem: Arc<dyn XmppServiceImpl>) -> Self {
         Self(implem)
     }
 }
@@ -73,7 +76,7 @@ impl<'r> XmppService<'r> {
     }
 }
 
-pub trait XmppServiceImpl: Send + Sync {
+pub trait XmppServiceImpl: Debug + Send + Sync {
     fn get_vcard(
         &self,
         ctx: &XmppServiceContext,

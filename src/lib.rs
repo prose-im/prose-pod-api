@@ -24,9 +24,12 @@ use rocket::http::Status;
 use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
 use service::config::Config;
-use service::dependencies::Uuid;
+use service::dependencies::{Notifier, Uuid};
 use service::repositories::ServerConfigRepository;
-use service::services::{server_ctl::ServerCtl, xmpp_service::XmppServiceInner};
+use service::services::jwt_service::JWTService;
+use service::services::{
+    auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
+};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
@@ -34,6 +37,9 @@ pub fn custom_rocket(
     config: Config,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
+    auth_service: AuthService,
+    notifier: Notifier,
+    jwt_service: JWTService,
 ) -> Rocket<Build> {
     rocket
         .attach(Db::init())
@@ -50,6 +56,9 @@ pub fn custom_rocket(
         .manage(config)
         .manage(server_ctl)
         .manage(xmpp_service)
+        .manage(auth_service)
+        .manage(notifier)
+        .manage(jwt_service)
 }
 
 async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
