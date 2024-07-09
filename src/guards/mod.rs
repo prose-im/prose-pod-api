@@ -26,7 +26,6 @@ pub use db::*;
 pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;
 pub use unauthenticated_user_service::*;
-pub use uuid_generator::*;
 
 use prelude::*;
 use rocket::http::Status;

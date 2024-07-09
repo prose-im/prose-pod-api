@@ -21,13 +21,13 @@ use service::sea_orm::prelude::*;
 use service::services::invitation_service::InvitationService;
 use service::services::notifier::Notifier;
 use service::util::to_bare_jid;
-use service::JIDNode;
 use service::MemberRole;
+use service::{dependencies, JIDNode};
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService, UuidGenerator};
+use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService};
 use crate::responders::Paginated;
 use crate::util::bare_jid_from_username;
 use crate::v1::{Created, R};
@@ -51,7 +51,7 @@ impl InviteMemberRequest {
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
-    uuid_gen: LazyGuard<UuidGenerator>,
+    uuid_gen: LazyGuard<dependencies::Uuid>,
     config: &State<Config>,
     server_config: LazyGuard<ServerConfig>,
     jid: LazyGuard<BareJid>,
