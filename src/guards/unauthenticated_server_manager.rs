@@ -45,15 +45,17 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
                 }
             )));
 
-        match ServerConfigRepository::get(db).await {
-            Ok(Some(server_config)) => Outcome::Success(Self(ServerManager::new(
-                db,
-                app_config,
-                server_ctl,
-                server_config,
-            ))),
-            Ok(None) => Error::ServerConfigNotInitialized.into(),
-            Err(err) => Error::DbErr(err).into(),
-        }
+        let server_config = match ServerConfigRepository::get(db).await {
+            Ok(Some(server_config)) => server_config,
+            Ok(None) => return Error::ServerConfigNotInitialized.into(),
+            Err(err) => return Error::DbErr(err).into(),
+        };
+
+        Outcome::Success(Self(ServerManager::new(
+            db,
+            app_config,
+            server_ctl,
+            server_config,
+        )))
     }
 }
