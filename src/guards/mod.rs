@@ -30,7 +30,6 @@ pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;
 pub use unauthenticated_user_service::*;
 pub use uuid_generator::*;
-pub use workspace::*;
 pub use xmpp_service::*;
 
 use rocket::http::Status;

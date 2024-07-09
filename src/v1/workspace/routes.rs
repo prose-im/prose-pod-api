@@ -13,7 +13,7 @@ use service::repositories::{Workspace, WorkspaceRepository};
 use service::sea_orm::{ActiveModelTrait as _, Set};
 
 use crate::error::Error;
-use crate::guards::{self, Db, LazyGuard};
+use crate::guards::{Db, LazyGuard};
 use crate::v1::R;
 
 #[get("/v1/workspace")]
@@ -32,10 +32,8 @@ pub struct GetWorkspaceNameResponse {
 
 /// Get the name of your workspace.
 #[get("/v1/workspace/name")]
-pub(super) fn get_workspace_name(
-    workspace: LazyGuard<guards::Workspace>,
-) -> R<GetWorkspaceNameResponse> {
-    let workspace = workspace.inner?.model();
+pub(super) fn get_workspace_name(workspace: LazyGuard<Workspace>) -> R<GetWorkspaceNameResponse> {
+    let workspace = workspace.inner?;
     let response = GetWorkspaceNameResponse {
         name: workspace.name,
     }
@@ -56,11 +54,11 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub(super) async fn set_workspace_name(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<guards::Workspace>,
+    workspace: LazyGuard<Workspace>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> R<SetWorkspaceNameResponse> {
     let db = conn.into_inner();
-    let workspace = workspace.inner?.model();
+    let workspace = workspace.inner?;
 
     let mut active: WorkspaceActiveModel = workspace.into();
     active.name = Set(req.name.clone());
@@ -82,10 +80,8 @@ pub struct GetWorkspaceIconResponse {
 
 /// Get the icon of your workspace.
 #[get("/v1/workspace/icon")]
-pub(super) fn get_workspace_icon(
-    workspace: LazyGuard<guards::Workspace>,
-) -> R<GetWorkspaceIconResponse> {
-    let workspace = workspace.inner?.model();
+pub(super) fn get_workspace_icon(workspace: LazyGuard<Workspace>) -> R<GetWorkspaceIconResponse> {
+    let workspace = workspace.inner?;
     let response = GetWorkspaceIconResponse {
         url: workspace.icon_url,
     }
@@ -98,11 +94,11 @@ pub(super) fn get_workspace_icon(
 #[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
 pub(super) async fn set_workspace_icon_string(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<guards::Workspace>,
+    workspace: LazyGuard<Workspace>,
     string: String,
 ) -> R<GetWorkspaceIconResponse> {
     let db = conn.into_inner();
-    let workspace = workspace.inner?.model();
+    let workspace = workspace.inner?;
 
     // TODO: Validate `string`
     let mut active: WorkspaceActiveModel = workspace.into();
@@ -144,9 +140,9 @@ pub struct GetWorkspaceAccentColorResponse {
 /// Get the accent color of your workspace.
 #[get("/v1/workspace/accent-color")]
 pub(super) fn get_workspace_accent_color(
-    workspace: LazyGuard<guards::Workspace>,
+    workspace: LazyGuard<Workspace>,
 ) -> R<GetWorkspaceAccentColorResponse> {
-    let workspace = workspace.inner?.model();
+    let workspace = workspace.inner?;
     let response = GetWorkspaceAccentColorResponse {
         color: workspace.accent_color,
     }
@@ -165,11 +161,11 @@ pub struct SetWorkspaceAccentColorRequest {
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub(super) async fn set_workspace_accent_color(
     conn: Connection<'_, Db>,
-    workspace: LazyGuard<guards::Workspace>,
+    workspace: LazyGuard<Workspace>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> R<GetWorkspaceAccentColorResponse> {
     let db = conn.into_inner();
-    let workspace = workspace.inner?.model();
+    let workspace = workspace.inner?;
 
     // TODO: Validate `string`
     let mut active: WorkspaceActiveModel = workspace.into();
