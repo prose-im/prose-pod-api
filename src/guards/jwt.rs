@@ -6,10 +6,11 @@
 use log::debug;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
-use rocket::{Request, State};
+use rocket::Request;
 use service::services::jwt_service::{JWTService, JWT};
 
 use crate::error::{self, Error};
+use crate::request_state;
 
 use super::LazyFromRequest;
 
@@ -28,16 +29,7 @@ impl<'r> LazyFromRequest<'r> for JWT {
             return Error::Unauthorized.into();
         };
 
-        let jwt_service =
-            try_outcome!(req
-                .guard::<&State<JWTService>>()
-                .await
-                .map_error(|(status, _)| (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<JWTService>` from a request.".to_string(),
-                    }
-                )));
+        let jwt_service = try_outcome!(request_state!(req, JWTService));
 
         match Self::try_from(token, jwt_service) {
             Ok(jwt) => Outcome::Success(jwt),

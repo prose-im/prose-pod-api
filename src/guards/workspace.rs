@@ -19,7 +19,7 @@ impl<'r> LazyFromRequest<'r> for service::repositories::Workspace {
         let db = try_outcome!(database_connection(req).await);
 
         match WorkspaceRepository::get(db).await {
-            Ok(Some(workspace)) => Outcome::Success(workspace),
+            Ok(Some(model)) => Outcome::Success(model),
             Ok(None) => Error::WorkspaceNotInitialized.into(),
             Err(err) => Error::DbErr(err).into(),
         }

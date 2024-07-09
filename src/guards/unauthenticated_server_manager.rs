@@ -5,11 +5,13 @@
 
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
-use rocket::{Request, State};
-use service::repositories::ServerConfigRepository;
-use service::services::{server_ctl::ServerCtl, server_manager::ServerManager};
+use rocket::Request;
+use service::{
+    repositories::ServerConfig,
+    services::{server_ctl::ServerCtl, server_manager::ServerManager},
+};
 
-use crate::error::{self, Error};
+use crate::request_state;
 
 use super::{util::database_connection, LazyFromRequest};
 
@@ -18,38 +20,13 @@ pub struct UnauthenticatedServerManager<'r>(pub(super) ServerManager<'r>);
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
-    type Error = error::Error;
+    type Error = crate::error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
-
-        let server_ctl =
-            try_outcome!(req
-                .guard::<&State<ServerCtl>>()
-                .await
-                .map_error(|(status, _)| (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
-                    }
-                )));
-
-        let app_config = try_outcome!(req
-            .guard::<&State<service::config::Config>>()
-            .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<service::config::Config>` from a request."
-                        .to_string(),
-                }
-            )));
-
-        let server_config = match ServerConfigRepository::get(db).await {
-            Ok(Some(server_config)) => server_config,
-            Ok(None) => return Error::ServerConfigNotInitialized.into(),
-            Err(err) => return Error::DbErr(err).into(),
-        };
+        let app_config = try_outcome!(request_state!(req, service::config::Config));
+        let server_ctl = try_outcome!(request_state!(req, ServerCtl));
+        let server_config = try_outcome!(ServerConfig::from_request(req).await);
 
         Outcome::Success(Self(ServerManager::new(
             db,

@@ -8,10 +8,10 @@ use std::ops::Deref;
 use ::service::dependencies::Uuid;
 use rocket::{
     request::{FromRequest, Outcome},
-    Request, State,
+    Request,
 };
 
-use crate::error::{self, Error};
+use crate::request_state;
 
 pub struct UuidGenerator(Uuid);
 
@@ -25,19 +25,9 @@ impl Deref for UuidGenerator {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for UuidGenerator {
-    type Error = error::Error;
+    type Error = crate::error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        req.guard::<&State<Uuid>>()
-            .await
-            .map(|state| Self(state.inner().clone()))
-            .map_error(|(status, _)| {
-                (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<Uuid>` from a request.".to_string(),
-                    },
-                )
-            })
+        request_state!(req, Uuid).map(|state| Self(state.clone()))
     }
 }

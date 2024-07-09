@@ -7,13 +7,13 @@ use std::ops::Deref;
 
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
-use rocket::{Request, State};
+use rocket::Request;
 use service::services::user_service::UserService;
 use service::services::{
     auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
 };
 
-use crate::error::{self, Error};
+use crate::request_state;
 
 use super::LazyFromRequest;
 
@@ -35,39 +35,12 @@ impl<'r> Into<UserService<'r>> for UnauthenticatedUserService<'r> {
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService<'r> {
-    type Error = error::Error;
+    type Error = crate::error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let server_ctl =
-            try_outcome!(req
-                .guard::<&State<ServerCtl>>()
-                .await
-                .map_error(|(status, _)| (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<ServerCtl>` from a request.".to_string(),
-                    }
-                )));
-        let auth_service =
-            try_outcome!(req
-                .guard::<&State<AuthService>>()
-                .await
-                .map_error(|(status, _)| (
-                    status,
-                    Error::InternalServerError {
-                        reason: "Could not get a `&State<AuthService>` from a request.".to_string(),
-                    }
-                )));
-        let xmpp_service_inner = try_outcome!(req
-            .guard::<&State<XmppServiceInner>>()
-            .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<XmppServiceInner>` from a request."
-                        .to_string(),
-                }
-            )));
+        let server_ctl = try_outcome!(request_state!(req, ServerCtl));
+        let auth_service = try_outcome!(request_state!(req, AuthService));
+        let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
 
         // // Make sure the Prose Pod is initialized, as we can't add or remove users otherwise.
         // // TODO: Check that the Prose Pod is initialized another way (this doesn't cover all cases)

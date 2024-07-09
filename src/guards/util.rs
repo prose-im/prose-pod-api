@@ -15,6 +15,26 @@ use crate::guards;
 
 use super::{Db, LazyFromRequest as _};
 
+#[macro_export]
+macro_rules! request_state {
+    ( $req:expr, $t:ty ) => {
+        $req.guard::<&rocket::State<$t>>()
+            .await
+            .map(|s| s.inner())
+            .map_error(|(status, _)| {
+                (
+                    status,
+                    crate::error::Error::InternalServerError {
+                        reason: format!(
+                            "Could not get a `&State<{}>` from a request.",
+                            stringify!($t)
+                        ),
+                    },
+                )
+            })
+    };
+}
+
 pub(super) async fn database_connection<'r, 'a>(
     req: &'r Request<'a>,
 ) -> Outcome<&'r DatabaseConnection, Error> {

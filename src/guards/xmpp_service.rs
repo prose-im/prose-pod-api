@@ -7,11 +7,12 @@ use std::ops::Deref;
 
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
-use rocket::{Request, State};
+use rocket::Request;
 use service::services::jwt_service::JWT;
 use service::services::xmpp_service::{self, XmppServiceContext, XmppServiceInner};
 
-use crate::error::{self, Error};
+use crate::error::Error;
+use crate::request_state;
 
 use super::LazyFromRequest;
 
@@ -33,19 +34,11 @@ impl<'r> Into<xmpp_service::XmppService<'r>> for XmppService<'r> {
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for XmppService<'r> {
-    type Error = error::Error;
+    type Error = crate::error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let xmpp_service_inner = try_outcome!(req
-            .guard::<&State<XmppServiceInner>>()
-            .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<XmppServiceInner>` from a request."
-                        .to_string(),
-                }
-            )));
+        let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
+
         let jwt = try_outcome!(JWT::from_request(req).await);
         let jid = match jwt.jid() {
             Ok(jid) => jid,
