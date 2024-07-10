@@ -8,7 +8,7 @@ use service::repositories::WorkspaceRepository;
 use super::prelude::*;
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for service::repositories::Workspace {
+impl<'r> LazyFromRequest<'r> for service::model::Workspace {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

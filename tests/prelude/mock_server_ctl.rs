@@ -6,12 +6,12 @@
 use linked_hash_map::LinkedHashMap;
 use service::{
     config::Config,
+    model::{MemberRole, ServerConfig},
     prose_xmpp::BareJid,
     prosody::ProsodyConfig,
     prosody_config_from_db,
-    repositories::ServerConfig,
     services::server_ctl::{Error, ServerCtlImpl},
-    MemberRole, ProsodyConfigSection,
+    ProsodyConfigSection,
 };
 
 use std::sync::{Arc, RwLock};

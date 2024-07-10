@@ -16,11 +16,8 @@ pub mod repositories;
 pub mod services;
 pub mod util;
 
-use config::Config;
 pub use dependencies::any_notifier as notifier;
-pub use entity::model::{EmailAddress, JIDNode, MemberRole};
-use entity::server_config::Model as ServerConfig;
-pub use mutation_error::*;
+pub use mutation_error::MutationError;
 pub use prosody::prosody_config_from_db;
 pub use reqwest::Client as HttpClient;
 
@@ -28,5 +25,5 @@ pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;
 
 trait ProseDefault {
-    fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self;
+    fn prose_default(server_config: &model::ServerConfig, app_config: &config::Config) -> Self;
 }

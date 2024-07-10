@@ -5,10 +5,7 @@
 
 use sea_orm::{DbConn, DbErr, TransactionTrait as _};
 
-use crate::{
-    repositories::{Invitation, InvitationRepository},
-    MutationError,
-};
+use crate::{model::Invitation, repositories::InvitationRepository, MutationError};
 
 use super::user_service::{UserCreateError, UserService};
 

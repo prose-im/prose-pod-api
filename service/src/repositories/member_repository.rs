@@ -4,12 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use entity::member::{ActiveModel, Column, Entity, Model};
+use entity::member::{ActiveModel, Column, Entity};
 use prose_xmpp::BareJid;
 use sea_orm::{prelude::*, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
 
-pub type Member = Model;
-pub use entity::model::MemberRole;
+use crate::model::{Member, MemberRole};
 
 pub enum MemberRepository {}
 
@@ -19,11 +18,11 @@ impl MemberRepository {
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<MemberCreateForm>,
-    ) -> Result<Model, DbErr> {
+    ) -> Result<Member, DbErr> {
         form.into().into_active_model().insert(db).await
     }
 
-    pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Model>, DbErr> {
+    pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Member>, DbErr> {
         Entity::find_by_jid(&jid.to_owned().into()).one(db).await
     }
 
@@ -32,7 +31,7 @@ impl MemberRepository {
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Model>), DbErr> {
+    ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
         assert_ne!(
             page_number, 0,
             "`page_number` starts at 1 like in the public API."

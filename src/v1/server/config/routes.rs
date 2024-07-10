@@ -6,8 +6,7 @@
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use serde::{Deserialize, Serialize};
-use service::model::{DateLike, Duration, PossiblyInfinite};
-use service::repositories::ServerConfig;
+use service::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
 use service::services::server_manager::ServerManager;
 
 use crate::error::Error;

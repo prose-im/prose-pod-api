@@ -4,9 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::prose_xmpp::BareJid;
-use service::services::jwt_service::JWT;
 use service::services::{
     auth_service::{self, AuthServiceImpl, JWT_PROSODY_TOKEN_KEY},
+    jwt_service::JWT,
     jwt_service::{self, JWTService},
 };
 

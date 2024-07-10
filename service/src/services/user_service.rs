@@ -7,7 +7,8 @@ use entity::model::MemberRole;
 use prose_xmpp::BareJid;
 use sea_orm::{ConnectionTrait, DbErr};
 
-use crate::repositories::{Member, MemberCreateForm, MemberRepository};
+use crate::model::Member;
+use crate::repositories::{MemberCreateForm, MemberRepository};
 
 use super::{
     auth_service::AuthService,

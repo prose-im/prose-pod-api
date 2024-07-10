@@ -6,11 +6,11 @@
 use std::{fmt::Display, ops::Deref};
 
 use serde::{Deserialize, Serialize};
-use service::{controllers::member_controller, prose_xmpp::BareJid, MemberRole};
+use service::{controllers::member_controller, model::MemberRole, prose_xmpp::BareJid};
 
 use crate::forms::JID as JIDUriParam;
 
-type MemberModel = service::repositories::Member;
+type MemberModel = service::model::Member;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {

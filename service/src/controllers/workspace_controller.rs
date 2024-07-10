@@ -3,9 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel};
+use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
-use crate::repositories::{Workspace, WorkspaceRepository};
+use crate::model::Workspace;
+use crate::repositories::WorkspaceRepository;
 use crate::sea_orm::{ActiveModelTrait as _, Set};
 
 pub enum WorkspaceController {}

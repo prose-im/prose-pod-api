@@ -19,9 +19,10 @@ use service::controllers::invitation_controller::{
 };
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
-use service::services::user_service::{self, UserCreateError};
 use service::services::{
-    auth_service, invitation_service, notifier, server_ctl, server_manager, xmpp_service,
+    auth_service, invitation_service, notifier, server_ctl, server_manager,
+    user_service::{self, UserCreateError},
+    xmpp_service,
 };
 use service::{sea_orm, MutationError};
 

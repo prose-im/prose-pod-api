@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    repositories::ServerConfig,
+    model::ServerConfig,
     services::{server_ctl::ServerCtl, server_manager::ServerManager},
 };
 

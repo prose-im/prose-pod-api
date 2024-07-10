@@ -3,10 +3,10 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::workspace::{ActiveModel, Column, Entity, Model};
+use entity::workspace::{ActiveModel, Column, Entity};
 use sea_orm::{prelude::*, NotSet, QueryOrder as _, Set, Unchanged};
 
-pub type Workspace = Model;
+use crate::model::Workspace;
 
 pub enum WorkspaceRepository {}
 
@@ -14,11 +14,11 @@ impl WorkspaceRepository {
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<WorkspaceCreateForm>,
-    ) -> Result<Model, DbErr> {
+    ) -> Result<Workspace, DbErr> {
         form.into().into_active_model().insert(db).await
     }
 
-    pub async fn get(db: &impl ConnectionTrait) -> Result<Option<Model>, DbErr> {
+    pub async fn get(db: &impl ConnectionTrait) -> Result<Option<Workspace>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
     }
 

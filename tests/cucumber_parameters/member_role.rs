@@ -9,10 +9,10 @@ use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
 #[param(name = "member_role", regex = r"\w+")]
-pub struct MemberRole(pub service::MemberRole);
+pub struct MemberRole(pub service::model::MemberRole);
 
 impl Deref for MemberRole {
-    type Target = service::MemberRole;
+    type Target = service::model::MemberRole;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -20,9 +20,9 @@ impl Deref for MemberRole {
 }
 
 impl FromStr for MemberRole {
-    type Err = <service::MemberRole as FromStr>::Err;
+    type Err = <service::model::MemberRole as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        service::MemberRole::from_str(s).map(Self)
+        service::model::MemberRole::from_str(s).map(Self)
     }
 }

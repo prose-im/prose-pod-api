@@ -10,7 +10,8 @@ use uuid::Uuid;
 use crate::{
     config::Config as AppConfig,
     dependencies,
-    repositories::{Invitation, InvitationCreateForm, InvitationRepository, ServerConfig},
+    model::{Invitation, ServerConfig},
+    repositories::{InvitationCreateForm, InvitationRepository},
     services::{
         invitation_service::{self, InvitationService},
         notifier::{self, Notifier},

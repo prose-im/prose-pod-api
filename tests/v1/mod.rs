@@ -12,9 +12,9 @@ pub mod workspace;
 use cucumber::given;
 use prose_pod_api::error::Error;
 use service::{
+    model::MemberRole,
     prose_xmpp::BareJid,
     repositories::{MemberCreateForm, MemberRepository},
-    MemberRole,
 };
 
 use crate::TestWorld;

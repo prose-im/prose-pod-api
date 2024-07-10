@@ -10,8 +10,8 @@ use log::trace;
 use sea_orm::DbErr;
 
 use crate::config::Config as AppConfig;
-use crate::model::{DateLike, Duration, PossiblyInfinite};
-use crate::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
+use crate::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
+use crate::repositories::{ServerConfigCreateForm, ServerConfigRepository};
 use crate::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
 use crate::services::server_ctl::ServerCtl;
 

@@ -10,7 +10,7 @@ use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::controllers::workspace_controller::WorkspaceController;
-use service::repositories::Workspace;
+use service::model::Workspace;
 
 use crate::error::Error;
 use crate::guards::{Db, LazyGuard};

@@ -10,9 +10,9 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config as AppConfig;
 use service::controllers::init_controller::{InitController, InitFirstAccountForm};
-use service::repositories::{ServerConfig, ServerConfigCreateForm, Workspace, WorkspaceCreateForm};
+use service::model::{JIDNode, ServerConfig, Workspace};
+use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm};
 use service::services::server_ctl::ServerCtl;
-use service::JIDNode;
 
 use crate::forms::JID as JIDUriParam;
 use crate::guards::{Db, LazyGuard, UnauthenticatedUserService};

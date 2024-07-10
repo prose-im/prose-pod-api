@@ -8,10 +8,7 @@ use log::{debug, trace, warn};
 use prose_xmpp::BareJid;
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber};
 
-use crate::{
-    repositories::{Member, MemberRepository},
-    services::xmpp_service::XmppService,
-};
+use crate::{model::Member, repositories::MemberRepository, services::xmpp_service::XmppService};
 
 pub enum MemberController {}
 

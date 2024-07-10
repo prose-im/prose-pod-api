@@ -22,13 +22,14 @@ use rocket::fs::{FileServer, NamedFile};
 use rocket::http::Status;
 use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
-use service::config::Config;
-use service::dependencies::{Notifier, Uuid};
-use service::repositories::ServerConfigRepository;
-use service::services::jwt_service::JWTService;
-use service::services::server_manager::ServerManager;
-use service::services::{
-    auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
+use service::{
+    config::Config,
+    dependencies::{Notifier, Uuid},
+    repositories::ServerConfigRepository,
+    services::{
+        auth_service::AuthService, jwt_service::JWTService, server_ctl::ServerCtl,
+        server_manager::ServerManager, xmpp_service::XmppServiceInner,
+    },
 };
 
 /// A custom `Rocket` with a default configuration.

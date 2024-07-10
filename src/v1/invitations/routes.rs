@@ -11,17 +11,18 @@ use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::config::Config as AppConfig;
-use service::controllers::invitation_controller::{
-    InvitationAcceptForm, InvitationController, InviteMemberForm,
+use service::{
+    config::Config as AppConfig,
+    controllers::invitation_controller::{
+        InvitationAcceptForm, InvitationController, InviteMemberForm,
+    },
+    dependencies,
+    model::{InvitationContact, InvitationStatus, JIDNode, MemberRole, ServerConfig},
+    prose_xmpp::BareJid,
+    repositories::MemberRepository,
+    services::notifier::Notifier,
+    util::to_bare_jid,
 };
-use service::prose_xmpp::BareJid;
-use service::repositories::{InvitationContact, InvitationStatus, MemberRepository, ServerConfig};
-use service::sea_orm::prelude::*;
-use service::services::notifier::Notifier;
-use service::util::to_bare_jid;
-use service::MemberRole;
-use service::{dependencies, JIDNode};
 
 use super::forms::InvitationTokenType;
 use crate::error::Error;
@@ -121,16 +122,16 @@ pub(super) async fn get_invitations(
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WorkspaceInvitation {
     pub invitation_id: i32,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
     pub status: InvitationStatus,
     pub jid: BareJid,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
-    pub accept_token_expires_at: DateTimeUtc,
+    pub accept_token_expires_at: DateTime<Utc>,
 }
 
-impl From<service::repositories::Invitation> for WorkspaceInvitation {
-    fn from(value: service::repositories::Invitation) -> Self {
+impl From<service::model::Invitation> for WorkspaceInvitation {
+    fn from(value: service::model::Invitation) -> Self {
         Self {
             invitation_id: value.id,
             created_at: value.created_at,

@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, TimeDelta, Utc};
-use entity::workspace_invitation::{ActiveModel, Column, Entity, Model};
+use entity::workspace_invitation::{ActiveModel, Column, Entity};
 use prose_xmpp::BareJid;
 use sea_orm::{
     prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,
@@ -14,10 +14,7 @@ use uuid::Uuid;
 
 use crate::{dependencies, MutationError};
 
-pub use entity::model::{
-    EmailAddress, InvitationChannel, InvitationContact, InvitationStatus, MemberRole,
-};
-pub type Invitation = Model;
+use crate::model::{EmailAddress, Invitation, InvitationContact, InvitationStatus, MemberRole};
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
@@ -28,7 +25,7 @@ impl InvitationRepository {
         db: &impl ConnectionTrait,
         form: impl Into<InvitationCreateForm>,
         uuid: &dependencies::Uuid,
-    ) -> Result<Model, DbErr> {
+    ) -> Result<Invitation, DbErr> {
         form.into().into_active_model(uuid).insert(db).await
     }
 
@@ -37,7 +34,7 @@ impl InvitationRepository {
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Model>), DbErr> {
+    ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), DbErr> {
         assert_ne!(
             page_number, 0,
             "`page_number` starts at 1 like in the public API."
@@ -54,14 +51,17 @@ impl InvitationRepository {
         Ok((num_items_and_pages, models))
     }
 
-    pub async fn get_by_id(db: &impl ConnectionTrait, id: &i32) -> Result<Option<Model>, DbErr> {
+    pub async fn get_by_id(
+        db: &impl ConnectionTrait,
+        id: &i32,
+    ) -> Result<Option<Invitation>, DbErr> {
         Entity::find_by_id(*id).one(db).await
     }
 
     pub async fn get_by_accept_token(
         db: &impl ConnectionTrait,
         token: &Uuid,
-    ) -> Result<Option<Model>, DbErr> {
+    ) -> Result<Option<Invitation>, DbErr> {
         Entity::find()
             .filter(Column::AcceptToken.eq(*token))
             .one(db)
@@ -71,7 +71,7 @@ impl InvitationRepository {
     pub async fn get_by_reject_token(
         db: &impl ConnectionTrait,
         token: &Uuid,
-    ) -> Result<Option<Model>, DbErr> {
+    ) -> Result<Option<Invitation>, DbErr> {
         Entity::find()
             .filter(Column::RejectToken.eq(*token))
             .one(db)
@@ -82,7 +82,7 @@ impl InvitationRepository {
         db: &impl ConnectionTrait,
         id: i32,
         status: InvitationStatus,
-    ) -> Result<Model, MutationError> {
+    ) -> Result<Invitation, MutationError> {
         // Query
         let model = Entity::find_by_id(id).one(db).await?;
         let Some(model) = model else {
@@ -99,7 +99,7 @@ impl InvitationRepository {
         db: &impl ConnectionTrait,
         email_address: EmailAddress,
         status: InvitationStatus,
-    ) -> Result<Model, MutationError> {
+    ) -> Result<Invitation, MutationError> {
         // Query
         let model = Entity::find()
             .filter(Column::EmailAddress.eq(email_address))
@@ -117,9 +117,9 @@ impl InvitationRepository {
 
     pub async fn update_status(
         db: &impl ConnectionTrait,
-        model: Model,
+        model: Invitation,
         status: InvitationStatus,
-    ) -> Result<Model, MutationError> {
+    ) -> Result<Invitation, MutationError> {
         let mut active = model.into_active_model();
         active.status = Set(status);
         let model = active.update(db).await?;
@@ -130,8 +130,8 @@ impl InvitationRepository {
     pub async fn resend(
         db: &impl ConnectionTrait,
         uuid: &dependencies::Uuid,
-        model: Model,
-    ) -> Result<Model, MutationError> {
+        model: Invitation,
+    ) -> Result<Invitation, MutationError> {
         let mut active = model.into_active_model();
         active.accept_token = Set(uuid.new_v4());
         active.accept_token_expires_at = Set(Utc::now()
@@ -144,7 +144,10 @@ impl InvitationRepository {
 
     /// Accept a user invitation (i.e. delete it from database).
     /// To also create the associated user at the same time, use `UserFactory`.
-    pub async fn accept(db: &impl ConnectionTrait, invitation: Model) -> Result<(), MutationError> {
+    pub async fn accept(
+        db: &impl ConnectionTrait,
+        invitation: Invitation,
+    ) -> Result<(), MutationError> {
         invitation.delete(db).await?;
         Ok(())
     }

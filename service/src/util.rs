@@ -5,7 +5,7 @@
 
 use xmpp_parsers::jid::NodePart;
 
-use crate::{prose_xmpp::BareJid, repositories::ServerConfig, xmpp_parsers::jid};
+use crate::{model::ServerConfig, prose_xmpp::BareJid, xmpp_parsers::jid};
 
 pub fn to_bare_jid(jid: &entity::model::JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())

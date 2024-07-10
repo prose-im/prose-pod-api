@@ -8,9 +8,9 @@ use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 
 use crate::{
     config::Config as AppConfig,
+    model::{Member, ServerConfig, Workspace},
     repositories::{
-        Member, MemberRepository, ServerConfig, ServerConfigCreateForm, Workspace,
-        WorkspaceCreateForm, WorkspaceRepository,
+        MemberRepository, ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository,
     },
     services::{
         server_ctl::ServerCtl,
