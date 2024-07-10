@@ -203,12 +203,10 @@ impl ServerCtlImpl for ProsodyAdminRest {
         app_config: &Config,
     ) -> Result<(), Error> {
         let mut file = File::create(&self.config_file_path)
-            .map_err(|e| Error::CannotOpenConfigFile(self.config_file_path.clone(), Arc::new(e)))?;
+            .map_err(|e| Error::CannotOpenConfigFile(self.config_file_path.clone(), e))?;
         let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
         file.write_all(prosody_config.to_string().as_bytes())
-            .map_err(|e| {
-                Error::CannotWriteConfigFile(self.config_file_path.clone(), Arc::new(e))
-            })?;
+            .map_err(|e| Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
 
         Ok(())
     }

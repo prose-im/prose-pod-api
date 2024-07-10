@@ -3,8 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
-
 use log::debug;
 use prose_xmpp::BareJid;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
@@ -36,7 +34,6 @@ impl ProsodyOAuth2 {
         let client = self.http_client.clone();
         let request = make_req(&client)
             .build()
-            .map_err(Arc::new)
             .map_err(Error::CannotBuildRequest)?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
@@ -44,7 +41,7 @@ impl ProsodyOAuth2 {
             Handle::current().block_on(async move {
                 let (response, request_clone) = {
                     let request_clone = request.try_clone();
-                    (client.execute(request).await.map_err(Arc::new).map_err(Error::CallFailed)?, request_clone)
+                    (client.execute(request).await.map_err(Error::CallFailed)?, request_clone)
                 };
                 if accept(&response) {
                     Ok(response)
@@ -144,22 +141,16 @@ struct ProsodyOAuth2TokenResponse {
 
 type Error = ProsodyOAuth2Error;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum ProsodyOAuth2Error {
     #[error("Cannot build request: {0}")]
-    CannotBuildRequest(Arc<reqwest::Error>),
+    CannotBuildRequest(reqwest::Error),
     #[error("Prosody OAuth2 API call failed: {0}")]
-    CallFailed(Arc<reqwest::Error>),
+    CallFailed(reqwest::Error),
     #[error("Could not decode Prosody OAuth2 API response: {0}")]
-    InvalidResponse(#[from] Arc<serde_json::Error>),
+    InvalidResponse(#[from] serde_json::Error),
     #[error("Unexpected Prosody OAuth2 API response: {0}")]
     UnexpectedResponse(String),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
-}
-
-impl From<serde_json::Error> for ProsodyOAuth2Error {
-    fn from(err: serde_json::Error) -> Self {
-        Self::InvalidResponse(Arc::new(err))
-    }
 }

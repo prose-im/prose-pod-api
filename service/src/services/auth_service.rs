@@ -78,7 +78,7 @@ impl AuthServiceImpl for LiveAuthService {
 
 pub type Error = AuthError;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("`{}` error: {0}", stringify!(ProsodyOAuth2))]
     ProsodyOAuth2Err(#[from] ProsodyOAuth2Error),

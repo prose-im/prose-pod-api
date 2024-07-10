@@ -134,20 +134,14 @@ pub trait XmppServiceImpl: Debug + Send + Sync {
 
 pub type Error = XmppServiceError;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum XmppServiceError {
     #[error("Connection error: {0}")]
     ConnectionError(#[from] ConnectionError),
     #[error("Request error: {0}")]
-    RequestError(#[from] Arc<RequestError>),
+    RequestError(#[from] RequestError),
     #[error("{0}")]
     Other(String),
-}
-
-impl From<RequestError> for XmppServiceError {
-    fn from(err: RequestError) -> Self {
-        Self::RequestError(Arc::new(err))
-    }
 }
 
 impl From<anyhow::Error> for XmppServiceError {
