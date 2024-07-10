@@ -9,6 +9,7 @@ use std::ops::Deref;
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
 use rocket::form::Strict;
+use rocket::response::status::NoContent;
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use rocket::{get, put};
@@ -93,29 +94,26 @@ pub(super) fn enrich_members_stream<'r>(
     })
 }
 
-/// Get information about one member.
-#[get("/v1/members/<jid>")]
-pub(super) fn get_member(jid: JIDUriParam) -> String {
-    let _jid = jid;
-    todo!()
+#[get("/v1/members/<_>")]
+pub(super) fn get_member() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Get member"))
 }
 
-/// Change a member's role.
-#[put("/v1/members/<_member_id>/role")]
-pub(super) fn set_member_role(_member_id: &str) -> String {
-    todo!()
+#[put("/v1/members/<_>/role")]
+pub(super) fn set_member_role() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Set member role"))
 }
 
 /// Change a member's Multi-Factor Authentication (MFA) status.
-#[put("/v1/members/<_member_id>/mfa")]
-pub(super) fn set_member_mfa(_member_id: &str) -> String {
-    todo!()
+#[put("/v1/members/<_>/mfa")]
+pub(super) fn set_member_mfa() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Set member MFA status"))
 }
 
 /// Log a member out from all of its devices.
-#[put("/v1/members/<_member_id>/logout")]
-pub(super) fn logout_member(_member_id: &str) -> String {
-    todo!()
+#[put("/v1/members/<_>/logout")]
+pub(super) fn logout_member() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Log member out"))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

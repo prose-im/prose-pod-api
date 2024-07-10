@@ -86,9 +86,7 @@ pub(super) async fn store_files(
 /// Change the file storage encryption scheme.
 #[put("/v1/server/config/file-storage-encryption-scheme")]
 pub(super) fn file_storage_encryption_scheme() -> R<ServerConfig> {
-    Err(Error::NotImplemented {
-        feature: "File storage encryption scheme".to_string(),
-    })
+    Err(Error::NotImplemented("File storage encryption scheme"))
 }
 
 #[derive(Serialize, Deserialize)]

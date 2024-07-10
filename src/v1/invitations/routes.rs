@@ -147,7 +147,7 @@ impl From<service::model::Invitation> for WorkspaceInvitation {
 /// Get information about a workspace invitation.
 #[get("/v1/invitations/<_>", rank = 2)]
 pub(super) fn get_invitation() -> Json<WorkspaceInvitation> {
-    todo!()
+    Err(Error::NotImplemented("Get invitation"))
 }
 
 /// Get information about an invitation from an accept or reject token.

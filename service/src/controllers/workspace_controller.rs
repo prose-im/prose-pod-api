@@ -58,24 +58,6 @@ impl WorkspaceController {
     }
 }
 
-impl WorkspaceController {
-    pub fn set_workspace_icon_file(_image: Vec<u8>) -> Vec<u8> {
-        todo!()
-    }
-}
-
-impl WorkspaceController {
-    pub fn get_workspace_details_card() -> String {
-        todo!()
-    }
-}
-
-impl WorkspaceController {
-    pub fn set_workspace_details_card(_vcard: String) {
-        todo!()
-    }
-}
-
 #[derive(Debug)]
 pub struct GetWorkspaceAccentColorResponse {
     pub color: Option<String>,

@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::fs::TempFile;
+use rocket::response::status::NoContent;
 use rocket::serde::json::Json;
 use rocket::tokio::io;
 use rocket::{get, put};
@@ -100,19 +101,17 @@ pub(super) async fn set_workspace_icon_file(image: TempFile<'_>) -> R<GetWorkspa
     let mut data: Vec<u8> = Vec::new();
     io::copy(&mut stream, &mut data).await?;
 
-    let _data = WorkspaceController::set_workspace_icon_file(data);
-
-    todo!()
+    Err(Error::NotImplemented("Set workspace icon from a file"))
 }
 
 #[get("/v1/workspace/details-card")]
-pub(super) fn get_workspace_details_card() -> String {
-    WorkspaceController::get_workspace_details_card()
+pub(super) fn get_workspace_details_card() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Get workspace vCard"))
 }
 
-#[put("/v1/workspace/details-card", data = "<vcard>")]
-pub(super) fn set_workspace_details_card(vcard: String) {
-    WorkspaceController::set_workspace_details_card(vcard)
+#[put("/v1/workspace/details-card")]
+pub(super) fn set_workspace_details_card() -> Result<NoContent, Error> {
+    Err(Error::NotImplemented("Set workspace vCard"))
 }
 
 #[derive(Serialize, Deserialize)]

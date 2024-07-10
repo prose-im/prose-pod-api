@@ -28,8 +28,8 @@ use service::{sea_orm, MutationError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Feature not implemented yet: {feature}")]
-    NotImplemented { feature: String },
+    #[error("Feature not implemented yet: {0}")]
+    NotImplemented(&'static str),
     /// Internal server error.
     /// Use it only when a nearly-impossible code path is taken.
     #[error("Internal server error: {reason}")]
@@ -85,7 +85,7 @@ impl Error {
     /// HTTP status to return for this error.
     pub fn http_status(&self) -> Status {
         match self {
-            Self::NotImplemented { .. } => Status::NotImplemented,
+            Self::NotImplemented(_) => Status::NotImplemented,
             Self::InternalServerError { .. } => Status::InternalServerError,
             Self::Unauthorized => Status::Unauthorized,
             Self::UnknownDbErr => Status::InternalServerError,
@@ -107,7 +107,7 @@ impl Error {
     /// User-facing error code (a string for easier understanding).
     pub fn code(&self) -> &'static str {
         match self {
-            Self::NotImplemented { .. } => "not_implemented",
+            Self::NotImplemented(_) => "not_implemented",
             Self::InternalServerError { .. } => "internal_server_error",
             Self::Unauthorized => "unauthorized",
             Self::UnknownDbErr => "database_error",
