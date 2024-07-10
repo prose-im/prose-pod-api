@@ -3,13 +3,15 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Debug;
-use std::ops::Deref;
-use std::path::PathBuf;
-use std::process::Output;
-use std::str::{self, Utf8Error};
-use std::sync::Arc;
-use std::{fmt, io};
+use std::{
+    fmt::Debug,
+    io,
+    ops::Deref,
+    path::PathBuf,
+    process::Output,
+    str::{self, Utf8Error},
+    sync::Arc,
+};
 
 use entity::model::MemberRole;
 use entity::server_config;
@@ -64,43 +66,21 @@ pub type Error = ServerCtlError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCtlError {
+    #[error("Cannot create Prosody config file at path `{}`: {1}", ._0.display())]
     CannotOpenConfigFile(PathBuf, io::Error),
+    #[error("Cannot write Prosody config file at path `{}`: {1}", ._0.display())]
     CannotWriteConfigFile(PathBuf, io::Error),
+    #[error(
+        "Command failed ({}):\nstdout: {}\nstderr: {}",
+        ._0.status,
+        str::from_utf8(&._0.stdout).unwrap(),
+        str::from_utf8(&._0.stderr).unwrap(),
+    )]
     CommandFailed(Output),
-    Utf8Error(Utf8Error),
+    #[error("UTF-8 error: {0}")]
+    Utf8Error(#[from] Utf8Error),
+    #[error("{0}")]
     Other(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CannotOpenConfigFile(path, err) => write!(
-                f,
-                "Cannot create Prosody config file at path `{}`: {err}",
-                path.display()
-            ),
-            Self::CannotWriteConfigFile(path, err) => write!(
-                f,
-                "Cannot write Prosody config file at path `{}`: {err}",
-                path.display()
-            ),
-            Self::CommandFailed(output) => write!(
-                f,
-                "Command failed ({}):\nstdout: {}\nstderr: {}",
-                output.status,
-                str::from_utf8(&output.stdout).unwrap(),
-                str::from_utf8(&output.stderr).unwrap(),
-            ),
-            Self::Utf8Error(err) => write!(f, "UTF-8 error: {err}"),
-            Self::Other(err) => write!(f, "{err}"),
-        }
-    }
-}
-
-impl From<Utf8Error> for Error {
-    fn from(value: Utf8Error) -> Self {
-        Self::Utf8Error(value)
-    }
 }
 
 impl From<reqwest::Error> for Error {

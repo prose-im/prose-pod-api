@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt, io::Cursor};
+use std::io::Cursor;
 
 use http_auth_basic::AuthBasicError;
 use rocket::http::{ContentType, Header, Status};
@@ -26,45 +26,47 @@ use service::services::{
 };
 use service::{sea_orm, MutationError};
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Feature not implemented yet.
+    #[error("Feature not implemented yet: {feature}")]
     NotImplemented { feature: String },
     /// Internal server error.
     /// Use it only when a nearly-impossible code path is taken.
+    #[error("Internal server error: {reason}")]
     InternalServerError { reason: String },
-    /// Unauthorized
+    #[error("Unauthorized.")]
     Unauthorized,
-    /// Unknown database error.
+    #[error("Unknown database error.")]
     UnknownDbErr,
-    /// SeaORM database error.
-    DbErr(sea_orm::DbErr),
-    /// Workspace not yet initialized.
+    #[error("Database error: {0}")]
+    DbErr(#[from] sea_orm::DbErr),
+    #[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_workspace))]
     WorkspaceNotInitialized,
-    /// Workspace already initialized.
+    #[error("Workspace already initialized.")]
     WorkspaceAlreadyInitialized,
-    /// XMPP server not yet initialized.
+    #[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_server_config))]
     ServerConfigNotInitialized,
-    /// XMPP server already initialized.
+    #[error("XMPP server already initialized.")]
     ServerConfigAlreadyInitialized,
-    /// First XMPP accout already created.
+    #[error("First XMPP account already created.")]
     FirstAccountAlreadyCreated,
-    /// `ServerCtl` fail (e.g. execution of `prosodyctl` failed).
-    ServerCtlErr(server_ctl::Error),
-    /// `XmppService` fail.
-    XmppServiceErr(xmpp_service::Error),
-    /// Bad request (invalid data for example).
+    #[error("ServerCtl error: {0}")]
+    ServerCtlErr(#[from] server_ctl::Error),
+    #[error("XmppService error: {0}")]
+    XmppServiceErr(#[from] xmpp_service::Error),
+    #[error("Bad request: {reason}")]
     BadRequest { reason: String },
-    /// Service error while mutation an entity.
-    MutationErr(MutationError),
-    /// Could not find the desired entity.
+    #[error("Mutation error: {0}")]
+    MutationErr(#[from] MutationError),
+    #[error("Not found: {reason}")]
     NotFound { reason: String },
-    /// Could not send a notification.
-    NotifierError(notifier::Error),
-    /// Basic authentication failed.
+    #[error("Notifier error: {0}")]
+    NotifierError(#[from] notifier::Error),
+    #[error("Basic auth error: {0}")]
     BasicAuthError(AuthBasicError),
     /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
     /// to change the output format).
+    #[error("{0}")]
     HTTPStatus(Status),
 }
 
@@ -171,71 +173,6 @@ impl<'r> Responder<'r, 'static> for Error {
     fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
         self.log();
         self.as_response()
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NotImplemented { feature } => write!(f, "Feature not implemented: {feature}"),
-            Self::InternalServerError { reason } => write!(f, "Internal server error: {reason}"),
-            Self::Unauthorized => write!(f, "Unauthorized"),
-            Self::UnknownDbErr => write!(f, "Unknown database error"),
-            Self::DbErr(err) => write!(f, "Database error: {err}"),
-            Self::WorkspaceNotInitialized => write!(
-                f,
-                "Workspace not initialized. Call `PUT {}` to initialize it.",
-                uri!(crate::v1::init::init_workspace)
-            ),
-            Self::WorkspaceAlreadyInitialized => write!(f, "Workspace already initialized."),
-            Self::ServerConfigNotInitialized => write!(
-                f,
-                "XMPP server not initialized. Call `PUT {}` to initialize it.",
-                uri!(crate::v1::init::init_server_config)
-            ),
-            Self::ServerConfigAlreadyInitialized => write!(f, "XMPP server already initialized."),
-            Self::FirstAccountAlreadyCreated => write!(f, "First XMPP account already created."),
-            Self::ServerCtlErr(err) => write!(f, "ServerCtl error: {err}"),
-            Self::XmppServiceErr(err) => write!(f, "XmppService error: {err}"),
-            Self::BadRequest { reason } => write!(f, "Bad request: {reason}"),
-            Self::MutationErr(err) => write!(f, "Mutation error: {err}"),
-            Self::NotFound { reason } => write!(f, "Not found: {reason}"),
-            Self::NotifierError(err) => write!(f, "Notifier error: {err}"),
-            Self::BasicAuthError(err) => write!(f, "Basic auth error: {err}"),
-            Self::HTTPStatus(s) => write!(f, "{s}"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl From<sea_orm::DbErr> for Error {
-    fn from(value: sea_orm::DbErr) -> Self {
-        Self::DbErr(value)
-    }
-}
-
-impl From<notifier::Error> for Error {
-    fn from(value: notifier::Error) -> Self {
-        Self::NotifierError(value)
-    }
-}
-
-impl From<server_ctl::Error> for Error {
-    fn from(value: server_ctl::Error) -> Self {
-        Self::ServerCtlErr(value)
-    }
-}
-
-impl From<xmpp_service::Error> for Error {
-    fn from(value: xmpp_service::Error) -> Self {
-        Self::XmppServiceErr(value)
-    }
-}
-
-impl From<MutationError> for Error {
-    fn from(value: MutationError) -> Self {
-        Self::MutationErr(value)
     }
 }
 
