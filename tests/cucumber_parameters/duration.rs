@@ -8,7 +8,7 @@ use std::str::FromStr;
 use cucumber::codegen::Regex;
 use cucumber::Parameter;
 use iso8601_duration::Duration as ISODuration;
-use service::deprecated::{DateLike, PossiblyInfinite};
+use service::model::{DateLike, PossiblyInfinite};
 
 #[derive(Debug, Parameter)]
 #[param(
@@ -50,14 +50,14 @@ impl ToString for Duration {
     }
 }
 
-impl Into<service::deprecated::Duration<DateLike>> for Duration {
-    fn into(self) -> service::deprecated::Duration<DateLike> {
+impl Into<service::model::Duration<DateLike>> for Duration {
+    fn into(self) -> service::model::Duration<DateLike> {
         ISODuration::parse(&self.0).unwrap().try_into().unwrap()
     }
 }
 
-impl Into<PossiblyInfinite<service::deprecated::Duration<DateLike>>> for Duration {
-    fn into(self) -> PossiblyInfinite<service::deprecated::Duration<DateLike>> {
+impl Into<PossiblyInfinite<service::model::Duration<DateLike>>> for Duration {
+    fn into(self) -> PossiblyInfinite<service::model::Duration<DateLike>> {
         PossiblyInfinite::Finite(self.into())
     }
 }

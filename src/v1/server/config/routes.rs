@@ -6,7 +6,7 @@
 use rocket::serde::json::Json;
 use rocket::{get, put};
 use serde::{Deserialize, Serialize};
-use service::deprecated::{DateLike, Duration, PossiblyInfinite};
+use service::model::{DateLike, Duration, PossiblyInfinite};
 use service::repositories::ServerConfig;
 use service::services::server_manager::ServerManager;
 

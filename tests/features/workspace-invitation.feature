@@ -160,7 +160,7 @@ Feature: Inviting members
         And the invitation did not go through
         And Valerian is an admin
        When Valerian resends the invitation
-       Then the HTTP status code should be OK
+       Then the HTTP status code should be NoContent
         And 1 email should have been sent
 
     Scenario: Rémi (not admin) tries to resend an invitation

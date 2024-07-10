@@ -90,7 +90,7 @@ async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a>
         .body(
             json!(InitWorkspaceRequest {
                 name: name.to_owned(),
-                ..Default::default()
+                accent_color: None,
             })
             .to_string(),
         )

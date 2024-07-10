@@ -5,11 +5,12 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
+use entity::server_config;
 use log::trace;
 use sea_orm::DbErr;
 
 use crate::config::Config as AppConfig;
-use crate::deprecated::{DateLike, Duration, PossiblyInfinite, ServerConfigActiveModel};
+use crate::model::{DateLike, Duration, PossiblyInfinite};
 use crate::repositories::{ServerConfig, ServerConfigCreateForm, ServerConfigRepository};
 use crate::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
 use crate::services::server_ctl::ServerCtl;
@@ -52,11 +53,11 @@ impl<'r> ServerManager<'r> {
 impl<'r> ServerManager<'r> {
     async fn update<U>(&self, update: U) -> Result<ServerConfig, Error>
     where
-        U: FnOnce(&mut ServerConfigActiveModel) -> (),
+        U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
         let old_server_config = self.server_config_mut().clone();
 
-        let mut active: ServerConfigActiveModel = old_server_config.clone().into();
+        let mut active: server_config::ActiveModel = old_server_config.clone().into();
         update(&mut active);
         trace!("Updating config in database…");
         let new_server_config = active.update(self.db).await?;

@@ -7,7 +7,9 @@ pub extern crate prose_xmpp;
 pub extern crate xmpp_parsers;
 
 pub mod config;
+pub mod controllers;
 pub mod dependencies;
+pub mod model;
 mod mutation_error;
 pub mod prosody;
 pub mod repositories;
@@ -24,15 +26,6 @@ pub use reqwest::Client as HttpClient;
 
 pub use prosody_config::ProsodyConfigSection;
 pub use sea_orm;
-
-// TODO: Move all code which depends on this into `service`
-pub mod deprecated {
-    pub use entity::{
-        model::{DateLike, Duration, PossiblyInfinite},
-        server_config::ActiveModel as ServerConfigActiveModel,
-        workspace::ActiveModel as WorkspaceActiveModel,
-    };
-}
 
 trait ProseDefault {
     fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self;

@@ -6,7 +6,7 @@
 use std::{fmt::Display, ops::Deref};
 
 use serde::{Deserialize, Serialize};
-use service::{prose_xmpp::BareJid, MemberRole};
+use service::{controllers::member_controller, prose_xmpp::BareJid, MemberRole};
 
 use crate::forms::JID as JIDUriParam;
 
@@ -33,6 +33,17 @@ pub struct EnrichedMember {
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,
+}
+
+impl From<member_controller::EnrichedMember> for EnrichedMember {
+    fn from(value: member_controller::EnrichedMember) -> Self {
+        Self {
+            jid: value.jid,
+            online: value.online,
+            nickname: value.nickname,
+            avatar: value.avatar,
+        }
+    }
 }
 
 #[derive(Debug, Clone, FromForm)]

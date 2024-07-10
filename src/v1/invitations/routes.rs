@@ -3,22 +3,21 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::ops::Deref;
+
 use chrono::{DateTime, Utc};
-#[cfg(debug_assertions)]
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use rocket::response::status::{self, NoContent};
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::config::Config;
-use service::prose_xmpp::BareJid;
-use service::repositories::{
-    InvitationContact, InvitationCreateForm, InvitationRepository, InvitationStatus,
-    MemberRepository, ServerConfig,
+use service::config::Config as AppConfig;
+use service::controllers::invitation_controller::{
+    InvitationAcceptForm, InvitationController, InviteMemberForm,
 };
+use service::prose_xmpp::BareJid;
+use service::repositories::{InvitationContact, InvitationStatus, MemberRepository, ServerConfig};
 use service::sea_orm::prelude::*;
-use service::services::invitation_service::InvitationService;
 use service::services::notifier::Notifier;
 use service::util::to_bare_jid;
 use service::MemberRole;
@@ -29,7 +28,6 @@ use crate::error::Error;
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService};
 use crate::responders::Paginated;
-use crate::util::bare_jid_from_username;
 use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
@@ -41,9 +39,13 @@ pub struct InviteMemberRequest {
     pub contact: InvitationContact,
 }
 
-impl InviteMemberRequest {
-    fn jid(&self, server_config: &ServerConfig) -> Result<BareJid, Error> {
-        bare_jid_from_username(self.username.to_string(), server_config)
+impl Into<InviteMemberForm> for InviteMemberRequest {
+    fn into(self) -> InviteMemberForm {
+        InviteMemberForm {
+            username: self.username,
+            pre_assigned_role: self.pre_assigned_role,
+            contact: self.contact,
+        }
     }
 }
 
@@ -52,7 +54,7 @@ impl InviteMemberRequest {
 pub(super) async fn invite_member<'r>(
     conn: Connection<'_, Db>,
     uuid_gen: LazyGuard<dependencies::Uuid>,
-    config: &State<Config>,
+    app_config: &State<AppConfig>,
     server_config: LazyGuard<ServerConfig>,
     jid: LazyGuard<BareJid>,
     notifier: LazyGuard<Notifier<'_>>,
@@ -62,6 +64,8 @@ pub(super) async fn invite_member<'r>(
     let db = conn.into_inner();
     let server_config = server_config.inner?;
     let uuid_gen = uuid_gen.inner?;
+    let notifier = notifier.inner?;
+    let form = req.into_inner();
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
@@ -70,90 +74,17 @@ pub(super) async fn invite_member<'r>(
         return Err(Error::Unauthorized);
     }
 
-    let invitation = InvitationRepository::create(
+    let invitation = InvitationController::invite_member(
         db,
-        InvitationCreateForm {
-            jid: req.jid(&server_config)?,
-            pre_assigned_role: Some(req.pre_assigned_role.clone()),
-            contact: req.contact.clone(),
-            created_at: None,
-        },
         &uuid_gen,
+        app_config,
+        &server_config,
+        &notifier,
+        form,
+        #[cfg(debug_assertions)]
+        invitation_service.inner?.deref(),
     )
     .await?;
-
-    if let Err(err) = notifier
-        .inner?
-        .send_workspace_invitation(
-            &config.branding,
-            invitation.accept_token,
-            invitation.reject_token,
-        )
-        .await
-    {
-        error!("Could not send workspace invitation: {err}");
-        InvitationRepository::update_status(db, invitation.clone(), InvitationStatus::SendFailed)
-            .await
-            .map_or_else(
-                |err| {
-                    error!(
-                        "Could not mark workspace invitation `{}` as `{}`: {err}",
-                        invitation.id,
-                        InvitationStatus::SendFailed
-                    )
-                },
-                |_| {
-                    debug!(
-                        "Marked invitation `{}` as `{}`",
-                        invitation.id,
-                        InvitationStatus::SendFailed
-                    )
-                },
-            );
-    };
-
-    InvitationRepository::update_status(db, invitation.clone(), InvitationStatus::Sent)
-        .await
-        .inspect_err(|err| {
-            error!(
-                "Could not mark workspace invitation `{}` as `{}`: {err}",
-                invitation.id,
-                InvitationStatus::Sent
-            )
-        })?;
-
-    #[cfg(debug_assertions)]
-    if config.debug_only.automatically_accept_invitations {
-        warn!(
-            "Config `{}` is turned on. The created invitation will be automatically accepted.",
-            stringify!(debug_only.automatically_accept_invitations),
-        );
-
-        let password = if config
-            .debug_only
-            .insecure_password_on_auto_accept_invitation
-        {
-            // Use JID as password to make password predictable
-            invitation.jid.to_string()
-        } else {
-            // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-            thread_rng()
-                .sample_iter(&Alphanumeric)
-                .take(32)
-                .map(char::from)
-                .collect()
-        };
-        invitation_accept_(
-            db,
-            invitation.accept_token.into(),
-            &invitation_service.inner?.into(),
-            AcceptWorkspaceInvitationRequest {
-                nickname: req.username.to_string(),
-                password,
-            },
-        )
-        .await?;
-    }
 
     let resource_uri = uri!(get_invitation(invitation.id)).to_string();
     let response: WorkspaceInvitation = invitation.into();
@@ -175,8 +106,10 @@ pub(super) async fn get_invitations(
         Some(t) => Some(t.try_into()?),
         None => None,
     };
+
     let (pages_metadata, invitations) =
-        InvitationRepository::get_all(db, page_number, page_size, until).await?;
+        InvitationController::get_invitations(db, page_number, page_size, until).await?;
+
     Ok(Paginated::new(
         invitations.into_iter().map(Into::into).collect(),
         page_number,
@@ -225,8 +158,8 @@ pub(super) async fn get_invitation_by_token(
 ) -> R<WorkspaceInvitation> {
     let db = conn.into_inner();
     let invitation = match token_type {
-        InvitationTokenType::Accept => InvitationRepository::get_by_accept_token(db, &token).await,
-        InvitationTokenType::Reject => InvitationRepository::get_by_reject_token(db, &token).await,
+        InvitationTokenType::Accept => InvitationController::get_by_accept_token(db, &token).await,
+        InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, &token).await,
     }?;
     let Some(invitation) = invitation else {
         debug!("No invitation found for provided token");
@@ -243,6 +176,15 @@ pub struct AcceptWorkspaceInvitationRequest {
     pub password: String,
 }
 
+impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
+    fn into(self) -> InvitationAcceptForm {
+        InvitationAcceptForm {
+            nickname: self.nickname,
+            password: self.password,
+        }
+    }
+}
+
 /// Accept a workspace invitation.
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub(super) async fn invitation_accept(
@@ -251,42 +193,13 @@ pub(super) async fn invitation_accept(
     token: Uuid,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
-    invitation_accept_(
+    InvitationController::accept(
         conn.into_inner(),
-        token,
-        &invitation_service.inner?.into(),
+        &token,
+        invitation_service.inner?.deref(),
         req.into_inner(),
     )
-    .await
-}
-
-async fn invitation_accept_(
-    db: &DatabaseConnection,
-    token: Uuid,
-    invitation_service: &InvitationService<'_>,
-    req: AcceptWorkspaceInvitationRequest,
-) -> Result<(), Error> {
-    // NOTE: We don't check that the invitation status is "SENT"
-    //   because it would cause a lot of useless edge cases.
-    let invitation = InvitationRepository::get_by_accept_token(db, &token)
-        .await?
-        .ok_or_else(|| {
-            debug!("No invitation found for provided token");
-            Error::Unauthorized
-        })?;
-    if token != invitation.accept_token {
-        debug!("Accept token is invalid");
-        return Err(Error::Unauthorized);
-    }
-    if invitation.accept_token_expires_at < Utc::now() {
-        return Err(Error::NotFound {
-            reason: "Invitation accept token has expired".to_string(),
-        });
-    }
-
-    invitation_service
-        .accept(db, invitation, &req.password, &req.nickname)
-        .await?;
+    .await?;
 
     Ok(())
 }
@@ -299,22 +212,7 @@ pub(super) async fn invitation_reject(
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
-    // Nothing to do
-    // NOTE: We don't check that the invitation status is "SENT"
-    //   because it would cause a lot of useless edge cases.
-
-    let invitation = InvitationRepository::get_by_reject_token(db, &token)
-        .await?
-        .ok_or_else(|| {
-            debug!("No invitation found for provided token");
-            Error::Unauthorized
-        })?;
-    if token != invitation.reject_token {
-        debug!("Reject token is invalid");
-        return Err(Error::Unauthorized);
-    }
-
-    invitation.delete(db).await?;
+    InvitationController::reject(db, &token).await?;
 
     Ok(NoContent)
 }
@@ -323,12 +221,13 @@ pub(super) async fn invitation_reject(
 #[post("/v1/invitations/<invitation_id>/resend")]
 pub(super) async fn invitation_resend(
     conn: Connection<'_, Db>,
-    config: &State<Config>,
+    app_config: &State<AppConfig>,
     jid: LazyGuard<BareJid>,
     notifier: LazyGuard<Notifier<'_>>,
     invitation_id: i32,
-) -> Result<(), Error> {
+) -> Result<NoContent, Error> {
     let db = conn.into_inner();
+    let notifier = notifier.inner?;
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
@@ -337,22 +236,9 @@ pub(super) async fn invitation_resend(
         return Err(Error::Unauthorized);
     }
 
-    let invitation = InvitationRepository::get_by_id(db, &invitation_id)
-        .await?
-        .ok_or(Error::NotFound {
-            reason: format!("Could not find the invitation with id '{invitation_id}'"),
-        })?;
+    InvitationController::resend(db, &app_config, &notifier, invitation_id).await?;
 
-    notifier
-        .inner?
-        .send_workspace_invitation(
-            &config.branding,
-            invitation.accept_token,
-            invitation.reject_token,
-        )
-        .await?;
-
-    Ok(())
+    Ok(NoContent)
 }
 
 /// Cancel a workspace invitation.
@@ -371,7 +257,7 @@ pub(super) async fn invitation_cancel(
         return Err(Error::Unauthorized);
     }
 
-    InvitationRepository::delete_by_id(db, invitation_id).await?;
+    InvitationController::cancel(db, invitation_id).await?;
 
     Ok(NoContent)
 }
