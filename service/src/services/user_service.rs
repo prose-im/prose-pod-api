@@ -6,6 +6,7 @@
 use entity::model::MemberRole;
 use prose_xmpp::BareJid;
 use sea_orm::{ConnectionTrait, DbErr};
+use secrecy::SecretString;
 
 use crate::model::Member;
 use crate::repositories::{MemberCreateForm, MemberRepository};
@@ -40,7 +41,7 @@ impl<'r> UserService<'r> {
         &self,
         db: &impl ConnectionTrait,
         jid: &BareJid,
-        password: &str,
+        password: &SecretString,
         nickname: &str,
         role: &Option<MemberRole>,
     ) -> Result<Member, UserCreateError> {
@@ -62,7 +63,7 @@ impl<'r> UserService<'r> {
         let server_ctl = self.server_ctl.clone();
 
         server_ctl
-            .add_user(jid, password)
+            .add_user(jid, &password)
             .map_err(UserCreateError::XmppServerCannotCreateUser)?;
         if let Some(role) = role {
             server_ctl
@@ -74,7 +75,7 @@ impl<'r> UserService<'r> {
         //   in order to set the user's vCard.
         let jwt = self
             .auth_service
-            .log_in(jid, password)
+            .log_in(jid, &password)
             .expect("User was created with credentials which doesn't work.");
         let jwt = self
             .auth_service

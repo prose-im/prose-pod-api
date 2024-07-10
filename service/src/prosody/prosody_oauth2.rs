@@ -6,6 +6,7 @@
 use log::debug;
 use prose_xmpp::BareJid;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
+use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
@@ -76,20 +77,20 @@ impl ProsodyOAuth2 {
     pub fn log_in(
         &self,
         jid: &BareJid,
-        password: &str,
-    ) -> Result<Option<String>, ProsodyOAuth2Error> {
+        password: &SecretString,
+    ) -> Result<Option<SecretString>, ProsodyOAuth2Error> {
         let jid = jid.to_string();
         let response = self.call(
             |client| {
                 client
                     .post(self.url("token"))
-                    .basic_auth(jid.clone(), Some(password))
+                    .basic_auth(jid.clone(), Some(password.expose_secret()))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .body(
                         form_urlencoded::Serializer::new(String::new())
                             .append_pair("grant_type", "password")
                             .append_pair("username", jid.clone().as_str())
-                            .append_pair("password", password)
+                            .append_pair("password", password.expose_secret())
                             .append_pair("scope", "xmpp")
                             .finish(),
                     )
@@ -135,7 +136,7 @@ struct ProsodyOAuth2TokenResponse {
     // expires_in: u16,
     // token_type: String,
     // refresh_token: String,
-    access_token: String,
+    access_token: SecretString,
     // grant_jid: String,
 }
 

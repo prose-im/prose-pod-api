@@ -12,6 +12,7 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::client::{Tls, TlsParameters};
 use lettre::transport::smtp::{Error as SmtpError, SmtpTransport};
 use lettre::{Address, Transport};
+use secrecy::{ExposeSecret as _, SecretString};
 
 use super::generic::{
     notification_message, notification_subject, GenericNotifier, Notification,
@@ -26,7 +27,7 @@ pub struct EmailNotifier {
     smtp_host: String,
     smtp_port: u16,
     smtp_username: Option<String>,
-    smtp_password: Option<String>,
+    smtp_password: Option<SecretString>,
     smtp_encrypt: bool,
 }
 
@@ -105,7 +106,7 @@ fn acquire_transport(
     smtp_host: &str,
     smtp_port: u16,
     smtp_username: Option<String>,
-    smtp_password: Option<String>,
+    smtp_password: Option<SecretString>,
     smtp_encrypt: bool,
 ) -> Result<SmtpTransport, SmtpError> {
     // Acquire credentials (if any)
@@ -114,7 +115,7 @@ fn acquire_transport(
     {
         Some(Credentials::new(
             smtp_username_value.to_owned(),
-            smtp_password_value.to_owned(),
+            smtp_password_value.expose_secret().to_string(),
         ))
     } else {
         None

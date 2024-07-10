@@ -16,6 +16,7 @@ use service::services::server_ctl::ServerCtl;
 
 use crate::forms::JID as JIDUriParam;
 use crate::guards::{Db, LazyGuard, UnauthenticatedUserService};
+use crate::model::SerializableSecretString;
 use crate::v1::members::{rocket_uri_macro_get_member, Member};
 use crate::v1::Created;
 
@@ -84,7 +85,7 @@ pub async fn init_server_config(
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
     pub username: JIDNode,
-    pub password: String,
+    pub password: SerializableSecretString,
     pub nickname: String,
 }
 
@@ -92,7 +93,7 @@ impl Into<InitFirstAccountForm> for InitFirstAccountRequest {
     fn into(self) -> InitFirstAccountForm {
         InitFirstAccountForm {
             username: self.username,
-            password: self.password,
+            password: self.password.into(),
             nickname: self.nickname,
         }
     }

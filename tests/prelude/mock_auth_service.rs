@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use secrecy::{ExposeSecret as _, SecretString};
 use service::prose_xmpp::BareJid;
 use service::services::{
     auth_service::{self, AuthServiceImpl, JWT_PROSODY_TOKEN_KEY},
@@ -47,7 +48,7 @@ impl MockAuthService {
         }
     }
 
-    pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<String, auth_service::Error> {
+    pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<SecretString, auth_service::Error> {
         let token = self.jwt_service.generate_jwt(jid, |claims| {
             claims.insert(JWT_PROSODY_TOKEN_KEY, "dummy-prosody-token".to_owned());
         })?;
@@ -63,14 +64,18 @@ impl Default for MockAuthServiceState {
 }
 
 impl AuthServiceImpl for MockAuthService {
-    fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, auth_service::Error> {
+    fn log_in(
+        &self,
+        jid: &BareJid,
+        password: &SecretString,
+    ) -> Result<SecretString, auth_service::Error> {
         self.check_online()?;
 
         let state = self.mock_server_ctl_state.read().unwrap();
         let valid_credentials = state
             .users
             .get(jid)
-            .map(|user| user.password == password)
+            .map(|user| user.password.expose_secret() == password.expose_secret())
             .expect("User must be created first");
 
         if !valid_credentials {
@@ -79,7 +84,7 @@ impl AuthServiceImpl for MockAuthService {
 
         self.log_in_unchecked(jid)
     }
-    fn verify(&self, jwt: &str) -> Result<JWT, jwt_service::Error> {
+    fn verify(&self, jwt: &SecretString) -> Result<JWT, jwt_service::Error> {
         JWT::try_from(jwt, &self.jwt_service)
     }
 }

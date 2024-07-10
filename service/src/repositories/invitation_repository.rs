@@ -3,6 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use crate::{dependencies, MutationError};
 use chrono::{DateTime, TimeDelta, Utc};
 use entity::workspace_invitation::{ActiveModel, Column, Entity};
 use prose_xmpp::BareJid;
@@ -10,9 +11,8 @@ use sea_orm::{
     prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,
     Set,
 };
-use uuid::Uuid;
-
-use crate::{dependencies, MutationError};
+use secrecy::{ExposeSecret, SecretString, SerializableSecret, Zeroize};
+use serde::{Deserialize, Serialize};
 
 use crate::model::{EmailAddress, Invitation, InvitationContact, InvitationStatus, MemberRole};
 
@@ -60,20 +60,20 @@ impl InvitationRepository {
 
     pub async fn get_by_accept_token(
         db: &impl ConnectionTrait,
-        token: &Uuid,
+        token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
         Entity::find()
-            .filter(Column::AcceptToken.eq(*token))
+            .filter(Column::AcceptToken.eq(*token.expose_secret()))
             .one(db)
             .await
     }
 
     pub async fn get_by_reject_token(
         db: &impl ConnectionTrait,
-        token: &Uuid,
+        token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
         Entity::find()
-            .filter(Column::RejectToken.eq(*token))
+            .filter(Column::RejectToken.eq(*token.expose_secret()))
             .one(db)
             .await
     }
@@ -197,5 +197,35 @@ impl InvitationCreateForm {
         };
         res.set_contact(self.contact);
         res
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct InvitationToken(Uuid);
+impl Zeroize for InvitationToken {
+    fn zeroize(&mut self) {
+        self.0.into_bytes().zeroize()
+    }
+}
+impl SerializableSecret for InvitationToken {}
+impl ExposeSecret<Uuid> for InvitationToken {
+    fn expose_secret(&self) -> &Uuid {
+        &self.0
+    }
+}
+impl From<Uuid> for InvitationToken {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+impl InvitationToken {
+    pub fn into_secret_string(self) -> SecretString {
+        SecretString::new(self.0.to_string())
+    }
+}
+impl Into<SecretString> for InvitationToken {
+    fn into(self) -> SecretString {
+        self.into_secret_string()
     }
 }

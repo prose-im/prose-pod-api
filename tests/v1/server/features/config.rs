@@ -8,6 +8,7 @@ use migration::DbErr;
 use prose_pod_api::v1::server::config::*;
 use rocket::http::{ContentType, Header};
 use rocket::local::asynchronous::{Client, LocalResponse};
+use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
 use service::repositories::ServerConfigRepository;
 use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
@@ -19,13 +20,16 @@ use crate::TestWorld;
 
 async fn set_message_archiving<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     state: bool,
 ) -> LocalResponse<'a> {
     client
         .put("/v1/server/config/store-message-archive")
         .header(ContentType::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .body(
             json!(SetMessageArchivingRequest {
                 message_archive_enabled: state,
@@ -38,13 +42,16 @@ async fn set_message_archiving<'a>(
 
 async fn set_message_archive_retention<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     duration: Duration,
 ) -> LocalResponse<'a> {
     client
         .put("/v1/server/config/message-archive-retention")
         .header(ContentType::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .body(
             json!(SetMessageArchiveRetentionRequest {
                 message_archive_retention: duration.into(),
@@ -137,13 +144,16 @@ async fn then_message_archive_retention(
 
 async fn set_file_uploading<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     state: bool,
 ) -> LocalResponse<'a> {
     client
         .put("/v1/server/config/allow-file-upload")
         .header(ContentType::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .body(
             json!(SetFileUploadingRequest {
                 file_upload_allowed: state,
@@ -156,13 +166,16 @@ async fn set_file_uploading<'a>(
 
 async fn set_file_retention<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     duration: Duration,
 ) -> LocalResponse<'a> {
     client
         .put("/v1/server/config/file-retention")
         .header(ContentType::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .body(
             json!(SetFileRetentionRequest {
                 file_retention: duration.into(),

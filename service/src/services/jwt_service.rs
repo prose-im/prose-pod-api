@@ -6,7 +6,7 @@
 use hmac::{Hmac, Mac};
 use jwt::{SignWithKey as _, VerifyWithKey as _};
 use prose_xmpp::BareJid;
-use secrecy::Secret;
+use secrecy::{ExposeSecret as _, SecretString};
 use sha2::Sha256;
 use std::{collections::BTreeMap, env};
 use xmpp_parsers::jid;
@@ -35,18 +35,21 @@ impl JWTService {
         &self,
         jid: &BareJid,
         add_claims: impl FnOnce(&mut BTreeMap<&str, String>) -> (),
-    ) -> Result<String, JWTError> {
+    ) -> Result<SecretString, JWTError> {
         let jwt_key = self.jwt_key.as_hmac_sha_256()?;
 
         let mut claims = BTreeMap::new();
         claims.insert(JWT_JID_KEY, jid.to_string());
         add_claims(&mut claims);
-        claims.sign_with_key(&jwt_key).map_err(JWTError::Sign)
+        let jwt = claims.sign_with_key(&jwt_key).map_err(JWTError::Sign)?;
+        Ok(SecretString::new(jwt))
     }
 
-    pub fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {
+    pub fn verify(&self, jwt: &SecretString) -> Result<BTreeMap<String, String>, JWTError> {
         let jwt_key = self.jwt_key.as_hmac_sha_256()?;
-        jwt.verify_with_key(&jwt_key).map_err(JWTError::Verify)
+        jwt.expose_secret()
+            .verify_with_key(&jwt_key)
+            .map_err(JWTError::Verify)
     }
 }
 
@@ -77,7 +80,7 @@ pub struct JWT {
 }
 
 impl JWT {
-    pub fn try_from(jwt: &str, jwt_service: &JWTService) -> Result<Self, JWTError> {
+    pub fn try_from(jwt: &SecretString, jwt_service: &JWTService) -> Result<Self, JWTError> {
         jwt_service.verify(jwt).map(|claims| Self { claims })
     }
 }
@@ -90,7 +93,7 @@ impl JWT {
         let jid = BareJid::new(jid.as_str())?;
         Ok(jid)
     }
-    pub fn prosody_token(&self) -> Result<Secret<String>, InvalidJwtClaimError> {
+    pub fn prosody_token(&self) -> Result<SecretString, InvalidJwtClaimError> {
         let Some(token) = self.claims.get(JWT_PROSODY_TOKEN_KEY) else {
             return Err(InvalidJwtClaimError::MissingClaim(
                 JWT_PROSODY_TOKEN_KEY.to_owned(),

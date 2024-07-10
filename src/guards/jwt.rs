@@ -28,7 +28,7 @@ impl<'r> LazyFromRequest<'r> for JWT {
 
         let jwt_service = try_outcome!(request_state!(req, JWTService));
 
-        match Self::try_from(token, jwt_service) {
+        match Self::try_from(&token.to_string().into(), jwt_service) {
             Ok(jwt) => Outcome::Success(jwt),
             Err(err) => {
                 return Error::from(error::Unauthorized(format!(

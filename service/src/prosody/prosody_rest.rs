@@ -18,7 +18,7 @@ use prose_xmpp::{
     },
 };
 use reqwest::Client as HttpClient;
-use secrecy::{ExposeSecret as _, Secret};
+use secrecy::{ExposeSecret as _, SecretString};
 use tokio::runtime::Handle;
 use xmpp_parsers::FullJid;
 
@@ -50,7 +50,7 @@ impl ConnectorTrait for ProsodyRest {
     async fn connect(
         &self,
         _jid: &FullJid,
-        password: Secret<String>,
+        password: SecretString,
         event_handler: ConnectionEventHandler,
     ) -> Result<Box<dyn ConnectionTrait>, ConnectionError> {
         *self.connection.inner.event_handler.write() = Some(event_handler);
@@ -65,7 +65,7 @@ impl ConnectorTrait for ProsodyRest {
 pub struct Connection {
     http_client: HttpClient,
     rest_api_url: String,
-    prosody_token: Arc<RwLock<Option<Secret<String>>>>,
+    prosody_token: Arc<RwLock<Option<SecretString>>>,
     inner: Arc<ConnectionInner>,
 }
 

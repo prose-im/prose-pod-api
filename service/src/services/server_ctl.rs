@@ -16,6 +16,7 @@ use std::{
 use entity::model::MemberRole;
 use entity::server_config;
 use prose_xmpp::BareJid;
+use secrecy::SecretString;
 
 use crate::config::Config;
 
@@ -48,13 +49,13 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     ) -> Result<(), Error>;
     fn reload(&self) -> Result<(), Error>;
 
-    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error>;
+    fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
     fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
     fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
     fn add_user_with_role(
         &self,
         jid: &BareJid,
-        password: &str,
+        password: &SecretString,
         role: &MemberRole,
     ) -> Result<(), Error> {
         self.add_user(jid, password)

@@ -17,6 +17,7 @@ use rocket::{
     http::{Accept, ContentType, Header},
     local::asynchronous::{Client, LocalResponse},
 };
+use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
 use service::model::{InvitationContact, JIDNode};
 use service::{
@@ -33,7 +34,7 @@ use crate::{
 
 async fn invite_member<'a>(
     client: &'a Client,
-    token: &str,
+    token: &SecretString,
     username: &JIDNode,
     pre_assigned_role: MemberRole,
     contact: InvitationContact,
@@ -41,7 +42,10 @@ async fn invite_member<'a>(
     client
         .post("/v1/invitations")
         .header(ContentType::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .body(
             json!(InviteMemberRequest {
                 username: username.to_owned(),
@@ -54,18 +58,24 @@ async fn invite_member<'a>(
         .await
 }
 
-async fn list_workspace_invitations<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
+async fn list_workspace_invitations<'a>(
+    client: &'a Client,
+    token: SecretString,
+) -> LocalResponse<'a> {
     client
         .get("/v1/invitations")
         .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }
 
 async fn list_workspace_invitations_paged<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     page_number: u64,
     page_size: u64,
 ) -> LocalResponse<'a> {
@@ -74,7 +84,10 @@ async fn list_workspace_invitations_paged<'a>(
             "/v1/invitations?page_number={page_number}&page_size={page_size}"
         ))
         .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }
@@ -95,7 +108,7 @@ async fn accept_workspace_invitation<'a>(
     client: &'a Client,
     token: Uuid,
     nickname: String,
-    password: Option<String>,
+    password: Option<SecretString>,
 ) -> LocalResponse<'a> {
     client
         .put(format!("/v1/invitations/{token}/accept"))
@@ -103,7 +116,7 @@ async fn accept_workspace_invitation<'a>(
         .body(
             json!(AcceptWorkspaceInvitationRequest {
                 nickname: nickname,
-                password: password.unwrap_or("test".to_string()),
+                password: password.unwrap_or("test".to_string().into()).into(),
             })
             .to_string(),
         )
@@ -122,27 +135,33 @@ async fn reject_workspace_invitation<'a>(client: &'a Client, token: Uuid) -> Loc
 
 async fn cancel_workspace_invitation<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     invitation_id: i32,
 ) -> LocalResponse<'a> {
     client
         .delete(format!("/v1/invitations/{invitation_id}"))
         .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }
 
 async fn workspace_invitation_admin_action<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     invitation_id: i32,
     action: &'static str,
 ) -> LocalResponse<'a> {
     client
         .post(format!("/v1/invitations/{invitation_id}/{action}"))
         .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }

@@ -6,13 +6,14 @@
 use std::str::FromStr as _;
 
 use http_auth_basic::Credentials;
+use secrecy::SecretString;
 use service::prose_xmpp::BareJid;
 
 use super::prelude::*;
 
 pub struct BasicAuth {
     pub jid: BareJid,
-    pub password: String,
+    pub password: SecretString,
 }
 
 #[rocket::async_trait]
@@ -31,7 +32,7 @@ impl<'r> LazyFromRequest<'r> for BasicAuth {
             Ok(creds) => match BareJid::from_str(&creds.user_id) {
                 Ok(jid) => Outcome::Success(Self {
                     jid,
-                    password: creds.password,
+                    password: creds.password.into(),
                 }),
                 Err(err) => {
                     Error::from(error::Unauthorized(format!("The JID present in the 'Authorization' header could not be parsed to a valid JID: {err}"))).into()

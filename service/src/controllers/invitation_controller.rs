@@ -5,13 +5,13 @@ use prose_xmpp::BareJid;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber, ModelTrait as _};
-use uuid::Uuid;
+use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
     config::Config as AppConfig,
     dependencies,
     model::{Invitation, ServerConfig},
-    repositories::{InvitationCreateForm, InvitationRepository},
+    repositories::{InvitationCreateForm, InvitationRepository, InvitationToken},
     services::{
         invitation_service::{self, InvitationService},
         notifier::{self, Notifier},
@@ -49,8 +49,8 @@ impl InvitationController {
         if let Err(err) = notifier
             .send_workspace_invitation(
                 &app_config.branding,
-                invitation.accept_token,
-                invitation.reject_token,
+                &invitation.accept_token.into(),
+                &invitation.reject_token.into(),
             )
             .await
         {
@@ -94,23 +94,24 @@ impl InvitationController {
                 stringify!(debug_only.automatically_accept_invitations),
             );
 
-            let password = if app_config
+            let password: SecretString = if app_config
                 .debug_only
                 .insecure_password_on_auto_accept_invitation
             {
                 // Use JID as password to make password predictable
-                invitation.jid.to_string()
+                invitation.jid.to_string().into()
             } else {
                 // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
                 thread_rng()
                     .sample_iter(&Alphanumeric)
                     .take(32)
                     .map(char::from)
-                    .collect()
+                    .collect::<String>()
+                    .into()
             };
             Self::accept(
                 db,
-                &invitation.accept_token,
+                invitation.accept_token.into(),
                 invitation_service,
                 InvitationAcceptForm {
                     nickname: form.username.to_string(),
@@ -157,22 +158,22 @@ pub enum InviteMemberError {
 impl InvitationController {
     pub async fn get_by_accept_token<'r>(
         db: &DatabaseConnection,
-        token: &Uuid,
+        token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_accept_token(db, &token).await
+        InvitationRepository::get_by_accept_token(db, token).await
     }
     pub async fn get_by_reject_token<'r>(
         db: &DatabaseConnection,
-        token: &Uuid,
+        token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_reject_token(db, &token).await
+        InvitationRepository::get_by_reject_token(db, token).await
     }
 }
 
 impl InvitationController {
     pub async fn accept<'r>(
         db: &DatabaseConnection,
-        token: &Uuid,
+        token: InvitationToken,
         invitation_service: &InvitationService<'r>,
         form: impl Into<InvitationAcceptForm>,
     ) -> Result<(), InvitationAcceptError> {
@@ -180,11 +181,11 @@ impl InvitationController {
 
         // NOTE: We don't check that the invitation status is "SENT"
         //   because it would cause a lot of useless edge cases.
-        let invitation = Self::get_by_accept_token(db, &token)
+        let invitation = Self::get_by_accept_token(db, token.clone())
             .await?
             .ok_or(InvitationAcceptError::InvitationNotFound)?;
         // NOTE: An extra layer of security *just in case*
-        assert_eq!(*token, invitation.accept_token);
+        assert_eq!(*token.expose_secret(), invitation.accept_token);
 
         if invitation.accept_token_expires_at < Utc::now() {
             return Err(InvitationAcceptError::ExpiredAcceptToken);
@@ -201,7 +202,7 @@ impl InvitationController {
 #[derive(Debug)]
 pub struct InvitationAcceptForm {
     pub nickname: String,
-    pub password: String,
+    pub password: SecretString,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -219,15 +220,15 @@ pub enum InvitationAcceptError {
 impl InvitationController {
     pub async fn reject(
         db: &DatabaseConnection,
-        token: &Uuid,
+        token: InvitationToken,
     ) -> Result<(), InvitationRejectError> {
         // NOTE: We don't check that the invitation status is "SENT"
         //   because it would cause a lot of useless edge cases.
-        let invitation = Self::get_by_reject_token(db, &token)
+        let invitation = Self::get_by_reject_token(db, token.clone())
             .await?
             .ok_or(InvitationRejectError::InvitationNotFound)?;
         // NOTE: An extra layer of security *just in case*
-        assert_eq!(*token, invitation.reject_token);
+        assert_eq!(*token.expose_secret(), invitation.reject_token);
 
         invitation.delete(db).await?;
 
@@ -257,8 +258,8 @@ impl InvitationController {
         notifier
             .send_workspace_invitation(
                 &config.branding,
-                invitation.accept_token,
-                invitation.reject_token,
+                &invitation.accept_token.into(),
+                &invitation.reject_token.into(),
             )
             .await
             .map_err(InvitationResendError::CouldNotSendInvitation)?;

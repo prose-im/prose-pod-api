@@ -9,6 +9,7 @@ extern crate rocket;
 pub mod error;
 pub mod forms;
 pub mod guards;
+pub mod model;
 pub mod responders;
 pub mod v1;
 
