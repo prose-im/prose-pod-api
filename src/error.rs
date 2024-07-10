@@ -26,7 +26,6 @@ use service::services::{
 };
 use service::{sea_orm, MutationError};
 
-/// User-facing error code (a string for easier understanding).
 #[derive(Debug)]
 pub(crate) enum ErrorCode {
     NotImplemented,
