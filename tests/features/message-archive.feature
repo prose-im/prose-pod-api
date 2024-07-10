@@ -77,8 +77,7 @@ Feature: Message archive
        When <action>
        Then the call should not succeed
         And the response content type should be JSON
-        And the HTTP status code should be Unauthorized
-        And the response should contain a "WWW-Authenticate" HTTP header
+        And the HTTP status code should be Forbidden
 
     Examples:
       | action |
