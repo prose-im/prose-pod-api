@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use service::controllers::workspace_controller::WorkspaceController;
 use service::model::Workspace;
 
-use crate::error::Error;
+use crate::error::{self, Error};
 use crate::guards::{Db, LazyGuard};
 use crate::v1::R;
 
@@ -21,7 +21,7 @@ use crate::v1::R;
 pub async fn get_workspace(conn: Connection<'_, Db>) -> R<Workspace> {
     match WorkspaceController::get_workspace(conn.into_inner()).await? {
         Some(workspace) => Ok(workspace.into()),
-        None => Err(Error::WorkspaceNotInitialized),
+        None => Err(error::WorkspaceNotInitialized.into()),
     }
 }
 
@@ -101,17 +101,17 @@ pub(super) async fn set_workspace_icon_file(image: TempFile<'_>) -> R<GetWorkspa
     let mut data: Vec<u8> = Vec::new();
     io::copy(&mut stream, &mut data).await?;
 
-    Err(Error::NotImplemented("Set workspace icon from a file"))
+    Err(error::NotImplemented("Set workspace icon from a file").into())
 }
 
 #[get("/v1/workspace/details-card")]
 pub(super) fn get_workspace_details_card() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Get workspace vCard"))
+    Err(error::NotImplemented("Get workspace vCard").into())
 }
 
 #[put("/v1/workspace/details-card")]
 pub(super) fn set_workspace_details_card() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Set workspace vCard"))
+    Err(error::NotImplemented("Set workspace vCard").into())
 }
 
 #[derive(Serialize, Deserialize)]

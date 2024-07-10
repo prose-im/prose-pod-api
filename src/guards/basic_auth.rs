@@ -22,7 +22,10 @@ impl<'r> LazyFromRequest<'r> for BasicAuth {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         // NOTE: We only read the first "Authorization" header.
         let Some(auth) = req.headers().get("Authorization").next() else {
-            return Error::Unauthorized("No 'Authorization' header found".to_string()).into();
+            return Error::from(error::Unauthorized(
+                "No 'Authorization' header found".to_string(),
+            ))
+            .into();
         };
         match Credentials::from_header(auth.to_string()) {
             Ok(creds) => match BareJid::from_str(&creds.user_id) {
@@ -31,13 +34,13 @@ impl<'r> LazyFromRequest<'r> for BasicAuth {
                     password: creds.password,
                 }),
                 Err(err) => {
-                    Error::Unauthorized(format!("The JID present in the 'Authorization' header could not be parsed to a valid JID: {err}")).into()
+                    Error::from(error::Unauthorized(format!("The JID present in the 'Authorization' header could not be parsed to a valid JID: {err}"))).into()
                 }
             },
             Err(err) => {
-                Error::Unauthorized(format!(
+                Error::from(error::Unauthorized(format!(
                     "The 'Authorization' header is not a valid Basic authentication string: {err}"
-                )).into()
+                ))).into()
             }
         }
     }

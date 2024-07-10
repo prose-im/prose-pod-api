@@ -20,7 +20,7 @@ use service::prose_xmpp::BareJid;
 use service::services::xmpp_service::XmppService;
 
 use super::models::*;
-use crate::error::Error;
+use crate::error::{self, Error};
 use crate::forms::{Timestamp, JID as JIDUriParam};
 use crate::guards::{Db, LazyGuard};
 use crate::responders::Paginated;
@@ -96,24 +96,24 @@ pub(super) fn enrich_members_stream<'r>(
 
 #[get("/v1/members/<_jid>")]
 pub(super) fn get_member(_jid: JIDUriParam) -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Get member"))
+    Err(error::NotImplemented("Get member").into())
 }
 
 #[put("/v1/members/<_>/role")]
 pub(super) fn set_member_role() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Set member role"))
+    Err(error::NotImplemented("Set member role").into())
 }
 
 /// Change a member's Multi-Factor Authentication (MFA) status.
 #[put("/v1/members/<_>/mfa")]
 pub(super) fn set_member_mfa() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Set member MFA status"))
+    Err(error::NotImplemented("Set member MFA status").into())
 }
 
 /// Log a member out from all of its devices.
 #[put("/v1/members/<_>/logout")]
 pub(super) fn logout_member() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Log member out"))
+    Err(error::NotImplemented("Log member out").into())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -139,7 +139,7 @@ pub(super) fn set_member_nickname(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(Error::Unauthorized(
+        Err(error::Unauthorized(
             "You can't change someone else's nickname.".to_string(),
         ))?
     }
@@ -178,14 +178,14 @@ pub(super) fn set_member_avatar(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(Error::Unauthorized(
+        Err(error::Unauthorized(
             "You can't change someone else's avatar.".to_string(),
         ))?
     }
 
     let image_data = general_purpose::STANDARD
         .decode(req.image.to_owned())
-        .map_err(|err| Error::BadRequest {
+        .map_err(|err| error::BadRequest {
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 

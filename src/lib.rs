@@ -78,7 +78,7 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
         }
         Ok(None) => info!(
             "Not reloading the XMPP server: {}",
-            Error::ServerConfigNotInitialized
+            error::ServerConfigNotInitialized
         ),
         Err(err) => error!("Not reloading the XMPP server: {err}"),
     }
@@ -96,12 +96,15 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
 async fn redoc() -> Result<NamedFile, Error> {
     NamedFile::open("static/api-docs/redoc.html")
         .await
-        .map_err(|e| Error::NotFound {
-            reason: format!("{e}"),
+        .map_err(|e| {
+            error::NotFound {
+                reason: format!("{e}"),
+            }
+            .into()
         })
 }
 
 #[catch(default)]
 fn default_catcher(status: Status, _request: &Request) -> Error {
-    Error::HTTPStatus(status)
+    error::HTTPStatus(status).into()
 }

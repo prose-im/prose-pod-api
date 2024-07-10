@@ -26,8 +26,9 @@ use service::services::{
 };
 use service::{sea_orm, MutationError};
 
+/// User-facing error code (a string for easier understanding).
 #[derive(Debug)]
-enum ErrorCode {
+pub(crate) enum ErrorCode {
     NotImplemented,
     InternalServerError,
     Unauthorized,
@@ -86,79 +87,11 @@ impl std::fmt::Display for ErrorCode {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Feature not implemented yet: {0}")]
-    NotImplemented(&'static str),
-    /// Internal server error.
-    /// Use it only when a nearly-impossible code path is taken.
-    #[error("Internal server error: {0}")]
-    InternalServerError(String),
-    #[error("Unauthorized: {0}")]
-    Unauthorized(String),
-    #[error("Database error: {0}")]
-    DbErr(#[from] sea_orm::DbErr),
-    #[error("Unknown database error")]
-    UnknownDbErr,
-    #[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_workspace))]
-    WorkspaceNotInitialized,
-    #[error("Workspace already initialized.")]
-    WorkspaceAlreadyInitialized,
-    #[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_server_config))]
-    ServerConfigNotInitialized,
-    #[error("XMPP server already initialized.")]
-    ServerConfigAlreadyInitialized,
-    #[error("First XMPP account already created.")]
-    FirstAccountAlreadyCreated,
-    #[error("ServerCtl error: {0}")]
-    ServerCtlErr(#[from] server_ctl::Error),
-    #[error("XmppService error: {0}")]
-    XmppServiceErr(#[from] xmpp_service::Error),
-    #[error("Bad request: {reason}")]
-    BadRequest { reason: String },
-    #[error("Mutation error: {0}")]
-    MutationErr(#[from] MutationError),
-    #[error("Not found: {reason}")]
-    NotFound { reason: String },
-    #[error("Notifier error: {0}")]
-    NotifierError(#[from] notifier::Error),
-    #[error("Basic auth error: {0}")]
-    BasicAuthError(AuthBasicError),
-    /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
-    /// to change the output format).
-    #[error("{0}")]
-    HTTPStatus(Status),
-    // #[error("{code}: {message}")]
-    // Custom { code: ErrorCode, message: String },
-    #[error("JWT error: {0}")]
-    JwtError(#[from] jwt_service::Error),
-    #[error("Auth error: {0}")]
-    AuthError(#[from] auth_service::Error),
-    #[error("User creation error: {0}")]
-    UserCreateError(#[from] UserCreateError),
-    #[error("User service error: {0}")]
-    UserServiceError(#[from] user_service::Error),
-    #[error("Server manager error: {0}")]
-    ServerManagerError(#[from] server_manager::Error),
-    #[error("Server config init error: {0}")]
-    InitServerConfigError(#[from] InitServerConfigError),
-    #[error("Workspace init error: {0}")]
-    InitWorkspaceError(#[from] InitWorkspaceError),
-    #[error("First account init error: {0}")]
-    InitFirstAccountError(#[from] InitFirstAccountError),
-    #[error("Invite member error: {0}")]
-    InviteMemberError(#[from] InviteMemberError),
-    #[error("Invitation service accept error: {0}")]
-    InvitationServiceAcceptError(#[from] invitation_service::InvitationAcceptError),
-    #[error("Invitation accept error: {0}")]
-    InvitationAcceptError(#[from] InvitationAcceptError),
-    #[error("Invitation reject error: {0}")]
-    InvitationRejectError(#[from] InvitationRejectError),
-    #[error("Invitation resend error: {0}")]
-    InvitationResendError(#[from] InvitationResendError),
-    #[error("Invitation cancel error: {0}")]
-    InvitationCancelError(#[from] InvitationCancelError),
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
+#[error("{message}")]
+pub struct Error {
+    code: ErrorCode,
+    message: String,
+    headers: Vec<(String, String)>,
 }
 
 impl Error {
@@ -166,158 +99,27 @@ impl Error {
     fn log(&self) {
         if (500..600).contains(&self.http_status().code) {
             // Server error
-            error!("{self}");
+            error!("{}", self.message);
         } else {
             // Client error
-            warn!("{self}");
+            warn!("{}", self.message);
         }
     }
 
     /// HTTP status to return for this error.
     pub(crate) fn http_status(&self) -> Status {
-        self.code().http_status()
-    }
-
-    /// User-facing error code (a string for easier understanding).
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::NotImplemented(_) => ErrorCode::NotImplemented,
-            Self::InternalServerError(_)
-            | Self::ServerCtlErr(_)
-            | Self::XmppServiceErr(_)
-            | Self::NotifierError(_) => ErrorCode::InternalServerError,
-            Self::Unauthorized(_) | Self::BasicAuthError(_) => ErrorCode::Unauthorized,
-            Self::DbErr(_) | Self::UnknownDbErr => ErrorCode::DatabaseError,
-            Self::WorkspaceNotInitialized => ErrorCode::WorkspaceNotInitialized,
-            Self::WorkspaceAlreadyInitialized => ErrorCode::WorkspaceAlreadyInitialized,
-            Self::ServerConfigNotInitialized => ErrorCode::ServerConfigNotInitialized,
-            Self::ServerConfigAlreadyInitialized => ErrorCode::ServerConfigAlreadyInitialized,
-            Self::FirstAccountAlreadyCreated => ErrorCode::FirstAccountAlreadyCreated,
-            Self::BadRequest { .. } => ErrorCode::BadRequest,
-            Self::NotFound { .. } => ErrorCode::NotFound,
-            Self::HTTPStatus(s) => ErrorCode::Unknown(s.to_owned()),
-
-            Self::JwtError(jwt_service::Error::Sign(_) | jwt_service::Error::Other(_)) => {
-                ErrorCode::InternalServerError
-            }
-            Self::JwtError(jwt_service::Error::Verify(_) | jwt_service::Error::InvalidClaim(_)) => {
-                ErrorCode::Unauthorized
-            }
-
-            Self::AuthError(auth_service::Error::InvalidCredentials) => ErrorCode::Unauthorized,
-            Self::AuthError(_) => ErrorCode::InternalServerError,
-
-            Self::MutationErr(MutationError::DbErr(_)) => ErrorCode::DatabaseError,
-            Self::MutationErr(MutationError::EntityNotFound { .. }) => ErrorCode::NotFound,
-
-            Self::UserCreateError(UserCreateError::DbErr(_)) => ErrorCode::DatabaseError,
-            Self::UserCreateError(_) => ErrorCode::InternalServerError,
-
-            Self::UserServiceError(user_service::Error::CouldNotCreateUser(err)) => {
-                Self::from(err.to_owned()).code()
-            }
-
-            Self::ServerManagerError(server_manager::Error::DbErr(_)) => ErrorCode::DatabaseError,
-            Self::ServerManagerError(server_manager::Error::ServerConfigAlreadyInitialized) => {
-                ErrorCode::ServerConfigAlreadyInitialized
-            }
-            Self::ServerManagerError(server_manager::Error::ServerCtl(_)) => {
-                ErrorCode::InternalServerError
-            }
-
-            Self::InitServerConfigError(InitServerConfigError::CouldNotInitServerConfig(err)) => {
-                Self::from(err.to_owned()).code()
-            }
-
-            Self::InitWorkspaceError(InitWorkspaceError::WorkspaceAlreadyInitialized) => {
-                ErrorCode::WorkspaceAlreadyInitialized
-            }
-            Self::InitWorkspaceError(InitWorkspaceError::DbErr(_)) => ErrorCode::DatabaseError,
-
-            Self::InitFirstAccountError(InitFirstAccountError::FirstAccountAlreadyCreated) => {
-                ErrorCode::FirstAccountAlreadyCreated
-            }
-            Self::InitFirstAccountError(InitFirstAccountError::InvalidJid(_)) => {
-                ErrorCode::BadRequest
-            }
-            Self::InitFirstAccountError(InitFirstAccountError::CouldNotCreateFirstAccount(_)) => {
-                ErrorCode::InternalServerError
-            }
-            Self::InitFirstAccountError(InitFirstAccountError::DbErr(_)) => {
-                ErrorCode::DatabaseError
-            }
-
-            Self::InviteMemberError(InviteMemberError::InvalidJid(_)) => ErrorCode::BadRequest,
-            Self::InviteMemberError(
-                InviteMemberError::CouldNotUpdateInvitationStatus { .. }
-                | InviteMemberError::CouldNotAutoAcceptInvitation(_),
-            ) => ErrorCode::InternalServerError,
-            Self::InviteMemberError(InviteMemberError::DbErr(_)) => ErrorCode::DatabaseError,
-
-            Self::InvitationServiceAcceptError(
-                invitation_service::InvitationAcceptError::DbErr(_),
-            ) => ErrorCode::DatabaseError,
-            Self::InvitationServiceAcceptError(_) => ErrorCode::InternalServerError,
-
-            Self::InvitationAcceptError(InvitationAcceptError::InvitationNotFound) => {
-                ErrorCode::Unauthorized
-            }
-            Self::InvitationAcceptError(InvitationAcceptError::ExpiredAcceptToken) => {
-                ErrorCode::NotFound
-            }
-            Self::InvitationAcceptError(InvitationAcceptError::ServiceError(err)) => {
-                Self::from(err.to_owned()).code()
-            }
-            Self::InvitationAcceptError(InvitationAcceptError::DbErr(_)) => {
-                ErrorCode::DatabaseError
-            }
-
-            Self::InvitationRejectError(InvitationRejectError::InvitationNotFound) => {
-                ErrorCode::Unauthorized
-            }
-            Self::InvitationRejectError(InvitationRejectError::DbErr(_)) => {
-                ErrorCode::DatabaseError
-            }
-
-            Self::InvitationResendError(InvitationResendError::InvitationNotFound(_)) => {
-                ErrorCode::NotFound
-            }
-            Self::InvitationResendError(InvitationResendError::CouldNotSendInvitation(_)) => {
-                ErrorCode::InternalServerError
-            }
-            Self::InvitationResendError(InvitationResendError::DbErr(_)) => {
-                ErrorCode::DatabaseError
-            }
-
-            Self::InvitationCancelError(InvitationCancelError::DbErr(_)) => {
-                ErrorCode::DatabaseError
-            }
-
-            Self::IoError(_) => ErrorCode::InternalServerError,
-        }
+        self.code.http_status()
     }
 
     fn add_headers(&self, response: &mut Response<'_>) {
-        match self {
-            Self::Unauthorized(_) => {
-                response.set_header(Header::new(
-                    "WWW-Authenticate",
-                    r#"Bearer realm="Admin only area", charset="UTF-8""#,
-                ));
-            }
-            Self::BasicAuthError(_) => {
-                response.set_header(Header::new(
-                    "WWW-Authenticate",
-                    r#"Basic realm="Admin only area", charset="UTF-8""#,
-                ));
-            }
-            _ => {}
+        for (name, value) in self.headers.iter() {
+            response.set_header(Header::new(name.clone(), value.clone()));
         }
     }
 
     fn as_json(&self) -> String {
         json!({
-            "reason": self.code().to_string(),
+            "reason": self.code.to_string(),
         })
         .to_string()
     }
@@ -345,8 +147,345 @@ impl<'r> Responder<'r, 'static> for Error {
     }
 }
 
-impl From<AuthBasicError> for Error {
-    fn from(value: AuthBasicError) -> Self {
-        Self::BasicAuthError(value)
+pub(crate) trait HttpApiError: std::fmt::Display {
+    fn code(&self) -> ErrorCode;
+    fn headers(&self) -> Vec<(String, String)> {
+        Vec::new()
     }
 }
+
+macro_rules! impl_into_error_from_display {
+    ($t:ty) => {
+        impl From<$t> for Error {
+            fn from(error: $t) -> Self {
+                Self {
+                    code: error.code(),
+                    message: format!("{error}"),
+                    headers: error.headers(),
+                }
+            }
+        }
+    };
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Feature not implemented yet: {0}")]
+pub struct NotImplemented(pub &'static str);
+impl HttpApiError for NotImplemented {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::NotImplemented
+    }
+}
+impl_into_error_from_display!(NotImplemented);
+
+/// Internal server error.
+/// Use it only when a nearly-impossible code path is taken.
+#[derive(Debug, thiserror::Error)]
+#[error("Internal server error: {0}")]
+pub struct InternalServerError(pub String);
+impl HttpApiError for InternalServerError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::InternalServerError
+    }
+}
+impl_into_error_from_display!(InternalServerError);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Unauthorized: {0}")]
+pub struct Unauthorized(pub String);
+impl HttpApiError for Unauthorized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::Unauthorized
+    }
+    fn headers(&self) -> Vec<(String, String)> {
+        vec![(
+            "WWW-Authenticate".into(),
+            r#"Bearer realm="Admin only area", charset="UTF-8""#.into(),
+        )]
+    }
+}
+impl_into_error_from_display!(Unauthorized);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Unknown database error")]
+pub struct UnknownDbErr;
+impl HttpApiError for UnknownDbErr {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::DatabaseError
+    }
+}
+impl_into_error_from_display!(UnknownDbErr);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_workspace))]
+pub struct WorkspaceNotInitialized;
+impl HttpApiError for WorkspaceNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::WorkspaceNotInitialized
+    }
+}
+impl_into_error_from_display!(WorkspaceNotInitialized);
+
+#[derive(Debug, thiserror::Error)]
+#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_server_config))]
+pub struct ServerConfigNotInitialized;
+impl HttpApiError for ServerConfigNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::ServerConfigNotInitialized
+    }
+}
+impl_into_error_from_display!(ServerConfigNotInitialized);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Bad request: {reason}")]
+pub struct BadRequest {
+    pub reason: String,
+}
+impl HttpApiError for BadRequest {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::BadRequest
+    }
+}
+impl_into_error_from_display!(BadRequest);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Not found: {reason}")]
+pub struct NotFound {
+    pub reason: String,
+}
+impl HttpApiError for NotFound {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::NotFound
+    }
+}
+impl_into_error_from_display!(NotFound);
+
+/// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
+/// to change the output format).
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct HTTPStatus(pub Status);
+impl HttpApiError for HTTPStatus {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::Unknown(self.0)
+    }
+}
+impl_into_error_from_display!(HTTPStatus);
+
+macro_rules! impl_into_error {
+    ($t:ty) => {
+        impl From<$t> for Error {
+            fn from(error: $t) -> Self {
+                Self {
+                    code: error.code(),
+                    message: format!("{} error: {error}", stringify!($t)),
+                    headers: error.headers(),
+                }
+            }
+        }
+    };
+}
+
+impl HttpApiError for sea_orm::DbErr {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::DatabaseError
+    }
+}
+impl_into_error!(sea_orm::DbErr);
+
+impl HttpApiError for server_ctl::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::InternalServerError
+    }
+}
+impl_into_error!(server_ctl::Error);
+
+impl HttpApiError for xmpp_service::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::InternalServerError
+    }
+}
+impl_into_error!(xmpp_service::Error);
+
+impl HttpApiError for notifier::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::InternalServerError
+    }
+}
+impl_into_error!(notifier::Error);
+
+impl HttpApiError for AuthBasicError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::Unauthorized
+    }
+    fn headers(&self) -> Vec<(String, String)> {
+        vec![(
+            "WWW-Authenticate".into(),
+            r#"Basic realm="Admin only area", charset="UTF-8""#.into(),
+        )]
+    }
+}
+impl_into_error!(AuthBasicError);
+
+impl HttpApiError for MutationError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::EntityNotFound { .. } => ErrorCode::NotFound,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(MutationError);
+
+impl HttpApiError for jwt_service::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::Sign(_) | Self::Other(_) => ErrorCode::InternalServerError,
+            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::Unauthorized,
+        }
+    }
+}
+impl_into_error!(jwt_service::Error);
+
+impl HttpApiError for auth_service::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvalidCredentials => ErrorCode::Unauthorized,
+            _ => ErrorCode::InternalServerError,
+        }
+    }
+}
+impl_into_error!(auth_service::Error);
+
+impl HttpApiError for UserCreateError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+            _ => ErrorCode::InternalServerError,
+        }
+    }
+}
+impl_into_error!(UserCreateError);
+
+impl HttpApiError for user_service::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::CouldNotCreateUser(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(user_service::Error);
+
+impl HttpApiError for server_manager::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::ServerConfigAlreadyInitialized => ErrorCode::ServerConfigAlreadyInitialized,
+            Self::ServerCtl(_) => ErrorCode::InternalServerError,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(server_manager::Error);
+
+impl HttpApiError for InitServerConfigError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::CouldNotInitServerConfig(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InitServerConfigError);
+
+impl HttpApiError for InitWorkspaceError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceAlreadyInitialized => ErrorCode::WorkspaceAlreadyInitialized,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InitWorkspaceError);
+
+impl HttpApiError for InitFirstAccountError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::FirstAccountAlreadyCreated => ErrorCode::FirstAccountAlreadyCreated,
+            Self::InvalidJid(_) => ErrorCode::BadRequest,
+            Self::CouldNotCreateFirstAccount(_) => ErrorCode::InternalServerError,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InitFirstAccountError);
+
+impl HttpApiError for InviteMemberError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvalidJid(_) => ErrorCode::BadRequest,
+            Self::CouldNotUpdateInvitationStatus { .. } | Self::CouldNotAutoAcceptInvitation(_) => {
+                ErrorCode::InternalServerError
+            }
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InviteMemberError);
+
+impl HttpApiError for invitation_service::InvitationAcceptError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+            _ => ErrorCode::InternalServerError,
+        }
+    }
+}
+impl_into_error!(invitation_service::InvitationAcceptError);
+
+impl HttpApiError for InvitationAcceptError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound => ErrorCode::Unauthorized,
+            Self::ExpiredAcceptToken => ErrorCode::NotFound,
+            Self::ServiceError(err) => err.code(),
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InvitationAcceptError);
+
+impl HttpApiError for InvitationRejectError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound => ErrorCode::Unauthorized,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InvitationRejectError);
+
+impl HttpApiError for InvitationResendError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound(_) => ErrorCode::NotFound,
+            Self::CouldNotSendInvitation(_) => ErrorCode::InternalServerError,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InvitationResendError);
+
+impl HttpApiError for InvitationCancelError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(InvitationCancelError);
+
+impl HttpApiError for std::io::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::InternalServerError
+    }
+}
+impl_into_error!(std::io::Error);

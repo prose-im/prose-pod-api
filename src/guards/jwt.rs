@@ -14,12 +14,15 @@ impl<'r> LazyFromRequest<'r> for JWT {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         // NOTE: We only read the first "Authorization" header.
         let Some(auth) = req.headers().get("Authorization").next() else {
-            return Error::Unauthorized("No 'Authorization' header found".to_string()).into();
+            return Error::from(error::Unauthorized(
+                "No 'Authorization' header found".to_string(),
+            ))
+            .into();
         };
         let Some(token) = auth.strip_prefix("Bearer ") else {
-            return Error::Unauthorized(
+            return Error::from(error::Unauthorized(
                 "The 'Authorization' header does not start with 'Bearer '".to_string(),
-            )
+            ))
             .into();
         };
 
@@ -28,7 +31,10 @@ impl<'r> LazyFromRequest<'r> for JWT {
         match Self::try_from(token, jwt_service) {
             Ok(jwt) => Outcome::Success(jwt),
             Err(err) => {
-                return Error::Unauthorized(format!("The provided JWT is invalid: {err}")).into();
+                return Error::from(error::Unauthorized(format!(
+                    "The provided JWT is invalid: {err}"
+                )))
+                .into();
             }
         }
     }

@@ -5,16 +5,16 @@
 
 use rocket::{get, response::status::NoContent};
 
-use crate::error::Error;
+use crate::error::{self, Error};
 
 /// Get server logs between two timestamps.
 #[get("/v1/server/logs")]
 pub(super) fn get_server_logs() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Server logs between timestamps"))
+    Err(error::NotImplemented("Server logs between timestamps").into())
 }
 
 /// Retrieve real-time server logs (as Server Sent Events).
 #[get("/v1/server/logs/stream")]
 pub(super) fn stream_server_logs() -> Result<NoContent, Error> {
-    Err(Error::NotImplemented("Streamed server logs"))
+    Err(error::NotImplemented("Streamed server logs").into())
 }
