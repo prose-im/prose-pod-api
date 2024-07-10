@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fs::File, future::Future, io::Write as _, path::PathBuf, sync::Arc};
+use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
 use async_trait::async_trait;
 use entity::{model::MemberRole, server_config};
