@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use hmac::{Hmac, Mac};
 use jwt::{SignWithKey as _, VerifyWithKey as _};
 use prose_xmpp::BareJid;
@@ -41,35 +43,46 @@ impl JWTService {
         let mut claims = BTreeMap::new();
         claims.insert(JWT_JID_KEY, jid.to_string());
         add_claims(&mut claims);
-        claims.sign_with_key(&jwt_key).map_err(JWTError::Sign)
+        claims
+            .sign_with_key(&jwt_key)
+            .map_err(Arc::new)
+            .map_err(JWTError::Sign)
     }
 
     pub fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {
         let jwt_key = self.jwt_key.as_hmac_sha_256()?;
-        jwt.verify_with_key(&jwt_key).map_err(JWTError::Verify)
+        jwt.verify_with_key(&jwt_key)
+            .map_err(Arc::new)
+            .map_err(JWTError::Verify)
     }
 }
 
 pub type Error = JWTError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum JWTError {
     #[error("Could not sign JWT claims: {0}")]
-    Sign(jwt::Error),
+    Sign(Arc<jwt::Error>),
     #[error("Could not verify JWT claims: {0}")]
-    Verify(jwt::Error),
+    Verify(Arc<jwt::Error>),
     #[error("{0}")]
     InvalidClaim(#[from] InvalidJwtClaimError),
     #[error("{0}")]
     Other(String),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvalidJwtClaimError {
     #[error("The provided JWT does not contain a '{0}' claim")]
     MissingClaim(String),
     #[error("The JID present in the JWT could not be parsed to a valid JID: {0}")]
-    InvalidJid(#[from] jid::Error),
+    InvalidJid(#[from] Arc<jid::Error>),
+}
+
+impl From<jid::Error> for InvalidJwtClaimError {
+    fn from(err: jid::Error) -> Self {
+        Self::InvalidJid(Arc::new(err))
+    }
 }
 
 pub struct JWT {

@@ -21,13 +21,11 @@ use crate::TestWorld;
 
 async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
     let domain = world.server_config().await?.domain;
-    Ok(
-        BareJid::new(&format!("{name}@{domain}")).map_err(|err| Error::InternalServerError {
-            reason: format!(
-                "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
-            ),
-        })?,
-    )
+    Ok(BareJid::new(&format!("{name}@{domain}")).map_err(|err| {
+        Error::InternalServerError(format!(
+            "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
+        ))
+    })?)
 }
 
 #[given(expr = "{} is an admin")]

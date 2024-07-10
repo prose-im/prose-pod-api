@@ -64,12 +64,12 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
 
 pub type Error = ServerCtlError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum ServerCtlError {
     #[error("Cannot create Prosody config file at path `{}`: {1}", ._0.display())]
-    CannotOpenConfigFile(PathBuf, io::Error),
+    CannotOpenConfigFile(PathBuf, Arc<io::Error>),
     #[error("Cannot write Prosody config file at path `{}`: {1}", ._0.display())]
-    CannotWriteConfigFile(PathBuf, io::Error),
+    CannotWriteConfigFile(PathBuf, Arc<io::Error>),
     #[error(
         "Command failed ({}):\nstdout: {}\nstderr: {}",
         ._0.status,

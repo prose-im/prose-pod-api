@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use entity::model::{JIDNode, MemberRole};
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 
@@ -38,7 +40,7 @@ impl InitController {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InitServerConfigError {
     #[error("Could not init server config: {0}")]
     CouldNotInitServerConfig(server_manager::Error),
@@ -60,12 +62,18 @@ impl InitController {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InitWorkspaceError {
     #[error("Workspace already initialized.")]
     WorkspaceAlreadyInitialized,
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InitWorkspaceError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InitController {
@@ -107,7 +115,7 @@ pub struct InitFirstAccountForm {
     pub nickname: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InitFirstAccountError {
     #[error("First account already created.")]
     FirstAccountAlreadyCreated,
@@ -116,5 +124,11 @@ pub enum InitFirstAccountError {
     #[error("Could not create first account: {0}")]
     CouldNotCreateFirstAccount(UserCreateError),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InitFirstAccountError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }

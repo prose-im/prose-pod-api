@@ -94,8 +94,8 @@ pub(super) fn enrich_members_stream<'r>(
     })
 }
 
-#[get("/v1/members/<_>")]
-pub(super) fn get_member() -> Result<NoContent, Error> {
+#[get("/v1/members/<_jid>")]
+pub(super) fn get_member(_jid: JIDUriParam) -> Result<NoContent, Error> {
     Err(Error::NotImplemented("Get member"))
 }
 
@@ -139,7 +139,9 @@ pub(super) fn set_member_nickname(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(Error::Unauthorized)?
+        Err(Error::Unauthorized(
+            "You can't change someone else's nickname.".to_string(),
+        ))?
     }
 
     xmpp_service.set_own_nickname(&req.nickname)?;
@@ -176,7 +178,9 @@ pub(super) fn set_member_avatar(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(Error::Unauthorized)?
+        Err(Error::Unauthorized(
+            "You can't change someone else's avatar.".to_string(),
+        ))?
     }
 
     let image_data = general_purpose::STANDARD

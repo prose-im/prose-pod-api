@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use entity::server_config;
 use log::trace;
@@ -203,12 +203,18 @@ impl<'r> ServerManager<'r> {
 
 pub type Error = ServerManagerError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum ServerManagerError {
     #[error("XMPP server already initialized.")]
     ServerConfigAlreadyInitialized,
     #[error("`ServerCtl` error: {0}")]
     ServerCtl(#[from] server_ctl::Error),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for ServerManagerError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use entity::model::{InvitationContact, InvitationStatus, JIDNode, MemberRole};
 use log::{debug, error, warn};
@@ -137,7 +139,7 @@ impl InviteMemberForm {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InviteMemberError {
     #[error("Invalid JID: {0}")]
     InvalidJid(String),
@@ -151,7 +153,13 @@ pub enum InviteMemberError {
     #[error("Could not auto-accept the invitation: {0}")]
     CouldNotAutoAcceptInvitation(#[from] InvitationAcceptError),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InviteMemberError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InvitationController {
@@ -204,7 +212,7 @@ pub struct InvitationAcceptForm {
     pub password: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationAcceptError {
     #[error("No invitation found for provided token.")]
     InvitationNotFound,
@@ -213,7 +221,13 @@ pub enum InvitationAcceptError {
     #[error("{0}")]
     ServiceError(#[from] invitation_service::InvitationAcceptError),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InvitationAcceptError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InvitationController {
@@ -235,12 +249,18 @@ impl InvitationController {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationRejectError {
     #[error("No invitation found for provided token.")]
     InvitationNotFound,
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InvitationRejectError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InvitationController {
@@ -267,14 +287,20 @@ impl InvitationController {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
     CouldNotSendInvitation(notifier::Error),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InvitationResendError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InvitationController {
@@ -288,10 +314,16 @@ impl InvitationController {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationCancelError {
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InvitationCancelError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
 
 impl InvitationController {

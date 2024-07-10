@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr as _};
+use std::{path::PathBuf, str::FromStr as _, sync::Arc};
 
 use crate::{
     config::ConfigBranding,
@@ -78,10 +78,16 @@ impl<'r> Notifier<'r> {
 
 pub type Error = NotifierError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum NotifierError {
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
     #[error("Could not dispatch notification: {0}")]
     CouldNotDispatch(String),
+}
+
+impl From<DbErr> for NotifierError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }

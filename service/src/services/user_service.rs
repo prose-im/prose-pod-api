@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use entity::model::MemberRole;
 use prose_xmpp::BareJid;
 use sea_orm::{ConnectionTrait, DbErr};
@@ -102,20 +104,26 @@ impl<'r> UserService<'r> {
 
 pub type Error = UserServiceError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum UserServiceError {
     #[error("Could not create user: {0}")]
     CouldNotCreateUser(#[from] UserCreateError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum UserCreateError {
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
     #[error("Could not create user vCard: {0}")]
     CouldNotCreateVCard(XmppServiceError),
     #[error("XMPP server cannot create user: {0}")]
     XmppServerCannotCreateUser(ServerCtlError),
     #[error("XMPP server cannot set user role: {0}")]
     XmppServerCannotSetUserRole(ServerCtlError),
+}
+
+impl From<DbErr> for UserCreateError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }

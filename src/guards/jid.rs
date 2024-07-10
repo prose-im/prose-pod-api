@@ -15,10 +15,7 @@ impl<'r> LazyFromRequest<'r> for BareJid {
         let jwt = try_outcome!(JWT::from_request(req).await);
         match jwt.jid() {
             Ok(jid) => Outcome::Success(jid),
-            Err(err) => {
-                debug!("Invalid JWT: {err}");
-                Outcome::Error(Error::Unauthorized.into())
-            }
+            Err(err) => Outcome::Error(Error::Unauthorized(format!("Invalid JWT: {err}")).into()),
         }
     }
 }

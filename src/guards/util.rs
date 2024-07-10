@@ -23,12 +23,10 @@ macro_rules! request_state {
             .map_error(|(status, _)| {
                 (
                     status,
-                    crate::error::Error::InternalServerError {
-                        reason: format!(
-                            "Could not get a `&State<{}>` from a request.",
-                            stringify!($t)
-                        ),
-                    },
+                    crate::error::Error::InternalServerError(format!(
+                        "Could not get a `&State<{}>` from a request.",
+                        stringify!($t)
+                    )),
                 )
             })
     };
@@ -55,8 +53,7 @@ pub(super) async fn check_caller_is_admin<'r, 'a>(
     match MemberRepository::is_admin(db, &jid).await {
         Ok(true) => Outcome::Success(()),
         Ok(false) => {
-            debug!("<{}> is not an admin", jid.to_string());
-            return Error::Unauthorized.into();
+            return Error::Unauthorized(format!("<{jid}> is not an admin")).into();
         }
         Err(e) => return Error::DbErr(e).into(),
     }

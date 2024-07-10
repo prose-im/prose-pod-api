@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use sea_orm::{DbConn, DbErr, TransactionTrait as _};
 
 use crate::{model::Invitation, repositories::InvitationRepository, MutationError};
@@ -51,18 +53,24 @@ impl<'r> InvitationService<'r> {
 
 pub type Error = InvitationServiceError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationServiceError {
     #[error("Could not accept invitation: {0}")]
     CouldNotAcceptInvitation(#[from] InvitationAcceptError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum InvitationAcceptError {
     #[error("Could not create user: {0}")]
     CouldNotCreateUser(#[from] UserCreateError),
     #[error("Invitation repository could not accept the inviation: {0}")]
     CouldNotAcceptInvitation(#[from] MutationError),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] Arc<DbErr>),
+}
+
+impl From<DbErr> for InvitationAcceptError {
+    fn from(err: DbErr) -> Self {
+        Self::DbErr(Arc::new(err))
+    }
 }
