@@ -5,11 +5,13 @@
 
 use std::{path::PathBuf, str::FromStr as _};
 
+use secrecy::ExposeSecret as _;
+
 use crate::{
     config::ConfigBranding,
     dependencies,
     notifier::Notification,
-    repositories::{NotificationCreateForm, NotificationRepository},
+    repositories::{InvitationToken, NotificationCreateForm, NotificationRepository},
     sea_orm::{prelude::*, DatabaseConnection},
 };
 
@@ -58,17 +60,23 @@ impl<'r> Notifier<'r> {
     pub async fn send_workspace_invitation(
         &self,
         branding: &ConfigBranding,
-        accept_token: Uuid,
-        reject_token: Uuid,
+        accept_token: &InvitationToken,
+        reject_token: &InvitationToken,
     ) -> Result<(), Error> {
         let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
         self.send(&Notification::WorkspaceInvitation {
             accept_link: admin_site_root
-                .join(format!("invitations/accept/{accept_token}"))
+                .join(format!(
+                    "invitations/accept/{}",
+                    accept_token.expose_secret()
+                ))
                 .display()
                 .to_string(),
             reject_link: admin_site_root
-                .join(format!("invitations/reject/{reject_token}"))
+                .join(format!(
+                    "invitations/reject/{}",
+                    reject_token.expose_secret()
+                ))
                 .display()
                 .to_string(),
         })

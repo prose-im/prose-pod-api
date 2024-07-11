@@ -13,6 +13,7 @@ use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},
 };
+use secrecy::{ExposeSecret as _, SecretString};
 use service::{
     prose_xmpp::{stanza::vcard::Nickname, BareJid},
     repositories::{MemberCreateForm, MemberRepository},
@@ -28,21 +29,24 @@ use crate::{
 
 use super::name_to_jid;
 
-async fn list_members_<'a>(client: &'a Client, token: Option<String>) -> LocalResponse<'a> {
+async fn list_members_<'a>(client: &'a Client, token: Option<SecretString>) -> LocalResponse<'a> {
     let mut req = client.get("/v1/members").header(Accept::JSON);
     if let Some(token) = token {
-        req = req.header(Header::new("Authorization", format!("Bearer {token}")));
+        req = req.header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ));
     }
     req.dispatch().await
 }
 
-async fn list_members<'a>(client: &'a Client, token: String) -> LocalResponse<'a> {
+async fn list_members<'a>(client: &'a Client, token: SecretString) -> LocalResponse<'a> {
     list_members_(client, Some(token)).await
 }
 
 async fn list_members_paged<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     page_number: u64,
     page_size: u64,
 ) -> LocalResponse<'a> {
@@ -51,14 +55,17 @@ async fn list_members_paged<'a>(
             "/v1/members?page_number={page_number}&page_size={page_size}"
         ))
         .header(Accept::JSON)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }
 
 async fn enrich_members<'a>(
     client: &'a Client,
-    token: String,
+    token: SecretString,
     jids: Vec<BareJid>,
 ) -> LocalResponse<'a> {
     client
@@ -72,7 +79,10 @@ async fn enrich_members<'a>(
                 .join("&")
         ))
         .header(Accept::EventStream)
-        .header(Header::new("Authorization", format!("Bearer {token}")))
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
         .dispatch()
         .await
 }
@@ -115,7 +125,7 @@ async fn when_listing_members_unauthenticated(world: &mut TestWorld) {
 
 #[when(expr = "someone lists members using {string} as Bearer token")]
 async fn when_listing_members_custom_token(world: &mut TestWorld, token: String) {
-    let res = list_members(&world.client, token).await;
+    let res = list_members(&world.client, token.into()).await;
     world.result = Some(res.into());
 }
 

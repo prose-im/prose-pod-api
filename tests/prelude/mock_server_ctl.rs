@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use linked_hash_map::LinkedHashMap;
+use secrecy::SecretString;
 use service::{
     config::Config,
     model::{MemberRole, ServerConfig},
@@ -24,7 +25,7 @@ pub struct MockServerCtl {
 #[derive(Debug)]
 pub struct UserAccount {
     pub jid: BareJid,
-    pub password: String,
+    pub password: SecretString,
 }
 
 #[derive(Debug)]
@@ -76,7 +77,7 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error> {
+    fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
@@ -103,7 +104,7 @@ impl ServerCtlImpl for MockServerCtl {
             jid.clone(),
             UserAccount {
                 jid: jid.clone(),
-                password: password.to_string(),
+                password: password.to_owned(),
             },
         );
         Ok(())

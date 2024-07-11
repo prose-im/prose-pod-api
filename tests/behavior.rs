@@ -28,6 +28,7 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
+use secrecy::SecretString;
 use serde::Deserialize;
 use service::{
     config::Config,
@@ -201,7 +202,7 @@ pub struct TestWorld {
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
-    members: HashMap<String, (Member, String)>,
+    members: HashMap<String, (Member, SecretString)>,
     /// Map an email address to an invitation.
     workspace_invitations: HashMap<EmailAddress, Invitation>,
     scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
@@ -267,7 +268,7 @@ impl TestWorld {
         self.notifier.state.read().unwrap()
     }
 
-    fn token(&self, user: String) -> String {
+    fn token(&self, user: String) -> SecretString {
         self.members
             .get(&user)
             .expect("User must be created first")

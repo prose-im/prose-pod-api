@@ -5,6 +5,7 @@
 
 use entity::model::{JIDNode, MemberRole};
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
+use secrecy::SecretString;
 
 use crate::{
     config::Config as AppConfig,
@@ -102,7 +103,7 @@ impl InitController {
 #[derive(Debug)]
 pub struct InitFirstAccountForm {
     pub username: JIDNode,
-    pub password: String,
+    pub password: SecretString,
     pub nickname: String,
 }
 

@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm::{DbConn, DbErr, TransactionTrait as _};
+use secrecy::SecretString;
 
 use crate::{model::Invitation, repositories::InvitationRepository, MutationError};
 
@@ -23,7 +24,7 @@ impl<'r> InvitationService<'r> {
         &self,
         db: &DbConn,
         invitation: Invitation,
-        password: &str,
+        password: &SecretString,
         nickname: &str,
     ) -> Result<(), InvitationAcceptError> {
         let txn = db.begin().await?;
@@ -33,7 +34,7 @@ impl<'r> InvitationService<'r> {
             .create_user(
                 &txn,
                 &invitation.jid,
-                password,
+                &password,
                 nickname,
                 &Some(invitation.pre_assigned_role),
             )

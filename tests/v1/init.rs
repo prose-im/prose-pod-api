@@ -10,6 +10,7 @@ use prose_pod_api::v1::init::{
 };
 use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
+use secrecy::SecretString;
 use serde_json::json;
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
 use service::services::server_manager::ServerManager;
@@ -123,7 +124,7 @@ async fn init_first_account<'a>(
         .body(
             json!(InitFirstAccountRequest {
                 username: node.to_owned(),
-                password: "test.password".to_owned(),
+                password: SecretString::new("test.password".to_string()).into(),
                 nickname: nickname.to_owned(),
             })
             .to_string(),

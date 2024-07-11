@@ -11,7 +11,7 @@ use log::debug;
 use prose_xmpp::mods::AvatarData;
 use prose_xmpp::stanza::vcard::Nickname;
 use prose_xmpp::{BareJid, ConnectionError, RequestError};
-use secrecy::Secret;
+use secrecy::SecretString;
 
 pub use super::live_xmpp_service::LiveXmppService;
 
@@ -36,7 +36,7 @@ impl<'r> Deref for XmppService<'r> {
 
 pub struct XmppServiceContext {
     pub bare_jid: BareJid,
-    pub prosody_token: Secret<String>,
+    pub prosody_token: SecretString,
 }
 
 #[derive(Debug, Clone)]

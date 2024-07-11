@@ -11,6 +11,7 @@ use rocket::serde::json::Json;
 use rocket::{delete, get, post, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::repositories::InvitationToken;
 use service::{
     config::Config as AppConfig,
     controllers::invitation_controller::{
@@ -28,6 +29,7 @@ use super::forms::InvitationTokenType;
 use crate::error::{self, Error};
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService};
+use crate::model::SerializableSecretString;
 use crate::responders::Paginated;
 use crate::v1::{Created, R};
 
@@ -157,9 +159,11 @@ pub(super) async fn get_invitation_by_token(
     token_type: InvitationTokenType,
 ) -> R<WorkspaceInvitation> {
     let db = conn.into_inner();
+    let token = InvitationToken::from(*token.deref());
+
     let invitation = match token_type {
-        InvitationTokenType::Accept => InvitationController::get_by_accept_token(db, &token).await,
-        InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, &token).await,
+        InvitationTokenType::Accept => InvitationController::get_by_accept_token(db, token).await,
+        InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, token).await,
     }?;
     let Some(invitation) = invitation else {
         return Err(error::Forbidden("No invitation found for provided token".to_string()).into());
@@ -172,14 +176,14 @@ pub(super) async fn get_invitation_by_token(
 #[derive(Serialize, Deserialize)]
 pub struct AcceptWorkspaceInvitationRequest {
     pub nickname: String,
-    pub password: String,
+    pub password: SerializableSecretString,
 }
 
 impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
     fn into(self) -> InvitationAcceptForm {
         InvitationAcceptForm {
             nickname: self.nickname,
-            password: self.password,
+            password: self.password.into(),
         }
     }
 }
@@ -194,7 +198,7 @@ pub(super) async fn invitation_accept(
 ) -> Result<(), Error> {
     InvitationController::accept(
         conn.into_inner(),
-        &token,
+        InvitationToken::from(*token.deref()),
         invitation_service.inner?.deref(),
         req.into_inner(),
     )
@@ -211,7 +215,7 @@ pub(super) async fn invitation_reject(
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
 
-    InvitationController::reject(db, &token).await?;
+    InvitationController::reject(db, InvitationToken::from(*token.deref())).await?;
 
     Ok(NoContent)
 }

@@ -15,6 +15,7 @@ use figment::{
     Figment,
 };
 use prose_xmpp::BareJid;
+use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 use xmpp_parsers::jid::{DomainPart, NodePart};
@@ -57,7 +58,7 @@ impl Config {
 pub struct ConfigApi {
     #[serde(default = "defaults::api_admin_node")]
     pub admin_node: JIDNode,
-    pub admin_password: Option<String>,
+    pub admin_password: Option<SecretString>,
 }
 
 impl Default for ConfigApi {
@@ -161,7 +162,7 @@ pub struct ConfigNotifyEmail {
     pub smtp_port: u16,
 
     pub smtp_username: Option<String>,
-    pub smtp_password: Option<String>,
+    pub smtp_password: Option<SecretString>,
 
     #[serde(default = "defaults::notify_email_smtp_encrypt")]
     pub smtp_encrypt: bool,

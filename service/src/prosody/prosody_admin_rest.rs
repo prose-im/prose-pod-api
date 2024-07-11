@@ -12,6 +12,7 @@ use prose_xmpp::BareJid;
 use reqwest::{
     header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
 };
+use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
@@ -36,7 +37,7 @@ pub struct ProsodyAdminRest {
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
     api_auth_username: BareJid,
-    api_auth_password: String,
+    api_auth_password: SecretString,
 }
 
 impl ProsodyAdminRest {
@@ -77,7 +78,7 @@ impl ProsodyAdminRest {
         let request = make_req(&client)
             .basic_auth(
                 self.api_auth_username.to_string(),
-                Some(self.api_auth_password.clone()),
+                Some(self.api_auth_password.expose_secret()),
             )
             .build()?;
         debug!("Calling `{} {}`…", request.method(), request.url());
@@ -215,7 +216,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
             .map(|_| ())
     }
 
-    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error> {
+    fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
         // Create the user
         self.call(|client| {
             client
@@ -224,7 +225,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
                     self.url("user"),
                     urlencoding::encode(&jid.to_string())
                 ))
-                .body(format!(r#"{{"password":"{}"}}"#, password))
+                .body(format!(r#"{{"password":"{}"}}"#, password.expose_secret()))
         })?;
 
         // Add the user to everyone's roster

@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use prose_xmpp::BareJid;
+use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
@@ -39,8 +40,8 @@ impl Deref for AuthService {
 
 pub trait AuthServiceImpl: Debug + Sync + Send {
     /// Generates a token from a username and password.
-    fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, AuthError>;
-    fn verify(&self, jwt: &str) -> Result<JWT, JWTError>;
+    fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<SecretString, AuthError>;
+    fn verify(&self, jwt: &SecretString) -> Result<JWT, JWTError>;
 }
 
 #[derive(Debug, Clone)]
@@ -59,19 +60,22 @@ impl LiveAuthService {
 }
 
 impl AuthServiceImpl for LiveAuthService {
-    fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, AuthError> {
+    fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<SecretString, AuthError> {
         let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password)? else {
             Err(AuthError::InvalidCredentials)?
         };
 
         let token = self.jwt_service.generate_jwt(jid, |claims| {
             // TODO: Do not store this in the JWT (potential security issue?)
-            claims.insert(JWT_PROSODY_TOKEN_KEY, prosody_token);
+            claims.insert(
+                JWT_PROSODY_TOKEN_KEY,
+                prosody_token.expose_secret().to_owned(),
+            );
         })?;
 
         Ok(token)
     }
-    fn verify(&self, jwt: &str) -> Result<JWT, JWTError> {
+    fn verify(&self, jwt: &SecretString) -> Result<JWT, JWTError> {
         JWT::try_from(jwt, &self.jwt_service)
     }
 }
