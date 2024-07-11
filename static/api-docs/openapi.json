@@ -1825,7 +1825,7 @@
 			"OnlineStatus": {
 			  "title": "Online status",
 				"description": "Whether or not the member is connected.",
-			  "type": "boolean",
+			  "type": "boolean"
 			},
 			"LoginResponse": {
 				"type": "object",
