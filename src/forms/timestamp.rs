@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use iso8601_timestamp::Timestamp as ISOTimestamp;
 use rocket::form::{self, FromFormField, ValueField};
 
-use crate::error::Error;
+use crate::error::{self, Error};
 
 pub struct Timestamp(ISOTimestamp);
 
@@ -27,9 +27,9 @@ impl Timestamp {
             self.duration_since(ISOTimestamp::UNIX_EPOCH)
                 .whole_milliseconds() as i64,
         )
-        .ok_or(Error::BadRequest {
+        .ok_or(Error::from(error::BadRequest {
             reason: "Timestamp out of `DateTime<Utc>` bounds.".to_string(),
-        })
+        }))
     }
 }
 

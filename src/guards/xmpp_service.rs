@@ -26,8 +26,9 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
         let prosody_token = match jwt.prosody_token() {
             Ok(prosody_token) => prosody_token,
             Err(err) => {
-                debug!("Invalid JWT: {err}");
-                return Outcome::Error(Error::Unauthorized.into());
+                return Outcome::Error(
+                    Error::from(error::Unauthorized(format!("Invalid JWT: {err}"))).into(),
+                );
             }
         };
 

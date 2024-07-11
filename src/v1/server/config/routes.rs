@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use service::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
 use service::services::server_manager::ServerManager;
 
-use crate::error::Error;
+use crate::error;
 use crate::guards::LazyGuard;
 use crate::v1::R;
 
@@ -86,9 +86,7 @@ pub(super) async fn store_files(
 /// Change the file storage encryption scheme.
 #[put("/v1/server/config/file-storage-encryption-scheme")]
 pub(super) fn file_storage_encryption_scheme() -> R<ServerConfig> {
-    Err(Error::NotImplemented {
-        feature: "File storage encryption scheme".to_string(),
-    })
+    Err(error::NotImplemented("File storage encryption scheme").into())
 }
 
 #[derive(Serialize, Deserialize)]

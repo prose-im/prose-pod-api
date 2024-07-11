@@ -67,7 +67,6 @@ pub enum InitWorkspaceError {
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
-
 impl InitController {
     pub async fn init_first_account(
         db: &DatabaseConnection,

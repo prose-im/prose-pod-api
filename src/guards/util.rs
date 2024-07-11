@@ -10,7 +10,7 @@ use sea_orm_rocket::{
 };
 use service::{prose_xmpp::BareJid, repositories::MemberRepository, sea_orm::DatabaseConnection};
 
-use crate::error::Error;
+use crate::error::{self, Error};
 
 use super::{Db, LazyFromRequest as _};
 
@@ -23,12 +23,10 @@ macro_rules! request_state {
             .map_error(|(status, _)| {
                 (
                     status,
-                    crate::error::Error::InternalServerError {
-                        reason: format!(
-                            "Could not get a `&State<{}>` from a request.",
-                            stringify!($t)
-                        ),
-                    },
+                    Error::from(crate::error::InternalServerError(format!(
+                        "Could not get a `&State<{}>` from a request.",
+                        stringify!($t)
+                    ))),
                 )
             })
     };
@@ -40,7 +38,12 @@ pub(super) async fn database_connection<'r, 'a>(
     req.guard::<Connection<'_, Db>>()
         .await
         .map(|conn| conn.into_inner())
-        .map_error(|(status, err)| (status, err.map(Error::DbErr).unwrap_or(Error::UnknownDbErr)))
+        .map_error(|(status, err)| {
+            (
+                status,
+                err.map(Into::into).unwrap_or(error::UnknownDbErr.into()),
+            )
+        })
 }
 
 pub(super) async fn check_caller_is_admin<'r, 'a>(
@@ -55,9 +58,8 @@ pub(super) async fn check_caller_is_admin<'r, 'a>(
     match MemberRepository::is_admin(db, &jid).await {
         Ok(true) => Outcome::Success(()),
         Ok(false) => {
-            debug!("<{}> is not an admin", jid.to_string());
-            return Error::Unauthorized.into();
+            return Error::from(error::Unauthorized(format!("<{jid}> is not an admin"))).into();
         }
-        Err(e) => return Error::DbErr(e).into(),
+        Err(e) => return Error::from(e).into(),
     }
 }

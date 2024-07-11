@@ -10,7 +10,7 @@ pub mod server;
 pub mod workspace;
 
 use cucumber::given;
-use prose_pod_api::error::Error;
+use prose_pod_api::error::{self, Error};
 use service::{
     model::MemberRole,
     prose_xmpp::BareJid,
@@ -21,13 +21,11 @@ use crate::TestWorld;
 
 async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
     let domain = world.server_config().await?.domain;
-    Ok(
-        BareJid::new(&format!("{name}@{domain}")).map_err(|err| Error::InternalServerError {
-            reason: format!(
-                "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
-            ),
-        })?,
-    )
+    Ok(BareJid::new(&format!("{name}@{domain}")).map_err(|err| {
+        error::InternalServerError(format!(
+            "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
+        ))
+    })?)
 }
 
 #[given(expr = "{} is an admin")]

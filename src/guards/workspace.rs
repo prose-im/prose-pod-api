@@ -16,8 +16,8 @@ impl<'r> LazyFromRequest<'r> for service::model::Workspace {
 
         match WorkspaceRepository::get(db).await {
             Ok(Some(model)) => Outcome::Success(model),
-            Ok(None) => Error::WorkspaceNotInitialized.into(),
-            Err(err) => Error::DbErr(err).into(),
+            Ok(None) => Error::from(error::WorkspaceNotInitialized).into(),
+            Err(err) => Error::from(err).into(),
         }
     }
 }

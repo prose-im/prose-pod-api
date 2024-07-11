@@ -114,6 +114,7 @@ secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 service = { workspace = true }
+thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
 uuid = { workspace = true }

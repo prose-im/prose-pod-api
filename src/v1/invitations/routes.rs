@@ -25,7 +25,7 @@ use service::{
 };
 
 use super::forms::InvitationTokenType;
-use crate::error::Error;
+use crate::error::{self, Error};
 use crate::forms::{Timestamp, Uuid};
 use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService};
 use crate::responders::Paginated;
@@ -71,8 +71,7 @@ pub(super) async fn invite_member<'r>(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        debug!("<{}> is not an admin", jid.to_string());
-        return Err(Error::Unauthorized);
+        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
     }
 
     let invitation = InvitationController::invite_member(
@@ -146,8 +145,8 @@ impl From<service::model::Invitation> for WorkspaceInvitation {
 
 /// Get information about a workspace invitation.
 #[get("/v1/invitations/<_>", rank = 2)]
-pub(super) fn get_invitation() -> Json<WorkspaceInvitation> {
-    todo!()
+pub(super) fn get_invitation() -> R<WorkspaceInvitation> {
+    Err(error::NotImplemented("Get invitation").into())
 }
 
 /// Get information about an invitation from an accept or reject token.
@@ -163,8 +162,9 @@ pub(super) async fn get_invitation_by_token(
         InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, &token).await,
     }?;
     let Some(invitation) = invitation else {
-        debug!("No invitation found for provided token");
-        return Err(Error::Unauthorized);
+        return Err(
+            error::Unauthorized("No invitation found for provided token".to_string()).into(),
+        );
     };
 
     let response: WorkspaceInvitation = invitation.into();
@@ -233,8 +233,7 @@ pub(super) async fn invitation_resend(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        debug!("<{}> is not an admin", jid.to_string());
-        return Err(Error::Unauthorized);
+        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
     }
 
     InvitationController::resend(db, &app_config, &notifier, invitation_id).await?;
@@ -254,8 +253,7 @@ pub(super) async fn invitation_cancel(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        debug!("<{}> is not an admin", jid.to_string());
-        return Err(Error::Unauthorized);
+        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
     }
 
     InvitationController::cancel(db, invitation_id).await?;

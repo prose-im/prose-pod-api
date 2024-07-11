@@ -17,8 +17,8 @@ impl<'r> LazyFromRequest<'r> for ServerConfig {
 
         match ServerConfigRepository::get(db).await {
             Ok(Some(model)) => Outcome::Success(model),
-            Ok(None) => Error::ServerConfigNotInitialized.into(),
-            Err(err) => Error::DbErr(err).into(),
+            Ok(None) => Error::from(error::ServerConfigNotInitialized).into(),
+            Err(err) => Error::from(err).into(),
         }
     }
 }
