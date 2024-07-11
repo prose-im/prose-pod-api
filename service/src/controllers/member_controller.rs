@@ -4,9 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use log::{debug, trace, warn};
 use prose_xmpp::BareJid;
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber};
+use tracing::{debug, trace, warn};
 
 use crate::{model::Member, repositories::MemberRepository, services::xmpp_service::XmppService};
 

@@ -7,6 +7,7 @@
 extern crate rocket;
 
 use prose_pod_api::custom_rocket;
+use rocket::fairing::AdHoc;
 use service::{
     config::Config,
     dependencies::Notifier,
@@ -22,11 +23,10 @@ use service::{
     HttpClient,
 };
 use std::sync::Arc;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[launch]
 fn rocket() -> _ {
-    env_logger::init();
-
     let config = Config::figment();
     #[cfg(debug_assertions)]
     dbg!(&config);
@@ -50,8 +50,18 @@ fn rocket() -> _ {
     )));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
 
+    let rocket =
+        rocket::build().attach(AdHoc::on_ignite("Tracing subsciber", |rocket| async move {
+            let subscriber = FmtSubscriber::builder()
+                .with_env_filter(EnvFilter::from_default_env())
+                .finish();
+            tracing::subscriber::set_global_default(subscriber)
+                .expect("Failed to set tracing subscriber.");
+            rocket
+        }));
+
     custom_rocket(
-        rocket::build(),
+        rocket,
         config,
         server_ctl,
         xmpp_service,

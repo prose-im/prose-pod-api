@@ -7,7 +7,6 @@ use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
 use async_trait::async_trait;
 use entity::{model::MemberRole, server_config};
-use log::debug;
 use prose_xmpp::BareJid;
 use reqwest::{
     header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
@@ -15,6 +14,7 @@ use reqwest::{
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tokio::runtime::Handle;
+use tracing::debug;
 
 use crate::{
     config::Config,

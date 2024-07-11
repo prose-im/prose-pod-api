@@ -3,12 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use log::debug;
 use prose_xmpp::BareJid;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tokio::runtime::Handle;
+use tracing::debug;
 
 use crate::config::Config;
 

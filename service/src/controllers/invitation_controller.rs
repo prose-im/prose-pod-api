@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use entity::model::{InvitationContact, InvitationStatus, JIDNode, MemberRole};
-use log::{debug, error, warn};
 use prose_xmpp::BareJid;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber, ModelTrait as _};
 use secrecy::{ExposeSecret as _, SecretString};
+use tracing::{debug, error, warn};
 
 use crate::{
     config::Config as AppConfig,

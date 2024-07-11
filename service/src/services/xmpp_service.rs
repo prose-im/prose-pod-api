@@ -7,11 +7,11 @@ use std::fmt::Debug;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use log::debug;
 use prose_xmpp::mods::AvatarData;
 use prose_xmpp::stanza::vcard::Nickname;
 use prose_xmpp::{BareJid, ConnectionError, RequestError};
 use secrecy::SecretString;
+use tracing::debug;
 
 pub use super::live_xmpp_service::LiveXmppService;
 

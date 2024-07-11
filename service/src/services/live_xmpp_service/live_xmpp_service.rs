@@ -6,12 +6,12 @@
 use std::str::FromStr as _;
 use std::sync::Arc;
 
-use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
 use prose_xmpp::stanza::avatar::{self, ImageId};
 use prose_xmpp::{BareJid, IDProvider};
 use reqwest::Client as HttpClient;
 use tokio::runtime::Handle;
+use tracing::{debug, trace};
 use xmpp_parsers::hashes::Sha1HexAttribute;
 use xmpp_parsers::jid::ResourcePart;
 
