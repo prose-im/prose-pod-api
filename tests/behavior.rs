@@ -14,8 +14,6 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
-use entity::model::EmailAddress;
-use entity::{member, server_config, workspace_invitation};
 use lazy_static::lazy_static;
 use log::debug;
 use mock_auth_service::MockAuthService;
@@ -23,7 +21,7 @@ use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::error::Error;
-use prose_pod_api::guards::{Db, ServerManager, UnauthenticatedServerManager};
+use prose_pod_api::guards::Db;
 use regex::Regex;
 use rocket::figment::Figment;
 use rocket::http::{ContentType, Status};
@@ -31,11 +29,21 @@ use rocket::local::asynchronous::{Client, LocalResponse};
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use serde::Deserialize;
-use service::config::Config;
-use service::notifier::AnyNotifier;
-use service::sea_orm::DatabaseConnection;
-use service::{dependencies, JWTKey, JWTService, Query, XmppServiceInner};
-use service::{AuthService, ServerCtl};
+use service::{
+    config::Config,
+    dependencies,
+    model::{EmailAddress, Invitation, Member, ServerConfig},
+    notifier::AnyNotifier,
+    repositories::ServerConfigRepository,
+    sea_orm::DatabaseConnection,
+    services::{
+        auth_service::AuthService,
+        jwt_service::{JWTKey, JWTService},
+        server_ctl::ServerCtl,
+        server_manager::ServerManager,
+        xmpp_service::XmppServiceInner,
+    },
+};
 use tokio::runtime::Handle;
 use tokio::task;
 use tracing_subscriber::{
@@ -97,10 +105,11 @@ async fn main() {
 
 fn test_rocket(
     config: Config,
-    server_ctl: Box<MockServerCtl>,
-    xmpp_service: Box<MockXmppService>,
-    auth_service: Box<MockAuthService>,
+    server_ctl: Arc<MockServerCtl>,
+    xmpp_service: Arc<MockXmppService>,
+    auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
+    jwt_service: JWTService,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -112,17 +121,19 @@ fn test_rocket(
         config,
         ServerCtl::new(server_ctl),
         XmppServiceInner::new(xmpp_service),
+        AuthService::new(auth_service),
+        dependencies::Notifier::from(AnyNotifier::new(notifier)),
+        jwt_service,
     )
-    .manage(AuthService::new(auth_service))
-    .manage(dependencies::Notifier::from(AnyNotifier::new(notifier)))
 }
 
 pub async fn rocket_test_client(
     config: Config,
-    server_ctl: Box<MockServerCtl>,
-    xmpp_service: Box<MockXmppService>,
-    auth_service: Box<MockAuthService>,
+    server_ctl: Arc<MockServerCtl>,
+    xmpp_service: Arc<MockXmppService>,
+    auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
+    jwt_service: JWTService,
 ) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(
@@ -131,6 +142,7 @@ pub async fn rocket_test_client(
         xmpp_service,
         auth_service,
         notifier,
+        jwt_service,
     ))
     .await
     .expect("valid rocket instance")
@@ -189,10 +201,10 @@ pub struct TestWorld {
     client: Client,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
-    members: HashMap<String, (member::Model, String)>,
+    members: HashMap<String, (Member, String)>,
     /// Map an email address to an invitation.
-    workspace_invitations: HashMap<EmailAddress, workspace_invitation::Model>,
-    scenario_workspace_invitation: Option<(EmailAddress, workspace_invitation::Model)>,
+    workspace_invitations: HashMap<EmailAddress, Invitation>,
+    scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
     previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
 }
 
@@ -220,18 +232,18 @@ impl TestWorld {
     async fn server_manager(&self) -> Result<ServerManager, Error> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();
-        let server_config = Query::server_config(db)
+        let server_config = ServerConfigRepository::get(db)
             .await?
             .expect("Server config not initialized");
-        Ok(ServerManager::from(UnauthenticatedServerManager::new(
+        Ok(ServerManager::new(
             db,
             &self.config,
             server_ctl,
             server_config,
-        )))
+        ))
     }
 
-    async fn server_config(&self) -> Result<server_config::Model, Error> {
+    async fn server_config(&self) -> Result<ServerConfig, Error> {
         Ok(self.server_manager().await?.server_config())
     }
 
@@ -263,7 +275,7 @@ impl TestWorld {
             .clone()
     }
 
-    fn scenario_workspace_invitation(&self) -> (EmailAddress, workspace_invitation::Model) {
+    fn scenario_workspace_invitation(&self) -> (EmailAddress, Invitation) {
         self.scenario_workspace_invitation
             .as_ref()
             .expect("Current scenario invitation not stored by previous steps")
@@ -277,7 +289,7 @@ impl TestWorld {
             .clone()
     }
 
-    fn workspace_invitation(&self, email_address: &EmailAddress) -> workspace_invitation::Model {
+    fn workspace_invitation(&self, email_address: &EmailAddress) -> Invitation {
         self.workspace_invitations
             .get(email_address)
             .expect("Invitation must be created first")
@@ -293,17 +305,21 @@ impl TestWorld {
         let mock_xmpp_service = MockXmppService::default();
         let mock_notifier = MockNotifier::default();
         let jwt_service = JWTService::new(JWTKey::custom("test_key"));
-        let mock_auth_service =
-            MockAuthService::new(jwt_service, Default::default(), mock_server_ctl_state);
+        let mock_auth_service = MockAuthService::new(
+            jwt_service.clone(),
+            Default::default(),
+            mock_server_ctl_state,
+        );
 
         Self {
             config: config.clone(),
             client: rocket_test_client(
                 config,
-                Box::new(mock_server_ctl.clone()),
-                Box::new(mock_xmpp_service.clone()),
-                Box::new(mock_auth_service.clone()),
+                Arc::new(mock_server_ctl.clone()),
+                Arc::new(mock_xmpp_service.clone()),
+                Arc::new(mock_auth_service.clone()),
                 Box::new(mock_notifier.clone()),
+                jwt_service,
             )
             .await,
             result: None,

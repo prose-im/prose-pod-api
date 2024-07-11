@@ -10,9 +10,11 @@ mod jwt;
 mod notifier;
 mod server_config;
 mod server_manager;
+mod unauthenticated_invitation_service;
 mod unauthenticated_server_manager;
-mod unauthenticated_user_factory;
-mod user_factory;
+mod unauthenticated_user_service;
+mod user_service;
+mod util;
 mod uuid_generator;
 mod workspace;
 mod xmpp_service;
@@ -21,21 +23,20 @@ use std::ops::Deref;
 
 pub use basic_auth::*;
 pub use db::*;
-pub use jid::*;
-use jwt::JWT;
-pub use notifier::*;
-pub use server_config::*;
-pub use server_manager::*;
+pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;
-pub use unauthenticated_user_factory::*;
-pub use user_factory::*;
-pub use uuid_generator::*;
-pub use workspace::*;
-pub use xmpp_service::*;
+pub use unauthenticated_user_service::*;
 
+use prelude::*;
 use rocket::http::Status;
-use rocket::request::Outcome;
-use rocket::Request;
+
+mod prelude {
+    pub(super) use super::util::*;
+    pub(super) use super::LazyFromRequest;
+    pub use crate::error::{self, Error};
+    pub use crate::request_state;
+    pub use rocket::{outcome::try_outcome, request::Outcome, Request};
+}
 
 use crate::error::{self, Error};
 

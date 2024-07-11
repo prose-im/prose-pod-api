@@ -22,6 +22,7 @@ minidom = { workspace = true }
 parking_lot = { workspace = true }
 prose-xmpp = { workspace = true }
 prosody-config = { workspace = true }
+rand = { workspace = true }
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
 secrecy = { workspace = true }

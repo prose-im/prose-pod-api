@@ -3,42 +3,47 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::BTreeMap, ops::Deref};
+use std::fmt::Debug;
+use std::ops::Deref;
+use std::sync::Arc;
 
 use prose_xmpp::BareJid;
 
 use crate::{
-    jwt_service::JWTError,
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
-    JWTService,
+    services::jwt_service::{JWTError, JWTService},
 };
+
+use super::jwt_service::JWT;
 
 pub const JWT_PROSODY_TOKEN_KEY: &'static str = "prosody_token";
 
+#[derive(Debug, Clone)]
 pub struct AuthService {
-    implem: Box<dyn AuthServiceImpl>,
+    implem: Arc<dyn AuthServiceImpl>,
 }
 
 impl AuthService {
-    pub fn new(implem: Box<dyn AuthServiceImpl>) -> Self {
+    pub fn new(implem: Arc<dyn AuthServiceImpl>) -> Self {
         Self { implem }
     }
 }
 
 impl Deref for AuthService {
-    type Target = Box<dyn AuthServiceImpl>;
+    type Target = Arc<dyn AuthServiceImpl>;
 
     fn deref(&self) -> &Self::Target {
         &self.implem
     }
 }
 
-pub trait AuthServiceImpl: Sync + Send {
+pub trait AuthServiceImpl: Debug + Sync + Send {
     /// Generates a token from a username and password.
     fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, AuthError>;
-    fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError>;
+    fn verify(&self, jwt: &str) -> Result<JWT, JWTError>;
 }
 
+#[derive(Debug, Clone)]
 pub struct LiveAuthService {
     jwt_service: JWTService,
     prosody_oauth2: ProsodyOAuth2,
@@ -66,10 +71,12 @@ impl AuthServiceImpl for LiveAuthService {
 
         Ok(token)
     }
-    fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError> {
-        self.jwt_service.verify(jwt)
+    fn verify(&self, jwt: &str) -> Result<JWT, JWTError> {
+        JWT::try_from(jwt, &self.jwt_service)
     }
 }
+
+pub type Error = AuthError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {

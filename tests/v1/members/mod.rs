@@ -6,7 +6,6 @@
 use std::cmp::max;
 
 use cucumber::{given, then, when};
-use entity::prelude::Member;
 use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::v1::members::Member as MemberDTO;
@@ -16,7 +15,8 @@ use rocket::{
 };
 use service::{
     prose_xmpp::{stanza::vcard::Nickname, BareJid},
-    xmpp_service, Mutation, Query,
+    repositories::{MemberCreateForm, MemberRepository},
+    services::xmpp_service,
 };
 use urlencoding::encode;
 
@@ -82,12 +82,17 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     let n = {
         let db = world.db();
-        max(0u64, n - Query::get_member_count(db).await?)
+        max(0u64, n - MemberRepository::count(db).await?)
     };
     for i in 0..n {
         let db = world.db();
         let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
-        let model = Mutation::create_user(db, &jid, &None).await?;
+        let member = MemberCreateForm {
+            jid: jid.clone(),
+            role: None,
+            joined_at: None,
+        };
+        let model = MemberRepository::create(db, member).await?;
         let token = world.auth_service.log_in_unchecked(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));
@@ -152,10 +157,7 @@ fn then_n_members(world: &mut TestWorld, n: usize) {
 
 #[then(expr = "<{jid}> should have the {member_role} role")]
 async fn then_role(world: &mut TestWorld, jid: JIDParam, role: MemberRole) -> Result<(), DbErr> {
-    let db = world.db();
-
-    let member = Member::find_by_jid(&jid)
-        .one(db)
+    let member = MemberRepository::get(world.db(), &jid)
         .await?
         .expect(&format!("Member {jid} not found"));
     assert_eq!(member.role, role.0);

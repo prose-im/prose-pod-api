@@ -6,14 +6,13 @@
 use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use entity::model;
 
 #[derive(Debug, Parameter)]
 #[param(name = "member_role", regex = r"\w+")]
-pub struct MemberRole(pub model::MemberRole);
+pub struct MemberRole(pub service::model::MemberRole);
 
 impl Deref for MemberRole {
-    type Target = model::MemberRole;
+    type Target = service::model::MemberRole;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -21,9 +20,9 @@ impl Deref for MemberRole {
 }
 
 impl FromStr for MemberRole {
-    type Err = <model::MemberRole as FromStr>::Err;
+    type Err = <service::model::MemberRole as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        model::MemberRole::from_str(s).map(Self)
+        service::model::MemberRole::from_str(s).map(Self)
     }
 }

@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::str::FromStr as _;
+use std::sync::Arc;
 
 use log::{debug, trace};
 use prose_xmpp::mods::{self, AvatarData};
@@ -16,26 +17,40 @@ use xmpp_parsers::jid::ResourcePart;
 
 use crate::config::Config;
 use crate::prosody::ProsodyRest;
-use crate::xmpp_service::VCard;
-use crate::XmppServiceError;
+use crate::services::xmpp_service::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl};
 
+use super::non_standard_xmpp_client::NonStandardXmppClient;
 use super::xmpp_client::XMPPClient;
-use super::xmpp_service::{XmppServiceContext, XmppServiceImpl};
-use super::NonStandardXmppClient;
 
+#[derive(Clone)]
 pub struct LiveXmppService {
     http_client: HttpClient,
     pub rest_api_url: String,
-    pub non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
-    id_provider: Box<dyn IDProvider>,
+    pub non_standard_xmpp_client: Arc<dyn NonStandardXmppClient>,
+    id_provider: Arc<dyn IDProvider>,
+}
+
+// TODO: Make `IDProvider` implement `Debug`
+impl std::fmt::Debug for LiveXmppService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LiveXmppService")
+            .field("http_client", &self.http_client)
+            .field("rest_api_url", &self.rest_api_url)
+            .field("non_standard_xmpp_client", &self.non_standard_xmpp_client)
+            .field(
+                "id_provider",
+                &std::any::type_name_of_val(self.id_provider.as_ref()),
+            )
+            .finish()
+    }
 }
 
 impl LiveXmppService {
     pub fn from_config(
         config: &Config,
         http_client: HttpClient,
-        non_standard_xmpp_client: Box<dyn NonStandardXmppClient + Send + Sync>,
-        id_provider: Box<dyn IDProvider>,
+        non_standard_xmpp_client: Arc<dyn NonStandardXmppClient>,
+        id_provider: Arc<dyn IDProvider>,
     ) -> Self {
         Self {
             http_client,

@@ -15,7 +15,13 @@ use reqwest::{
 use serde::Deserialize;
 use tokio::runtime::Handle;
 
-use crate::{config::Config, server_ctl::*, xmpp::NonStandardXmppClient};
+use crate::{
+    config::Config,
+    services::{
+        live_xmpp_service::NonStandardXmppClient,
+        server_ctl::{Error, ServerCtlImpl},
+    },
+};
 
 use super::{prosody_config_from_db, AsProsody as _};
 

@@ -10,12 +10,21 @@ use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
+use service::controllers::init_controller::{
+    InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
+};
+use service::controllers::invitation_controller::{
+    InvitationAcceptError, InvitationCancelError, InvitationRejectError, InvitationResendError,
+    InviteMemberError,
+};
 #[cfg(debug_assertions)]
-use service::JWTError;
-use service::{sea_orm, AuthError, MutationError};
-use service::{server_ctl, xmpp_service};
-
-use crate::guards::NotifierError;
+use service::services::jwt_service;
+use service::services::{
+    auth_service, invitation_service, notifier, server_ctl, server_manager,
+    user_service::{self, UserCreateError},
+    xmpp_service,
+};
+use service::{sea_orm, MutationError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -51,7 +60,7 @@ pub enum Error {
     /// Could not find the desired entity.
     NotFound { reason: String },
     /// Could not send a notification.
-    NotifierError(NotifierError),
+    NotifierError(notifier::Error),
     /// Basic authentication failed.
     BasicAuthError(AuthBasicError),
     /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
@@ -206,8 +215,8 @@ impl From<sea_orm::DbErr> for Error {
     }
 }
 
-impl From<NotifierError> for Error {
-    fn from(value: NotifierError) -> Self {
+impl From<notifier::Error> for Error {
+    fn from(value: notifier::Error) -> Self {
         Self::NotifierError(value)
     }
 }
@@ -236,10 +245,10 @@ impl From<AuthBasicError> for Error {
     }
 }
 
-impl From<AuthError> for Error {
-    fn from(value: AuthError) -> Self {
+impl From<auth_service::Error> for Error {
+    fn from(value: auth_service::Error) -> Self {
         match value {
-            AuthError::InvalidCredentials => Self::Unauthorized,
+            auth_service::Error::InvalidCredentials => Self::Unauthorized,
             e => Self::InternalServerError {
                 reason: format!("Auth error: {e}"),
             },
@@ -248,10 +257,149 @@ impl From<AuthError> for Error {
 }
 
 #[cfg(debug_assertions)]
-impl From<JWTError> for Error {
-    fn from(value: JWTError) -> Self {
+impl From<jwt_service::Error> for Error {
+    fn from(value: jwt_service::Error) -> Self {
         Self::InternalServerError {
             reason: format!("JWT error: {value}"),
+        }
+    }
+}
+
+impl From<user_service::Error> for Error {
+    fn from(value: user_service::Error) -> Self {
+        Self::InternalServerError {
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<UserCreateError> for Error {
+    fn from(value: UserCreateError) -> Self {
+        user_service::Error::from(value).into()
+    }
+}
+
+impl From<invitation_service::Error> for Error {
+    fn from(value: invitation_service::Error) -> Self {
+        Self::InternalServerError {
+            reason: value.to_string(),
+        }
+    }
+}
+
+impl From<invitation_service::InvitationAcceptError> for Error {
+    fn from(value: invitation_service::InvitationAcceptError) -> Self {
+        invitation_service::Error::from(value).into()
+    }
+}
+
+impl From<server_manager::Error> for Error {
+    fn from(value: server_manager::Error) -> Self {
+        match value {
+            server_manager::Error::ServerConfigAlreadyInitialized => {
+                Self::ServerConfigAlreadyInitialized
+            }
+            server_manager::Error::ServerCtl(err) => Self::ServerCtlErr(err),
+            server_manager::Error::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InitServerConfigError> for Error {
+    fn from(value: InitServerConfigError) -> Self {
+        match value {
+            InitServerConfigError::CouldNotInitServerConfig(err) => Self::from(err),
+        }
+    }
+}
+
+impl From<InitWorkspaceError> for Error {
+    fn from(value: InitWorkspaceError) -> Self {
+        match value {
+            InitWorkspaceError::WorkspaceAlreadyInitialized => Self::WorkspaceAlreadyInitialized,
+            InitWorkspaceError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InitFirstAccountError> for Error {
+    fn from(value: InitFirstAccountError) -> Self {
+        match value {
+            InitFirstAccountError::FirstAccountAlreadyCreated => Self::FirstAccountAlreadyCreated,
+            InitFirstAccountError::InvalidJid(_) => Self::BadRequest {
+                reason: value.to_string(),
+            },
+            InitFirstAccountError::CouldNotCreateFirstAccount(_) => Self::InternalServerError {
+                reason: value.to_string(),
+            },
+            InitFirstAccountError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InviteMemberError> for Error {
+    fn from(value: InviteMemberError) -> Self {
+        match value {
+            InviteMemberError::InvalidJid(_) => Self::BadRequest {
+                reason: value.to_string(),
+            },
+            InviteMemberError::CouldNotUpdateInvitationStatus { .. }
+            | InviteMemberError::CouldNotAutoAcceptInvitation(_) => Self::InternalServerError {
+                reason: value.to_string(),
+            },
+            InviteMemberError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InvitationAcceptError> for Error {
+    fn from(value: InvitationAcceptError) -> Self {
+        match value {
+            InvitationAcceptError::InvitationNotFound => Self::Unauthorized,
+            InvitationAcceptError::ExpiredAcceptToken => Self::NotFound {
+                reason: value.to_string(),
+            },
+            InvitationAcceptError::ServiceError(err) => Self::from(err),
+            InvitationAcceptError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InvitationRejectError> for Error {
+    fn from(value: InvitationRejectError) -> Self {
+        match value {
+            InvitationRejectError::InvitationNotFound => Self::Unauthorized,
+            InvitationRejectError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InvitationResendError> for Error {
+    fn from(value: InvitationResendError) -> Self {
+        match value {
+            InvitationResendError::InvitationNotFound(_) => Self::NotFound {
+                reason: value.to_string(),
+            },
+            InvitationResendError::CouldNotSendInvitation(_) => Self::InternalServerError {
+                reason: value.to_string(),
+            },
+            InvitationResendError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<InvitationCancelError> for Error {
+    fn from(value: InvitationCancelError) -> Self {
+        match value {
+            InvitationCancelError::DbErr(err) => Self::DbErr(err),
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::InternalServerError {
+            reason: format!("IO error: {value}"),
         }
     }
 }

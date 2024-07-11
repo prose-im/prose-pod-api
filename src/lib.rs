@@ -10,11 +10,10 @@ pub mod error;
 pub mod forms;
 pub mod guards;
 pub mod responders;
-mod util;
 pub mod v1;
 
 use error::Error;
-use guards::{Db, UnauthenticatedServerManager};
+use guards::Db;
 
 use log::{debug, info};
 use migration::MigratorTrait;
@@ -23,9 +22,15 @@ use rocket::fs::{FileServer, NamedFile};
 use rocket::http::Status;
 use rocket::{Build, Request, Rocket};
 use sea_orm_rocket::Database;
-use service::config::Config;
-use service::dependencies::Uuid;
-use service::{Query, ServerCtl, XmppServiceInner};
+use service::{
+    config::Config,
+    dependencies::{Notifier, Uuid},
+    repositories::ServerConfigRepository,
+    services::{
+        auth_service::AuthService, jwt_service::JWTService, server_ctl::ServerCtl,
+        server_manager::ServerManager, xmpp_service::XmppServiceInner,
+    },
+};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
@@ -33,6 +38,9 @@ pub fn custom_rocket(
     config: Config,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
+    auth_service: AuthService,
+    notifier: Notifier,
+    jwt_service: JWTService,
 ) -> Rocket<Build> {
     rocket
         .attach(Db::init())
@@ -49,6 +57,9 @@ pub fn custom_rocket(
         .manage(config)
         .manage(server_ctl)
         .manage(xmpp_service)
+        .manage(auth_service)
+        .manage(notifier)
+        .manage(jwt_service)
 }
 
 async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
@@ -58,10 +69,9 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
     let server_ctl = rocket.state().unwrap();
     let app_config = rocket.state().unwrap();
 
-    match Query::server_config(db).await {
+    match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => {
-            let server_manager =
-                UnauthenticatedServerManager::new(db, app_config, server_ctl, server_config);
+            let server_manager = ServerManager::new(db, app_config, server_ctl, server_config);
             if let Err(err) = server_manager.reload_current() {
                 error!("Could not initialize the XMPP server configuration: {err}");
             }

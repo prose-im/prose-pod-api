@@ -7,11 +7,9 @@ use std::str::FromStr as _;
 
 use http_auth_basic::Credentials;
 use log::debug;
-use rocket::request::{FromRequest, Outcome};
-use rocket::Request;
 use service::prose_xmpp::BareJid;
 
-use crate::error::{self, Error};
+use super::prelude::*;
 
 pub struct BasicAuth {
     pub jid: BareJid,
@@ -19,7 +17,7 @@ pub struct BasicAuth {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for BasicAuth {
+impl<'r> LazyFromRequest<'r> for BasicAuth {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

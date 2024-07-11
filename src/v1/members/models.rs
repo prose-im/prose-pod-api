@@ -5,11 +5,12 @@
 
 use std::{fmt::Display, ops::Deref};
 
-use entity::{member, model::MemberRole};
 use serde::{Deserialize, Serialize};
-use service::prose_xmpp::BareJid;
+use service::{controllers::member_controller, model::MemberRole, prose_xmpp::BareJid};
 
 use crate::forms::JID as JIDUriParam;
+
+type MemberModel = service::model::Member;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
@@ -17,8 +18,8 @@ pub struct Member {
     pub role: MemberRole,
 }
 
-impl From<member::Model> for Member {
-    fn from(model: member::Model) -> Self {
+impl From<MemberModel> for Member {
+    fn from(model: MemberModel) -> Self {
         Self {
             jid: model.jid(),
             role: model.role,
@@ -32,6 +33,17 @@ pub struct EnrichedMember {
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,
+}
+
+impl From<member_controller::EnrichedMember> for EnrichedMember {
+    fn from(value: member_controller::EnrichedMember) -> Self {
+        Self {
+            jid: value.jid,
+            online: value.online,
+            nickname: value.nickname,
+            avatar: value.avatar,
+        }
+    }
 }
 
 #[derive(Debug, Clone, FromForm)]

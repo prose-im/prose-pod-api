@@ -3,63 +3,38 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
+use service::{
+    prose_xmpp::BareJid,
+    services::{
+        jwt_service::JWT,
+        xmpp_service::{XmppService, XmppServiceContext, XmppServiceInner},
+    },
+};
 
-use rocket::outcome::try_outcome;
-use rocket::request::Outcome;
-use rocket::{Request, State};
-use service::{xmpp_service, XmppServiceContext, XmppServiceInner};
-
-use crate::error::{self, Error};
-
-use super::{LazyFromRequest, JWT};
-
-pub struct XmppService<'r>(xmpp_service::XmppService<'r>);
-
-impl<'r> Deref for XmppService<'r> {
-    type Target = xmpp_service::XmppService<'r>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'r> Into<xmpp_service::XmppService<'r>> for XmppService<'r> {
-    fn into(self) -> xmpp_service::XmppService<'r> {
-        self.0
-    }
-}
+use super::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for XmppService<'r> {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let xmpp_service_inner = try_outcome!(req
-            .guard::<&State<XmppServiceInner>>()
-            .await
-            .map_error(|(status, _)| (
-                status,
-                Error::InternalServerError {
-                    reason: "Could not get a `&State<XmppServiceInner>` from a request."
-                        .to_string(),
-                }
-            )));
+        let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
+
+        let bare_jid = try_outcome!(BareJid::from_request(req).await);
+
         let jwt = try_outcome!(JWT::from_request(req).await);
-        let jid = match jwt.jid() {
-            Ok(jid) => jid,
-            Err(err) => return Outcome::Error(err.into()),
-        };
         let prosody_token = match jwt.prosody_token() {
             Ok(prosody_token) => prosody_token,
-            Err(err) => return Outcome::Error(err.into()),
+            Err(err) => {
+                debug!("Invalid JWT: {err}");
+                return Outcome::Error(Error::Unauthorized.into());
+            }
         };
+
         let ctx = XmppServiceContext {
-            bare_jid: jid,
+            bare_jid,
             prosody_token,
         };
-        let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner, ctx);
-
-        Outcome::Success(Self(xmpp_service))
+        Outcome::Success(XmppService::new(xmpp_service_inner, ctx))
     }
 }

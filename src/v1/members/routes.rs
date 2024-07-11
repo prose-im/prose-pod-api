@@ -14,19 +14,20 @@ use rocket::serde::json::Json;
 use rocket::{get, put};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
+use service::controllers::member_controller::MemberController;
 use service::prose_xmpp::BareJid;
-use service::Query;
+use service::services::xmpp_service::XmppService;
 
 use super::models::*;
 use crate::error::Error;
 use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard, XmppService, JID as JIDGuard};
+use crate::guards::{Db, LazyGuard};
 use crate::responders::Paginated;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
 pub(super) async fn get_members(
     conn: Connection<'_, Db>,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
@@ -41,62 +42,16 @@ pub(super) async fn get_members(
         Some(t) => Some(t.try_into()?),
         None => None,
     };
-    let (pages_metadata, members) = Query::get_members(db, page_number, page_size, until).await?;
+
+    let (pages_metadata, members) =
+        MemberController::get_members(db, page_number, page_size, until).await?;
+
     Ok(Paginated::new(
         members.into_iter().map(Into::into).collect(),
         page_number,
         page_size,
         pages_metadata,
     ))
-}
-
-fn enriched_member(xmpp_service: &XmppService, jid: &BareJid) -> EnrichedMember {
-    trace!("Enriching `{jid}`…");
-
-    let vcard = match xmpp_service.get_vcard(jid) {
-        Ok(Some(vcard)) => Some(vcard),
-        Ok(None) => {
-            debug!("`{jid}` has no vCard.");
-            None
-        }
-        Err(err) => {
-            // Log error
-            warn!("Could not get `{jid}`'s vCard: {err}");
-            // But dismiss it
-            None
-        }
-    };
-    let nickname = vcard
-        .and_then(|vcard| vcard.nickname.first().cloned())
-        .map(|p| p.value);
-
-    let avatar = match xmpp_service.get_avatar(jid) {
-        Ok(Some(avatar)) => Some(avatar.base64().to_string()),
-        Ok(None) => {
-            debug!("`{jid}` has no avatar.");
-            None
-        }
-        Err(err) => {
-            // Log error
-            warn!("Could not get `{jid}`'s avatar: {err}");
-            // But dismiss it
-            None
-        }
-    };
-
-    let online = xmpp_service
-        .is_connected(jid)
-        // Log error
-        .inspect_err(|err| warn!("Could not get `{jid}`'s online status: {err}"))
-        // But dismiss it
-        .ok();
-
-    EnrichedMember {
-        jid: jid.to_owned(),
-        nickname,
-        avatar,
-        online,
-    }
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
@@ -109,7 +64,8 @@ pub(super) fn enrich_members<'r>(
 
     let mut res = HashMap::with_capacity(jids.len());
     for jid in jids.iter() {
-        res.insert(jid.deref().to_owned(), enriched_member(&xmpp_service, jid));
+        let enriched_member = MemberController::enrich_member(&xmpp_service, jid);
+        res.insert(jid.deref().to_owned(), enriched_member.into());
     }
     Ok(res.into())
 }
@@ -129,7 +85,7 @@ pub(super) fn enrich_members_stream<'r>(
         }
 
         for jid in jids.iter() {
-            let res = enriched_member(&xmpp_service, jid);
+            let res: EnrichedMember = MemberController::enrich_member(&xmpp_service, jid).into();
             yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 
@@ -177,7 +133,7 @@ pub struct SetMemberNicknameResponse {
 #[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
 pub(super) fn set_member_nickname(
     member_id: JIDUriParam,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
@@ -214,7 +170,7 @@ pub struct SetMemberAvatarResponse {
 #[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
 pub(super) fn set_member_avatar(
     member_id: JIDUriParam,
-    jid: LazyGuard<JIDGuard>,
+    jid: LazyGuard<BareJid>,
     xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {
