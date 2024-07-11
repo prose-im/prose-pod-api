@@ -16,7 +16,6 @@ pub mod v1;
 use error::Error;
 use guards::Db;
 
-use log::{debug, info};
 use migration::MigratorTrait;
 use rocket::fairing::{self, AdHoc};
 use rocket::fs::{FileServer, NamedFile};
@@ -32,6 +31,7 @@ use service::{
         server_manager::ServerManager, xmpp_service::XmppServiceInner,
     },
 };
+use tracing::{debug, info};
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(

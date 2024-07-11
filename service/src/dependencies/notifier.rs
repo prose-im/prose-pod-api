@@ -85,7 +85,7 @@ mod live {
 
 #[cfg(debug_assertions)]
 mod logging {
-    use log::debug;
+    use tracing::debug;
 
     use super::NotifierImpl;
     use crate::{

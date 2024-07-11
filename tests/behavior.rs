@@ -15,7 +15,6 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use lazy_static::lazy_static;
-use log::debug;
 use mock_auth_service::MockAuthService;
 use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
@@ -47,6 +46,7 @@ use service::{
 };
 use tokio::runtime::Handle;
 use tokio::task;
+use tracing::debug;
 use tracing_subscriber::{
     filter::{self, LevelFilter},
     fmt::format::{self, Format},

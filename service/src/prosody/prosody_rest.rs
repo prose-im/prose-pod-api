@@ -7,7 +7,6 @@ use std::{fmt::Debug, sync::Arc};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
-use log::{debug, trace};
 use minidom::Element;
 use parking_lot::RwLock;
 use prose_xmpp::{
@@ -20,6 +19,7 @@ use prose_xmpp::{
 use reqwest::Client as HttpClient;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::runtime::Handle;
+use tracing::{debug, trace};
 use xmpp_parsers::FullJid;
 
 /// Rust interface to [`mod_http_rest`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_rest).

@@ -6,8 +6,8 @@
 use std::sync::{RwLock, RwLockWriteGuard};
 
 use entity::server_config;
-use log::trace;
 use sea_orm::DbErr;
+use tracing::trace;
 
 use crate::config::Config as AppConfig;
 use crate::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};

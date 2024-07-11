@@ -6,7 +6,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use entity::notification::NotificationPayload;
-use log::{debug, info};
+use tracing::{debug, info};
 
 use crate::config::ConfigBranding;
 

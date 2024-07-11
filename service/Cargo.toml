@@ -17,7 +17,6 @@ form_urlencoded = { workspace = true }
 hmac = { workspace = true }
 jwt = { workspace = true }
 lettre = { workspace = true }
-log = { workspace = true }
 minidom = { workspace = true }
 parking_lot = { workspace = true }
 prose-xmpp = { workspace = true }
@@ -32,6 +31,7 @@ sha2 = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
 url_serde = { workspace = true }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
