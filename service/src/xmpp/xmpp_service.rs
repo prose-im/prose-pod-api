@@ -5,11 +5,10 @@
 
 use std::ops::Deref;
 
-use entity::model::JID;
 use log::debug;
 use prose_xmpp::mods::AvatarData;
 use prose_xmpp::stanza::vcard::Nickname;
-use prose_xmpp::{ConnectionError, RequestError};
+use prose_xmpp::{BareJid, ConnectionError, RequestError};
 use secrecy::Secret;
 
 pub struct XmppService<'r> {
@@ -32,7 +31,7 @@ impl<'r> Deref for XmppService<'r> {
 }
 
 pub struct XmppServiceContext {
-    pub full_jid: JID,
+    pub bare_jid: BareJid,
     pub prosody_token: Secret<String>,
 }
 
@@ -47,7 +46,7 @@ impl XmppServiceInner {
 pub type VCard = prose_xmpp::stanza::VCard4;
 
 impl<'r> XmppService<'r> {
-    pub fn get_vcard(&self, jid: &JID) -> Result<Option<VCard>, XmppServiceError> {
+    pub fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, XmppServiceError> {
         self.deref().get_vcard(&self.ctx, jid)
     }
     pub fn set_own_vcard(&self, vcard: &VCard) -> Result<(), XmppServiceError> {
@@ -60,14 +59,14 @@ impl<'r> XmppService<'r> {
         self.deref().set_own_nickname(&self.ctx, nickname)
     }
 
-    pub fn get_avatar(&self, jid: &JID) -> Result<Option<AvatarData>, XmppServiceError> {
+    pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, XmppServiceError> {
         self.deref().get_avatar(&self.ctx, jid)
     }
     pub fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
         self.deref().set_own_avatar(&self.ctx, png_data)
     }
 
-    pub fn is_connected(&self, jid: &JID) -> Result<bool, XmppServiceError> {
+    pub fn is_connected(&self, jid: &BareJid) -> Result<bool, XmppServiceError> {
         self.deref().is_connected(&self.ctx, jid)
     }
 }
@@ -76,7 +75,7 @@ pub trait XmppServiceImpl: Send + Sync {
     fn get_vcard(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
+        jid: &BareJid,
     ) -> Result<Option<VCard>, XmppServiceError>;
     fn set_own_vcard(
         &self,
@@ -100,8 +99,8 @@ pub trait XmppServiceImpl: Send + Sync {
         ctx: &XmppServiceContext,
         nickname: &str,
     ) -> Result<(), XmppServiceError> {
-        debug!("Setting {}'s nickname to {nickname}…", ctx.full_jid);
-        let mut vcard = self.get_vcard(ctx, &ctx.full_jid)?.unwrap_or_default();
+        debug!("Setting {}'s nickname to {nickname}…", ctx.bare_jid);
+        let mut vcard = self.get_vcard(ctx, &ctx.bare_jid)?.unwrap_or_default();
         vcard.nickname = vec![Nickname {
             value: nickname.to_owned(),
         }];
@@ -111,7 +110,7 @@ pub trait XmppServiceImpl: Send + Sync {
     fn get_avatar(
         &self,
         ctx: &XmppServiceContext,
-        jid: &JID,
+        jid: &BareJid,
     ) -> Result<Option<AvatarData>, XmppServiceError>;
     // TODO: Allow other MIME types
     // TODO: Allow setting an avatar pointing to a URL
@@ -121,7 +120,11 @@ pub trait XmppServiceImpl: Send + Sync {
         png_data: Vec<u8>,
     ) -> Result<(), XmppServiceError>;
 
-    fn is_connected(&self, ctx: &XmppServiceContext, jid: &JID) -> Result<bool, XmppServiceError>;
+    fn is_connected(
+        &self,
+        ctx: &XmppServiceContext,
+        jid: &BareJid,
+    ) -> Result<bool, XmppServiceError>;
 }
 
 pub type Error = XmppServiceError;

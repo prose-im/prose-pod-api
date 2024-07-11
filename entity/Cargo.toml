@@ -8,6 +8,7 @@ license = { workspace = true }
 [dependencies]
 email_address = { workspace = true }
 iso8601-duration = { workspace = true }
+jid = { workspace = true }
 rocket = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }

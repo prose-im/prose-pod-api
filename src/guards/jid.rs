@@ -5,19 +5,19 @@
 
 use std::ops::Deref;
 
-use entity::model;
 use rocket::outcome::try_outcome;
 use rocket::request::Outcome;
 use rocket::Request;
+use service::prose_xmpp::BareJid;
 
 use crate::error::{self};
 
 use super::{LazyFromRequest, JWT};
 
-pub struct JID(model::JID);
+pub struct JID(BareJid);
 
 impl Deref for JID {
-    type Target = model::JID;
+    type Target = BareJid;
 
     fn deref(&self) -> &Self::Target {
         &self.0

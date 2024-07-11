@@ -6,49 +6,49 @@
 use std::str::FromStr;
 use std::{fmt::Display, ops::Deref};
 
-use entity::model;
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
+use service::prose_xmpp::BareJid;
 
 #[derive(Debug, Clone, Eq)]
-pub struct JID(pub(crate) model::JID);
+pub struct JID(pub(crate) BareJid);
 
 impl<'v> FromFormField<'v> for JID {
     fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
-        model::JID::from_str(field.value)
+        BareJid::from_str(field.value)
             .map(Self)
             .ok()
             .ok_or(field.unexpected().with_name("invalid_jid").into())
     }
 }
 
-impl FromUriParam<Path, model::JID> for JID {
+impl FromUriParam<Path, BareJid> for JID {
     type Target = String;
 
-    fn from_uri_param(param: model::JID) -> Self::Target {
+    fn from_uri_param(param: BareJid) -> Self::Target {
         param.to_string()
     }
 }
 
-impl FromUriParam<Query, model::JID> for JID {
+impl FromUriParam<Query, BareJid> for JID {
     type Target = String;
 
-    fn from_uri_param(param: model::JID) -> Self::Target {
+    fn from_uri_param(param: BareJid) -> Self::Target {
         param.to_string()
     }
 }
 
 impl<'v> FromParam<'v> for JID {
-    type Error = <model::JID as FromStr>::Err;
+    type Error = <BareJid as FromStr>::Err;
 
     fn from_param(param: &'v str) -> Result<Self, Self::Error> {
-        model::JID::from_str(param).map(Self)
+        BareJid::from_str(param).map(Self)
     }
 }
 
 impl Deref for JID {
-    type Target = model::JID;
+    type Target = BareJid;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -67,8 +67,8 @@ impl PartialEq for JID {
     }
 }
 
-impl PartialEq<model::JID> for JID {
-    fn eq(&self, other: &model::JID) -> bool {
+impl PartialEq<BareJid> for JID {
+    fn eq(&self, other: &BareJid) -> bool {
         &self.0 == other
     }
 }

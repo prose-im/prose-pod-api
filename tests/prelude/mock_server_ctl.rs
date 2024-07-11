@@ -3,13 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::entity::model::JID;
 use ::service::server_ctl::{Error, ServerCtlImpl};
 use ::service::{prosody_config_from_db, ProsodyConfigSection};
 use entity::model::MemberRole;
 use entity::server_config;
 use linked_hash_map::LinkedHashMap;
 use service::config::Config;
+use service::prose_xmpp::BareJid;
 use service::prosody::ProsodyConfig;
 
 use std::sync::{Arc, RwLock};
@@ -21,7 +21,7 @@ pub struct MockServerCtl {
 
 #[derive(Debug)]
 pub struct UserAccount {
-    pub jid: JID,
+    pub jid: BareJid,
     pub password: String,
 }
 
@@ -30,7 +30,7 @@ pub struct MockServerCtlState {
     pub online: bool,
     pub conf_reload_count: usize,
     pub applied_config: Option<ProsodyConfig>,
-    pub users: LinkedHashMap<JID, UserAccount>,
+    pub users: LinkedHashMap<BareJid, UserAccount>,
 }
 
 impl MockServerCtl {
@@ -78,7 +78,7 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
@@ -91,12 +91,14 @@ impl ServerCtlImpl for MockServerCtl {
                 .additional_sections
                 .iter()
                 .any(|section| match section {
-                    ProsodyConfigSection::VirtualHost { hostname, .. } => hostname == &jid.domain,
+                    ProsodyConfigSection::VirtualHost { hostname, .. } => {
+                        hostname == &jid.domain().to_string()
+                    }
                     _ => false,
                 })
         });
         if !domain_exists {
-            return Err(Error::Other(format!("Domain {} not declared in the Prosody configuration. You might need to initialize the server configuration.", &jid.domain)));
+            return Err(Error::Other(format!("Domain {} not declared in the Prosody configuration. You might need to initialize the server configuration.", jid.domain())));
         }
 
         state.users.insert(
@@ -108,14 +110,14 @@ impl ServerCtlImpl for MockServerCtl {
         );
         Ok(())
     }
-    fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+    fn remove_user(&self, jid: &BareJid) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
-        state.users.remove(&jid);
+        state.users.remove(jid);
         Ok(())
     }
-    fn set_user_role(&self, _jid: &JID, _role: &MemberRole) -> Result<(), Error> {
+    fn set_user_role(&self, _jid: &BareJid, _role: &MemberRole) -> Result<(), Error> {
         self.check_online()?;
 
         // NOTE: The role is stored on our side in the database,

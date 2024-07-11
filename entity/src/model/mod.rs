@@ -8,6 +8,7 @@ pub mod members;
 pub mod server_config;
 
 pub use invitations::*;
+use jid::{DomainPart, DomainRef, NodePart, NodeRef};
 pub use members::*;
 use serde_with::DeserializeFromStr;
 pub use server_config::*;
@@ -114,49 +115,57 @@ impl sea_query::Nullable for JIDNode {
 // ===== JID =====
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
-pub struct JID {
-    pub node: JIDNode,
-    pub domain: String,
+pub struct JID(jid::BareJid);
+
+impl Deref for JID {
+    type Target = jid::BareJid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl JID {
-    pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Result<Self, &'static str> {
-        Ok(Self {
-            node: JIDNode::from_str(node.to_string().as_str())?,
-            domain: domain.to_string(),
-        })
+    pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Result<Self, jid::Error> {
+        Ok(Self(jid::BareJid::from_parts(
+            Some(&NodePart::from_str(node.to_string().as_str())?),
+            &DomainPart::from_str(domain.to_string().as_str())?,
+        )))
+    }
+    pub fn from_parts(node: Option<&NodeRef>, domain: &DomainRef) -> Self {
+        Self(jid::BareJid::from_parts(node, domain))
     }
 }
 
 impl Display for JID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}@{}", self.node, self.domain)
+        Display::fmt(&self.0, f)
     }
 }
 
 impl FromStr for JID {
-    type Err = &'static str;
+    type Err = <<Self as Deref>::Target as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.split_once("@") {
-            Some((node, domain)) => Self::new(JIDNode::from_str(node)?, domain),
-            None => Err("The JID does not contain a '@'"),
-        }
+        <Self as Deref>::Target::from_str(s).map(Self)
+    }
+}
+
+impl From<jid::BareJid> for JID {
+    fn from(bare_jid: jid::BareJid) -> Self {
+        Self(bare_jid)
     }
 }
 
 impl From<EmailAddress> for JID {
-    fn from(value: EmailAddress) -> Self {
+    fn from(email_address: EmailAddress) -> Self {
         // NOTE: Email adresses are already parsed, and they are equivalent to a JID.
-        Self {
-            domain: value.domain().to_string(),
-            node: JIDNode::from(value),
-        }
+        Self::from_str(email_address.as_str()).unwrap()
     }
 }
 
 impl TryFrom<String> for JID {
-    type Error = &'static str;
+    type Error = <Self as FromStr>::Err;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
@@ -168,7 +177,7 @@ impl Serialize for JID {
     where
         S: serde::Serializer,
     {
-        self.to_string().serialize(serializer)
+        Serialize::serialize(&self.0, serializer)
     }
 }
 
@@ -177,15 +186,13 @@ impl<'de> Deserialize<'de> for JID {
     where
         D: serde::Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
-            .try_into()
-            .map_err(|e| de::Error::custom(format!("{:?}", e)))
+        jid::BareJid::deserialize(deserializer).map(Self)
     }
 }
 
 impl From<JID> for sea_query::Value {
-    fn from(value: JID) -> Self {
-        Self::String(Some(Box::new(value.to_string())))
+    fn from(jid: JID) -> Self {
+        Self::String(Some(Box::new(jid.to_string())))
     }
 }
 

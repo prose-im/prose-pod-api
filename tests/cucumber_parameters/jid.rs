@@ -3,17 +3,17 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model;
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
+use service::prose_xmpp::BareJid;
 
 #[derive(Debug, Parameter)]
 #[param(name = "jid", regex = r"[^<]+@[^>]+")]
-pub struct JID(pub model::JID);
+pub struct JID(pub BareJid);
 
 impl Deref for JID {
-    type Target = model::JID;
+    type Target = BareJid;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -21,10 +21,10 @@ impl Deref for JID {
 }
 
 impl FromStr for JID {
-    type Err = <model::JID as FromStr>::Err;
+    type Err = <BareJid as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        model::JID::from_str(s).map(|a| Self(a))
+        BareJid::from_str(s).map(|a| Self(a))
     }
 }
 

@@ -7,11 +7,12 @@ use std::fmt;
 
 use ::entity::{
     member,
-    model::{EmailAddress, MemberRole, JID},
+    model::{EmailAddress, MemberRole},
     server_config, workspace,
     workspace_invitation::{self, InvitationContact, InvitationStatus},
 };
 use chrono::{prelude::Utc, TimeDelta};
+use prose_xmpp::BareJid;
 use sea_orm::{prelude::*, ActiveValue::NotSet, IntoActiveModel as _, Set};
 
 use crate::dependencies::Uuid;
@@ -57,7 +58,7 @@ impl Mutation {
     pub async fn create_workspace_invitation(
         db: &DbConn,
         uuid: &Uuid,
-        jid: &JID,
+        jid: &BareJid,
         pre_assigned_role: MemberRole,
         contact: InvitationContact,
     ) -> Result<workspace_invitation::Model, DbErr> {
@@ -66,7 +67,7 @@ impl Mutation {
             id: NotSet,
             created_at: Set(now),
             status: NotSet,
-            jid: Set(jid.to_owned()),
+            jid: Set(jid.to_owned().into()),
             pre_assigned_role: Set(pre_assigned_role),
             invitation_channel: NotSet,
             email_address: NotSet,
@@ -148,7 +149,7 @@ impl Mutation {
     /// Use `UserFactory` instead, to create users in both places at the same time.
     pub async fn create_user<'a, C: ConnectionTrait>(
         db: &C,
-        jid: &JID,
+        jid: &BareJid,
         role: &Option<MemberRole>,
     ) -> Result<member::Model, MutationError> {
         let now = Utc::now();
@@ -157,7 +158,7 @@ impl Mutation {
             role: role.map(Set).unwrap_or(NotSet),
             joined_at: Set(now),
         };
-        new_member.set_jid(jid);
+        new_member.set_jid(&jid.to_owned().into());
         new_member.insert(db).await.map_err(Into::into)
     }
 

@@ -55,7 +55,7 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
             Err(err) => return Outcome::Error(err.into()),
         };
         let ctx = XmppServiceContext {
-            full_jid: jid,
+            bare_jid: jid,
             prosody_token,
         };
         let xmpp_service = xmpp_service::XmppService::new(xmpp_service_inner, ctx);

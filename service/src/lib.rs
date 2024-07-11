@@ -21,14 +21,13 @@ pub use auth_service::{
     AuthError, AuthService, AuthServiceImpl, LiveAuthService, JWT_PROSODY_TOKEN_KEY,
 };
 use config::Config;
-use entity::{model::JID, server_config::Model as ServerConfig};
+use entity::server_config::Model as ServerConfig;
 pub use jwt_service::{JWTError, JWTKey, JWTService, JWT_JID_KEY};
 pub use mutation::*;
 pub use prosody::prosody_config_from_db;
 pub use query::*;
 pub use reqwest::Client as HttpClient;
 pub use server_ctl::ServerCtl;
-use uuid::Uuid;
 pub use xmpp::xmpp_service::{self, *};
 
 pub use prosody_config::ProsodyConfigSection;
@@ -36,19 +35,4 @@ pub use sea_orm;
 
 trait ProseDefault {
     fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self;
-}
-
-// TODO: Use `Jid`s everywhere and remove this
-pub(crate) fn into_jid(from: &JID) -> xmpp_parsers::Jid {
-    xmpp_parsers::Jid::new(from.to_string().as_str()).unwrap()
-}
-
-// TODO: Use `FullJid`s everywhere and remove this
-pub(crate) fn into_full_jid(from: &JID) -> xmpp_parsers::FullJid {
-    xmpp_parsers::FullJid::new(&format!("{}/{}", from, Uuid::new_v4())).unwrap()
-}
-
-// TODO: Use `BareJid`s everywhere and remove this
-pub(crate) fn into_bare_jid(from: &JID) -> xmpp_parsers::BareJid {
-    xmpp_parsers::BareJid::new(from.to_string().as_str()).unwrap()
 }

@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{JIDNode, MemberRole, JID};
+use entity::model::{JIDNode, MemberRole};
 use entity::{server_config, workspace};
 use rocket::response::status;
 use rocket::serde::json::Json;
@@ -19,6 +19,7 @@ use crate::forms::JID as JIDUriParam;
 use crate::guards::{
     Db, LazyGuard, ServerConfig, UnauthenticatedServerManager, UnauthenticatedUserFactory,
 };
+use crate::util::bare_jid_from_username;
 use crate::v1::members::{rocket_uri_macro_get_member, Member};
 use crate::v1::Created;
 
@@ -111,10 +112,7 @@ pub async fn init_first_account(
     let server_config = server_config.inner?;
     let user_factory = user_factory.inner?;
 
-    let jid = JID {
-        node: req.username.to_owned(),
-        domain: server_config.domain.to_owned(),
-    };
+    let jid = bare_jid_from_username(req.username.to_string(), &server_config)?;
     let txn = db.begin().await?;
     let member = user_factory
         .create_user(

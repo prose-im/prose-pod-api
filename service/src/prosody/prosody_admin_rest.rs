@@ -6,11 +6,9 @@
 use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
 use async_trait::async_trait;
-use entity::{
-    model::{MemberRole, JID},
-    server_config,
-};
+use entity::{model::MemberRole, server_config};
 use log::debug;
+use prose_xmpp::BareJid;
 use reqwest::{
     header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
 };
@@ -31,7 +29,7 @@ pub struct ProsodyAdminRest {
     config_file_path: PathBuf,
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
-    api_auth_username: JID,
+    api_auth_username: BareJid,
     api_auth_password: String,
 }
 
@@ -137,14 +135,18 @@ impl ProsodyAdminRest {
         Ok(())
     }
 
-    fn update_team_members(&self, method: Method, jid: &JID) -> Result<(), Error> {
+    fn update_team_members(&self, method: Method, jid: &BareJid) -> Result<(), Error> {
         let add_member = |client: &HttpClient| {
             client.request(
                 method,
                 format!(
                     "{}/{TEAM_GROUP_ID}/members/{}",
                     self.url_on_main_host("groups"),
-                    urlencoding::encode(&jid.node.to_string())
+                    urlencoding::encode(
+                        jid.node()
+                            .expect("Bare JID has no node part: {jid}")
+                            .as_str()
+                    )
                 ),
             )
         };
@@ -207,7 +209,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
             .map(|_| ())
     }
 
-    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error> {
+    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error> {
         // Create the user
         self.call(|client| {
             client
@@ -224,7 +226,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
 
         Ok(())
     }
-    fn remove_user(&self, jid: &JID) -> Result<(), Error> {
+    fn remove_user(&self, jid: &BareJid) -> Result<(), Error> {
         // Remove the user from everyone's roster
         self.update_team_members(Method::DELETE, jid)?;
 
@@ -239,7 +241,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
 
         Ok(())
     }
-    fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error> {
+    fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error> {
         self.call(|client| {
             client
                 .patch(format!(
@@ -255,7 +257,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
 
 #[async_trait]
 impl NonStandardXmppClient for ProsodyAdminRest {
-    async fn is_connected(&self, jid: &JID) -> Result<bool, anyhow::Error> {
+    async fn is_connected(&self, jid: &BareJid) -> Result<bool, anyhow::Error> {
         let response = self.call(|client| {
             client.get(format!(
                 "{}/{}/connected",

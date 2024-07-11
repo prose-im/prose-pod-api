@@ -10,6 +10,7 @@ pub mod error;
 pub mod forms;
 pub mod guards;
 pub mod responders;
+mod util;
 pub mod v1;
 
 use error::Error;

@@ -5,7 +5,7 @@
 
 use std::{collections::BTreeMap, ops::Deref};
 
-use entity::model::JID;
+use prose_xmpp::BareJid;
 
 use crate::{
     jwt_service::JWTError,
@@ -35,7 +35,7 @@ impl Deref for AuthService {
 
 pub trait AuthServiceImpl: Sync + Send {
     /// Generates a token from a username and password.
-    fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError>;
+    fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, AuthError>;
     fn verify(&self, jwt: &str) -> Result<BTreeMap<String, String>, JWTError>;
 }
 
@@ -54,7 +54,7 @@ impl LiveAuthService {
 }
 
 impl AuthServiceImpl for LiveAuthService {
-    fn log_in(&self, jid: &JID, password: &str) -> Result<String, AuthError> {
+    fn log_in(&self, jid: &BareJid, password: &str) -> Result<String, AuthError> {
         let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password)? else {
             Err(AuthError::InvalidCredentials)?
         };

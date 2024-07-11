@@ -1084,6 +1084,7 @@ version = "0.2.0"
 dependencies = [
  "email_address",
  "iso8601-duration",
+ "jid",
  "rocket",
  "sea-orm",
  "serde",

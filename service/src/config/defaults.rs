@@ -5,7 +5,7 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr as _};
 
 use entity::model::JIDNode;
 

@@ -9,8 +9,9 @@ use std::process::Output;
 use std::str::{self, Utf8Error};
 use std::{fmt, io};
 
-use entity::model::{MemberRole, JID};
+use entity::model::MemberRole;
 use entity::server_config;
+use prose_xmpp::BareJid;
 
 use crate::config::Config;
 
@@ -42,12 +43,12 @@ pub trait ServerCtlImpl: Sync + Send {
     ) -> Result<(), Error>;
     fn reload(&self) -> Result<(), Error>;
 
-    fn add_user(&self, jid: &JID, password: &str) -> Result<(), Error>;
-    fn remove_user(&self, jid: &JID) -> Result<(), Error>;
-    fn set_user_role(&self, jid: &JID, role: &MemberRole) -> Result<(), Error>;
+    fn add_user(&self, jid: &BareJid, password: &str) -> Result<(), Error>;
+    fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
+    fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
     fn add_user_with_role(
         &self,
-        jid: &JID,
+        jid: &BareJid,
         password: &str,
         role: &MemberRole,
     ) -> Result<(), Error> {
