@@ -139,7 +139,7 @@ pub(super) fn set_member_nickname(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(error::Unauthorized(
+        Err(error::Forbidden(
             "You can't change someone else's nickname.".to_string(),
         ))?
     }
@@ -178,7 +178,7 @@ pub(super) fn set_member_avatar(
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {
-        Err(error::Unauthorized(
+        Err(error::Forbidden(
             "You can't change someone else's avatar.".to_string(),
         ))?
     }

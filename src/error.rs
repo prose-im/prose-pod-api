@@ -31,6 +31,7 @@ pub(crate) enum ErrorCode {
     NotImplemented,
     InternalServerError,
     Unauthorized,
+    Forbidden,
     DatabaseError,
     WorkspaceNotInitialized,
     WorkspaceAlreadyInitialized,
@@ -49,6 +50,7 @@ impl ErrorCode {
             Self::NotImplemented => "not_implemented",
             Self::InternalServerError => "internal_server_error",
             Self::Unauthorized => "unauthorized",
+            Self::Forbidden => "forbidden",
             Self::DatabaseError => "database_error",
             Self::WorkspaceNotInitialized => "workspace_not_initialized",
             Self::WorkspaceAlreadyInitialized => "workspace_already_initialized",
@@ -67,6 +69,7 @@ impl ErrorCode {
             Self::NotImplemented => Status::NotImplemented,
             Self::InternalServerError | Self::DatabaseError => Status::InternalServerError,
             Self::Unauthorized => Status::Unauthorized,
+            Self::Forbidden => Status::Forbidden,
             Self::BadRequest | Self::WorkspaceNotInitialized | Self::ServerConfigNotInitialized => {
                 Status::BadRequest
             }
@@ -204,6 +207,16 @@ impl HttpApiError for Unauthorized {
     }
 }
 impl_into_error_from_display!(Unauthorized);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Forbidden: {0}")]
+pub struct Forbidden(pub String);
+impl HttpApiError for Forbidden {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::Forbidden
+    }
+}
+impl_into_error_from_display!(Forbidden);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Unknown database error")]

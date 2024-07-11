@@ -26,6 +26,7 @@ impl FromStr for HTTPStatus {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HTTPStatus(match s {
             "Unauthorized" => Status::Unauthorized,
+            "Forbidden" => Status::Forbidden,
             "Ok" | "OK" => Status::Ok,
             "Created" => Status::Created,
             "PartialContent" | "Partial Content" => Status::PartialContent,

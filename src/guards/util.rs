@@ -58,7 +58,7 @@ pub(super) async fn check_caller_is_admin<'r, 'a>(
     match MemberRepository::is_admin(db, &jid).await {
         Ok(true) => Outcome::Success(()),
         Ok(false) => {
-            return Error::from(error::Unauthorized(format!("<{jid}> is not an admin"))).into();
+            return Error::from(error::Forbidden(format!("<{jid}> is not an admin"))).into();
         }
         Err(e) => return Error::from(e).into(),
     }

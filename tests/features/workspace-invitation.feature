@@ -28,9 +28,8 @@ Feature: Inviting members
     Scenario: Rémi (not admin) invites Marc
       Given Rémi is not an admin
        When Rémi invites <marc@prose.org> as a MEMBER
-       Then the HTTP status code should be Unauthorized
+       Then the HTTP status code should be Forbidden
         And the response content type should be JSON
-        And the response should contain a "WWW-Authenticate" HTTP header
 
   """
   In the Prose Pod Dashboard, admins should be able to see
@@ -106,7 +105,7 @@ Feature: Inviting members
       Given <marc@prose.org> has been invited via email
         And Rémi is not an admin
        When Rémi cancels the invitation
-       Then the HTTP status code should be Unauthorized
+       Then the HTTP status code should be Forbidden
         And there should be an invitation for <marc@prose.org> in the database
 
   """
@@ -168,7 +167,7 @@ Feature: Inviting members
         And the invitation did not go through
         And Rémi is not an admin
        When Rémi resends the invitation
-       Then the HTTP status code should be Unauthorized
+       Then the HTTP status code should be Forbidden
         And 0 email should have been sent
 
   """
@@ -258,7 +257,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invitation
        When <remi@prose.org> requests the invitation associated to their previous accept token
-       Then the HTTP status code should be Unauthorized
+       Then the HTTP status code should be Forbidden
 
   Rule: Invited members can choose their nickname when joining
 

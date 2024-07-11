@@ -71,7 +71,7 @@ pub(super) async fn invite_member<'r>(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
     let invitation = InvitationController::invite_member(
@@ -162,9 +162,7 @@ pub(super) async fn get_invitation_by_token(
         InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, &token).await,
     }?;
     let Some(invitation) = invitation else {
-        return Err(
-            error::Unauthorized("No invitation found for provided token".to_string()).into(),
-        );
+        return Err(error::Forbidden("No invitation found for provided token".to_string()).into());
     };
 
     let response: WorkspaceInvitation = invitation.into();
@@ -233,7 +231,7 @@ pub(super) async fn invitation_resend(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
     InvitationController::resend(db, &app_config, &notifier, invitation_id).await?;
@@ -253,7 +251,7 @@ pub(super) async fn invitation_cancel(
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Unauthorized(format!("<{jid}> is not an admin")).into());
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
     InvitationController::cancel(db, invitation_id).await?;
