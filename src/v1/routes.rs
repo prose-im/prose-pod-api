@@ -33,12 +33,14 @@ pub struct LoginResponse {
 
 /// Log user in and return an authentication token.
 #[post("/v1/login")]
-pub(super) fn login(
+pub(super) async fn login(
     basic_auth: LazyGuard<BasicAuth>,
     auth_service: &State<AuthService>,
 ) -> R<LoginResponse> {
     let basic_auth = basic_auth.inner?;
-    let token = auth_service.log_in(&basic_auth.jid, &basic_auth.password)?;
+    let token = auth_service
+        .log_in(&basic_auth.jid, &basic_auth.password)
+        .await?;
     let response = LoginResponse {
         token: LoginToken::from(token).into(),
     }

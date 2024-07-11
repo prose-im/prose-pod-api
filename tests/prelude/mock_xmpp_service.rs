@@ -103,26 +103,35 @@ impl MockXmppService {
     }
 }
 
+#[async_trait::async_trait]
 impl XmppServiceImpl for MockXmppService {
-    fn get_vcard(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<Option<VCard>, Error> {
+    async fn get_vcard(
+        &self,
+        _ctx: &XmppServiceContext,
+        jid: &BareJid,
+    ) -> Result<Option<VCard>, Error> {
         self.get_vcard(jid)
     }
-    fn set_own_vcard(&self, ctx: &XmppServiceContext, vcard: &VCard) -> Result<(), Error> {
+    async fn set_own_vcard(&self, ctx: &XmppServiceContext, vcard: &VCard) -> Result<(), Error> {
         self.set_vcard(&ctx.bare_jid, vcard)
     }
 
-    fn get_avatar(
+    async fn get_avatar(
         &self,
         _ctx: &XmppServiceContext,
         jid: &BareJid,
     ) -> Result<Option<AvatarData>, Error> {
         self.get_avatar(jid)
     }
-    fn set_own_avatar(&self, ctx: &XmppServiceContext, image_data: Vec<u8>) -> Result<(), Error> {
+    async fn set_own_avatar(
+        &self,
+        ctx: &XmppServiceContext,
+        image_data: Vec<u8>,
+    ) -> Result<(), Error> {
         self.set_avatar(&ctx.bare_jid, Some(image_data))
     }
 
-    fn is_connected(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<bool, Error> {
+    async fn is_connected(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<bool, Error> {
         self.is_connected(jid)
     }
 }

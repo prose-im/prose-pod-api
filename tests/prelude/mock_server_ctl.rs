@@ -61,15 +61,20 @@ impl Default for MockServerCtlState {
     }
 }
 
+#[async_trait::async_trait]
 impl ServerCtlImpl for MockServerCtl {
-    fn save_config(&self, server_config: &ServerConfig, app_config: &Config) -> Result<(), Error> {
+    async fn save_config(
+        &self,
+        server_config: &ServerConfig,
+        app_config: &Config,
+    ) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
         state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
         Ok(())
     }
-    fn reload(&self) -> Result<(), Error> {
+    async fn reload(&self) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
@@ -77,7 +82,7 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
+    async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
@@ -109,14 +114,14 @@ impl ServerCtlImpl for MockServerCtl {
         );
         Ok(())
     }
-    fn remove_user(&self, jid: &BareJid) -> Result<(), Error> {
+    async fn remove_user(&self, jid: &BareJid) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
         state.users.remove(jid);
         Ok(())
     }
-    fn set_user_role(&self, _jid: &BareJid, _role: &MemberRole) -> Result<(), Error> {
+    async fn set_user_role(&self, _jid: &BareJid, _role: &MemberRole) -> Result<(), Error> {
         self.check_online()?;
 
         // NOTE: The role is stored on our side in the database,

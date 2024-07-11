@@ -73,7 +73,7 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
     match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => {
             let server_manager = ServerManager::new(db, app_config, server_ctl, server_config);
-            if let Err(err) = server_manager.reload_current() {
+            if let Err(err) = server_manager.reload_current().await {
                 error!("Could not initialize the XMPP server configuration: {err}");
             }
         }
