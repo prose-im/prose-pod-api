@@ -458,6 +458,16 @@ impl Into<LuaValue> for RoomCreationRestriction {
     }
 }
 
+impl Into<LuaValue> for ArchivePolicy {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Always => true.into(),
+            Self::OnlyIfEnabled => false.into(),
+            Self::ContactsOnly => "roster".into(),
+        }
+    }
+}
+
 // ===== Data structure conversions =====
 
 impl TimeLike {

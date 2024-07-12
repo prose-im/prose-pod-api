@@ -77,7 +77,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
         add_enabled_module(global_settings, "mam");
         global_settings.archive_expires_after =
             Some(model.message_archive_retention.into_prosody());
-        global_settings.default_archive_policy = Some(true);
+        global_settings.default_archive_policy = Some(ArchivePolicy::Always);
         global_settings.max_archive_query_results = Some(100);
         add_enabled_module(muc_settings, "muc_mam");
     }

@@ -91,7 +91,14 @@ pub struct ProsodySettings {
     pub cross_domain_websocket: Option<bool>,
     pub contact_info: Option<ContactInfo>,
     pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
-    pub default_archive_policy: Option<bool>,
+    /// Controls whether messages are archived by default.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub default_archive_policy: Option<ArchivePolicy>,
+    /// The maxiumum number of messages returned to a client at a time.
+    /// Too low will cause excessive queries when clients try to fetch all messages,
+    /// too high may consume more resources on the server.
+    ///
     /// See <https://prosody.im/doc/modules/mod_mam>.
     pub max_archive_query_results: Option<u32>,
     pub upgrade_legacy_vcards: Option<bool>,
@@ -251,6 +258,17 @@ pub enum RoomCreationRestriction {
     /// Restrict the creation of rooms to users on the main domain only
     /// (e.g. `example.com` in the case `Component "conference.example.com" "muc"`).
     DomainOnly,
+}
+
+/// See <https://prosody.im/doc/modules/mod_mam>.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ArchivePolicy {
+    /// Always archive messages.
+    Always,
+    /// Only archive messages if the user enables it.
+    OnlyIfEnabled,
+    /// Only archive messages for contacts.
+    ContactsOnly,
 }
 
 // ===== DEFAULT =====
