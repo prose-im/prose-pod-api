@@ -1,4 +1,4 @@
-Feature: File upload
+Feature: XMPP server configuration: File upload
 
   Background:
     Given the Prose Pod has been initialized

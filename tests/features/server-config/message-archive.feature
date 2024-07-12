@@ -1,4 +1,4 @@
-Feature: Message archive
+Feature: XMPP server configuration: Message archive
 
   Background:
     Given the Prose Pod has been initialized
