@@ -16,7 +16,7 @@ use crate::model::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_serializing, skip_deserializing)]
-    pub id: i32,
+    id: i32,
     pub domain: String,
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
