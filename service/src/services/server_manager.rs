@@ -46,7 +46,10 @@ impl<'r> ServerManager<'r> {
     }
 
     pub fn server_config(&self) -> ServerConfig {
-        self.server_config_mut().to_owned()
+        self.server_config
+            .read()
+            .expect("`ServerConfig` lock poisonned")
+            .to_owned()
     }
 }
 
@@ -55,7 +58,7 @@ impl<'r> ServerManager<'r> {
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
-        let old_server_config = self.server_config_mut().clone();
+        let old_server_config = self.server_config();
 
         let mut active: server_config::ActiveModel = old_server_config.clone().into();
         update(&mut active);
