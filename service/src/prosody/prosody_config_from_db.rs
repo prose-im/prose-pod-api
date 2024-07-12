@@ -365,7 +365,7 @@ fn add_enabled_module(settings: &mut ProsodySettings, module_name: &'static str)
 
 // ===== Model mappings =====
 
-trait IntoProsody<T> {
+pub trait IntoProsody<T> {
     fn into_prosody(self) -> T;
 }
 

@@ -16,6 +16,7 @@ use service::repositories::ServerConfigRepository;
 use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
 
 use crate::cucumber_parameters::{Duration, ToggleState};
+use crate::util::*;
 use crate::v1::server::given_server_config;
 use crate::TestWorld;
 
@@ -113,13 +114,15 @@ async fn when_set_message_archive_retention(
 }
 
 #[then(expr = "message archiving is {toggle}")]
-async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
+async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
+    let enabled = enabled.as_bool();
+
     // Check in database
     let db = world.db();
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.message_archive_enabled, state.as_bool());
+    assert_eq!(server_config.message_archive_enabled, enabled);
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
@@ -130,35 +133,11 @@ async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Re
         .to_owned();
     let global_modules = global_settings.modules_enabled.unwrap_or_default();
     let muc_modules = muc_settings.modules_enabled.unwrap_or_default();
-    if state.as_bool() {
-        assert!(
-            global_modules.contains("mam"),
-            r#""mam" not found in {:#?}"#,
-            global_modules
-        );
-        assert_ne!(global_settings.archive_expires_after, None);
-        assert_ne!(global_settings.default_archive_policy, None);
-        assert_ne!(global_settings.max_archive_query_results, None);
-        assert!(
-            muc_modules.contains("muc_mam"),
-            r#""muc_mam" not found in {:#?}"#,
-            global_modules
-        );
-    } else {
-        assert!(
-            !global_modules.contains("mam"),
-            r#""mam" found in {:#?}"#,
-            global_modules
-        );
-        assert_eq!(global_settings.archive_expires_after, None);
-        assert_eq!(global_settings.default_archive_policy, None);
-        assert_eq!(global_settings.max_archive_query_results, None);
-        assert!(
-            !muc_modules.contains("muc_mam"),
-            r#""muc_mam" found in {:#?}"#,
-            global_modules
-        );
-    }
+    assert_contains_if(enabled, &global_modules, "mam", LinkedHashSet::contains);
+    assert_defined_if(enabled, global_settings.archive_expires_after);
+    assert_defined_if(enabled, global_settings.default_archive_policy);
+    assert_defined_if(enabled, global_settings.max_archive_query_results);
+    assert_contains_if(enabled, &muc_modules, "muc_mam", LinkedHashSet::contains);
 
     Ok(())
 }
