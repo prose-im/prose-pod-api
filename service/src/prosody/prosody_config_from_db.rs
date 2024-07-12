@@ -50,6 +50,17 @@ impl ProsodyConfig {
             .reduce(|acc, e| acc.union(&e).cloned().collect())
             .unwrap_or_default()
     }
+
+    pub fn component_settings(&self, name: &str) -> Option<&ProsodySettings> {
+        self.additional_sections
+            .iter()
+            .find_map(|section| match section {
+                ProsodyConfigSection::Component {
+                    plugin, settings, ..
+                } if plugin.as_str() == name => Some(settings),
+                _ => None,
+            })
+    }
 }
 
 impl ToString for ProsodyConfig {

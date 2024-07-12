@@ -5,15 +5,18 @@
 
 use cucumber::{given, then, when};
 use migration::DbErr;
-use prose_pod_api::v1::server::config::*;
+use prose_pod_api::{error::Error, v1::server::config::*};
 use rocket::http::{ContentType, Header};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
+use service::prosody::IntoProsody as _;
+use service::prosody_config::linked_hash_set::LinkedHashSet;
 use service::repositories::ServerConfigRepository;
 use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
 
 use crate::cucumber_parameters::{Duration, ToggleState};
+use crate::v1::server::given_server_config;
 use crate::TestWorld;
 
 // MESSAGE ARCHIVING
@@ -63,30 +66,22 @@ async fn set_message_archive_retention<'a>(
 }
 
 #[given(expr = "message archiving is {toggle}")]
-async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace should be initialized first");
-    let mut model = server_config.into_active_model();
-    model.message_archive_enabled = Set(state.into());
-    model.update(db).await?;
-    Ok(())
+async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
+    given_server_config(world, |model| {
+        model.message_archive_enabled = Set(state.into());
+    })
+    .await
 }
 
 #[given(expr = "the message archive retention is set to {duration}")]
 async fn given_message_archive_retention(
     world: &mut TestWorld,
     duration: Duration,
-) -> Result<(), DbErr> {
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace should be initialized first");
-    let mut model = server_config.into_active_model();
-    model.message_archive_retention = Set(duration.into());
-    model.update(db).await?;
-    Ok(())
+) -> Result<(), Error> {
+    given_server_config(world, |model| {
+        model.message_archive_retention = Set(duration.into());
+    })
+    .await
 }
 
 #[when(expr = "{} turns message archiving {toggle}")]
@@ -118,12 +113,53 @@ async fn when_set_message_archive_retention(
 }
 
 #[then(expr = "message archiving is {toggle}")]
-async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
+async fn then_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
+    // Check in database
     let db = world.db();
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
     assert_eq!(server_config.message_archive_enabled, state.as_bool());
+
+    // Check applied Prosody configuration
+    let prosody_config = world.server_ctl_state().applied_config.unwrap();
+    let global_settings = prosody_config.global_settings.to_owned();
+    let muc_settings = prosody_config
+        .component_settings("muc")
+        .expect(r#"The "muc" component should exist"#)
+        .to_owned();
+    let global_modules = global_settings.modules_enabled.unwrap_or_default();
+    let muc_modules = muc_settings.modules_enabled.unwrap_or_default();
+    if state.as_bool() {
+        assert!(
+            global_modules.contains("mam"),
+            r#""mam" not found in {:#?}"#,
+            global_modules
+        );
+        assert_ne!(global_settings.archive_expires_after, None);
+        assert_ne!(global_settings.default_archive_policy, None);
+        assert_ne!(global_settings.max_archive_query_results, None);
+        assert!(
+            muc_modules.contains("muc_mam"),
+            r#""muc_mam" not found in {:#?}"#,
+            global_modules
+        );
+    } else {
+        assert!(
+            !global_modules.contains("mam"),
+            r#""mam" found in {:#?}"#,
+            global_modules
+        );
+        assert_eq!(global_settings.archive_expires_after, None);
+        assert_eq!(global_settings.default_archive_policy, None);
+        assert_eq!(global_settings.max_archive_query_results, None);
+        assert!(
+            !muc_modules.contains("muc_mam"),
+            r#""muc_mam" found in {:#?}"#,
+            global_modules
+        );
+    }
+
     Ok(())
 }
 
@@ -132,11 +168,23 @@ async fn then_message_archive_retention(
     world: &mut TestWorld,
     duration: Duration,
 ) -> Result<(), DbErr> {
+    let duration = duration.into();
+
+    // Check in database
     let db = world.db();
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.message_archive_retention, duration.into());
+    assert_eq!(server_config.message_archive_retention, duration);
+
+    // Check applied Prosody configuration
+    let prosody_config = world.server_ctl_state().applied_config.unwrap();
+    let global_settings = prosody_config.global_settings.to_owned();
+    assert_eq!(
+        global_settings.archive_expires_after,
+        Some(duration.into_prosody())
+    );
+
     Ok(())
 }
 
