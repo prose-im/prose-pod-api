@@ -10,7 +10,7 @@ mod v1;
 use self::prelude::*;
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
@@ -252,8 +252,8 @@ impl TestWorld {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl_state(&self) -> RwLockReadGuard<MockServerCtlState> {
-        self.server_ctl.state.read().unwrap()
+    fn server_ctl_state(&self) -> MockServerCtlState {
+        self.server_ctl.state.read().unwrap().to_owned()
     }
 
     fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
@@ -264,8 +264,8 @@ impl TestWorld {
         self.xmpp_service.state.write().unwrap()
     }
 
-    fn notifier_state(&self) -> RwLockReadGuard<MockNotifierState> {
-        self.notifier.state.read().unwrap()
+    fn notifier_state(&self) -> MockNotifierState {
+        self.notifier.state.read().unwrap().to_owned()
     }
 
     fn token(&self, user: String) -> SecretString {
