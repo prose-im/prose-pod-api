@@ -1085,7 +1085,6 @@ dependencies = [
  "email_address",
  "iso8601-duration",
  "jid",
- "rocket",
  "sea-orm",
  "serde",
  "serde_json",
@@ -2854,6 +2853,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "prose-pod-config"
+version = "0.2.0"
+dependencies = [
+ "figment",
+ "jid",
+ "prose-xmpp",
+ "secrecy",
+ "serde",
+ "serde_with",
+ "url_serde",
+]
+
+[[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
 source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
@@ -3861,6 +3873,7 @@ dependencies = [
  "migration",
  "minidom",
  "parking_lot",
+ "prose-pod-config",
  "prose-xmpp",
  "prosody-config",
  "rand",

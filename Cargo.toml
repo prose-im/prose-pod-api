@@ -14,7 +14,7 @@ authors = [
 ]
 
 [workspace]
-members = [".", "entity", "migration", "prosody-config", "service"]
+members = [".", "config", "entity", "migration", "prosody-config", "service"]
 
 [workspace.package]
 version = "0.2.0"
@@ -30,6 +30,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 base64 = "0.22"
 chrono = "0.4"
+prose-pod-config = { path = "./config" }
 cucumber = "0.21"
 email_address = "0.2"
 entity = { path = "./entity" }

@@ -7,12 +7,12 @@
 
 use std::{path::PathBuf, str::FromStr as _};
 
-use entity::model::JIDNode;
+use crate::model::JidNode;
 
 use super::WorkspaceInvitationChannel;
 
-pub fn api_admin_node() -> JIDNode {
-    JIDNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`")
+pub fn api_admin_node() -> JidNode {
+    JidNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`")
 }
 
 pub fn server_local_hostname() -> String {

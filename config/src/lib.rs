@@ -6,20 +6,25 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod defaults;
+pub mod model;
 
 use std::{path::PathBuf, str::FromStr};
 
-use entity::model::JIDNode;
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use jid::{DomainPart, NodePart};
+use model::JidNode;
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
-use xmpp_parsers::jid::{DomainPart, NodePart};
 
+/// Prose Pod configuration.
+///
+/// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
+/// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]
@@ -57,7 +62,7 @@ impl Config {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigApi {
     #[serde(default = "defaults::api_admin_node")]
-    pub admin_node: JIDNode,
+    pub admin_node: JidNode,
     pub admin_password: Option<SecretString>,
 }
 
@@ -131,14 +136,6 @@ pub enum WorkspaceInvitationChannel {
 impl Default for WorkspaceInvitationChannel {
     fn default() -> Self {
         defaults::notify_workspace_invitation_channel()
-    }
-}
-
-impl From<entity::model::InvitationChannel> for WorkspaceInvitationChannel {
-    fn from(value: entity::model::InvitationChannel) -> Self {
-        match value {
-            entity::model::InvitationChannel::Email => Self::Email,
-        }
     }
 }
 
