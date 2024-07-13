@@ -691,8 +691,8 @@
 		"/v1/server/config/messaging/reset": {
 			"put": {
 				"tags": ["Server / Configuration"],
-				"summary": "Reset messaging configuration",
-				"description": "Reset the messaging configuration to its default value.",
+				"summary": "Reset 'Messaging' configuration",
+				"description": "Reset the 'Messaging' configuration to its default value.",
 				"operationId": "reset_messaging_config",
 				"security": [
 					{ "BearerAuth": [] }
@@ -750,6 +750,30 @@
 				"summary": "Reset message archive retention",
 				"description": "Reset the message archive retention to its default value.",
 				"operationId": "reset_message_archive_retention",
+				"security": [
+					{ "BearerAuth": [] }
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/ServerConfig" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/server/config/files/reset": {
+			"put": {
+				"tags": ["Server / Configuration"],
+				"summary": "Reset 'Files' configuration",
+				"description": "Reset the 'Files' configuration to its default value.",
+				"operationId": "reset_files_config",
 				"security": [
 					{ "BearerAuth": [] }
 				],

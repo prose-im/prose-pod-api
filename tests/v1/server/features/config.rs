@@ -66,12 +66,26 @@ async fn set_message_archive_retention<'a>(
         .await
 }
 
-async fn reset_reset_messaging_confiuration<'a>(
+async fn reset_messaging_configuration<'a>(
     client: &'a Client,
     token: SecretString,
 ) -> LocalResponse<'a> {
     client
         .put("/v1/server/config/messaging/reset")
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
+        .dispatch()
+        .await
+}
+
+async fn reset_files_configuration<'a>(
+    client: &'a Client,
+    token: SecretString,
+) -> LocalResponse<'a> {
+    client
+        .put("/v1/server/config/files/reset")
         .header(Header::new(
             "Authorization",
             format!("Bearer {}", token.expose_secret()),
@@ -142,14 +156,14 @@ async fn when_set_message_archive_retention(
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
-async fn when_reset_messaging_confiuration(world: &mut TestWorld, name: String) {
+async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
     let token = world
         .members
         .get(&name)
         .expect("User must be created first")
         .1
         .clone();
-    let res = reset_reset_messaging_confiuration(&world.client, token).await;
+    let res = reset_messaging_configuration(&world.client, token).await;
     world.result = Some(res.into());
 }
 
@@ -300,6 +314,18 @@ async fn when_set_file_uploading(world: &mut TestWorld, name: String, state: Tog
         .1
         .clone();
     let res = set_file_uploading(&world.client, token, state.into()).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{} resets the Files configuration to its default value")]
+async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
+    let token = world
+        .members
+        .get(&name)
+        .expect("User must be created first")
+        .1
+        .clone();
+    let res = reset_files_configuration(&world.client, token).await;
     world.result = Some(res.into());
 }
 

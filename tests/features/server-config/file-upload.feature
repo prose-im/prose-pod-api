@@ -34,7 +34,7 @@ Feature: XMPP server configuration: File upload
         And Valerian is an admin
        When Valerian resets the Files configuration to its default value
        Then file uploading is on
-        And the file retention is set to 2 years
+        And the file retention is set to infinite
         And the server is reconfigured
 
   Rule: Turning on/off file uploading is idempotent

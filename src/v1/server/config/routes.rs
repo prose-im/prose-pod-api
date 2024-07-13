@@ -73,6 +73,8 @@ reset_route!(
     reset_message_archive_retention
 );
 
+reset_route!("/v1/server/config/files/reset", reset_files_config);
+
 set_route!(
     "/v1/server/config/allow-file-upload",
     SetFileUploadAllowedRequest,

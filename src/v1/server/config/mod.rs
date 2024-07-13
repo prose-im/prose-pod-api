@@ -14,6 +14,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         set_message_archive_enabled,
         set_message_archive_retention,
         reset_message_archive_retention,
+        reset_files_config,
         set_file_upload_allowed,
         set_file_storage_encryption_scheme,
         set_file_storage_retention,

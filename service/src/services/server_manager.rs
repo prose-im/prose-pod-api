@@ -174,6 +174,18 @@ impl<'r> ServerManager<'r> {
             .await?;
         Ok(model)
     }
+
+    pub async fn reset_files_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting files configuration…");
+        let model = self
+            .update(|active| {
+                active.file_upload_allowed = Set(None);
+                active.file_storage_encryption_scheme = Set(None);
+                active.file_storage_retention = Set(None);
+            })
+            .await?;
+        Ok(model)
+    }
 }
 
 macro_rules! set_bool {
