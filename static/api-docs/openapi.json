@@ -585,19 +585,7 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/allow-file-upload": {
@@ -617,19 +605,7 @@
 						}
 					}
 				},
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/file-storage-retention": {
@@ -649,19 +625,7 @@
 						}
 					}
 				},
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/file-storage-encryption-scheme": {
@@ -673,19 +637,7 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/messaging/reset": {
@@ -697,19 +649,7 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/message-archive-retention": {
@@ -729,19 +669,7 @@
 						}
 					}
 				},
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/message-archive-retention/reset": {
@@ -753,19 +681,7 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/files/reset": {
@@ -777,19 +693,7 @@
 				"security": [
 					{ "BearerAuth": [] }
 				],
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/config/store-message-archive": {
@@ -809,19 +713,7 @@
 						}
 					}
 				},
-				"responses": {
-					"200": {
-						"description": "Success",
-						"content": {
-							"application/json": {
-								"schema": { "$ref": "#/components/schemas/ServerConfig" }
-							}
-						}
-					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
-					"401": { "$ref": "#/components/responses/Unauthorized" },
-					"403": { "$ref": "#/components/responses/Forbidden" }
-				}
+				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
 		"/v1/server/connection-history": {
@@ -2139,6 +2031,19 @@
 						}
 					}
 				}
+			},
+			"GetServerConfigAllResponses": {
+				"200": {
+					"description": "Success",
+					"content": {
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/ServerConfig" }
+						}
+					}
+				},
+				"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+				"401": { "$ref": "#/components/responses/Unauthorized" },
+				"403": { "$ref": "#/components/responses/Forbidden" }
 			}
 		},
 		"parameters": {
