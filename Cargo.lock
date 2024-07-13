@@ -1079,20 +1079,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "entity"
-version = "0.2.0"
-dependencies = [
- "email_address",
- "iso8601-duration",
- "jid",
- "sea-orm",
- "serde",
- "serde_json",
- "serde_with",
- "uuid",
-]
-
-[[package]]
 name = "enum-as-inner"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2853,19 +2839,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prose-pod-config"
-version = "0.2.0"
-dependencies = [
- "figment",
- "jid",
- "prose-xmpp",
- "secrecy",
- "serde",
- "serde_with",
- "url_serde",
-]
-
-[[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
 source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
@@ -3863,17 +3836,19 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "cucumber",
- "entity",
+ "email_address",
  "figment",
  "form_urlencoded",
  "hmac",
  "insta",
+ "iso8601-duration",
+ "jid",
  "jwt",
+ "lazy_static",
  "lettre",
  "migration",
  "minidom",
  "parking_lot",
- "prose-pod-config",
  "prose-xmpp",
  "prosody-config",
  "rand",
@@ -3882,6 +3857,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serde_with",
  "sha2",
  "tempfile",
  "thiserror",

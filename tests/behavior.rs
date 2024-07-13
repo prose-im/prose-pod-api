@@ -80,6 +80,7 @@ async fn main() {
                     targets.append(&mut vec![
                         ("prose_pod_api", LevelFilter::TRACE),
                         ("service", LevelFilter::TRACE),
+                        ("behavior", LevelFilter::TRACE),
                     ]);
                 } else {
                     targets.append(&mut vec![

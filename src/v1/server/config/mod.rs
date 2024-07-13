@@ -12,8 +12,10 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     routes![
         get_server_config,
+        reset_messaging_config,
         store_message_archive,
-        message_archive_retention,
+        set_message_archive_retention,
+        reset_message_archive_retention,
         store_files,
         file_storage_encryption_scheme,
         file_retention,

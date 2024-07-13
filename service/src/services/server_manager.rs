@@ -5,7 +5,7 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
-use entity::server_config;
+use crate::entity::server_config;
 use sea_orm::DbErr;
 use tracing::trace;
 
@@ -163,23 +163,42 @@ impl<'r> ServerManager<'r> {
         .await
     }
 
+    pub async fn reset_messaging_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting messaging configuration…");
+        let model = self
+            .update(|active| {
+                active.message_archive_enabled = Set(None);
+                active.message_archive_retention = Set(None);
+            })
+            .await?;
+        Ok(model)
+    }
+
     pub async fn set_message_archiving(&self, new_state: bool) -> Result<ServerConfig, Error> {
         trace!(
             "Turning {} message archiving…",
             if new_state { "on" } else { "off" }
         );
         self.update(|active| {
-            active.message_archive_enabled = Set(new_state);
+            active.message_archive_enabled = Set(Some(new_state));
         })
         .await
     }
+
     pub async fn set_message_archive_retention(
         &self,
         new_state: PossiblyInfinite<Duration<DateLike>>,
     ) -> Result<ServerConfig, Error> {
         trace!("Setting message archive retention to {new_state}…");
         self.update(|active| {
-            active.message_archive_retention = Set(new_state);
+            active.message_archive_retention = Set(Some(new_state));
+        })
+        .await
+    }
+    pub async fn reset_message_archive_retention(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting message archive retention…");
+        self.update(|active| {
+            active.message_archive_retention = Set(None);
         })
         .await
     }
@@ -190,7 +209,7 @@ impl<'r> ServerManager<'r> {
             if new_state { "on" } else { "off" }
         );
         self.update(|active| {
-            active.file_upload_allowed = Set(new_state);
+            active.file_upload_allowed = Set(Some(new_state));
         })
         .await
     }
@@ -200,7 +219,7 @@ impl<'r> ServerManager<'r> {
     ) -> Result<ServerConfig, Error> {
         trace!("Setting file retention to {new_state}…");
         self.update(|active| {
-            active.file_storage_retention = Set(new_state);
+            active.file_storage_retention = Set(Some(new_state));
         })
         .await
     }

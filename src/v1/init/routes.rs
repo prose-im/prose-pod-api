@@ -10,7 +10,7 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::config::Config as AppConfig;
 use service::controllers::init_controller::{InitController, InitFirstAccountForm};
-use service::model::{JIDNode, ServerConfig, Workspace};
+use service::model::{JidNode, ServerConfig, Workspace};
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm};
 use service::services::server_ctl::ServerCtl;
 
@@ -84,7 +84,7 @@ pub async fn init_server_config(
 
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
-    pub username: JIDNode,
+    pub username: JidNode,
     pub password: SerializableSecretString,
     pub nickname: String,
 }

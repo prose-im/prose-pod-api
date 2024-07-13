@@ -5,8 +5,8 @@
 
 use std::ops::Deref;
 
-use entity::model as db;
-use entity::server_config::Model as ServerConfig;
+use crate::entity::server_config::Model as ServerConfig;
+use crate::model as db;
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use utils::def;
 
@@ -71,6 +71,7 @@ impl ToString for ProsodyConfig {
 
 pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> ProsodyConfig {
     let mut config = prosody_config::ProsodyConfig::prose_default(&model, app_config);
+    let defaults = &app_config.server.defaults;
 
     let global_settings = &mut config.global_settings;
     let muc_settings = config
@@ -84,16 +85,16 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
         })
         .expect("The 'Chatrooms' section should always be present.");
 
-    if model.message_archive_enabled {
+    if model.message_archive_enabled(defaults) {
         add_enabled_module(global_settings, "mam");
         global_settings.archive_expires_after =
-            Some(model.message_archive_retention.into_prosody());
+            Some(model.message_archive_retention(defaults).into_prosody());
         global_settings.default_archive_policy = Some(ArchivePolicy::Always);
         global_settings.max_archive_query_results = Some(100);
         add_enabled_module(muc_settings, "muc_mam");
     }
 
-    if model.file_upload_allowed {
+    if model.file_upload_allowed(defaults) {
         config
             .additional_sections
             .push(ProsodyConfigSection::Component {
@@ -104,7 +105,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
                     http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
                     http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
                     http_file_share_expires_after: Some(
-                        model.file_storage_retention.into_prosody(),
+                        model.file_storage_retention(defaults).into_prosody(),
                     ),
                     http_host: Some("localhost".into()),
                     http_external_url: Some("http://localhost:5280".into()),

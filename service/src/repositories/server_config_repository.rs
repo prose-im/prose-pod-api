@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::server_config::{ActiveModel, Column, Entity};
+use crate::entity::server_config::{ActiveModel, Column, Entity};
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
 use crate::model::ServerConfig;

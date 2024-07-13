@@ -5,12 +5,12 @@
 
 mod prosody;
 
-use ::entity::server_config::Model as ServerConfig;
-use ::migration::{self, MigratorTrait};
 use cucumber::World;
+use migration::{self, MigratorTrait};
 use sea_orm::*;
 use service::{
     config::Config,
+    model::ServerConfig,
     prosody::ProsodyConfig,
     repositories::{
         ServerConfigCreateForm, ServerConfigRepository, WorkspaceCreateForm, WorkspaceRepository,

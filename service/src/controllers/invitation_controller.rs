@@ -1,5 +1,5 @@
+use crate::model::{InvitationContact, InvitationStatus, JidNode, MemberRole};
 use chrono::{DateTime, Utc};
-use entity::model::{InvitationContact, InvitationStatus, JIDNode, MemberRole};
 use prose_xmpp::BareJid;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
@@ -127,7 +127,7 @@ impl InvitationController {
 
 #[derive(Debug)]
 pub struct InviteMemberForm {
-    pub username: JIDNode,
+    pub username: JidNode,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
 }

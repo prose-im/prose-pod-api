@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::{JIDNode, MemberRole};
+use crate::model::{JidNode, MemberRole};
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 
@@ -102,7 +102,7 @@ impl InitController {
 
 #[derive(Debug)]
 pub struct InitFirstAccountForm {
-    pub username: JIDNode,
+    pub username: JidNode,
     pub password: SecretString,
     pub nickname: String,
 }

@@ -3,9 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use crate::entity::workspace_invitation::{ActiveModel, Column, Entity};
 use crate::{dependencies, MutationError};
 use chrono::{DateTime, TimeDelta, Utc};
-use entity::workspace_invitation::{ActiveModel, Column, Entity};
 use prose_xmpp::BareJid;
 use sea_orm::{
     prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,

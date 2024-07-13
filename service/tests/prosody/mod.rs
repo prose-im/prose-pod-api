@@ -19,10 +19,10 @@ fn given_nothing_changed(_world: &mut TestWorld) {
 async fn given_everything_disabled(world: &mut TestWorld) -> Result<(), DbErr> {
     let mut model = world.server_config.clone().into_active_model();
 
-    model.message_archive_enabled = Set(false);
-    model.file_upload_allowed = Set(false);
-    model.mfa_required = Set(false);
-    model.federation_enabled = Set(false);
+    model.message_archive_enabled = Set(Some(false));
+    model.file_upload_allowed = Set(Some(false));
+    model.mfa_required = Set(Some(false));
+    model.federation_enabled = Set(Some(false));
 
     world.server_config = model.update(&world.db).await?;
     Ok(())

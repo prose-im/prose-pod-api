@@ -19,7 +19,7 @@ use rocket::{
 };
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
-use service::model::{InvitationContact, JIDNode};
+use service::model::{InvitationContact, JidNode};
 use service::{
     prose_xmpp::BareJid,
     repositories::{InvitationCreateForm, InvitationRepository},
@@ -35,7 +35,7 @@ use crate::{
 async fn invite_member<'a>(
     client: &'a Client,
     token: &SecretString,
-    username: &JIDNode,
+    username: &JidNode,
     pre_assigned_role: MemberRole,
     contact: InvitationContact,
 ) -> LocalResponse<'a> {
@@ -319,7 +319,7 @@ async fn when_inviting(
     let res = invite_member(
         &world.client,
         &token,
-        &JIDNode::from(email_address.to_owned()),
+        &JidNode::from(email_address.to_owned()),
         pre_assigned_role,
         InvitationContact::Email { email_address },
     )

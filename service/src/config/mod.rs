@@ -5,8 +5,7 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod defaults;
-pub mod model;
+pub mod defaults;
 
 use std::{path::PathBuf, str::FromStr};
 
@@ -15,11 +14,12 @@ use figment::{
     Figment,
 };
 use jid::{DomainPart, NodePart};
-use model::JidNode;
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
+
+use crate::model::{DateLike, Duration, JidNode, PossiblyInfinite};
 
 /// Prose Pod configuration.
 ///
@@ -85,6 +85,8 @@ pub struct ConfigServer {
     pub http_port: u16,
     #[serde(default = "defaults::server_prosody_config_file_path")]
     pub prosody_config_file_path: PathBuf,
+    #[serde(default)]
+    pub defaults: ConfigServerDefaults,
 }
 
 impl ConfigServer {
@@ -115,6 +117,41 @@ impl Default for ConfigServer {
             local_hostname_admin: defaults::server_local_hostname_admin(),
             http_port: defaults::server_http_port(),
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
+            defaults: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServerDefaults {
+    pub message_archive_enabled: bool,
+    pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
+    pub file_upload_allowed: bool,
+    pub file_storage_encryption_scheme: String,
+    pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
+    pub mfa_required: bool,
+    pub minimum_tls_version: String,
+    pub minimum_cipher_suite: String,
+    pub federation_enabled: bool,
+    pub settings_backup_interval: String,
+    pub user_data_backup_interval: String,
+}
+
+impl Default for ConfigServerDefaults {
+    fn default() -> Self {
+        Self {
+            message_archive_enabled: defaults::server_defaults_message_archive_enabled(),
+            message_archive_retention: defaults::server_defaults_message_archive_retention(),
+            file_upload_allowed: defaults::server_defaults_file_upload_allowed(),
+            file_storage_encryption_scheme:
+                defaults::server_defaults_file_storage_encryption_scheme(),
+            file_storage_retention: defaults::server_defaults_file_storage_retention(),
+            mfa_required: defaults::server_defaults_mfa_required(),
+            minimum_tls_version: defaults::server_defaults_minimum_tls_version(),
+            minimum_cipher_suite: defaults::server_defaults_minimum_cipher_suite(),
+            federation_enabled: defaults::server_defaults_federation_enabled(),
+            settings_backup_interval: defaults::server_defaults_settings_backup_interval(),
+            user_data_backup_interval: defaults::server_defaults_user_data_backup_interval(),
         }
     }
 }

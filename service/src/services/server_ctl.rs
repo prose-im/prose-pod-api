@@ -13,8 +13,8 @@ use std::{
     sync::Arc,
 };
 
-use entity::model::MemberRole;
-use entity::server_config;
+use crate::entity::server_config;
+use crate::model::MemberRole;
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 

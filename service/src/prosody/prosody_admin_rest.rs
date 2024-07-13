@@ -5,7 +5,7 @@
 
 use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
-use entity::{model::MemberRole, server_config};
+use crate::{entity::server_config, model::MemberRole};
 use prose_xmpp::BareJid;
 use reqwest::{
     header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,

@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::workspace::{ActiveModel, Column, Entity};
+use crate::entity::workspace::{ActiveModel, Column, Entity};
 use sea_orm::{prelude::*, NotSet, QueryOrder as _, Set, Unchanged};
 
 use crate::model::Workspace;

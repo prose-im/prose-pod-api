@@ -3,8 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use crate::entity::notification::{ActiveModel, Column, Entity, Model};
 use chrono::{DateTime, Utc};
-use entity::notification::{ActiveModel, Column, Entity, Model};
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
 use crate::notifier::Notification;

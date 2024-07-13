@@ -66,10 +66,38 @@ async fn set_message_archive_retention<'a>(
         .await
 }
 
+async fn reset_reset_messaging_confiuration<'a>(
+    client: &'a Client,
+    token: SecretString,
+) -> LocalResponse<'a> {
+    client
+        .put("/v1/server/config/messaging/reset")
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
+        .dispatch()
+        .await
+}
+
+async fn reset_message_archive_retention<'a>(
+    client: &'a Client,
+    token: SecretString,
+) -> LocalResponse<'a> {
+    client
+        .put("/v1/server/config/message-archive-retention/reset")
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
+        .dispatch()
+        .await
+}
+
 #[given(expr = "message archiving is {toggle}")]
 async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
     given_server_config(world, |model| {
-        model.message_archive_enabled = Set(state.into());
+        model.message_archive_enabled = Set(Some(state.into()));
     })
     .await
 }
@@ -80,7 +108,7 @@ async fn given_message_archive_retention(
     duration: Duration,
 ) -> Result<(), Error> {
     given_server_config(world, |model| {
-        model.message_archive_retention = Set(duration.into());
+        model.message_archive_retention = Set(Some(duration.into()));
     })
     .await
 }
@@ -113,8 +141,33 @@ async fn when_set_message_archive_retention(
     world.result = Some(res.into());
 }
 
+#[when(expr = "{} resets the Messaging configuration to its default value")]
+async fn when_reset_messaging_confiuration(world: &mut TestWorld, name: String) {
+    let token = world
+        .members
+        .get(&name)
+        .expect("User must be created first")
+        .1
+        .clone();
+    let res = reset_reset_messaging_confiuration(&world.client, token).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{} resets the message archive retention to its default value")]
+async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
+    let token = world
+        .members
+        .get(&name)
+        .expect("User must be created first")
+        .1
+        .clone();
+    let res = reset_message_archive_retention(&world.client, token).await;
+    world.result = Some(res.into());
+}
+
 #[then(expr = "message archiving is {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
+    let defaults = &world.config.server.defaults;
     let enabled = enabled.as_bool();
 
     // Check in database
@@ -122,7 +175,7 @@ async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> 
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.message_archive_enabled, enabled);
+    assert_eq!(server_config.message_archive_enabled(defaults), enabled);
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
@@ -147,6 +200,7 @@ async fn then_message_archive_retention(
     world: &mut TestWorld,
     duration: Duration,
 ) -> Result<(), DbErr> {
+    let defaults = &world.config.server.defaults;
     let duration = duration.into();
 
     // Check in database
@@ -154,7 +208,7 @@ async fn then_message_archive_retention(
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.message_archive_retention, duration);
+    assert_eq!(server_config.message_archive_retention(defaults), duration);
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
@@ -220,7 +274,7 @@ async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resu
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
-    model.file_upload_allowed = Set(state.into());
+    model.file_upload_allowed = Set(Some(state.into()));
     model.update(db).await?;
     Ok(())
 }
@@ -232,7 +286,7 @@ async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Resu
         .await?
         .expect("Workspace should be initialized first");
     let mut model = server_config.into_active_model();
-    model.file_storage_retention = Set(duration.into());
+    model.file_storage_retention = Set(Some(duration.into()));
     model.update(db).await?;
     Ok(())
 }
@@ -264,19 +318,28 @@ async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: 
 #[then(expr = "file uploading is {toggle}")]
 async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let db = world.db();
+    let defaults = &world.config.server.defaults;
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.file_upload_allowed, state.as_bool());
+
+    assert_eq!(server_config.file_upload_allowed(defaults), state.as_bool());
+
     Ok(())
 }
 
 #[then(expr = "the file retention is set to {duration}")]
 async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
     let db = world.db();
+    let defaults = &world.config.server.defaults;
     let server_config = ServerConfigRepository::get(db)
         .await?
         .expect("Workspace not initialized");
-    assert_eq!(server_config.file_storage_retention, duration.into());
+
+    assert_eq!(
+        server_config.file_storage_retention(defaults),
+        duration.into()
+    );
+
     Ok(())
 }

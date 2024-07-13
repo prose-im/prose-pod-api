@@ -48,13 +48,12 @@ pub struct SetMessageArchiveRetentionRequest {
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
 }
 
-/// Update message archive retention.
 #[put(
     "/v1/server/config/message-archive-retention",
     format = "json",
     data = "<req>"
 )]
-pub(super) async fn message_archive_retention(
+pub(super) async fn set_message_archive_retention(
     server_manager: LazyGuard<ServerManager<'_>>,
     req: Json<SetMessageArchiveRetentionRequest>,
 ) -> R<ServerConfig> {
@@ -103,5 +102,22 @@ pub(super) async fn file_retention(
     let server_manager = server_manager.inner?;
     let new_state = req.file_retention.clone();
     let new_config = server_manager.set_file_retention(new_state).await?;
+    Ok(new_config.into())
+}
+
+#[put("/v1/server/config/messaging/reset")]
+pub(super) async fn reset_messaging_config(
+    server_manager: LazyGuard<ServerManager<'_>>,
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
+    let new_config = server_manager.reset_messaging_config().await?;
+    Ok(new_config.into())
+}
+#[put("/v1/server/config/message-archive-retention/reset")]
+pub(super) async fn reset_message_archive_retention(
+    server_manager: LazyGuard<ServerManager<'_>>,
+) -> R<ServerConfig> {
+    let server_manager = server_manager.inner?;
+    let new_config = server_manager.reset_message_archive_retention().await?;
     Ok(new_config.into())
 }

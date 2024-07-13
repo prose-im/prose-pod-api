@@ -14,7 +14,7 @@ use secrecy::SecretString;
 use serde_json::json;
 use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
 use service::services::server_manager::ServerManager;
-use service::{model::JIDNode, services::server_ctl::ServerCtl};
+use service::{model::JidNode, services::server_ctl::ServerCtl};
 use std::sync::Arc;
 
 use crate::cucumber_parameters::Text;
@@ -115,7 +115,7 @@ async fn init_server_config<'a>(client: &'a Client, domain: &str) -> LocalRespon
 
 async fn init_first_account<'a>(
     client: &'a Client,
-    node: &JIDNode,
+    node: &JidNode,
     nickname: &String,
 ) -> LocalResponse<'a> {
     client
@@ -146,7 +146,7 @@ async fn when_init_server_config(world: &mut TestWorld, domain: Text) {
 }
 
 #[when(expr = "someone creates the first account {string} with node {string}")]
-async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JIDNode) {
+async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JidNode) {
     let res = init_first_account(&world.client, &node, &nickname).await;
     world.result = Some(res.into());
 }

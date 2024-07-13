@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use cucumber::codegen::Regex;
 use cucumber::Parameter;
@@ -13,14 +13,21 @@ use service::model::{DateLike, PossiblyInfinite};
 #[derive(Debug, Parameter)]
 #[param(
     name = "duration",
-    regex = r"\d+ (?:year|month|week|day)s?(?: \d+ (?:year|month|week|day)s?)*"
+    regex = r"\d+ (?:year|month|week|day)s?(?: \d+ (?:year|month|week|day)s?)*|infinite"
 )]
-pub struct Duration(String);
+pub enum Duration {
+    Finite(String),
+    Infinite,
+}
 
 impl FromStr for Duration {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "infinite" {
+            return Ok(Self::Infinite);
+        }
+
         let patterns = vec![
             (r"(\d+) years?", 'Y'),
             (r"(\d+) months?", 'M'),
@@ -39,25 +46,27 @@ impl FromStr for Duration {
 
         match value.as_str() {
             "P" => Err(format!("Invalid `Duration`: {s}")),
-            _ => Ok(Self(value)),
+            _ => Ok(Self::Finite(value)),
         }
     }
 }
 
-impl ToString for Duration {
-    fn to_string(&self) -> String {
-        self.0.clone()
-    }
-}
-
-impl Into<service::model::Duration<DateLike>> for Duration {
-    fn into(self) -> service::model::Duration<DateLike> {
-        ISODuration::parse(&self.0).unwrap().try_into().unwrap()
+impl Display for Duration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Finite(d) => Display::fmt(d, f),
+            Self::Infinite => write!(f, "infinite"),
+        }
     }
 }
 
 impl Into<PossiblyInfinite<service::model::Duration<DateLike>>> for Duration {
     fn into(self) -> PossiblyInfinite<service::model::Duration<DateLike>> {
-        PossiblyInfinite::Finite(self.into())
+        match self {
+            Self::Finite(d) => {
+                PossiblyInfinite::Finite(ISODuration::parse(&d).unwrap().try_into().unwrap())
+            }
+            Self::Infinite => PossiblyInfinite::Infinite,
+        }
     }
 }

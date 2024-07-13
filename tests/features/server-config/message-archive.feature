@@ -37,7 +37,17 @@ Feature: XMPP server configuration: Message archive
        When Valerian resets the Messaging configuration to its default value
        Then the call should succeed
         And message archiving is on
-        And the message archive retention is set to 2 years
+        And the message archive retention is set to infinite
+        And the server is reconfigured
+
+  Rule: The message archive retention can be reset to its default value
+
+    Scenario: An admin resets the message archive retention to its default value
+      Given the message archive retention is set to 1 year
+        And Valerian is an admin
+       When Valerian resets the Messaging configuration to its default value
+       Then the call should succeed
+        And the message archive retention is set to infinite
         And the server is reconfigured
 
   Rule: Turning on/off message archiving is idempotent

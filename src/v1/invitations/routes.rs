@@ -18,7 +18,7 @@ use service::{
         InvitationAcceptForm, InvitationController, InviteMemberForm,
     },
     dependencies,
-    model::{InvitationContact, InvitationStatus, JIDNode, MemberRole, ServerConfig},
+    model::{InvitationContact, InvitationStatus, JidNode, MemberRole, ServerConfig},
     prose_xmpp::BareJid,
     repositories::MemberRepository,
     services::notifier::Notifier,
@@ -35,7 +35,7 @@ use crate::v1::{Created, R};
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
-    pub username: JIDNode,
+    pub username: JidNode,
     #[serde(default)]
     pub pre_assigned_role: MemberRole,
     #[serde(flatten)]
