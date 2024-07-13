@@ -13,7 +13,7 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::repositories::InvitationToken;
 use service::{
-    config::Config as AppConfig,
+    config::AppConfig,
     controllers::invitation_controller::{
         InvitationAcceptForm, InvitationController, InviteMemberForm,
     },

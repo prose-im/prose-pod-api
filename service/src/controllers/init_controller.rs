@@ -8,7 +8,7 @@ use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 
 use crate::{
-    config::Config as AppConfig,
+    config::AppConfig,
     model::{Member, ServerConfig, Workspace},
     repositories::{
         MemberRepository, ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository,

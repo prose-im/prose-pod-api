@@ -8,7 +8,7 @@ use std::sync::{RwLock, RwLockWriteGuard};
 use tracing::trace;
 
 use crate::{
-    config::Config as AppConfig,
+    config::AppConfig,
     entity::server_config,
     model::{DateLike, Duration, PossiblyInfinite, ServerConfig},
     repositories::{ServerConfigCreateForm, ServerConfigRepository},

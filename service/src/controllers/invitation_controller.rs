@@ -8,7 +8,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use tracing::{debug, error, warn};
 
 use crate::{
-    config::Config as AppConfig,
+    config::AppConfig,
     dependencies,
     model::{Invitation, ServerConfig},
     repositories::{InvitationCreateForm, InvitationRepository, InvitationToken},

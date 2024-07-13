@@ -21,6 +21,8 @@ use url_serde::SerdeUrl;
 
 use crate::model::{DateLike, Duration, JidNode, PossiblyInfinite};
 
+pub type AppConfig = Config;
+
 /// Prose Pod configuration.
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
