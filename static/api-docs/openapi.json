@@ -588,7 +588,7 @@
 				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
-		"/v1/server/config/allow-file-upload": {
+		"/v1/server/config/file-upload-allowed": {
 			"put": {
 				"tags": ["Server / Configuration"],
 				"summary": "Change file upload settings",
@@ -696,7 +696,7 @@
 				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
 			}
 		},
-		"/v1/server/config/store-message-archive": {
+		"/v1/server/config/message-archive-enabled": {
 			"put": {
 				"tags": ["Server / Configuration"],
 				"summary": "Activate or deactivate message archiving",

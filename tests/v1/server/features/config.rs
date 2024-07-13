@@ -28,7 +28,7 @@ async fn set_message_archiving<'a>(
     state: bool,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/config/store-message-archive")
+        .put("/v1/server/config/message-archive-enabled")
         .header(ContentType::JSON)
         .header(Header::new(
             "Authorization",
@@ -243,7 +243,7 @@ async fn set_file_uploading<'a>(
     state: bool,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/config/allow-file-upload")
+        .put("/v1/server/config/file-upload-allowed")
         .header(ContentType::JSON)
         .header(Header::new(
             "Authorization",

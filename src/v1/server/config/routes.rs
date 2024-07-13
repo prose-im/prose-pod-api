@@ -54,7 +54,7 @@ macro_rules! reset_route {
 reset_route!("/v1/server/config/messaging/reset", reset_messaging_config);
 
 set_route!(
-    "/v1/server/config/store-message-archive",
+    "/v1/server/config/message-archive-enabled",
     SetMessageArchiveEnabledRequest,
     bool,
     message_archive_enabled,
@@ -76,7 +76,7 @@ reset_route!(
 reset_route!("/v1/server/config/files/reset", reset_files_config);
 
 set_route!(
-    "/v1/server/config/allow-file-upload",
+    "/v1/server/config/file-upload-allowed",
     SetFileUploadAllowedRequest,
     bool,
     file_upload_allowed,
