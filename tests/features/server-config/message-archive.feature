@@ -83,7 +83,7 @@ Feature: XMPP server configuration: Message archive
   Rule: The Messaging configuration can only be changed by an admin
 
     Scenario Outline: Unauthorized actions
-      Given Valerian is not an admin
+      Given Rémi is not an admin
        When <action>
        Then the call should not succeed
         And the response content type should be JSON
@@ -91,5 +91,5 @@ Feature: XMPP server configuration: Message archive
 
     Examples:
       | action |
-      | Valerian turns message archiving off |
-      | Valerian sets the message archive retention to 1 year |
+      | Rémi turns message archiving off |
+      | Rémi sets the message archive retention to 1 year |

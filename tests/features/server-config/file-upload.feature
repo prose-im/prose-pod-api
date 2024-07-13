@@ -68,7 +68,7 @@ Feature: XMPP server configuration: File upload
   Rule: The Files configuration can only be changed by an admin
 
     Scenario Outline: Unauthorized actions
-      Given Valerian is not an admin
+      Given Rémi is not an admin
        When <action>
        Then the call should not succeed
         And the response content type should be JSON
@@ -76,5 +76,5 @@ Feature: XMPP server configuration: File upload
 
     Examples:
       | action |
-      | Valerian turns file uploading off |
-      | Valerian sets the file retention to 1 year |
+      | Rémi turns file uploading off |
+      | Rémi sets the file retention to 1 year |
