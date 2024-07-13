@@ -5,15 +5,16 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
-use crate::entity::server_config;
-use sea_orm::DbErr;
 use tracing::trace;
 
-use crate::config::Config as AppConfig;
-use crate::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
-use crate::repositories::{ServerConfigCreateForm, ServerConfigRepository};
-use crate::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use crate::services::server_ctl::ServerCtl;
+use crate::{
+    config::Config as AppConfig,
+    entity::server_config,
+    model::{DateLike, Duration, PossiblyInfinite, ServerConfig},
+    repositories::{ServerConfigCreateForm, ServerConfigRepository},
+    sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
+    services::server_ctl::ServerCtl,
+};
 
 use super::server_ctl;
 
@@ -173,56 +174,55 @@ impl<'r> ServerManager<'r> {
             .await?;
         Ok(model)
     }
+}
 
-    pub async fn set_message_archiving(&self, new_state: bool) -> Result<ServerConfig, Error> {
-        trace!(
-            "Turning {} message archiving…",
-            if new_state { "on" } else { "off" }
-        );
-        self.update(|active| {
-            active.message_archive_enabled = Set(Some(new_state));
-        })
-        .await
-    }
+macro_rules! set_bool {
+    ($fn:ident, $var:ident) => {
+        pub async fn $fn(&self, new_state: bool) -> Result<ServerConfig, Error> {
+            trace!(
+                "Turning {} {}…",
+                stringify!($var),
+                if new_state { "on" } else { "off" },
+            );
+            self.update(|active| active.$var = Set(Some(new_state)))
+                .await
+        }
+    };
+}
+macro_rules! set {
+    ($t:ty, $fn:ident, $var:ident) => {
+        pub async fn $fn(&self, new_state: $t) -> Result<ServerConfig, Error> {
+            trace!("Setting {} to {new_state}…", stringify!($var));
+            self.update(|active| active.$var = Set(Some(new_state)))
+                .await
+        }
+    };
+}
+macro_rules! reset {
+    ($fn:ident, $var:ident) => {
+        pub async fn $fn(&self) -> Result<ServerConfig, Error> {
+            trace!("Resetting {}…", stringify!($var));
+            self.update(|active| active.$var = Set(None)).await
+        }
+    };
+}
 
-    pub async fn set_message_archive_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<ServerConfig, Error> {
-        trace!("Setting message archive retention to {new_state}…");
-        self.update(|active| {
-            active.message_archive_retention = Set(Some(new_state));
-        })
-        .await
-    }
-    pub async fn reset_message_archive_retention(&self) -> Result<ServerConfig, Error> {
-        trace!("Resetting message archive retention…");
-        self.update(|active| {
-            active.message_archive_retention = Set(None);
-        })
-        .await
-    }
+impl<'r> ServerManager<'r> {
+    set_bool!(set_message_archive_enabled, message_archive_enabled);
 
-    pub async fn set_file_uploading(&self, new_state: bool) -> Result<ServerConfig, Error> {
-        trace!(
-            "Turning {} file uploading…",
-            if new_state { "on" } else { "off" }
-        );
-        self.update(|active| {
-            active.file_upload_allowed = Set(Some(new_state));
-        })
-        .await
-    }
-    pub async fn set_file_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<ServerConfig, Error> {
-        trace!("Setting file retention to {new_state}…");
-        self.update(|active| {
-            active.file_storage_retention = Set(Some(new_state));
-        })
-        .await
-    }
+    set!(
+        PossiblyInfinite<Duration<DateLike>>,
+        set_message_archive_retention,
+        message_archive_retention
+    );
+    reset!(reset_message_archive_retention, message_archive_retention);
+
+    set_bool!(set_file_upload_allowed, file_upload_allowed);
+    set!(
+        PossiblyInfinite<Duration<DateLike>>,
+        set_file_storage_retention,
+        file_storage_retention
+    );
 }
 
 pub type Error = ServerManagerError;
@@ -234,5 +234,5 @@ pub enum ServerManagerError {
     #[error("`ServerCtl` error: {0}")]
     ServerCtl(#[from] server_ctl::Error),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] sea_orm::DbErr),
 }

@@ -613,7 +613,7 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetFileUploadingRequest" }
+							"schema": { "$ref": "#/components/schemas/SetFileUploadAllowedRequest" }
 						}
 					}
 				},
@@ -632,12 +632,12 @@
 				}
 			}
 		},
-		"/v1/server/config/file-retention": {
+		"/v1/server/config/file-storage-retention": {
 			"put": {
 				"tags": ["Server / Configuration"],
 				"summary": "Change uploaded files retention",
 				"description": "Change the retention of uploaded files.",
-				"operationId": "set_file_retention",
+				"operationId": "set_file_storage_retention",
 				"security": [
 					{ "BearerAuth": [] }
 				],
@@ -645,7 +645,7 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetFileRetentionRequest" }
+							"schema": { "$ref": "#/components/schemas/SetFileStorageRetentionRequest" }
 						}
 					}
 				},
@@ -781,7 +781,7 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetMessageArchivingRequest" }
+							"schema": { "$ref": "#/components/schemas/SetMessageArchiveEnabledRequest" }
 						}
 					}
 				},
@@ -1695,13 +1695,13 @@
 					"avatar": { "$ref": "#/components/schemas/Avatar" }
 				}
 			},
-			"SetFileRetentionRequest": {
+			"SetFileStorageRetentionRequest": {
 				"type": "object",
 				"required": [
-					"file_retention"
+					"file_storage_retention"
 				],
 				"properties": {
-					"file_retention": {
+					"file_storage_retention": {
 						"oneOf": [
 							{ "$ref": "#/components/schemas/DurationDateLike" },
 							{ "$ref": "#/components/schemas/DurationInfinite" }
@@ -1709,7 +1709,7 @@
 					}
 				}
 			},
-			"SetFileUploadingRequest": {
+			"SetFileUploadAllowedRequest": {
 				"type": "object",
 				"required": [
 					"file_upload_allowed"
@@ -1734,7 +1734,7 @@
 					}
 				}
 			},
-			"SetMessageArchivingRequest": {
+			"SetMessageArchiveEnabledRequest": {
 				"type": "object",
 				"required": [
 					"message_archive_enabled"

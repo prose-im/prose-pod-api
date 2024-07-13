@@ -3,121 +3,93 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
-use rocket::{get, put};
+use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
-use service::services::server_manager::ServerManager;
+use service::{
+    model::{DateLike, Duration, PossiblyInfinite, ServerConfig},
+    services::server_manager::ServerManager,
+};
 
-use crate::error;
-use crate::guards::LazyGuard;
-use crate::v1::R;
+use crate::{error, guards::LazyGuard, v1::R};
 
-// TODO: Routes to restore defaults
-
-/// Get the current configuration of server features.
 #[get("/v1/server/config")]
 pub(super) async fn get_server_config(server_config: LazyGuard<ServerConfig>) -> R<ServerConfig> {
     let model = server_config.inner?;
     Ok(model.into())
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SetMessageArchivingRequest {
-    pub message_archive_enabled: bool,
+/// Generates a route for setting a specific server config.
+/// Aslo generates its associated request type.
+macro_rules! set_route {
+    ($route:expr, $req_type:ident, $var_type:ty, $var:ident, $fn:ident) => {
+        #[derive(Serialize, Deserialize)]
+        pub struct $req_type {
+            pub $var: $var_type,
+        }
+
+        #[put($route, format = "json", data = "<req>")]
+        pub(super) async fn $fn(
+            server_manager: LazyGuard<ServerManager<'_>>,
+            req: Json<$req_type>,
+        ) -> R<ServerConfig> {
+            let server_manager = server_manager.inner?;
+            let new_state: $var_type = req.$var.to_owned();
+            let new_config = server_manager.$fn(new_state).await?;
+            Ok(new_config.into())
+        }
+    };
+}
+/// Generates a route for resetting a specific server config.
+macro_rules! reset_route {
+    ($route:expr, $fn:ident) => {
+        #[put($route)]
+        pub(super) async fn $fn(server_manager: LazyGuard<ServerManager<'_>>) -> R<ServerConfig> {
+            let server_manager = server_manager.inner?;
+            let new_config = server_manager.$fn().await?;
+            Ok(new_config.into())
+        }
+    };
 }
 
-/// Activate or deactivate message archiving.
-#[put(
+reset_route!("/v1/server/config/messaging/reset", reset_messaging_config);
+
+set_route!(
     "/v1/server/config/store-message-archive",
-    format = "json",
-    data = "<req>"
-)]
-pub(super) async fn store_message_archive(
-    server_manager: LazyGuard<ServerManager<'_>>,
-    req: Json<SetMessageArchivingRequest>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_state = req.message_archive_enabled.clone();
-    let new_config = server_manager.set_message_archiving(new_state).await?;
-    Ok(new_config.into())
-}
+    SetMessageArchiveEnabledRequest,
+    bool,
+    message_archive_enabled,
+    set_message_archive_enabled
+);
 
-#[derive(Serialize, Deserialize)]
-pub struct SetMessageArchiveRetentionRequest {
-    pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
-}
-
-#[put(
+set_route!(
     "/v1/server/config/message-archive-retention",
-    format = "json",
-    data = "<req>"
-)]
-pub(super) async fn set_message_archive_retention(
-    server_manager: LazyGuard<ServerManager<'_>>,
-    req: Json<SetMessageArchiveRetentionRequest>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_state = req.message_archive_retention.clone();
-    let new_config = server_manager
-        .set_message_archive_retention(new_state)
-        .await?;
-    Ok(new_config.into())
-}
+    SetMessageArchiveRetentionRequest,
+    PossiblyInfinite<Duration<DateLike>>,
+    message_archive_retention,
+    set_message_archive_retention
+);
+reset_route!(
+    "/v1/server/config/message-archive-retention/reset",
+    reset_message_archive_retention
+);
 
-#[derive(Serialize, Deserialize)]
-pub struct SetFileUploadingRequest {
-    pub file_upload_allowed: bool,
-}
+set_route!(
+    "/v1/server/config/allow-file-upload",
+    SetFileUploadAllowedRequest,
+    bool,
+    file_upload_allowed,
+    set_file_upload_allowed
+);
 
-/// Activate or deactivate file upload and sharing.
-#[put("/v1/server/config/allow-file-upload", format = "json", data = "<req>")]
-pub(super) async fn store_files(
-    server_manager: LazyGuard<ServerManager<'_>>,
-    req: Json<SetFileUploadingRequest>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_state = req.file_upload_allowed.clone();
-    let new_config = server_manager.set_file_uploading(new_state).await?;
-    Ok(new_config.into())
-}
-
-/// Change the file storage encryption scheme.
 #[put("/v1/server/config/file-storage-encryption-scheme")]
-pub(super) fn file_storage_encryption_scheme() -> R<ServerConfig> {
+pub(super) fn set_file_storage_encryption_scheme() -> R<ServerConfig> {
     Err(error::NotImplemented("File storage encryption scheme").into())
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SetFileRetentionRequest {
-    pub file_retention: PossiblyInfinite<Duration<DateLike>>,
-}
-
-/// Change the retention of uploaded files.
-#[put("/v1/server/config/file-retention", format = "json", data = "<req>")]
-pub(super) async fn file_retention(
-    server_manager: LazyGuard<ServerManager<'_>>,
-    req: Json<SetFileRetentionRequest>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_state = req.file_retention.clone();
-    let new_config = server_manager.set_file_retention(new_state).await?;
-    Ok(new_config.into())
-}
-
-#[put("/v1/server/config/messaging/reset")]
-pub(super) async fn reset_messaging_config(
-    server_manager: LazyGuard<ServerManager<'_>>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_config = server_manager.reset_messaging_config().await?;
-    Ok(new_config.into())
-}
-#[put("/v1/server/config/message-archive-retention/reset")]
-pub(super) async fn reset_message_archive_retention(
-    server_manager: LazyGuard<ServerManager<'_>>,
-) -> R<ServerConfig> {
-    let server_manager = server_manager.inner?;
-    let new_config = server_manager.reset_message_archive_retention().await?;
-    Ok(new_config.into())
-}
+set_route!(
+    "/v1/server/config/file-storage-retention",
+    SetFileStorageRetentionRequest,
+    PossiblyInfinite<Duration<DateLike>>,
+    file_storage_retention,
+    set_file_storage_retention
+);

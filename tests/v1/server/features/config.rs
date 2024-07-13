@@ -35,7 +35,7 @@ async fn set_message_archiving<'a>(
             format!("Bearer {}", token.expose_secret()),
         ))
         .body(
-            json!(SetMessageArchivingRequest {
+            json!(SetMessageArchiveEnabledRequest {
                 message_archive_enabled: state,
             })
             .to_string(),
@@ -236,7 +236,7 @@ async fn set_file_uploading<'a>(
             format!("Bearer {}", token.expose_secret()),
         ))
         .body(
-            json!(SetFileUploadingRequest {
+            json!(SetFileUploadAllowedRequest {
                 file_upload_allowed: state,
             })
             .to_string(),
@@ -251,15 +251,15 @@ async fn set_file_retention<'a>(
     duration: Duration,
 ) -> LocalResponse<'a> {
     client
-        .put("/v1/server/config/file-retention")
+        .put("/v1/server/config/file-storage-retention")
         .header(ContentType::JSON)
         .header(Header::new(
             "Authorization",
             format!("Bearer {}", token.expose_secret()),
         ))
         .body(
-            json!(SetFileRetentionRequest {
-                file_retention: duration.into(),
+            json!(SetFileStorageRetentionRequest {
+                file_storage_retention: duration.into(),
             })
             .to_string(),
         )
