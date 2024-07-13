@@ -24,3 +24,15 @@ pub fn assert_defined_if<T: PartialEq + Debug>(condition: bool, value: Option<T>
         assert_eq!(value, None);
     }
 }
+
+#[macro_export]
+macro_rules! user_token {
+    ($world:expr, $name:expr) => {
+        $world
+            .members
+            .get(&$name)
+            .expect("User must be created first")
+            .1
+            .clone()
+    };
+}

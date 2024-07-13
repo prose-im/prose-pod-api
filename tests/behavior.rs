@@ -15,11 +15,11 @@ use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use lazy_static::lazy_static;
+use migration::DbErr;
 use mock_auth_service::MockAuthService;
 use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
-use prose_pod_api::error::Error;
 use prose_pod_api::guards::Db;
 use regex::Regex;
 use rocket::figment::Figment;
@@ -231,12 +231,10 @@ impl TestWorld {
         self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
-    async fn server_manager(&self) -> Result<ServerManager, Error> {
+    async fn server_manager(&self) -> Result<ServerManager, DbErr> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();
-        let server_config = ServerConfigRepository::get(db)
-            .await?
-            .expect("Server config not initialized");
+        let server_config = self.server_config().await?;
         Ok(ServerManager::new(
             db,
             &self.config,
@@ -245,8 +243,11 @@ impl TestWorld {
         ))
     }
 
-    async fn server_config(&self) -> Result<ServerConfig, Error> {
-        Ok(self.server_manager().await?.server_config())
+    async fn server_config(&self) -> Result<ServerConfig, DbErr> {
+        let db = self.db();
+        Ok(ServerConfigRepository::get(db)
+            .await?
+            .expect("Server config not initialized"))
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {

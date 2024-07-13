@@ -4,109 +4,117 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use cucumber::{given, then, when};
-use migration::DbErr;
 use prose_pod_api::{error::Error, v1::server::config::*};
-use rocket::http::{ContentType, Header};
-use rocket::local::asynchronous::{Client, LocalResponse};
+use rocket::{
+    http::{ContentType, Header},
+    local::asynchronous::{Client, LocalResponse},
+};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
-use service::prosody::IntoProsody as _;
-use service::prosody_config::linked_hash_set::LinkedHashSet;
-use service::repositories::ServerConfigRepository;
-use service::sea_orm::{ActiveModelTrait as _, IntoActiveModel as _, Set};
+use service::{
+    model::ServerConfig,
+    prosody::IntoProsody as _,
+    prosody_config::linked_hash_set::LinkedHashSet,
+    prosody_config_from_db,
+    sea_orm::{ActiveModelTrait as _, DbErr, EntityTrait, IntoActiveModel as _, ModelTrait, Set},
+};
 
-use crate::cucumber_parameters::{Duration, ToggleState};
-use crate::util::*;
-use crate::v1::server::given_server_config;
-use crate::TestWorld;
+use crate::{
+    cucumber_parameters::{Duration, ToggleState},
+    user_token,
+    util::*,
+    TestWorld,
+};
+
+macro_rules! api_call_fn {
+    ($fn:ident, $method:ident, $route:expr) => {
+        async fn $fn<'a>(client: &'a Client, token: SecretString) -> LocalResponse<'a> {
+            client
+                .$method($route)
+                .header(ContentType::JSON)
+                .header(Header::new(
+                    "Authorization",
+                    format!("Bearer {}", token.expose_secret()),
+                ))
+                .dispatch()
+                .await
+        }
+    };
+}
+macro_rules! api_call_with_body_fn {
+    ($fn:ident, $method:ident, $route:expr, $payload_type:ident, $var:ident, $var_type:ty) => {
+        async fn $fn<'a>(
+            client: &'a Client,
+            token: SecretString,
+            state: $var_type,
+        ) -> LocalResponse<'a> {
+            client
+                .$method($route)
+                .header(ContentType::JSON)
+                .header(Header::new(
+                    "Authorization",
+                    format!("Bearer {}", token.expose_secret()),
+                ))
+                .body(json!($payload_type { $var: state.into() }).to_string())
+                .dispatch()
+                .await
+        }
+    };
+}
+
+async fn given_server_config(
+    world: &mut TestWorld,
+    update: impl FnOnce(&mut <<ServerConfig as ModelTrait>::Entity as EntityTrait>::ActiveModel) -> (),
+) -> Result<(), Error> {
+    let mut server_config = world.server_config().await?.into_active_model();
+    update(&mut server_config);
+    let server_config = server_config.update(world.db()).await?;
+
+    let app_config = &world.config;
+    world.server_ctl_state_mut().applied_config =
+        Some(prosody_config_from_db(server_config, app_config));
+
+    Ok(())
+}
+
+#[then("the server is reconfigured")]
+fn then_server_reconfigured(world: &mut TestWorld) {
+    assert_ne!(world.server_ctl_state().conf_reload_count, 0);
+}
+
+#[then("the server is not reconfigured")]
+fn then_server_not_reconfigured(world: &mut TestWorld) {
+    assert_eq!(world.server_ctl_state().conf_reload_count, 0);
+}
 
 // MESSAGE ARCHIVING
 
-async fn set_message_archiving<'a>(
-    client: &'a Client,
-    token: SecretString,
-    state: bool,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/message-archive-enabled")
-        .header(ContentType::JSON)
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .body(
-            json!(SetMessageArchiveEnabledRequest {
-                message_archive_enabled: state,
-            })
-            .to_string(),
-        )
-        .dispatch()
-        .await
-}
-
-async fn set_message_archive_retention<'a>(
-    client: &'a Client,
-    token: SecretString,
-    duration: Duration,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/message-archive-retention")
-        .header(ContentType::JSON)
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .body(
-            json!(SetMessageArchiveRetentionRequest {
-                message_archive_retention: duration.into(),
-            })
-            .to_string(),
-        )
-        .dispatch()
-        .await
-}
-
-async fn reset_messaging_configuration<'a>(
-    client: &'a Client,
-    token: SecretString,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/messaging/reset")
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .dispatch()
-        .await
-}
-
-async fn reset_files_configuration<'a>(
-    client: &'a Client,
-    token: SecretString,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/files/reset")
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .dispatch()
-        .await
-}
-
-async fn reset_message_archive_retention<'a>(
-    client: &'a Client,
-    token: SecretString,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/message-archive-retention/reset")
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .dispatch()
-        .await
-}
+api_call_fn!(
+    reset_messaging_configuration,
+    put,
+    "/v1/server/config/messaging/reset"
+);
+api_call_with_body_fn!(
+    set_message_archiving,
+    put,
+    "/v1/server/config/message-archive-enabled",
+    SetMessageArchiveEnabledRequest,
+    message_archive_enabled,
+    bool
+);
+api_call_with_body_fn!(
+    set_message_archive_retention,
+    put,
+    "/v1/server/config/message-archive-retention",
+    SetMessageArchiveRetentionRequest,
+    message_archive_retention,
+    Duration
+);
+api_call_fn!(
+    reset_message_archive_retention,
+    put,
+    "/v1/server/config/message-archive-retention/reset"
+);
 
 #[given(expr = "message archiving is {toggle}")]
 async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
@@ -129,12 +137,7 @@ async fn given_message_archive_retention(
 
 #[when(expr = "{} turns message archiving {toggle}")]
 async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: ToggleState) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = set_message_archiving(&world.client, token, state.into()).await;
     world.result = Some(res.into());
 }
@@ -145,50 +148,32 @@ async fn when_set_message_archive_retention(
     name: String,
     duration: Duration,
 ) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = set_message_archive_retention(&world.client, token, duration.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
 async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = reset_messaging_configuration(&world.client, token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the message archive retention to its default value")]
 async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = reset_message_archive_retention(&world.client, token).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "message archiving is {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
-    let defaults = &world.config.server.defaults;
     let enabled = enabled.as_bool();
 
     // Check in database
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace not initialized");
+    let server_config = world.server_config().await?;
+    let defaults = &world.config.server.defaults;
     assert_eq!(server_config.message_archive_enabled(defaults), enabled);
 
     // Check applied Prosody configuration
@@ -214,14 +199,11 @@ async fn then_message_archive_retention(
     world: &mut TestWorld,
     duration: Duration,
 ) -> Result<(), DbErr> {
-    let defaults = &world.config.server.defaults;
     let duration = duration.into();
 
     // Check in database
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace not initialized");
+    let server_config = world.server_config().await?;
+    let defaults = &world.config.server.defaults;
     assert_eq!(server_config.message_archive_retention(defaults), duration);
 
     // Check applied Prosody configuration
@@ -237,117 +219,69 @@ async fn then_message_archive_retention(
 
 // FILE UPLOADING
 
-async fn set_file_uploading<'a>(
-    client: &'a Client,
-    token: SecretString,
-    state: bool,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/file-upload-allowed")
-        .header(ContentType::JSON)
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .body(
-            json!(SetFileUploadAllowedRequest {
-                file_upload_allowed: state,
-            })
-            .to_string(),
-        )
-        .dispatch()
-        .await
-}
-
-async fn set_file_retention<'a>(
-    client: &'a Client,
-    token: SecretString,
-    duration: Duration,
-) -> LocalResponse<'a> {
-    client
-        .put("/v1/server/config/file-storage-retention")
-        .header(ContentType::JSON)
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .body(
-            json!(SetFileStorageRetentionRequest {
-                file_storage_retention: duration.into(),
-            })
-            .to_string(),
-        )
-        .dispatch()
-        .await
-}
+api_call_fn!(
+    reset_files_configuration,
+    put,
+    "/v1/server/config/files/reset"
+);
+api_call_with_body_fn!(
+    set_file_uploading,
+    put,
+    "/v1/server/config/file-upload-allowed",
+    SetFileUploadAllowedRequest,
+    file_upload_allowed,
+    bool
+);
+api_call_with_body_fn!(
+    set_file_retention,
+    put,
+    "/v1/server/config/file-storage-retention",
+    SetFileStorageRetentionRequest,
+    file_storage_retention,
+    Duration
+);
 
 #[given(expr = "file uploading is {toggle}")]
 async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace should be initialized first");
-    let mut model = server_config.into_active_model();
-    model.file_upload_allowed = Set(Some(state.into()));
-    model.update(db).await?;
+    let mut server_config = world.server_config().await?.into_active_model();
+    server_config.file_upload_allowed = Set(Some(state.into()));
+    server_config.update(world.db()).await?;
     Ok(())
 }
 
 #[given(expr = "the file retention is set to {duration}")]
 async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
-    let db = world.db();
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace should be initialized first");
-    let mut model = server_config.into_active_model();
-    model.file_storage_retention = Set(Some(duration.into()));
-    model.update(db).await?;
+    let mut server_config = world.server_config().await?.into_active_model();
+    server_config.file_storage_retention = Set(Some(duration.into()));
+    server_config.update(world.db()).await?;
     Ok(())
 }
 
 #[when(expr = "{} turns file uploading {toggle}")]
 async fn when_set_file_uploading(world: &mut TestWorld, name: String, state: ToggleState) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = set_file_uploading(&world.client, token, state.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Files configuration to its default value")]
 async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = reset_files_configuration(&world.client, token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} sets the file retention to {duration}")]
 async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: Duration) {
-    let token = world
-        .members
-        .get(&name)
-        .expect("User must be created first")
-        .1
-        .clone();
+    let token = user_token!(world, name);
     let res = set_file_retention(&world.client, token, duration.into()).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "file uploading is {toggle}")]
 async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
-    let db = world.db();
+    let server_config = world.server_config().await?;
     let defaults = &world.config.server.defaults;
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace not initialized");
 
     assert_eq!(server_config.file_upload_allowed(defaults), state.as_bool());
 
@@ -356,11 +290,8 @@ async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resul
 
 #[then(expr = "the file retention is set to {duration}")]
 async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
-    let db = world.db();
+    let server_config = world.server_config().await?;
     let defaults = &world.config.server.defaults;
-    let server_config = ServerConfigRepository::get(db)
-        .await?
-        .expect("Workspace not initialized");
 
     assert_eq!(
         server_config.file_storage_retention(defaults),
