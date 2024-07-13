@@ -10,8 +10,8 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian turns message archiving <new_state>
        Then the call should succeed
-        And message archiving is <new_state>
-        And the server is reconfigured
+        And message archiving should be <new_state>
+        And the server should have been reconfigured
 
     Examples:
       | initial_state | new_state |
@@ -25,8 +25,8 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian sets the message archive retention to 1 year
        Then the call should succeed
-        And the message archive retention is set to 1 year
-        And the server is reconfigured
+        And the message archive retention should be set to 1 year
+        And the server should have been reconfigured
 
   Rule: The Messaging configuration can be reset to its default value
 
@@ -36,9 +36,9 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian resets the Messaging configuration to its default value
        Then the call should succeed
-        And message archiving is on
-        And the message archive retention is set to infinite
-        And the server is reconfigured
+        And message archiving should be on
+        And the message archive retention should be set to infinite
+        And the server should have been reconfigured
 
   Rule: The message archive retention can be reset to its default value
 
@@ -47,8 +47,8 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian resets the Messaging configuration to its default value
        Then the call should succeed
-        And the message archive retention is set to infinite
-        And the server is reconfigured
+        And the message archive retention should be set to infinite
+        And the server should have been reconfigured
 
   Rule: Turning on/off message archiving is idempotent
 
@@ -57,8 +57,8 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian turns message archiving <initial_state>
        Then the call should succeed
-        And message archiving is <initial_state>
-        And the server is not reconfigured
+        And message archiving should be <initial_state>
+        And the server should not have been reconfigured
 
     Examples:
       | initial_state |
@@ -72,8 +72,8 @@ Feature: XMPP server configuration: Message archive
         And Valerian is an admin
        When Valerian sets the message archive retention to <initial_state>
        Then the call should succeed
-        And the message archive retention is set to <initial_state>
-        And the server is not reconfigured
+        And the message archive retention should be set to <initial_state>
+        And the server should not have been reconfigured
 
     Examples:
       | initial_state |

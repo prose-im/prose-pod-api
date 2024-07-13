@@ -77,12 +77,12 @@ async fn given_server_config(
     Ok(())
 }
 
-#[then("the server is reconfigured")]
+#[then("the server should have been reconfigured")]
 fn then_server_reconfigured(world: &mut TestWorld) {
     assert_ne!(world.server_ctl_state().conf_reload_count, 0);
 }
 
-#[then("the server is not reconfigured")]
+#[then("the server should not have been reconfigured")]
 fn then_server_not_reconfigured(world: &mut TestWorld) {
     assert_eq!(world.server_ctl_state().conf_reload_count, 0);
 }
@@ -167,7 +167,7 @@ async fn when_reset_message_archive_retention(world: &mut TestWorld, name: Strin
     world.result = Some(res.into());
 }
 
-#[then(expr = "message archiving is {toggle}")]
+#[then(expr = "message archiving should be {toggle}")]
 async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
     let enabled = enabled.as_bool();
 
@@ -194,7 +194,7 @@ async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> 
     Ok(())
 }
 
-#[then(expr = "the message archive retention is set to {duration}")]
+#[then(expr = "the message archive retention should be set to {duration}")]
 async fn then_message_archive_retention(
     world: &mut TestWorld,
     duration: Duration,
@@ -278,7 +278,7 @@ async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: 
     world.result = Some(res.into());
 }
 
-#[then(expr = "file uploading is {toggle}")]
+#[then(expr = "file uploading should be {toggle}")]
 async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
     let defaults = &world.config.server.defaults;
@@ -288,7 +288,7 @@ async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resul
     Ok(())
 }
 
-#[then(expr = "the file retention is set to {duration}")]
+#[then(expr = "the file retention should be set to {duration}")]
 async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
     let defaults = &world.config.server.defaults;

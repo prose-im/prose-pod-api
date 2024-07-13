@@ -9,8 +9,8 @@ Feature: XMPP server configuration: File upload
       Given file uploading is <initial_state>
         And Valerian is an admin
        When Valerian turns file uploading <new_state>
-       Then file uploading is <new_state>
-        And the server is reconfigured
+       Then file uploading should be <new_state>
+        And the server should have been reconfigured
 
     Examples:
       | initial_state | new_state |
@@ -23,8 +23,8 @@ Feature: XMPP server configuration: File upload
       Given the file retention is set to 2 years
         And Valerian is an admin
        When Valerian sets the file retention to 1 year
-       Then the file retention is set to 1 year
-        And the server is reconfigured
+       Then the file retention should be set to 1 year
+        And the server should have been reconfigured
 
   Rule: The Files configuration can be reset to its default value
 
@@ -33,9 +33,9 @@ Feature: XMPP server configuration: File upload
         And the file retention is set to 1 year
         And Valerian is an admin
        When Valerian resets the Files configuration to its default value
-       Then file uploading is on
-        And the file retention is set to infinite
-        And the server is reconfigured
+       Then file uploading should be on
+        And the file retention should be set to infinite
+        And the server should have been reconfigured
 
   Rule: Turning on/off file uploading is idempotent
 
@@ -43,8 +43,8 @@ Feature: XMPP server configuration: File upload
       Given file uploading is <initial_state>
         And Valerian is an admin
        When Valerian turns file uploading <initial_state>
-       Then file uploading is <initial_state>
-        And the server is not reconfigured
+       Then file uploading should be <initial_state>
+        And the server should not have been reconfigured
 
     Examples:
       | initial_state |
@@ -57,8 +57,8 @@ Feature: XMPP server configuration: File upload
       Given the file retention is set to <initial_state>
         And Valerian is an admin
        When Valerian sets the file retention to <initial_state>
-       Then the file retention is set to <initial_state>
-        And the server is not reconfigured
+       Then the file retention should be set to <initial_state>
+        And the server should not have been reconfigured
 
     Examples:
       | initial_state |
