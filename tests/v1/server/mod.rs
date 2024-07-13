@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod features;
+pub mod config;
 
 use cucumber::then;
 use prose_pod_api::error::Error;
