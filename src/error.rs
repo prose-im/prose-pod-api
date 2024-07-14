@@ -84,7 +84,7 @@ impl ErrorCode {
 
 impl std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
+        std::fmt::Display::fmt(self.value(), f)
     }
 }
 
