@@ -104,7 +104,10 @@ impl Error {
             error!("{}", self.message);
         } else {
             // Client error
-            warn!("{}", self.message);
+            match self.code {
+                ErrorCode::Forbidden | ErrorCode::Unknown(_) => warn!("{}", self.message),
+                _ => info!("{}", self.message),
+            }
         }
     }
 
