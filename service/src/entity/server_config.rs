@@ -3,19 +3,26 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::borrow::Cow;
-
-use jid::{DomainPart, DomainRef};
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
 
-use crate::{config::ConfigServerDefaults, model::*};
+use crate::{
+    config::{AppConfig, ConfigServerDefaults},
+    model::*,
+};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+/// XMPP server configuration, as stored in the database.
+///
+/// All fields are optional because the Prose Pod API only stores manual overrides.
+/// This way, if security defaults are raised, every Prose Pod will automatically benefit from it upon update.
+/// Those default values (from [config::defaults][crate::config::defaults]) can also be overriden
+/// by a Prose Pod administrator via the Prose Pod API configuration file (`Prose.toml`).
+///
+/// When returning the server configuration, the Prose Pod API replaces non-overriden (empty) values
+/// by their default. See [ServerConfig] and [Model::with_default_values].
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "server_config")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(skip_serializing, skip_deserializing)]
     id: i32,
     pub domain: String,
     pub message_archive_enabled: Option<bool>,
@@ -32,8 +39,27 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn domain(&self) -> Cow<DomainRef> {
-        DomainPart::new(&self.domain).unwrap_or_else(|err| panic!("Invalid domain: {err}"))
+    pub fn with_default_values(&self, defaults: &ConfigServerDefaults) -> ServerConfig {
+        ServerConfig {
+            domain: self.domain.to_owned(),
+            message_archive_enabled: self.message_archive_enabled(defaults),
+            message_archive_retention: self.message_archive_retention(defaults),
+            file_upload_allowed: self.file_upload_allowed(defaults),
+            file_storage_encryption_scheme: self
+                .file_storage_encryption_scheme(defaults)
+                .to_owned(),
+            file_storage_retention: self.file_storage_retention(defaults),
+            mfa_required: self.mfa_required(defaults),
+            minimum_tls_version: self.minimum_tls_version(defaults).to_owned(),
+            minimum_cipher_suite: self.minimum_cipher_suite(defaults).to_owned(),
+            federation_enabled: self.federation_enabled(defaults),
+            settings_backup_interval: self.settings_backup_interval(defaults).to_owned(),
+            user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
+        }
+    }
+    /// Same as [Model::with_default_values], used in places where we have easier access to a full [AppConfig].
+    pub fn with_default_values_from(&self, app_config: &AppConfig) -> ServerConfig {
+        self.with_default_values(&app_config.server.defaults)
     }
 }
 

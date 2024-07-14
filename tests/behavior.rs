@@ -29,10 +29,12 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use secrecy::SecretString;
 use serde::Deserialize;
+use service::model::ServerConfig;
 use service::{
     config::Config,
     dependencies,
-    model::{EmailAddress, Invitation, Member, ServerConfig},
+    entity::server_config,
+    model::{EmailAddress, Invitation, Member},
     notifier::AnyNotifier,
     repositories::ServerConfigRepository,
     sea_orm::DatabaseConnection,
@@ -234,7 +236,7 @@ impl TestWorld {
     async fn server_manager(&self) -> Result<ServerManager, DbErr> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();
-        let server_config = self.server_config().await?;
+        let server_config = self.server_config_model().await?;
         Ok(ServerManager::new(
             db,
             &self.config,
@@ -243,11 +245,16 @@ impl TestWorld {
         ))
     }
 
-    async fn server_config(&self) -> Result<ServerConfig, DbErr> {
+    async fn server_config_model(&self) -> Result<server_config::Model, DbErr> {
         let db = self.db();
         Ok(ServerConfigRepository::get(db)
             .await?
             .expect("Server config not initialized"))
+    }
+
+    async fn server_config(&self) -> Result<ServerConfig, DbErr> {
+        let model = self.server_config_model().await?;
+        Ok(model.with_default_values_from(&self.config))
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {

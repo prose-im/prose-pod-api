@@ -10,7 +10,7 @@ pub extern crate xmpp_parsers;
 pub mod config;
 pub mod controllers;
 pub mod dependencies;
-mod entity;
+pub mod entity;
 pub mod model;
 mod mutation_error;
 pub mod prosody;

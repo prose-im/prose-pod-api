@@ -5,6 +5,7 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
+use sea_orm::IntoActiveModel;
 use tracing::trace;
 
 use crate::{
@@ -22,7 +23,7 @@ pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
     app_config: &'r AppConfig,
     server_ctl: &'r ServerCtl,
-    server_config: RwLock<ServerConfig>,
+    server_config: RwLock<server_config::Model>,
 }
 
 impl<'r> ServerManager<'r> {
@@ -30,7 +31,7 @@ impl<'r> ServerManager<'r> {
         db: &'r DatabaseConnection,
         app_config: &'r AppConfig,
         server_ctl: &'r ServerCtl,
-        server_config: ServerConfig,
+        server_config: server_config::Model,
     ) -> Self {
         Self {
             db,
@@ -40,16 +41,16 @@ impl<'r> ServerManager<'r> {
         }
     }
 
-    fn server_config_mut(&self) -> RwLockWriteGuard<ServerConfig> {
+    fn server_config_mut(&self) -> RwLockWriteGuard<server_config::Model> {
         self.server_config
             .write()
-            .expect("`ServerConfig` lock poisonned")
+            .expect("`server_config::Model` lock poisonned")
     }
 
-    pub fn server_config(&self) -> ServerConfig {
+    fn server_config(&self) -> server_config::Model {
         self.server_config
             .read()
-            .expect("`ServerConfig` lock poisonned")
+            .expect("`server_config::Model` lock poisonned")
             .to_owned()
     }
 }
@@ -61,7 +62,7 @@ impl<'r> ServerManager<'r> {
     {
         let old_server_config = self.server_config();
 
-        let mut active: server_config::ActiveModel = old_server_config.clone().into();
+        let mut active: server_config::ActiveModel = old_server_config.clone().into_active_model();
         update(&mut active);
         trace!("Updating config in database…");
         let new_server_config = active.update(self.db).await?;
@@ -74,7 +75,7 @@ impl<'r> ServerManager<'r> {
             trace!("Server config hasn't changed, no need to reload.");
         }
 
-        Ok(new_server_config)
+        Ok(new_server_config.with_default_values_from(&self.app_config))
     }
 
     /// Reload the XMPP server using the server configuration stored in `self`.
@@ -83,13 +84,16 @@ impl<'r> ServerManager<'r> {
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
-    async fn reload(&self, server_config: &ServerConfig) -> Result<(), Error> {
+    async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
         let server_ctl = self.server_ctl;
 
         // Save new server config
         trace!("Saving server config…");
         server_ctl
-            .save_config(&server_config, self.app_config)
+            .save_config(
+                &server_config.with_default_values_from(self.app_config),
+                self.app_config,
+            )
             .await?;
         // Reload server config
         trace!("Reloading XMPP server…");
@@ -138,7 +142,8 @@ impl<'r> ServerManager<'r> {
 
         // Initialize the server config in a transaction,
         // to rollback if subsequent operations fail.
-        let server_config = ServerConfigRepository::create(&txn, server_config).await?;
+        let model = ServerConfigRepository::create(&txn, server_config).await?;
+        let server_config = model.with_default_values_from(app_config);
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect

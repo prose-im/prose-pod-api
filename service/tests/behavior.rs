@@ -10,7 +10,7 @@ use migration::{self, MigratorTrait};
 use sea_orm::*;
 use service::{
     config::Config,
-    model::ServerConfig,
+    entity::server_config,
     prosody::ProsodyConfig,
     repositories::{
         ServerConfigCreateForm, ServerConfigRepository, WorkspaceCreateForm, WorkspaceRepository,
@@ -35,7 +35,7 @@ async fn main() {
 struct TestWorld {
     db: DatabaseConnection,
     app_config: Config,
-    server_config: ServerConfig,
+    server_config: server_config::Model,
     prosody_config: Option<ProsodyConfig>,
 }
 

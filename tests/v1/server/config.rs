@@ -12,7 +12,7 @@ use rocket::{
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
 use service::{
-    model::ServerConfig,
+    entity::server_config,
     prosody::IntoProsody as _,
     prosody_config::linked_hash_set::LinkedHashSet,
     prosody_config_from_db,
@@ -64,13 +64,17 @@ macro_rules! api_call_with_body_fn {
 
 async fn given_server_config(
     world: &mut TestWorld,
-    update: impl FnOnce(&mut <<ServerConfig as ModelTrait>::Entity as EntityTrait>::ActiveModel) -> (),
+    update: impl FnOnce(
+        &mut <<server_config::Model as ModelTrait>::Entity as EntityTrait>::ActiveModel,
+    ) -> (),
 ) -> Result<(), Error> {
-    let mut server_config = world.server_config().await?.into_active_model();
-    update(&mut server_config);
-    let server_config = server_config.update(world.db()).await?;
-
     let app_config = &world.config;
+
+    let mut server_config = world.server_config_model().await?.into_active_model();
+    update(&mut server_config);
+    let model = server_config.update(world.db()).await?;
+    let server_config = model.with_default_values_from(app_config);
+
     world.server_ctl_state_mut().applied_config =
         Some(prosody_config_from_db(server_config, app_config));
 
@@ -173,8 +177,7 @@ async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> 
 
     // Check in database
     let server_config = world.server_config().await?;
-    let defaults = &world.config.server.defaults;
-    assert_eq!(server_config.message_archive_enabled(defaults), enabled);
+    assert_eq!(server_config.message_archive_enabled, enabled);
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
@@ -203,8 +206,7 @@ async fn then_message_archive_retention(
 
     // Check in database
     let server_config = world.server_config().await?;
-    let defaults = &world.config.server.defaults;
-    assert_eq!(server_config.message_archive_retention(defaults), duration);
+    assert_eq!(server_config.message_archive_retention, duration);
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
@@ -243,7 +245,7 @@ api_call_with_body_fn!(
 
 #[given(expr = "file uploading is {toggle}")]
 async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
-    let mut server_config = world.server_config().await?.into_active_model();
+    let mut server_config = world.server_config_model().await?.into_active_model();
     server_config.file_upload_allowed = Set(Some(state.into()));
     server_config.update(world.db()).await?;
     Ok(())
@@ -251,7 +253,7 @@ async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resu
 
 #[given(expr = "the file retention is set to {duration}")]
 async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
-    let mut server_config = world.server_config().await?.into_active_model();
+    let mut server_config = world.server_config_model().await?.into_active_model();
     server_config.file_storage_retention = Set(Some(duration.into()));
     server_config.update(world.db()).await?;
     Ok(())
@@ -281,9 +283,8 @@ async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: 
 #[then(expr = "file uploading should be {toggle}")]
 async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
-    let defaults = &world.config.server.defaults;
 
-    assert_eq!(server_config.file_upload_allowed(defaults), state.as_bool());
+    assert_eq!(server_config.file_upload_allowed, state.as_bool());
 
     Ok(())
 }
@@ -291,12 +292,8 @@ async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resul
 #[then(expr = "the file retention should be set to {duration}")]
 async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
-    let defaults = &world.config.server.defaults;
 
-    assert_eq!(
-        server_config.file_storage_retention(defaults),
-        duration.into()
-    );
+    assert_eq!(server_config.file_storage_retention, duration.into());
 
     Ok(())
 }

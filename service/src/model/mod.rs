@@ -28,7 +28,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 pub use crate::entity::{
-    member::Model as Member, server_config::Model as ServerConfig, workspace::Model as Workspace,
+    member::Model as Member, workspace::Model as Workspace,
     workspace_invitation::Model as Invitation,
 };
 
