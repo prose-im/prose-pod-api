@@ -119,7 +119,6 @@ tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
-# cucumber = "0.21"
 cucumber = { workspace = true, features = ["tracing"] }
 lazy_static = { workspace = true }
 linked-hash-map = { workspace = true }
