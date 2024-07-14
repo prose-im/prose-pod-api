@@ -3,15 +3,19 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::{
+    fmt::{Debug, Display},
+    ops::Deref,
+    str::FromStr,
+};
+
 use iso8601_duration::Duration as ISODuration;
-use sea_orm::entity::prelude::*;
-use sea_orm::sea_query::{self, ArrayType, ValueTypeErr};
-use sea_orm::TryGetError;
+use sea_orm::{entity::prelude::*, sea_query};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-use std::fmt::{Debug, Display};
-use std::ops::Deref;
-use std::str::FromStr;
+use crate::sea_orm_try_get_by_string;
+
+const DURATION_INFINITE: &'static str = "infinite";
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Duration<Content: DurationContent>(pub Content);
@@ -103,26 +107,21 @@ impl<Content: DurationContent> TryFrom<ISODuration> for Duration<Content> {
 impl<Content: DurationContent> sea_orm::TryGetable for Duration<Content>
 where
     <Content as TryFrom<ISODuration>>::Error: Debug,
+    <Content as FromStr>::Err: Debug,
 {
-    fn try_get_by<I: sea_orm::ColIdx>(
-        res: &sea_orm::QueryResult,
-        index: I,
-    ) -> Result<Self, TryGetError> {
-        let value: String = res.try_get_by(index).map_err(TryGetError::DbErr)?;
-        Self::try_from(value)
-            // Technically, the value is not `null`, but we wouldn't want to unsafely unwrap here.
-            .map_err(|e| TryGetError::Null(format!("{:?}", e)))
-    }
+    sea_orm_try_get_by_string!();
 }
 
 impl<Content: DurationContent> sea_query::ValueType for Duration<Content>
 where
     Self: TryFrom<String>,
 {
-    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+    fn try_from(v: Value) -> Result<Self, sea_query::ValueTypeErr> {
         match v {
-            Value::String(Some(value)) => (*value).try_into().map_err(|_| ValueTypeErr),
-            _ => Err(ValueTypeErr),
+            Value::String(Some(value)) => {
+                Self::from_str(value.as_str()).map_err(|_| sea_query::ValueTypeErr)
+            }
+            _ => Err(sea_query::ValueTypeErr),
         }
     }
 
@@ -130,8 +129,8 @@ where
         Content::type_name()
     }
 
-    fn array_type() -> ArrayType {
-        ArrayType::String
+    fn array_type() -> sea_query::ArrayType {
+        sea_query::ArrayType::String
     }
 
     fn column_type() -> ColumnType {
@@ -207,12 +206,12 @@ impl TryFrom<ISODuration> for TimeLike {
 }
 impl DurationContent for TimeLike {
     fn type_name() -> String {
-        stringify!(Time).to_owned()
+        "Time".to_owned()
     }
 }
 impl Display for TimeLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.into_iso_duration())
+        Display::fmt(&self.into_iso_duration(), f)
     }
 }
 impl FromStr for TimeLike {
@@ -278,12 +277,12 @@ impl TryFrom<ISODuration> for DateLike {
 }
 impl DurationContent for DateLike {
     fn type_name() -> String {
-        stringify!(Date).to_owned()
+        "Date".to_owned()
     }
 }
 impl Display for DateLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.into_iso_duration())
+        Display::fmt(&self.into_iso_duration(), f)
     }
 }
 impl FromStr for DateLike {
@@ -310,22 +309,13 @@ impl<D> PossiblyInfinite<D> {
     }
 }
 
-impl<D> Into<Option<D>> for PossiblyInfinite<D> {
-    fn into(self) -> Option<D> {
-        match self {
-            Self::Infinite => None,
-            Self::Finite(d) => Some(d),
-        }
-    }
-}
-
 impl<D: Eq> Eq for PossiblyInfinite<D> {}
 
 impl<D: Display> Display for PossiblyInfinite<D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Infinite => write!(f, "infinite"),
-            Self::Finite(d) => write!(f, "{d}"),
+            Self::Infinite => write!(f, "{DURATION_INFINITE}"),
+            Self::Finite(d) => Display::fmt(d, f),
         }
     }
 }
@@ -335,17 +325,14 @@ impl<D: FromStr> FromStr for PossiblyInfinite<D> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "infinite" => Ok(Self::Infinite),
+            DURATION_INFINITE => Ok(Self::Infinite),
             d => D::from_str(d).map(Self::Finite),
         }
     }
 }
 
 impl<D: Display> Serialize for PossiblyInfinite<D> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.to_string().serialize(serializer)
     }
 }
@@ -363,14 +350,13 @@ where
     }
 }
 
-impl<D> From<PossiblyInfinite<D>> for sea_query::Value
-where
-    sea_query::Value: From<D>,
-{
+impl<D: Into<sea_query::Value>> From<PossiblyInfinite<D>> for sea_query::Value {
     fn from(value: PossiblyInfinite<D>) -> Self {
         match value {
-            PossiblyInfinite::Infinite => Self::String(Some(Box::new("infinite".to_string()))),
-            PossiblyInfinite::Finite(duration) => Self::from(duration),
+            PossiblyInfinite::Infinite => {
+                Self::String(Some(Box::new(DURATION_INFINITE.to_string())))
+            }
+            PossiblyInfinite::Finite(duration) => duration.into(),
         }
     }
 }
@@ -379,35 +365,38 @@ impl<D: sea_orm::TryGetable> sea_orm::TryGetable for PossiblyInfinite<D> {
     fn try_get_by<I: sea_orm::ColIdx>(
         res: &sea_orm::QueryResult,
         index: I,
-    ) -> Result<Self, TryGetError> {
+    ) -> Result<Self, sea_orm::TryGetError> {
+        // https://github.com/SeaQL/sea-orm/discussions/1176#discussioncomment-4024088
         let value = res
             .try_get_by(index)
-            .map_err(TryGetError::DbErr)
-            .and_then(|opt: Option<String>| opt.ok_or(TryGetError::Null(format!("{index:?}"))))?;
+            .map_err(sea_orm::TryGetError::DbErr)
+            .and_then(|opt: Option<String>| {
+                opt.ok_or(sea_orm::TryGetError::Null(format!("{index:?}")))
+            })?;
         match value.as_str() {
-            "infinite" => Ok(Self::Infinite),
+            DURATION_INFINITE => Ok(Self::Infinite),
             _ => D::try_get_by(res, index).map(Self::Finite),
         }
     }
 }
 
 impl<D: sea_query::ValueType> sea_query::ValueType for PossiblyInfinite<D> {
-    fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
+    fn try_from(v: Value) -> Result<Self, sea_query::ValueTypeErr> {
         let value: Option<String> = v.unwrap();
         let Some(value) = value else {
-            return Err(ValueTypeErr);
+            return Err(sea_query::ValueTypeErr);
         };
         match value.as_str() {
-            "infinite" => Ok(Self::Infinite),
+            DURATION_INFINITE => Ok(Self::Infinite),
             _ => D::try_from(Value::String(Some(Box::new(value)))).map(Self::Finite),
         }
     }
 
     fn type_name() -> String {
-        format!("{}<{}>", stringify!(PossiblyInfinite), D::type_name())
+        format!("PossiblyInfinite<{}>", D::type_name())
     }
 
-    fn array_type() -> ArrayType {
+    fn array_type() -> sea_query::ArrayType {
         D::array_type()
     }
 

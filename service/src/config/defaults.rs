@@ -7,9 +7,7 @@
 
 use std::{path::PathBuf, str::FromStr as _};
 
-use crate::model::{DateLike, Duration, JidNode, PossiblyInfinite};
-
-use super::WorkspaceInvitationChannel;
+use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
 
 pub fn api_admin_node() -> JidNode {
     JidNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`")
@@ -93,8 +91,8 @@ pub fn branding_page_title() -> String {
     "Prose Pod API".to_string()
 }
 
-pub fn notify_workspace_invitation_channel() -> WorkspaceInvitationChannel {
-    WorkspaceInvitationChannel::Email
+pub fn notify_workspace_invitation_channel() -> InvitationChannel {
+    InvitationChannel::Email
 }
 
 pub fn notify_email_smtp_host() -> String {

@@ -19,7 +19,7 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 
-use crate::model::{DateLike, Duration, JidNode, PossiblyInfinite};
+use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
 
 pub type AppConfig = Config;
 
@@ -166,13 +166,7 @@ pub struct ConfigBranding {
     pub company_name: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum WorkspaceInvitationChannel {
-    Email,
-}
-
-impl Default for WorkspaceInvitationChannel {
+impl Default for InvitationChannel {
     fn default() -> Self {
         defaults::notify_workspace_invitation_channel()
     }
@@ -181,7 +175,7 @@ impl Default for WorkspaceInvitationChannel {
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ConfigNotify {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
-    pub workspace_invitation_channel: WorkspaceInvitationChannel,
+    pub workspace_invitation_channel: InvitationChannel,
     #[serde(default)]
     pub email: Option<ConfigNotifyEmail>,
 }
