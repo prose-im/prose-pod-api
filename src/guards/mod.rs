@@ -5,6 +5,7 @@
 
 mod basic_auth;
 mod db;
+mod init_controller;
 mod invitation_controller;
 mod jid;
 mod jwt;

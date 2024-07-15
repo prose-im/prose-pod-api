@@ -3,13 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::model::{JidNode, MemberRole};
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 
 use crate::{
     config::AppConfig,
-    model::{Member, ServerConfig, Workspace},
+    model::{JidNode, Member, MemberRole, ServerConfig, Workspace},
     repositories::{
         MemberRepository, ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository,
     },
@@ -21,17 +20,19 @@ use crate::{
     util::bare_jid_from_username,
 };
 
-pub enum InitController {}
+pub struct InitController<'r> {
+    pub db: &'r DatabaseConnection,
+}
 
-impl InitController {
+impl<'r> InitController<'r> {
     pub async fn init_server_config(
-        db: &DatabaseConnection,
+        &self,
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         server_config: impl Into<ServerConfigCreateForm>,
     ) -> Result<ServerConfig, InitServerConfigError> {
         let server_config =
-            ServerManager::init_server_config(db, server_ctl, app_config, server_config)
+            ServerManager::init_server_config(self.db, server_ctl, app_config, server_config)
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
@@ -45,17 +46,17 @@ pub enum InitServerConfigError {
     CouldNotInitServerConfig(server_manager::Error),
 }
 
-impl InitController {
+impl<'r> InitController<'r> {
     pub async fn init_workspace(
-        db: &DatabaseConnection,
+        &self,
         form: impl Into<WorkspaceCreateForm>,
     ) -> Result<Workspace, InitWorkspaceError> {
         // Check that the workspace isn't already initialized.
-        let None = WorkspaceRepository::get(db).await? else {
+        let None = WorkspaceRepository::get(self.db).await? else {
             return Err(InitWorkspaceError::WorkspaceAlreadyInitialized);
         };
 
-        let workspace = WorkspaceRepository::create(db, form).await?;
+        let workspace = WorkspaceRepository::create(self.db, form).await?;
 
         Ok(workspace)
     }
@@ -68,9 +69,9 @@ pub enum InitWorkspaceError {
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
-impl InitController {
+impl<'r> InitController<'r> {
     pub async fn init_first_account(
-        db: &DatabaseConnection,
+        &self,
         server_config: &ServerConfig,
         user_service: &UserService<'_>,
         form: impl Into<InitFirstAccountForm>,
@@ -79,11 +80,11 @@ impl InitController {
         let jid = bare_jid_from_username(&form.username, &server_config)
             .map_err(InitFirstAccountError::InvalidJid)?;
 
-        if MemberRepository::count(db).await? > 0 {
+        if MemberRepository::count(self.db).await? > 0 {
             return Err(InitFirstAccountError::FirstAccountAlreadyCreated);
         }
 
-        let txn = db.begin().await?;
+        let txn = self.db.begin().await?;
         let member = user_service
             .create_user(
                 &txn,
