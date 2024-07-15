@@ -9,8 +9,12 @@ use std::{path::PathBuf, str::FromStr as _};
 
 use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
 
-pub fn api_admin_node() -> JidNode {
-    JidNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`")
+use super::ConfigServiceAccount;
+
+pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
+    ConfigServiceAccount {
+        xmpp_node: JidNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`"),
+    }
 }
 
 pub fn server_local_hostname() -> String {

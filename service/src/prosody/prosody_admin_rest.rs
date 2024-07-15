@@ -45,7 +45,11 @@ impl ProsodyAdminRest {
             admin_rest_api_url: config.server.admin_rest_api_url(),
             admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
             api_auth_username: config.api_jid(),
-            api_auth_password: config.api.admin_password.to_owned().unwrap(),
+            api_auth_password: config
+                .bootstrap
+                .prose_pod_api_xmpp_password
+                .to_owned()
+                .unwrap(),
         }
     }
 

@@ -272,7 +272,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                     def("init_admin_jid", api_jid.to_owned()),
                                     def(
                                         "init_admin_password_env_var_name",
-                                        "PROSE_API__ADMIN_PASSWORD",
+                                        "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
                                     ),
                                 ],
                             ),
