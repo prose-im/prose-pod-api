@@ -9,7 +9,7 @@ use crate::model::{self as db, ServerConfig};
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use utils::def;
 
-use crate::config::Config;
+use crate::config::{Config, ADMIN_HOST, FILE_SHARE_HOST};
 use crate::ProseDefault;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -96,7 +96,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
         config
             .additional_sections
             .push(ProsodyConfigSection::Component {
-                hostname: "upload.prose.org.local".into(),
+                hostname: FILE_SHARE_HOST.into(),
                 plugin: "http_file_share".into(),
                 name: "HTTP File Upload".into(),
                 settings: ProsodySettings {
@@ -251,7 +251,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     },
                 },
                 ProsodyConfigSection::VirtualHost {
-                    hostname: "admin.prose.org.local".into(),
+                    hostname: ADMIN_HOST.into(),
                     settings: ProsodySettings {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(

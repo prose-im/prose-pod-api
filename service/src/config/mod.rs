@@ -21,6 +21,11 @@ use url_serde::SerdeUrl;
 
 use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
 
+// NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
+//   and cannot be changed via configuration.
+pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
+pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
+
 pub type AppConfig = Config;
 
 /// Prose Pod configuration.
@@ -54,11 +59,9 @@ impl Config {
     }
 
     pub fn api_jid(&self) -> BareJid {
-        // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
-        //   to the Prose Pod and cannot be changed via configuration.
         BareJid::from_parts(
             Some(&NodePart::from_str(&self.service_accounts.prose_pod_api.xmpp_node).unwrap()),
-            &DomainPart::from_str("admin.prose.org.local").unwrap(),
+            &DomainPart::from_str(ADMIN_HOST).unwrap(),
         )
     }
 }
