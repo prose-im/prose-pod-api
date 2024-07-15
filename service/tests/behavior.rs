@@ -10,11 +10,10 @@ use migration::{self, MigratorTrait};
 use sea_orm::*;
 use service::{
     config::Config,
+    controllers::init_controller::WorkspaceCreateForm,
     entity::server_config,
     prosody::ProsodyConfig,
-    repositories::{
-        ServerConfigCreateForm, ServerConfigRepository, WorkspaceCreateForm, WorkspaceRepository,
-    },
+    repositories::{ServerConfigCreateForm, ServerConfigRepository, WorkspaceRepository},
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";

@@ -15,16 +15,18 @@ pub mod v1;
 
 use error::Error;
 use guards::Db;
-
 use migration::MigratorTrait;
-use rocket::fairing::{self, AdHoc};
-use rocket::fs::{FileServer, NamedFile};
-use rocket::http::Status;
-use rocket::{Build, Request, Rocket};
+use rocket::{
+    fairing::{self, AdHoc},
+    fs::{FileServer, NamedFile},
+    http::Status,
+    {Build, Request, Rocket},
+};
 use sea_orm_rocket::Database;
 use service::{
     config::Config,
     dependencies::{Notifier, Uuid},
+    model::ServiceSecretsStore,
     repositories::ServerConfigRepository,
     services::{
         auth_service::AuthService, jwt_service::JWTService, server_ctl::ServerCtl,
@@ -61,6 +63,7 @@ pub fn custom_rocket(
         .manage(auth_service)
         .manage(notifier)
         .manage(jwt_service)
+        .manage(ServiceSecretsStore::default())
 }
 
 async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {

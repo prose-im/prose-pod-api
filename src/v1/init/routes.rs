@@ -7,10 +7,10 @@ use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
-    controllers::init_controller::{InitController, InitFirstAccountForm},
-    model::{JidNode, ServerConfig, Workspace},
-    repositories::{ServerConfigCreateForm, WorkspaceCreateForm},
-    services::server_ctl::ServerCtl,
+    controllers::init_controller::{InitController, InitFirstAccountForm, WorkspaceCreateForm},
+    model::{JidNode, ServerConfig, ServiceSecretsStore, Workspace},
+    repositories::ServerConfigCreateForm,
+    services::{auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner},
 };
 
 use crate::{
@@ -41,11 +41,16 @@ impl Into<WorkspaceCreateForm> for InitWorkspaceRequest {
 #[put("/v1/workspace", format = "json", data = "<req>")]
 pub async fn init_workspace<'r>(
     init_controller: LazyGuard<InitController<'r>>,
+    app_config: &State<AppConfig>,
+    secrets_store: &State<ServiceSecretsStore>,
+    xmpp_service: &State<XmppServiceInner>,
     req: Json<InitWorkspaceRequest>,
 ) -> Created<Workspace> {
     let init_controller = init_controller.inner?;
 
-    let workspace = init_controller.init_workspace(req.into_inner()).await?;
+    let workspace = init_controller
+        .init_workspace(app_config, secrets_store, xmpp_service, req.into_inner())
+        .await?;
 
     let resource_uri = uri!(crate::v1::workspace::get_workspace).to_string();
     Ok(status::Created::new(resource_uri).body(workspace.into()))
@@ -71,13 +76,15 @@ pub async fn init_server_config<'r>(
     init_controller: LazyGuard<InitController<'r>>,
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
+    auth_service: &State<AuthService>,
+    secrets_store: &State<ServiceSecretsStore>,
     req: Json<InitServerConfigRequest>,
 ) -> Created<ServerConfig> {
     let init_controller = init_controller.inner?;
     let form = req.into_inner();
 
     let server_config = init_controller
-        .init_server_config(server_ctl, app_config, form)
+        .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
         .await?;
 
     let resource_uri = uri!(crate::v1::server::config::get_server_config).to_string();

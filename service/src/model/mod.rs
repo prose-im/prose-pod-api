@@ -9,6 +9,7 @@ pub(crate) mod invitations;
 mod jid;
 pub mod member_role;
 pub mod server_config;
+pub mod service_secrets_store;
 
 pub use durations::*;
 pub use email_address::*;
@@ -16,6 +17,7 @@ pub use invitations::*;
 pub use jid::*;
 pub use member_role::*;
 pub use server_config::*;
+pub use service_secrets_store::*;
 
 pub use crate::entity::{
     member::Model as Member, workspace::Model as Workspace,

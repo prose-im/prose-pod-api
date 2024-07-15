@@ -7,13 +7,13 @@
 
 pub mod defaults;
 
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr as _};
 
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
-use jid::{DomainPart, NodePart};
+use jid::DomainPart;
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 use serde::Deserialize;
@@ -60,7 +60,14 @@ impl Config {
 
     pub fn api_jid(&self) -> BareJid {
         BareJid::from_parts(
-            Some(&NodePart::from_str(&self.service_accounts.prose_pod_api.xmpp_node).unwrap()),
+            Some(&self.service_accounts.prose_pod_api.xmpp_node),
+            &DomainPart::from_str(ADMIN_HOST).unwrap(),
+        )
+    }
+
+    pub fn workspace_jid(&self) -> BareJid {
+        BareJid::from_parts(
+            Some(&self.service_accounts.prose_workspace.xmpp_node),
             &DomainPart::from_str(ADMIN_HOST).unwrap(),
         )
     }
@@ -70,12 +77,15 @@ impl Config {
 pub struct ConfigServiceAccounts {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
     pub prose_pod_api: ConfigServiceAccount,
+    #[serde(default = "defaults::service_accounts_prose_workspace")]
+    pub prose_workspace: ConfigServiceAccount,
 }
 
 impl Default for ConfigServiceAccounts {
     fn default() -> Self {
         Self {
             prose_pod_api: defaults::service_accounts_prose_pod_api(),
+            prose_workspace: defaults::service_accounts_prose_workspace(),
         }
     }
 }

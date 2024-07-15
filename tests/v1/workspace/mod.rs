@@ -10,6 +10,7 @@ use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
+use service::controllers::workspace_controller::WorkspaceControllerError;
 use service::repositories::WorkspaceRepository;
 
 // WORKSPACE NAME
@@ -33,8 +34,15 @@ async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse
 }
 
 #[given(expr = "the workspace is named {string}")]
-async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
-    WorkspaceRepository::set_name(world.db(), name).await
+async fn given_workspace_name(
+    world: &mut TestWorld,
+    name: String,
+) -> Result<(), WorkspaceControllerError> {
+    world
+        .workspace_controller()
+        .set_workspace_name(name)
+        .await?;
+    Ok(())
 }
 
 #[when("a user gets the workspace name")]
@@ -56,12 +64,12 @@ async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
 }
 
 #[then(expr = "the workspace should be named {string}")]
-async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> Result<(), DbErr> {
-    let db = world.db();
-    let workspace = WorkspaceRepository::get(db)
-        .await?
-        .expect("Workspace not initialized");
-    assert_eq!(workspace.name, name);
+async fn then_workspace_name_should_be(
+    world: &mut TestWorld,
+    name: String,
+) -> Result<(), WorkspaceControllerError> {
+    let workspace_name = world.workspace_controller().get_workspace_name().await?;
+    assert_eq!(workspace_name, name);
     Ok(())
 }
 

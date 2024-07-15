@@ -6,13 +6,42 @@
 use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
-    model::Workspace,
+    config::AppConfig,
+    model::{ServiceSecretsStore, Workspace},
     repositories::WorkspaceRepository,
     sea_orm::{ActiveModelTrait as _, Set},
+    services::xmpp_service::{self, XmppService, XmppServiceContext, XmppServiceInner},
 };
 
 pub struct WorkspaceController<'r> {
-    pub db: &'r DatabaseConnection,
+    db: &'r DatabaseConnection,
+    xmpp_service: XmppService<'r>,
+}
+
+impl<'r> WorkspaceController<'r> {
+    pub fn new(
+        db: &'r DatabaseConnection,
+        xmpp_service: &'r XmppServiceInner,
+        app_config: &'r AppConfig,
+        secrets_store: &'r ServiceSecretsStore,
+    ) -> Result<Self, WorkspaceControllerInitError> {
+        let workspace_jid = app_config.workspace_jid();
+        let prosody_token = secrets_store
+            .get_prosody_token(&workspace_jid)
+            .ok_or(WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized)?;
+        let ctx = XmppServiceContext {
+            bare_jid: workspace_jid,
+            prosody_token,
+        };
+        let xmpp_service = XmppService::new(xmpp_service, ctx);
+        Ok(Self { db, xmpp_service })
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WorkspaceControllerInitError {
+    #[error("Workspace XMPP account not initialized.")]
+    WorkspaceXmppAccountNotInitialized,
 }
 
 impl<'r> WorkspaceController<'r> {
@@ -21,33 +50,27 @@ impl<'r> WorkspaceController<'r> {
             .await?
             .ok_or(Error::WorkspaceNotInitialized)
     }
-}
 
-impl<'r> WorkspaceController<'r> {
     pub async fn get_workspace_name(&self) -> Result<String, Error> {
-        Ok(self.get_workspace().await?.name)
+        // FIXME: Get `FN` instead of `NICK`
+        let nickname = self
+            .xmpp_service
+            .get_own_nickname()
+            .await?
+            .ok_or(Error::WorkspaceNotInitialized)?;
+        Ok(nickname)
     }
-}
 
-impl<'r> WorkspaceController<'r> {
     pub async fn set_workspace_name(&self, name: String) -> Result<String, Error> {
-        let workspace = self.get_workspace().await?;
-
-        let mut active = workspace.into_active_model();
-        active.name = Set(name);
-        let workspace = active.update(self.db).await?;
-
-        Ok(workspace.name)
+        // FIXME: Set `FN` instead of `NICK`
+        self.xmpp_service.set_own_nickname(&name).await?;
+        Ok(name)
     }
-}
 
-impl<'r> WorkspaceController<'r> {
     pub async fn get_workspace_icon(&self) -> Result<Option<String>, Error> {
         Ok(self.get_workspace().await?.icon_url)
     }
-}
 
-impl<'r> WorkspaceController<'r> {
     pub async fn set_workspace_icon_string(&self, string: String) -> Result<Option<String>, Error> {
         let workspace = self.get_workspace().await?;
 
@@ -90,6 +113,8 @@ pub type Error = WorkspaceControllerError;
 pub enum WorkspaceControllerError {
     #[error("Workspace not initialized.")]
     WorkspaceNotInitialized,
+    #[error("XmppServiceError: {0}")]
+    XmppServiceError(#[from] xmpp_service::Error),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }

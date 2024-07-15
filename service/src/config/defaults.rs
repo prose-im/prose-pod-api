@@ -13,8 +13,18 @@ use super::ConfigServiceAccount;
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
-        xmpp_node: JidNode::from_str("prose-pod-api").expect("Invalid default `api_admin_node`"),
+        xmpp_node: JidNode::from_str("prose-pod-api").unwrap(),
     }
+}
+
+pub fn service_accounts_prose_workspace() -> ConfigServiceAccount {
+    ConfigServiceAccount {
+        xmpp_node: JidNode::from_str("prose-workspace").unwrap(),
+    }
+}
+
+pub fn workspace_xmpp_node() -> JidNode {
+    JidNode::from_str("prose-workspace").expect("Invalid default `workspace_xmpp_node`")
 }
 
 pub fn server_local_hostname() -> String {

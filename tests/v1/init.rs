@@ -12,10 +12,9 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use secrecy::SecretString;
 use serde_json::json;
-use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
-use service::services::server_manager::ServerManager;
-use service::{model::JidNode, services::server_ctl::ServerCtl};
-use std::sync::Arc;
+use service::controllers::init_controller::WorkspaceCreateForm;
+use service::model::JidNode;
+use service::repositories::ServerConfigCreateForm;
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -31,8 +30,8 @@ fn given_pod_not_initialized(world: &mut TestWorld) {
 
 #[given("the Prose Pod has been initialized")]
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    given_workspace_initialized(world).await?;
     given_server_config_initialized(world).await?;
+    given_workspace_initialized(world).await?;
     Ok(())
 }
 
@@ -47,7 +46,17 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         name: DEFAULT_WORKSPACE_NAME.to_string(),
         accent_color: None,
     };
-    WorkspaceRepository::create(world.db(), form).await?;
+
+    world
+        .init_controller()
+        .init_workspace(
+            &world.config,
+            world.secrets_store(),
+            &world.xmpp_service(),
+            form,
+        )
+        .await?;
+
     Ok(())
 }
 
@@ -61,13 +70,18 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     let form = ServerConfigCreateForm {
         domain: DEFAULT_DOMAIN.to_string(),
     };
-    ServerManager::init_server_config(
-        world.db(),
-        &ServerCtl::new(Arc::new(world.server_ctl.clone())),
-        &world.config,
-        form,
-    )
-    .await?;
+
+    world
+        .init_controller()
+        .init_server_config(
+            &world.server_ctl(),
+            &world.config,
+            &world.auth_service(),
+            world.secrets_store(),
+            form,
+        )
+        .await?;
+
     world.reset_server_ctl_counts();
     Ok(())
 }
