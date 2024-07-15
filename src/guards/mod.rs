@@ -19,6 +19,7 @@ mod user_service;
 mod util;
 mod uuid_generator;
 mod workspace;
+mod workspace_controller;
 mod xmpp_service;
 
 use std::ops::Deref;

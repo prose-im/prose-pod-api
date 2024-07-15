@@ -17,6 +17,7 @@ use service::controllers::invitation_controller::{
     InvitationAcceptError, InvitationCancelError, InvitationRejectError, InvitationResendError,
     InviteMemberError,
 };
+use service::controllers::workspace_controller::WorkspaceControllerError;
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
 use service::services::{
@@ -501,3 +502,13 @@ impl HttpApiError for std::io::Error {
     }
 }
 impl_into_error!(std::io::Error);
+
+impl HttpApiError for WorkspaceControllerError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceNotInitialized => ErrorCode::WorkspaceNotInitialized,
+            Self::DbErr(_) => ErrorCode::DatabaseError,
+        }
+    }
+}
+impl_into_error!(WorkspaceControllerError);
