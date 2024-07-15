@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use crate::entity::workspace::{ActiveModel, Column, Entity};
-use sea_orm::{prelude::*, QueryOrder as _, Set, Unchanged};
+use sea_orm::{prelude::*, QueryOrder as _};
 
 use crate::model::Workspace;
 
@@ -20,16 +20,5 @@ impl WorkspaceRepository {
 
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<Workspace>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
-    }
-
-    // TODO: Delete this function, as the data should be stored in the server vCard
-    pub async fn set_icon_url(db: &impl ConnectionTrait, url: Option<String>) -> Result<(), DbErr> {
-        let form = ActiveModel {
-            id: Unchanged(1),
-            icon_url: Set(url),
-            ..Default::default()
-        };
-        form.update(db).await?;
-        Ok(())
     }
 }

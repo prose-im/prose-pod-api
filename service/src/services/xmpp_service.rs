@@ -74,6 +74,9 @@ impl<'r> XmppService<'r> {
     pub async fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, XmppServiceError> {
         self.deref().get_avatar(&self.ctx, jid).await
     }
+    pub async fn get_own_avatar(&self) -> Result<Option<AvatarData>, XmppServiceError> {
+        self.deref().get_own_avatar(&self.ctx).await
+    }
     pub async fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
         self.deref().set_own_avatar(&self.ctx, png_data).await
     }
@@ -139,6 +142,12 @@ pub trait XmppServiceImpl: Debug + Send + Sync {
         ctx: &XmppServiceContext,
         jid: &BareJid,
     ) -> Result<Option<AvatarData>, XmppServiceError>;
+    async fn get_own_avatar(
+        &self,
+        ctx: &XmppServiceContext,
+    ) -> Result<Option<AvatarData>, XmppServiceError> {
+        self.get_avatar(ctx, &ctx.bare_jid).await
+    }
     // TODO: Allow other MIME types
     // TODO: Allow setting an avatar pointing to a URL
     async fn set_own_avatar(

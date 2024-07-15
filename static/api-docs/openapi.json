@@ -1103,48 +1103,8 @@
 				"requestBody": {
 					"description": "Workspace icon",
 					"content": {
-						"image/gif": {
-							"schema": {
-								"type": "string",
-								"format": "binary"
-							}
-						},
-						"image/jpeg": {
-							"schema": {
-								"type": "string",
-								"format": "binary"
-							}
-						},
-						"image/png": {
-							"schema": {
-								"type": "string",
-								"format": "binary"
-							}
-						},
-						"image/webp": {
-							"schema": {
-								"type": "string",
-								"format": "binary"
-							}
-						},
-						"text/plain": {
-							"schema": {
-								"title": "URL to an external image or base64-encoded image.",
-								"oneOf": [
-									{
-										"type": "string",
-										"title": "URL to an external image",
-										"format": "uri",
-										"example": "https://avatars.githubusercontent.com/u/81181949?s=200&v=4"
-									},
-									{
-										"type": "string",
-										"title": "Base64 string",
-										"format": "base64",
-										"example": "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"
-									}
-								]
-							}
+						"application/json": {
+							"schema": { "$ref": "#/components/schemas/SetWorkspaceIconRequest" }
 						}
 					}
 				},
@@ -1410,10 +1370,19 @@
 					"color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
 				}
 			},
+			"SetWorkspaceIconRequest": {
+				"type": "object",
+				"required": [
+					"image"
+				],
+				"properties": {
+					"image": { "$ref": "#/components/schemas/Avatar" }
+				}
+			},
 			"GetWorkspaceIconResponse": {
 				"type": "object",
 				"properties": {
-					"url": {
+					"icon": {
 						"type": "string",
 						"nullable": true
 					}

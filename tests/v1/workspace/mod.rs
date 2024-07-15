@@ -5,13 +5,12 @@
 
 use crate::TestWorld;
 use cucumber::{given, then, when};
-use migration::DbErr;
 use prose_pod_api::v1::workspace::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
 use service::controllers::workspace_controller::WorkspaceControllerError;
-use service::repositories::WorkspaceRepository;
+use service::prose_xmpp::mods::AvatarData;
 
 // WORKSPACE NAME
 
@@ -83,19 +82,25 @@ async fn get_workspace_icon<'a>(client: &'a Client) -> LocalResponse<'a> {
         .await
 }
 
-async fn set_workspace_icon_url<'a>(client: &'a Client, url: &str) -> LocalResponse<'a> {
+async fn set_workspace_icon<'a>(client: &'a Client, png_data: String) -> LocalResponse<'a> {
     client
         .put("/v1/workspace/icon")
         .header(Accept::JSON)
-        .header(ContentType::Plain)
-        .body(url)
+        .json(&json!(SetWorkspaceIconRequest { image: png_data }))
         .dispatch()
         .await
 }
 
-#[given(expr = "the workspace icon URL is {string}")]
-async fn given_workspace_icon_url(world: &mut TestWorld, url: String) -> Result<(), DbErr> {
-    WorkspaceRepository::set_icon_url(world.db(), Some(url)).await
+#[given(expr = "the workspace icon is {string}")]
+async fn given_workspace_icon_url(
+    world: &mut TestWorld,
+    png_data: String,
+) -> Result<(), WorkspaceControllerError> {
+    world.xmpp_service.set_avatar(
+        &world.config.workspace_jid(),
+        Some(AvatarData::Base64(png_data)),
+    )?;
+    Ok(())
 }
 
 #[when("a user gets the workspace icon")]
@@ -104,34 +109,35 @@ async fn when_user_gets_workspace_icon(world: &mut TestWorld) {
     world.result = Some(res.into());
 }
 
-#[when(expr = "a user sets the workspace icon URL to {string}")]
-async fn when_set_workspace_icon_url(world: &mut TestWorld, url: String) {
-    let res = set_workspace_icon_url(&world.client, &url).await;
+#[when(expr = "a user sets the workspace icon to {string}")]
+async fn when_set_workspace_icon_url(world: &mut TestWorld, png_data: String) {
+    let res = set_workspace_icon(&world.client, png_data).await;
     world.result = Some(res.into());
 }
 
-#[then("the returned workspace icon URL should be undefined")]
+#[then("the returned workspace icon should be undefined")]
 async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
     let res: GetWorkspaceIconResponse = world.result().body_into();
-    assert_eq!(res.url, None);
+    assert_eq!(res.icon, None);
 }
 
-#[then(expr = "the returned workspace icon URL should be {string}")]
-async fn then_response_workspace_icon_is(world: &mut TestWorld, url: String) {
+#[then(expr = "the returned workspace icon should be {string}")]
+async fn then_response_workspace_icon_is(world: &mut TestWorld, png_data: String) {
     let res: GetWorkspaceIconResponse = world.result().body_into();
-    assert_eq!(res.url, Some(url));
+    assert_eq!(res.icon, Some(png_data));
 }
 
-#[then(expr = "the workspace icon URL should be {string}")]
+#[then(expr = "the workspace icon should be {string}")]
 async fn then_workspace_icon_url_should_be(
     world: &mut TestWorld,
-    url: String,
-) -> Result<(), DbErr> {
-    let db = world.db();
-    let workspace = WorkspaceRepository::get(db)
+    png_data: String,
+) -> Result<(), WorkspaceControllerError> {
+    let workspace_icon = world
+        .workspace_controller()
+        .get_workspace_icon()
         .await?
-        .expect("Workspace not initialized");
-    assert_eq!(workspace.icon_url, Some(url));
+        .map(|d| d.base64().into_owned());
+    assert_eq!(workspace_icon, Some(png_data));
     Ok(())
 }
 

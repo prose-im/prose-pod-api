@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prose_xmpp::mods::AvatarData;
 use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
@@ -67,19 +68,13 @@ impl<'r> WorkspaceController<'r> {
         Ok(name)
     }
 
-    pub async fn get_workspace_icon(&self) -> Result<Option<String>, Error> {
-        Ok(self.get_workspace().await?.icon_url)
+    pub async fn get_workspace_icon(&self) -> Result<Option<AvatarData>, Error> {
+        let avatar = self.xmpp_service.get_own_avatar().await?;
+        Ok(avatar)
     }
-
-    pub async fn set_workspace_icon_string(&self, string: String) -> Result<Option<String>, Error> {
-        let workspace = self.get_workspace().await?;
-
-        let mut active = workspace.into_active_model();
-        // TODO: Validate `string`
-        active.icon_url = Set(Some(string));
-        let workspace = active.update(self.db).await?;
-
-        Ok(workspace.icon_url)
+    pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {
+        self.xmpp_service.set_own_avatar(png_data).await?;
+        Ok(())
     }
 }
 

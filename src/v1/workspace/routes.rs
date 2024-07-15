@@ -3,11 +3,10 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use base64::{engine::general_purpose, Engine as _};
 use rocket::{
-    fs::TempFile,
     response::status::NoContent,
     serde::json::Json,
-    tokio::io,
     {get, put},
 };
 use serde::{Deserialize, Serialize};
@@ -66,7 +65,7 @@ pub(super) async fn set_workspace_name<'r>(
 
 #[derive(Serialize, Deserialize)]
 pub struct GetWorkspaceIconResponse {
-    pub url: Option<String>,
+    pub icon: Option<String>,
 }
 
 #[get("/v1/workspace/icon")]
@@ -75,34 +74,39 @@ pub(super) async fn get_workspace_icon<'r>(
 ) -> R<GetWorkspaceIconResponse> {
     let workspace_controller = workspace_controller.inner?;
 
-    let url = workspace_controller.get_workspace_icon().await?;
+    let avatar_data = workspace_controller.get_workspace_icon().await?;
+    let icon = avatar_data.map(|d| d.base64().into_owned());
 
-    let response = GetWorkspaceIconResponse { url }.into();
+    let response = GetWorkspaceIconResponse { icon }.into();
     Ok(response)
 }
 
-#[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
-pub(super) async fn set_workspace_icon_string<'r>(
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetWorkspaceIconRequest {
+    // Base64 encoded image
+    pub image: String,
+}
+
+#[put("/v1/workspace/icon", format = "json", data = "<req>")]
+pub(super) async fn set_workspace_icon<'r>(
     workspace_controller: LazyGuard<WorkspaceController<'r>>,
-    string: String,
+    req: Json<SetWorkspaceIconRequest>,
 ) -> R<GetWorkspaceIconResponse> {
     let workspace_controller = workspace_controller.inner?;
 
-    let url = workspace_controller
-        .set_workspace_icon_string(string)
-        .await?;
+    let image_data = general_purpose::STANDARD
+        .decode(req.image.to_owned())
+        .map_err(|err| error::BadRequest {
+            reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
+        })?;
 
-    let response = GetWorkspaceIconResponse { url }.into();
+    workspace_controller.set_workspace_icon(image_data).await?;
+
+    let response = GetWorkspaceIconResponse {
+        icon: Some(req.image.to_owned()),
+    }
+    .into();
     Ok(response)
-}
-
-#[put("/v1/workspace/icon", format = "plain", data = "<image>", rank = 2)]
-pub(super) async fn set_workspace_icon_file(image: TempFile<'_>) -> R<GetWorkspaceIconResponse> {
-    let mut stream = image.open().await?;
-    let mut data: Vec<u8> = Vec::new();
-    io::copy(&mut stream, &mut data).await?;
-
-    Err(error::NotImplemented("Set workspace icon from a file").into())
 }
 
 #[get("/v1/workspace/details-card")]

@@ -12,7 +12,6 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip_serializing, skip_deserializing)]
     pub id: i32,
-    pub icon_url: Option<String>,
     pub accent_color: Option<String>,
 }
 
