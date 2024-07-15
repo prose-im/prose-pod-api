@@ -13,7 +13,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(pk_auto(Workspace::Id))
                     .col(string_null(Workspace::IconUrl))
-                    .col(string_null(Workspace::VCardUrl))
                     .col(string_null(Workspace::AccentColor))
                     .to_owned(),
             )
@@ -32,6 +31,5 @@ enum Workspace {
     Table,
     Id,
     IconUrl,
-    VCardUrl,
     AccentColor,
 }
