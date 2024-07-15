@@ -8,6 +8,7 @@ mod db;
 mod invitation_controller;
 mod jid;
 mod jwt;
+mod member_controller;
 mod notifier;
 mod server_config;
 mod server_manager;
