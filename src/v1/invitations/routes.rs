@@ -6,32 +6,35 @@
 use std::ops::Deref;
 
 use chrono::{DateTime, Utc};
-use rocket::response::status::{self, NoContent};
-use rocket::serde::json::Json;
-use rocket::{delete, get, post, State};
+use rocket::{
+    response::status::{self, NoContent},
+    serde::json::Json,
+    {delete, get, post, State},
+};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::repositories::InvitationToken;
 use service::{
     config::AppConfig,
     controllers::invitation_controller::{
         InvitationAcceptForm, InvitationController, InviteMemberForm,
     },
-    dependencies,
     model::{InvitationContact, InvitationStatus, JidNode, MemberRole, ServerConfig},
     prose_xmpp::BareJid,
+    repositories::InvitationToken,
     repositories::MemberRepository,
     services::notifier::Notifier,
     util::to_bare_jid,
 };
 
 use super::forms::InvitationTokenType;
-use crate::error::{self, Error};
-use crate::forms::{Timestamp, Uuid};
-use crate::guards::{Db, LazyGuard, UnauthenticatedInvitationService};
-use crate::model::SerializableSecretString;
-use crate::responders::Paginated;
-use crate::v1::{Created, R};
+use crate::{
+    error::{self, Error},
+    forms::{Timestamp, Uuid},
+    guards::{Db, LazyGuard, UnauthenticatedInvitationService},
+    model::SerializableSecretString,
+    responders::Paginated,
+    v1::{Created, R},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
@@ -55,19 +58,19 @@ impl Into<InviteMemberForm> for InviteMemberRequest {
 /// Invite a new member.
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub(super) async fn invite_member<'r>(
-    conn: Connection<'_, Db>,
-    uuid_gen: LazyGuard<dependencies::Uuid>,
+    conn: Connection<'r, Db>,
     app_config: &State<AppConfig>,
     server_config: LazyGuard<ServerConfig>,
     jid: LazyGuard<BareJid>,
-    notifier: LazyGuard<Notifier<'_>>,
+    notifier: LazyGuard<Notifier<'r>>,
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     req: Json<InviteMemberRequest>,
-    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService<'_>>,
+    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService<'r>>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
-    let uuid_gen = uuid_gen.inner?;
     let notifier = notifier.inner?;
+    let invitation_controller = invitation_controller.inner?;
     let form = req.into_inner();
 
     let jid = jid.inner?;
@@ -76,17 +79,16 @@ pub(super) async fn invite_member<'r>(
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
-    let invitation = InvitationController::invite_member(
-        db,
-        &uuid_gen,
-        app_config,
-        &server_config,
-        &notifier,
-        form,
-        #[cfg(debug_assertions)]
-        invitation_service.inner?.deref(),
-    )
-    .await?;
+    let invitation = invitation_controller
+        .invite_member(
+            app_config,
+            &server_config,
+            &notifier,
+            form,
+            #[cfg(debug_assertions)]
+            invitation_service.inner?.deref(),
+        )
+        .await?;
 
     let resource_uri = uri!(get_invitation(invitation.id)).to_string();
     let response: WorkspaceInvitation = invitation.into();
@@ -95,13 +97,13 @@ pub(super) async fn invite_member<'r>(
 
 /// Get workspace invitations.
 #[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
-pub(super) async fn get_invitations(
-    conn: Connection<'_, Db>,
+pub(super) async fn get_invitations<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
 ) -> Result<Paginated<WorkspaceInvitation>, Error> {
-    let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
     let until: Option<DateTime<Utc>> = match until {
@@ -109,8 +111,9 @@ pub(super) async fn get_invitations(
         None => None,
     };
 
-    let (pages_metadata, invitations) =
-        InvitationController::get_invitations(db, page_number, page_size, until).await?;
+    let (pages_metadata, invitations) = invitation_controller
+        .get_invitations(page_number, page_size, until)
+        .await?;
 
     Ok(Paginated::new(
         invitations.into_iter().map(Into::into).collect(),
@@ -153,17 +156,17 @@ pub(super) fn get_invitation() -> R<WorkspaceInvitation> {
 
 /// Get information about an invitation from an accept or reject token.
 #[get("/v1/invitations/<token>?<token_type>", rank = 1)]
-pub(super) async fn get_invitation_by_token(
-    conn: Connection<'_, Db>,
+pub(super) async fn get_invitation_by_token<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     token: Uuid,
     token_type: InvitationTokenType,
 ) -> R<WorkspaceInvitation> {
-    let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
     let token = InvitationToken::from(*token.deref());
 
     let invitation = match token_type {
-        InvitationTokenType::Accept => InvitationController::get_by_accept_token(db, token).await,
-        InvitationTokenType::Reject => InvitationController::get_by_reject_token(db, token).await,
+        InvitationTokenType::Accept => invitation_controller.get_by_accept_token(token).await,
+        InvitationTokenType::Reject => invitation_controller.get_by_reject_token(token).await,
     }?;
     let Some(invitation) = invitation else {
         return Err(error::Forbidden("No invitation found for provided token".to_string()).into());
@@ -190,46 +193,50 @@ impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
 
 /// Accept a workspace invitation.
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
-pub(super) async fn invitation_accept(
-    conn: Connection<'_, Db>,
-    invitation_service: LazyGuard<UnauthenticatedInvitationService<'_>>,
+pub(super) async fn invitation_accept<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_service: LazyGuard<UnauthenticatedInvitationService<'r>>,
     token: Uuid,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
-    InvitationController::accept(
-        conn.into_inner(),
-        InvitationToken::from(*token.deref()),
-        invitation_service.inner?.deref(),
-        req.into_inner(),
-    )
-    .await?;
+    invitation_controller
+        .inner?
+        .accept(
+            InvitationToken::from(*token.deref()),
+            invitation_service.inner?.deref(),
+            req.into_inner(),
+        )
+        .await?;
 
     Ok(())
 }
 
 /// Reject a workspace invitation.
 #[put("/v1/invitations/<token>/reject")]
-pub(super) async fn invitation_reject(
-    conn: Connection<'_, Db>,
+pub(super) async fn invitation_reject<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     token: Uuid,
 ) -> Result<NoContent, Error> {
-    let db = conn.into_inner();
-
-    InvitationController::reject(db, InvitationToken::from(*token.deref())).await?;
+    invitation_controller
+        .inner?
+        .reject(InvitationToken::from(*token.deref()))
+        .await?;
 
     Ok(NoContent)
 }
 
 /// Resend a workspace invitation.
 #[post("/v1/invitations/<invitation_id>/resend")]
-pub(super) async fn invitation_resend(
-    conn: Connection<'_, Db>,
+pub(super) async fn invitation_resend<'r>(
+    conn: Connection<'r, Db>,
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     app_config: &State<AppConfig>,
     jid: LazyGuard<BareJid>,
-    notifier: LazyGuard<Notifier<'_>>,
+    notifier: LazyGuard<Notifier<'r>>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
     let notifier = notifier.inner?;
 
     let jid = jid.inner?;
@@ -238,19 +245,23 @@ pub(super) async fn invitation_resend(
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
-    InvitationController::resend(db, &app_config, &notifier, invitation_id).await?;
+    invitation_controller
+        .resend(&app_config, &notifier, invitation_id)
+        .await?;
 
     Ok(NoContent)
 }
 
 /// Cancel a workspace invitation.
 #[delete("/v1/invitations/<invitation_id>")]
-pub(super) async fn invitation_cancel(
-    conn: Connection<'_, Db>,
+pub(super) async fn invitation_cancel<'r>(
+    conn: Connection<'r, Db>,
+    invitation_controller: LazyGuard<InvitationController<'r>>,
     jid: LazyGuard<BareJid>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
 
     let jid = jid.inner?;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
@@ -258,7 +269,7 @@ pub(super) async fn invitation_cancel(
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
-    InvitationController::cancel(db, invitation_id).await?;
+    invitation_controller.cancel(invitation_id).await?;
 
     Ok(NoContent)
 }
