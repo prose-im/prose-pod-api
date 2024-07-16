@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
     controllers::init_controller::{InitController, InitFirstAccountForm, WorkspaceCreateForm},
-    model::{JidNode, ServerConfig, ServiceSecretsStore, Workspace},
+    model::{JidDomain, JidNode, ServerConfig, ServiceSecretsStore, Workspace},
     repositories::ServerConfigCreateForm,
     services::{auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner},
 };
@@ -68,7 +68,7 @@ pub async fn init_workspace<'r>(
 pub struct InitServerConfigRequest {
     /// XMPP server domain (e.g. `crisp.chat`).
     /// This is what will appear in JIDs (e.g. `valerian@`**`crisp.chat`**).
-    pub domain: String,
+    pub domain: JidDomain,
 }
 
 impl Into<ServerConfigCreateForm> for InitServerConfigRequest {

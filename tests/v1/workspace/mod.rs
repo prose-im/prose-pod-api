@@ -94,7 +94,7 @@ async fn set_workspace_icon<'a>(client: &'a Client, png_data: String) -> LocalRe
 async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
     let server_config = world.server_config().await?;
     world.xmpp_service.set_avatar(
-        &world.config.workspace_jid(&server_config),
+        &world.config.workspace_jid(&server_config.domain),
         Some(AvatarData::Base64(png_data)),
     )?;
     Ok(())

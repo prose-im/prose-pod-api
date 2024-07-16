@@ -27,7 +27,7 @@ impl<'r> WorkspaceController<'r> {
         server_config: &ServerConfig,
         secrets_store: &'r ServiceSecretsStore,
     ) -> Result<Self, WorkspaceControllerInitError> {
-        let workspace_jid = app_config.workspace_jid(&server_config);
+        let workspace_jid = app_config.workspace_jid(&server_config.domain);
         let prosody_token = secrets_store
             .get_prosody_token(&workspace_jid)
             .ok_or(WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized)?;

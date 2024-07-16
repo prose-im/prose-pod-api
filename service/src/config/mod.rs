@@ -13,15 +13,13 @@ use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
-use jid::DomainPart;
+use jid::{DomainPart, DomainRef};
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 
-use crate::model::{
-    DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite, ServerConfig,
-};
+use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
 
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
@@ -67,10 +65,10 @@ impl Config {
         )
     }
 
-    pub fn workspace_jid(&self, server_config: &ServerConfig) -> BareJid {
+    pub fn workspace_jid(&self, domain: &DomainRef) -> BareJid {
         BareJid::from_parts(
             Some(&self.service_accounts.prose_workspace.xmpp_node),
-            &DomainPart::from_str(&server_config.domain).unwrap(),
+            domain,
         )
     }
 }

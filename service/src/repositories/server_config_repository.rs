@@ -5,7 +5,10 @@
 
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
-use crate::entity::server_config::{self, ActiveModel, Column, Entity};
+use crate::{
+    entity::server_config::{self, ActiveModel, Column, Entity},
+    model::JidDomain,
+};
 
 pub enum ServerConfigRepository {}
 
@@ -24,7 +27,7 @@ impl ServerConfigRepository {
 
 #[derive(Debug, Clone)]
 pub struct ServerConfigCreateForm {
-    pub domain: String,
+    pub domain: JidDomain,
 }
 
 impl ServerConfigCreateForm {

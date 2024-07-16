@@ -13,7 +13,8 @@ use crate::{
     config::AppConfig,
     entity::workspace,
     model::{
-        JidNode, Member, MemberRole, ServerConfig, ServiceSecrets, ServiceSecretsStore, Workspace,
+        JidDomain, JidNode, Member, MemberRole, ServerConfig, ServiceSecrets, ServiceSecretsStore,
+        Workspace,
     },
     repositories::{MemberRepository, ServerConfigCreateForm, WorkspaceRepository},
     services::{
@@ -42,21 +43,42 @@ impl<'r> InitController<'r> {
         secrets_store: &ServiceSecretsStore,
         server_config: impl Into<ServerConfigCreateForm>,
     ) -> Result<ServerConfig, InitServerConfigError> {
+        // Create service XMPP accounts
         let server_config =
             ServerManager::init_server_config(self.db, server_ctl, app_config, server_config)
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
-        // Create workspace XMPP account
-        Self::create_service_account(
-            app_config.workspace_jid(&server_config),
+        // Create service XMPP accounts
+        Self::create_service_accounts(
+            &server_config.domain,
             server_ctl,
+            app_config,
             auth_service,
             secrets_store,
         )
         .await?;
 
         Ok(server_config)
+    }
+
+    pub async fn create_service_accounts(
+        domain: &JidDomain,
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        auth_service: &AuthService,
+        secrets_store: &ServiceSecretsStore,
+    ) -> Result<(), CreateServiceAccountError> {
+        // Create workspace XMPP account
+        Self::create_service_account(
+            app_config.workspace_jid(domain),
+            server_ctl,
+            auth_service,
+            secrets_store,
+        )
+        .await?;
+
+        Ok(())
     }
 
     async fn create_service_account(

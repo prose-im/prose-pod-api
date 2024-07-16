@@ -215,7 +215,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             },
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
-                    hostname: server_config.domain.to_owned(),
+                    hostname: server_config.domain.to_string(),
                     settings: ProsodySettings {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(

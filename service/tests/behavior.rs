@@ -5,6 +5,8 @@
 
 mod prosody;
 
+use std::str::FromStr;
+
 use cucumber::World;
 use migration::{self, MigratorTrait};
 use sea_orm::*;
@@ -12,11 +14,13 @@ use service::{
     config::Config,
     controllers::init_controller::WorkspaceCreateForm,
     entity::server_config,
+    model::JidDomain,
     prosody::ProsodyConfig,
     repositories::{ServerConfigCreateForm, ServerConfigRepository, WorkspaceRepository},
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
+pub const DEFAULT_DOMAIN: &'static str = "prose.test.org";
 
 #[tokio::main]
 async fn main() {
@@ -54,7 +58,7 @@ impl TestWorld {
         }
 
         let server_config = ServerConfigCreateForm {
-            domain: "prose.test.org".to_string(),
+            domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
         };
         let server_config = match ServerConfigRepository::create(&db, server_config).await {
             Ok(conf) => conf,
