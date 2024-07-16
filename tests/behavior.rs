@@ -9,6 +9,7 @@ mod v1;
 
 use std::{
     collections::HashMap,
+    str::FromStr,
     sync::{Arc, RwLock, RwLockWriteGuard},
 };
 
@@ -26,10 +27,10 @@ use rocket::{
     figment::Figment,
     http::{ContentType, Status},
     local::asynchronous::{Client, LocalResponse},
-    {Build, Rocket},
+    Build, Rocket,
 };
 use sea_orm_rocket::Database as _;
-use secrecy::SecretString;
+use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use service::{
     config::Config,
@@ -43,7 +44,7 @@ use service::{
     services::{
         auth_service::AuthService,
         jwt_service::{JWTKey, JWTService},
-        server_ctl::ServerCtl,
+        server_ctl::{ServerCtl, ServerCtlImpl as _},
         server_manager::ServerManager,
         xmpp_service::XmppServiceInner,
     },
@@ -109,6 +110,7 @@ fn test_rocket(
     auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
     jwt_service: JWTService,
+    service_secrets_store: ServiceSecretsStore,
 ) -> Rocket<Build> {
     let figment = Figment::from(rocket::Config::figment())
         .merge(("databases.data.url", "sqlite::memory:"))
@@ -123,6 +125,7 @@ fn test_rocket(
         AuthService::new(auth_service),
         dependencies::Notifier::from(AnyNotifier::new(notifier)),
         jwt_service,
+        service_secrets_store,
     )
 }
 
@@ -133,6 +136,7 @@ pub async fn rocket_test_client(
     auth_service: Arc<MockAuthService>,
     notifier: Box<MockNotifier>,
     jwt_service: JWTService,
+    service_secrets_store: ServiceSecretsStore,
 ) -> Client {
     debug!("Creating Rocket test client...");
     Client::tracked(test_rocket(
@@ -142,6 +146,7 @@ pub async fn rocket_test_client(
         auth_service,
         notifier,
         jwt_service,
+        service_secrets_store,
     ))
     .await
     .expect("valid rocket instance")
@@ -339,7 +344,14 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
+        // NOTE: Behavior tests don't need to read the environment, therefore we have to set the required variables.
+        let api_xmpp_password = SecretString::from_str("anything").unwrap();
+        std::env::set_var(
+            "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
+            &api_xmpp_password.expose_secret(),
+        );
         let config = Config::figment();
+
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
         let mock_xmpp_service = MockXmppService::default();
@@ -350,6 +362,19 @@ impl TestWorld {
             Default::default(),
             mock_server_ctl_state,
         );
+        let service_secrets_store = ServiceSecretsStore::from_config(&config);
+
+        // Create API XMPP account
+        // NOTE: This is done automatically via Prosody, we need to do it by hand here.
+        if let Err(err) = mock_server_ctl
+            .add_user(
+                &config.api_jid(),
+                &service_secrets_store.prose_pod_api_xmpp_password(),
+            )
+            .await
+        {
+            panic!("Could not create API XMPP account: {}", err);
+        }
 
         Self {
             config: config.clone(),
@@ -360,6 +385,7 @@ impl TestWorld {
                 Arc::new(mock_auth_service.clone()),
                 Box::new(mock_notifier.clone()),
                 jwt_service,
+                service_secrets_store,
             )
             .await,
             result: None,

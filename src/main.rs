@@ -11,14 +11,14 @@ use rocket::fairing::AdHoc;
 use service::{
     config::Config,
     dependencies::Notifier,
+    model::ServiceSecretsStore,
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
     services::{
         auth_service::{AuthService, LiveAuthService},
         jwt_service::JWTService,
         server_ctl::ServerCtl,
-        xmpp_service::LiveXmppService,
-        xmpp_service::XmppServiceInner,
+        xmpp_service::{LiveXmppService, XmppServiceInner},
     },
     HttpClient,
 };
@@ -34,8 +34,10 @@ fn rocket() -> _ {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
+    let service_secrets_store = ServiceSecretsStore::from_config(&config);
     let http_client = HttpClient::new();
-    let prosody_admin_rest = ProsodyAdminRest::from_config(&config, http_client.clone());
+    let prosody_admin_rest =
+        ProsodyAdminRest::from_config(&config, http_client.clone(), service_secrets_store.clone());
     let server_ctl = ServerCtl::new(Arc::new(prosody_admin_rest.clone()));
     let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
         &config,
@@ -68,5 +70,6 @@ fn rocket() -> _ {
         auth_service,
         notifier,
         jwt_service,
+        service_secrets_store,
     )
 }

@@ -55,6 +55,7 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
 
     async fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
+    async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
 
     /// Add a user to everyone's roster.
     async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
