@@ -13,8 +13,8 @@ tests:
   initialize:
     name: Initialize Prose Pod
     steps:
-      - $ref: "#/components/steps/init_workspace"
       - $ref: "#/components/steps/init_server"
+      - $ref: "#/components/steps/init_workspace"
       - $ref: "#/components/steps/create_first_admin"
       - $ref: "#/components/steps/log_admin_in"
 

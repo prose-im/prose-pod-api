@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
     controllers::init_controller::{InitController, InitFirstAccountForm, WorkspaceCreateForm},
-    model::{JidDomain, JidNode, ServerConfig, ServiceSecretsStore, Workspace},
+    model::{JidDomain, JidNode, ServerConfig, ServiceSecretsStore},
     repositories::ServerConfigCreateForm,
     services::{auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner},
 };
@@ -21,8 +21,16 @@ use crate::{
     v1::Created,
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
+    /// Organization name.
+    pub name: String,
+    /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
+    pub accent_color: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InitWorkspaceResponse {
     /// Organization name.
     pub name: String,
     /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
@@ -46,9 +54,10 @@ pub async fn init_workspace<'r>(
     xmpp_service: &State<XmppServiceInner>,
     server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
-) -> Created<Workspace> {
+) -> Created<InitWorkspaceResponse> {
     let init_controller = init_controller.inner?;
     let server_config = server_config.inner?;
+    let req = req.into_inner();
 
     let workspace = init_controller
         .init_workspace(
@@ -56,12 +65,17 @@ pub async fn init_workspace<'r>(
             secrets_store,
             xmpp_service,
             &server_config,
-            req.into_inner(),
+            req.clone(),
         )
         .await?;
 
+    let response = InitWorkspaceResponse {
+        name: req.name,
+        accent_color: workspace.accent_color,
+    };
+
     let resource_uri = uri!(crate::v1::workspace::get_workspace).to_string();
-    Ok(status::Created::new(resource_uri).body(workspace.into()))
+    Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
 #[derive(Serialize, Deserialize)]
