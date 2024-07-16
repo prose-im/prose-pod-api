@@ -8,7 +8,7 @@ use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
     config::AppConfig,
-    model::{ServiceSecretsStore, Workspace},
+    model::{ServerConfig, ServiceSecretsStore, Workspace},
     repositories::WorkspaceRepository,
     sea_orm::{ActiveModelTrait as _, Set},
     services::xmpp_service::{self, XmppService, XmppServiceContext, XmppServiceInner},
@@ -24,9 +24,10 @@ impl<'r> WorkspaceController<'r> {
         db: &'r DatabaseConnection,
         xmpp_service: &'r XmppServiceInner,
         app_config: &'r AppConfig,
+        server_config: &ServerConfig,
         secrets_store: &'r ServiceSecretsStore,
     ) -> Result<Self, WorkspaceControllerInitError> {
-        let workspace_jid = app_config.workspace_jid();
+        let workspace_jid = app_config.workspace_jid(&server_config);
         let prosody_token = secrets_store
             .get_prosody_token(&workspace_jid)
             .ok_or(WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized)?;

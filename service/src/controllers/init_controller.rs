@@ -49,7 +49,7 @@ impl<'r> InitController<'r> {
 
         // Create workspace XMPP account
         Self::create_service_account(
-            app_config.workspace_jid(),
+            app_config.workspace_jid(&server_config),
             server_ctl,
             auth_service,
             secrets_store,
@@ -138,6 +138,7 @@ impl<'r> InitController<'r> {
         app_config: &AppConfig,
         secrets_store: &ServiceSecretsStore,
         xmpp_service: &XmppServiceInner,
+        server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,
     ) -> Result<Workspace, InitWorkspaceError> {
         // Check that the workspace isn't already initialized.
@@ -149,8 +150,13 @@ impl<'r> InitController<'r> {
 
         let workspace = WorkspaceRepository::create(self.db, form.clone()).await?;
 
-        let workspace_controller =
-            WorkspaceController::new(self.db, xmpp_service, app_config, secrets_store)?;
+        let workspace_controller = WorkspaceController::new(
+            self.db,
+            xmpp_service,
+            app_config,
+            server_config,
+            secrets_store,
+        )?;
         workspace_controller
             .set_workspace_name(form.name)
             .await

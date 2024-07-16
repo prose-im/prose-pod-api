@@ -4,8 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    config::AppConfig, controllers::workspace_controller::WorkspaceController,
-    model::ServiceSecretsStore, services::xmpp_service::XmppServiceInner,
+    config::AppConfig,
+    controllers::workspace_controller::WorkspaceController,
+    model::{ServerConfig, ServiceSecretsStore},
+    services::xmpp_service::XmppServiceInner,
 };
 
 use super::prelude::*;
@@ -18,9 +20,11 @@ impl<'r> LazyFromRequest<'r> for WorkspaceController<'r> {
         let db = try_outcome!(database_connection(req).await);
         let xmpp_service = &try_outcome!(request_state!(req, XmppServiceInner));
         let app_config = &try_outcome!(request_state!(req, AppConfig));
+        let server_config = try_outcome!(ServerConfig::from_request(req).await);
         let secrets_store = &try_outcome!(request_state!(req, ServiceSecretsStore));
 
-        match WorkspaceController::new(db, xmpp_service, app_config, secrets_store) {
+        match WorkspaceController::new(db, xmpp_service, app_config, &server_config, secrets_store)
+        {
             Ok(controller) => Outcome::Success(controller),
             Err(err) => Error::from(err).into(),
         }

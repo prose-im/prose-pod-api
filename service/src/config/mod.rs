@@ -19,7 +19,9 @@ use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 
-use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
+use crate::model::{
+    DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite, ServerConfig,
+};
 
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
@@ -65,10 +67,10 @@ impl Config {
         )
     }
 
-    pub fn workspace_jid(&self) -> BareJid {
+    pub fn workspace_jid(&self, server_config: &ServerConfig) -> BareJid {
         BareJid::from_parts(
             Some(&self.service_accounts.prose_workspace.xmpp_node),
-            &DomainPart::from_str(ADMIN_HOST).unwrap(),
+            &DomainPart::from_str(&server_config.domain).unwrap(),
         )
     }
 }

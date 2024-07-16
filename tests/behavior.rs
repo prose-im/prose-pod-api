@@ -269,11 +269,15 @@ impl TestWorld {
         InitController { db }
     }
 
-    fn workspace_controller<'r>(&'r self) -> WorkspaceController<'r> {
+    async fn workspace_controller<'r>(&'r self) -> WorkspaceController<'r> {
         WorkspaceController::new(
             self.db(),
             self.xmpp_service(),
             &self.config,
+            &self
+                .server_config()
+                .await
+                .expect("Server config not initialized"),
             self.secrets_store(),
         )
         .expect("Workspace not initialized")

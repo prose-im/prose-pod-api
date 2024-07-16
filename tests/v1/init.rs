@@ -53,6 +53,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
             &world.config,
             world.secrets_store(),
             &world.xmpp_service(),
+            &world.server_config().await?,
             form,
         )
         .await?;

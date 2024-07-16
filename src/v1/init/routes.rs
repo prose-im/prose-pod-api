@@ -44,12 +44,20 @@ pub async fn init_workspace<'r>(
     app_config: &State<AppConfig>,
     secrets_store: &State<ServiceSecretsStore>,
     xmpp_service: &State<XmppServiceInner>,
+    server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
 ) -> Created<Workspace> {
     let init_controller = init_controller.inner?;
+    let server_config = server_config.inner?;
 
     let workspace = init_controller
-        .init_workspace(app_config, secrets_store, xmpp_service, req.into_inner())
+        .init_workspace(
+            app_config,
+            secrets_store,
+            xmpp_service,
+            &server_config,
+            req.into_inner(),
+        )
         .await?;
 
     let resource_uri = uri!(crate::v1::workspace::get_workspace).to_string();
