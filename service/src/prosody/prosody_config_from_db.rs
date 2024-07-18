@@ -120,7 +120,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self {
         let api_jid = app_config.api_jid();
-        let api_jid = JID::try_from(api_jid.to_string()).expect("Invalid JID: {api_jid}");
+        let api_jid = JID::try_from(api_jid.to_string()).expect(&format!("Invalid JID: {api_jid}"));
         Self {
             global_settings: ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),
