@@ -237,6 +237,9 @@ impl<'r> ServerManager<'r> {
         auth_service: &AuthService,
         secrets_store: &ServiceSecretsStore,
     ) -> Result<(), CreateServiceAccountError> {
+        // NOTE: No need to create Prose Pod API's XMPP account as it's already created
+        //   automatically when the XMPP server starts (using `mod_init_admin` in Prosody).
+
         // Create workspace XMPP account
         Self::create_service_account(
             app_config.workspace_jid(domain),
