@@ -20,6 +20,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 - [Enrich member data in a separate HTTP API call](./2024-05-27-a-lazily-enriching-member-data.md) (2024-05-27)
 - [Use `prose-xmpp` and `mod_rest` to send stanzas to Prosody](./2024-06-05-a-prose-xmpp-and-mod_rest-to-send-stanzas.md) (2024-06-05)
 - [Store workspace data in a vCard](./2024-07-14-a-store-workspace-data-in-xmpp-vcard.md) (2024-07-14)
+- [Rotate service accounts passwords at every startup](./2024-07-16-a-rotate-service-passwords.md) (2024-07-16)
 
 ## Proposed ADRs
 
