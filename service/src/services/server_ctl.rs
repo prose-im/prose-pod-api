@@ -53,17 +53,13 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
 
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
     async fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
+
     async fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
-    async fn add_user_with_role(
-        &self,
-        jid: &BareJid,
-        password: &SecretString,
-        role: &MemberRole,
-    ) -> Result<(), Error> {
-        self.add_user(jid, password).await?;
-        self.set_user_role(jid, role).await?;
-        Ok(())
-    }
+
+    /// Add a user to everyone's roster.
+    async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+    /// Remove a user from everyone's roster.
+    async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error>;
 }
 
 pub type Error = ServerCtlError;

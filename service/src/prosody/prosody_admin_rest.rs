@@ -216,7 +216,6 @@ impl ServerCtlImpl for ProsodyAdminRest {
     }
 
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
-        // Create the user
         self.call(|client| {
             client
                 .post(format!(
@@ -228,16 +227,9 @@ impl ServerCtlImpl for ProsodyAdminRest {
         })
         .await?;
 
-        // Add the user to everyone's roster
-        self.update_team_members(Method::PUT, jid).await?;
-
         Ok(())
     }
     async fn remove_user(&self, jid: &BareJid) -> Result<(), Error> {
-        // Remove the user from everyone's roster
-        self.update_team_members(Method::DELETE, jid).await?;
-
-        // Delete the user
         self.call(|client| {
             client.delete(format!(
                 "{}/{}",
@@ -249,6 +241,7 @@ impl ServerCtlImpl for ProsodyAdminRest {
 
         Ok(())
     }
+
     async fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error> {
         self.call(|client| {
             client
@@ -261,6 +254,15 @@ impl ServerCtlImpl for ProsodyAdminRest {
         })
         .await
         .map(|_| ())
+    }
+
+    async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error> {
+        self.update_team_members(Method::PUT, jid).await?;
+        Ok(())
+    }
+    async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error> {
+        self.update_team_members(Method::DELETE, jid).await?;
+        Ok(())
     }
 }
 

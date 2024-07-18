@@ -121,11 +121,21 @@ impl ServerCtlImpl for MockServerCtl {
         state.users.remove(jid);
         Ok(())
     }
+
     async fn set_user_role(&self, _jid: &BareJid, _role: &MemberRole) -> Result<(), Error> {
         self.check_online()?;
 
         // NOTE: The role is stored on our side in the database,
         //   our `DummyServerCtl` has nothing to save.
+        Ok(())
+    }
+
+    async fn add_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+        // We don't care in tests for now
+        Ok(())
+    }
+    async fn remove_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+        // We don't care in tests for now
         Ok(())
     }
 }
