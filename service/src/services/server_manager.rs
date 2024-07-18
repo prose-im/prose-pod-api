@@ -126,30 +126,6 @@ impl<'r> ServerManager<'r> {
 }
 
 impl<'r> ServerManager<'r> {
-    // TODO: Use or delete the following comments
-
-    // pub fn add_admin(&self, jid: JID) {
-    //     todo!()
-    // }
-    // pub fn remove_admin(&self, jid: &JID) {
-    //     todo!()
-    // }
-
-    // pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
-    //     todo!()
-    // }
-    // pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-    // /// Sets the time that an over-limit session is suspended for
-    // /// (`limits_resolution` in Prosody).
-    // ///
-    // /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
-    // /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    // pub fn set_timeout(&self, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-
     pub async fn init_server_config(
         db: &DatabaseConnection,
         server_ctl: &ServerCtl,
