@@ -17,6 +17,7 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 - [Expose API documentation route using Redoc (instead of Swagger UI)](./2024-04-25-b-use-redoc-instead-of-swagger-ui.md) (2024-04-25)
 - [Write integration tests](./2024-05-15-a-integration-testing.md) (2024-05-15)
 - [Use Step CI for integration testing](./2024-05-15-b-step-ci-for-integration-testing.md) (2024-05-15)
+- [Store workspace data in a vCard](./2024-07-14-a-store-workspace-data-in-xmpp-vcard.md) (2024-07-14)
 
 ## Proposed ADRs
 
