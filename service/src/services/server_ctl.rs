@@ -13,12 +13,13 @@ use std::{
     sync::Arc,
 };
 
-use entity::model::MemberRole;
-use entity::server_config;
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    model::{MemberRole, ServerConfig},
+};
 
 #[derive(Debug, Clone)]
 pub struct ServerCtl {
@@ -45,7 +46,7 @@ impl Deref for ServerCtl {
 pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn save_config(
         &self,
-        server_config: &server_config::Model,
+        server_config: &ServerConfig,
         app_config: &Config,
     ) -> Result<(), Error>;
     async fn reload(&self) -> Result<(), Error>;

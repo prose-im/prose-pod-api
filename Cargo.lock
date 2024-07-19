@@ -1079,21 +1079,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "entity"
-version = "0.2.0"
-dependencies = [
- "email_address",
- "iso8601-duration",
- "jid",
- "rocket",
- "sea-orm",
- "serde",
- "serde_json",
- "serde_with",
- "uuid",
-]
-
-[[package]]
 name = "enum-as-inner"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3851,12 +3836,15 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "cucumber",
- "entity",
+ "email_address",
  "figment",
  "form_urlencoded",
  "hmac",
  "insta",
+ "iso8601-duration",
+ "jid",
  "jwt",
+ "lazy_static",
  "lettre",
  "migration",
  "minidom",
@@ -3869,7 +3857,9 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serde_with",
  "sha2",
+ "strum",
  "tempfile",
  "thiserror",
  "tokio",
@@ -4314,6 +4304,9 @@ name = "strum"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d8cec3501a5194c432b2b7976db6b7d10ec95c253208b45f83f7136aa985e29"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"

@@ -13,7 +13,7 @@ pub struct MockNotifier {
     pub(crate) state: Arc<RwLock<MockNotifierState>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct MockNotifierState {
     pub send_count: usize,
     pub sent: Vec<Notification>,

@@ -5,8 +5,7 @@
 
 use std::ops::Deref;
 
-use entity::model as db;
-use entity::server_config::Model as ServerConfig;
+use crate::model::{self as db, ServerConfig};
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use utils::def;
 
@@ -50,6 +49,17 @@ impl ProsodyConfig {
             .reduce(|acc, e| acc.union(&e).cloned().collect())
             .unwrap_or_default()
     }
+
+    pub fn component_settings(&self, name: &str) -> Option<&ProsodySettings> {
+        self.additional_sections
+            .iter()
+            .find_map(|section| match section {
+                ProsodyConfigSection::Component {
+                    plugin, settings, ..
+                } if plugin.as_str() == name => Some(settings),
+                _ => None,
+            })
+    }
 }
 
 impl ToString for ProsodyConfig {
@@ -77,7 +87,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
         add_enabled_module(global_settings, "mam");
         global_settings.archive_expires_after =
             Some(model.message_archive_retention.into_prosody());
-        global_settings.default_archive_policy = Some(true);
+        global_settings.default_archive_policy = Some(ArchivePolicy::Always);
         global_settings.max_archive_query_results = Some(100);
         add_enabled_module(muc_settings, "muc_mam");
     }
@@ -354,7 +364,7 @@ fn add_enabled_module(settings: &mut ProsodySettings, module_name: &'static str)
 
 // ===== Model mappings =====
 
-trait IntoProsody<T> {
+pub trait IntoProsody<T> {
     fn into_prosody(self) -> T;
 }
 

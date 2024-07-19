@@ -11,11 +11,14 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
-entity = { workspace = true }
+email_address = { workspace = true }
 figment = { workspace = true }
 form_urlencoded = { workspace = true }
 hmac = { workspace = true }
+iso8601-duration = { workspace = true }
+jid = { workspace = true }
 jwt = { workspace = true }
+lazy_static = { workspace = true }
 lettre = { workspace = true }
 minidom = { workspace = true }
 parking_lot = { workspace = true }
@@ -27,7 +30,9 @@ sea-orm = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_with = { workspace = true }
 sha2 = { workspace = true }
+strum = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

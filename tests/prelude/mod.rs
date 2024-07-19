@@ -8,3 +8,4 @@ pub mod mock_notifier;
 pub mod mock_server_ctl;
 pub mod mock_xmpp_service;
 pub mod notifier;
+pub mod util;

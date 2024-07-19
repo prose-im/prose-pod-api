@@ -5,15 +5,17 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
-use entity::server_config;
-use sea_orm::DbErr;
+use sea_orm::IntoActiveModel;
 use tracing::trace;
 
-use crate::config::Config as AppConfig;
-use crate::model::{DateLike, Duration, PossiblyInfinite, ServerConfig};
-use crate::repositories::{ServerConfigCreateForm, ServerConfigRepository};
-use crate::sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _};
-use crate::services::server_ctl::ServerCtl;
+use crate::{
+    config::AppConfig,
+    entity::server_config,
+    model::{DateLike, Duration, PossiblyInfinite, ServerConfig},
+    repositories::{ServerConfigCreateForm, ServerConfigRepository},
+    sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
+    services::server_ctl::ServerCtl,
+};
 
 use super::server_ctl;
 
@@ -21,7 +23,7 @@ pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
     app_config: &'r AppConfig,
     server_ctl: &'r ServerCtl,
-    server_config: RwLock<ServerConfig>,
+    server_config: RwLock<server_config::Model>,
 }
 
 impl<'r> ServerManager<'r> {
@@ -29,7 +31,7 @@ impl<'r> ServerManager<'r> {
         db: &'r DatabaseConnection,
         app_config: &'r AppConfig,
         server_ctl: &'r ServerCtl,
-        server_config: ServerConfig,
+        server_config: server_config::Model,
     ) -> Self {
         Self {
             db,
@@ -39,14 +41,17 @@ impl<'r> ServerManager<'r> {
         }
     }
 
-    fn server_config_mut(&self) -> RwLockWriteGuard<ServerConfig> {
+    fn server_config_mut(&self) -> RwLockWriteGuard<server_config::Model> {
         self.server_config
             .write()
-            .expect("`ServerConfig` lock poisonned")
+            .expect("`server_config::Model` lock poisonned")
     }
 
-    pub fn server_config(&self) -> ServerConfig {
-        self.server_config_mut().to_owned()
+    fn server_config(&self) -> server_config::Model {
+        self.server_config
+            .read()
+            .expect("`server_config::Model` lock poisonned")
+            .to_owned()
     }
 }
 
@@ -55,9 +60,9 @@ impl<'r> ServerManager<'r> {
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
-        let old_server_config = self.server_config_mut().clone();
+        let old_server_config = self.server_config();
 
-        let mut active: server_config::ActiveModel = old_server_config.clone().into();
+        let mut active: server_config::ActiveModel = old_server_config.clone().into_active_model();
         update(&mut active);
         trace!("Updating config in database…");
         let new_server_config = active.update(self.db).await?;
@@ -70,7 +75,7 @@ impl<'r> ServerManager<'r> {
             trace!("Server config hasn't changed, no need to reload.");
         }
 
-        Ok(new_server_config)
+        Ok(new_server_config.with_default_values_from(&self.app_config))
     }
 
     /// Reload the XMPP server using the server configuration stored in `self`.
@@ -79,13 +84,16 @@ impl<'r> ServerManager<'r> {
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
-    async fn reload(&self, server_config: &ServerConfig) -> Result<(), Error> {
+    async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
         let server_ctl = self.server_ctl;
 
         // Save new server config
         trace!("Saving server config…");
         server_ctl
-            .save_config(&server_config, self.app_config)
+            .save_config(
+                &server_config.with_default_values_from(self.app_config),
+                self.app_config,
+            )
             .await?;
         // Reload server config
         trace!("Reloading XMPP server…");
@@ -134,7 +142,8 @@ impl<'r> ServerManager<'r> {
 
         // Initialize the server config in a transaction,
         // to rollback if subsequent operations fail.
-        let server_config = ServerConfigRepository::create(&txn, server_config).await?;
+        let model = ServerConfigRepository::create(&txn, server_config).await?;
+        let server_config = model.with_default_values_from(app_config);
 
         // NOTE: We can't rollback changes made to the XMPP server so let's do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -160,47 +169,77 @@ impl<'r> ServerManager<'r> {
         .await
     }
 
-    pub async fn set_message_archiving(&self, new_state: bool) -> Result<ServerConfig, Error> {
-        trace!(
-            "Turning {} message archiving…",
-            if new_state { "on" } else { "off" }
-        );
-        self.update(|active| {
-            active.message_archive_enabled = Set(new_state);
-        })
-        .await
-    }
-    pub async fn set_message_archive_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<ServerConfig, Error> {
-        trace!("Setting message archive retention to {new_state}…");
-        self.update(|active| {
-            active.message_archive_retention = Set(new_state);
-        })
-        .await
+    pub async fn reset_messaging_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting messaging configuration…");
+        let model = self
+            .update(|active| {
+                active.message_archive_enabled = Set(None);
+                active.message_archive_retention = Set(None);
+            })
+            .await?;
+        Ok(model)
     }
 
-    pub async fn set_file_uploading(&self, new_state: bool) -> Result<ServerConfig, Error> {
-        trace!(
-            "Turning {} file uploading…",
-            if new_state { "on" } else { "off" }
-        );
-        self.update(|active| {
-            active.file_upload_allowed = Set(new_state);
-        })
-        .await
+    pub async fn reset_files_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting files configuration…");
+        let model = self
+            .update(|active| {
+                active.file_upload_allowed = Set(None);
+                active.file_storage_encryption_scheme = Set(None);
+                active.file_storage_retention = Set(None);
+            })
+            .await?;
+        Ok(model)
     }
-    pub async fn set_file_retention(
-        &self,
-        new_state: PossiblyInfinite<Duration<DateLike>>,
-    ) -> Result<ServerConfig, Error> {
-        trace!("Setting file retention to {new_state}…");
-        self.update(|active| {
-            active.file_storage_retention = Set(new_state);
-        })
-        .await
-    }
+}
+
+macro_rules! set_bool {
+    ($fn:ident, $var:ident) => {
+        pub async fn $fn(&self, new_state: bool) -> Result<ServerConfig, Error> {
+            trace!(
+                "Turning {} {}…",
+                stringify!($var),
+                if new_state { "on" } else { "off" },
+            );
+            self.update(|active| active.$var = Set(Some(new_state)))
+                .await
+        }
+    };
+}
+macro_rules! set {
+    ($t:ty, $fn:ident, $var:ident) => {
+        pub async fn $fn(&self, new_state: $t) -> Result<ServerConfig, Error> {
+            trace!("Setting {} to {new_state}…", stringify!($var));
+            self.update(|active| active.$var = Set(Some(new_state)))
+                .await
+        }
+    };
+}
+macro_rules! reset {
+    ($fn:ident, $var:ident) => {
+        pub async fn $fn(&self) -> Result<ServerConfig, Error> {
+            trace!("Resetting {}…", stringify!($var));
+            self.update(|active| active.$var = Set(None)).await
+        }
+    };
+}
+
+impl<'r> ServerManager<'r> {
+    set_bool!(set_message_archive_enabled, message_archive_enabled);
+
+    set!(
+        PossiblyInfinite<Duration<DateLike>>,
+        set_message_archive_retention,
+        message_archive_retention
+    );
+    reset!(reset_message_archive_retention, message_archive_retention);
+
+    set_bool!(set_file_upload_allowed, file_upload_allowed);
+    set!(
+        PossiblyInfinite<Duration<DateLike>>,
+        set_file_storage_retention,
+        file_storage_retention
+    );
 }
 
 pub type Error = ServerManagerError;
@@ -212,5 +251,5 @@ pub enum ServerManagerError {
     #[error("`ServerCtl` error: {0}")]
     ServerCtl(#[from] server_ctl::Error),
     #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    DbErr(#[from] sea_orm::DbErr),
 }

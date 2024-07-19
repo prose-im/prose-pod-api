@@ -5,7 +5,7 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::notification::NotificationPayload;
+use crate::entity::notification::NotificationPayload;
 use tracing::{debug, info};
 
 use crate::config::ConfigBranding;

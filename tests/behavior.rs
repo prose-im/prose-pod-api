@@ -10,16 +10,16 @@ mod v1;
 use self::prelude::*;
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
 use lazy_static::lazy_static;
+use migration::DbErr;
 use mock_auth_service::MockAuthService;
 use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
-use prose_pod_api::error::Error;
 use prose_pod_api::guards::Db;
 use regex::Regex;
 use rocket::figment::Figment;
@@ -29,10 +29,12 @@ use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use secrecy::SecretString;
 use serde::Deserialize;
+use service::model::ServerConfig;
 use service::{
     config::Config,
     dependencies,
-    model::{EmailAddress, Invitation, Member, ServerConfig},
+    entity::server_config,
+    model::{EmailAddress, Invitation, Member},
     notifier::AnyNotifier,
     repositories::ServerConfigRepository,
     sea_orm::DatabaseConnection,
@@ -80,6 +82,7 @@ async fn main() {
                     targets.append(&mut vec![
                         ("prose_pod_api", LevelFilter::TRACE),
                         ("service", LevelFilter::TRACE),
+                        ("behavior", LevelFilter::TRACE),
                     ]);
                 } else {
                     targets.append(&mut vec![
@@ -230,12 +233,10 @@ impl TestWorld {
         self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
-    async fn server_manager(&self) -> Result<ServerManager, Error> {
+    async fn server_manager(&self) -> Result<ServerManager, DbErr> {
         let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
         let db = self.db();
-        let server_config = ServerConfigRepository::get(db)
-            .await?
-            .expect("Server config not initialized");
+        let server_config = self.server_config_model().await?;
         Ok(ServerManager::new(
             db,
             &self.config,
@@ -244,16 +245,24 @@ impl TestWorld {
         ))
     }
 
-    async fn server_config(&self) -> Result<ServerConfig, Error> {
-        Ok(self.server_manager().await?.server_config())
+    async fn server_config_model(&self) -> Result<server_config::Model, DbErr> {
+        let db = self.db();
+        Ok(ServerConfigRepository::get(db)
+            .await?
+            .expect("Server config not initialized"))
+    }
+
+    async fn server_config(&self) -> Result<ServerConfig, DbErr> {
+        let model = self.server_config_model().await?;
+        Ok(model.with_default_values_from(&self.config))
     }
 
     fn uuid_gen(&self) -> &dependencies::Uuid {
         self.client.rocket().state::<dependencies::Uuid>().unwrap()
     }
 
-    fn server_ctl_state(&self) -> RwLockReadGuard<MockServerCtlState> {
-        self.server_ctl.state.read().unwrap()
+    fn server_ctl_state(&self) -> MockServerCtlState {
+        self.server_ctl.state.read().unwrap().to_owned()
     }
 
     fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
@@ -264,8 +273,8 @@ impl TestWorld {
         self.xmpp_service.state.write().unwrap()
     }
 
-    fn notifier_state(&self) -> RwLockReadGuard<MockNotifierState> {
-        self.notifier.state.read().unwrap()
+    fn notifier_state(&self) -> MockNotifierState {
+        self.notifier.state.read().unwrap().to_owned()
     }
 
     fn token(&self, user: String) -> SecretString {

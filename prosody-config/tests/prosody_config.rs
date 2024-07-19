@@ -105,7 +105,7 @@ fn test_prose_default_config() {
                 support: vec![],
             }),
             archive_expires_after: Some(PossiblyInfinite::Infinite),
-            default_archive_policy: Some(true),
+            default_archive_policy: Some(ArchivePolicy::Always),
             max_archive_query_results: Some(100),
             upgrade_legacy_vcards: Some(true),
             groups_file: Some("/etc/prosody/roster_groups.txt".into()),

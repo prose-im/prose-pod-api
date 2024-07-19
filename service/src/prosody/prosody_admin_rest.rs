@@ -5,7 +5,6 @@
 
 use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
 
-use entity::{model::MemberRole, server_config};
 use prose_xmpp::BareJid;
 use reqwest::{
     header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
@@ -14,15 +13,15 @@ use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tracing::debug;
 
+use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
     config::Config,
+    model::{MemberRole, ServerConfig},
     services::{
         live_xmpp_service::NonStandardXmppClient,
         server_ctl::{Error, ServerCtlImpl},
     },
 };
-
-use super::{prosody_config_from_db, AsProsody as _};
 
 const TEAM_GROUP_ID: &'static str = "team";
 const TEAM_GROUP_NAME: &'static str = "Team";
@@ -195,7 +194,7 @@ enum AddMemberFailed {
 impl ServerCtlImpl for ProsodyAdminRest {
     async fn save_config(
         &self,
-        server_config: &server_config::Model,
+        server_config: &ServerConfig,
         app_config: &Config,
     ) -> Result<(), Error> {
         let mut file = File::create(&self.config_file_path)

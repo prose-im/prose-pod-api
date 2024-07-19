@@ -4,11 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub extern crate prose_xmpp;
+pub extern crate prosody_config;
 pub extern crate xmpp_parsers;
 
 pub mod config;
 pub mod controllers;
 pub mod dependencies;
+pub mod entity;
 pub mod model;
 mod mutation_error;
 pub mod prosody;

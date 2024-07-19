@@ -7,15 +7,16 @@ pub mod routes;
 
 pub use routes::*;
 
-use rocket::Route;
-
-pub(super) fn routes() -> Vec<Route> {
+pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
         get_server_config,
-        store_message_archive,
-        message_archive_retention,
-        store_files,
-        file_storage_encryption_scheme,
-        file_retention,
+        reset_messaging_config,
+        set_message_archive_enabled,
+        set_message_archive_retention,
+        reset_message_archive_retention,
+        reset_files_config,
+        set_file_upload_allowed,
+        set_file_storage_encryption_scheme,
+        set_file_storage_retention,
     ]
 }

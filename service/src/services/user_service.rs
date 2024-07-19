@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::model::MemberRole;
+use crate::model::MemberRole;
 use prose_xmpp::BareJid;
 use sea_orm::{ConnectionTrait, DbErr};
 use secrecy::SecretString;

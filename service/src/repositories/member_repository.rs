@@ -3,8 +3,8 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use crate::entity::member::{ActiveModel, Column, Entity};
 use chrono::{DateTime, Utc};
-use entity::member::{ActiveModel, Column, Entity};
 use prose_xmpp::BareJid;
 use sea_orm::{prelude::*, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
 

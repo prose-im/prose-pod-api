@@ -22,13 +22,13 @@ pub struct MockServerCtl {
     pub(crate) state: Arc<RwLock<MockServerCtlState>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserAccount {
     pub jid: BareJid,
     pub password: SecretString,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MockServerCtlState {
     pub online: bool,
     pub conf_reload_count: usize,

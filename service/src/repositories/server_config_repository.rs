@@ -3,10 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use entity::server_config::{ActiveModel, Column, Entity};
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
-use crate::model::ServerConfig;
+use crate::entity::server_config::{self, ActiveModel, Column, Entity};
 
 pub enum ServerConfigRepository {}
 
@@ -14,11 +13,11 @@ impl ServerConfigRepository {
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<ServerConfigCreateForm>,
-    ) -> Result<ServerConfig, DbErr> {
+    ) -> Result<server_config::Model, DbErr> {
         form.into().into_active_model().insert(db).await
     }
 
-    pub async fn get(db: &impl ConnectionTrait) -> Result<Option<ServerConfig>, DbErr> {
+    pub async fn get(db: &impl ConnectionTrait) -> Result<Option<server_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
     }
 }
