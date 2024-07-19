@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::io::Cursor;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use http_auth_basic::AuthBasicError;
 use rocket::http::{ContentType, Header, Status};
@@ -84,7 +85,7 @@ impl ErrorCode {
 
 impl std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
+        std::fmt::Display::fmt(self.value(), f)
     }
 }
 
@@ -94,18 +95,39 @@ pub struct Error {
     code: ErrorCode,
     message: String,
     headers: Vec<(String, String)>,
+    /// Whether or not the error has already been logged.
+    /// This way we can make sure an error is not logged twice.
+    logged: AtomicBool,
 }
 
 impl Error {
+    fn new(code: ErrorCode, message: String, headers: Vec<(String, String)>) -> Self {
+        Self {
+            code,
+            message,
+            headers,
+            logged: AtomicBool::new(false),
+        }
+    }
+
     /// Log the error.
     fn log(&self) {
+        if self.logged.load(Ordering::Relaxed) {
+            return;
+        }
+
         if (500..600).contains(&self.http_status().code) {
             // Server error
             error!("{}", self.message);
         } else {
             // Client error
-            warn!("{}", self.message);
+            match self.code {
+                ErrorCode::Forbidden | ErrorCode::Unknown(_) => warn!("{}", self.message),
+                _ => info!("{}", self.message),
+            }
         }
+
+        self.logged.store(true, Ordering::Relaxed);
     }
 
     /// HTTP status to return for this error.
@@ -160,11 +182,7 @@ macro_rules! impl_into_error_from_display {
     ($t:ty) => {
         impl From<$t> for Error {
             fn from(error: $t) -> Self {
-                Self {
-                    code: error.code(),
-                    message: format!("{error}"),
-                    headers: error.headers(),
-                }
+                Self::new(error.code(), format!("{error}"), error.headers())
             }
         }
     };
@@ -288,11 +306,11 @@ macro_rules! impl_into_error {
     ($t:ty) => {
         impl From<$t> for Error {
             fn from(error: $t) -> Self {
-                Self {
-                    code: error.code(),
-                    message: format!("{} error: {error}", stringify!($t)),
-                    headers: error.headers(),
-                }
+                Self::new(
+                    error.code(),
+                    format!("{} error: {error}", stringify!($t)),
+                    error.headers(),
+                )
             }
         }
     };
