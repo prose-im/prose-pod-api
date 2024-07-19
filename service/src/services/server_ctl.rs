@@ -41,25 +41,27 @@ impl Deref for ServerCtl {
 
 /// Abstraction over `prosodyctl` in case we want to switch to another server.
 /// Also facilitates testing.
+#[async_trait::async_trait]
 pub trait ServerCtlImpl: Debug + Sync + Send {
-    fn save_config(
+    async fn save_config(
         &self,
         server_config: &server_config::Model,
         app_config: &Config,
     ) -> Result<(), Error>;
-    fn reload(&self) -> Result<(), Error>;
+    async fn reload(&self) -> Result<(), Error>;
 
-    fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
-    fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
-    fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
-    fn add_user_with_role(
+    async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
+    async fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
+    async fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error>;
+    async fn add_user_with_role(
         &self,
         jid: &BareJid,
         password: &SecretString,
         role: &MemberRole,
     ) -> Result<(), Error> {
-        self.add_user(jid, password)
-            .and_then(|_| self.set_user_role(jid, role))
+        self.add_user(jid, password).await?;
+        self.set_user_role(jid, role).await?;
+        Ok(())
     }
 }
 

@@ -64,10 +64,12 @@ impl<'r> UserService<'r> {
 
         server_ctl
             .add_user(jid, &password)
+            .await
             .map_err(UserCreateError::XmppServerCannotCreateUser)?;
         if let Some(role) = role {
             server_ctl
                 .set_user_role(jid, &role)
+                .await
                 .map_err(UserCreateError::XmppServerCannotSetUserRole)?;
         }
 
@@ -76,6 +78,7 @@ impl<'r> UserService<'r> {
         let jwt = self
             .auth_service
             .log_in(jid, &password)
+            .await
             .expect("User was created with credentials which doesn't work.");
         let jwt = self
             .auth_service
@@ -94,6 +97,7 @@ impl<'r> UserService<'r> {
         // TODO: Create the vCard using a display name instead of the nickname
         xmpp_service
             .create_own_vcard(nickname)
+            .await
             .map_err(UserCreateError::CouldNotCreateVCard)?;
         // xmpp_service.set_own_nickname(nickname)?;
 

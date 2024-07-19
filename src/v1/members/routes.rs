@@ -56,7 +56,7 @@ pub(super) async fn get_members(
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub(super) fn enrich_members<'r>(
+pub(super) async fn enrich_members<'r>(
     xmpp_service: LazyGuard<XmppService<'r>>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
@@ -65,7 +65,7 @@ pub(super) fn enrich_members<'r>(
 
     let mut res = HashMap::with_capacity(jids.len());
     for jid in jids.iter() {
-        let enriched_member = MemberController::enrich_member(&xmpp_service, jid);
+        let enriched_member = MemberController::enrich_member(&xmpp_service, jid).await;
         res.insert(jid.deref().to_owned(), enriched_member.into());
     }
     Ok(res.into())
@@ -86,7 +86,7 @@ pub(super) fn enrich_members_stream<'r>(
         }
 
         for jid in jids.iter() {
-            let res: EnrichedMember = MemberController::enrich_member(&xmpp_service, jid).into();
+            let res: EnrichedMember = MemberController::enrich_member(&xmpp_service, jid).await.into();
             yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 
@@ -129,10 +129,10 @@ pub struct SetMemberNicknameResponse {
 
 /// Change a member's nickname.
 #[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
-pub(super) fn set_member_nickname(
+pub(super) async fn set_member_nickname<'r>(
     member_id: JIDUriParam,
     jid: LazyGuard<BareJid>,
-    xmpp_service: LazyGuard<XmppService>,
+    xmpp_service: LazyGuard<XmppService<'r>>,
     req: Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
     let jid = jid.inner?;
@@ -144,7 +144,7 @@ pub(super) fn set_member_nickname(
         ))?
     }
 
-    xmpp_service.set_own_nickname(&req.nickname)?;
+    xmpp_service.set_own_nickname(&req.nickname).await?;
 
     Ok(SetMemberNicknameResponse {
         jid: jid.to_owned(),
@@ -168,10 +168,10 @@ pub struct SetMemberAvatarResponse {
 
 /// Change a member's avatar.
 #[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
-pub(super) fn set_member_avatar(
+pub(super) async fn set_member_avatar<'r>(
     member_id: JIDUriParam,
     jid: LazyGuard<BareJid>,
-    xmpp_service: LazyGuard<XmppService>,
+    xmpp_service: LazyGuard<XmppService<'r>>,
     req: Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {
     let jid = jid.inner?;
@@ -189,7 +189,7 @@ pub(super) fn set_member_avatar(
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 
-    xmpp_service.set_own_avatar(image_data)?;
+    xmpp_service.set_own_avatar(image_data).await?;
 
     Ok(SetMemberAvatarResponse {
         jid: jid.to_owned(),

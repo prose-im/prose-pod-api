@@ -24,10 +24,13 @@ impl MemberController {
 }
 
 impl MemberController {
-    pub fn enrich_member(xmpp_service: &XmppService, jid: &BareJid) -> EnrichedMember {
+    pub async fn enrich_member<'r>(
+        xmpp_service: &XmppService<'r>,
+        jid: &BareJid,
+    ) -> EnrichedMember {
         trace!("Enriching `{jid}`…");
 
-        let vcard = match xmpp_service.get_vcard(jid) {
+        let vcard = match xmpp_service.get_vcard(jid).await {
             Ok(Some(vcard)) => Some(vcard),
             Ok(None) => {
                 debug!("`{jid}` has no vCard.");
@@ -44,7 +47,7 @@ impl MemberController {
             .and_then(|vcard| vcard.nickname.first().cloned())
             .map(|p| p.value);
 
-        let avatar = match xmpp_service.get_avatar(jid) {
+        let avatar = match xmpp_service.get_avatar(jid).await {
             Ok(Some(avatar)) => Some(avatar.base64().to_string()),
             Ok(None) => {
                 debug!("`{jid}` has no avatar.");
@@ -60,6 +63,7 @@ impl MemberController {
 
         let online = xmpp_service
             .is_connected(jid)
+            .await
             // Log error
             .inspect_err(|err| warn!("Could not get `{jid}`'s online status: {err}"))
             // But dismiss it

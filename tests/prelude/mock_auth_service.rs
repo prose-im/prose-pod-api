@@ -63,8 +63,9 @@ impl Default for MockAuthServiceState {
     }
 }
 
+#[async_trait::async_trait]
 impl AuthServiceImpl for MockAuthService {
-    fn log_in(
+    async fn log_in(
         &self,
         jid: &BareJid,
         password: &SecretString,
