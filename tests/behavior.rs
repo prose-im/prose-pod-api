@@ -61,11 +61,6 @@ use self::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    // Run tests and ignore undefined steps
-    // TestWorld::run("tests/features").await;
-
-    // Run tests and ignore undefined steps, but show logs
-    // NOTE: Needs the "tracing" feature enabled for `cucumber`
     TestWorld::cucumber()
         // .init_tracing()
         .configure_and_init_tracing(
@@ -101,13 +96,10 @@ async fn main() {
                 )
             },
         )
-        .run("tests/features")
+        // Fail on undefined steps
+        // .fail_on_skipped()
+        .run_and_exit("tests/features")
         .await;
-
-    // Run and fail on undefined steps
-    // TestWorld::cucumber()
-    //     .fail_on_skipped()
-    //     .run_and_exit("tests/features").await;
 }
 
 fn test_rocket(

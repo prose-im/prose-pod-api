@@ -17,6 +17,8 @@ as a template and replace every occurrence of `<TODO:Whatever>` by whatever it s
 - [Expose API documentation route using Redoc (instead of Swagger UI)](./2024-04-25-b-use-redoc-instead-of-swagger-ui.md) (2024-04-25)
 - [Write integration tests](./2024-05-15-a-integration-testing.md) (2024-05-15)
 - [Use Step CI for integration testing](./2024-05-15-b-step-ci-for-integration-testing.md) (2024-05-15)
+- [Enrich member data in a separate HTTP API call](./2024-05-27-a-lazily-enriching-member-data.md) (2024-05-27)
+- [Use `prose-xmpp` and `mod_rest` to send stanzas to Prosody](./2024-06-05-a-prose-xmpp-and-mod_rest-to-send-stanzas.md) (2024-06-05)
 - [Store workspace data in a vCard](./2024-07-14-a-store-workspace-data-in-xmpp-vcard.md) (2024-07-14)
 
 ## Proposed ADRs
