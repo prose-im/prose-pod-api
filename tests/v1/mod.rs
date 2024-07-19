@@ -40,7 +40,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     };
     let model = MemberRepository::create(db, member).await?;
 
-    let token = world.auth_service.log_in_unchecked(&jid)?;
+    let token = world.mock_auth_service.log_in_unchecked(&jid)?;
 
     world.members.insert(name, (model, token));
 
@@ -59,7 +59,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     };
     let model = MemberRepository::create(db, member).await?;
 
-    let token = world.auth_service.log_in_unchecked(&jid)?;
+    let token = world.mock_auth_service.log_in_unchecked(&jid)?;
 
     world.members.insert(name, (model, token));
 
@@ -89,7 +89,7 @@ async fn given_presence(
 async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
     world
-        .xmpp_service
+        .mock_xmpp_service
         .set_avatar(&jid, Some(AvatarData::Base64(avatar)))?;
     Ok(())
 }
@@ -97,7 +97,7 @@ async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Re
 #[given(expr = "{} has no avatar")]
 async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    world.xmpp_service.set_avatar(&jid, None)?;
+    world.mock_xmpp_service.set_avatar(&jid, None)?;
     Ok(())
 }
 

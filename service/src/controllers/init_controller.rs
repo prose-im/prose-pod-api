@@ -9,10 +9,11 @@ use secrecy::SecretString;
 use crate::{
     config::AppConfig,
     entity::workspace,
-    model::{JidNode, Member, MemberRole, ServerConfig, ServiceSecretsStore, Workspace},
+    model::{JidNode, Member, MemberRole, ServerConfig, Workspace},
     repositories::{MemberRepository, ServerConfigCreateForm, WorkspaceRepository},
     services::{
         auth_service::AuthService,
+        secrets_store::SecretsStore,
         server_ctl::ServerCtl,
         server_manager::{self, CreateServiceAccountError, ServerManager},
         user_service::{UserCreateError, UserService},
@@ -33,7 +34,7 @@ impl<'r> InitController<'r> {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
         server_config: impl Into<ServerConfigCreateForm>,
     ) -> Result<ServerConfig, InitServerConfigError> {
         // Initialize XMPP server configuration
@@ -83,7 +84,7 @@ impl<'r> InitController<'r> {
     pub async fn init_workspace(
         &self,
         app_config: &AppConfig,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
         xmpp_service: &XmppServiceInner,
         server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,

@@ -2,6 +2,7 @@ Feature: XMPP server configuration: Message archive
 
   Background:
     Given the Prose Pod has been initialized
+      And the Prose Pod API has started
 
   Rule: Message archiving can be turned on and off
 

@@ -24,7 +24,6 @@ pub struct MockServerCtl {
 
 #[derive(Debug, Clone)]
 pub struct UserAccount {
-    pub jid: BareJid,
     pub password: SecretString,
 }
 
@@ -109,7 +108,6 @@ impl ServerCtlImpl for MockServerCtl {
         state.users.insert(
             jid.clone(),
             UserAccount {
-                jid: jid.clone(),
                 password: password.to_owned(),
             },
         );

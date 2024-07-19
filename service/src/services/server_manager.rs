@@ -14,18 +14,16 @@ use tracing::{debug, trace};
 use crate::{
     config::AppConfig,
     entity::server_config,
-    model::{
-        DateLike, Duration, JidDomain, PossiblyInfinite, ServerConfig, ServiceSecrets,
-        ServiceSecretsStore,
-    },
+    model::{DateLike, Duration, JidDomain, PossiblyInfinite, ServerConfig},
     repositories::{ServerConfigCreateForm, ServerConfigRepository},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
-    services::server_ctl::ServerCtl,
+    services::{secrets_store::ServiceAccountSecrets, server_ctl::ServerCtl},
 };
 
 use super::{
     auth_service::{self, AuthService},
     jwt_service::{InvalidJwtClaimError, JWTError},
+    secrets_store::SecretsStore,
     server_ctl::{self, ServerCtlError},
 };
 
@@ -162,7 +160,7 @@ impl<'r> ServerManager<'r> {
     pub async fn rotate_api_xmpp_password(
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
     ) -> Result<(), ServerCtlError> {
         let api_jid = app_config.api_jid();
         let password = Self::strong_random_password();
@@ -211,7 +209,7 @@ impl<'r> ServerManager<'r> {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
     ) -> Result<(), CreateServiceAccountError> {
         // NOTE: No need to create Prose Pod API's XMPP account as it's already created
         //   automatically when the XMPP server starts (using `mod_init_admin` in Prosody).
@@ -232,7 +230,7 @@ impl<'r> ServerManager<'r> {
         jid: BareJid,
         server_ctl: &ServerCtl,
         auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
     ) -> Result<(), CreateServiceAccountError> {
         debug!("Creating service account '{jid}'…");
 
@@ -250,8 +248,8 @@ impl<'r> ServerManager<'r> {
             .map_err(CreateServiceAccountError::MissingProsodyToken)?;
 
         // Store the secrets
-        let secrets = ServiceSecrets { prosody_token };
-        secrets_store.set_secrets(jid, secrets);
+        let secrets = ServiceAccountSecrets { prosody_token };
+        secrets_store.set_service_account_secrets(jid, secrets);
 
         Ok(())
     }

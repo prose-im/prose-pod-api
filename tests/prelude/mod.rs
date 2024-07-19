@@ -5,6 +5,7 @@
 
 pub mod mock_auth_service;
 pub mod mock_notifier;
+pub mod mock_secrets_store;
 pub mod mock_server_ctl;
 pub mod mock_xmpp_service;
 pub mod notifier;

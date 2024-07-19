@@ -6,8 +6,8 @@
 use service::{
     config::AppConfig,
     controllers::workspace_controller::WorkspaceController,
-    model::{ServerConfig, ServiceSecretsStore},
-    services::xmpp_service::XmppServiceInner,
+    model::ServerConfig,
+    services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
 };
 
 use super::prelude::*;
@@ -21,7 +21,7 @@ impl<'r> LazyFromRequest<'r> for WorkspaceController<'r> {
         let xmpp_service = &try_outcome!(request_state!(req, XmppServiceInner));
         let app_config = &try_outcome!(request_state!(req, AppConfig));
         let server_config = try_outcome!(ServerConfig::from_request(req).await);
-        let secrets_store = &try_outcome!(request_state!(req, ServiceSecretsStore));
+        let secrets_store = &try_outcome!(request_state!(req, SecretsStore));
 
         match WorkspaceController::new(db, xmpp_service, app_config, &server_config, secrets_store)
         {

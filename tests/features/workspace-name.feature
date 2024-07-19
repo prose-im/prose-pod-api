@@ -1,5 +1,8 @@
 Feature: Workspace name
 
+  Background:
+    Given the Prose Pod API has started
+
   Rule: The API should warn if the workspace has not been initialized when getting the workspace name
 
     Scenario: XMPP server and workspace not initialized

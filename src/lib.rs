@@ -28,11 +28,10 @@ use sea_orm_rocket::Database;
 use service::{
     config::{AppConfig, Config},
     dependencies::{Notifier, Uuid},
-    model::ServiceSecretsStore,
     repositories::ServerConfigRepository,
     services::{
-        auth_service::AuthService, jwt_service::JWTService, server_ctl::ServerCtl,
-        server_manager::ServerManager, xmpp_service::XmppServiceInner,
+        auth_service::AuthService, jwt_service::JWTService, secrets_store::SecretsStore,
+        server_ctl::ServerCtl, server_manager::ServerManager, xmpp_service::XmppServiceInner,
     },
 };
 use tokio::time::sleep;
@@ -47,10 +46,9 @@ pub fn custom_rocket(
     auth_service: AuthService,
     notifier: Notifier,
     jwt_service: JWTService,
-    service_secrets_store: ServiceSecretsStore,
+    secrets_store: SecretsStore,
 ) -> Rocket<Build> {
     rocket
-        .attach(Db::init())
         .attach(AdHoc::try_on_ignite(
             // NOTE: Fairings run in parallel, which means order is not guaranteed
             //   and race conditions could happen. This fairing runs all the fairings we need,
@@ -77,7 +75,7 @@ pub fn custom_rocket(
         .manage(auth_service)
         .manage(notifier)
         .manage(jwt_service)
-        .manage(service_secrets_store)
+        .manage(secrets_store)
 }
 
 async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
@@ -91,7 +89,7 @@ async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
 }
 
 async fn run_migrations(rocket: &Rocket<Build>) -> Result<(), String> {
-    let conn = &Db::fetch(&rocket).unwrap().conn;
+    let conn = &Db::fetch(&rocket).expect("Db not attached").conn;
     let _ = migration::Migrator::up(conn, None).await;
     Ok(())
 }
@@ -101,7 +99,7 @@ async fn rotate_api_xmpp_password(rocket: &Rocket<Build>) -> Result<(), String> 
 
     let server_ctl: &ServerCtl = rocket.state().unwrap();
     let app_config: &AppConfig = rocket.state().unwrap();
-    let secrets_store: &ServiceSecretsStore = rocket.state().unwrap();
+    let secrets_store: &SecretsStore = rocket.state().unwrap();
 
     if let Err(err) =
         ServerManager::rotate_api_xmpp_password(server_ctl, app_config, secrets_store).await

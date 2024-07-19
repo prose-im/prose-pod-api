@@ -1,5 +1,8 @@
 Feature: Workspace icon
 
+  Background:
+    Given the Prose Pod API has started
+
   Rule: The API should warn if the workspace has not been initialized when getting the workspace icon
 
     Scenario: XMPP server and workspace not initialized

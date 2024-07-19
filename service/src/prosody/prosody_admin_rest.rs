@@ -16,9 +16,10 @@ use tracing::trace;
 use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
     config::Config,
-    model::{MemberRole, ServerConfig, ServiceSecretsStore},
+    model::{MemberRole, ServerConfig},
     services::{
         live_xmpp_service::NonStandardXmppClient,
+        secrets_store::SecretsStore,
         server_ctl::{Error, ServerCtlImpl},
     },
 };
@@ -34,14 +35,14 @@ pub struct ProsodyAdminRest {
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
     api_jid: BareJid,
-    secrets_store: ServiceSecretsStore,
+    secrets_store: SecretsStore,
 }
 
 impl ProsodyAdminRest {
     pub fn from_config(
         config: &Config,
         http_client: HttpClient,
-        secrets_store: ServiceSecretsStore,
+        secrets_store: SecretsStore,
     ) -> Self {
         Self {
             http_client,

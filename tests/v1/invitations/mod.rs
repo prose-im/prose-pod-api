@@ -184,7 +184,7 @@ async fn given_invited(world: &mut TestWorld, email_address: EmailAddress) -> Re
             },
             created_at: None,
         },
-        world.uuid_gen(),
+        &world.uuid_gen,
     )
     .await?;
 
@@ -230,7 +230,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
                 },
                 created_at: None,
             },
-            world.uuid_gen(),
+            &world.uuid_gen,
         )
         .await?;
         world.workspace_invitations.insert(email_address, model);
@@ -264,7 +264,7 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
     // Resend invitation
     let db = world.db();
-    let model = InvitationRepository::resend(db, world.uuid_gen(), invitation_before).await?;
+    let model = InvitationRepository::resend(db, &world.uuid_gen, invitation_before).await?;
 
     // Store current invitation data
     world
@@ -317,7 +317,7 @@ async fn when_inviting(
     let token = world.token(name.0);
     let email_address = email_address.0;
     let res = invite_member(
-        &world.client,
+        world.client(),
         &token,
         &JidNode::from(email_address.to_owned()),
         pre_assigned_role,
@@ -330,7 +330,7 @@ async fn when_inviting(
 #[when(expr = "{text} lists pending invitations")]
 async fn when_listing_workspace_invitations(world: &mut TestWorld, name: Text) {
     let token = world.token(name.0);
-    let res = list_workspace_invitations(&world.client, token).await;
+    let res = list_workspace_invitations(world.client(), token).await;
     world.result = Some(res.into());
 }
 
@@ -341,7 +341,7 @@ async fn when_listing_workspace_invitations_paged(
     page_size: u64,
 ) {
     let token = world.token(name.0);
-    let res = list_workspace_invitations_paged(&world.client, token, 1, page_size).await;
+    let res = list_workspace_invitations_paged(world.client(), token, 1, page_size).await;
     world.result = Some(res.into());
 }
 
@@ -353,7 +353,7 @@ async fn when_getting_workspace_invitations_page(
     page_size: u64,
 ) {
     let token = world.token(name.0);
-    let res = list_workspace_invitations_paged(&world.client, token, page_number, page_size).await;
+    let res = list_workspace_invitations_paged(world.client(), token, page_number, page_size).await;
     world.result = Some(res.into());
 }
 
@@ -364,7 +364,7 @@ async fn when_getting_workspace_invitation_for_accept_token(
 ) {
     let invitation = world.workspace_invitation(&email_address);
     let res = get_workspace_invitation_by_token(
-        &world.client,
+        world.client(),
         &invitation.accept_token,
         TokenType::Accept,
     )
@@ -379,7 +379,7 @@ async fn when_getting_workspace_invitation_for_reject_token(
 ) {
     let invitation = world.workspace_invitation(&email_address);
     let res = get_workspace_invitation_by_token(
-        &world.client,
+        world.client(),
         &invitation.reject_token,
         TokenType::Reject,
     )
@@ -393,7 +393,7 @@ async fn when_getting_workspace_invitation_for_previous_accept_token(
     email_address: EmailAddress,
 ) {
     let res = get_workspace_invitation_by_token(
-        &world.client,
+        world.client(),
         &world.previous_workspace_invitation_accept_token(&email_address),
         TokenType::Accept,
     )
@@ -405,7 +405,7 @@ async fn when_getting_workspace_invitation_for_previous_accept_token(
 async fn when_invited_accepts_invitation(world: &mut TestWorld, email_address: EmailAddress) {
     let invitation = world.workspace_invitation(&email_address.0);
     let res = accept_workspace_invitation(
-        &world.client,
+        world.client(),
         invitation.accept_token,
         email_address.0.local_part().to_string(),
         None,
@@ -422,14 +422,14 @@ async fn when_invited_accepts_invitation_with_nickname(
 ) {
     let invitation = world.workspace_invitation(&email_address.0);
     let res =
-        accept_workspace_invitation(&world.client, invitation.accept_token, nickname, None).await;
+        accept_workspace_invitation(world.client(), invitation.accept_token, nickname, None).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "<{email}> uses the previous invitation accept link they received")]
 async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address: EmailAddress) {
     let res = accept_workspace_invitation(
-        &world.client,
+        world.client(),
         world.previous_workspace_invitation_accept_token(&email_address),
         email_address.0.local_part().to_string(),
         None,
@@ -441,7 +441,7 @@ async fn when_invited_uses_old_accept_link(world: &mut TestWorld, email_address:
 #[when(expr = "<{email}> rejects their invitation")]
 async fn when_invited_rejects_invitation(world: &mut TestWorld, email_address: EmailAddress) {
     let invitation = world.workspace_invitation(&email_address.0);
-    let res = reject_workspace_invitation(&world.client, invitation.reject_token).await;
+    let res = reject_workspace_invitation(world.client(), invitation.reject_token).await;
     world.result = Some(res.into());
 }
 
@@ -450,7 +450,7 @@ async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Tex
     let token = world.token(name.0);
     let invitation = world.scenario_workspace_invitation().1;
     let res =
-        workspace_invitation_admin_action(&world.client, token, invitation.id, "resend").await;
+        workspace_invitation_admin_action(world.client(), token, invitation.id, "resend").await;
     world.result = Some(res.into());
 }
 
@@ -458,7 +458,7 @@ async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Tex
 async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Text) {
     let token = world.token(name.0);
     let invitation = world.scenario_workspace_invitation().1;
-    let res = cancel_workspace_invitation(&world.client, token, invitation.id).await;
+    let res = cancel_workspace_invitation(world.client(), token, invitation.id).await;
     world.result = Some(res.into());
 }
 

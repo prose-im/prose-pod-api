@@ -44,13 +44,13 @@ async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(),
 
 #[when("a user gets the workspace name")]
 async fn when_user_gets_workspace_name(world: &mut TestWorld) {
-    let res = get_workspace_name(&world.client).await;
+    let res = get_workspace_name(world.client()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "a user sets the workspace name to {string}")]
 async fn when_set_workspace_name(world: &mut TestWorld, name: String) {
-    let res = set_workspace_name(&world.client, &name).await;
+    let res = set_workspace_name(world.client(), &name).await;
     world.result = Some(res.into());
 }
 
@@ -93,8 +93,8 @@ async fn set_workspace_icon<'a>(client: &'a Client, png_data: String) -> LocalRe
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
     let server_config = world.server_config().await?;
-    world.xmpp_service.set_avatar(
-        &world.config.workspace_jid(&server_config.domain),
+    world.mock_xmpp_service.set_avatar(
+        &world.app_config.workspace_jid(&server_config.domain),
         Some(AvatarData::Base64(png_data)),
     )?;
     Ok(())
@@ -102,13 +102,13 @@ async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Re
 
 #[when("a user gets the workspace icon")]
 async fn when_user_gets_workspace_icon(world: &mut TestWorld) {
-    let res = get_workspace_icon(&world.client).await;
+    let res = get_workspace_icon(world.client()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "a user sets the workspace icon to {string}")]
 async fn when_set_workspace_icon_url(world: &mut TestWorld, png_data: String) {
-    let res = set_workspace_icon(&world.client, png_data).await;
+    let res = set_workspace_icon(world.client(), png_data).await;
     world.result = Some(res.into());
 }
 

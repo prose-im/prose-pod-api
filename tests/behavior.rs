@@ -13,37 +13,39 @@ use std::{
     sync::{Arc, RwLock, RwLockWriteGuard},
 };
 
-use cucumber::{given, then, World};
-use cucumber_parameters::HTTPStatus;
+use cucumber::{given, then, when, World};
+use cucumber_parameters::{HTTPStatus, JID};
 use lazy_static::lazy_static;
-use migration::DbErr;
+use migration::{DbErr, MigratorTrait as _};
 use mock_auth_service::MockAuthService;
 use mock_notifier::{MockNotifier, MockNotifierState};
+use mock_secrets_store::MockSecretsStore;
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::guards::Db;
 use regex::Regex;
 use rocket::{
-    figment::Figment,
+    figment::{providers::Serialized, Figment},
     http::{ContentType, Status},
     local::asynchronous::{Client, LocalResponse},
-    Build, Rocket,
 };
-use sea_orm_rocket::Database as _;
+use sea_orm_rocket::Database;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use service::{
-    config::Config,
+    config::AppConfig,
     controllers::{init_controller::InitController, workspace_controller::WorkspaceController},
     dependencies,
     entity::server_config,
-    model::{EmailAddress, Invitation, Member, ServerConfig, ServiceSecretsStore},
+    model::{EmailAddress, Invitation, Member, ServerConfig},
     notifier::AnyNotifier,
     repositories::ServerConfigRepository,
     sea_orm::DatabaseConnection,
     services::{
         auth_service::AuthService,
         jwt_service::{JWTKey, JWTService},
+        live_secrets_store::LiveSecretsStore,
+        secrets_store::{SecretsStore, SecretsStoreImpl},
         server_ctl::{ServerCtl, ServerCtlImpl as _},
         server_manager::ServerManager,
         xmpp_service::XmppServiceInner,
@@ -103,55 +105,6 @@ async fn main() {
         .await;
 }
 
-fn test_rocket(
-    config: Config,
-    server_ctl: Arc<MockServerCtl>,
-    xmpp_service: Arc<MockXmppService>,
-    auth_service: Arc<MockAuthService>,
-    notifier: Box<MockNotifier>,
-    jwt_service: JWTService,
-    service_secrets_store: ServiceSecretsStore,
-) -> Rocket<Build> {
-    let figment = Figment::from(rocket::Config::figment())
-        .merge(("databases.data.url", "sqlite::memory:"))
-        .merge(("log_level", "off"))
-        .merge(("databases.data.sqlx_logging", false))
-        .merge(("databases.data.sql_log_level", "off"));
-    prose_pod_api::custom_rocket(
-        rocket::custom(figment),
-        config,
-        ServerCtl::new(server_ctl),
-        XmppServiceInner::new(xmpp_service),
-        AuthService::new(auth_service),
-        dependencies::Notifier::from(AnyNotifier::new(notifier)),
-        jwt_service,
-        service_secrets_store,
-    )
-}
-
-pub async fn rocket_test_client(
-    config: Config,
-    server_ctl: Arc<MockServerCtl>,
-    xmpp_service: Arc<MockXmppService>,
-    auth_service: Arc<MockAuthService>,
-    notifier: Box<MockNotifier>,
-    jwt_service: JWTService,
-    service_secrets_store: ServiceSecretsStore,
-) -> Client {
-    debug!("Creating Rocket test client...");
-    Client::tracked(test_rocket(
-        config,
-        server_ctl,
-        xmpp_service,
-        auth_service,
-        notifier,
-        jwt_service,
-        service_secrets_store,
-    ))
-    .await
-    .expect("valid rocket instance")
-}
-
 #[derive(Debug)]
 struct Response {
     status: Status,
@@ -197,12 +150,22 @@ impl From<LocalResponse<'_>> for Response {
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 pub struct TestWorld {
-    config: Config,
-    server_ctl: MockServerCtl,
-    auth_service: MockAuthService,
-    xmpp_service: MockXmppService,
-    notifier: MockNotifier,
-    client: Client,
+    app_config: AppConfig,
+    rocket_config_provider: Figment,
+    db: Db,
+    mock_server_ctl: MockServerCtl,
+    server_ctl: ServerCtl,
+    mock_auth_service: MockAuthService,
+    auth_service: AuthService,
+    mock_xmpp_service: MockXmppService,
+    xmpp_service: XmppServiceInner,
+    mock_notifier: MockNotifier,
+    notifier: dependencies::Notifier,
+    mock_secrets_store: MockSecretsStore,
+    secrets_store: SecretsStore,
+    jwt_service: JWTService,
+    uuid_gen: dependencies::Uuid,
+    client: Option<Client>,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
     members: HashMap<String, (Member, SecretString)>,
@@ -213,6 +176,33 @@ pub struct TestWorld {
 }
 
 impl TestWorld {
+    async fn create_rocket_test_client(&self) -> Client {
+        debug!("Creating Rocket test client…");
+
+        let rocket = rocket::custom(self.rocket_config_provider.clone())
+            // NOTE: `Db::clone` returns a database pool (`SeaOrmPool`), not a `Db`!
+            .manage(Db::from(self.db.clone()));
+
+        Client::tracked(prose_pod_api::custom_rocket(
+            rocket,
+            self.app_config.clone(),
+            self.server_ctl.clone(),
+            self.xmpp_service.clone(),
+            self.auth_service.clone(),
+            self.notifier.clone(),
+            self.jwt_service.clone(),
+            self.secrets_store.clone(),
+        ))
+        .await
+        .expect("valid rocket instance")
+    }
+
+    fn client(&self) -> &Client {
+        self.client
+            .as_ref()
+            .expect("The Prose Pod API must be started with 'Given the Prose Pod API has started'")
+    }
+
     fn result(&mut self) -> &mut Response {
         match &mut self.result {
             Some(res) => res,
@@ -221,11 +211,7 @@ impl TestWorld {
     }
 
     fn db(&self) -> &DatabaseConnection {
-        &Db::fetch(&self.client.rocket()).unwrap().conn
-    }
-
-    fn secrets_store(&self) -> &ServiceSecretsStore {
-        self.client.rocket().state().unwrap()
+        &self.db.conn
     }
 
     /// Sometimes we need to use the `ServerCtl` from "Given" steps,
@@ -237,26 +223,12 @@ impl TestWorld {
         self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
-    fn server_ctl(&self) -> &ServerCtl {
-        self.client.rocket().state::<ServerCtl>().unwrap()
-    }
-
-    fn auth_service(&self) -> &AuthService {
-        self.client.rocket().state::<AuthService>().unwrap()
-    }
-
-    fn xmpp_service(&self) -> &XmppServiceInner {
-        self.client.rocket().state::<XmppServiceInner>().unwrap()
-    }
-
     async fn server_manager(&self) -> Result<ServerManager, DbErr> {
-        let server_ctl = self.client.rocket().state::<ServerCtl>().unwrap();
-        let db = self.db();
         let server_config = self.server_config_model().await?;
         Ok(ServerManager::new(
-            db,
-            &self.config,
-            server_ctl,
+            &self.db(),
+            &self.app_config,
+            &self.server_ctl,
             server_config,
         ))
     }
@@ -269,13 +241,13 @@ impl TestWorld {
     async fn workspace_controller<'r>(&'r self) -> WorkspaceController<'r> {
         WorkspaceController::new(
             self.db(),
-            self.xmpp_service(),
-            &self.config,
+            &self.xmpp_service,
+            &self.app_config,
             &self
                 .server_config()
                 .await
                 .expect("Server config not initialized"),
-            self.secrets_store(),
+            &self.secrets_store,
         )
         .expect("Workspace not initialized")
     }
@@ -289,27 +261,23 @@ impl TestWorld {
 
     async fn server_config(&self) -> Result<ServerConfig, DbErr> {
         let model = self.server_config_model().await?;
-        Ok(model.with_default_values_from(&self.config))
-    }
-
-    fn uuid_gen(&self) -> &dependencies::Uuid {
-        self.client.rocket().state::<dependencies::Uuid>().unwrap()
+        Ok(model.with_default_values_from(&self.app_config))
     }
 
     fn server_ctl_state(&self) -> MockServerCtlState {
-        self.server_ctl.state.read().unwrap().to_owned()
+        self.mock_server_ctl.state.read().unwrap().to_owned()
     }
 
     fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
-        self.server_ctl.state.write().unwrap()
+        self.mock_server_ctl.state.write().unwrap()
     }
 
     fn xmpp_service_state_mut(&self) -> RwLockWriteGuard<MockXmppServiceState> {
-        self.xmpp_service.state.write().unwrap()
+        self.mock_xmpp_service.state.write().unwrap()
     }
 
     fn notifier_state(&self) -> MockNotifierState {
-        self.notifier.state.read().unwrap().to_owned()
+        self.mock_notifier.state.read().unwrap().to_owned()
     }
 
     fn token(&self, user: String) -> SecretString {
@@ -350,7 +318,7 @@ impl TestWorld {
             "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
             &api_xmpp_password.expose_secret(),
         );
-        let config = Config::figment();
+        let config = AppConfig::figment();
 
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
@@ -362,43 +330,94 @@ impl TestWorld {
             Default::default(),
             mock_server_ctl_state,
         );
-        let service_secrets_store = ServiceSecretsStore::from_config(&config);
+        let mock_secrets_store =
+            MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
+
+        let uuid_gen = dependencies::Uuid::from_config(&config);
 
         // Create API XMPP account
         // NOTE: This is done automatically via Prosody, we need to do it by hand here.
         if let Err(err) = mock_server_ctl
             .add_user(
                 &config.api_jid(),
-                &service_secrets_store.prose_pod_api_xmpp_password(),
+                &mock_secrets_store.prose_pod_api_xmpp_password(),
             )
             .await
         {
             panic!("Could not create API XMPP account: {}", err);
         }
 
+        let rocket_config_provider = rocket::Config::figment()
+            .merge(("databases.data.url", "sqlite::memory:"))
+            .merge(("log_level", "off"))
+            .merge(("databases.data.sqlx_logging", false))
+            .merge(("databases.data.sql_log_level", "off"));
+
+        let pool = db_pool(&rocket_config_provider).await;
+        let db = Db::from(pool);
+        if let Err(err) = run_migrations(&db.conn).await {
+            panic!("Could not run migrations in tests: {err}");
+        }
+
         Self {
-            config: config.clone(),
-            client: rocket_test_client(
-                config,
-                Arc::new(mock_server_ctl.clone()),
-                Arc::new(mock_xmpp_service.clone()),
-                Arc::new(mock_auth_service.clone()),
-                Box::new(mock_notifier.clone()),
-                jwt_service,
-                service_secrets_store,
-            )
-            .await,
+            app_config: config.clone(),
+            rocket_config_provider,
+            db,
+            client: None,
             result: None,
             members: HashMap::new(),
             workspace_invitations: HashMap::new(),
             scenario_workspace_invitation: None,
             previous_workspace_invitation_accept_tokens: HashMap::new(),
-            server_ctl: mock_server_ctl,
-            xmpp_service: mock_xmpp_service,
-            auth_service: mock_auth_service,
-            notifier: mock_notifier,
+            server_ctl: ServerCtl::new(Arc::new(mock_server_ctl.clone())),
+            mock_server_ctl,
+            xmpp_service: XmppServiceInner::new(Arc::new(mock_xmpp_service.clone())),
+            mock_xmpp_service,
+            auth_service: AuthService::new(Arc::new(mock_auth_service.clone())),
+            mock_auth_service,
+            notifier: dependencies::Notifier::from(AnyNotifier::new(Box::new(
+                mock_notifier.clone(),
+            ))),
+            mock_notifier,
+            secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),
+            mock_secrets_store,
+            jwt_service,
+            uuid_gen,
         }
     }
+}
+
+// NOTE: Logic and values come from <https://github.com/SeaQL/sea-orm/blob/825cb14e39ef859af529263a39c0aff8b38b8082/sea-orm-rocket/lib/src/database.rs#L234-L254>.
+async fn db_pool(rocket_config_provider: &Figment) -> <Db as sea_orm_rocket::Database>::Pool {
+    let workers: usize = rocket_config_provider
+        .extract_inner(rocket::Config::WORKERS)
+        .unwrap_or_else(|_| rocket::Config::default().workers);
+
+    let figment = rocket_config_provider
+        .focus(&format!("databases.{}", Db::NAME))
+        .merge(Serialized::default("max_connections", workers * 4))
+        .merge(Serialized::default("connect_timeout", 5))
+        .merge(Serialized::default("sqlx_logging", true));
+
+    <<Db as sea_orm_rocket::Database>::Pool as sea_orm_rocket::Pool>::init(&figment)
+        .await
+        .expect("Invalid database configuration")
+}
+
+async fn run_migrations(conn: &DatabaseConnection) -> Result<(), DbErr> {
+    debug!("Running database migrations before creating the Rocket…");
+    migration::Migrator::up(conn, None).await
+}
+
+#[given("the Prose Pod API has started")]
+async fn given_api_started(world: &mut TestWorld) {
+    world.client = Some(world.create_rocket_test_client().await);
+    world.reset_server_ctl_counts();
+}
+
+#[when("the Prose Pod API starts")]
+async fn when_api_starts(world: &mut TestWorld) {
+    world.client = Some(world.create_rocket_test_client().await);
 }
 
 #[given("the XMPP server is offline")]
@@ -490,4 +509,9 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
         events.contains(&expected),
         "events: {events:?}\nexpected: {expected:?}"
     );
+}
+
+#[then(expr = "<{jid}>'s password is changed")]
+fn then_password_changed(world: &mut TestWorld, jid: JID) {
+    assert_ne!(world.mock_secrets_store.changes_count(&jid), 0);
 }

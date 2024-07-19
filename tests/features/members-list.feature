@@ -4,6 +4,7 @@ Feature: Members list
     Given the Prose Pod has been initialized
       And the XMPP server domain is <prose.org>
       And Valerian is an admin
+      And the Prose Pod API has started
 
   """
   In the Prose Pod Dashboard, admins should be able to see members.
