@@ -54,7 +54,7 @@ linked-hash-map = "0.5"
 migration = { path = "./migration" }
 minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", rev = "d8f24c758bcf51960a4aebf96229b79b7b96cda0" }
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.91" }
 prosody-config = { path = "./prosody-config" }
 rand = "0.8"
 regex = "1"
@@ -65,12 +65,12 @@ reqwest = { version = "0.12", features = [
     "trust-dns",
 ], default-features = false }
 rocket = { version = "0.5", features = ["json"] }
-sea-orm = { version = "1.0.0-rc.4", features = [
+sea-orm = { version = "1.0.0-rc.7", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
     #"macros",
 ] }
-sea-orm-migration = { version = "1.0.0-rc.4", features = [
+sea-orm-migration = { version = "1.0.0-rc.7", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
 ] }

@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use prose_xmpp::mods::AvatarData;
-use prose_xmpp::stanza::vcard::Nickname;
+use prose_xmpp::stanza::vcard4::Nickname;
 use prose_xmpp::{BareJid, ConnectionError, RequestError};
 use secrecy::SecretString;
 use tracing::debug;

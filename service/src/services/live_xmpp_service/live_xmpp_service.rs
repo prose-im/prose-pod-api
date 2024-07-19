@@ -108,13 +108,9 @@ impl XmppServiceImpl for LiveXmppService {
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
 
-        trace!("Setting {}'s vCard…", ctx.bare_jid);
-        profile.set_vcard(vcard.to_owned()).await?;
-        debug!("Set {}'s vCard", ctx.bare_jid);
-
-        trace!("Publishing {}'s vCard…", ctx.bare_jid);
-        profile.publish_vcard(vcard.to_owned()).await?;
-        debug!("Published {}'s vCard", ctx.bare_jid);
+        trace!("Publishing {}'s vCard4…", ctx.bare_jid);
+        profile.publish_vcard4(vcard.to_owned()).await?;
+        debug!("Published {}'s vCard4", ctx.bare_jid);
 
         Ok(())
     }
@@ -149,7 +145,7 @@ impl XmppServiceImpl for LiveXmppService {
         let profile = xmpp_client.get_mod::<mods::Profile>();
 
         let image_data_len = png_data.len();
-        let image_data = AvatarData::Data(png_data);
+        let image_data = AvatarData::Data(png_data.into_boxed_slice());
         let checksum: ImageId = image_data
             .generate_sha1_checksum()
             .map_err(|err| {

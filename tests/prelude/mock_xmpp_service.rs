@@ -132,7 +132,10 @@ impl XmppServiceImpl for MockXmppService {
         ctx: &XmppServiceContext,
         png_data: Vec<u8>,
     ) -> Result<(), Error> {
-        self.set_avatar(&ctx.bare_jid, Some(AvatarData::Data(png_data)))
+        self.set_avatar(
+            &ctx.bare_jid,
+            Some(AvatarData::Data(png_data.into_boxed_slice())),
+        )
     }
 
     async fn is_connected(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<bool, Error> {
