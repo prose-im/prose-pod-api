@@ -14,6 +14,8 @@ format-all:
 format:
 	@(./.githooks/pre-commit)
 test: smoke-test integration-test
+# NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
+	@(sed -i '' 's/Tested at Rust version: `.+`/Tested at Rust version: `'"$(rustc --version)"'`/g' README.md)
 smoke-test:
 	cargo test --test behavior
 integration-test:
