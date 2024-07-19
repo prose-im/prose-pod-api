@@ -2841,7 +2841,7 @@ dependencies = [
 [[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
 dependencies = [
  "convert_case",
  "quote",
@@ -2851,12 +2851,12 @@ dependencies = [
 [[package]]
 name = "prose-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
 
 [[package]]
 name = "prose-wasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
 dependencies = [
  "futures",
  "gloo-timers 0.3.0",
@@ -2869,7 +2869,7 @@ dependencies = [
 [[package]]
 name = "prose-xmpp"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?rev=d8f24c758bcf51960a4aebf96229b79b7b96cda0#d8f24c758bcf51960a4aebf96229b79b7b96cda0"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
 dependencies = [
  "anyhow",
  "async-trait",
