@@ -24,7 +24,7 @@ use crate::{
 pub struct Model {
     #[sea_orm(primary_key)]
     id: i32,
-    pub domain: String,
+    pub domain: JidDomain,
     pub message_archive_enabled: Option<bool>,
     pub message_archive_retention: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub file_upload_allowed: Option<bool>,

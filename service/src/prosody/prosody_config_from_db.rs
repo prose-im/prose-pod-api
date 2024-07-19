@@ -9,7 +9,7 @@ use crate::model::{self as db, ServerConfig};
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use utils::def;
 
-use crate::config::Config;
+use crate::config::{Config, ADMIN_HOST, FILE_SHARE_HOST};
 use crate::ProseDefault;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -96,7 +96,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
         config
             .additional_sections
             .push(ProsodyConfigSection::Component {
-                hostname: "upload.prose.org.local".into(),
+                hostname: FILE_SHARE_HOST.into(),
                 plugin: "http_file_share".into(),
                 name: "HTTP File Upload".into(),
                 settings: ProsodySettings {
@@ -120,7 +120,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &Config) -> Proso
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &Config) -> Self {
         let api_jid = app_config.api_jid();
-        let api_jid = JID::try_from(api_jid.to_string()).expect("Invalid JID: {api_jid}");
+        let api_jid = JID::try_from(api_jid.to_string()).expect(&format!("Invalid JID: {api_jid}"));
         Self {
             global_settings: ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),
@@ -215,7 +215,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             },
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
-                    hostname: server_config.domain.to_owned(),
+                    hostname: server_config.domain.to_string(),
                     settings: ProsodySettings {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
@@ -251,7 +251,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     },
                 },
                 ProsodyConfigSection::VirtualHost {
-                    hostname: "admin.prose.org.local".into(),
+                    hostname: ADMIN_HOST.into(),
                     settings: ProsodySettings {
                         admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                         modules_enabled: Some(
@@ -272,7 +272,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                     def("init_admin_jid", api_jid.to_owned()),
                                     def(
                                         "init_admin_password_env_var_name",
-                                        "PROSE_API__ADMIN_PASSWORD",
+                                        "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
                                     ),
                                 ],
                             ),

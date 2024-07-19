@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::str::FromStr as _;
+
 use cucumber::{given, then, when};
 use prose_pod_api::error::Error;
 use prose_pod_api::v1::init::{
@@ -12,10 +14,9 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use secrecy::SecretString;
 use serde_json::json;
-use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository};
-use service::services::server_manager::ServerManager;
-use service::{model::JidNode, services::server_ctl::ServerCtl};
-use std::sync::Arc;
+use service::controllers::init_controller::WorkspaceCreateForm;
+use service::model::{JidDomain, JidNode};
+use service::repositories::ServerConfigCreateForm;
 
 use crate::cucumber_parameters::Text;
 use crate::TestWorld;
@@ -31,8 +32,8 @@ fn given_pod_not_initialized(world: &mut TestWorld) {
 
 #[given("the Prose Pod has been initialized")]
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    given_workspace_initialized(world).await?;
     given_server_config_initialized(world).await?;
+    given_workspace_initialized(world).await?;
     Ok(())
 }
 
@@ -47,7 +48,18 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         name: DEFAULT_WORKSPACE_NAME.to_string(),
         accent_color: None,
     };
-    WorkspaceRepository::create(world.db(), form).await?;
+
+    world
+        .init_controller()
+        .init_workspace(
+            &world.config,
+            world.secrets_store(),
+            &world.xmpp_service(),
+            &world.server_config().await?,
+            form,
+        )
+        .await?;
+
     Ok(())
 }
 
@@ -59,15 +71,20 @@ fn given_server_config_not_initialized(_world: &mut TestWorld) {
 #[given("the server config has been initialized")]
 async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
     let form = ServerConfigCreateForm {
-        domain: DEFAULT_DOMAIN.to_string(),
+        domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
     };
-    ServerManager::init_server_config(
-        world.db(),
-        &ServerCtl::new(Arc::new(world.server_ctl.clone())),
-        &world.config,
-        form,
-    )
-    .await?;
+
+    world
+        .init_controller()
+        .init_server_config(
+            &world.server_ctl(),
+            &world.config,
+            &world.auth_service(),
+            world.secrets_store(),
+            form,
+        )
+        .await?;
+
     world.reset_server_ctl_counts();
     Ok(())
 }
@@ -75,6 +92,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
 #[given(expr = "the XMPP server domain is <{}>")]
 async fn given_server_domain(world: &mut TestWorld, domain: String) -> Result<(), Error> {
     let server_manager = world.server_manager().await?;
+    let domain = JidDomain::from_str(&domain).expect("Invalid domain");
     server_manager.set_domain(&domain).await?;
     Ok(())
 }
@@ -87,28 +105,19 @@ fn given_nothing_changed(_world: &mut TestWorld) {
 async fn init_workspace<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
     client
         .put("/v1/workspace")
-        .header(ContentType::JSON)
-        .body(
-            json!(InitWorkspaceRequest {
-                name: name.to_owned(),
-                accent_color: None,
-            })
-            .to_string(),
-        )
+        .json(&json!(InitWorkspaceRequest {
+            name: name.to_owned(),
+            accent_color: None,
+        }))
         .dispatch()
         .await
 }
 
 async fn init_server_config<'a>(client: &'a Client, domain: &str) -> LocalResponse<'a> {
+    let domain = JidDomain::from_str(&domain).expect("Invalid domain");
     client
         .put("/v1/server/config")
-        .header(ContentType::JSON)
-        .body(
-            json!(InitServerConfigRequest {
-                domain: domain.to_owned()
-            })
-            .to_string(),
-        )
+        .json(&json!(InitServerConfigRequest { domain }))
         .dispatch()
         .await
 }

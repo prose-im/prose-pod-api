@@ -6,5 +6,4 @@
 pub mod init_controller;
 pub mod invitation_controller;
 pub mod member_controller;
-pub mod server_config_controller;
 pub mod workspace_controller;

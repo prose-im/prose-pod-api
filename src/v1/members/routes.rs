@@ -3,31 +3,34 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::collections::HashMap;
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
-use rocket::form::Strict;
-use rocket::response::status::NoContent;
-use rocket::response::stream::{Event, EventStream};
-use rocket::serde::json::Json;
-use rocket::{get, put};
-use sea_orm_rocket::Connection;
+use rocket::{
+    form::Strict,
+    response::status::NoContent,
+    response::stream::{Event, EventStream},
+    serde::json::Json,
+    {get, put},
+};
 use serde::{Deserialize, Serialize};
-use service::controllers::member_controller::MemberController;
-use service::prose_xmpp::BareJid;
-use service::services::xmpp_service::XmppService;
+use service::{
+    controllers::member_controller::MemberController, prose_xmpp::BareJid,
+    services::xmpp_service::XmppService,
+};
 
 use super::models::*;
-use crate::error::{self, Error};
-use crate::forms::{Timestamp, JID as JIDUriParam};
-use crate::guards::{Db, LazyGuard};
-use crate::responders::Paginated;
+use crate::{
+    error::{self, Error},
+    forms::{Timestamp, JID as JIDUriParam},
+    guards::LazyGuard,
+    responders::Paginated,
+};
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
-pub(super) async fn get_members(
-    conn: Connection<'_, Db>,
+pub(super) async fn get_members<'r>(
+    member_controller: LazyGuard<MemberController<'r>>,
     jid: LazyGuard<BareJid>,
     page_number: Option<u64>,
     page_size: Option<u64>,
@@ -36,7 +39,7 @@ pub(super) async fn get_members(
     // Make sure the user is logged in.
     let _ = jid.inner?;
 
-    let db = conn.into_inner();
+    let member_controller = member_controller.inner?;
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
     let until: Option<DateTime<Utc>> = match until {
@@ -44,8 +47,9 @@ pub(super) async fn get_members(
         None => None,
     };
 
-    let (pages_metadata, members) =
-        MemberController::get_members(db, page_number, page_size, until).await?;
+    let (pages_metadata, members) = member_controller
+        .get_members(page_number, page_size, until)
+        .await?;
 
     Ok(Paginated::new(
         members.into_iter().map(Into::into).collect(),
@@ -57,15 +61,15 @@ pub(super) async fn get_members(
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub(super) async fn enrich_members<'r>(
-    xmpp_service: LazyGuard<XmppService<'r>>,
+    member_controller: LazyGuard<MemberController<'r>>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
-    let xmpp_service = xmpp_service.inner?;
+    let member_controller = member_controller.inner?;
     let jids = jids.into_inner();
 
     let mut res = HashMap::with_capacity(jids.len());
     for jid in jids.iter() {
-        let enriched_member = MemberController::enrich_member(&xmpp_service, jid).await;
+        let enriched_member = member_controller.enrich_member(jid).await;
         res.insert(jid.deref().to_owned(), enriched_member.into());
     }
     Ok(res.into())
@@ -73,10 +77,10 @@ pub(super) async fn enrich_members<'r>(
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
 pub(super) fn enrich_members_stream<'r>(
-    xmpp_service: LazyGuard<XmppService<'r>>,
+    member_controller: LazyGuard<MemberController<'r>>,
     jids: Strict<JIDs>,
 ) -> Result<EventStream![Event + 'r], Error> {
-    let xmpp_service = xmpp_service.inner?;
+    let member_controller = member_controller.inner?;
     let jids = jids.into_inner();
 
     Ok(EventStream! {
@@ -86,7 +90,7 @@ pub(super) fn enrich_members_stream<'r>(
         }
 
         for jid in jids.iter() {
-            let res: EnrichedMember = MemberController::enrich_member(&xmpp_service, jid).await.into();
+            let res: EnrichedMember = member_controller.enrich_member(jid).await.into();
             yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
         }
 

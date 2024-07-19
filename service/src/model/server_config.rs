@@ -3,16 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::borrow::Cow;
-
-use jid::{DomainPart, DomainRef};
 use serde::{Deserialize, Serialize};
 
-use super::durations::*;
+use super::{durations::*, JidDomain};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerConfig {
-    pub domain: String,
+    pub domain: JidDomain,
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
     pub file_upload_allowed: bool,
@@ -24,12 +21,6 @@ pub struct ServerConfig {
     pub federation_enabled: bool,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
-}
-
-impl ServerConfig {
-    pub fn domain(&self) -> Cow<DomainRef> {
-        DomainPart::new(&self.domain).unwrap_or_else(|err| panic!("Invalid domain: {err}"))
-    }
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.

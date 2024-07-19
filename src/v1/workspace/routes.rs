@@ -3,26 +3,26 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::fs::TempFile;
-use rocket::response::status::NoContent;
-use rocket::serde::json::Json;
-use rocket::tokio::io;
-use rocket::{get, put};
-use sea_orm_rocket::Connection;
+use base64::{engine::general_purpose, Engine as _};
+use rocket::{
+    response::status::NoContent,
+    serde::json::Json,
+    {get, put},
+};
 use serde::{Deserialize, Serialize};
-use service::controllers::workspace_controller::WorkspaceController;
-use service::model::Workspace;
+use service::{controllers::workspace_controller::WorkspaceController, model::Workspace};
 
-use crate::error::{self, Error};
-use crate::guards::{Db, LazyGuard};
-use crate::v1::R;
+use crate::{
+    error::{self, Error},
+    guards::LazyGuard,
+    v1::R,
+};
 
 #[get("/v1/workspace")]
-pub async fn get_workspace(conn: Connection<'_, Db>) -> R<Workspace> {
-    match WorkspaceController::get_workspace(conn.into_inner()).await? {
-        Some(workspace) => Ok(workspace.into()),
-        None => Err(error::WorkspaceNotInitialized.into()),
-    }
+pub async fn get_workspace<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+) -> R<Workspace> {
+    Ok(workspace_controller.inner?.get_workspace().await?.into())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,12 +31,12 @@ pub struct GetWorkspaceNameResponse {
 }
 
 #[get("/v1/workspace/name")]
-pub(super) async fn get_workspace_name(
-    workspace: LazyGuard<Workspace>,
+pub(super) async fn get_workspace_name<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
 ) -> R<GetWorkspaceNameResponse> {
-    let workspace = workspace.inner?;
+    let workspace_controller = workspace_controller.inner?;
 
-    let name = WorkspaceController::get_workspace_name(workspace).await;
+    let name = workspace_controller.get_workspace_name().await?;
 
     let response = GetWorkspaceNameResponse { name }.into();
     Ok(response)
@@ -50,16 +50,14 @@ pub struct SetWorkspaceNameRequest {
 pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
-pub(super) async fn set_workspace_name(
-    conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
+pub(super) async fn set_workspace_name<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> R<SetWorkspaceNameResponse> {
-    let db = conn.into_inner();
-    let workspace = workspace.inner?;
+    let workspace_controller = workspace_controller.inner?;
     let req = req.into_inner();
 
-    let name = WorkspaceController::set_workspace_name(db, workspace, req.name).await?;
+    let name = workspace_controller.set_workspace_name(req.name).await?;
 
     let response = SetWorkspaceNameResponse { name }.into();
     Ok(response)
@@ -67,41 +65,48 @@ pub(super) async fn set_workspace_name(
 
 #[derive(Serialize, Deserialize)]
 pub struct GetWorkspaceIconResponse {
-    pub url: Option<String>,
+    pub icon: Option<String>,
 }
 
 #[get("/v1/workspace/icon")]
-pub(super) fn get_workspace_icon(workspace: LazyGuard<Workspace>) -> R<GetWorkspaceIconResponse> {
-    let workspace = workspace.inner?;
-
-    let url = WorkspaceController::get_workspace_icon(workspace);
-
-    let response = GetWorkspaceIconResponse { url }.into();
-    Ok(response)
-}
-
-#[put("/v1/workspace/icon", format = "plain", data = "<string>", rank = 1)]
-pub(super) async fn set_workspace_icon_string(
-    conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
-    string: String,
+pub(super) async fn get_workspace_icon<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
 ) -> R<GetWorkspaceIconResponse> {
-    let db = conn.into_inner();
-    let workspace = workspace.inner?;
+    let workspace_controller = workspace_controller.inner?;
 
-    let url = WorkspaceController::set_workspace_icon_string(db, workspace, string).await?;
+    let avatar_data = workspace_controller.get_workspace_icon().await?;
+    let icon = avatar_data.map(|d| d.base64().into_owned());
 
-    let response = GetWorkspaceIconResponse { url }.into();
+    let response = GetWorkspaceIconResponse { icon }.into();
     Ok(response)
 }
 
-#[put("/v1/workspace/icon", format = "plain", data = "<image>", rank = 2)]
-pub(super) async fn set_workspace_icon_file(image: TempFile<'_>) -> R<GetWorkspaceIconResponse> {
-    let mut stream = image.open().await?;
-    let mut data: Vec<u8> = Vec::new();
-    io::copy(&mut stream, &mut data).await?;
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SetWorkspaceIconRequest {
+    // Base64 encoded image
+    pub image: String,
+}
 
-    Err(error::NotImplemented("Set workspace icon from a file").into())
+#[put("/v1/workspace/icon", format = "json", data = "<req>")]
+pub(super) async fn set_workspace_icon<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    req: Json<SetWorkspaceIconRequest>,
+) -> R<GetWorkspaceIconResponse> {
+    let workspace_controller = workspace_controller.inner?;
+
+    let image_data = general_purpose::STANDARD
+        .decode(req.image.to_owned())
+        .map_err(|err| error::BadRequest {
+            reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
+        })?;
+
+    workspace_controller.set_workspace_icon(image_data).await?;
+
+    let response = GetWorkspaceIconResponse {
+        icon: Some(req.image.to_owned()),
+    }
+    .into();
+    Ok(response)
 }
 
 #[get("/v1/workspace/details-card")]
@@ -120,12 +125,12 @@ pub struct GetWorkspaceAccentColorResponse {
 }
 
 #[get("/v1/workspace/accent-color")]
-pub(super) fn get_workspace_accent_color(
-    workspace: LazyGuard<Workspace>,
+pub(super) async fn get_workspace_accent_color<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
 ) -> R<GetWorkspaceAccentColorResponse> {
-    let workspace = workspace.inner?;
+    let workspace_controller = workspace_controller.inner?;
 
-    let color = WorkspaceController::get_workspace_accent_color(workspace);
+    let color = workspace_controller.get_workspace_accent_color().await?;
 
     let response = GetWorkspaceAccentColorResponse { color }.into();
     Ok(response)
@@ -137,16 +142,16 @@ pub struct SetWorkspaceAccentColorRequest {
 }
 
 #[put("/v1/workspace/accent-color", data = "<req>")]
-pub(super) async fn set_workspace_accent_color(
-    conn: Connection<'_, Db>,
-    workspace: LazyGuard<Workspace>,
+pub(super) async fn set_workspace_accent_color<'r>(
+    workspace_controller: LazyGuard<WorkspaceController<'r>>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> R<GetWorkspaceAccentColorResponse> {
-    let db = conn.into_inner();
-    let workspace = workspace.inner?;
+    let workspace_controller = workspace_controller.inner?;
     let req = req.into_inner();
 
-    let color = WorkspaceController::set_workspace_accent_color(db, workspace, req.color).await?;
+    let color = workspace_controller
+        .set_workspace_accent_color(req.color)
+        .await?;
 
     let response = GetWorkspaceAccentColorResponse { color }.into();
     Ok(response)

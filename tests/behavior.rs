@@ -7,10 +7,10 @@ mod cucumber_parameters;
 mod prelude;
 mod v1;
 
-use self::prelude::*;
-
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock, RwLockWriteGuard},
+};
 
 use cucumber::{given, then, World};
 use cucumber_parameters::HTTPStatus;
@@ -22,19 +22,21 @@ use mock_server_ctl::{MockServerCtl, MockServerCtlState};
 use mock_xmpp_service::{MockXmppService, MockXmppServiceState};
 use prose_pod_api::guards::Db;
 use regex::Regex;
-use rocket::figment::Figment;
-use rocket::http::{ContentType, Status};
-use rocket::local::asynchronous::{Client, LocalResponse};
-use rocket::{Build, Rocket};
+use rocket::{
+    figment::Figment,
+    http::{ContentType, Status},
+    local::asynchronous::{Client, LocalResponse},
+    {Build, Rocket},
+};
 use sea_orm_rocket::Database as _;
 use secrecy::SecretString;
 use serde::Deserialize;
-use service::model::ServerConfig;
 use service::{
     config::Config,
+    controllers::{init_controller::InitController, workspace_controller::WorkspaceController},
     dependencies,
     entity::server_config,
-    model::{EmailAddress, Invitation, Member},
+    model::{EmailAddress, Invitation, Member, ServerConfig, ServiceSecretsStore},
     notifier::AnyNotifier,
     repositories::ServerConfigRepository,
     sea_orm::DatabaseConnection,
@@ -46,8 +48,7 @@ use service::{
         xmpp_service::XmppServiceInner,
     },
 };
-use tokio::runtime::Handle;
-use tokio::task;
+use tokio::{runtime::Handle, task};
 use tracing::debug;
 use tracing_subscriber::{
     filter::{self, LevelFilter},
@@ -55,6 +56,8 @@ use tracing_subscriber::{
     layer::{Layer, SubscriberExt as _},
 };
 use uuid::Uuid;
+
+use self::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -216,6 +219,10 @@ impl TestWorld {
         &Db::fetch(&self.client.rocket()).unwrap().conn
     }
 
+    fn secrets_store(&self) -> &ServiceSecretsStore {
+        self.client.rocket().state().unwrap()
+    }
+
     /// Sometimes we need to use the `ServerCtl` from "Given" steps,
     /// to avoid rewriting all of its logic in tests.
     /// However, using the mock attached to the Rocket will cause counters to increase
@@ -223,6 +230,18 @@ impl TestWorld {
     /// This method resets the counters.
     fn reset_server_ctl_counts(&self) {
         self.server_ctl_state_mut().conf_reload_count = 0;
+    }
+
+    fn server_ctl(&self) -> &ServerCtl {
+        self.client.rocket().state::<ServerCtl>().unwrap()
+    }
+
+    fn auth_service(&self) -> &AuthService {
+        self.client.rocket().state::<AuthService>().unwrap()
+    }
+
+    fn xmpp_service(&self) -> &XmppServiceInner {
+        self.client.rocket().state::<XmppServiceInner>().unwrap()
     }
 
     async fn server_manager(&self) -> Result<ServerManager, DbErr> {
@@ -235,6 +254,25 @@ impl TestWorld {
             server_ctl,
             server_config,
         ))
+    }
+
+    fn init_controller(&self) -> InitController {
+        let db = self.db();
+        InitController { db }
+    }
+
+    async fn workspace_controller<'r>(&'r self) -> WorkspaceController<'r> {
+        WorkspaceController::new(
+            self.db(),
+            self.xmpp_service(),
+            &self.config,
+            &self
+                .server_config()
+                .await
+                .expect("Server config not initialized"),
+            self.secrets_store(),
+        )
+        .expect("Workspace not initialized")
     }
 
     async fn server_config_model(&self) -> Result<server_config::Model, DbErr> {

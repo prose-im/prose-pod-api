@@ -15,16 +15,19 @@ pub mod v1;
 
 use error::Error;
 use guards::Db;
-
 use migration::MigratorTrait;
-use rocket::fairing::{self, AdHoc};
-use rocket::fs::{FileServer, NamedFile};
-use rocket::http::Status;
-use rocket::{Build, Request, Rocket};
+use rocket::{
+    fairing::{self, AdHoc},
+    fs::{FileServer, NamedFile},
+    http::Status,
+    {Build, Request, Rocket},
+};
 use sea_orm_rocket::Database;
 use service::{
     config::Config,
+    controllers::init_controller::InitController,
     dependencies::{Notifier, Uuid},
+    model::ServiceSecretsStore,
     repositories::ServerConfigRepository,
     services::{
         auth_service::AuthService, jwt_service::JWTService, server_ctl::ServerCtl,
@@ -61,6 +64,7 @@ pub fn custom_rocket(
         .manage(auth_service)
         .manage(notifier)
         .manage(jwt_service)
+        .manage(ServiceSecretsStore::default())
 }
 
 async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
@@ -70,18 +74,45 @@ async fn server_config_init(rocket: Rocket<Build>) -> fairing::Result {
     let server_ctl = rocket.state().unwrap();
     let app_config = rocket.state().unwrap();
 
-    match ServerConfigRepository::get(db).await {
-        Ok(Some(server_config)) => {
-            let server_manager = ServerManager::new(db, app_config, server_ctl, server_config);
-            if let Err(err) = server_manager.reload_current().await {
-                error!("Could not initialize the XMPP server configuration: {err}");
-            }
+    let server_config = match ServerConfigRepository::get(db).await {
+        Ok(Some(server_config)) => server_config,
+        Ok(None) => {
+            info!(
+                "Not reloading the XMPP server: {}",
+                error::ServerConfigNotInitialized
+            );
+            return Ok(rocket);
         }
-        Ok(None) => info!(
-            "Not reloading the XMPP server: {}",
-            error::ServerConfigNotInitialized
-        ),
-        Err(err) => error!("Not reloading the XMPP server: {err}"),
+        Err(err) => {
+            error!("Not reloading the XMPP server: {err}");
+            return Ok(rocket);
+        }
+    };
+
+    // Apply the server configuration stored in the database
+    let server_manager = ServerManager::new(db, app_config, server_ctl, server_config.clone());
+    if let Err(err) = server_manager.reload_current().await {
+        error!("Could not initialize the XMPP server configuration: {err}");
+        return Err(rocket);
+    }
+
+    // Ensure service accounts exist and rotate passwords
+    // NOTE: After an update, the Prose Pod API might require more service accounts
+    //   than it did when the Prose Pod was initialized. We have to create them before
+    //   the Prose Pod API launches.
+    let auth_service = rocket.state().unwrap();
+    let secrets_store = rocket.state().unwrap();
+    if let Err(err) = InitController::create_service_accounts(
+        &server_config.domain,
+        server_ctl,
+        app_config,
+        auth_service,
+        secrets_store,
+    )
+    .await
+    {
+        error!("Could not initialize the XMPP server configuration: {err}");
+        return Err(rocket);
     }
 
     Ok(rocket)

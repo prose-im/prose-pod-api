@@ -3,39 +3,119 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::model::{JidNode, MemberRole};
-use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
+use jid::BareJid;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
+use tracing::debug;
 
 use crate::{
     config::AppConfig,
-    model::{Member, ServerConfig, Workspace},
-    repositories::{
-        MemberRepository, ServerConfigCreateForm, WorkspaceCreateForm, WorkspaceRepository,
+    entity::workspace,
+    model::{
+        JidDomain, JidNode, Member, MemberRole, ServerConfig, ServiceSecrets, ServiceSecretsStore,
+        Workspace,
     },
+    repositories::{MemberRepository, ServerConfigCreateForm, WorkspaceRepository},
     services::{
-        server_ctl::ServerCtl,
+        auth_service::{self, AuthService},
+        jwt_service::{InvalidJwtClaimError, JWTError},
+        server_ctl::{self, ServerCtl},
         server_manager::{self, ServerManager},
         user_service::{UserCreateError, UserService},
+        xmpp_service::XmppServiceInner,
     },
     util::bare_jid_from_username,
 };
 
-pub enum InitController {}
+use super::workspace_controller::{self, WorkspaceController, WorkspaceControllerInitError};
 
-impl InitController {
+pub struct InitController<'r> {
+    pub db: &'r DatabaseConnection,
+}
+
+impl<'r> InitController<'r> {
     pub async fn init_server_config(
-        db: &DatabaseConnection,
+        &self,
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
+        auth_service: &AuthService,
+        secrets_store: &ServiceSecretsStore,
         server_config: impl Into<ServerConfigCreateForm>,
     ) -> Result<ServerConfig, InitServerConfigError> {
+        // Create service XMPP accounts
         let server_config =
-            ServerManager::init_server_config(db, server_ctl, app_config, server_config)
+            ServerManager::init_server_config(self.db, server_ctl, app_config, server_config)
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
+        // Create service XMPP accounts
+        Self::create_service_accounts(
+            &server_config.domain,
+            server_ctl,
+            app_config,
+            auth_service,
+            secrets_store,
+        )
+        .await?;
+
         Ok(server_config)
+    }
+
+    pub async fn create_service_accounts(
+        domain: &JidDomain,
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        auth_service: &AuthService,
+        secrets_store: &ServiceSecretsStore,
+    ) -> Result<(), CreateServiceAccountError> {
+        // Create workspace XMPP account
+        Self::create_service_account(
+            app_config.workspace_jid(domain),
+            server_ctl,
+            auth_service,
+            secrets_store,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    async fn create_service_account(
+        jid: BareJid,
+        server_ctl: &ServerCtl,
+        auth_service: &AuthService,
+        secrets_store: &ServiceSecretsStore,
+    ) -> Result<(), CreateServiceAccountError> {
+        debug!("Creating service account '{jid}'…");
+
+        // Generate a very strong random password
+        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
+        let password: SecretString = thread_rng()
+            .sample_iter(&Alphanumeric)
+            // 256 characters because why not
+            .take(256)
+            .map(char::from)
+            .collect::<String>()
+            .into();
+
+        // Create the XMPP user account
+        server_ctl.add_user(&jid, &password).await?;
+
+        // Log in as the service account (to get a JWT with access tokens)
+        let jwt = auth_service.log_in(&jid, &password).await?;
+        let jwt = auth_service.verify(&jwt)?;
+
+        // Read the access tokens from the JWT
+        let prosody_token = jwt
+            .prosody_token()
+            .map_err(CreateServiceAccountError::MissingProsodyToken)?;
+
+        // Store the secrets
+        let secrets = ServiceSecrets { prosody_token };
+        secrets_store.set_secrets(jid, secrets);
+
+        Ok(())
     }
 }
 
@@ -43,19 +123,66 @@ impl InitController {
 pub enum InitServerConfigError {
     #[error("Could not init server config: {0}")]
     CouldNotInitServerConfig(server_manager::Error),
+    #[error("Could not create service XMPP account: {0}")]
+    CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
 }
 
-impl InitController {
+#[derive(Debug, thiserror::Error)]
+pub enum CreateServiceAccountError {
+    #[error("Could not create XMPP account: {0}")]
+    CouldNotCreateXmppAccount(#[from] server_ctl::Error),
+    #[error("Could not log in: {0}")]
+    CouldNotLogIn(#[from] auth_service::Error),
+    #[error("The just-created JWT is invalid: {0}")]
+    InvalidJwt(#[from] JWTError),
+    #[error("The just-created JWT doesn't contain a Prosody token: {0}")]
+    MissingProsodyToken(InvalidJwtClaimError),
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkspaceCreateForm {
+    pub name: String,
+    pub accent_color: Option<Option<String>>,
+}
+
+impl Into<workspace::ActiveModel> for WorkspaceCreateForm {
+    fn into(self) -> workspace::ActiveModel {
+        workspace::ActiveModel {
+            accent_color: self.accent_color.map(Set).unwrap_or(NotSet),
+            ..Default::default()
+        }
+    }
+}
+
+impl<'r> InitController<'r> {
     pub async fn init_workspace(
-        db: &DatabaseConnection,
+        &self,
+        app_config: &AppConfig,
+        secrets_store: &ServiceSecretsStore,
+        xmpp_service: &XmppServiceInner,
+        server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,
     ) -> Result<Workspace, InitWorkspaceError> {
         // Check that the workspace isn't already initialized.
-        let None = WorkspaceRepository::get(db).await? else {
+        let None = WorkspaceRepository::get(self.db).await? else {
             return Err(InitWorkspaceError::WorkspaceAlreadyInitialized);
         };
 
-        let workspace = WorkspaceRepository::create(db, form).await?;
+        let form = form.into();
+
+        let workspace = WorkspaceRepository::create(self.db, form.clone()).await?;
+
+        let workspace_controller = WorkspaceController::new(
+            self.db,
+            xmpp_service,
+            app_config,
+            server_config,
+            secrets_store,
+        )?;
+        workspace_controller
+            .set_workspace_name(form.name)
+            .await
+            .map_err(InitWorkspaceError::CouldNotSetWorkspaceName)?;
 
         Ok(workspace)
     }
@@ -65,12 +192,27 @@ impl InitController {
 pub enum InitWorkspaceError {
     #[error("Workspace already initialized.")]
     WorkspaceAlreadyInitialized,
+    #[error("Workspace XMPP account not initialized.")]
+    XmppAccountNotInitialized,
+    #[error("Could not set workspace name: {0}")]
+    CouldNotSetWorkspaceName(workspace_controller::Error),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
-impl InitController {
+
+impl From<WorkspaceControllerInitError> for InitWorkspaceError {
+    fn from(value: WorkspaceControllerInitError) -> Self {
+        match value {
+            WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized => {
+                Self::XmppAccountNotInitialized
+            }
+        }
+    }
+}
+
+impl<'r> InitController<'r> {
     pub async fn init_first_account(
-        db: &DatabaseConnection,
+        &self,
         server_config: &ServerConfig,
         user_service: &UserService<'_>,
         form: impl Into<InitFirstAccountForm>,
@@ -79,11 +221,11 @@ impl InitController {
         let jid = bare_jid_from_username(&form.username, &server_config)
             .map_err(InitFirstAccountError::InvalidJid)?;
 
-        if MemberRepository::count(db).await? > 0 {
+        if MemberRepository::count(self.db).await? > 0 {
             return Err(InitFirstAccountError::FirstAccountAlreadyCreated);
         }
 
-        let txn = db.begin().await?;
+        let txn = self.db.begin().await?;
         let member = user_service
             .create_user(
                 &txn,

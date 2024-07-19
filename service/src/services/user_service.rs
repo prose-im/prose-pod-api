@@ -62,11 +62,18 @@ impl<'r> UserService<'r> {
         // TODO: Find a way to rollback XMPP server changes.
         let server_ctl = self.server_ctl.clone();
 
+        // Create the user
         server_ctl
             .add_user(jid, &password)
             .await
             .map_err(UserCreateError::XmppServerCannotCreateUser)?;
+        // Add the user to everyone's roster
+        server_ctl
+            .add_team_member(jid)
+            .await
+            .map_err(UserCreateError::XmppServerCannotAddTeamMember)?;
         if let Some(role) = role {
+            // Set the user's role for servers which support it
             server_ctl
                 .set_user_role(jid, &role)
                 .await
@@ -121,6 +128,8 @@ pub enum UserCreateError {
     CouldNotCreateVCard(XmppServiceError),
     #[error("XMPP server cannot create user: {0}")]
     XmppServerCannotCreateUser(ServerCtlError),
+    #[error("XMPP server cannot add team member: {0}")]
+    XmppServerCannotAddTeamMember(ServerCtlError),
     #[error("XMPP server cannot set user role: {0}")]
     XmppServerCannotSetUserRole(ServerCtlError),
 }

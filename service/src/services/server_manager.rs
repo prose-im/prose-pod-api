@@ -11,7 +11,7 @@ use tracing::trace;
 use crate::{
     config::AppConfig,
     entity::server_config,
-    model::{DateLike, Duration, PossiblyInfinite, ServerConfig},
+    model::{DateLike, Duration, JidDomain, PossiblyInfinite, ServerConfig},
     repositories::{ServerConfigCreateForm, ServerConfigRepository},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     services::server_ctl::ServerCtl,
@@ -161,7 +161,7 @@ impl<'r> ServerManager<'r> {
         Ok(server_config)
     }
 
-    pub async fn set_domain(&self, domain: &str) -> Result<ServerConfig, Error> {
+    pub async fn set_domain(&self, domain: &JidDomain) -> Result<ServerConfig, Error> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {
             active.domain = Set(domain.to_owned());

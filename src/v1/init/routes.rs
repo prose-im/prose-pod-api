@@ -3,25 +3,34 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::response::status;
-use rocket::serde::json::Json;
-use rocket::State;
-use sea_orm_rocket::Connection;
+use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
-use service::config::AppConfig;
-use service::controllers::init_controller::{InitController, InitFirstAccountForm};
-use service::model::{JidNode, ServerConfig, Workspace};
-use service::repositories::{ServerConfigCreateForm, WorkspaceCreateForm};
-use service::services::server_ctl::ServerCtl;
+use service::{
+    config::AppConfig,
+    controllers::init_controller::{InitController, InitFirstAccountForm, WorkspaceCreateForm},
+    model::{JidDomain, JidNode, ServerConfig, ServiceSecretsStore},
+    repositories::ServerConfigCreateForm,
+    services::{auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner},
+};
 
-use crate::forms::JID as JIDUriParam;
-use crate::guards::{Db, LazyGuard, UnauthenticatedUserService};
-use crate::model::SerializableSecretString;
-use crate::v1::members::{rocket_uri_macro_get_member, Member};
-use crate::v1::Created;
+use crate::{
+    forms::JID as JIDUriParam,
+    guards::{LazyGuard, UnauthenticatedUserService},
+    model::SerializableSecretString,
+    v1::members::{rocket_uri_macro_get_member, Member},
+    v1::Created,
+};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
+    /// Organization name.
+    pub name: String,
+    /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
+    pub accent_color: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InitWorkspaceResponse {
     /// Organization name.
     pub name: String,
     /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
@@ -38,24 +47,42 @@ impl Into<WorkspaceCreateForm> for InitWorkspaceRequest {
 }
 
 #[put("/v1/workspace", format = "json", data = "<req>")]
-pub async fn init_workspace(
-    conn: Connection<'_, Db>,
+pub async fn init_workspace<'r>(
+    init_controller: LazyGuard<InitController<'r>>,
+    app_config: &State<AppConfig>,
+    secrets_store: &State<ServiceSecretsStore>,
+    xmpp_service: &State<XmppServiceInner>,
+    server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
-) -> Created<Workspace> {
-    let db = conn.into_inner();
-    let form = req.into_inner();
+) -> Created<InitWorkspaceResponse> {
+    let init_controller = init_controller.inner?;
+    let server_config = server_config.inner?;
+    let req = req.into_inner();
 
-    let workspace = InitController::init_workspace(db, form).await?;
+    let workspace = init_controller
+        .init_workspace(
+            app_config,
+            secrets_store,
+            xmpp_service,
+            &server_config,
+            req.clone(),
+        )
+        .await?;
+
+    let response = InitWorkspaceResponse {
+        name: req.name,
+        accent_color: workspace.accent_color,
+    };
 
     let resource_uri = uri!(crate::v1::workspace::get_workspace).to_string();
-    Ok(status::Created::new(resource_uri).body(workspace.into()))
+    Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
     /// XMPP server domain (e.g. `crisp.chat`).
     /// This is what will appear in JIDs (e.g. `valerian@`**`crisp.chat`**).
-    pub domain: String,
+    pub domain: JidDomain,
 }
 
 impl Into<ServerConfigCreateForm> for InitServerConfigRequest {
@@ -67,16 +94,20 @@ impl Into<ServerConfigCreateForm> for InitServerConfigRequest {
 }
 
 #[put("/v1/server/config", format = "json", data = "<req>")]
-pub async fn init_server_config(
-    conn: Connection<'_, Db>,
+pub async fn init_server_config<'r>(
+    init_controller: LazyGuard<InitController<'r>>,
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
+    auth_service: &State<AuthService>,
+    secrets_store: &State<ServiceSecretsStore>,
     req: Json<InitServerConfigRequest>,
 ) -> Created<ServerConfig> {
-    let db = conn.into_inner();
-    let req = req.into_inner();
+    let init_controller = init_controller.inner?;
+    let form = req.into_inner();
 
-    let server_config = InitController::init_server_config(db, server_ctl, app_config, req).await?;
+    let server_config = init_controller
+        .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
+        .await?;
 
     let resource_uri = uri!(crate::v1::server::config::get_server_config).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))
@@ -100,19 +131,20 @@ impl Into<InitFirstAccountForm> for InitFirstAccountRequest {
 }
 
 #[put("/v1/init/first-account", format = "json", data = "<req>")]
-pub async fn init_first_account(
-    conn: Connection<'_, Db>,
+pub async fn init_first_account<'r>(
+    init_controller: LazyGuard<InitController<'r>>,
     server_config: LazyGuard<ServerConfig>,
-    user_service: LazyGuard<UnauthenticatedUserService<'_>>,
+    user_service: LazyGuard<UnauthenticatedUserService<'r>>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
-    let db = conn.into_inner();
-    let server_config = server_config.inner?;
-    let user_service = user_service.inner?;
+    let init_controller = init_controller.inner?;
+    let server_config = &server_config.inner?;
+    let user_service = &user_service.inner?;
     let form = req.into_inner();
 
-    let member =
-        InitController::init_first_account(db, &server_config, &user_service, form).await?;
+    let member = init_controller
+        .init_first_account(server_config, user_service, form)
+        .await?;
 
     let resource_uri = uri!(get_member(member.jid())).to_string();
     let response = Member::from(member);

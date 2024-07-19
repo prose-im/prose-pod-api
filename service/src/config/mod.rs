@@ -7,19 +7,24 @@
 
 pub mod defaults;
 
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr as _};
 
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
-use jid::{DomainPart, NodePart};
+use jid::{DomainPart, DomainRef};
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
 
 use crate::model::{DateLike, Duration, InvitationChannel, JidNode, PossiblyInfinite};
+
+// NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
+//   and cannot be changed via configuration.
+pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
+pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
 
 pub type AppConfig = Config;
 
@@ -30,7 +35,9 @@ pub type AppConfig = Config;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]
-    pub api: ConfigApi,
+    pub service_accounts: ConfigServiceAccounts,
+    #[serde(default)]
+    pub bootstrap: ConfigBootstrap,
     #[serde(default)]
     pub server: ConfigServer,
     pub branding: ConfigBranding,
@@ -52,29 +59,45 @@ impl Config {
     }
 
     pub fn api_jid(&self) -> BareJid {
-        // NOTE: `admin.prose.org.local` is hard-coded here because it's internal
-        //   to the Prose Pod and cannot be changed via configuration.
         BareJid::from_parts(
-            Some(&NodePart::from_str(&self.api.admin_node).unwrap()),
-            &DomainPart::from_str("admin.prose.org.local").unwrap(),
+            Some(&self.service_accounts.prose_pod_api.xmpp_node),
+            &DomainPart::from_str(ADMIN_HOST).unwrap(),
+        )
+    }
+
+    pub fn workspace_jid(&self, domain: &DomainRef) -> BareJid {
+        BareJid::from_parts(
+            Some(&self.service_accounts.prose_workspace.xmpp_node),
+            domain,
         )
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigApi {
-    #[serde(default = "defaults::api_admin_node")]
-    pub admin_node: JidNode,
-    pub admin_password: Option<SecretString>,
+pub struct ConfigServiceAccounts {
+    #[serde(default = "defaults::service_accounts_prose_pod_api")]
+    pub prose_pod_api: ConfigServiceAccount,
+    #[serde(default = "defaults::service_accounts_prose_workspace")]
+    pub prose_workspace: ConfigServiceAccount,
 }
 
-impl Default for ConfigApi {
+impl Default for ConfigServiceAccounts {
     fn default() -> Self {
         Self {
-            admin_node: defaults::api_admin_node(),
-            admin_password: None,
+            prose_pod_api: defaults::service_accounts_prose_pod_api(),
+            prose_workspace: defaults::service_accounts_prose_workspace(),
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigServiceAccount {
+    pub xmpp_node: JidNode,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ConfigBootstrap {
+    pub prose_pod_api_xmpp_password: Option<SecretString>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

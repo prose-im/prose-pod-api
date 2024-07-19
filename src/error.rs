@@ -12,11 +12,14 @@ use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
 use service::controllers::init_controller::{
-    InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
+    CreateServiceAccountError, InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
 };
 use service::controllers::invitation_controller::{
     InvitationAcceptError, InvitationCancelError, InvitationRejectError, InvitationResendError,
     InviteMemberError,
+};
+use service::controllers::workspace_controller::{
+    WorkspaceControllerError, WorkspaceControllerInitError,
 };
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
@@ -361,7 +364,7 @@ impl HttpApiError for MutationError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::EntityNotFound { .. } => ErrorCode::NotFound,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -390,7 +393,7 @@ impl_into_error!(auth_service::Error);
 impl HttpApiError for UserCreateError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
             _ => ErrorCode::InternalServerError,
         }
     }
@@ -410,8 +413,8 @@ impl HttpApiError for server_manager::Error {
     fn code(&self) -> ErrorCode {
         match self {
             Self::ServerConfigAlreadyInitialized => ErrorCode::ServerConfigAlreadyInitialized,
-            Self::ServerCtl(_) => ErrorCode::InternalServerError,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::ServerCtl(err) => err.code(),
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -421,16 +424,31 @@ impl HttpApiError for InitServerConfigError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::CouldNotInitServerConfig(err) => err.code(),
+            Self::CouldNotCreateServiceAccount(err) => err.code(),
         }
     }
 }
 impl_into_error!(InitServerConfigError);
 
+impl HttpApiError for CreateServiceAccountError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::CouldNotCreateXmppAccount(err) => err.code(),
+            Self::CouldNotLogIn(_) | Self::InvalidJwt(_) | Self::MissingProsodyToken(_) => {
+                ErrorCode::InternalServerError
+            }
+        }
+    }
+}
+impl_into_error!(CreateServiceAccountError);
+
 impl HttpApiError for InitWorkspaceError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::WorkspaceAlreadyInitialized => ErrorCode::WorkspaceAlreadyInitialized,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::XmppAccountNotInitialized => ErrorCode::ServerConfigNotInitialized,
+            Self::CouldNotSetWorkspaceName(err) => err.code(),
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -441,8 +459,8 @@ impl HttpApiError for InitFirstAccountError {
         match self {
             Self::FirstAccountAlreadyCreated => ErrorCode::FirstAccountAlreadyCreated,
             Self::InvalidJid(_) => ErrorCode::BadRequest,
-            Self::CouldNotCreateFirstAccount(_) => ErrorCode::InternalServerError,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::CouldNotCreateFirstAccount(err) => err.code(),
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -452,10 +470,9 @@ impl HttpApiError for InviteMemberError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::InvalidJid(_) => ErrorCode::BadRequest,
-            Self::CouldNotUpdateInvitationStatus { .. } | Self::CouldNotAutoAcceptInvitation(_) => {
-                ErrorCode::InternalServerError
-            }
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::InternalServerError,
+            Self::CouldNotAutoAcceptInvitation(err) => err.code(),
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -464,7 +481,7 @@ impl_into_error!(InviteMemberError);
 impl HttpApiError for invitation_service::InvitationAcceptError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
             _ => ErrorCode::InternalServerError,
         }
     }
@@ -477,7 +494,7 @@ impl HttpApiError for InvitationAcceptError {
             Self::InvitationNotFound => ErrorCode::Unauthorized,
             Self::ExpiredAcceptToken => ErrorCode::NotFound,
             Self::ServiceError(err) => err.code(),
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -487,7 +504,7 @@ impl HttpApiError for InvitationRejectError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::InvitationNotFound => ErrorCode::Unauthorized,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -497,8 +514,8 @@ impl HttpApiError for InvitationResendError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::InvitationNotFound(_) => ErrorCode::NotFound,
-            Self::CouldNotSendInvitation(_) => ErrorCode::InternalServerError,
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::CouldNotSendInvitation(err) => err.code(),
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -507,7 +524,7 @@ impl_into_error!(InvitationResendError);
 impl HttpApiError for InvitationCancelError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::DbErr(_) => ErrorCode::DatabaseError,
+            Self::DbErr(err) => err.code(),
         }
     }
 }
@@ -519,3 +536,23 @@ impl HttpApiError for std::io::Error {
     }
 }
 impl_into_error!(std::io::Error);
+
+impl HttpApiError for WorkspaceControllerError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceNotInitialized => ErrorCode::WorkspaceNotInitialized,
+            Self::XmppServiceError(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(WorkspaceControllerError);
+
+impl HttpApiError for WorkspaceControllerInitError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::ServerConfigNotInitialized,
+        }
+    }
+}
+impl_into_error!(WorkspaceControllerInitError);

@@ -5,8 +5,11 @@
 
 mod basic_auth;
 mod db;
+mod init_controller;
+mod invitation_controller;
 mod jid;
 mod jwt;
+mod member_controller;
 mod notifier;
 mod server_config;
 mod server_manager;
@@ -17,6 +20,7 @@ mod user_service;
 mod util;
 mod uuid_generator;
 mod workspace;
+mod workspace_controller;
 mod xmpp_service;
 
 use std::ops::Deref;

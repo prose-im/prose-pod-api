@@ -17,7 +17,7 @@ pub fn bare_jid_from_username(
 ) -> Result<BareJid, String> {
     Ok(BareJid::from_parts(
         Some(&NodePart::new(username).map_err(|err| format!("Invalid username: {err}"))?),
-        &server_config.domain(),
+        &server_config.domain,
     ))
 }
 

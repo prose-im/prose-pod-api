@@ -6,6 +6,7 @@
 use linked_hash_map::LinkedHashMap;
 use service::prose_xmpp::{mods::AvatarData, BareJid};
 use service::services::xmpp_service::{Error, VCard, XmppServiceContext, XmppServiceImpl};
+use tracing::trace;
 
 use std::{
     collections::HashSet,
@@ -77,22 +78,25 @@ impl MockXmppService {
     pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, Error> {
         self.check_online()?;
 
+        trace!("Getting {jid}'s avatar…");
         Ok(self
             .state
             .read()
-            .unwrap()
+            .expect("`MockXmppServiceState` lock poisonned")
             .avatars
             .get(jid)
             .cloned()
             .flatten())
     }
-    pub fn set_avatar(&self, jid: &BareJid, image_data: Option<Vec<u8>>) -> Result<(), Error> {
+    pub fn set_avatar(&self, jid: &BareJid, image_data: Option<AvatarData>) -> Result<(), Error> {
         self.check_online()?;
 
-        self.state.write().unwrap().avatars.insert(
-            jid.to_owned(),
-            image_data.map(|d| AvatarData::Base64(String::from_utf8(d).unwrap())),
-        );
+        trace!("Setting {jid}'s avatar…");
+        self.state
+            .write()
+            .expect("`MockXmppServiceState` lock poisonned")
+            .avatars
+            .insert(jid.to_owned(), image_data);
         Ok(())
     }
 
@@ -126,9 +130,9 @@ impl XmppServiceImpl for MockXmppService {
     async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        image_data: Vec<u8>,
+        png_data: Vec<u8>,
     ) -> Result<(), Error> {
-        self.set_avatar(&ctx.bare_jid, Some(image_data))
+        self.set_avatar(&ctx.bare_jid, Some(AvatarData::Data(png_data)))
     }
 
     async fn is_connected(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<bool, Error> {

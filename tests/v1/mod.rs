@@ -13,7 +13,7 @@ use cucumber::given;
 use prose_pod_api::error::{self, Error};
 use service::{
     model::MemberRole,
-    prose_xmpp::BareJid,
+    prose_xmpp::{mods::AvatarData, BareJid},
     repositories::{MemberCreateForm, MemberRepository},
 };
 
@@ -90,7 +90,7 @@ async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Re
     let jid = name_to_jid(world, &name).await?;
     world
         .xmpp_service
-        .set_avatar(&jid, Some(avatar.into_bytes()))?;
+        .set_avatar(&jid, Some(AvatarData::Base64(avatar)))?;
     Ok(())
 }
 

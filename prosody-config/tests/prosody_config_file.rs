@@ -146,7 +146,7 @@ fn test_prose_default_config() {
                 "mod_init_admin",
                 vec![
                     def("init_admin_jid", "prose-pod-api@admin.prose.org.local"),
-                    def("init_admin_password_env_var_name", "PROSE_API__ADMIN_PASSWORD"),
+                    def("init_admin_password_env_var_name", "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"),
                 ],
             ),
         ],

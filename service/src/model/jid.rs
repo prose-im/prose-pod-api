@@ -46,3 +46,9 @@ impl From<super::EmailAddress> for JidNode {
 }
 
 sea_orm_string!(JidNode);
+
+// ===== JID NODE =====
+
+wrapper_type!(JidDomain, jid::DomainPart);
+
+sea_orm_string!(JidDomain);

@@ -10,27 +10,27 @@ use tracing::{debug, trace, warn};
 
 use crate::{model::Member, repositories::MemberRepository, services::xmpp_service::XmppService};
 
-pub enum MemberController {}
+pub struct MemberController<'r> {
+    pub db: &'r DatabaseConnection,
+    pub xmpp_service: XmppService<'r>,
+}
 
-impl MemberController {
+impl<'r> MemberController<'r> {
     pub async fn get_members(
-        db: &DatabaseConnection,
+        &self,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
-        MemberRepository::get_all(db, page_number, page_size, until).await
+        MemberRepository::get_all(self.db, page_number, page_size, until).await
     }
 }
 
-impl MemberController {
-    pub async fn enrich_member<'r>(
-        xmpp_service: &XmppService<'r>,
-        jid: &BareJid,
-    ) -> EnrichedMember {
+impl<'r> MemberController<'r> {
+    pub async fn enrich_member(&self, jid: &BareJid) -> EnrichedMember {
         trace!("Enriching `{jid}`…");
 
-        let vcard = match xmpp_service.get_vcard(jid).await {
+        let vcard = match self.xmpp_service.get_vcard(jid).await {
             Ok(Some(vcard)) => Some(vcard),
             Ok(None) => {
                 debug!("`{jid}` has no vCard.");
@@ -47,7 +47,7 @@ impl MemberController {
             .and_then(|vcard| vcard.nickname.first().cloned())
             .map(|p| p.value);
 
-        let avatar = match xmpp_service.get_avatar(jid).await {
+        let avatar = match self.xmpp_service.get_avatar(jid).await {
             Ok(Some(avatar)) => Some(avatar.base64().to_string()),
             Ok(None) => {
                 debug!("`{jid}` has no avatar.");
@@ -61,7 +61,8 @@ impl MemberController {
             }
         };
 
-        let online = xmpp_service
+        let online = self
+            .xmpp_service
             .is_connected(jid)
             .await
             // Log error
