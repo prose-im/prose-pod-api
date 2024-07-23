@@ -11,7 +11,7 @@ use reqwest::{
 };
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
-use tracing::debug;
+use tracing::trace;
 
 use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
@@ -19,6 +19,7 @@ use crate::{
     model::{MemberRole, ServerConfig},
     services::{
         live_xmpp_service::NonStandardXmppClient,
+        secrets_store::SecretsStore,
         server_ctl::{Error, ServerCtlImpl},
     },
 };
@@ -33,23 +34,23 @@ pub struct ProsodyAdminRest {
     config_file_path: PathBuf,
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
-    api_auth_username: BareJid,
-    api_auth_password: SecretString,
+    api_jid: BareJid,
+    secrets_store: SecretsStore,
 }
 
 impl ProsodyAdminRest {
-    pub fn from_config(config: &Config, http_client: HttpClient) -> Self {
+    pub fn from_config(
+        config: &Config,
+        http_client: HttpClient,
+        secrets_store: SecretsStore,
+    ) -> Self {
         Self {
             http_client,
             config_file_path: config.server.prosody_config_file_path.to_owned(),
             admin_rest_api_url: config.server.admin_rest_api_url(),
             admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
-            api_auth_username: config.api_jid(),
-            api_auth_password: config
-                .bootstrap
-                .prose_pod_api_xmpp_password
-                .to_owned()
-                .unwrap(),
+            api_jid: config.api_jid(),
+            secrets_store,
         }
     }
 
@@ -79,11 +80,15 @@ impl ProsodyAdminRest {
         let client = self.http_client.clone();
         let request = make_req(&client)
             .basic_auth(
-                self.api_auth_username.to_string(),
-                Some(self.api_auth_password.expose_secret()),
+                self.api_jid.to_string(),
+                Some(
+                    self.secrets_store
+                        .prose_pod_api_xmpp_password()
+                        .expose_secret(),
+                ),
             )
             .build()?;
-        debug!("Calling `{} {}`…", request.method(), request.url());
+        trace!("Calling `{} {}`…", request.method(), request.url());
 
         let (response, request_clone) = {
             let request_clone = request.try_clone();
@@ -97,7 +102,7 @@ impl ProsodyAdminRest {
         match map_res(response).await {
             Ok(res) => Ok(res),
             Err(response) => {
-                let mut err = "Prosody Admin REST API call failed.".to_owned();
+                let mut err = "Prosody Admin REST API returned an error.".to_owned();
                 if let Some(request) = request_clone {
                     err.push_str(&format!(
                         "\n  Request: {} {}\n  Request headers: {:?}\n  Request body: {:?}",
@@ -251,6 +256,19 @@ impl ServerCtlImpl for ProsodyAdminRest {
                     urlencoding::encode(&jid.to_string()),
                 ))
                 .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
+        })
+        .await
+        .map(|_| ())
+    }
+    async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
+        self.call(|client| {
+            client
+                .patch(format!(
+                    "{}/{}/password",
+                    self.url("user"),
+                    urlencoding::encode(&jid.to_string())
+                ))
+                .body(format!(r#"{{"password":"{}"}}"#, password.expose_secret()))
         })
         .await
         .map(|_| ())

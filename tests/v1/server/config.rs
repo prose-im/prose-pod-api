@@ -68,7 +68,7 @@ async fn given_server_config(
         &mut <<server_config::Model as ModelTrait>::Entity as EntityTrait>::ActiveModel,
     ) -> (),
 ) -> Result<(), Error> {
-    let app_config = &world.config;
+    let app_config = &world.app_config;
 
     let mut server_config = world.server_config_model().await?.into_active_model();
     update(&mut server_config);
@@ -142,7 +142,7 @@ async fn given_message_archive_retention(
 #[when(expr = "{} turns message archiving {toggle}")]
 async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: ToggleState) {
     let token = user_token!(world, name);
-    let res = set_message_archiving(&world.client, token, state.into()).await;
+    let res = set_message_archiving(world.client(), token, state.into()).await;
     world.result = Some(res.into());
 }
 
@@ -153,21 +153,21 @@ async fn when_set_message_archive_retention(
     duration: Duration,
 ) {
     let token = user_token!(world, name);
-    let res = set_message_archive_retention(&world.client, token, duration.into()).await;
+    let res = set_message_archive_retention(world.client(), token, duration.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
 async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_messaging_configuration(&world.client, token).await;
+    let res = reset_messaging_configuration(world.client(), token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the message archive retention to its default value")]
 async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_message_archive_retention(&world.client, token).await;
+    let res = reset_message_archive_retention(world.client(), token).await;
     world.result = Some(res.into());
 }
 
@@ -262,21 +262,21 @@ async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Resu
 #[when(expr = "{} turns file uploading {toggle}")]
 async fn when_set_file_uploading(world: &mut TestWorld, name: String, state: ToggleState) {
     let token = user_token!(world, name);
-    let res = set_file_uploading(&world.client, token, state.into()).await;
+    let res = set_file_uploading(world.client(), token, state.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Files configuration to its default value")]
 async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_files_configuration(&world.client, token).await;
+    let res = reset_files_configuration(world.client(), token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} sets the file retention to {duration}")]
 async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: Duration) {
     let token = user_token!(world, name);
-    let res = set_file_retention(&world.client, token, duration.into()).await;
+    let res = set_file_retention(world.client(), token, duration.into()).await;
     world.result = Some(res.into());
 }
 

@@ -24,7 +24,6 @@ pub struct MockServerCtl {
 
 #[derive(Debug, Clone)]
 pub struct UserAccount {
-    pub jid: BareJid,
     pub password: SecretString,
 }
 
@@ -90,17 +89,18 @@ impl ServerCtlImpl for MockServerCtl {
         // Check that the domain exists in the Prosody configuration. If it's not the case,
         // Prosody won't add the user. This happens if the server config wasn't initialized
         // and Prosody wasn't reloaded with a full configuration.
-        let domain_exists = state.applied_config.as_ref().is_some_and(|config| {
-            config
-                .additional_sections
-                .iter()
-                .any(|section| match section {
-                    ProsodyConfigSection::VirtualHost { hostname, .. } => {
-                        hostname == &jid.domain().to_string()
-                    }
-                    _ => false,
-                })
-        });
+        let domain_exists = jid.domain().as_str() == "admin.prose.org.local"
+            || state.applied_config.as_ref().is_some_and(|config| {
+                config
+                    .additional_sections
+                    .iter()
+                    .any(|section| match section {
+                        ProsodyConfigSection::VirtualHost { hostname, .. } => {
+                            hostname == &jid.domain().to_string()
+                        }
+                        _ => false,
+                    })
+            });
         if !domain_exists {
             return Err(Error::Other(format!("Domain {} not declared in the Prosody configuration. You might need to initialize the server configuration.", jid.domain())));
         }
@@ -108,7 +108,6 @@ impl ServerCtlImpl for MockServerCtl {
         state.users.insert(
             jid.clone(),
             UserAccount {
-                jid: jid.clone(),
                 password: password.to_owned(),
             },
         );
@@ -129,12 +128,30 @@ impl ServerCtlImpl for MockServerCtl {
         //   our `DummyServerCtl` has nothing to save.
         Ok(())
     }
+    async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
+        state
+            .users
+            .get_mut(jid)
+            .expect(&format!(
+                "`MockServerCtl` cannot set <{jid}>'s password: User must be created first."
+            ))
+            .password = password.to_owned();
+
+        Ok(())
+    }
 
     async fn add_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+        self.check_online()?;
+
         // We don't care in tests for now
         Ok(())
     }
     async fn remove_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+        self.check_online()?;
+
         // We don't care in tests for now
         Ok(())
     }

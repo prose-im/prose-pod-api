@@ -6,8 +6,9 @@
 #[macro_use]
 extern crate rocket;
 
-use prose_pod_api::custom_rocket;
+use prose_pod_api::{custom_rocket, guards::Db};
 use rocket::fairing::AdHoc;
+use sea_orm_rocket::Database as _;
 use service::{
     config::Config,
     dependencies::Notifier,
@@ -16,9 +17,10 @@ use service::{
     services::{
         auth_service::{AuthService, LiveAuthService},
         jwt_service::JWTService,
+        live_secrets_store::LiveSecretsStore,
+        secrets_store::SecretsStore,
         server_ctl::ServerCtl,
-        xmpp_service::LiveXmppService,
-        xmpp_service::XmppServiceInner,
+        xmpp_service::{LiveXmppService, XmppServiceInner},
     },
     HttpClient,
 };
@@ -34,8 +36,10 @@ fn rocket() -> _ {
         Ok(service) => service,
         Err(err) => panic!("{err}"),
     };
+    let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::from_config(&config)));
     let http_client = HttpClient::new();
-    let prosody_admin_rest = ProsodyAdminRest::from_config(&config, http_client.clone());
+    let prosody_admin_rest =
+        ProsodyAdminRest::from_config(&config, http_client.clone(), secrets_store.clone());
     let server_ctl = ServerCtl::new(Arc::new(prosody_admin_rest.clone()));
     let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
         &config,
@@ -50,15 +54,17 @@ fn rocket() -> _ {
     )));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
 
-    let rocket =
-        rocket::build().attach(AdHoc::on_ignite("Tracing subsciber", |rocket| async move {
+    let rocket = rocket::build().attach(Db::init()).attach(AdHoc::on_ignite(
+        "Tracing subsciber",
+        |rocket| async move {
             let subscriber = FmtSubscriber::builder()
                 .with_env_filter(EnvFilter::from_default_env())
                 .finish();
             tracing::subscriber::set_global_default(subscriber)
                 .expect("Failed to set tracing subscriber.");
             rocket
-        }));
+        },
+    ));
 
     custom_rocket(
         rocket,
@@ -68,5 +74,6 @@ fn rocket() -> _ {
         auth_service,
         notifier,
         jwt_service,
+        secrets_store,
     )
 }

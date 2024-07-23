@@ -2,6 +2,7 @@ Feature: XMPP server configuration: File upload
 
   Background:
     Given the Prose Pod has been initialized
+      And the Prose Pod API has started
 
   Rule: File uploading can be turned on and off
 

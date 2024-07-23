@@ -52,9 +52,9 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
     world
         .init_controller()
         .init_workspace(
-            &world.config,
-            world.secrets_store(),
-            &world.xmpp_service(),
+            &world.app_config,
+            &world.secrets_store,
+            &world.xmpp_service,
             &world.server_config().await?,
             form,
         )
@@ -77,10 +77,10 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     world
         .init_controller()
         .init_server_config(
-            &world.server_ctl(),
-            &world.config,
-            &world.auth_service(),
-            world.secrets_store(),
+            &world.server_ctl,
+            &world.app_config,
+            &world.auth_service,
+            &world.secrets_store,
             form,
         )
         .await?;
@@ -144,19 +144,19 @@ async fn init_first_account<'a>(
 
 #[when(expr = "someone initializes a workspace named {string}")]
 async fn when_init_workspace(world: &mut TestWorld, name: String) {
-    let res = init_workspace(&world.client, &name).await;
+    let res = init_workspace(world.client(), &name).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "someone initializes the server at <{text}>")]
 async fn when_init_server_config(world: &mut TestWorld, domain: Text) {
-    let res = init_server_config(&world.client, &domain).await;
+    let res = init_server_config(world.client(), &domain).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "someone creates the first account {string} with node {string}")]
 async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JidNode) {
-    let res = init_first_account(&world.client, &node, &nickname).await;
+    let res = init_first_account(world.client(), &node, &nickname).await;
     world.result = Some(res.into());
 }
 

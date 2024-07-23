@@ -28,10 +28,6 @@ pub struct MockXmppServiceState {
 }
 
 impl MockXmppService {
-    pub fn new(state: Arc<RwLock<MockXmppServiceState>>) -> Self {
-        Self { state }
-    }
-
     fn check_online(&self) -> Result<(), Error> {
         if self.state.read().unwrap().online {
             Ok(())

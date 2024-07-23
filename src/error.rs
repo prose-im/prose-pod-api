@@ -12,7 +12,7 @@ use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
 use service::controllers::init_controller::{
-    CreateServiceAccountError, InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
+    InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
 };
 use service::controllers::invitation_controller::{
     InvitationAcceptError, InvitationCancelError, InvitationRejectError, InvitationResendError,
@@ -23,6 +23,7 @@ use service::controllers::workspace_controller::{
 };
 #[cfg(debug_assertions)]
 use service::services::jwt_service;
+use service::services::server_manager::CreateServiceAccountError;
 use service::services::{
     auth_service, invitation_service, notifier, server_ctl, server_manager,
     user_service::{self, UserCreateError},

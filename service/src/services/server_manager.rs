@@ -5,8 +5,11 @@
 
 use std::sync::{RwLock, RwLockWriteGuard};
 
+use jid::BareJid;
+use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use sea_orm::IntoActiveModel;
-use tracing::trace;
+use secrecy::SecretString;
+use tracing::{debug, trace};
 
 use crate::{
     config::AppConfig,
@@ -14,10 +17,15 @@ use crate::{
     model::{DateLike, Duration, JidDomain, PossiblyInfinite, ServerConfig},
     repositories::{ServerConfigCreateForm, ServerConfigRepository},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
-    services::server_ctl::ServerCtl,
+    services::{secrets_store::ServiceAccountSecrets, server_ctl::ServerCtl},
 };
 
-use super::server_ctl;
+use super::{
+    auth_service::{self, AuthService},
+    jwt_service::{InvalidJwtClaimError, JWTError},
+    secrets_store::SecretsStore,
+    server_ctl::{self, ServerCtlError},
+};
 
 pub struct ServerManager<'r> {
     db: &'r DatabaseConnection,
@@ -101,33 +109,21 @@ impl<'r> ServerManager<'r> {
 
         Ok(())
     }
+
+    /// Generates a very strong random password.
+    fn strong_random_password() -> SecretString {
+        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
+        thread_rng()
+            .sample_iter(&Alphanumeric)
+            // 256 characters because why not
+            .take(256)
+            .map(char::from)
+            .collect::<String>()
+            .into()
+    }
 }
 
 impl<'r> ServerManager<'r> {
-    // TODO: Use or delete the following comments
-
-    // pub fn add_admin(&self, jid: JID) {
-    //     todo!()
-    // }
-    // pub fn remove_admin(&self, jid: &JID) {
-    //     todo!()
-    // }
-
-    // pub fn set_rate_limit(&self, conn_type: ConnectionType, value: DataRate) {
-    //     todo!()
-    // }
-    // pub fn set_burst_limit(&self, conn_type: ConnectionType, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-    // /// Sets the time that an over-limit session is suspended for
-    // /// (`limits_resolution` in Prosody).
-    // ///
-    // /// See <https://prosody.im/doc/modules/mod_limits> for Prosody
-    // /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-    // pub fn set_timeout(&self, value: Duration<TimeLike>) {
-    //     todo!()
-    // }
-
     pub async fn init_server_config(
         db: &DatabaseConnection,
         server_ctl: &ServerCtl,
@@ -161,6 +157,20 @@ impl<'r> ServerManager<'r> {
         Ok(server_config)
     }
 
+    pub async fn rotate_api_xmpp_password(
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), ServerCtlError> {
+        let api_jid = app_config.api_jid();
+        let password = Self::strong_random_password();
+
+        server_ctl.set_user_password(&api_jid, &password).await?;
+        secrets_store.set_prose_pod_api_xmpp_password(password);
+
+        Ok(())
+    }
+
     pub async fn set_domain(&self, domain: &JidDomain) -> Result<ServerConfig, Error> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {
@@ -191,6 +201,70 @@ impl<'r> ServerManager<'r> {
             .await?;
         Ok(model)
     }
+}
+
+impl<'r> ServerManager<'r> {
+    pub async fn create_service_accounts(
+        domain: &JidDomain,
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        auth_service: &AuthService,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), CreateServiceAccountError> {
+        // NOTE: No need to create Prose Pod API's XMPP account as it's already created
+        //   automatically when the XMPP server starts (using `mod_init_admin` in Prosody).
+
+        // Create workspace XMPP account
+        Self::create_service_account(
+            app_config.workspace_jid(domain),
+            server_ctl,
+            auth_service,
+            secrets_store,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    async fn create_service_account(
+        jid: BareJid,
+        server_ctl: &ServerCtl,
+        auth_service: &AuthService,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), CreateServiceAccountError> {
+        debug!("Creating service account '{jid}'…");
+
+        // Create the XMPP user account
+        let password = Self::strong_random_password();
+        server_ctl.add_user(&jid, &password).await?;
+
+        // Log in as the service account (to get a JWT with access tokens)
+        let jwt = auth_service.log_in(&jid, &password).await?;
+        let jwt = auth_service.verify(&jwt)?;
+
+        // Read the access tokens from the JWT
+        let prosody_token = jwt
+            .prosody_token()
+            .map_err(CreateServiceAccountError::MissingProsodyToken)?;
+
+        // Store the secrets
+        let secrets = ServiceAccountSecrets { prosody_token };
+        secrets_store.set_service_account_secrets(jid, secrets);
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateServiceAccountError {
+    #[error("Could not create XMPP account: {0}")]
+    CouldNotCreateXmppAccount(#[from] server_ctl::Error),
+    #[error("Could not log in: {0}")]
+    CouldNotLogIn(#[from] auth_service::Error),
+    #[error("The just-created JWT is invalid: {0}")]
+    InvalidJwt(#[from] JWTError),
+    #[error("The just-created JWT doesn't contain a Prosody token: {0}")]
+    MissingProsodyToken(InvalidJwtClaimError),
 }
 
 macro_rules! set_bool {

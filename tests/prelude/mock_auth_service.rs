@@ -17,7 +17,7 @@ use crate::mock_server_ctl::MockServerCtlState;
 
 #[derive(Debug, Clone)]
 pub struct MockAuthService {
-    jwt_service: JWTService,
+    pub(crate) jwt_service: JWTService,
     pub(crate) state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
 }

@@ -8,9 +8,12 @@ use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
     controllers::init_controller::{InitController, InitFirstAccountForm, WorkspaceCreateForm},
-    model::{JidDomain, JidNode, ServerConfig, ServiceSecretsStore},
+    model::{JidDomain, JidNode, ServerConfig},
     repositories::ServerConfigCreateForm,
-    services::{auth_service::AuthService, server_ctl::ServerCtl, xmpp_service::XmppServiceInner},
+    services::{
+        auth_service::AuthService, secrets_store::SecretsStore, server_ctl::ServerCtl,
+        xmpp_service::XmppServiceInner,
+    },
 };
 
 use crate::{
@@ -50,7 +53,7 @@ impl Into<WorkspaceCreateForm> for InitWorkspaceRequest {
 pub async fn init_workspace<'r>(
     init_controller: LazyGuard<InitController<'r>>,
     app_config: &State<AppConfig>,
-    secrets_store: &State<ServiceSecretsStore>,
+    secrets_store: &State<SecretsStore>,
     xmpp_service: &State<XmppServiceInner>,
     server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
@@ -99,7 +102,7 @@ pub async fn init_server_config<'r>(
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
     auth_service: &State<AuthService>,
-    secrets_store: &State<ServiceSecretsStore>,
+    secrets_store: &State<SecretsStore>,
     req: Json<InitServerConfigRequest>,
 ) -> Created<ServerConfig> {
     let init_controller = init_controller.inner?;

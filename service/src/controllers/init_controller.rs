@@ -3,25 +3,19 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use jid::BareJid;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
-use tracing::debug;
 
 use crate::{
     config::AppConfig,
     entity::workspace,
-    model::{
-        JidDomain, JidNode, Member, MemberRole, ServerConfig, ServiceSecrets, ServiceSecretsStore,
-        Workspace,
-    },
+    model::{JidNode, Member, MemberRole, ServerConfig, Workspace},
     repositories::{MemberRepository, ServerConfigCreateForm, WorkspaceRepository},
     services::{
-        auth_service::{self, AuthService},
-        jwt_service::{InvalidJwtClaimError, JWTError},
-        server_ctl::{self, ServerCtl},
-        server_manager::{self, ServerManager},
+        auth_service::AuthService,
+        secrets_store::SecretsStore,
+        server_ctl::ServerCtl,
+        server_manager::{self, CreateServiceAccountError, ServerManager},
         user_service::{UserCreateError, UserService},
         xmpp_service::XmppServiceInner,
     },
@@ -40,17 +34,17 @@ impl<'r> InitController<'r> {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
         server_config: impl Into<ServerConfigCreateForm>,
     ) -> Result<ServerConfig, InitServerConfigError> {
-        // Create service XMPP accounts
+        // Initialize XMPP server configuration
         let server_config =
             ServerManager::init_server_config(self.db, server_ctl, app_config, server_config)
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
         // Create service XMPP accounts
-        Self::create_service_accounts(
+        ServerManager::create_service_accounts(
             &server_config.domain,
             server_ctl,
             app_config,
@@ -61,62 +55,6 @@ impl<'r> InitController<'r> {
 
         Ok(server_config)
     }
-
-    pub async fn create_service_accounts(
-        domain: &JidDomain,
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
-    ) -> Result<(), CreateServiceAccountError> {
-        // Create workspace XMPP account
-        Self::create_service_account(
-            app_config.workspace_jid(domain),
-            server_ctl,
-            auth_service,
-            secrets_store,
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    async fn create_service_account(
-        jid: BareJid,
-        server_ctl: &ServerCtl,
-        auth_service: &AuthService,
-        secrets_store: &ServiceSecretsStore,
-    ) -> Result<(), CreateServiceAccountError> {
-        debug!("Creating service account '{jid}'…");
-
-        // Generate a very strong random password
-        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-        let password: SecretString = thread_rng()
-            .sample_iter(&Alphanumeric)
-            // 256 characters because why not
-            .take(256)
-            .map(char::from)
-            .collect::<String>()
-            .into();
-
-        // Create the XMPP user account
-        server_ctl.add_user(&jid, &password).await?;
-
-        // Log in as the service account (to get a JWT with access tokens)
-        let jwt = auth_service.log_in(&jid, &password).await?;
-        let jwt = auth_service.verify(&jwt)?;
-
-        // Read the access tokens from the JWT
-        let prosody_token = jwt
-            .prosody_token()
-            .map_err(CreateServiceAccountError::MissingProsodyToken)?;
-
-        // Store the secrets
-        let secrets = ServiceSecrets { prosody_token };
-        secrets_store.set_secrets(jid, secrets);
-
-        Ok(())
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -125,18 +63,6 @@ pub enum InitServerConfigError {
     CouldNotInitServerConfig(server_manager::Error),
     #[error("Could not create service XMPP account: {0}")]
     CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum CreateServiceAccountError {
-    #[error("Could not create XMPP account: {0}")]
-    CouldNotCreateXmppAccount(#[from] server_ctl::Error),
-    #[error("Could not log in: {0}")]
-    CouldNotLogIn(#[from] auth_service::Error),
-    #[error("The just-created JWT is invalid: {0}")]
-    InvalidJwt(#[from] JWTError),
-    #[error("The just-created JWT doesn't contain a Prosody token: {0}")]
-    MissingProsodyToken(InvalidJwtClaimError),
 }
 
 #[derive(Debug, Clone)]
@@ -158,7 +84,7 @@ impl<'r> InitController<'r> {
     pub async fn init_workspace(
         &self,
         app_config: &AppConfig,
-        secrets_store: &ServiceSecretsStore,
+        secrets_store: &SecretsStore,
         xmpp_service: &XmppServiceInner,
         server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,

@@ -103,7 +103,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             joined_at: None,
         };
         let model = MemberRepository::create(db, member).await?;
-        let token = world.auth_service.log_in_unchecked(&jid)?;
+        let token = world.mock_auth_service.log_in_unchecked(&jid)?;
 
         world.members.insert(jid.to_string(), (model, token));
     }
@@ -113,26 +113,26 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
 #[when(expr = "{word} lists members")]
 async fn when_listing_members(world: &mut TestWorld, name: String) {
     let token = world.token(name);
-    let res = list_members(&world.client, token).await;
+    let res = list_members(world.client(), token).await;
     world.result = Some(res.into());
 }
 
 #[when("someone lists members without authenticating")]
 async fn when_listing_members_unauthenticated(world: &mut TestWorld) {
-    let res = list_members_(&world.client, None).await;
+    let res = list_members_(world.client(), None).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "someone lists members using {string} as Bearer token")]
 async fn when_listing_members_custom_token(world: &mut TestWorld, token: String) {
-    let res = list_members(&world.client, token.into()).await;
+    let res = list_members(world.client(), token.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{word} lists members by pages of {int}")]
 async fn when_listing_members_paged(world: &mut TestWorld, name: String, page_size: u64) {
     let token = world.token(name);
-    let res = list_members_paged(&world.client, token, 1, page_size).await;
+    let res = list_members_paged(world.client(), token, 1, page_size).await;
     world.result = Some(res.into());
 }
 
@@ -144,7 +144,7 @@ async fn when_getting_members_page(
     page_size: u64,
 ) {
     let token = world.token(name);
-    let res = list_members_paged(&world.client, token, page_number, page_size).await;
+    let res = list_members_paged(world.client(), token, page_number, page_size).await;
     world.result = Some(res.into());
 }
 
@@ -155,7 +155,7 @@ async fn when_getting_members_details(world: &mut TestWorld, name: String, names
     for name in names.iter() {
         jids.push(name_to_jid(world, name).await.unwrap());
     }
-    let res = enrich_members(&world.client, token, jids).await;
+    let res = enrich_members(world.client(), token, jids).await;
     world.result = Some(res.into());
 }
 
@@ -182,7 +182,7 @@ async fn then_nickname(
     nickname: String,
 ) -> Result<(), xmpp_service::Error> {
     let vcard = world
-        .xmpp_service
+        .mock_xmpp_service
         .get_vcard(&jid)?
         .expect("vCard not found");
 

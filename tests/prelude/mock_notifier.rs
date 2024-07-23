@@ -19,12 +19,6 @@ pub struct MockNotifierState {
     pub sent: Vec<Notification>,
 }
 
-impl MockNotifier {
-    pub fn new(state: Arc<RwLock<MockNotifierState>>) -> Self {
-        Self { state }
-    }
-}
-
 impl GenericNotifier for MockNotifier {
     fn name(&self) -> &'static str {
         "dummy_notifier"

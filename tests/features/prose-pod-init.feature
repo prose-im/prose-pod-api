@@ -1,5 +1,8 @@
 Feature: Prose Pod initialization
 
+  Background:
+    Given the Prose Pod API has started
+
   Scenario: Initializing the workspace
     Given the server config has been initialized
       And the workspace has not been initialized
