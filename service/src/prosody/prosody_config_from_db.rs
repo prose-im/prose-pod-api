@@ -50,6 +50,16 @@ impl ProsodyConfig {
             .unwrap_or_default()
     }
 
+    pub fn virtual_host_settings(&self, host: &str) -> Option<&ProsodySettings> {
+        self.additional_sections
+            .iter()
+            .find_map(|section| match section {
+                ProsodyConfigSection::VirtualHost {
+                    hostname, settings, ..
+                } if hostname.as_str() == host => Some(settings),
+                _ => None,
+            })
+    }
     pub fn component_settings(&self, name: &str) -> Option<&ProsodySettings> {
         self.additional_sections
             .iter()
@@ -231,12 +241,15 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         ),
                         http_host: Some(app_config.server.local_hostname.to_owned()),
                         custom_settings: vec![
+                            // See <https://modules.prosody.im/mod_http_oauth2>
                             Group::new(
                                 "mod_http_oauth2",
-                                vec![def(
-                                    "allowed_oauth2_grant_types",
-                                    vec!["password"],
-                                )],
+                                vec![
+                                    def("allowed_oauth2_grant_types", vec!["password"]),
+                                    def("oauth2_access_token_ttl", 10800),
+                                    // We don't want tokens to be refreshed
+                                    def("oauth2_refresh_token_ttl", 0),
+                                ],
                             ),
                             // // See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.
                             // Group::new(

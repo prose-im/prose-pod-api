@@ -25,6 +25,11 @@ impl From<SecretString> for LoginToken {
         Self(value.expose_secret().to_owned())
     }
 }
+impl Into<SecretString> for LoginToken {
+    fn into(self) -> SecretString {
+        SecretString::new(self.0)
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
