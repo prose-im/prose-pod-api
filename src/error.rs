@@ -374,8 +374,11 @@ impl_into_error!(MutationError);
 impl HttpApiError for jwt_service::Error {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::Sign(_) | Self::Other(_) => ErrorCode::InternalServerError,
-            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::Unauthorized,
+            Self::InvalidJwtKey(_)
+            | Self::CouldNotAddClaims(_)
+            | Self::Encode(_)
+            | Self::Other(_) => ErrorCode::InternalServerError,
+            Self::Decode(_) | Self::InvalidClaim(_) => ErrorCode::Unauthorized,
         }
     }
 }
