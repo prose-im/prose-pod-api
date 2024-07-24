@@ -169,21 +169,49 @@ async fn then_token_expires_after(
 ) -> Result<(), jwt_service::Error> {
     let response: LoginResponse = world.result().body_into();
     let token: SecretString = response.token.expose_secret().clone().into();
-    let claims = world.jwt_service.verify(&token)?;
+    let (payload, _) = world.jwt_service.verify(&token)?;
 
-    fn date(claims: &serde_json::Map<String, serde_json::Value>, claim: &str) -> u64 {
-        claims
-            .get(claim)
-            .expect(&format!("JWT has no '{claim}' claim."))
-            .as_u64()
-            .expect(&format!("JWT '{claim}' claim could not be parsed."))
-    }
+    let issued_at = payload.issued_at().expect("JWT is missing 'Issued at'.");
+    let expires_at = payload.expires_at().expect("JWT is missing 'Expires at'.");
 
-    let issued_at = date(&claims, "iat");
-    let expires_at = date(&claims, "exp");
+    let lifetime = expires_at
+        .duration_since(issued_at)
+        .expect("Could not compute JWT lifetime.");
+    assert_eq!(
+        lifetime,
+        std::time::Duration::from_secs(duration.seconds() as u64),
+    );
 
-    let lifetime = expires_at - issued_at;
-    assert_eq!(lifetime, duration.seconds() as u64);
+    Ok(())
+}
+
+#[then(expr = "their access token shouldn't contain {string} when Base64-decoded")]
+async fn then_token_encrypted(world: &mut TestWorld, pattern: String) -> Result<(), String> {
+    let response: LoginResponse = world.result().body_into();
+    let token: SecretString = response.token.expose_secret().clone().into();
+
+    // Take only the JWT payload (JWT is formatted `<base64_json_header>.<base64_json_payload>.<binary_signature>`)
+    let payload = token.expose_secret().split('.').skip(1).next().unwrap();
+    assert!(!payload.contains(&pattern), "payload: {payload}");
+
+    // Try to Base64-decode it
+    let Ok(bytes) = Base64NoPad.decode(payload) else {
+        // If if fails, then it means the token is encrypted
+        return Ok(());
+    };
+    let decoded_token: String = match String::from_utf8(bytes) {
+        Ok(decoded) => decoded,
+        Err(err) => panic!(
+            "Could not read the JWT as UTF-8: {err}\nToken: {}\nToken payload: {payload}",
+            token.expose_secret(),
+        ),
+    };
+
+    // Make sure the Base64-decoded JWT payload doesn't contain the given pattern
+    assert!(
+        !decoded_token.contains(&pattern),
+        "decoded_token: {decoded_token}",
+    );
 
     Ok(())
 }

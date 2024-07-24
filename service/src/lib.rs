@@ -3,6 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub extern crate josekit;
 pub extern crate prose_xmpp;
 pub extern crate prosody_config;
 pub extern crate xmpp_parsers;

@@ -14,10 +14,9 @@ chrono = { workspace = true }
 email_address = { workspace = true }
 figment = { workspace = true }
 form_urlencoded = { workspace = true }
-hmac = { workspace = true }
 iso8601-duration = { workspace = true }
 jid = { workspace = true }
-jwt = { workspace = true }
+josekit = { workspace = true }
 lazy_static = { workspace = true }
 lettre = { workspace = true }
 minidom = { workspace = true }

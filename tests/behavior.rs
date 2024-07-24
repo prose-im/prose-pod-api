@@ -329,7 +329,7 @@ impl TestWorld {
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
         let mock_xmpp_service = MockXmppService::default();
         let mock_notifier = MockNotifier::default();
-        let jwt_service = JWTService::new(JWTKey::custom("test_key"));
+        let jwt_service = JWTService::new(JWTKey::custom("Any 32 bytes-long string will do"));
         let mock_auth_service = MockAuthService::new(
             jwt_service.clone(),
             Default::default(),

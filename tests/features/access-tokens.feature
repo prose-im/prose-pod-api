@@ -13,6 +13,14 @@ Feature: Prose Pod API access tokens
        When Alice logs into the Prose Pod API
        Then their access token should expire after 3 hours
 
+  Rule: Access tokens are encrypted
+
+    Scenario: User logs in
+      Given the XMPP server domain is <example.org>
+        And Alice is a member
+       When Alice logs into the Prose Pod API
+       Then their access token shouldn't contain "alice@example.org" when Base64-decoded
+
   """
   In order for the Prose Pod API to send stanzas to Prosody, it needs a Prosody access token.
   This token is generated when a user logs in and is saved into the returned Prose Pod API access token.

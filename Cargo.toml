@@ -36,13 +36,12 @@ figment = { version = "0.10", features = ["toml"] }
 form_urlencoded = "1"
 futures = "0.3"
 futures-util = { version = "0.3" }
-hmac = "0.12"
 http-auth-basic = "0.3"
 insta = "1"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 iso8601-timestamp = "0.2"
 jid = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main", default-features = false }
-jwt = "0.16"
+josekit = "0.8.7"
 lazy_static = "1"
 lettre = { version = "0.11", features = [
     "smtp-transport",

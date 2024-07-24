@@ -49,8 +49,11 @@ impl MockAuthService {
     }
 
     pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<SecretString, auth_service::Error> {
-        let token = self.jwt_service.generate_jwt(jid, |claims| {
-            claims.insert(JWT_PROSODY_TOKEN_KEY.into(), "dummy-prosody-token".into());
+        let token = self.jwt_service.generate_jwt(jid, |payload| {
+            payload
+                .set_claim(JWT_PROSODY_TOKEN_KEY, Some("dummy-prosody-token".into()))
+                .expect("Could not add dummy Prosody token to the JWT.");
+            Ok(())
         })?;
 
         Ok(token)

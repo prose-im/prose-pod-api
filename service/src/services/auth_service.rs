@@ -75,12 +75,13 @@ impl AuthServiceImpl for LiveAuthService {
             Err(AuthError::InvalidCredentials)?
         };
 
-        let token = self.jwt_service.generate_jwt(jid, |claims| {
+        let token = self.jwt_service.generate_jwt(jid, |payload| {
             // TODO: Do not store this in the JWT (potential security issue?)
-            claims.insert(
-                JWT_PROSODY_TOKEN_KEY.into(),
-                prosody_token.expose_secret().to_owned().into(),
-            );
+            payload.set_claim(
+                JWT_PROSODY_TOKEN_KEY,
+                Some(prosody_token.expose_secret().to_owned().into()),
+            )?;
+            Ok(())
         })?;
 
         Ok(token)
