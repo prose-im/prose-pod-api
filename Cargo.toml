@@ -55,7 +55,7 @@ linked-hash-map = "0.5"
 migration = { path = "./migration" }
 minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.91" }
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.92" }
 prosody-config = { path = "./prosody-config" }
 rand = "0.8"
 regex = "1"
