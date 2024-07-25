@@ -20,7 +20,7 @@ use xmpp_parsers::jid;
 
 use super::auth_service::JWT_PROSODY_TOKEN_KEY;
 
-const ENV_JWT_SIGNING_KEY: &'static str = "JWT_SIGNING_KEY";
+const ENV_JWT_ENCRYPTION_KEY: &'static str = "JWT_ENCRYPTION_KEY";
 pub const JWT_JID_KEY: &'static str = "sub";
 
 #[derive(Debug, Clone)]
@@ -150,10 +150,10 @@ pub struct JWTKey(SecretString);
 
 impl JWTKey {
     pub fn from_env() -> Result<Self, JWTError> {
-        match env::var(ENV_JWT_SIGNING_KEY) {
+        match env::var(ENV_JWT_ENCRYPTION_KEY) {
             Ok(v) => Ok(Self(v.into())),
             Err(e) => Err(JWTError::Other(format!(
-                "Environment variable '{ENV_JWT_SIGNING_KEY}' not found: {e}",
+                "Environment variable '{ENV_JWT_ENCRYPTION_KEY}' not found: {e}",
             ))),
         }
     }
