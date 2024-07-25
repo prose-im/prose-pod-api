@@ -3,7 +3,7 @@ FROM rustlang/rust:nightly-buster AS build
 ARG CARGO_INSTALL_EXTRA_ARGS=''
 
 RUN apt-get update
-RUN apt-get install -y musl-tools
+RUN apt-get install -y musl-tools pkg-config libssl-dev
 
 RUN rustc --version && \
     rustup --version && \
