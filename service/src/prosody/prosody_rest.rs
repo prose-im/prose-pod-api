@@ -35,6 +35,7 @@ impl ProsodyRest {
                 connection: Connection {
                     http_client: http_client.clone(),
                     rest_api_url: rest_api_url.clone(),
+                    jid: Default::default(),
                     prosody_token: Default::default(),
                     inner: Default::default(),
                 },
@@ -49,11 +50,12 @@ impl ProsodyRest {
 impl ConnectorTrait for ProsodyRest {
     async fn connect(
         &self,
-        _jid: &FullJid,
+        jid: &FullJid,
         password: SecretString,
         event_handler: ConnectionEventHandler,
     ) -> Result<Box<dyn ConnectionTrait>, ConnectionError> {
         *self.connection.inner.event_handler.write() = Some(event_handler);
+        *self.connection.jid.write() = Some(jid.clone());
         *self.connection.prosody_token.write() = Some(password);
         Ok(Box::new(self.connection.clone()))
     }
@@ -65,6 +67,7 @@ impl ConnectorTrait for ProsodyRest {
 pub struct Connection {
     http_client: HttpClient,
     rest_api_url: String,
+    jid: Arc<RwLock<Option<FullJid>>>,
     prosody_token: Arc<RwLock<Option<SecretString>>>,
     inner: Arc<ConnectionInner>,
 }
@@ -97,6 +100,7 @@ impl Connection {
             http_client: self.http_client.clone(),
             inner: self.inner.clone(),
             rest_api_url: self.rest_api_url.clone(),
+            jid: self.jid.clone(),
             prosody_token: self.prosody_token.clone(),
         };
         (event_handler)(&conn, ConnectionEvent::Stanza(stanza.into())).await
@@ -111,7 +115,10 @@ impl ConnectionTrait for Connection {
 
         let client = self.http_client.clone();
         let request_body = String::from(&stanza);
-        trace!("request_body: {request_body:?}");
+        trace!(
+            "Sending stanza as <{}>: {stanza:#?}…\nSerialized `request_body`: {request_body}",
+            self.jid.read().clone().unwrap(),
+        );
         let request = client
             .post(self.rest_api_url.to_owned())
             .header("Content-Type", "application/xmpp+xml")
@@ -131,16 +138,19 @@ impl ConnectionTrait for Connection {
                         "Prosody REST API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
                         response.status(),
                         response.headers().clone(),
-                        response.text().await.unwrap_or("<nil>".to_string()),
+                        response.text().await.unwrap_or("<none>".to_owned()),
                     );
                     if let Some(request) = request_clone {
                         err.push_str(&format!(
-                            "\n  Request headers: {:?}\n  Request body: {:?}",
+                            "\n  Request headers: {:?}\n  Request body: {}",
                             request.headers().clone(),
                             request
                                 .body()
                                 .and_then(|body| body.as_bytes())
-                                .map(std::str::from_utf8),
+                                .map(std::str::from_utf8)
+                                .unwrap_or(Ok("<none>"))
+                                .map(ToOwned::to_owned)
+                                .unwrap_or_else(|err| format!("<error: {err}>")),
                         ));
                     }
                     return Err(anyhow!("Unexpected Prosody REST API response: {err}"));
