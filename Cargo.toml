@@ -31,7 +31,8 @@ async-trait = "0.1"
 base64 = "0.22"
 chrono = "0.4"
 cucumber = "0.21"
-email_address = "0.2"
+# See <https://github.com/johnstonskj/rust-email_address/issues/29>.
+email_address = { git = "https://github.com/johnstonskj/rust-email_address.git", rev = "b4296cd4ff621b27da55bb5182558e0ce691c611" }
 figment = { version = "0.10", features = ["toml"] }
 form_urlencoded = "1"
 futures = "0.3"
