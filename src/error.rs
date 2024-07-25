@@ -21,11 +21,9 @@ use service::controllers::invitation_controller::{
 use service::controllers::workspace_controller::{
     WorkspaceControllerError, WorkspaceControllerInitError,
 };
-#[cfg(debug_assertions)]
-use service::services::jwt_service;
 use service::services::server_manager::CreateServiceAccountError;
 use service::services::{
-    auth_service, invitation_service, notifier, server_ctl, server_manager,
+    auth_service, invitation_service, jwt_service, notifier, server_ctl, server_manager,
     user_service::{self, UserCreateError},
     xmpp_service,
 };
@@ -475,6 +473,7 @@ impl HttpApiError for InviteMemberError {
         match self {
             Self::InvalidJid(_) => ErrorCode::BadRequest,
             Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::InternalServerError,
+            #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
