@@ -10,8 +10,8 @@ use linked_hash_set::LinkedHashSet;
 use std::hash::Hash;
 use std::path::PathBuf;
 
-use crate::model::*;
 use crate::prosody_config_file::{Group, LuaDefinition};
+use crate::{model::*, LuaValue};
 
 /// Prosody configuration.
 ///
@@ -117,6 +117,16 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub custom_settings: Vec<Group<LuaDefinition>>,
+}
+
+impl ProsodySettings {
+    pub fn custom_setting(&self, name: &str) -> Option<LuaValue> {
+        self.custom_settings
+            .iter()
+            .flat_map(|c| c.elements.clone())
+            .find(|c| c.key == name)
+            .map(|d| d.value)
+    }
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.

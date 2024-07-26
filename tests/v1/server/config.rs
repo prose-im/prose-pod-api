@@ -5,12 +5,6 @@
 
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, v1::server::config::*};
-use rocket::{
-    http::{ContentType, Header},
-    local::asynchronous::{Client, LocalResponse},
-};
-use secrecy::{ExposeSecret as _, SecretString};
-use serde_json::json;
 use service::{
     entity::server_config,
     prosody::IntoProsody as _,
@@ -20,47 +14,12 @@ use service::{
 };
 
 use crate::{
+    api_call_fn, api_call_with_body_fn,
     cucumber_parameters::{Duration, ToggleState},
     user_token,
     util::*,
     TestWorld,
 };
-
-macro_rules! api_call_fn {
-    ($fn:ident, $method:ident, $route:expr) => {
-        async fn $fn<'a>(client: &'a Client, token: SecretString) -> LocalResponse<'a> {
-            client
-                .$method($route)
-                .header(ContentType::JSON)
-                .header(Header::new(
-                    "Authorization",
-                    format!("Bearer {}", token.expose_secret()),
-                ))
-                .dispatch()
-                .await
-        }
-    };
-}
-macro_rules! api_call_with_body_fn {
-    ($fn:ident, $method:ident, $route:expr, $payload_type:ident, $var:ident, $var_type:ty) => {
-        async fn $fn<'a>(
-            client: &'a Client,
-            token: SecretString,
-            state: $var_type,
-        ) -> LocalResponse<'a> {
-            client
-                .$method($route)
-                .header(ContentType::JSON)
-                .header(Header::new(
-                    "Authorization",
-                    format!("Bearer {}", token.expose_secret()),
-                ))
-                .body(json!($payload_type { $var: state.into() }).to_string())
-                .dispatch()
-                .await
-        }
-    };
-}
 
 async fn given_server_config(
     world: &mut TestWorld,
