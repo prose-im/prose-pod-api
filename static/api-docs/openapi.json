@@ -24,7 +24,9 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/InitFirstAccountRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/InitFirstAccountRequest"
+							}
 						}
 					}
 				},
@@ -40,7 +42,9 @@
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"409": { "$ref": "#/components/responses/FirstAccountAlreadyCreated" }
 				}
 			}
@@ -51,9 +55,7 @@
 				"summary": "Log in",
 				"description": "Logs a user in and returns an authentication token (using the JWT format).",
 				"operationId": "login",
-				"security": [
-					{ "BasicAuth": [] }
-				],
+				"security": [{ "BasicAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -73,9 +75,7 @@
 				"summary": "Get all invitations",
 				"description": "Get all workspace invitations in a paginated manner.",
 				"operationId": "get_invitations",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"parameters": [
 					{ "$ref": "#/components/parameters/PageNumber" },
 					{ "$ref": "#/components/parameters/PageSize" },
@@ -88,15 +88,25 @@
 							"application/json": {
 								"schema": {
 									"type": "array",
-									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+									"items": {
+										"$ref": "#/components/schemas/WorkspaceInvitation"
+									}
 								}
 							}
 						},
 						"headers": {
-							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
-							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
-							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
-							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
+							"Pagination-Current-Page": {
+								"$ref": "#/components/headers/PaginationCurrentPage"
+							},
+							"Pagination-Page-Size": {
+								"$ref": "#/components/headers/PaginationPageSize"
+							},
+							"Pagination-Page-Count": {
+								"$ref": "#/components/headers/PaginationPageCount"
+							},
+							"Pagination-Item-Count": {
+								"$ref": "#/components/headers/PaginationItemCount"
+							}
 						}
 					},
 					"206": {
@@ -105,15 +115,25 @@
 							"application/json": {
 								"schema": {
 									"type": "array",
-									"items": { "$ref": "#/components/schemas/WorkspaceInvitation" }
+									"items": {
+										"$ref": "#/components/schemas/WorkspaceInvitation"
+									}
 								}
 							}
 						},
 						"headers": {
-							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
-							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
-							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
-							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
+							"Pagination-Current-Page": {
+								"$ref": "#/components/headers/PaginationCurrentPage"
+							},
+							"Pagination-Page-Size": {
+								"$ref": "#/components/headers/PaginationPageSize"
+							},
+							"Pagination-Page-Count": {
+								"$ref": "#/components/headers/PaginationPageCount"
+							},
+							"Pagination-Item-Count": {
+								"$ref": "#/components/headers/PaginationItemCount"
+							}
 						}
 					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
@@ -125,9 +145,7 @@
 				"summary": "Invite a member",
 				"description": "Invite a new member to the workspace.\n\nThe person will receive a notification with a link to join the workspace and create their account.",
 				"operationId": "invite_member",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"description": "Information about who to invite.",
 					"required": true,
@@ -149,7 +167,9 @@
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -161,9 +181,7 @@
 				"summary": "Get an invitation",
 				"description": "Get information about a workspace invitation.\n\nIf an accept or reject token is used in the path and `token_type` is provided as a query parameter, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).",
 				"operationId": "get_invitation",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"parameters": [
 					{ "$ref": "#/components/parameters/InvitationIdOrToken" },
 					{
@@ -183,7 +201,9 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -195,15 +215,13 @@
 				"summary": "Cancel an invitation",
 				"description": "Cancel a workspace invitation.",
 				"operationId": "invitation_cancel",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/InvitationId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/InvitationId" }],
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -223,13 +241,17 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/AcceptWorkspaceInvitationRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/AcceptWorkspaceInvitationRequest"
+							}
 						}
 					}
 				},
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"410": { "$ref": "#/components/responses/Gone" }
 				}
 			}
@@ -241,12 +263,12 @@
 				"description": "Reject a workspace invitation.",
 				"operationId": "invitation_reject",
 				"security": [],
-				"parameters": [
-					{ "$ref": "#/components/parameters/InvitationId" }
-				],
+				"parameters": [{ "$ref": "#/components/parameters/InvitationId" }],
 				"responses": {
 					"204": { "$ref": "#/components/responses/NoContent" },
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"410": { "$ref": "#/components/responses/Gone" }
 				}
 			}
@@ -257,12 +279,8 @@
 				"summary": "Resend an invitation",
 				"description": "Resend a workspace invitation.",
 				"operationId": "invitation_resend",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/InvitationId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/InvitationId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -272,7 +290,9 @@
 							}
 						}
 					},
-					"400": { "$ref": "#/components/responses/ServerConfigNotInitialized" },
+					"400": {
+						"$ref": "#/components/responses/ServerConfigNotInitialized"
+					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
@@ -284,9 +304,7 @@
 				"summary": "Get all members",
 				"description": "Get all members in a paginated manner.",
 				"operationId": "get_members",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"parameters": [
 					{ "$ref": "#/components/parameters/PageNumber" },
 					{ "$ref": "#/components/parameters/PageSize" },
@@ -304,10 +322,18 @@
 							}
 						},
 						"headers": {
-							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
-							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
-							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
-							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
+							"Pagination-Current-Page": {
+								"$ref": "#/components/headers/PaginationCurrentPage"
+							},
+							"Pagination-Page-Size": {
+								"$ref": "#/components/headers/PaginationPageSize"
+							},
+							"Pagination-Page-Count": {
+								"$ref": "#/components/headers/PaginationPageCount"
+							},
+							"Pagination-Item-Count": {
+								"$ref": "#/components/headers/PaginationItemCount"
+							}
 						}
 					},
 					"206": {
@@ -321,10 +347,18 @@
 							}
 						},
 						"headers": {
-							"Pagination-Current-Page": { "$ref": "#/components/headers/PaginationCurrentPage" },
-							"Pagination-Page-Size": { "$ref": "#/components/headers/PaginationPageSize" },
-							"Pagination-Page-Count": { "$ref": "#/components/headers/PaginationPageCount" },
-							"Pagination-Item-Count": { "$ref": "#/components/headers/PaginationItemCount" }
+							"Pagination-Current-Page": {
+								"$ref": "#/components/headers/PaginationCurrentPage"
+							},
+							"Pagination-Page-Size": {
+								"$ref": "#/components/headers/PaginationPageSize"
+							},
+							"Pagination-Page-Count": {
+								"$ref": "#/components/headers/PaginationPageCount"
+							},
+							"Pagination-Item-Count": {
+								"$ref": "#/components/headers/PaginationItemCount"
+							}
 						}
 					},
 					"401": { "$ref": "#/components/responses/Unauthorized" },
@@ -338,12 +372,8 @@
 				"summary": "Get a member",
 				"description": "Get information about one member.",
 				"operationId": "get_member",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/MemberId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/MemberId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -365,12 +395,8 @@
 				"summary": "Set member MFA status",
 				"description": "Change a member's Multi-Factor Authentication (MFA) status.",
 				"operationId": "set_member_mfa",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/MemberId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/MemberId" }],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -392,12 +418,8 @@
 				"summary": "Set member role",
 				"description": "Change a member's role.",
 				"operationId": "set_member_role",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/MemberId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/MemberId" }],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -419,9 +441,7 @@
 				"summary": "Enrich members",
 				"description": "When listing members, Prose Pod API only returns the data stored in its database (e.g. user JID, role…). To get more information like a user's display name and avatar, Prose Pod API needs to query the XMPP server. This route can be used to get more information about given JIDs in a single batch or as Server-Sent Events. By default, Prose Pod API will return results in a batch (as JSON) for straightforward processing.\n\nWhen requesting Server-Sent Events, the server will send one `enriched-member` event per JID to enrich, then one `end` event and close the stream. All enriched data fields are optional; if an error occurs (e.g. unknown JID), the server won't return an error but rather a regular `enriched-member` event with all fields being `null` except `jid`.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "enrich_members",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -429,7 +449,9 @@
 							"application/json": {
 								"schema": {
 									"type": "object",
-									"additionalProperties": { "$ref": "#/components/schemas/EnrichedMember" },
+									"additionalProperties": {
+										"$ref": "#/components/schemas/EnrichedMember"
+									},
 									"example": {
 										"maximilian_macgyver52@flustered-ship.info": {
 											"jid": "maximilian_macgyver52@flustered-ship.info",
@@ -454,7 +476,9 @@
 									"type": "array",
 									"items": {
 										"oneOf": [
-											{ "$ref": "#/components/schemas/sse-events/enriched-member" },
+											{
+												"$ref": "#/components/schemas/sse-events/enriched-member"
+											},
 											{ "$ref": "#/components/schemas/sse-events/end" }
 										],
 										"discriminator": {
@@ -477,9 +501,7 @@
 				"summary": "Get the results of all Compliance Suites executed on your server.",
 				"description": "Get the results of all Compliance Suites executed on your server.",
 				"operationId": "get_compliance_tests_results",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -500,9 +522,7 @@
 				"summary": "Configure which Compliance Suites to test on your server.",
 				"description": "Configure which Compliance Suites to test on your server.",
 				"operationId": "set_compliance_test_suites",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -525,12 +545,8 @@
 				"summary": "Get the results of a Compliance Suite executed on your server.",
 				"description": "Get the results of a Compliance Suite executed on your server.",
 				"operationId": "get_compliance_suite_results",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/XepId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/XepId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -558,7 +574,9 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/InitServerConfigRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/InitServerConfigRequest"
+							}
 						}
 					}
 				},
@@ -574,7 +592,9 @@
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"409": { "$ref": "#/components/responses/ServerConfigAlreadyInitialized" }
+					"409": {
+						"$ref": "#/components/responses/ServerConfigAlreadyInitialized"
+					}
 				}
 			},
 			"get": {
@@ -582,10 +602,10 @@
 				"summary": "Get server config",
 				"description": "Get the current configuration of the XMPP server.",
 				"operationId": "get_server_config",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/file-upload-allowed": {
@@ -594,18 +614,20 @@
 				"summary": "Change file upload settings",
 				"description": "Activate or deactivate file upload and sharing.",
 				"operationId": "set_file_upload_allowed",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetFileUploadAllowedRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetFileUploadAllowedRequest"
+							}
 						}
 					}
 				},
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/file-storage-retention": {
@@ -614,18 +636,20 @@
 				"summary": "Change uploaded files retention",
 				"description": "Change the retention of uploaded files.",
 				"operationId": "set_file_storage_retention",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetFileStorageRetentionRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetFileStorageRetentionRequest"
+							}
 						}
 					}
 				},
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/file-storage-encryption-scheme": {
@@ -634,10 +658,10 @@
 				"summary": "Change file storage encryption scheme",
 				"description": "Change the file storage encryption scheme.",
 				"operationId": "set_file_storage_encryption_scheme",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/messaging/reset": {
@@ -646,10 +670,10 @@
 				"summary": "Reset 'Messaging' configuration",
 				"description": "Reset the 'Messaging' configuration to its default value.",
 				"operationId": "reset_messaging_config",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/message-archive-retention": {
@@ -658,18 +682,20 @@
 				"summary": "Change message archive retention",
 				"description": "Update message archive retention.",
 				"operationId": "set_message_archive_retention",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetMessageArchiveRetentionRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetMessageArchiveRetentionRequest"
+							}
 						}
 					}
 				},
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/message-archive-retention/reset": {
@@ -678,10 +704,10 @@
 				"summary": "Reset message archive retention",
 				"description": "Reset the message archive retention to its default value.",
 				"operationId": "reset_message_archive_retention",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/files/reset": {
@@ -690,10 +716,10 @@
 				"summary": "Reset 'Files' configuration",
 				"description": "Reset the 'Files' configuration to its default value.",
 				"operationId": "reset_files_config",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/config/message-archive-enabled": {
@@ -702,18 +728,20 @@
 				"summary": "Activate or deactivate message archiving",
 				"description": "Activate or deactivate message archiving.",
 				"operationId": "set_message_archive_enabled",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetMessageArchiveEnabledRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetMessageArchiveEnabledRequest"
+							}
 						}
 					}
 				},
-				"responses": { "$ref": "#/components/responses/GetServerConfigAllResponses" }
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
 			}
 		},
 		"/v1/server/connection-history": {
@@ -722,9 +750,7 @@
 				"summary": "Get user connect history (aggregated for each user, eg. John connected 3 times today).",
 				"description": "Get user connect history (aggregated for each user, eg. John connected 3 times today).",
 				"operationId": "get_history",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -747,9 +773,7 @@
 				"summary": "Get connection audit log (with countries and IP addresses).",
 				"description": "Get connection audit log (with countries and IP addresses).",
 				"operationId": "get_audit_log",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -772,9 +796,7 @@
 				"summary": "Get security events (eg. failed user logins).",
 				"description": "Get security events (eg. failed user logins).",
 				"operationId": "get_security_events",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -797,9 +819,7 @@
 				"summary": "Get how much data is stored on the server for everyone at once.",
 				"description": "Get how much data is stored on the server for everyone at once.",
 				"operationId": "get_data_usage",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -822,12 +842,8 @@
 				"summary": "Get how much data is stored on the server per-user.",
 				"description": "Get how much data is stored on the server per-user.",
 				"operationId": "get_data_usage_per_user",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref":"#/components/parameters/MemberId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/MemberId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -850,9 +866,7 @@
 				"summary": "Get how many users are active.",
 				"description": "Get how many users are active.",
 				"operationId": "get_active_users",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -881,9 +895,7 @@
 				"summary": "Get server-to-server stats (message stats to/from external servers).",
 				"description": "Get server-to-server stats (message stats to/from external servers).",
 				"operationId": "get_server_to_server_stats",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -906,9 +918,7 @@
 				"summary": "Get server logs between two timestamps.",
 				"description": "Get server logs between two timestamps.",
 				"operationId": "get_server_logs",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -958,7 +968,9 @@
 							"Location": { "$ref": "#/components/headers/Location" }
 						}
 					},
-					"409": { "$ref": "#/components/responses/WorkspaceAlreadyInitialized" }
+					"409": {
+						"$ref": "#/components/responses/WorkspaceAlreadyInitialized"
+					}
 				}
 			}
 		},
@@ -968,15 +980,15 @@
 				"summary": "Get the accent color of your workspace.",
 				"description": "Get the accent color of your workspace.",
 				"operationId": "get_workspace_accent_color",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceAccentColorResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceAccentColorResponse"
+								}
 							}
 						}
 					},
@@ -989,9 +1001,7 @@
 				"summary": "Set the accent color of your workspace.",
 				"description": "Set the accent color of your workspace.",
 				"operationId": "set_workspace_accent_color",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -1007,7 +1017,9 @@
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceAccentColorResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceAccentColorResponse"
+								}
 							}
 						}
 					},
@@ -1022,9 +1034,7 @@
 				"summary": "Get the details card of your workspace.",
 				"description": "Get the details card of your workspace.",
 				"operationId": "get_workspace_details_card",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1045,9 +1055,7 @@
 				"summary": "Set the details card of your workspace.",
 				"description": "Set the details card of your workspace.",
 				"operationId": "set_workspace_details_card",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -1076,15 +1084,15 @@
 				"summary": "Get workspace icon",
 				"description": "Get the icon of your workspace.",
 				"operationId": "get_workspace_icon",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceIconResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceIconResponse"
+								}
 							}
 						}
 					},
@@ -1097,14 +1105,14 @@
 				"summary": "Set workspace icon",
 				"description": "Set the icon of your workspace.\nAccepted content types are: `image/jpeg`, `image/png`, `image/gif`, `image/webp` and `text/plain` (containing either the URL to an external image or a base64-encoded image).",
 				"operationId": "set_workspace_icon",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
 					"description": "Workspace icon",
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/SetWorkspaceIconRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetWorkspaceIconRequest"
+							}
 						}
 					}
 				},
@@ -1113,7 +1121,9 @@
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceIconResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceIconResponse"
+								}
 							}
 						}
 					},
@@ -1128,15 +1138,15 @@
 				"summary": "Get workspace name",
 				"description": "Get the name of your workspace.",
 				"operationId": "get_workspace_name",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceNameResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceNameResponse"
+								}
 							}
 						}
 					},
@@ -1149,23 +1159,25 @@
 				"summary": "Set workspace name",
 				"description": "Set the name of your workspace.",
 				"operationId": "set_workspace_name",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"requestBody": {
-				  "required": true,
- 					"content": {
+					"required": true,
+					"content": {
 						"application/json": {
- 							"schema": {  "$ref": "#/components/schemas/SetWorkspaceNameRequest" }
+							"schema": {
+								"$ref": "#/components/schemas/SetWorkspaceNameRequest"
+							}
 						}
- 					}
+					}
 				},
 				"responses": {
 					"200": {
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/GetWorkspaceNameResponse" }
+								"schema": {
+									"$ref": "#/components/schemas/GetWorkspaceNameResponse"
+								}
 							}
 						}
 					},
@@ -1180,9 +1192,7 @@
 				"summary": "Get workspace reactions",
 				"description": "Get custom reactions defined in your workspace.",
 				"operationId": "get_workspace_reactions",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1203,9 +1213,7 @@
 				"summary": "Add workspace reaction",
 				"description": "Add a custom reaction to your workspace.",
 				"operationId": "add_workspace_reaction",
-				"security": [
-					{ "BearerAuth": [] }
-				],
+				"security": [{ "BearerAuth": [] }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1228,12 +1236,8 @@
 				"summary": "Get workspace reaction",
 				"description": "Get details about a custom reaction defined in your workspace.",
 				"operationId": "get_workspace_reaction",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/ReactionId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/ReactionId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1254,12 +1258,8 @@
 				"summary": "Edit workspace reaction",
 				"description": "Edit a custom reaction defined in your workspace.",
 				"operationId": "edit_workspace_reaction",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/ReactionId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/ReactionId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1280,12 +1280,8 @@
 				"summary": "Delete workspace reaction",
 				"description": "Delete a custom reaction from your workspace.",
 				"operationId": "delete_workspace_reaction",
-				"security": [
-					{ "BearerAuth": [] }
-				],
-				"parameters": [
-					{ "$ref": "#/components/parameters/ReactionId" }
-				],
+				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/ReactionId" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1307,9 +1303,7 @@
 		"schemas": {
 			"Error": {
 				"type": "object",
-				"required": [
-					"reason"
-				],
+				"required": ["reason"],
 				"properties": {
 					"reason": {
 						"type": "string",
@@ -1355,10 +1349,7 @@
 			},
 			"AcceptWorkspaceInvitationRequest": {
 				"type": "object",
-				"required": [
-					"nickname",
-					"password"
-				],
+				"required": ["nickname", "password"],
 				"properties": {
 					"nickname": { "$ref": "#/components/schemas/Nickname" },
 					"password": { "$ref": "#/components/schemas/Password" }
@@ -1372,9 +1363,7 @@
 			},
 			"SetWorkspaceIconRequest": {
 				"type": "object",
-				"required": [
-					"image"
-				],
+				"required": ["image"],
 				"properties": {
 					"image": { "$ref": "#/components/schemas/Avatar" }
 				}
@@ -1390,27 +1379,21 @@
 			},
 			"GetWorkspaceNameResponse": {
 				"type": "object",
-				"required": [
-					"name"
-				],
+				"required": ["name"],
 				"properties": {
 					"name": { "$ref": "#/components/schemas/WorkspaceName" }
 				}
 			},
 			"InitWorkspaceRequest": {
 				"type": "object",
-				"required": [
-					"name"
-				],
+				"required": ["name"],
 				"properties": {
 					"name": { "$ref": "#/components/schemas/WorkspaceName" }
 				}
 			},
 			"InitServerConfigRequest": {
 				"type": "object",
-				"required": [
-					"domain"
-				],
+				"required": ["domain"],
 				"properties": {
 					"domain": {
 						"type": "string",
@@ -1420,11 +1403,7 @@
 			},
 			"InitFirstAccountRequest": {
 				"type": "object",
-				"required": [
-					"username",
-					"password",
-					"nickname"
-				],
+				"required": ["username", "password", "nickname"],
 				"properties": {
 					"username": { "$ref": "#/components/schemas/Username" },
 					"password": { "$ref": "#/components/schemas/Password" },
@@ -1433,13 +1412,12 @@
 			},
 			"Workspace": {
 				"type": "object",
-				"required": [
-					"name",
-					"accent_color"
-				],
+				"required": ["name", "accent_color"],
 				"properties": {
 					"name": { "$ref": "#/components/schemas/WorkspaceName" },
-					"accent_color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
+					"accent_color": {
+						"$ref": "#/components/schemas/WorkspaceAccentColor"
+					}
 				}
 			},
 			"ServerConfig": {
@@ -1546,11 +1524,11 @@
 					{ "$ref": "#/components/schemas/InvitationContact" },
 					{
 						"type": "object",
-						"required": [
-							"username"
-						],
+						"required": ["username"],
 						"properties": {
-							"pre_assigned_role": { "$ref": "#/components/schemas/MemberRole" },
+							"pre_assigned_role": {
+								"$ref": "#/components/schemas/MemberRole"
+							},
 							"username": { "$ref": "#/components/schemas/Username" }
 						}
 					}
@@ -1561,18 +1539,14 @@
 			},
 			"SetMemberRoleRequest": {
 				"type": "object",
-				"required": [
-					"role"
-				],
+				"required": ["role"],
 				"properties": {
 					"role": { "$ref": "#/components/schemas/MemberRole" }
 				}
 			},
 			"EnrichedMember": {
 				"type": "object",
-				"required": [
-					"jid"
-				],
+				"required": ["jid"],
 				"properties": {
 					"jid": { "$ref": "#/components/schemas/JID" },
 					"online": { "$ref": "#/components/schemas/OnlineStatus" },
@@ -1582,9 +1556,7 @@
 			},
 			"SetFileStorageRetentionRequest": {
 				"type": "object",
-				"required": [
-					"file_storage_retention"
-				],
+				"required": ["file_storage_retention"],
 				"properties": {
 					"file_storage_retention": {
 						"oneOf": [
@@ -1596,9 +1568,7 @@
 			},
 			"SetFileUploadAllowedRequest": {
 				"type": "object",
-				"required": [
-					"file_upload_allowed"
-				],
+				"required": ["file_upload_allowed"],
 				"properties": {
 					"file_upload_allowed": {
 						"type": "boolean"
@@ -1607,9 +1577,7 @@
 			},
 			"SetMessageArchiveRetentionRequest": {
 				"type": "object",
-				"required": [
-					"message_archive_retention"
-				],
+				"required": ["message_archive_retention"],
 				"properties": {
 					"message_archive_retention": {
 						"oneOf": [
@@ -1621,9 +1589,7 @@
 			},
 			"SetMessageArchiveEnabledRequest": {
 				"type": "object",
-				"required": [
-					"message_archive_enabled"
-				],
+				"required": ["message_archive_enabled"],
 				"properties": {
 					"message_archive_enabled": {
 						"type": "boolean"
@@ -1632,18 +1598,14 @@
 			},
 			"SetWorkspaceAccentColorRequest": {
 				"type": "object",
-				"required": [
-					"color"
-				],
+				"required": ["color"],
 				"properties": {
 					"color": { "$ref": "#/components/schemas/WorkspaceAccentColor" }
 				}
 			},
 			"SetWorkspaceNameRequest": {
 				"type": "object",
-				"required": [
-					"name"
-				],
+				"required": ["name"],
 				"properties": {
 					"name": { "$ref": "#/components/schemas/WorkspaceName" }
 				}
@@ -1660,7 +1622,9 @@
 					"accept_token_expires_at"
 				],
 				"properties": {
-					"accept_token_expires_at": { "$ref": "#/components/schemas/DateTime" },
+					"accept_token_expires_at": {
+						"$ref": "#/components/schemas/DateTime"
+					},
 					"contact": { "$ref": "#/components/schemas/InvitationContact" },
 					"created_at": { "$ref": "#/components/schemas/DateTime" },
 					"invitation_id": { "$ref": "#/components/schemas/InvitationId" },
@@ -1693,19 +1657,14 @@
 				"example": 42
 			},
 			"InvitationContact": {
-				"oneOf": [
-					{ "$ref": "#/components/schemas/InvitationContactEmail" }
-				],
+				"oneOf": [{ "$ref": "#/components/schemas/InvitationContactEmail" }],
 				"discriminator": {
 					"propertyName": "channel"
 				}
 			},
 			"InvitationContactEmail": {
 				"type": "object",
-				"required": [
-					"channel",
-					"email_address"
-				],
+				"required": ["channel", "email_address"],
 				"properties": {
 					"channel": { "$ref": "#/components/schemas/InvitationChannel" },
 					"email_address": {
@@ -1756,15 +1715,13 @@
 				"example": "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"
 			},
 			"OnlineStatus": {
-			  "title": "Online status",
+				"title": "Online status",
 				"description": "Whether or not the member is connected.",
-			  "type": "boolean"
+				"type": "boolean"
 			},
 			"LoginResponse": {
 				"type": "object",
-				"required": [
-					"token"
-				],
+				"required": ["token"],
 				"properties": {
 					"token": {
 						"title": "An authentication token",
@@ -1778,10 +1735,7 @@
 			},
 			"Member": {
 				"type": "object",
-				"required": [
-					"jid",
-					"role"
-				],
+				"required": ["jid", "role"],
 				"properties": {
 					"jid": { "$ref": "#/components/schemas/JID" },
 					"role": { "$ref": "#/components/schemas/MemberRole" }
@@ -1791,11 +1745,7 @@
 				"enriched-member": {
 					"summary": "A Server-Sent Event containing enriched data about a member.",
 					"type": "object",
-					"required": [
-						"event",
-						"id",
-						"data"
-					],
+					"required": ["event", "id", "data"],
 					"properties": {
 						"event": {
 							"type": "string",
@@ -1808,11 +1758,7 @@
 				"end": {
 					"summary": "A Server-Sent Event indicating all events have been sent (the connection will be closed).",
 					"type": "object",
-					"required": [
-						"event",
-						"id",
-						"comment"
-					],
+					"required": ["event", "id", "comment"],
 					"properties": {
 						"event": {
 							"type": "string",
@@ -1848,7 +1794,7 @@
 				"example": "Bearer realm=\"Admin only area\", charset=\"UTF-8\""
 			},
 			"PaginationCurrentPage": {
-			  "description": "Current pagination page (non standard header). Starts at `1`.",
+				"description": "Current pagination page (non standard header). Starts at `1`.",
 				"schema": {
 					"type": "integer",
 					"format": "int64",
@@ -1856,8 +1802,8 @@
 				},
 				"example": 1
 			},
-      "PaginationPageSize": {
-			  "description": "Size of a pagination page (non standard header). Starts at `1`.",
+			"PaginationPageSize": {
+				"description": "Size of a pagination page (non standard header). Starts at `1`.",
 				"schema": {
 					"type": "integer",
 					"format": "int64",
@@ -1866,8 +1812,8 @@
 				},
 				"example": 20
 			},
-      "PaginationPageCount": {
-			  "description": "Total number of pagination pages (non standard header). Warning: `Page-Count` will be `0` with `Current-Page` at `1` if there are no result.",
+			"PaginationPageCount": {
+				"description": "Total number of pagination pages (non standard header). Warning: `Page-Count` will be `0` with `Current-Page` at `1` if there are no result.",
 				"schema": {
 					"type": "integer",
 					"format": "int64",
@@ -1875,8 +1821,8 @@
 				},
 				"example": 3
 			},
-      "PaginationItemCount": {
-			  "description": "Total number of items (non standard header).",
+			"PaginationItemCount": {
+				"description": "Total number of items (non standard header).",
 				"schema": {
 					"type": "integer",
 					"format": "int64",
@@ -1965,7 +1911,9 @@
 					}
 				},
 				"headers": {
-					"WWW-Authenticate": { "$ref": "#/components/headers/WWW-Authenticate" }
+					"WWW-Authenticate": {
+						"$ref": "#/components/headers/WWW-Authenticate"
+					}
 				}
 			},
 			"Forbidden": {
