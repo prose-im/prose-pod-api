@@ -98,16 +98,19 @@ If a test fails, Step CI will automatically print some additional information to
 
 ## Building the Docker image
 
-```bash
-docker build -t proseim/prose-pod-api .
-```
-
-To build the API in debug mode (e.g. to use predictable data generators),
-you can use the `CARGO_INSTALL_EXTRA_ARGS` [Docker `ARG`]:
+To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:latest`):
 
 ```bash
-docker build -t proseim/prose-pod-api --build-arg CARGO_INSTALL_EXTRA_ARGS='--debug' .
+./scripts/build-image.sh TARGET_ARCH
 ```
 
-[Docker `ARG`]: https://docs.docker.com/reference/dockerfile/#arg "Dockerfile reference | Docker Docs"
+> [!TIP]
+> For Apple Silicon Macs, that's `./scripts/build-image.sh aarch64-apple-darwin`. For Intel Macs, it would be `./scripts/build-image.sh x86_64-unknown-linux-musl`.
+
+To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
+
+```bash
+./scripts/build-image.sh TARGET_ARCH --debug
+```
+
 [Step CI]: https://stepci.com/ "Step CI homepage"
