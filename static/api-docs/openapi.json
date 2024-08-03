@@ -1297,6 +1297,62 @@
 					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
 			}
+		},
+		"/v1/dns/records": {
+			"get": {
+				"tags": ["DNS setup"],
+				"summary": "Get DNS records",
+				"description": "To link a Prose Pod to a domain, one needs to configure DNS records. This route allows retrieving the DNS entries which need to be added to the domain's DNS records.",
+				"operationId": "get_dns_records",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetDnsRecordsResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/network/checks/dns": {
+			"get": {
+				"tags": ["Network configuration checker"],
+				"summary": "Check DNS records",
+				"description": "Checks that all DNS records are properly configured.\n\nThis route regularly checks the domain's DNS records to provide \"live\" information. It opens a stream of Server-Sent Events, TODO the server will send one `enriched-member` event per JID to enrich, then one `end` event and close the stream. All enriched data fields are optional; if an error occurs (e.g. unknown JID), the server won't return an error but rather a regular `enriched-member` event with all fields being `null` except `jid`.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
+				"operationId": "check_dns_records",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"text/event-stream": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"oneOf": [
+											{
+												"$ref": "#/components/schemas/sse-events/dns-record-check-result"
+											},
+											{ "$ref": "#/components/schemas/sse-events/end" }
+										],
+										"discriminator": {
+											"propertyName": "event"
+										}
+									}
+								},
+								"example": "id:IPv4\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:IPv6\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"PENDING\"}\n\nid:SRV-c2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"PENDING\"}\n\nid:SRV-s2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"PENDING\"}\n\nid:IPv6\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
 		}
 	},
 	"components": {
@@ -1741,6 +1797,112 @@
 					"role": { "$ref": "#/components/schemas/MemberRole" }
 				}
 			},
+			"DnsRecordId": {
+				"type": "string",
+				"enum": ["IPv4", "IPv6", "SRV-c2s", "SRV-s2s"]
+			},
+			"DnsRecordStatus": {
+				"type": "string",
+				"enum": ["VALID", "PENDING"]
+			},
+			"DnsRecordCheckResult": {
+				"type": "object",
+				"required": ["description", "status"],
+				"properties": {
+					"description": { "type": "string" },
+					"status": { "$ref": "#/components/schemas/DnsRecordStatus" }
+				},
+				"example": {
+					"description": "IPv4 record for xmpp.crisp.chat",
+					"status": "VALID"
+				}
+			},
+			"DnsRecordType": {
+				"type": "string",
+				"enum": ["A", "AAAA", "SRV"]
+			},
+			"Int32": {
+				"type": "integer",
+				"format": "int32",
+				"minimum": 0
+			},
+			"DnsRecord": {
+				"Any": {
+					"oneOf": [
+						{ "$ref": "#/components/schemas/DnsRecord/A" },
+						{ "$ref": "#/components/schemas/DnsRecord/AAAA" },
+						{ "$ref": "#/components/schemas/DnsRecord/SRV" }
+					],
+					"discriminator": {
+						"propertyName": "type"
+					}
+				},
+				"A": {
+					"type": "object",
+					"required": ["hostname", "type", "ttl", "value"],
+					"properties": {
+						"hostname": { "type": "string" },
+						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"ttl": { "$ref": "#/components/schemas/Int32" },
+						"value": { "type": "string" }
+					},
+					"example": {
+						"hostname": "xmpp.crisp.chat",
+						"type": "A",
+						"ttl": 600,
+						"value": "90.105.205.180"
+					}
+				},
+				"AAAA": {
+					"type": "object",
+					"required": ["hostname", "type", "ttl", "value"],
+					"properties": {
+						"hostname": { "type": "string" },
+						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"ttl": { "$ref": "#/components/schemas/Int32" },
+						"value": { "type": "string" }
+					},
+					"example": {
+						"hostname": "xmpp.crisp.chat",
+						"type": "AAAA",
+						"ttl": 600,
+						"value": "2a01:cb05:899c:c200::1"
+					}
+				},
+				"SRV": {
+					"type": "object",
+					"required": [
+						"hostname",
+						"type",
+						"ttl",
+						"priority",
+						"weight",
+						"port",
+						"target"
+					],
+					"properties": {
+						"hostname": { "type": "string" },
+						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"ttl": { "$ref": "#/components/schemas/Int32" },
+						"priority": { "$ref": "#/components/schemas/Int32" },
+						"weight": { "$ref": "#/components/schemas/Int32" },
+						"port": { "$ref": "#/components/schemas/Int32" },
+						"target": { "type": "string" }
+					},
+					"example": {
+						"hostname": "crisp.chat",
+						"type": "SRV",
+						"ttl": 3600,
+						"priority": 0,
+						"weight": 5,
+						"port": 5222,
+						"target": "xmpp.crisp.chat."
+					}
+				}
+			},
+			"GetDnsRecordsResponse": {
+				"type": "object"
+			},
 			"sse-events": {
 				"enriched-member": {
 					"summary": "A Server-Sent Event containing enriched data about a member.",
@@ -1753,6 +1915,19 @@
 						},
 						"id": { "$ref": "#/components/schemas/JID" },
 						"data": { "$ref": "#/components/schemas/EnrichedMember" }
+					}
+				},
+				"dns-record-check-result": {
+					"summary": "A Server-Sent Event containing the result of a DNS record check.",
+					"type": "object",
+					"required": ["event", "id", "data"],
+					"properties": {
+						"event": {
+							"type": "string",
+							"example": "enriched-member"
+						},
+						"id": { "$ref": "#/components/schemas/JID" },
+						"data": { "$ref": "#/components/schemas/DnsRecordCheckResult" }
 					}
 				},
 				"end": {
