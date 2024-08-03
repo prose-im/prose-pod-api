@@ -98,7 +98,10 @@ impl XmppServiceImpl for LiveXmppService {
     ) -> Result<Option<VCard>, XmppServiceError> {
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
-        profile.load_vcard(jid.to_owned()).await.map_err(Into::into)
+        profile
+            .load_vcard4(jid.to_owned())
+            .await
+            .map_err(Into::into)
     }
     async fn set_own_vcard(
         &self,
@@ -109,7 +112,7 @@ impl XmppServiceImpl for LiveXmppService {
         let profile = xmpp_client.get_mod::<mods::Profile>();
 
         trace!("Publishing {}'s vCard4…", ctx.bare_jid);
-        profile.publish_vcard4(vcard.to_owned()).await?;
+        profile.publish_vcard4(vcard.to_owned(), None).await?;
         debug!("Published {}'s vCard4", ctx.bare_jid);
 
         Ok(())

@@ -110,6 +110,7 @@ pub trait XmppServiceImpl: Debug + Send + Sync {
         ctx: &XmppServiceContext,
         name: &str,
     ) -> Result<(), XmppServiceError> {
+        debug!("Creating {}'s vCard with name '{name}'…", ctx.bare_jid);
         let mut vcard = VCard::new();
         vcard.nickname.push(Nickname {
             value: name.to_owned(),

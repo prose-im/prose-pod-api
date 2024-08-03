@@ -1059,6 +1059,11 @@ name = "email_address"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1019fa28f600f5b581b7a603d515c3f1635da041ca211b5055804788673abfe"
+
+[[package]]
+name = "email_address"
+version = "0.2.5"
+source = "git+https://github.com/johnstonskj/rust-email_address.git?rev=b4296cd4ff621b27da55bb5182558e0ce691c611#b4296cd4ff621b27da55bb5182558e0ce691c611"
 dependencies = [
  "serde",
 ]
@@ -2137,7 +2142,7 @@ dependencies = [
  "base64 0.22.1",
  "chumsky",
  "email-encoding",
- "email_address",
+ "email_address 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fastrand 2.1.0",
  "hostname 0.4.0",
  "httpdate",
@@ -2841,7 +2846,7 @@ dependencies = [
 [[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.92#61970d87eae707413c1cb783a9c69555ec261453"
 dependencies = [
  "convert_case",
  "quote",
@@ -2851,12 +2856,12 @@ dependencies = [
 [[package]]
 name = "prose-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.92#61970d87eae707413c1cb783a9c69555ec261453"
 
 [[package]]
 name = "prose-wasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.92#61970d87eae707413c1cb783a9c69555ec261453"
 dependencies = [
  "futures",
  "gloo-timers 0.3.0",
@@ -2869,7 +2874,7 @@ dependencies = [
 [[package]]
 name = "prose-xmpp"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.91#eed74a2adf2e3f0f3e5e3afb3323a02d7582accc"
+source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.92#61970d87eae707413c1cb783a9c69555ec261453"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3836,7 +3841,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "cucumber",
- "email_address",
+ "email_address 0.2.5 (git+https://github.com/johnstonskj/rust-email_address.git?rev=b4296cd4ff621b27da55bb5182558e0ce691c611)",
  "figment",
  "form_urlencoded",
  "hmac",
