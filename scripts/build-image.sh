@@ -15,7 +15,7 @@ usage() {
 	cat <<-EOF
 	Usage:
 	  $(basename $0) TARGET_ARCH
-	    Build the \`${PROSE_POD_API_IMAGE:?}\` Docker image.
+	    Build the '${PROSE_POD_API_IMAGE:?}' Docker image.
 	  $(basename $0) [--]help
 	    Print this help.
 
@@ -63,9 +63,7 @@ for arg in "$@"; do
 			NO_PULL=' --pull=false'
 			;;
 		--help) help ;;
-		*)
-			die "Unknown argument: ${arg}"
-			;;
+		*) die "Unknown argument: ${arg}" ;;
 	esac
 done
 
