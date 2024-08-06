@@ -77,9 +77,9 @@ export PROSE_POD_SYSTEM_DIR=???
 Finally, since integration tests run on final containers, you have to build `prose-pod-server` and `prose-pod-api`:
 
 ```bash
-docker build -t proseim/prose-pod-api "${PROSE_POD_API_DIR:?}"
+docker build -t proseim/prose-pod-api:latest "${PROSE_POD_API_DIR:?}"
 PROSE_POD_SERVER_DIR=???
-docker build -t proseim/prose-pod-server "${PROSE_POD_SERVER_DIR:?}"
+docker build -t proseim/prose-pod-server:latest "${PROSE_POD_SERVER_DIR:?}"
 ```
 
 #### Running tests

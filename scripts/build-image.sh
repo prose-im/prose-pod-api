@@ -63,7 +63,7 @@ for arg in "$@"; do
 			NO_PULL=' --pull=false'
 			;;
 		--help) help ;;
-		*) die "Unknown argument: ${arg}" ;;
+		*) die "Unknown argument: ${arg}\n$(usage)" ;;
 	esac
 done
 

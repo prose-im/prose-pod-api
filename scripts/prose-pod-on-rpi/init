@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+# ===== SHARED CODE =====
+
+export SCRIPTS_ROOT="$(dirname $0)"/..
+source "$(dirname $0)"/util.sh
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	printf "$(cat <<EOF
+${Bold}Installs a Prose Pod on a Raspberry Pi.${Bold_Off}
+
+This script builds the Docker images, saves them locally as archives, sends them
+to the Raspberry Pi, copies the local $(format_code prose-pod-system) directory on it, cleans up
+$(format_code prose-pod-system) on the Raspberry Pi and finally deletes the local image archives.
+EOF)\n"
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to initialize the Prose Pod on a Raspberry Pi:
+    $(format_command $(basename $0)) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
+
+$(format_title 'Options:')
+  $(format_subtitle 'Build phase options:')
+    $(format_flag --debug)
+      Build projects (e.g. the Prose Pod API) in debug mode.
+    $(format_flag --no-pull)
+      Do not pull referenced Docker images.
+      $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
+
+  $(format_subtitle 'Cleanup phase options:')
+    $(format_flag --keep-archives)
+      Do not delete local image archives.
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
+help() {
+	description
+	echo ''
+	usage
+	exit 0
+}
+
+# ===== ARGUMENT PARSING =====
+
+# Just test arguments, as they're a subset of the ones defined in the `update` script,
+# which we will pass arguments to.
+for arg in "$@"; do
+	case $arg in
+		--debug|--no-pull|--keep-archives)
+			;;
+		--help) help ;;
+		*) die "Unknown argument: ${arg}\n$(usage)" ;;
+	esac
+done
+
+# ===== MAIN LOGIC =====
+
+edo "$(dirname $0)"/update $@

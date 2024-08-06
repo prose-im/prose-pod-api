@@ -1,28 +1,7 @@
 #!/bin/bash
 
-trace() {
-	echo "[TRACE] $@"
-	return $?
-}
-debug() {
-	echo "[DEBUG] $@"
-	return $?
-}
-info() {
-	echo " [INFO] $@"
-	return $?
-}
-error() {
-	echo "[ERROR] $@"
-	return $?
-}
-
-edo() {
-	trace $@
-	$@
-	return $?
-}
-die() {
-	error $@
-	exit 1
-}
+BASH_TOOLBOX="${SCRIPTS_ROOT:?}"/bash-toolbox
+source "${BASH_TOOLBOX:?}"/die.sh
+source "${BASH_TOOLBOX:?}"/edo.sh
+source "${BASH_TOOLBOX:?}"/log.sh
+source "${BASH_TOOLBOX:?}"/test-env.sh

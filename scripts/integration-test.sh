@@ -17,16 +17,16 @@ test-env-vars \
 
 INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/tests/integration;
 STEPCI_DIR="${INTEGRATION_TESTS_DIR:?}"/step-ci;
-ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
+export INTEGRATION_TEST_HOST="${INTEGRATION_TEST_HOST:-"http://127.0.0.1:8000"}"
+export ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
+export SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod;
 
-clean-prosody() {
-  rm -rf "${PROSE_POD_SYSTEM_DIR:?}"/server/pod/var/lib/prosody/*%2e*;
+cleanup() {
+	. "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup.sh;
 }
 start() {
   START_TIME=$(date +%s);
-  clean-prosody;
-  ENV_FILE="${ENV_FILE:?}" \
-  PROSE_CONFIG_FILE="${PROSE_CONFIG_FILE:-"${INTEGRATION_TESTS_DIR:?}"/Prose-test.toml}" \
+  cleanup;
   docker compose -f "${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml up --detach;
 }
 stop() {
@@ -48,10 +48,10 @@ stepci_run() {
   printf "Running '${test_file:?}' with config '${config_options}'";
   printf "\n$(for _ in $(seq 72); do printf "="; done)\033[0m\n\n";
 
+  export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml";
   # NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
-  PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml" \
   start && \
-  (cd "${STEPCI_DIR:?}" && stepci run "${test_file:?}.yaml") \
+  (cd "${STEPCI_DIR:?}" && stepci run "${test_file:?}.yaml" --env host="${INTEGRATION_TEST_HOST}") \
   && stop || abort;
 }
 
@@ -59,3 +59,5 @@ stepci_run init;
 stepci_run members test-auto_accept_invitations;
 stepci_run invitations;
 stepci_run errors;
+
+cleanup
