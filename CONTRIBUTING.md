@@ -8,6 +8,14 @@ After release 1.0, contributions will be more than welcome though!
 
 ## Tools you need
 
+### `task`
+
+Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility. You can find installation instructions on [taskfile.dev/installation](https://taskfile.dev/installation/), or just run the folowing on macOS:
+
+```bash
+brew install go-task
+```
+
 ### `sea-orm-cli`
 
 If you work on databse migrations, you will probably need `sea-orm-cli`:
@@ -16,20 +24,10 @@ If you work on databse migrations, you will probably need `sea-orm-cli`:
 cargo install sea-orm-cli
 ```
 
-### `prosodyctl`
-
-To use `prosodyctl` locally, you need `prosodyctl` and its dependencies.
-
-```bash
-brew install prosodyctl
-luarocks install luaunbound
-```
-
 ## Updating dependencies
 
 ```bash
-rustup upgrade && cargo update
-make update-redoc
+task update
 ```
 
 ## Testing
@@ -37,23 +35,18 @@ make update-redoc
 After you have setup your environment to run smoke tests and integration tests, you can run all of them in a single command using:
 
 ```bash
-make test
+task test
 ```
+
+This has the added benefit of updating the version of Rust used to run the tests in [`README.md`](./README.md).
 
 ### Smoke testing
 
-As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md),
-we are using Gherkin and Cucumber to run tests. Therefore, you can use this command to run the tests:
-
 ```bash
-cargo test --test behavior
+task smoke-test
 ```
 
-You could also run `cargo test` but it runs unit tests in `src/`, which we don't need.
-
-> [!TIP]
-> While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
-> and then use `cargo test --test behavior -- --tags '@testing'` to run only matching `Scenario`s.
+As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md), we are using Gherkin and Cucumber to run the tests. Therefore, you won't be able to filter tests using `cargo test`. To do so, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive) and then use `task smoke-test -- --tags '@testing'` to run only matching `Scenario`s.
 
 ### Integration testing
 
@@ -87,7 +80,7 @@ docker build -t proseim/prose-pod-server:latest "${PROSE_POD_SERVER_DIR:?}"
 Then, run the tests using:
 
 ```bash
-make integration-test
+task integration-test
 ```
 
 If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
@@ -114,3 +107,5 @@ To build the API in debug mode (e.g. to use predictable data generators), you ca
 ```
 
 [Step CI]: https://stepci.com/ "Step CI homepage"
+[Task]: https://stepci.com/ "Task"
+[GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"

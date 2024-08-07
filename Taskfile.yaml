@@ -1,0 +1,55 @@
+# See <https://taskfile.dev/usage> and <https://taskfile.dev/reference/schema>
+# to find all keys and their usage.
+version: "3"
+
+tasks:
+  open-swagger-ui:
+    cmds:
+      - ./scripts/open-swagger-ui
+  reset-db:
+    cmds:
+      - ./scripts/reset-db
+  entity:
+    deps: [reset-db]
+    cmds:
+      - sea-orm-cli generate entity -o entity/src --lib \
+        --tables "$(TABLES)" \
+        --with-serde both \
+        --serde-skip-deserializing-primary-key \
+        --serde-skip-hidden-column
+        # --model-extra-derives 'rocket::form::FromForm'
+  format-all:
+    cmds:
+      - cargo fmt
+  format:
+    cmds:
+      - ./.githooks/pre-commit
+  test:
+    deps: [smoke-test, integration-test]
+    cmds:
+      # NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
+      - 'sed -i '''' ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
+  smoke-test:
+    cmds:
+      - cargo test --test behavior -- {{.CLI_ARGS}}
+  integration-test:
+    cmds:
+      - ./scripts/integration-test
+  update:
+    deps: [update-redoc]
+    cmds:
+      # NOTE: `cargo update` updates all workspace member crates
+      - echo '[INFO] Updating Rust dependencies…'
+      - rustup upgrade
+      - cargo update
+      # Check for outdated dependencies
+      - "if cargo install --list | grep -q '^cargo-edit v'; then \
+        echo '[INFO] Checking for outdated dependencies…'; \
+        cargo upgrade --dry-run --incompatible --pinned --verbose; \
+        else \
+        echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
+        fi"
+  update-redoc:
+    cmds:
+      - echo '[INFO] Updating Redoc…'
+      - wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
