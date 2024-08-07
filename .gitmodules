@@ -1,0 +1,3 @@
+[submodule "scripts/bash-toolbox"]
+	path = scripts/bash-toolbox
+	url = https://github.com/RemiBardon/bash-toolbox.git

@@ -3,6 +3,12 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#folder-specific-settings
 {
+  "languages": {
+    "Shell Script": {
+      "hard_tabs": true,
+      "format_on_save": "on"
+    }
+  },
   "language_overrides": {
     "JavaScript": {
       // Disable language server so we don't get warnings and errors from `redoc.standalone.js`.

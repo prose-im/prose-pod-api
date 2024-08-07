@@ -137,9 +137,11 @@ name = "prose_pod_api"
 path = "src/lib.rs"
 
 [profile.dev]
-opt-level = 0
+opt-level = 1
 debug = true
 debug-assertions = true
+strip = "debuginfo"
+lto = "thin"
 
 [profile.release]
 opt-level = "s"
