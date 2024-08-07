@@ -53,3 +53,8 @@ tasks:
     cmds:
       - echo '[INFO] Updating Redoc…'
       - wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
+  build-image:
+    env:
+      SCRIPTS_ROOT: "{{.ROOT_DIR}}/scripts"
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/build-image {{.CLI_ARGS}}"

@@ -11,41 +11,81 @@ source "$(dirname $0)"/constants.sh
 
 source "$(dirname $0)"/util.sh
 
-usage() {
-	cat <<-EOF
-	Usage:
-	  $(basename $0) TARGET_ARCH
-	    Build the '${PROSE_POD_API_IMAGE:?}' Docker image.
-	  $(basename $0) [--]help
-	    Print this help.
+description() {
+	cat <<EOF
+${Bold}Builds the Prose Pod API Docker image.${Bold_Off}
 
-	Test:
-	EOF
+By default, the Docker image will be named $(format_code ${PROSE_POD_API_IMAGE:?}) but you can override
+this by defining $(format_code PROSE_POD_API_IMAGE). This script also allows cross-compiling for a different
+architecture (see the list of supported targets on $(format_hyperlink 'github.com/cross-rs/cross#supported-targets' 'https://github.com/cross-rs/cross#supported-targets')).
+EOF
 }
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to build $(format_code ${PROSE_POD_API_IMAGE:?}) for a local usage:
+    $(format_command $(basename $0))
+  You want to cross-compile the Prose Pod API for a different architecture (uses $(format_code cross)):
+    $(format_command $(basename $0)) $(format_arg TARGET_ARCH)
+
+$(format_title 'Positional arguments:')
+  $(format_opt_arg TARGET_ARCH)
+    The architecture to cross-compile for (a target triple).
+    $(format_secondary "See the list of supported targets on $(format_hyperlink 'github.com/cross-rs/cross#supported-targets' 'https://github.com/cross-rs/cross#supported-targets').")
+
+$(format_title 'Options:')
+  $(format_subtitle 'Build phase options:')
+    $(format_flag --skip-rust-build)
+      Do not build the Rust project.
+      $(format_secondary "Use when you haven't changed the code and only want to rebuild the Docker images.")
+    $(format_flag --debug)
+      Build projects the Prose Pod API in debug mode.
+    $(format_flag --no-pull)
+      Do not pull referenced Docker images.
+      $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
 help() {
-	usage
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
 	exit 0
 }
 
 # ===== ARGUMENT PARSING =====
 
-[[ $# > 0 ]] || die $(usage)
-
-TARGET_ARCH=${1:?}
-case "${TARGET_ARCH}" in
-	x86_64-unknown-linux-musl)
-		DOCKER_TARGET_PLATFORM=linux/amd64 ;;
-	armv7-unknown-linux-musleabihf)
+TARGET_ARCH="$1" RUST_ENGINE=cross
+case "${TARGET_ARCH:-local}" in
+	--help) help ;;
+	# Not cross-compiling.
+	--*|local)
+		# In case `TARGET_ARCH` was `--`, we need to unset it so the rest of the script
+		# knows we're not cross-compiling.
+		unset TARGET_ARCH
+		RUST_ENGINE=cargo
+		DOCKER_TARGET_PLATFORM="$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" ;;
+	# Raspberry Pi 2&3.
+	armv7-unknown-linux-musleabihf|rpi2|rpi3)
+		# Overwrite if we used an alias.
+		TARGET_ARCH=armv7-unknown-linux-musleabihf
 		DOCKER_TARGET_PLATFORM=linux/arm/v7 ;;
 	--help) help ;;
 	*) die "Unknown architecture: '${TARGET_ARCH}'" ;;
 esac
 
-# Skip already interpreted argument
-shift 1
+# Skip already interpreted argument.
+# NOTE: We need to check the argument count because `shift`
+#   will exit if the command was invoked with no argument.
+[ "$#" -gt 0 ] && shift
 
 CARGO_PROFILE=release RUST_BUILD_MODE=release
-SKIP_RUST_BUILD=0
+unset SKIP_RUST_BUILD NO_PULL
 
 for arg in "$@"; do
 	case $arg in
@@ -60,7 +100,7 @@ for arg in "$@"; do
 			;;
 		--no-pull)
 			info 'Will not pull referenced Docker images'
-			NO_PULL=' --pull=false'
+			NO_PULL=1
 			;;
 		--help) help ;;
 		*) die "Unknown argument: ${arg}\n$(usage)" ;;
@@ -69,15 +109,17 @@ done
 
 # ===== MAIN LOGIC =====
 
-info "Using $(rustc --version), $(rustup --version 2>/dev/null) and $(cargo --version)"
+info "Using $(format_code $(rustc --version)), $(format_code $(rustup --version 2>/dev/null)) and $(format_code $("${RUST_ENGINE}" --version 2> /dev/null))."
 
-if (( !$SKIP_RUST_BUILD )); then
-	edo cross build --target "${TARGET_ARCH}" --profile "${CARGO_PROFILE}"
+if ! (( $SKIP_RUST_BUILD )); then
+	edo "${RUST_ENGINE}" build \
+		${TARGET_ARCH:+--target "${TARGET_ARCH}"} \
+		--profile "${CARGO_PROFILE}"
 fi
 
 edo docker buildx build \
 	--platform "${DOCKER_TARGET_PLATFORM:?}" \
 	-t "${PROSE_POD_API_IMAGE:?}" \
-	--build-arg RUST_OUT_DIR="./target/${TARGET_ARCH}/${RUST_BUILD_MODE:?}" \
-	${NO_PULL} \
+	--build-arg RUST_OUT_DIR="./target${TARGET_ARCH+"/${TARGET_ARCH}"}/${RUST_BUILD_MODE:?}" \
+	${NO_PULL:+--pull=false} \
 	"${PATH_TO_PROSE_POD_API:?}"

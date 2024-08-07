@@ -9,9 +9,9 @@ source "$(dirname $0)"/util.sh
 # ===== HELPER FUNCTIONS =====
 
 description() {
-	printf "$(cat <<EOF
+	cat <<EOF
 ${Bold}Uninstalls a Prose Pod from a Raspberry Pi.${Bold_Off}
-EOF)\n"
+EOF
 }
 
 usage() {
@@ -28,9 +28,9 @@ EOF
 }
 
 help() {
-	description
+	printf "$(description)\n"
 	echo ''
-	usage
+	printf "$(usage)\n"
 	exit 0
 }
 

@@ -94,16 +94,15 @@ If a test fails, Step CI will automatically print some additional information to
 To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:latest`):
 
 ```bash
-./scripts/build-image TARGET_ARCH
+task build-image [-- [TARGET_ARCH] [--debug] [--help]]
 ```
 
-> [!TIP]
-> For Apple Silicon Macs, that's `./scripts/build-image aarch64-apple-darwin`. For Intel Macs, it would be `./scripts/build-image x86_64-unknown-linux-musl`.
+If you don't set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` using `cargo` for your local architecture. If you set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` using `cross` for the desired architecture. You can set `PROSE_POD_API_IMAGE` to override the final name of the image (useful when cross-compiling).
 
 To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
 
 ```bash
-./scripts/build-image TARGET_ARCH --debug
+task build-image -- [TARGET_ARCH] --debug
 ```
 
 [Step CI]: https://stepci.com/ "Step CI homepage"

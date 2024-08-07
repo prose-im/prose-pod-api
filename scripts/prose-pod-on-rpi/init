@@ -11,13 +11,13 @@ source "$(dirname $0)"/util.sh
 # ===== HELPER FUNCTIONS =====
 
 description() {
-	printf "$(cat <<EOF
+	cat <<EOF
 ${Bold}Installs a Prose Pod on a Raspberry Pi.${Bold_Off}
 
 This script builds the Docker images, saves them locally as archives, sends them
 to the Raspberry Pi, copies the local $(format_code prose-pod-system) directory on it, cleans up
 $(format_code prose-pod-system) on the Raspberry Pi and finally deletes the local image archives.
-EOF)\n"
+EOF
 }
 
 usage() {
@@ -45,9 +45,9 @@ EOF
 }
 
 help() {
-	description
+	printf "$(description)\n"
 	echo ''
-	usage
+	printf "$(usage)\n"
 	exit 0
 }
 
