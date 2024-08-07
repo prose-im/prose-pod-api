@@ -22,7 +22,7 @@ export ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
 export SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod;
 
 cleanup() {
-	. "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup.sh;
+	. "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup;
 }
 start() {
   START_TIME=$(date +%s);

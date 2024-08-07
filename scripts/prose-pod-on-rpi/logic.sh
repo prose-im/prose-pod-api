@@ -9,7 +9,7 @@ build_images() {
 		${NO_PULL} \
 		"${PATH_TO_PROSE_POD_SERVER:?}"
 	info 'Building Prose Pod API…'
-	edo "${SCRIPTS_ROOT:?}"/build-image.sh armv7-unknown-linux-musleabihf ${API_BUILD_OPTIONS[@]}
+	edo "${SCRIPTS_ROOT:?}"/build-image armv7-unknown-linux-musleabihf ${API_BUILD_OPTIONS[@]}
 }
 
 save_images() {

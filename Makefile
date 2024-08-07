@@ -1,7 +1,7 @@
 open-swagger-ui:
-	@(./scripts/open-swagger-ui.sh)
+	@(./scripts/open-swagger-ui)
 reset-db:
-	@(./scripts/reset-db.sh)
+	@(./scripts/reset-db)
 entity: reset-db
 	sea-orm-cli generate entity -o entity/src --lib \
 		--tables "$(TABLES)" \
@@ -19,7 +19,7 @@ test: smoke-test integration-test
 smoke-test:
 	cargo test --test behavior
 integration-test:
-	@(./scripts/integration-test.sh)
+	@(./scripts/integration-test)
 update: update-redoc
 # NOTE: `cargo update` updates all workspace member crates
 	@(echo '[INFO] Updating Rust dependencies…')

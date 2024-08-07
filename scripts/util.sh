@@ -1,5 +1,3 @@
-#!/bin/bash
-
 BASH_TOOLBOX="${SCRIPTS_ROOT:?}"/bash-toolbox
 source "${BASH_TOOLBOX:?}"/die.sh
 source "${BASH_TOOLBOX:?}"/edo.sh

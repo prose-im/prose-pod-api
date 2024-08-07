@@ -44,7 +44,7 @@ $(format_title 'Options:')
       Do not pull referenced Docker images.
       $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
     $(format_flag --api-build-option=OPTION)
-      Pass options to $(format_code build-image.sh). See $(format_code build-image.sh --help).
+      Pass options to $(format_code build-image). See $(format_code build-image --help).
 
   $(format_subtitle 'Save phase options:')
     $(format_flag --no-save)

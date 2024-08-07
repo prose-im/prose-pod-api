@@ -1,5 +1,3 @@
-#!/bin/bash
-
 image_name() {
 	echo "${PROSE_DOCKER_ORG:?}/${1:?}:${DOCKER_TAG:?}"
 }
