@@ -9,7 +9,7 @@ build_images() {
 		${NO_PULL} \
 		"${PATH_TO_PROSE_POD_SERVER:?}"
 	info 'Building Prose Pod API…'
-	traced source "${SCRIPTS_ROOT:?}"/build-image "${TARGET_ARCH:?}" ${API_BUILD_OPTIONS[@]}
+	traced . "${SCRIPTS_ROOT:?}"/build-image "${TARGET_ARCH:?}" ${API_BUILD_OPTIONS[@]}
 }
 
 save_images() {
