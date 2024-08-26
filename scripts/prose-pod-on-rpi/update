@@ -144,9 +144,9 @@ fi
 # ===== ENVIRONMENT CHECK =====
 
 test_env_var RPI_IP "the Raspberry Pi's IPv4 address"
-test_env_var PATH_TO_PROSE_POD_SYSTEM 'the path to the `prose-pod-system` repository'
-test_env_var PATH_TO_PROSE_POD_SERVER 'the path to the `prose-pod-server` repository'
-test_env_var PATH_TO_PROSE_POD_API 'the path to the `prose-pod-api` repository'
+test_env_var PROSE_POD_SYSTEM_DIR 'the path to the `prose-pod-system` repository'
+test_env_var PROSE_POD_SERVER_DIR 'the path to the `prose-pod-server` repository'
+test_env_var PROSE_POD_API_DIR 'the path to the `prose-pod-api` repository'
 
 # ===== MAIN LOGIC =====
 

@@ -7,7 +7,7 @@ build_images() {
 		--platform linux/arm/v7 \
 		-t "${PROSE_POD_SERVER_IMAGE:?}" \
 		${NO_PULL} \
-		"${PATH_TO_PROSE_POD_SERVER:?}"
+		"${PROSE_POD_SERVER_DIR:?}"
 	info 'Building Prose Pod API…'
 	traced . "${SCRIPTS_ROOT:?}"/build-image "${TARGET_ARCH:?}" ${API_BUILD_OPTIONS[@]}
 }
@@ -46,6 +46,6 @@ update_remote_prose_pod_system() {
 	info 'Copying prose-pod-system on the Raspberry Pi…'
 	REMOTE_PROSE_POD_SYSTEM_DIR='prose-pod-system'
 	rpi_ssh "rm -r '${REMOTE_PROSE_POD_SYSTEM_DIR}' 2>/dev/null || :"
-	rpi_sftp "put -R '${PATH_TO_PROSE_POD_SYSTEM:?}' ${REMOTE_PROSE_POD_SYSTEM_DIR}" 2>&1 | grep -v '^Entering '
+	rpi_sftp "put -R '${PROSE_POD_SYSTEM_DIR:?}' ${REMOTE_PROSE_POD_SYSTEM_DIR}" 2>&1 | grep -v '^Entering '
 	traced "$(dirname $0)"/cleanup
 }

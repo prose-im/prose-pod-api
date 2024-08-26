@@ -122,4 +122,4 @@ edo docker buildx build \
 	-t "${PROSE_POD_API_IMAGE:?}" \
 	--build-arg RUST_OUT_DIR="./target${TARGET_ARCH+"/${TARGET_ARCH}"}/${RUST_BUILD_MODE:?}" \
 	${NO_PULL:+--pull=false} \
-	"${PATH_TO_PROSE_POD_API:?}"
+	"${PROSE_POD_API_DIR:?}"
