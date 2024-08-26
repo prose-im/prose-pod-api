@@ -4,12 +4,15 @@ version: "3"
 
 tasks:
   open-swagger-ui:
+    desc: Runs the Prose Pod API and opens the visual API documentation.
     cmds:
-      - ./scripts/open-swagger-ui
+      - ./scripts/open-api-docs-ui
   reset-db:
+    desc: Backs up the database and resets it using `sea-orm-cli`.
     cmds:
       - ./scripts/reset-db
   entity:
+    desc: Generates database entities using `sea-orm-cli`.
     deps: [reset-db]
     cmds:
       - sea-orm-cli generate entity -o entity/src --lib \
@@ -19,23 +22,29 @@ tasks:
         --serde-skip-hidden-column
         # --model-extra-derives 'rocket::form::FromForm'
   format-all:
+    desc: Formats all Rust files.
     cmds:
       - cargo fmt
   format:
+    desc: Formats modified Rust files.
     cmds:
       - ./.githooks/pre-commit
   test:
+    desc: Runs all tests and updates "Tested at Rust version" in the `README`.
     deps: [smoke-test, integration-test]
     cmds:
       # NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
       - 'sed -i '''' ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
   smoke-test:
+    desc: Runs smoke tests.
     cmds:
       - cargo test --test behavior -- {{.CLI_ARGS}}
   integration-test:
+    desc: Runs integration tests.
     cmds:
       - ./scripts/integration-test
   update:
+    desc: Updates all dependencies.
     deps: [update-redoc]
     cmds:
       # NOTE: `cargo update` updates all workspace member crates
@@ -50,10 +59,12 @@ tasks:
         echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
         fi"
   update-redoc:
+    desc: Updates Redoc.
     cmds:
       - echo '[INFO] Updating Redoc…'
       - wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
   build-image:
+    desc: Builds the Prose Pod API Docker image. Run `task build-image -- --help` for more info.
     env:
       SCRIPTS_ROOT: "{{.ROOT_DIR}}/scripts"
     cmds:

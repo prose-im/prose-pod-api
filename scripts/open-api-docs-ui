@@ -1,6 +1,6 @@
 #!/bin/bash
 
-URL='http://127.0.0.1:8000/api-docs/swagger-ui'
+URL='http://127.0.0.1:8000/api-docs/redoc'
 if command -v xdg-open &>/dev/null; then
     xdg-open "$URL" &
 elif command -v open &>/dev/null; then

@@ -16,6 +16,12 @@ Instead of using [GNU Make], we are using [Task] for its simplicity and flexibil
 brew install go-task
 ```
 
+To list all available commands, use:
+
+```bash
+task -a
+```
+
 ### `sea-orm-cli`
 
 If you work on databse migrations, you will probably need `sea-orm-cli`:
