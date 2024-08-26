@@ -29,7 +29,7 @@ $(format_title 'Usage:')
   You just want to update the Docker images:
     $(format_command $(basename $0)) $(format_arg --no-system-update) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
   You want to reload the Docker images on the Raspberry Pi but didn't change the code:
-    $(format_command $(basename $0)) $(format_arg --api-build-option=--skip-rust-build) $(format_arg --no-system-update) $(format_opt_arg --no-pull)
+    $(format_command $(basename $0)) $(format_arg --api-build-option=--skip-rust-build) $(format_arg --no-system-update) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
   You just want to update $(format_code prose-pod-system):
     $(format_command $(basename $0)) $(format_arg --no-build) $(format_arg --no-save) $(format_arg --no-send)
 
