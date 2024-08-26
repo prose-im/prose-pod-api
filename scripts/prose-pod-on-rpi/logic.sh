@@ -9,7 +9,7 @@ build_images() {
 		${NO_PULL} \
 		"${PATH_TO_PROSE_POD_SERVER:?}"
 	info 'Building Prose Pod API…'
-	edo "${SCRIPTS_ROOT:?}"/build-image "${TARGET_ARCH:?}" ${API_BUILD_OPTIONS[@]}
+	traced "${SCRIPTS_ROOT:?}"/build-image "${TARGET_ARCH:?}" ${API_BUILD_OPTIONS[@]}
 }
 
 save_images() {
@@ -47,5 +47,5 @@ update_remote_prose_pod_system() {
 	REMOTE_PROSE_POD_SYSTEM_DIR='prose-pod-system'
 	rpi_ssh "rm -r '${REMOTE_PROSE_POD_SYSTEM_DIR}' 2>/dev/null || :"
 	rpi_sftp "put -R '${PATH_TO_PROSE_POD_SYSTEM:?}' ${REMOTE_PROSE_POD_SYSTEM_DIR}" 2>&1 | grep -v '^Entering '
-	"$(dirname $0)"/cleanup
+	traced "$(dirname $0)"/cleanup
 }
