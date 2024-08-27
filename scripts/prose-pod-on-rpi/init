@@ -5,7 +5,8 @@ set -e
 
 # ===== SHARED CODE =====
 
-export SCRIPTS_ROOT="$(dirname $0)"/..
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+export SCRIPTS_ROOT
 source "$(dirname $0)"/util.sh
 
 # ===== HELPER FUNCTIONS =====
@@ -66,4 +67,4 @@ done
 
 # ===== MAIN LOGIC =====
 
-edo "$(dirname $0)"/update $@
+traced "$(dirname $0)"/update $@

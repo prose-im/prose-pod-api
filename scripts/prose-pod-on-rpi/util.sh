@@ -26,7 +26,7 @@ rpi_ssh() {
 	# NOTE: Every SSH session starts with a message on `&2` and a big paragraph… it's verbose.
 	#   `2>&1 | sed -n '/ssh>/,$p'` removes all text until the first `ssh>` is found.
 	# NOTE: Keep hard tabs here, as `<<-` only removes leading tab characters and not leading spaces.
-	(edo ssh "${RPI_USER:?}@${RPI_IP:?}" 2>&1 | sed -n '/ssh>/,$p') <<-EOF
+	(edo ssh "${RPI_USER:?}@${RPI_IP:?}" '2>&1' '|' sed -n '/ssh>/,$p') <<-EOF
 		set -e
 		${commands}
 		exit

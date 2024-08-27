@@ -3,8 +3,10 @@
 # Configure the script to exit when a command fails.
 set -e
 
-export SCRIPTS_ROOT="$(dirname $0)"/..
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+export SCRIPTS_ROOT
 source "$(dirname $0)"/util.sh
+source "$(dirname $0)"/constants.sh
 
 # ===== HELPER FUNCTIONS =====
 
@@ -48,6 +50,6 @@ done
 # ===== MAIN LOGIC =====
 
 rpi_ssh '# Clean things up
-	rm '"'${REMOTE_PROSE_POD_SYSTEM_DIR}'"'/database.sqlite 2>/dev/null || :
-	rm '"'${REMOTE_SERVER_ROOT}'"'/etc/prosody/prosody.cfg.lua 2>/dev/null || :
-	rm -r '"'${REMOTE_SERVER_ROOT}'"'/var/lib/prosody/*%2e* 2>/dev/null || :'
+	echo '"''"' > '"'${REMOTE_PROSE_POD_SYSTEM_DIR:?}'"'/database.sqlite
+	rm '"'${REMOTE_SERVER_ROOT:?}'"'/etc/prosody/prosody.cfg.lua 2>/dev/null || :
+	rm -r '"'${REMOTE_SERVER_ROOT:?}'"'/var/lib/prosody/*%2e* 2>/dev/null || :'

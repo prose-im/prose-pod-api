@@ -5,7 +5,8 @@ set -e
 
 # ===== SHARED CODE =====
 
-export SCRIPTS_ROOT="$(dirname $0)"/..
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+export SCRIPTS_ROOT
 source "$(dirname $0)"/logic.sh
 source "$(dirname $0)"/util.sh
 
@@ -140,6 +141,9 @@ if (( !$FORCE )); then
 	(( $SEND_IMAGES && !$SAVE_IMAGES )) && die 'Cannot send images without saving them.'
 	(( !$BUILD_IMAGES && !$SEND_IMAGES && !$SAVE_IMAGES && !$UPDATE_SYSTEM )) && die 'Seriously?'
 fi
+
+# TODO: Pass this value as an argument.
+change-build-target "${TARGET_ARCH:-rpi3}"
 
 # ===== ENVIRONMENT CHECK =====
 

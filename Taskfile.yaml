@@ -42,7 +42,7 @@ tasks:
   integration-test:
     desc: Runs integration tests.
     cmds:
-      - ./scripts/integration-test
+      - ./scripts/integration-test {{.CLI_ARGS}}
   update:
     desc: Updates all dependencies.
     deps: [update-redoc]

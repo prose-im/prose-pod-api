@@ -25,14 +25,15 @@ usage() {
 	cat <<EOF
 $(format_title 'Usage:')
   You want to build $(format_code ${PROSE_POD_API_IMAGE:?}) for a local usage:
-    $(format_command $(basename $0))
+    $(format_command $(basename $0)) $(format_opt_arg '--|local') $(format_opt_arg --debug)
   You want to cross-compile the Prose Pod API for a different architecture (uses $(format_code cross)):
-    $(format_command $(basename $0)) $(format_arg TARGET_ARCH)
+    $(format_command $(basename $0)) $(format_arg TARGET_ARCH) $(format_opt_arg --debug)
 
 $(format_title 'Positional arguments:')
   $(format_opt_arg TARGET_ARCH)
     The architecture to cross-compile for (a target triple).
     $(format_secondary "See the list of supported targets on $(format_hyperlink 'github.com/cross-rs/cross#supported-targets' 'https://github.com/cross-rs/cross#supported-targets').")
+    $(format_secondary "You can also pass $(format_code '--') or $(format_code 'local') if you don't want to cross-compile.")
 
 $(format_title 'Options:')
   $(format_subtitle 'Build phase options:')
@@ -60,29 +61,30 @@ help() {
 
 # ===== ARGUMENT PARSING =====
 
-TARGET_ARCH="$1" RUST_ENGINE=cross
-case "${TARGET_ARCH:-local}" in
+# Engine used to build (`cargo` or `cross`).
+RUST_ENGINE=cross
+
+case "${1:-local}" in
 	--help) help ;;
 	# Not cross-compiling.
 	--*|local)
-		# In case `TARGET_ARCH` was `--`, we need to unset it so the rest of the script
-		# knows we're not cross-compiling.
-		unset TARGET_ARCH
-		RUST_ENGINE=cargo
-		DOCKER_TARGET_PLATFORM="$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" ;;
-	# Raspberry Pi 2&3.
-	armv7-unknown-linux-musleabihf|rpi2|rpi3)
-		# Overwrite if we used an alias.
-		TARGET_ARCH=armv7-unknown-linux-musleabihf
-		DOCKER_TARGET_PLATFORM=linux/arm/v7 ;;
-	--help) help ;;
-	*) die "Unknown architecture: '${TARGET_ARCH}'" ;;
+		change-build-target "$1" ;;
+		# RUST_ENGINE=cargo ;;
+	*) change-build-target "$1" ;;
 esac
+
+if [ -z "${TARGET_ARCH}" ]; then
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local architecture."
+else
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the $(format_code $TARGET_ARCH) architecture."
+fi
 
 # Skip already interpreted argument.
 # NOTE: We need to check the argument count because `shift`
 #   will exit if the command was invoked with no argument.
-[ "$#" -gt 0 ] && shift
+# NOTE: We also have to check that the first argument doesn't match `--*`
+#   in which case it would mean no `TARGET_ARCH` was passed.
+[ "$#" -gt 0 ] && [[ "$1" != --* ]] && shift
 
 CARGO_PROFILE=release RUST_BUILD_MODE=release
 unset SKIP_RUST_BUILD NO_PULL
@@ -90,20 +92,20 @@ unset SKIP_RUST_BUILD NO_PULL
 for arg in "$@"; do
 	case $arg in
 		--debug)
-			info 'Will build in debug mode'
+			info 'Will build in debug mode.'
 			CARGO_PROFILE=dev
 			RUST_BUILD_MODE=debug
 			;;
 		--skip-rust-build)
-			info 'Will not build the Rust project'
+			info 'Will not build the Rust project.'
 			SKIP_RUST_BUILD=1
 			;;
 		--no-pull)
-			info 'Will not pull referenced Docker images'
+			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
 			;;
 		--help) help ;;
-		*) die "Unknown argument: ${arg}\n$(usage)" ;;
+		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 	esac
 done
 

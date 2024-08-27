@@ -1,10 +1,24 @@
 #!/bin/bash
 
-# Configure the script to exit when a command fails.
-set -e
+# TODO: Count error and warning logs. Exit with 1 if at least one error encountered. Exit with 0 if a warning was encountered, and add a flag to consider it an error.
 
-export SCRIPTS_ROOT="$(dirname $0)"
-source "$(dirname $0)"/util.sh
+# Configure the script to exit when a command fails.
+set -e;
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"};
+export SCRIPTS_ROOT;
+source "${SCRIPTS_ROOT:?}"/util.sh;
+source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/util.sh;
+
+SSH_TUNNEL_SOCKET=/tmp/prose-tests;
+
+close-ssh-tunnel() {
+	ssh -S "${SSH_TUNNEL_SOCKET:?}" -O exit whatever 2>/dev/null || :;
+}
+on-exit() {
+	close-ssh-tunnel;
+}
+trap 'on-exit' EXIT;
 
 # Redirect users to <CONTRIBUTING.md> if env vars are not set.
 # NOTE: We still use `${X:?}` in the rest of the script, this is just to improve the dev UX.
@@ -21,27 +35,91 @@ test-env-vars \
 	PROSE_POD_API_DIR \
 	PROSE_POD_SYSTEM_DIR;
 
+# TODO(low): Allow overriding through a flag.
+: ${PROFILE:=local};
+default-host() {
+	case "$PROFILE" in
+		local) echo "http://127.0.0.1:8000" ;;
+		rpi) echo "http://${RPI_IP:?}:8000" ;;
+		*) ;;
+	esac
+}
+
 INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/tests/integration;
 STEPCI_DIR="${INTEGRATION_TESTS_DIR:?}"/step-ci;
-export INTEGRATION_TEST_HOST="${INTEGRATION_TEST_HOST-"http://127.0.0.1:8000"}"
+: ${INTEGRATION_TEST_HOST:=$(default-host)}
 export ENV_FILE="${PROSE_POD_API_DIR:?}"/tests/integration/in-memory.env;
 export SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod;
 COMPOSE_FILE="${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml;
 
+before-all-local() { :; }
+before-all-rpi() {
+	# Cleanup just in case the socket file still exists.
+	traced close-ssh-tunnel;
+	# Create a SSH tunnel between the machin running the tests and the Raspberry Pi.
+	# This allows us to hardcode `127.0.0.1:8000` in Step CI files to work around a limitation
+	# (see [stepci/runner#124](https://github.com/stepci/runner/pull/124#issuecomment-2310901815)).
+	# NOTE: `-f` makes `ssh` run in the background and `-N` tells it not to execute a remote command.
+	edo ssh -f -N -M -S "${SSH_TUNNEL_SOCKET:?}" -L 8000:127.0.0.1:8000 prose@"${RPI_IP:?}";
+}
+before-all() {
+	trace 'Running "Before all"…';
+	"before-all-${PROFILE:?}";
+}
+
+after-all-local() {
+	cleanup;
+}
+after-all-rpi() {
+	traced close-ssh-tunnel;
+	cleanup;
+}
+after-all() {
+	trace 'Running "After all"…';
+	"after-all-${PROFILE:?}";
+}
+
+cleanup-local() {
+	edo "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup;
+}
+cleanup-rpi() {
+	traced "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/cleanup;
+}
 cleanup() {
-	trace 'Cleaning up the Prose Pod…'
-	edo . "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup;
+	trace 'Cleaning up the Prose Pod…';
+	"cleanup-${PROFILE:?}";
+}
+
+start-local() {
+	edo docker compose -f "${COMPOSE_FILE:?}" up --detach;
+}
+start-rpi() {
+	PROSE_CONFIG_FILE_ON_RPI="/home/${RPI_USER}/Prose.toml";
+	traced rpi_sftp "put \"${PROSE_CONFIG_FILE:?}\" \"${PROSE_CONFIG_FILE_ON_RPI:?}\"";
+	traced PROSE_CONFIG_FILE="${PROSE_CONFIG_FILE_ON_RPI:?}" "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/start;
+	# For some reason we need to sleep a bit otherwise the tests are inconsistent. It's probably
+	# because the RPi is quite slow and takes more time to spin up the Prose Pod than a dev machine.
+	sleep 1;
 }
 start() {
 	START_TIME=$(date +%s);
 	cleanup;
-	trace 'Starting the Prose Pod…'
-	edo docker compose -f "${COMPOSE_FILE:?}" up --detach;
+	trace 'Starting the Prose Pod…';
+	"start-${PROFILE:?}";
 }
-stop() {
-	trace 'Stopping the Prose Pod…'
+
+stop-local() {
 	edo docker compose -f "${COMPOSE_FILE:?}" stop;
 }
+stop-rpi() {
+	traced rpi_sftp "rm \"${PROSE_CONFIG_FILE_ON_RPI:?}\"";
+	traced "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/stop;
+}
+stop() {
+	trace 'Stopping the Prose Pod…';
+	"stop-${PROFILE:?}";
+}
+
 abort() {
 	stop;
 	local current_time=$(date +%s);
@@ -61,23 +139,38 @@ stepci_run() {
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml";
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \
-	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="'${INTEGRATION_TEST_HOST}'") \
+	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST}") \
 	&& stop || abort;
 }
 
 if [ "$#" -eq 0 ]; then
-	info "No arguments provided, using all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")…"
+	info "No argument provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
 	# WARN: Spaces in `*.yaml` files will break not.
 	set -- $(cd "${STEPCI_DIR:?}"; ls *.yaml | sed "s/\.yaml$//")
 fi
 
+info "Using profile '${PROFILE:?}' and will run tests on $(format_url ${INTEGRATION_TEST_HOST:?}).";
+
+before-all;
+
 # NOTE: Some tests need a different `PROSE_CONFIG_FILE`. Special cases are handled here.
 for arg in "$@"; do
 	test_file="${STEPCI_DIR:?}/${arg:?}.yaml";
+
 	if ! [ -e "$test_file" ]; then
 		error "$(format_url "$test_file") not found, skipping."
 		continue
 	fi
+
+	case $arg in
+		dns)
+			if [[ "${PROFILE:?}" == "local" ]]; then
+				warn "Test $(format_code "$arg") cannot be ran locally, skipping."
+				continue
+			fi ;;
+		*) ;;
+	esac
+
 	case $arg in
 		members)
 			stepci_run "$test_file" test-auto_accept_invitations ;;
@@ -86,4 +179,4 @@ for arg in "$@"; do
 	esac
 done
 
-edo cleanup
+after-all;

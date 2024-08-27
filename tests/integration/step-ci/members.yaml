@@ -246,9 +246,6 @@ components:
       Pagination-Item-Count: /\d+/
 
 env:
-  # TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-  #   is resolved, replace all `http://127.0.0.1:8000/api-docs` by
-  #   `${{ env.host }}/api-docs`.
   host: http://127.0.0.1:8000
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
