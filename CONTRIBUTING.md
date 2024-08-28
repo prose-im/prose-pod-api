@@ -22,6 +22,14 @@ To list all available commands, use:
 task -a
 ```
 
+### `cross`
+
+To build the Docker image locally, we need to cross-compile Rust code for a different architecture. To avoid cluttering your local environment, we use [`cross`] which handles everything transparently. You can find installation instructions on [github.com/cross-rs/cross#installation](https://github.com/cross-rs/cross?tab=readme-ov-file#installation), or just run the folowing:
+
+```bash
+cargo install cross --git https://github.com/cross-rs/cross
+```
+
 ### `sea-orm-cli`
 
 If you work on database migrations, you will probably need `sea-orm-cli`:
@@ -105,7 +113,7 @@ To build the Docker image, you can use the helper script (which builds the image
 task build-image [-- [TARGET_ARCH] [--debug] [--help]]
 ```
 
-If you don't set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` using `cargo` for your local architecture. If you set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` using `cross` for the desired architecture. You can set `PROSE_POD_API_IMAGE` to override the final name of the image (useful when cross-compiling).
+If you don't set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` for your local architecture. If you set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` for the desired architecture. Since the image runs Alpine Linux, which likely doesn't match your local target triple, `build-image` builds the Prose Pod API using [`cross`](#cross). You can set `PROSE_POD_API_IMAGE` to override the final name of the image (useful when cross-compiling).
 
 To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
 
@@ -116,3 +124,4 @@ task build-image -- [TARGET_ARCH] --debug
 [Step CI]: https://stepci.com/ "Step CI homepage"
 [Task]: https://stepci.com/ "Task"
 [GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"
+[`cross`]: https://github.com/cross-rs/cross "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"

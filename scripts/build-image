@@ -68,8 +68,8 @@ case "${1:-local}" in
 	--help) help ;;
 	# Not cross-compiling.
 	--*|local)
+		# RUST_ENGINE=cargo
 		change-build-target "$1" ;;
-		# RUST_ENGINE=cargo ;;
 	*) change-build-target "$1" ;;
 esac
 
