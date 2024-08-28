@@ -4,7 +4,7 @@ source "$(dirname $0)"/util.sh
 build_images() {
 	info 'Building Prose Pod Server…'
 	edo docker buildx build \
-		--platform linux/arm/v7 \
+		--platform "${DOCKER_TARGET_PLATFORM:?}" \
 		-t "${PROSE_POD_SERVER_IMAGE:?}" \
 		${NO_PULL} \
 		"${PROSE_POD_SERVER_DIR:?}"
