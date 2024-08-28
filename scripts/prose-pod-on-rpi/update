@@ -122,7 +122,7 @@ for arg in "$@"; do
 			;;
 		--keep-archives)
 			info 'Will not delete local image archives'
-			DELETE_LOCAL_ARCHIVES=0;
+			DELETE_LOCAL_ARCHIVES=0
 			;;
 		--api-build-option=*)
 			API_BUILD_OPTIONS+=("${arg#'--api-build-option='}")
