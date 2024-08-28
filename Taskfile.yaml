@@ -3,7 +3,7 @@
 version: "3"
 
 tasks:
-  open-swagger-ui:
+  open-api-docs-ui:
     desc: Runs the Prose Pod API and opens the visual API documentation.
     cmds:
       - ./scripts/open-api-docs-ui
