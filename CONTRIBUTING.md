@@ -24,7 +24,7 @@ task -a
 
 ### `sea-orm-cli`
 
-If you work on databse migrations, you will probably need `sea-orm-cli`:
+If you work on database migrations, you will probably need `sea-orm-cli`:
 
 ```bash
 cargo install sea-orm-cli
