@@ -42,7 +42,8 @@ tasks:
   integration-test:
     desc: Runs integration tests.
     cmds:
-      - ./scripts/integration-test {{.CLI_ARGS}}
+      # NOTE: Analytics are temporarily disabled because of [stepci/stepci#239](https://github.com/stepci/stepci/issues/239).
+      - STEPCI_DISABLE_ANALYTICS=true ./scripts/integration-test {{.CLI_ARGS}}
   update:
     desc: Updates all dependencies.
     deps: [update-redoc]
