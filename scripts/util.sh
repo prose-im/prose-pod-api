@@ -29,6 +29,13 @@ change-build-target() {
 			DOCKER_TARGET_PLATFORM=linux/arm/v7
 			DOCKER_ARCH_PREFIX=arm32v7 ;;
 
+		# Raspberry Pi 4&5.
+		armv8-unknown-linux-musleabihf|rpi4|rpi5)
+			# Overwrite if we used an alias.
+			TARGET_ARCH=armv8-unknown-linux-musleabihf
+			DOCKER_TARGET_PLATFORM=linux/arm/v8
+			DOCKER_ARCH_PREFIX=arm64v8 ;;
+
 		# TIP: See all possible `TARGET_ARCH` values using `cargo target list`.
 		# TIP: See all possible `DOCKER_ARCH_PREFIX` values at [docker-library/official-images](https://github.com/docker-library/official-images?tab=readme-ov-file#architectures-other-than-amd64).
 		*) die "Unknown architecture: $(format_code $1). Update $(format_hyperlink 'scripts/util.sh' "file://${SCRIPTS_ROOT:?}/util.sh") if you want to add support for it." ;;
