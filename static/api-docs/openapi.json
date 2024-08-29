@@ -1298,7 +1298,7 @@
 				}
 			}
 		},
-		"/v1/dns/records": {
+		"/v1/network/dns/records": {
 			"get": {
 				"tags": ["DNS setup"],
 				"summary": "Get DNS records",
@@ -1319,7 +1319,7 @@
 				}
 			}
 		},
-		"/v1/network/checks/dns": {
+		"/v1/network/dns/checks": {
 			"get": {
 				"tags": ["Network configuration checker"],
 				"summary": "Check DNS records",
