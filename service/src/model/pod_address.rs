@@ -13,8 +13,8 @@ pub enum PodAddress {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PodAddressError {
-    #[error("Prose Pod config not initialized.")]
-    PodConfigNotInitialized,
+    #[error("Prose Pod address not initialized.")]
+    PodAddressNotInitialized,
 }
 
 impl TryFrom<pod_config::Model> for PodAddress {
@@ -29,7 +29,7 @@ impl TryFrom<pod_config::Model> for PodAddress {
                 ipv6: pod_config.ipv6,
             })
         } else {
-            Err(PodAddressError::PodConfigNotInitialized)
+            Err(PodAddressError::PodAddressNotInitialized)
         }
     }
 }

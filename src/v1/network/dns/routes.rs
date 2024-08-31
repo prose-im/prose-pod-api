@@ -6,10 +6,18 @@
 use std::ops::Deref;
 
 use rocket::{get, serde::json::Json};
+use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::model::ServerConfig;
+use service::{
+    model::{PodAddress, ServerConfig},
+    prose_xmpp::BareJid,
+    repositories::{MemberRepository, PodConfigRepository},
+};
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::{
+    error::{self, Error},
+    guards::{Db, LazyGuard},
+};
 
 #[derive(Debug, Serialize, Deserialize, strum::EnumDiscriminants)]
 #[strum_discriminants(derive(strum::EnumString))]
@@ -109,59 +117,95 @@ pub struct GetDnsRecordsResponse {
 }
 
 #[get("/v1/network/dns/records", format = "json")]
-pub async fn get_dns_records(
+pub async fn get_dns_records<'r>(
+    conn: Connection<'r, Db>,
+    jid: LazyGuard<BareJid>,
     server_config: LazyGuard<ServerConfig>,
 ) -> Result<Json<GetDnsRecordsResponse>, Error> {
-    let server_config = server_config.inner?;
+    // === Boilerplate 1 ===
 
-    let steps = vec![
-        DnsSetupStep {
-            purpose: "specify your server IP address".to_string(),
-            records: vec![
-                DnsRecord::A {
-                    hostname: format!("xmpp.{}", server_config.domain),
-                    ttl: 600,
-                    value: "90.105.205.180".to_string(),
-                },
-                DnsRecord::AAAA {
-                    hostname: format!("xmpp.{}", server_config.domain),
-                    ttl: 600,
-                    value: "2a01:cb05:899c:c200::1".to_string(),
-                },
-            ]
-            .into_iter()
-            .map(DnsRecordWithStringRepr::from)
-            .collect(),
-        },
-        DnsSetupStep {
-            purpose: "let clients connect to your server".to_string(),
-            records: vec![DnsRecord::SRV {
-                hostname: server_config.domain.to_string(),
-                ttl: 3600,
-                priority: 0,
-                weight: 5,
-                port: 5222,
-                target: format!("xmpp.{}.", server_config.domain),
-            }]
-            .into_iter()
-            .map(DnsRecordWithStringRepr::from)
-            .collect(),
-        },
-        DnsSetupStep {
-            purpose: "let servers connect to your server".to_string(),
-            records: vec![DnsRecord::SRV {
-                hostname: server_config.domain.to_string(),
-                ttl: 3600,
-                priority: 0,
-                weight: 5,
-                port: 5269,
-                target: format!("xmpp.{}.", server_config.domain),
-            }]
-            .into_iter()
-            .map(DnsRecordWithStringRepr::from)
-            .collect(),
-        },
-    ];
+    let db = conn.into_inner();
+    let server_domain = server_config.inner?.domain;
+
+    // === Access control ===
+
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
+
+    // === Boilerplate 2 ===
+
+    let Some(pod_config) = PodConfigRepository::get(db).await? else {
+        return Err(error::PodAddressNotInitialized.into());
+    };
+    let pod_address = PodAddress::try_from(pod_config)?;
+
+    // === Helpers to create DNS records ===
+
+    let a = |ipv4: String| {
+        DnsRecordWithStringRepr::from(DnsRecord::A {
+            hostname: format!("xmpp.{server_domain}"),
+            ttl: 600,
+            value: ipv4,
+        })
+    };
+    let aaaa = |ipv6: String| {
+        DnsRecordWithStringRepr::from(DnsRecord::AAAA {
+            hostname: format!("xmpp.{server_domain}"),
+            ttl: 600,
+            value: ipv6,
+        })
+    };
+    let srv = |port: u32, target: String| {
+        DnsRecordWithStringRepr::from(DnsRecord::SRV {
+            hostname: server_domain.to_string(),
+            ttl: 3600,
+            priority: 0,
+            weight: 5,
+            port,
+            target,
+        })
+    };
+    let srv_c2s = |target: String| srv(5222, target);
+    let srv_s2s = |target: String| srv(5269, target);
+
+    // === Helpers to create DNS setup steps ===
+
+    let step_static_ip = |ipv4: String, ipv6: Option<String>| DnsSetupStep {
+        purpose: "specify your server IP address".to_string(),
+        records: vec![
+            Some(a(ipv4)),
+            ipv6.map(aaaa),
+        ]
+        .into_iter()
+        .flatten()
+        .collect(),
+    };
+    let step_c2s = |target: String| DnsSetupStep {
+        purpose: "let clients connect to your server".to_string(),
+        records: vec![srv_c2s(target)],
+    };
+    let step_s2s = |target: String| DnsSetupStep {
+        purpose: "let servers connect to your server".to_string(),
+        records: vec![srv_s2s(target)],
+    };
+
+    // === Main logic ===
+
+    let steps = match pod_address {
+        PodAddress::Static { ipv4, ipv6 } => vec![
+            step_static_ip(ipv4, ipv6),
+            step_c2s(format!("xmpp.{server_domain}.")),
+            step_s2s(format!("xmpp.{server_domain}.")),
+        ],
+        PodAddress::Dynamic { hostname } => vec![
+            step_c2s(format!("{hostname}.")),
+            step_s2s(format!("{hostname}.")),
+        ],
+    };
+
     let res = GetDnsRecordsResponse { steps };
     Ok(res.into())
 }
