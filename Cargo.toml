@@ -66,12 +66,12 @@ reqwest = { version = "0.12", features = [
     "trust-dns",
 ], default-features = false }
 rocket = { version = "0.5", features = ["json"] }
-sea-orm = { version = "1.0.0-rc.7", features = [
+sea-orm = { version = "1.0.1", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
     #"macros",
 ] }
-sea-orm-migration = { version = "1.0.0-rc.7", features = [
+sea-orm-migration = { version = "1.0.1", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
 ] }

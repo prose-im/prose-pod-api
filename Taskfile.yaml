@@ -52,6 +52,9 @@ tasks:
       - echo '[INFO] Updating Rust dependencies…'
       - rustup upgrade
       - cargo update
+  check-for-outdated-dependencies:
+    desc: Check for outdated dependencies.
+    cmds:
       # Check for outdated dependencies
       - "if cargo install --list | grep -q '^cargo-edit v'; then \
         echo '[INFO] Checking for outdated dependencies…'; \
@@ -63,7 +66,10 @@ tasks:
     desc: Updates Redoc.
     cmds:
       - echo '[INFO] Updating Redoc…'
-      - wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
+      #- wget -q https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js -O static/api-docs/redoc.standalone.js
+      # NOTE(RemiBardon): I replaced `wget` by `curl` because `wget` fails with exit code 5 (SSL verification failure)
+      #   on my machine while `curl` does not.
+      - curl https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js --output static/api-docs/redoc.standalone.js 2>/dev/null
   build-image:
     desc: Builds the Prose Pod API Docker image. Run `task build-image -- --help` for more info.
     env:
