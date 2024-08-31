@@ -8,6 +8,7 @@ mod email_address;
 pub(crate) mod invitations;
 mod jid;
 pub mod member_role;
+pub mod pod_address;
 pub mod server_config;
 
 pub use durations::*;
@@ -15,6 +16,7 @@ pub use email_address::*;
 pub use invitations::*;
 pub use jid::*;
 pub use member_role::*;
+pub use pod_address::*;
 pub use server_config::*;
 
 pub use crate::entity::{
