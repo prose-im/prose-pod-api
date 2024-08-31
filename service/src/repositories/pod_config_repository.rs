@@ -20,6 +20,13 @@ impl PodConfigRepository {
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<pod_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
     }
+
+    pub async fn set(
+        db: &impl ConnectionTrait,
+        form: impl Into<PodConfigCreateForm>,
+    ) -> Result<pod_config::Model, DbErr> {
+        form.into().into_active_model().update(db).await
+    }
 }
 
 #[derive(Debug, Clone, Default)]
