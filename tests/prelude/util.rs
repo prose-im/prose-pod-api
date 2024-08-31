@@ -36,3 +36,43 @@ macro_rules! user_token {
             .clone()
     };
 }
+
+#[macro_export]
+macro_rules! api_call_fn {
+    ($fn:ident, $method:ident, $route:expr) => {
+        async fn $fn<'a>(
+            client: &'a rocket::local::asynchronous::Client,
+            token: secrecy::SecretString,
+        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+            use secrecy::ExposeSecret as _;
+            client
+                .$method($route)
+                .header(rocket::http::ContentType::JSON)
+                .header(rocket::http::Header::new(
+                    "Authorization",
+                    format!("Bearer {}", token.expose_secret()),
+                ))
+                .dispatch()
+                .await
+        }
+    };
+    ($fn:ident, $method:ident, $route:expr, $payload_type:ident, $var:ident, $var_type:ty) => {
+        async fn $fn<'a>(
+            client: &'a rocket::local::asynchronous::Client,
+            token: secrecy::SecretString,
+            state: $var_type,
+        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+            use secrecy::ExposeSecret as _;
+            client
+                .$method($route)
+                .header(rocket::http::ContentType::JSON)
+                .header(rocket::http::Header::new(
+                    "Authorization",
+                    format!("Bearer {}", token.expose_secret()),
+                ))
+                .body(serde_json::json!($payload_type { $var: state.into() }).to_string())
+                .dispatch()
+                .await
+        }
+    };
+}

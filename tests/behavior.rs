@@ -76,10 +76,11 @@ async fn main() {
                     ("rocket::server", LevelFilter::WARN),
                 ];
 
-                let running_few_scenarios = std::env::args()
-                    .collect::<Vec<_>>()
-                    .contains(&"--tags".to_owned());
-                if running_few_scenarios {
+                let args = std::env::args().collect::<Vec<_>>();
+                let running_few_scenarios = args.contains(&"@testing".to_owned());
+                let debug = args.contains(&"@debug".to_owned());
+
+                if running_few_scenarios || debug {
                     targets.append(&mut vec![
                         ("prose_pod_api", LevelFilter::TRACE),
                         ("service", LevelFilter::TRACE),
@@ -411,12 +412,14 @@ async fn run_migrations(conn: &DatabaseConnection) -> Result<(), DbErr> {
 
 #[given("the Prose Pod API has started")]
 async fn given_api_started(world: &mut TestWorld) {
+    assert!(world.client.is_none());
     world.client = Some(world.create_rocket_test_client().await);
     world.reset_server_ctl_counts();
 }
 
 #[when("the Prose Pod API starts")]
 async fn when_api_starts(world: &mut TestWorld) {
+    assert!(world.client.is_none());
     world.client = Some(world.create_rocket_test_client().await);
 }
 

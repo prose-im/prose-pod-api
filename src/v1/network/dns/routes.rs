@@ -3,13 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::ops::Deref;
+
 use rocket::{get, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::model::ServerConfig;
 
 use crate::{error::Error, guards::LazyGuard};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, strum::EnumDiscriminants)]
+#[strum_discriminants(derive(strum::EnumString))]
 #[serde(tag = "type")]
 pub enum DnsRecord {
     A {
@@ -30,6 +33,14 @@ pub enum DnsRecord {
         port: u32,
         target: String,
     },
+}
+
+/// NOTE: Only used in tests.
+#[cfg(debug_assertions)]
+impl DnsRecord {
+    pub fn record_type(&self) -> DnsRecordDiscriminants {
+        DnsRecordDiscriminants::from(self)
+    }
 }
 
 impl ToString for DnsRecord {
@@ -57,11 +68,19 @@ impl ToString for DnsRecord {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DnsRecordWithStringRepr {
     #[serde(flatten)]
-    inner: DnsRecord,
-    string_repr: String,
+    pub inner: DnsRecord,
+    pub string_repr: String,
+}
+
+impl Deref for DnsRecordWithStringRepr {
+    type Target = DnsRecord;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }
 
 impl From<DnsRecord> for DnsRecordWithStringRepr {
@@ -73,20 +92,20 @@ impl From<DnsRecord> for DnsRecordWithStringRepr {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DnsSetupStep {
     /// The purpose of this step.
     ///
     /// Example: "specify your server IP address".
     ///
     /// Note that it always starts with a lowercase letter.
-    purpose: String,
-    records: Vec<DnsRecordWithStringRepr>,
+    pub purpose: String,
+    pub records: Vec<DnsRecordWithStringRepr>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetDnsRecordsResponse {
-    steps: Vec<DnsSetupStep>,
+    pub steps: Vec<DnsSetupStep>,
 }
 
 #[get("/v1/network/dns/records", format = "json")]

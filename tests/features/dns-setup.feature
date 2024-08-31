@@ -1,3 +1,4 @@
+@dns-setup
 Feature: DNS setup instructions
 
   Background:

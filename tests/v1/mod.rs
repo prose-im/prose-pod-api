@@ -6,6 +6,7 @@
 pub mod init;
 pub mod invitations;
 pub mod members;
+pub mod network;
 pub mod server;
 pub mod workspace;
 
