@@ -5,8 +5,6 @@ config:
     baseURL: ${{ env.host }}
 
 # NOTE: `.` is not this file's path, it's the directory from which `stepci` is ran.
-# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
 before:
   name: "Before all (not a test)"
   steps:
