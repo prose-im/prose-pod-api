@@ -512,7 +512,7 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
         .replace("\\n", "\n");
     assert!(
         events.contains(&expected),
-        "events: {events:?}\nexpected: {expected:?}"
+        "events: {events:#?}\nexpected: {expected:?}"
     );
 }
 
