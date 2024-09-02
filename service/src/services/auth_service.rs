@@ -78,8 +78,8 @@ impl AuthServiceImpl for LiveAuthService {
         let token = self.jwt_service.generate_jwt(jid, |claims| {
             // TODO: Do not store this in the JWT (potential security issue?)
             claims.insert(
-                JWT_PROSODY_TOKEN_KEY,
-                prosody_token.expose_secret().to_owned(),
+                JWT_PROSODY_TOKEN_KEY.into(),
+                prosody_token.expose_secret().to_owned().into(),
             );
         })?;
 
