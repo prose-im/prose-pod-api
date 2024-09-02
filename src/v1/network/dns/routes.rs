@@ -210,7 +210,7 @@ pub async fn get_dns_records<'r>(
     Ok(res.into())
 }
 
-#[get("/v1/network/dns/checks", format = "json")]
+#[get("/v1/network/checks/dns", format = "json")]
 pub async fn check_dns_records() -> Json<GetDnsRecordsResponse> {
     todo!()
 }
