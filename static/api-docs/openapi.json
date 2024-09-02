@@ -1319,11 +1319,52 @@
 				}
 			}
 		},
-		"/v1/network/dns/checks": {
+		"/v1/network/checks": {
+			"get": {
+				"tags": ["Network configuration checker"],
+				"summary": "Check the whole network configuration",
+				"description": "Runs \"Check DNS records\", \"Check ports reachability\" and \"Check IP connectivity\" in a single Server-Sent Events stream.",
+				"operationId": "check_network_configuration",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"text/event-stream": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"oneOf": [
+											{
+												"$ref": "#/components/schemas/sse-events/dns-record-check-result"
+											},
+											{
+												"$ref": "#/components/schemas/sse-events/port-reachability-check-result"
+											},
+											{
+												"$ref": "#/components/schemas/sse-events/ip-connectivity-check-result"
+											},
+											{ "$ref": "#/components/schemas/sse-events/end" }
+										],
+										"discriminator": {
+											"propertyName": "event"
+										}
+									}
+								},
+								"example": "id:IPv4\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"CHECKING\"}\n\nid:IPv6\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"CHECKING\"}\n\nid:SRV-c2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"CHECKING\"}\n\nid:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"CHECKING\"}\n\nid:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"CHECKING\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CHECKING\"}\n\nid:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"CHECKING\"}\n\nid:IPv4\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv4 connectivity\",\"status\":\"CHECKING\"}\n\nid:IPv6\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"CHECKING\"}\n\nid:IPv4\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:IPv6\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:SRV-c2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"VALID\"}\n\nid:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"VALID\"}\n\nid:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CLOSED\"}\n\nid:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}\n\nid:IPv4\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv4 connectivity\",\"status\":\"SUCCESS\"}\n\nid:IPv6\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"FAILURE\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}\n\nid:IPv6\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"SUCCESS\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/network/checks/dns": {
 			"get": {
 				"tags": ["Network configuration checker"],
 				"summary": "Check DNS records",
-				"description": "Checks that all DNS records are properly configured.\n\nThis route regularly checks the domain's DNS records to provide \"live\" information. It opens a stream of Server-Sent Events, TODO the server will send one `enriched-member` event per JID to enrich, then one `end` event and close the stream. All enriched data fields are optional; if an error occurs (e.g. unknown JID), the server won't return an error but rather a regular `enriched-member` event with all fields being `null` except `jid`.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
+				"description": "Checks that all DNS records are properly configured.\n\nThis route regularly checks the domain's DNS records to provide \"live\" information. It opens a stream of Server-Sent Events and sends `dns-record-check-result` events every few seconds.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "check_dns_records",
 				"security": [{ "BearerAuth": [] }],
 				"responses": {
@@ -1345,7 +1386,77 @@
 										}
 									}
 								},
-								"example": "id:IPv4\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:IPv6\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"PENDING\"}\n\nid:SRV-c2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"PENDING\"}\n\nid:SRV-s2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"PENDING\"}\n\nid:IPv6\n:\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
+								"example": "id:IPv4\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"CHECKING\"}\n\nid:IPv6\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"CHECKING\"}\n\nid:SRV-c2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"CHECKING\"}\n\nid:SRV-s2s\n:\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"CHECKING\"}\n\nid:IPv4\nevent:dns-record-check-result\ndata:{\"description\":\"IPv4 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:IPv6\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.crisp.chat\",\"status\":\"VALID\"}\n\nid:SRV-c2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"VALID\"}\n\nid:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"VALID\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/network/checks/ports": {
+			"get": {
+				"tags": ["Network configuration checker"],
+				"summary": "Check ports reachability",
+				"description": "Checks that all required ports are opened and reachable.\n\nThis route regularly checks the domain's open ports to provide \"live\" information. It opens a stream of Server-Sent Events and sends `port-reachability-check-result` events every few seconds.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
+				"operationId": "check_ports",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"text/event-stream": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"oneOf": [
+											{
+												"$ref": "#/components/schemas/sse-events/port-reachability-check-result"
+											},
+											{ "$ref": "#/components/schemas/sse-events/end" }
+										],
+										"discriminator": {
+											"propertyName": "event"
+										}
+									}
+								},
+								"example": "id:TCP-c2s\n:\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"CHECKING\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CHECKING\"}\n\nid:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"CHECKING\"}\n\nid:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CLOSED\"}\n\nid:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}\n\nid:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
+		"/v1/network/checks/ip": {
+			"get": {
+				"tags": ["Network configuration checker"],
+				"summary": "Check IP connectivity",
+				"description": "Checks that your server has connection over all IP protocols.\n\nThis route regularly checks the domain's IP to provide \"live\" information. It opens a stream of Server-Sent Events and sends `ip-connectivity-check-result` events every few seconds.\nNOTE: There might be a `\\n:(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
+				"operationId": "check_ip",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"text/event-stream": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"oneOf": [
+											{
+												"$ref": "#/components/schemas/sse-events/ip-connectivity-check-result"
+											},
+											{ "$ref": "#/components/schemas/sse-events/end" }
+										],
+										"discriminator": {
+											"propertyName": "event"
+										}
+									}
+								},
+								"example": "id:IPv4\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv4 connectivity\",\"status\":\"CHECKING\"}\n\nid:IPv6\n:\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"CHECKING\"}\n\nid:IPv4\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv4 connectivity\",\"status\":\"SUCCESS\"}\n\nid:IPv6\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"FAILURE\"}\n\nid:IPv6\nevent:port-reachability-check-result\ndata:{\"description\":\"IPv6 connectivity\",\"status\":\"SUCCESS\"}\n\n:End of stream\nid:end\nevent:end\ndata:\n\n\n"
 							}
 						}
 					},
@@ -1797,13 +1908,9 @@
 					"role": { "$ref": "#/components/schemas/MemberRole" }
 				}
 			},
-			"DnsRecordId": {
-				"type": "string",
-				"enum": ["IPv4", "IPv6", "SRV-c2s", "SRV-s2s"]
-			},
 			"DnsRecordStatus": {
 				"type": "string",
-				"enum": ["VALID", "PENDING"]
+				"enum": ["VALID", "INVALID", "CHECKING"]
 			},
 			"DnsRecordCheckResult": {
 				"type": "object",
@@ -1815,6 +1922,38 @@
 				"example": {
 					"description": "IPv4 record for xmpp.crisp.chat",
 					"status": "VALID"
+				}
+			},
+			"PortReachabilityStatus": {
+				"type": "string",
+				"enum": ["OPEN", "CLOSED", "CHECKING"]
+			},
+			"PortReachabilityCheckResult": {
+				"type": "object",
+				"required": ["description", "status"],
+				"properties": {
+					"description": { "type": "string" },
+					"status": { "$ref": "#/components/schemas/PortReachabilityStatus" }
+				},
+				"example": {
+					"description": "Client-to-server port at TCP 5222",
+					"status": "OPEN"
+				}
+			},
+			"IpConnectivityStatus": {
+				"type": "string",
+				"enum": ["SUCCESS", "FAILURE", "CHECKING"]
+			},
+			"IpConnectivityCheckResult": {
+				"type": "object",
+				"required": ["description", "status"],
+				"properties": {
+					"description": { "type": "string" },
+					"status": { "$ref": "#/components/schemas/IpConnectivityStatus" }
+				},
+				"example": {
+					"description": "IPv4 connectivity",
+					"status": "SUCCESS"
 				}
 			},
 			"DnsRecordType": {
@@ -1924,10 +2063,44 @@
 					"properties": {
 						"event": {
 							"type": "string",
-							"example": "enriched-member"
+							"example": "dns-record-check-result"
 						},
-						"id": { "$ref": "#/components/schemas/JID" },
+						"id": {
+							"$ref": "#/components/schemas/sse-event-ids/DnsRecordCheckId"
+						},
 						"data": { "$ref": "#/components/schemas/DnsRecordCheckResult" }
+					}
+				},
+				"port-reachability-check-result": {
+					"summary": "A Server-Sent Event containing the result of a port reachability check.",
+					"type": "object",
+					"required": ["event", "id", "data"],
+					"properties": {
+						"event": {
+							"type": "string",
+							"example": "port-reachability-check-result"
+						},
+						"id": {
+							"$ref": "#/components/schemas/sse-event-ids/PortReachabilityCheckId"
+						},
+						"data": {
+							"$ref": "#/components/schemas/PortReachabilityCheckResult"
+						}
+					}
+				},
+				"ip-connectivity-check-result": {
+					"summary": "A Server-Sent Event containing the result of an IP connectivity check.",
+					"type": "object",
+					"required": ["event", "id", "data"],
+					"properties": {
+						"event": {
+							"type": "string",
+							"example": "ip-connectivity-check-result"
+						},
+						"id": {
+							"$ref": "#/components/schemas/sse-event-ids/IpConnectivityCheckId"
+						},
+						"data": { "$ref": "#/components/schemas/IpConnectivityCheckResult" }
 					}
 				},
 				"end": {
@@ -1948,6 +2121,20 @@
 							"example": "End of stream"
 						}
 					}
+				}
+			},
+			"sse-event-ids": {
+				"DnsRecordCheckId": {
+					"type": "string",
+					"enum": ["IPv4", "IPv6", "SRV-c2s", "SRV-s2s"]
+				},
+				"PortReachabilityCheckId": {
+					"type": "string",
+					"enum": ["TCP-c2s", "TCP-s2s", "TCP-HTTPS"]
+				},
+				"IpConnectivityCheckId": {
+					"type": "string",
+					"enum": ["IPv4", "IPv6"]
 				}
 			}
 		},
