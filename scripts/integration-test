@@ -8,7 +8,6 @@ set -e
 : ${SCRIPTS_ROOT:="$(dirname $0)"}
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
-source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/util.sh
 
 SSH_TUNNEL_SOCKET=/tmp/prose-tests
 
@@ -37,6 +36,15 @@ test-env-vars \
 
 # TODO(low): Allow overriding through a flag.
 : ${PROFILE:=local}
+case "$PROFILE" in
+	rpi)
+		source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/util.sh
+		source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/constants.sh
+		: ${TESTING_POD_PUBLIC_HOSTNAME:=test.prose.dev.remibardon.com}
+		export TESTING_POD_PUBLIC_HOSTNAME ;;
+	*) ;;
+esac
+
 default-host() {
 	case "$PROFILE" in
 		local) echo "http://127.0.0.1:8000" ;;
@@ -56,7 +64,7 @@ before-all-local() { :; }
 before-all-rpi() {
 	# Cleanup just in case the socket file still exists.
 	traced close-ssh-tunnel
-	# Create a SSH tunnel between the machin running the tests and the Raspberry Pi.
+	# Create a SSH tunnel between the machine running the tests and the Raspberry Pi.
 	# This allows us to hardcode `127.0.0.1:8000` in Step CI files to work around a limitation
 	# (see [stepci/runner#124](https://github.com/stepci/runner/pull/124#issuecomment-2310901815)).
 	# NOTE: `-f` makes `ssh` run in the background and `-N` tells it not to execute a remote command.
@@ -120,11 +128,17 @@ stop() {
 	"stop-${PROFILE:?}"
 }
 
+show-logs-local() {
+	edo docker compose -f "${COMPOSE_FILE:?}" logs --since "${elapsed_time}s" server api
+}
+show-logs-rpi() {
+	rpi_ssh docker compose -f "${REMOTE_PROSE_POD_SYSTEM_DIR:?}"/compose.yaml logs --since "${elapsed_time}s" server api
+}
 abort() {
 	stop
 	local current_time=$(date +%s)
 	local elapsed_time=$((current_time - ${START_TIME:?}))
-	edo docker compose -f "${COMPOSE_FILE:?}" logs --since "${elapsed_time}s" server api
+	ELAPSED_TIME="${elapsed_time}" "show-logs-${PROFILE:?}"
 	exit 1
 }
 
@@ -139,7 +153,9 @@ stepci_run() {
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \
-	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST}") \
+	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" \
+		--env host="${INTEGRATION_TEST_HOST:?}" \
+		--env TESTING_POD_PUBLIC_HOSTNAME="${TESTING_POD_PUBLIC_HOSTNAME}") \
 	&& stop || abort
 }
 
@@ -163,7 +179,7 @@ for arg in "$@"; do
 	fi
 
 	case $arg in
-		dns)
+		network-config)
 			if [[ "${PROFILE:?}" == "local" ]]; then
 				warn "Test $(format_code "$arg") cannot be ran locally, skipping."
 				continue
