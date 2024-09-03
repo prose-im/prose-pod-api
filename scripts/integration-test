@@ -39,9 +39,7 @@ test-env-vars \
 case "$PROFILE" in
 	rpi)
 		source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/util.sh
-		source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/constants.sh
-		: ${TESTING_POD_PUBLIC_HOSTNAME:=test.prose.dev.remibardon.com}
-		export TESTING_POD_PUBLIC_HOSTNAME ;;
+		source "${SCRIPTS_ROOT:?}"/prose-pod-on-rpi/constants.sh ;;
 	*) ;;
 esac
 
@@ -153,9 +151,7 @@ stepci_run() {
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \
-	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" \
-		--env host="${INTEGRATION_TEST_HOST:?}" \
-		--env TESTING_POD_PUBLIC_HOSTNAME="${TESTING_POD_PUBLIC_HOSTNAME}") \
+	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST:?}") \
 	&& stop || abort
 }
 
@@ -177,15 +173,6 @@ for arg in "$@"; do
 		error "$(format_url "$test_file") not found, skipping."
 		continue
 	fi
-
-	case $arg in
-		network-config)
-			if [[ "${PROFILE:?}" == "local" ]]; then
-				warn "Test $(format_code "$arg") cannot be ran locally, skipping."
-				continue
-			fi ;;
-			*) ;;
-	esac
 
 	case $arg in
 		members)
