@@ -1,0 +1,163 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+# ===== SHARED CODE =====
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+export SCRIPTS_ROOT
+source "$(dirname $0)"/logic.sh
+source "$(dirname $0)"/util.sh
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Updates a Prose Pod installed on a Raspberry Pi.${Bold_Off}
+
+This script builds the Docker images, saves them locally as archives, sends them
+to the Raspberry Pi, copies the local $(format_code prose-pod-system) directory on it, cleans up
+$(format_code prose-pod-system) on the Raspberry Pi and finally deletes the local image archives.
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to initialize the Prose Pod on a Raspberry Pi:
+    $(format_command init) $(format_opt_arg --debug) $(format_opt_arg --no-pull) or $(format_command $(basename $0)) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
+  You just want to update the Docker images:
+    $(format_command $(basename $0)) $(format_arg --no-system-update) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
+  You want to reload the Docker images on the Raspberry Pi but didn't change the code:
+    $(format_command $(basename $0)) $(format_arg --api-build-option=--skip-rust-build) $(format_arg --no-system-update) $(format_opt_arg --debug) $(format_opt_arg --no-pull)
+  You just want to update $(format_code prose-pod-system):
+    $(format_command $(basename $0)) $(format_arg --no-build) $(format_arg --no-save) $(format_arg --no-send)
+
+$(format_title 'Options:')
+  $(format_subtitle 'Build phase options:')
+    $(format_flag --no-build)
+      Do not build Docker images.
+      $(format_secondary Use when you already have them built at their latest version.)
+    $(format_flag --debug)
+      Build projects (e.g. the Prose Pod API) in debug mode.
+    $(format_flag --no-pull)
+      Do not pull referenced Docker images.
+      $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
+    $(format_flag --api-build-option=OPTION)
+      Pass options to $(format_code build-image). See $(format_code build-image --help).
+
+  $(format_subtitle 'Save phase options:')
+    $(format_flag --no-save)
+      Do not save Docker images locally.
+      $(format_secondary "Use if you want to reuse archives kept with $(format_code --keep-archives | decolor).")
+
+  $(format_subtitle 'Send phase options:')
+    $(format_flag --no-send)
+      Do not send Docker images to the remote Raspberry Pi.
+      $(format_secondary "Use if you don't want to update the Docker images on the remote Raspberry Pi.")
+
+  $(format_subtitle "$(format_code prose-pod-system | decolor) initialization phase options:")
+    $(format_flag --no-system-update)
+      Do not update the \`prose-pod-system\` repository on the remote Raspberry Pi.
+      $(format_secondary "Use when you only want to update the Docker images on the remote Raspberry Pi.")
+
+  $(format_subtitle 'Cleanup phase options:')
+    $(format_flag --keep-archives)
+      Do not delete local image archives.
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --force)
+      The script won't stop you if passed flags don't go together.
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+cleanup() {
+	info "Cleaning up…"
+
+	if (( $DELETE_LOCAL_ARCHIVES )); then
+		edo rm -rf "${PROSE_TMPDIR:?}"
+	fi
+}
+
+# ===== ARGUMENT PARSING =====
+
+BUILD_IMAGES=1 SAVE_IMAGES=1 SEND_IMAGES=1 UPDATE_SYSTEM=1 DELETE_LOCAL_ARCHIVES=1 FORCE=0
+API_BUILD_OPTIONS=()
+
+for arg in "$@"; do
+	case $arg in
+		--debug)
+			info 'Will build in debug mode'
+			API_BUILD_OPTIONS+=('--debug')
+			;;
+		--no-pull)
+			info 'Will not pull referenced Docker images'
+			NO_PULL=' --pull=false'
+			;;
+		--no-build)
+			info 'Will not build Docker images'
+			BUILD_IMAGES=0
+			;;
+		--no-save)
+			info 'Will not save Docker images'
+			SAVE_IMAGES=0
+			;;
+		--no-send)
+			info 'Will not send Docker images'
+			SEND_IMAGES=0
+			;;
+		--no-system-update)
+			info 'Will not update `prose-pod-system`'
+			UPDATE_SYSTEM=0
+			;;
+		--keep-archives)
+			info 'Will not delete local image archives'
+			DELETE_LOCAL_ARCHIVES=0
+			;;
+		--api-build-option=*)
+			API_BUILD_OPTIONS+=("${arg#'--api-build-option='}")
+			;;
+		--force)
+			info "Let's hope you know what you're doing"
+			FORCE=1
+			;;
+		--help) help ;;
+		*) die "Unknown argument: ${arg}\n$(usage)" ;;
+	esac
+done
+
+if (( !$FORCE )); then
+	(( $SAVE_IMAGES && !$BUILD_IMAGES )) && die 'Cannot save images without building them.'
+	(( $SEND_IMAGES && !$SAVE_IMAGES )) && die 'Cannot send images without saving them.'
+	(( !$BUILD_IMAGES && !$SEND_IMAGES && !$SAVE_IMAGES && !$UPDATE_SYSTEM )) && die 'Seriously?'
+fi
+
+# TODO: Pass this value as an argument.
+change-build-target "${TARGET_ARCH:-rpi3}"
+
+# ===== ENVIRONMENT CHECK =====
+
+test_env_var RPI_IP "the Raspberry Pi's IPv4 address"
+test_env_var PROSE_POD_SYSTEM_DIR 'the path to the `prose-pod-system` repository'
+test_env_var PROSE_POD_SERVER_DIR 'the path to the `prose-pod-server` repository'
+test_env_var PROSE_POD_API_DIR 'the path to the `prose-pod-api` repository'
+
+# ===== MAIN LOGIC =====
+
+# Register the cleanup function to be called on exit.
+trap cleanup EXIT
+
+(( $BUILD_IMAGES )) && build_images
+(( $SAVE_IMAGES )) && save_images
+(( $SEND_IMAGES )) && send_images
+(( $UPDATE_SYSTEM )) && update_remote_prose_pod_system

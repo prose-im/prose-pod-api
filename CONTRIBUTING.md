@@ -8,28 +8,40 @@ After release 1.0, contributions will be more than welcome though!
 
 ## Tools you need
 
+### `task`
+
+Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility. You can find installation instructions on [taskfile.dev/installation](https://taskfile.dev/installation/), or just run the folowing on macOS:
+
+```bash
+brew install go-task
+```
+
+To list all available commands, use:
+
+```bash
+task -a
+```
+
+### `cross`
+
+To build the Docker image locally, we need to cross-compile Rust code for a different architecture. To avoid cluttering your local environment, we use [`cross`] which handles everything transparently. You can find installation instructions on [github.com/cross-rs/cross#installation](https://github.com/cross-rs/cross?tab=readme-ov-file#installation), or just run the folowing:
+
+```bash
+cargo install cross --git https://github.com/cross-rs/cross
+```
+
 ### `sea-orm-cli`
 
-If you work on databse migrations, you will probably need `sea-orm-cli`:
+If you work on database migrations, you will probably need `sea-orm-cli`:
 
 ```bash
 cargo install sea-orm-cli
 ```
 
-### `prosodyctl`
-
-To use `prosodyctl` locally, you need `prosodyctl` and its dependencies.
-
-```bash
-brew install prosodyctl
-luarocks install luaunbound
-```
-
 ## Updating dependencies
 
 ```bash
-rustup upgrade && cargo update
-make update-redoc
+task update
 ```
 
 ## Testing
@@ -37,23 +49,18 @@ make update-redoc
 After you have setup your environment to run smoke tests and integration tests, you can run all of them in a single command using:
 
 ```bash
-make test
+task test
 ```
+
+This has the added benefit of updating the version of Rust used to run the tests in [`README.md`](./README.md).
 
 ### Smoke testing
 
-As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md),
-we are using Gherkin and Cucumber to run tests. Therefore, you can use this command to run the tests:
-
 ```bash
-cargo test --test behavior
+task smoke-test
 ```
 
-You could also run `cargo test` but it runs unit tests in `src/`, which we don't need.
-
-> [!TIP]
-> While developing a feature, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive)
-> and then use `cargo test --test behavior -- --tags '@testing'` to run only matching `Scenario`s.
+As explained in [ADR: Write tests with the Gherkin syntax](./ADRs/2024-01-11-a-write-tests-in-gherkin.md), we are using Gherkin and Cucumber to run the tests. Therefore, you won't be able to filter tests using `cargo test`. To do so, add a `@testing` tag to a `Feature`, `Rule` or `Scenario` (non-exhaustive) and then use `task smoke-test -- --tags '@testing'` to run only matching `Scenario`s.
 
 ### Integration testing
 
@@ -77,9 +84,11 @@ export PROSE_POD_SYSTEM_DIR=???
 Finally, since integration tests run on final containers, you have to build `prose-pod-server` and `prose-pod-api`:
 
 ```bash
-docker build -t proseim/prose-pod-api "${PROSE_POD_API_DIR:?}"
+# Build the Prose Pod API image.
+task build-image -- --debug
+# Build the Prose Pod Server image.
 PROSE_POD_SERVER_DIR=???
-docker build -t proseim/prose-pod-server "${PROSE_POD_SERVER_DIR:?}"
+docker build -t proseim/prose-pod-server:latest "${PROSE_POD_SERVER_DIR:?}"
 ```
 
 #### Running tests
@@ -87,7 +96,7 @@ docker build -t proseim/prose-pod-server "${PROSE_POD_SERVER_DIR:?}"
 Then, run the tests using:
 
 ```bash
-make integration-test
+task integration-test
 ```
 
 If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
@@ -98,16 +107,21 @@ If a test fails, Step CI will automatically print some additional information to
 
 ## Building the Docker image
 
-```bash
-docker build -t proseim/prose-pod-api .
-```
-
-To build the API in debug mode (e.g. to use predictable data generators),
-you can use the `CARGO_INSTALL_EXTRA_ARGS` [Docker `ARG`]:
+To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:latest`):
 
 ```bash
-docker build -t proseim/prose-pod-api --build-arg CARGO_INSTALL_EXTRA_ARGS='--debug' .
+task build-image [-- [TARGET_ARCH] [--debug] [--help]]
 ```
 
-[Docker `ARG`]: https://docs.docker.com/reference/dockerfile/#arg "Dockerfile reference | Docker Docs"
+If you don't set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` for your local architecture. If you set `TARGET_ARCH`, `build-image` will build `proseim/prose-pod-api:latest` for the desired architecture. Since the image runs Alpine Linux, which likely doesn't match your local target triple, `build-image` builds the Prose Pod API using [`cross`](#cross). You can set `PROSE_POD_API_IMAGE` to override the final name of the image (useful when cross-compiling).
+
+To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
+
+```bash
+task build-image -- [TARGET_ARCH] --debug
+```
+
 [Step CI]: https://stepci.com/ "Step CI homepage"
+[Task]: https://stepci.com/ "Task"
+[GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"
+[`cross`]: https://github.com/cross-rs/cross "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"

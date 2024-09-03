@@ -1,0 +1,19 @@
+#!/bin/bash
+# Starts a Prose Pod on a distant Raspberry Pi (useful in integration tests).
+
+# Configure the script to exit when a command fails.
+set -e
+
+# ===== SHARED CODE =====
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+export SCRIPTS_ROOT
+source "$(dirname $0)"/util.sh
+source "$(dirname $0)"/constants.sh
+
+# ===== MAIN LOGIC =====
+
+rpi_ssh \
+	SERVER_ROOT='"$HOME"/'"${REMOTE_PROSE_POD_SYSTEM_DIR:?}"'/server/pod' \
+	${PROSE_CONFIG_FILE+"PROSE_CONFIG_FILE='${PROSE_CONFIG_FILE}'"} \
+	docker compose -f "${REMOTE_PROSE_POD_SYSTEM_DIR:?}"/compose.yaml up --detach

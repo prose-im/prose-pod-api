@@ -140,6 +140,12 @@ path = "src/lib.rs"
 opt-level = 0
 debug = true
 debug-assertions = true
+strip = "debuginfo"
+
+[profile.staging]
+inherits = "dev"
+opt-level = 1
+lto = "thin"
 
 [profile.release]
 opt-level = "s"
