@@ -1331,6 +1331,118 @@
 					"200": {
 						"description": "Success",
 						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"oneOf": [
+											{
+												"$ref": "#/components/schemas/sse-events/dns-record-check-result"
+											},
+											{
+												"$ref": "#/components/schemas/sse-events/port-reachability-check-result"
+											},
+											{
+												"$ref": "#/components/schemas/sse-events/ip-connectivity-check-result"
+											},
+											{ "$ref": "#/components/schemas/sse-events/end" }
+										],
+										"discriminator": {
+											"propertyName": "event"
+										}
+									}
+								},
+								"example": [
+									{
+										"id": "IPv4",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "IPv4 record for xmpp.crisp.chat",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "IPv6",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "IPv6 record for xmpp.crisp.chat",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "SRV-c2s",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "SRV record for client-to-server connections",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "SRV-s2s",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "SRV record for server-to-server connections",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "TCP-c2s",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "Client-to-server port at TCP 5222",
+											"status": "OPEN"
+										}
+									},
+									{
+										"id": "TCP-s2s",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "Server-to-server port at TCP 5269",
+											"status": "CLOSED"
+										}
+									},
+									{
+										"id": "TCP-HTTPS",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "HTTP server port at TCP 443",
+											"status": "OPEN"
+										}
+									},
+									{
+										"id": "IPv4-c2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Client-to-server connectivity over IPv4",
+											"status": "SUCCESS"
+										}
+									},
+									{
+										"id": "IPv6-c2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Client-to-server connectivity over IPv6",
+											"status": "FAILURE"
+										}
+									},
+									{
+										"id": "IPv4-s2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Server-to-server connectivity over IPv4",
+											"status": "SUCCESS"
+										}
+									},
+									{
+										"id": "IPv6-s2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Server-to-server connectivity over IPv6",
+											"status": "FAILURE"
+										}
+									}
+								]
+							},
 							"text/event-stream": {
 								"schema": {
 									"type": "array",
@@ -1373,6 +1485,48 @@
 					"200": {
 						"description": "Success",
 						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/sse-events/dns-record-check-result"
+									}
+								},
+								"example": [
+									{
+										"id": "IPv4",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "IPv4 record for xmpp.crisp.chat",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "IPv6",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "IPv6 record for xmpp.crisp.chat",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "SRV-c2s",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "SRV record for client-to-server connections",
+											"status": "VALID"
+										}
+									},
+									{
+										"id": "SRV-s2s",
+										"event": "dns-record-check-result",
+										"data": {
+											"description": "SRV record for server-to-server connections",
+											"status": "VALID"
+										}
+									}
+								]
+							},
 							"text/event-stream": {
 								"schema": {
 									"type": "array",
@@ -1409,6 +1563,40 @@
 					"200": {
 						"description": "Success",
 						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/sse-events/port-reachability-check-result"
+									}
+								},
+								"example": [
+									{
+										"id": "TCP-c2s",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "Client-to-server port at TCP 5222",
+											"status": "OPEN"
+										}
+									},
+									{
+										"id": "TCP-s2s",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "Server-to-server port at TCP 5269",
+											"status": "CLOSED"
+										}
+									},
+									{
+										"id": "TCP-HTTPS",
+										"event": "port-reachability-check-result",
+										"data": {
+											"description": "HTTP server port at TCP 443",
+											"status": "OPEN"
+										}
+									}
+								]
+							},
 							"text/event-stream": {
 								"schema": {
 									"type": "array",
@@ -1445,6 +1633,48 @@
 					"200": {
 						"description": "Success",
 						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/sse-events/ip-connectivity-check-result"
+									}
+								},
+								"example": [
+									{
+										"id": "IPv4-c2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Client-to-server connectivity over IPv4",
+											"status": "SUCCESS"
+										}
+									},
+									{
+										"id": "IPv6-c2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Client-to-server connectivity over IPv6",
+											"status": "FAILURE"
+										}
+									},
+									{
+										"id": "IPv4-s2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Server-to-server connectivity over IPv4",
+											"status": "SUCCESS"
+										}
+									},
+									{
+										"id": "IPv6-s2s",
+										"event": "ip-connectivity-check-result",
+										"data": {
+											"description": "Server-to-server connectivity over IPv6",
+											"status": "FAILURE"
+										}
+									}
+								]
+							},
 							"text/event-stream": {
 								"schema": {
 									"type": "array",
