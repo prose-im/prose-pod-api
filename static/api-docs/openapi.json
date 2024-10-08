@@ -1326,6 +1326,7 @@
 				"description": "Runs \"Check DNS records\", \"Check ports reachability\" and \"Check IP connectivity\" in a single Server-Sent Events stream.",
 				"operationId": "check_network_configuration",
 				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/RetryInterval" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1367,6 +1368,7 @@
 				"description": "Checks that all DNS records are properly configured.\n\nThis route regularly checks the domain's DNS records to provide \"live\" information. It opens a stream of Server-Sent Events and sends `dns-record-check-result` events every few seconds.\nNOTE: There might be a `(\\n|^):(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "check_dns_records",
 				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/RetryInterval" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1402,6 +1404,7 @@
 				"description": "Checks that all required ports are opened and reachable.\n\nThis route regularly checks the domain's open ports to provide \"live\" information. It opens a stream of Server-Sent Events and sends `port-reachability-check-result` events every few seconds.\nNOTE: There might be a `(\\n|^):(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "check_ports",
 				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/RetryInterval" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -1437,6 +1440,7 @@
 				"description": "Checks that your server has connection over all IP protocols.\n\nThis route regularly checks the domain's IP to provide \"live\" information. It opens a stream of Server-Sent Events and sends `ip-connectivity-check-result` events every few seconds.\nNOTE: There might be a `(\\n|^):(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "check_ip",
 				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/RetryInterval" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -2390,6 +2394,12 @@
 				"in": "query",
 				"name": "until",
 				"schema": { "$ref": "#/components/schemas/DateTime" }
+			},
+			"RetryInterval": {
+				"description": "Time to wait between retries. It must be between 1 second and 1 minute (inclusive). It does not mean checks will be retried exactly every `interval` but rather the API will wait `interval` between a failure and the start of another check.",
+				"in": "query",
+				"name": "interval",
+				"schema": { "$ref": "#/components/schemas/DurationTimeLike" }
 			},
 			"MemberId": {
 				"name": "memberId",
