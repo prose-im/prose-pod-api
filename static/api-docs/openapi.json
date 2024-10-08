@@ -2626,10 +2626,11 @@
 				"schema": { "$ref": "#/components/schemas/DateTime" }
 			},
 			"RetryInterval": {
-				"description": "Time to wait between retries. It must be between 1 second and 1 minute (inclusive). It does not mean checks will be retried exactly every `interval` but rather the API will wait `interval` between a failure and the start of another check.",
+				"description": "Time to wait between retries (when requesting Server-Sent Events). It must be between 1 second and 1 minute (inclusive), and will default to 5 seconds is unspecified. It does not mean checks will be retried exactly every `interval` but rather the API will wait `interval` between a failure and the start of another check.",
 				"in": "query",
 				"name": "interval",
-				"schema": { "$ref": "#/components/schemas/DurationTimeLike" }
+				"schema": { "$ref": "#/components/schemas/DurationTimeLike" },
+				"example": "PT5S"
 			},
 			"MemberId": {
 				"name": "memberId",
