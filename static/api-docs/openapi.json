@@ -1942,7 +1942,7 @@
 			},
 			"IpConnectivityStatus": {
 				"type": "string",
-				"enum": ["SUCCESS", "FAILURE", "MISSING", "CHECKING"]
+				"enum": ["SUCCESS", "FAILURE", "CHECKING"]
 			},
 			"IpConnectivityCheckResult": {
 				"type": "object",

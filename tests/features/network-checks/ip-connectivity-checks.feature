@@ -61,5 +61,3 @@ Feature: IP connectivity checks
         And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
         And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
-
-  # MISSING status = internal field to say if check should be ran + check.run(network_checker) instead of logic in routes.rs
