@@ -15,6 +15,7 @@ use crate::services::network_checker::NetworkChecker;
 
 pub trait NetworkCheck {
     type CheckResult;
+    fn description(&self) -> String;
     fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult;
 }
 

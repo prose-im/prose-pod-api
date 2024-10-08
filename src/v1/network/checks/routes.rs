@@ -3,9 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use futures::{stream::FuturesOrdered, StreamExt};
 use lazy_static::lazy_static;
 use rocket::{
     response::stream::{Event, EventStream},
+    serde::json::Json,
     State,
 };
 use serde::{Deserialize, Serialize};
@@ -14,7 +16,10 @@ use service::{
     model::{dns::DnsEntry, network_checks::*, xmpp::XmppConnectionType, PodNetworkConfig},
     services::network_checker::*,
 };
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    fmt::Display,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 use tokio::{
     sync::mpsc::{self, error::SendError},
     task::JoinSet,
@@ -31,7 +36,26 @@ lazy_static! {
     static ref DEFAULT_RETRY_INTERVAL: Duration = Duration::from_secs(5);
 }
 
-fn run_checks<'r, Check, Status>(
+async fn run_checks<'r, Check>(
+    checks: impl Iterator<Item = Check> + 'r,
+    network_checker: &'r NetworkChecker,
+) -> Vec<NetworkCheckResult>
+where
+    Check: NetworkCheck + Send + 'static,
+    Check::CheckResult: Clone + Send,
+    NetworkCheckResult: From<(Check, Check::CheckResult)>,
+{
+    checks
+        .map(|check| async move {
+            let result = check.run(network_checker);
+            NetworkCheckResult::from((check, result))
+        })
+        .collect::<FuturesOrdered<_>>()
+        .collect()
+        .await
+}
+
+fn run_checks_stream<'r, Check, Status>(
     checks: impl Iterator<Item = Check> + Clone + 'r,
     network_checker: &'r NetworkChecker,
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
@@ -143,6 +167,18 @@ pub(super) fn check_network_configuration<'r>(
     })
 }
 
+#[get("/v1/network/checks/dns", format = "application/json")]
+pub(super) async fn check_dns_records<'r>(
+    pod_network_config: LazyGuard<PodNetworkConfig>,
+    network_checker: &'r State<NetworkChecker>,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let pod_network_config = pod_network_config.inner?;
+    let network_checker = network_checker.inner();
+
+    let res = run_checks(pod_network_config.dns_record_checks(), &network_checker).await;
+    Ok(res.into())
+}
+
 #[get(
     "/v1/network/checks/dns?<interval>",
     format = "text/event-stream",
@@ -156,12 +192,28 @@ pub(super) fn check_dns_records_stream<'r>(
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    run_checks(
+    run_checks_stream(
         pod_network_config.dns_record_checks(),
         &network_checker,
         dns_record_check_result,
         interval,
     )
+}
+
+#[get("/v1/network/checks/ports", format = "application/json")]
+pub(super) async fn check_ports<'r>(
+    pod_network_config: LazyGuard<PodNetworkConfig>,
+    network_checker: &'r State<NetworkChecker>,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let pod_network_config = pod_network_config.inner?;
+    let network_checker = network_checker.inner();
+
+    let res = run_checks(
+        pod_network_config.port_reachability_checks().into_iter(),
+        &network_checker,
+    )
+    .await;
+    Ok(res.into())
 }
 
 #[get(
@@ -177,12 +229,28 @@ pub(super) fn check_ports_stream<'r>(
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    run_checks(
+    run_checks_stream(
         pod_network_config.port_reachability_checks().into_iter(),
         &network_checker,
         port_reachability_check_result,
         interval,
     )
+}
+
+#[get("/v1/network/checks/ip", format = "application/json")]
+pub(super) async fn check_ip<'r>(
+    pod_network_config: LazyGuard<PodNetworkConfig>,
+    network_checker: &'r State<NetworkChecker>,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let pod_network_config = pod_network_config.inner?;
+    let network_checker = network_checker.inner();
+
+    let res = run_checks(
+        pod_network_config.ip_connectivity_checks().into_iter(),
+        &network_checker,
+    )
+    .await;
+    Ok(res.into())
 }
 
 #[get(
@@ -198,7 +266,7 @@ pub(super) async fn check_ip_stream<'r>(
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    run_checks(
+    run_checks_stream(
         pod_network_config.ip_connectivity_checks().into_iter(),
         &network_checker,
         ip_connectivity_check_result,
@@ -206,7 +274,92 @@ pub(super) async fn check_ip_stream<'r>(
     )
 }
 
+// ===== JSON RESPONSES =====
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NetworkCheckResult {
+    id: String,
+    event: NetworkCheckEvent,
+    data: String,
+}
+
+impl NetworkCheckResult {
+    pub fn new<'a, Id, Check, Status>(check: &'a Check, status: Status) -> Self
+    where
+        Id: From<&'a Check> + Display,
+        Check: NetworkCheck,
+        Status: Serialize,
+        NetworkCheckEvent: From<&'a Check>,
+    {
+        let data = CheckResultData {
+            description: check.description(),
+            status,
+        };
+        Self {
+            event: NetworkCheckEvent::from(&check),
+            id: Id::from(check.to_owned()).to_string(),
+            data: serde_json::to_string(&data).unwrap_or_default(),
+        }
+    }
+}
+
+macro_rules! derive_network_check_result_from {
+    ($check:ty, $result:ty, $status:ty, $id:ty) => {
+        impl From<($check, $result)> for NetworkCheckResult {
+            fn from((check, result): ($check, $result)) -> Self {
+                Self::new::<$id, $check, $status>(&check, <$status>::from(result))
+            }
+        }
+    };
+}
+
+derive_network_check_result_from!(
+    DnsRecordCheck,
+    DnsRecordCheckResult,
+    DnsRecordStatus,
+    DnsRecordCheckId
+);
+derive_network_check_result_from!(
+    PortReachabilityCheck,
+    PortReachabilityCheckResult,
+    PortReachabilityStatus,
+    PortReachabilityCheckId
+);
+derive_network_check_result_from!(
+    IpConnectivityCheck,
+    IpConnectivityCheckResult,
+    IpConnectivityStatus,
+    IpConnectivityCheckId
+);
+
 // ===== EVENTS =====
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(strum::Display)]
+#[strum(serialize_all = "kebab-case")]
+pub enum NetworkCheckEvent {
+    DnsRecordCheckResult,
+    PortReachabilityCheckResult,
+    IpConnectivityCheckResult,
+}
+
+impl From<&DnsRecordCheck> for NetworkCheckEvent {
+    fn from(_: &DnsRecordCheck) -> Self {
+        Self::DnsRecordCheckResult
+    }
+}
+
+impl From<&PortReachabilityCheck> for NetworkCheckEvent {
+    fn from(_: &PortReachabilityCheck) -> Self {
+        Self::PortReachabilityCheckResult
+    }
+}
+
+impl From<&IpConnectivityCheck> for NetworkCheckEvent {
+    fn from(_: &IpConnectivityCheck) -> Self {
+        Self::IpConnectivityCheckResult
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CheckResultData<Status> {
@@ -217,20 +370,20 @@ struct CheckResultData<Status> {
 #[serde_as]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-enum DnsRecordCheckStatus {
+enum DnsRecordStatus {
     Checking,
     Valid,
     PartiallyValid,
     Invalid,
 }
 
-impl Default for DnsRecordCheckStatus {
+impl Default for DnsRecordStatus {
     fn default() -> Self {
         Self::Checking
     }
 }
 
-impl From<DnsRecordCheckResult> for DnsRecordCheckStatus {
+impl From<DnsRecordCheckResult> for DnsRecordStatus {
     fn from(status: DnsRecordCheckResult) -> Self {
         match status {
             DnsRecordCheckResult::Valid => Self::Valid,
@@ -264,13 +417,13 @@ impl From<&DnsRecordCheck> for DnsRecordCheckId {
     }
 }
 
-fn dns_record_check_result(check: &DnsRecordCheck, status: DnsRecordCheckStatus) -> Event {
+fn dns_record_check_result(check: &DnsRecordCheck, status: DnsRecordStatus) -> Event {
     Event::json(&CheckResultData {
         description: check.description(),
         status,
     })
     .id(DnsRecordCheckId::from(check).to_string())
-    .event("dns-record-check-result")
+    .event(NetworkCheckEvent::DnsRecordCheckResult.to_string())
 }
 
 #[serde_as]
@@ -333,7 +486,7 @@ fn port_reachability_check_result(
         status,
     })
     .id(PortReachabilityCheckId::from(check).to_string())
-    .event("port-reachability-check-result")
+    .event(NetworkCheckEvent::PortReachabilityCheckResult.to_string())
 }
 
 #[serde_as]
@@ -411,7 +564,7 @@ fn ip_connectivity_check_result(
         status,
     })
     .id(IpConnectivityCheckId::from(check).to_string())
-    .event("ip-connectivity-check-result")
+    .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
 }
 
 fn end_event() -> Event {

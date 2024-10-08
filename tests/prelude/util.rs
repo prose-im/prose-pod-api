@@ -59,6 +59,27 @@ macro_rules! api_call_fn {
             .unwrap()
         }
     };
+    ($fn:ident, $method:ident, $route:expr, $accept:expr) => {
+        async fn $fn<'a>(
+            client: &'a rocket::local::asynchronous::Client,
+            token: secrecy::SecretString,
+        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+            use secrecy::ExposeSecret as _;
+            tokio::time::timeout(
+                tokio::time::Duration::from_secs(2),
+                client
+                    .$method($route)
+                    .header($accept)
+                    .header(rocket::http::Header::new(
+                        "Authorization",
+                        format!("Bearer {}", token.expose_secret()),
+                    ))
+                    .dispatch(),
+            )
+            .await
+            .unwrap()
+        }
+    };
     ($fn:ident, $method:ident, $route:expr, $payload_type:ident, $var:ident, $var_type:ty) => {
         async fn $fn<'a>(
             client: &'a rocket::local::asynchronous::Client,

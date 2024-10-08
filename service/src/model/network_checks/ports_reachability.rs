@@ -29,19 +29,6 @@ impl PortReachabilityCheck {
             Self::Https { .. } => 443,
         }
     }
-    pub fn description(&self) -> String {
-        match self {
-            Self::Xmpp {
-                conn_type: XmppConnectionType::C2S,
-                ..
-            } => format!("Client-to-server port at TCP {}", self.port()),
-            Self::Xmpp {
-                conn_type: XmppConnectionType::S2S,
-                ..
-            } => format!("Server-to-server port at TCP {}", self.port()),
-            Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
-        }
-    }
     pub fn hostnames(&self) -> Vec<DomainName> {
         match self {
             Self::Xmpp {
@@ -73,6 +60,19 @@ impl RetryableNetworkCheckResult for PortReachabilityCheckResult {
 impl NetworkCheck for PortReachabilityCheck {
     type CheckResult = PortReachabilityCheckResult;
 
+    fn description(&self) -> String {
+        match self {
+            Self::Xmpp {
+                conn_type: XmppConnectionType::C2S,
+                ..
+            } => format!("Client-to-server port at TCP {}", self.port()),
+            Self::Xmpp {
+                conn_type: XmppConnectionType::S2S,
+                ..
+            } => format!("Server-to-server port at TCP {}", self.port()),
+            Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
+        }
+    }
     fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = PortReachabilityCheckResult::Closed;
         for hostname in self.hostnames().iter() {

@@ -12,8 +12,11 @@ use rocket::Route;
 pub(super) fn routes() -> Vec<Route> {
     routes![
         check_network_configuration,
+        check_dns_records,
         check_dns_records_stream,
+        check_ports,
         check_ports_stream,
+        check_ip,
         check_ip_stream,
     ]
 }

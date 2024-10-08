@@ -29,30 +29,6 @@ impl IpConnectivityCheck {
             Self::XmppServer { ip_version, .. } => ip_version.clone(),
         }
     }
-    pub fn description(&self) -> String {
-        match self {
-            Self::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => "Client-to-server connectivity over IPv4".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => "Client-to-server connectivity over IPv6".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => "Server-to-server connectivity over IPv4".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => "Server-to-server connectivity over IPv6".to_owned(),
-        }
-    }
     pub fn hostnames(&self) -> Vec<DomainName> {
         match self {
             Self::XmppServer {
@@ -85,6 +61,30 @@ impl RetryableNetworkCheckResult for IpConnectivityCheckResult {
 impl NetworkCheck for IpConnectivityCheck {
     type CheckResult = IpConnectivityCheckResult;
 
+    fn description(&self) -> String {
+        match self {
+            Self::XmppServer {
+                conn_type: XmppConnectionType::C2S,
+                ip_version: IpVersion::V4,
+                ..
+            } => "Client-to-server connectivity over IPv4".to_owned(),
+            Self::XmppServer {
+                conn_type: XmppConnectionType::C2S,
+                ip_version: IpVersion::V6,
+                ..
+            } => "Client-to-server connectivity over IPv6".to_owned(),
+            Self::XmppServer {
+                conn_type: XmppConnectionType::S2S,
+                ip_version: IpVersion::V4,
+                ..
+            } => "Server-to-server connectivity over IPv4".to_owned(),
+            Self::XmppServer {
+                conn_type: XmppConnectionType::S2S,
+                ip_version: IpVersion::V6,
+                ..
+            } => "Server-to-server connectivity over IPv6".to_owned(),
+        }
+    }
     fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = IpConnectivityCheckResult::Failure;
         for hostname in self.hostnames().iter() {

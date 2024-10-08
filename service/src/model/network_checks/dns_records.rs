@@ -57,6 +57,9 @@ impl RetryableNetworkCheckResult for DnsRecordCheckResult {
 impl NetworkCheck for DnsRecordCheck {
     type CheckResult = DnsRecordCheckResult;
 
+    fn description(&self) -> String {
+        self.dns_entry.description()
+    }
     fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         network_checker.check_dns_entry(self.dns_entry.clone())
     }
