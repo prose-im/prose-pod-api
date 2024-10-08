@@ -50,6 +50,7 @@ use service::{
         secrets_store::{SecretsStore, SecretsStoreImpl},
         server_ctl::{ServerCtl, ServerCtlImpl as _},
         server_manager::ServerManager,
+        user_service::UserService,
         xmpp_service::XmppServiceInner,
     },
 };
@@ -232,6 +233,10 @@ impl TestWorld {
             &self.server_ctl,
             server_config,
         ))
+    }
+
+    fn user_service(&self) -> UserService {
+        UserService::new(&self.server_ctl, &self.auth_service, &self.xmpp_service)
     }
 
     fn init_controller(&self) -> InitController {

@@ -13,11 +13,23 @@ use service::model::{DateLike, PossiblyInfinite};
 #[derive(Debug, Parameter)]
 #[param(
     name = "duration",
-    regex = r"\d+ (?:year|month|week|day)s?(?: \d+ (?:year|month|week|day)s?)*|infinite"
+    regex = r"\d+ (?:year|month|week|day|hour|minute|second)s?(?: \d+ (?:year|month|week|day|hour|minute|second)s?)*|infinite"
 )]
 pub enum Duration {
-    Finite(String),
+    Finite(ISODuration),
     Infinite,
+}
+
+impl Duration {
+    pub fn seconds(&self) -> u32 {
+        match self {
+            Self::Finite(duration) => duration
+                .num_seconds()
+                .expect("Could not get seconds from duration.")
+                as u32,
+            Self::Infinite => panic!("Could not get seconds from infinite duration."),
+        }
+    }
 }
 
 impl FromStr for Duration {
@@ -28,15 +40,20 @@ impl FromStr for Duration {
             return Ok(Self::Infinite);
         }
 
-        let patterns = vec![
+        let date_patterns = vec![
             (r"(\d+) years?", 'Y'),
             (r"(\d+) months?", 'M'),
             (r"(\d+) weeks?", 'W'),
             (r"(\d+) days?", 'D'),
         ];
+        let time_patterns = vec![
+            (r"(\d+) hours?", 'H'),
+            (r"(\d+) minutes?", 'M'),
+            (r"(\d+) seconds?", 'S'),
+        ];
 
         let mut value = "P".to_string();
-        for (pattern, designator) in patterns {
+        for (pattern, designator) in date_patterns {
             let re = Regex::new(pattern).unwrap();
             if let Some(captures) = re.captures(s) {
                 value.push_str(captures.get(1).unwrap().as_str());
@@ -44,9 +61,26 @@ impl FromStr for Duration {
             }
         }
 
-        match value.as_str() {
-            "P" => Err(format!("Invalid `Duration`: {s}")),
-            _ => Ok(Self::Finite(value)),
+        let mut has_time = false;
+        for (pattern, designator) in time_patterns {
+            let re = Regex::new(pattern).unwrap();
+            if let Some(captures) = re.captures(s) {
+                if !has_time {
+                    value.push('T');
+                    has_time = true;
+                }
+                value.push_str(captures.get(1).unwrap().as_str());
+                value.push(designator);
+            }
+        }
+
+        if value.as_str() == "P" {
+            return Err(format!("Invalid `Duration`: '{s}'"));
+        }
+
+        match ISODuration::parse(value.as_str()) {
+            Ok(duration) => Ok(Self::Finite(duration)),
+            Err(err) => Err(format!("Invalid `Duration`: {err:?}")),
         }
     }
 }
@@ -63,9 +97,7 @@ impl Display for Duration {
 impl Into<PossiblyInfinite<service::model::Duration<DateLike>>> for Duration {
     fn into(self) -> PossiblyInfinite<service::model::Duration<DateLike>> {
         match self {
-            Self::Finite(d) => {
-                PossiblyInfinite::Finite(ISODuration::parse(&d).unwrap().try_into().unwrap())
-            }
+            Self::Finite(d) => PossiblyInfinite::Finite(d.try_into().unwrap()),
             Self::Infinite => PossiblyInfinite::Infinite,
         }
     }
