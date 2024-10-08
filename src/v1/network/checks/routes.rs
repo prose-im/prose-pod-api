@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use lazy_static::lazy_static;
 use rocket::{
     response::stream::{Event, EventStream},
     State,
@@ -20,19 +21,30 @@ use tokio::{
     time::Duration,
 };
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::{
+    error::{self, Error},
+    forms,
+    guards::LazyGuard,
+};
+
+lazy_static! {
+    static ref DEFAULT_RETRY_INTERVAL: Duration = Duration::from_secs(5);
+}
 
 fn run_checks<'r, Check, Status>(
     checks: impl Iterator<Item = Check> + Clone + 'r,
     network_checker: &'r NetworkChecker,
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
+    retry_interval: Option<forms::Duration>,
 ) -> Result<EventStream![Event + 'r], Error>
 where
     Check: NetworkCheck + Send + 'static,
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
     Status: From<Check::CheckResult> + Default,
 {
-    let interval = Duration::from_secs(1);
+    let retry_interval =
+        retry_interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;
+
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
             trace!("Sending {event:?}…");
@@ -46,7 +58,7 @@ where
         network_checker.run_checks(
             checks,
             map_to_event,
-            interval,
+            retry_interval.into(),
             tx,
             &mut join_set,
         );
@@ -63,15 +75,22 @@ where
     })
 }
 
-#[get("/v1/network/checks", format = "text/event-stream", rank = 2)]
+#[get(
+    "/v1/network/checks?<interval>",
+    format = "text/event-stream",
+    rank = 2
+)]
 pub(super) fn check_network_configuration<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
+    interval: Option<forms::Duration>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    let interval = Duration::from_secs(1);
+    let retry_interval =
+        interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;
+
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
             trace!("Sending {event:?}…");
@@ -93,21 +112,21 @@ pub(super) fn check_network_configuration<'r>(
         network_checker.run_checks(
             dns_record_checks,
             dns_record_check_result,
-            interval,
+            retry_interval,
             tx.clone(),
             &mut join_set,
         );
         network_checker.run_checks(
             port_reachability_checks.into_iter(),
             port_reachability_check_result,
-            interval,
+            retry_interval,
             tx.clone(),
             &mut join_set,
         );
         network_checker.run_checks(
             ip_connectivity_checks.into_iter(),
             ip_connectivity_check_result,
-            interval,
+            retry_interval,
             tx.clone(),
             &mut join_set,
         );
@@ -124,10 +143,15 @@ pub(super) fn check_network_configuration<'r>(
     })
 }
 
-#[get("/v1/network/checks/dns", format = "text/event-stream", rank = 2)]
+#[get(
+    "/v1/network/checks/dns?<interval>",
+    format = "text/event-stream",
+    rank = 2
+)]
 pub(super) fn check_dns_records_stream<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
+    interval: Option<forms::Duration>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -136,13 +160,19 @@ pub(super) fn check_dns_records_stream<'r>(
         pod_network_config.dns_record_checks(),
         &network_checker,
         dns_record_check_result,
+        interval,
     )
 }
 
-#[get("/v1/network/checks/ports", format = "text/event-stream", rank = 2)]
+#[get(
+    "/v1/network/checks/ports?<interval>",
+    format = "text/event-stream",
+    rank = 2
+)]
 pub(super) fn check_ports_stream<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
+    interval: Option<forms::Duration>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -151,13 +181,19 @@ pub(super) fn check_ports_stream<'r>(
         pod_network_config.port_reachability_checks().into_iter(),
         &network_checker,
         port_reachability_check_result,
+        interval,
     )
 }
 
-#[get("/v1/network/checks/ip", format = "text/event-stream", rank = 2)]
+#[get(
+    "/v1/network/checks/ip?<interval>",
+    format = "text/event-stream",
+    rank = 2
+)]
 pub(super) async fn check_ip_stream<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
+    interval: Option<forms::Duration>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -166,6 +202,7 @@ pub(super) async fn check_ip_stream<'r>(
         pod_network_config.ip_connectivity_checks().into_iter(),
         &network_checker,
         ip_connectivity_check_result,
+        interval,
     )
 }
 
@@ -382,4 +419,22 @@ fn end_event() -> Event {
         .event("end")
         .id("end")
         .with_comment("End of stream")
+}
+
+/// Check that the retry interval is between 1 second and 1 minute (inclusive).
+fn validate_retry_interval(interval: forms::Duration) -> Result<Duration, Error> {
+    let interval_is_max_1_minute = || interval.num_minutes().is_some_and(|m| m <= 1.);
+    let interval_is_min_1_second = || interval.num_seconds().is_some_and(|s| s >= 1.);
+
+    let interval_is_valid = interval_is_max_1_minute() && interval_is_min_1_second();
+
+    if interval_is_valid {
+        // NOTE: We can force unwrap here because `to_std` only returns `None` if `Duration` contains `year` or `month`,
+        //   which is impossible due to previous checks.
+        Ok(interval.to_std().unwrap())
+    } else {
+        Err(error::BadRequest {
+            reason: "Invalid retry interval. Authorized values must be between 1 second and 1 minute (inclusive).".to_string()
+        }.into())
+    }
 }

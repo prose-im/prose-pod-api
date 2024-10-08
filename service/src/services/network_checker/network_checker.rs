@@ -63,7 +63,7 @@ impl NetworkChecker {
         &self,
         checks: impl Iterator<Item = Check>,
         map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
-        interval: Duration,
+        retry_interval: Duration,
         sender: Sender<Option<Event>>,
         join_set: &mut JoinSet<Result<(), SendError<Option<Event>>>>,
     ) where
@@ -88,7 +88,7 @@ impl NetworkChecker {
                         .await?;
 
                     if result.should_retry() {
-                        sleep(interval).await;
+                        sleep(retry_interval).await;
                     } else {
                         return tx_clone.send(None).await;
                     }

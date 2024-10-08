@@ -114,6 +114,7 @@ hickory-resolver = { workspace = true }
 http-auth-basic = { workspace = true }
 iso8601-duration = { workspace = true }
 iso8601-timestamp = { workspace = true }
+lazy_static = { workspace = true }
 migration = { workspace = true }
 rocket = { workspace = true }
 sea-orm-rocket = { workspace = true }
