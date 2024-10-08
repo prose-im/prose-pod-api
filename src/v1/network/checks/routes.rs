@@ -116,7 +116,7 @@ pub(super) fn check_network_configuration<'r>(
             match rx.recv().await {
                 Some(Some(event)) => yield logged(event),
                 Some(None) => { remaining.fetch_sub(1, Ordering::Relaxed); },
-                None => {},
+                None => break,
             }
         }
 
