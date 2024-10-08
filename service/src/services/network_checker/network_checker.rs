@@ -3,14 +3,15 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt::Debug, ops::Deref, sync::Arc};
+use std::{fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 
-use tracing::debug;
-
-use crate::model::{
-    dns::{DnsEntry, DnsRecord},
-    xmpp::XmppConnectionType,
+use tokio::{
+    sync::mpsc::{error::SendError, Sender},
+    task::JoinSet,
+    time::sleep,
 };
+
+use crate::model::{dns::*, network_checks::*};
 
 /// A service used to perform network checks (DNS resolution, ports checking…).
 #[derive(Debug, Clone)]
@@ -35,68 +36,6 @@ pub trait NetworkCheckerImpl: Debug + Sync + Send {
     fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     fn srv_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
 
-    fn check_dns_entry(&self, dns_entry: DnsEntry) -> DnsRecordStatus {
-        let check = |dns_lookup_result: Result<Vec<DnsRecord>, DnsLookupError>,
-                     expected: &DnsRecord|
-         -> DnsRecordStatus {
-            // Check the given domain but also its standard equivalent (e.g. `_xmpp-client._tcp.{domain}`).
-            // If we the DNS lookup fails, consider that the DNS record is `Invalid`.
-            let records = match dns_lookup_result {
-                Ok(records) => records,
-                Err(err) => {
-                    debug!("DNS lookup failed: {err}");
-                    return DnsRecordStatus::Error(err);
-                }
-            };
-
-            // If we find the exact DNS record (not taking the TTL into account), return `Valid`.
-            // If we find a DNS record that's close enough, we consider it `PartiallyValid`.
-            // Otherwise, it's `Invalid`.
-            for record in records {
-                if record.eq(expected) {
-                    return DnsRecordStatus::Valid;
-                } else if record.equiv(expected) {
-                    return DnsRecordStatus::PartiallyValid {
-                        expected: expected.clone(),
-                        found: record,
-                    };
-                }
-            }
-
-            return DnsRecordStatus::Invalid;
-        };
-
-        let check_ipv4 = |expected: &DnsRecord| -> DnsRecordStatus {
-            let host = expected.hostname().to_string();
-            check(self.ipv4_lookup(&host), expected)
-        };
-
-        let check_ipv6 = |expected: &DnsRecord| -> DnsRecordStatus {
-            let host = expected.hostname().to_string();
-            check(self.ipv6_lookup(&host), expected)
-        };
-
-        let check_srv = |expected: &DnsRecord, conn_type: XmppConnectionType| -> DnsRecordStatus {
-            let host = expected.hostname();
-            check(
-                self.srv_lookup(&conn_type.standard_domain(host.clone()).to_string())
-                    .or_else(|_err| self.srv_lookup(&host.to_string())),
-                expected,
-            )
-        };
-
-        match dns_entry {
-            DnsEntry::Ipv4 { .. } => check_ipv4(&dns_entry.into_dns_record()),
-            DnsEntry::Ipv6 { .. } => check_ipv6(&dns_entry.into_dns_record()),
-            DnsEntry::SrvC2S { .. } => {
-                check_srv(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
-            }
-            DnsEntry::SrvS2S { .. } => {
-                check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
-            }
-        }
-    }
-
     fn is_port_open(&self, host: &str, port_number: u32) -> bool;
 
     fn is_ipv4_available(&self, host: &str) -> bool;
@@ -109,17 +48,6 @@ pub trait NetworkCheckerImpl: Debug + Sync + Send {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DnsRecordStatus {
-    Valid,
-    PartiallyValid {
-        expected: DnsRecord,
-        found: DnsRecord,
-    },
-    Invalid,
-    Error(DnsLookupError),
-}
-
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
 #[error("DNS lookup error: {0}")]
 pub struct DnsLookupError(pub String);
@@ -128,4 +56,44 @@ pub struct DnsLookupError(pub String);
 pub enum IpVersion {
     V4,
     V6,
+}
+
+impl NetworkChecker {
+    pub fn run_checks<'a, Check, Status, Event>(
+        &self,
+        checks: impl Iterator<Item = Check>,
+        map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
+        interval: Duration,
+        sender: Sender<Option<Event>>,
+        join_set: &mut JoinSet<Result<(), SendError<Option<Event>>>>,
+    ) where
+        Check: NetworkCheck + Send + 'static,
+        Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
+        Status: From<Check::CheckResult> + Default,
+        Event: Send + 'static,
+    {
+        for check in checks {
+            let tx_clone = sender.clone();
+            let network_checker = self.to_owned();
+
+            join_set.spawn(async move {
+                tx_clone
+                    .send(Some(map_to_event(&check, Status::default())))
+                    .await?;
+
+                loop {
+                    let result = check.run(&network_checker);
+                    tx_clone
+                        .send(Some(map_to_event(&check, Status::from(result.clone()))))
+                        .await?;
+
+                    if result.should_retry() {
+                        sleep(interval).await;
+                    } else {
+                        return tx_clone.send(None).await;
+                    }
+                }
+            });
+        }
+    }
 }

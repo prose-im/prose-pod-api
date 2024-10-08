@@ -222,6 +222,8 @@ pub struct DnsSetupStep<Record> {
     pub records: Vec<Record>,
 }
 
+/// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
+///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
 #[derive(Debug, Clone)]
 pub enum DnsEntry {
     Ipv4 {

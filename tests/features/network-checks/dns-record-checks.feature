@@ -1,4 +1,5 @@
 @dns-record-checks @network-checks
+@testing
 Feature: DNS record checks
 
   Background:

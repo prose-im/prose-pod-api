@@ -12,7 +12,7 @@ use tracing::debug;
 
 use crate::model::dns::DnsRecord;
 
-use super::{network_checker::NetworkCheckerImpl, DnsLookupError};
+use super::network_checker::{DnsLookupError, NetworkCheckerImpl};
 
 lazy_static! {
     static ref RESOLVER: Resolver = Resolver::default().unwrap();

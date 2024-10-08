@@ -1,5 +1,4 @@
 @ip-connectivity-checks @network-checks
-@testing
 Feature: IP connectivity checks
 
   Background:

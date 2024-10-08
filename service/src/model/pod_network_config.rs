@@ -6,7 +6,6 @@
 use hickory_proto::rr::domain::Name as DomainName;
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
-    ops::Deref,
     str::FromStr,
 };
 
@@ -14,6 +13,7 @@ use crate::services::network_checker::IpVersion;
 
 use super::{
     dns::{DnsEntry, DnsRecordWithStringRepr, DnsSetupStep},
+    network_checks::*,
     xmpp::XmppConnectionType,
     JidDomain, PodAddress,
 };
@@ -89,6 +89,9 @@ impl PodNetworkConfig {
         }
     }
 
+    /// Configuration steps shown in the "DNS setup instructions" of the Prose Pod Dashboard.
+    ///
+    /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
     pub fn dns_setup_steps(&self) -> impl Iterator<Item = DnsSetupStep<DnsRecordWithStringRepr>> {
         self.dns_entries().into_iter().map(|step| DnsSetupStep {
             purpose: step.purpose,
@@ -101,14 +104,18 @@ impl PodNetworkConfig {
         })
     }
 
-    pub fn dns_checks(&self) -> impl Iterator<Item = DnsCheck> + Clone {
+    /// "DNS records" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
+    ///
+    /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
+    pub fn dns_record_checks(&self) -> impl Iterator<Item = DnsRecordCheck> + Clone {
         self.dns_entries()
             .into_iter()
             .flat_map(|step| step.records)
-            .map(DnsCheck::from)
+            .map(DnsRecordCheck::from)
     }
 
-    pub fn port_reachabilty_checks(&self) -> Vec<PortReachabilityCheck> {
+    /// "Ports reachability" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
+    pub fn port_reachability_checks(&self) -> Vec<PortReachabilityCheck> {
         let Self { server_domain, .. } = self;
         // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
         let server_domain = &DomainName::from_str(server_domain)
@@ -129,6 +136,7 @@ impl PodNetworkConfig {
         ]
     }
 
+    /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     pub fn ip_connectivity_checks(&self) -> Vec<IpConnectivityCheck> {
         let Self { server_domain, .. } = self;
         // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
@@ -157,126 +165,5 @@ impl PodNetworkConfig {
                 ip_version: IpVersion::V6,
             },
         ]
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct DnsCheck {
-    pub dns_entry: DnsEntry,
-}
-
-impl Deref for DnsCheck {
-    type Target = DnsEntry;
-
-    fn deref(&self) -> &Self::Target {
-        &self.dns_entry
-    }
-}
-
-impl From<DnsEntry> for DnsCheck {
-    fn from(dns_entry: DnsEntry) -> Self {
-        Self { dns_entry }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum PortReachabilityCheck {
-    Xmpp {
-        hostname: DomainName,
-        conn_type: XmppConnectionType,
-    },
-    Https {
-        hostname: DomainName,
-    },
-}
-
-impl PortReachabilityCheck {
-    pub fn port(&self) -> u32 {
-        match self {
-            Self::Xmpp { conn_type, .. } => conn_type.standard_port(),
-            Self::Https { .. } => 443,
-        }
-    }
-    pub fn description(&self) -> String {
-        match self {
-            Self::Xmpp {
-                conn_type: XmppConnectionType::C2S,
-                ..
-            } => format!("Client-to-server port at TCP {}", self.port()),
-            Self::Xmpp {
-                conn_type: XmppConnectionType::S2S,
-                ..
-            } => format!("Server-to-server port at TCP {}", self.port()),
-            Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
-        }
-    }
-    pub fn hostnames(&self) -> Vec<DomainName> {
-        match self {
-            Self::Xmpp {
-                hostname,
-                conn_type,
-            } => vec![
-                // Check the standard domain first
-                conn_type.standard_domain(hostname.clone()),
-                // Then the XMPP server's domain
-                hostname.clone(),
-            ],
-            Self::Https { hostname } => vec![hostname.clone()],
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum IpConnectivityCheck {
-    XmppServer {
-        hostname: DomainName,
-        conn_type: XmppConnectionType,
-        ip_version: IpVersion,
-    },
-}
-
-impl IpConnectivityCheck {
-    pub fn ip_version(&self) -> IpVersion {
-        match self {
-            Self::XmppServer { ip_version, .. } => ip_version.clone(),
-        }
-    }
-    pub fn description(&self) -> String {
-        match self {
-            Self::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => "Client-to-server connectivity over IPv4".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => "Client-to-server connectivity over IPv6".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => "Server-to-server connectivity over IPv4".to_owned(),
-            Self::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => "Server-to-server connectivity over IPv6".to_owned(),
-        }
-    }
-    pub fn hostnames(&self) -> Vec<DomainName> {
-        match self {
-            Self::XmppServer {
-                hostname,
-                conn_type,
-                ..
-            } => vec![
-                // Check the standard domain first
-                conn_type.standard_domain(hostname.clone()),
-                // Then the XMPP server's domain
-                hostname.clone(),
-            ],
-        }
     }
 }
