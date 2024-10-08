@@ -3,20 +3,20 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use cucumber::{given, then, when};
-use prose_pod_api::{
-    error::Error,
-    v1::network::dns::{DnsRecord, DnsRecordDiscriminants, GetDnsRecordsResponse},
-};
+use prose_pod_api::{error::Error, v1::network::dns::GetDnsRecordsResponse};
 use service::{
     entity::pod_config,
+    model::dns::{DnsRecord, DnsRecordDiscriminants},
     repositories::PodConfigRepository,
     sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set},
 };
 
 use crate::{
     api_call_fn,
-    cucumber_parameters::{Array, DnsRecordType},
+    cucumber_parameters::{Array, DnsRecordType, DomainName},
     user_token, TestWorld,
 };
 
@@ -38,16 +38,16 @@ async fn given_pod_config(
 
 #[given("the Prose Pod is publicly accessible via an IPv4")]
 async fn given_pod_has_ipv4(world: &mut TestWorld) -> Result<(), Error> {
-    // A random IPv4, as we don't care about the value.
-    let ipv4 = "106.142.13.9".to_string();
+    // We don't care about the value so we can leave it unspecified.
+    let ipv4 = Ipv4Addr::UNSPECIFIED.to_string();
     given_pod_config(world, |model| model.ipv4 = Set(Some(ipv4))).await?;
     Ok(())
 }
 
 #[given("the Prose Pod is publicly accessible via an IPv6")]
 async fn given_pod_has_ipv6(world: &mut TestWorld) -> Result<(), Error> {
-    // A random IPv6, as we don't care about the value.
-    let ipv6 = "758a:effa:3705:0e60:e681:8514:09c2:3a9a".to_string();
+    // We don't care about the value so we can leave it unspecified.
+    let ipv6 = Ipv6Addr::UNSPECIFIED.to_string();
     given_pod_config(world, |model| model.ipv6 = Set(Some(ipv6))).await?;
     Ok(())
 }
@@ -97,9 +97,9 @@ async fn then_step_n_records(world: &mut TestWorld, n: usize, record_types: Arra
 }
 
 #[then(expr = "DNS setup instructions should contain a SRV record for port(s) {int}")]
-async fn then_srv_record_for_port(world: &mut TestWorld, port_number: usize) {
+async fn then_srv_record_for_port(world: &mut TestWorld, port_number: u16) {
     let res: GetDnsRecordsResponse = world.result().body_into();
-    let srv_ports: Vec<u32> = res
+    let srv_ports: Vec<u16> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
@@ -108,13 +108,13 @@ async fn then_srv_record_for_port(world: &mut TestWorld, port_number: usize) {
             _ => None,
         })
         .collect();
-    assert!(srv_ports.contains(&(port_number as u32)));
+    assert!(srv_ports.contains(&port_number));
 }
 
-#[then(expr = "A records hostnames should be {}")]
-async fn then_a_records_hostnames(world: &mut TestWorld, hostname: String) {
+#[then(expr = "A records hostnames should be {domain_name}")]
+async fn then_a_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
     let res: GetDnsRecordsResponse = world.result().body_into();
-    let hostnames: Vec<String> = res
+    let hostnames: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
@@ -129,10 +129,10 @@ async fn then_a_records_hostnames(world: &mut TestWorld, hostname: String) {
     );
 }
 
-#[then(expr = "AAAA records hostnames should be {}")]
-async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: String) {
+#[then(expr = "AAAA records hostnames should be {domain_name}")]
+async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
     let res: GetDnsRecordsResponse = world.result().body_into();
-    let hostnames: Vec<String> = res
+    let hostnames: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
@@ -147,10 +147,10 @@ async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: String) {
     );
 }
 
-#[then(expr = "SRV records hostnames should be {}")]
-async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: String) {
+#[then(expr = "SRV records hostnames should be {domain_name}")]
+async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
     let res: GetDnsRecordsResponse = world.result().body_into();
-    let hostnames: Vec<String> = res
+    let hostnames: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
@@ -165,10 +165,10 @@ async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: String) {
     );
 }
 
-#[then(expr = "SRV records targets should be {}")]
-async fn then_srv_records_targets(world: &mut TestWorld, target: String) {
+#[then(expr = "SRV records targets should be {domain_name}")]
+async fn then_srv_records_targets(world: &mut TestWorld, target: DomainName) {
     let res: GetDnsRecordsResponse = world.result().body_into();
-    let targets: Vec<String> = res
+    let targets: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)

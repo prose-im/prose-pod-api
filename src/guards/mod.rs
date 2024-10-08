@@ -11,6 +11,7 @@ mod jid;
 mod jwt;
 mod member_controller;
 mod notifier;
+mod pod_network_config;
 mod server_config;
 mod server_manager;
 mod unauthenticated_invitation_service;

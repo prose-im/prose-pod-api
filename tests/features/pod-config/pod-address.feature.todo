@@ -1,0 +1,42 @@
+@pod-address
+Feature: Setting the Prose Pod address
+
+  Background:
+    Given the Prose Pod API has started
+      And the server config has been initialized
+      And Valerian is an admin
+
+  Rule: Only admins can set the Prose Pod address
+
+    Scenario Outline: Rémi (not admin) tries to set the Prose Pod address
+      Given Rémi is not an admin
+       When Rémi sets the Prose Pod address to <address>
+       Then the HTTP status code should be Forbidden
+        And the response content type should be JSON
+        And the error reason should be "forbidden"
+
+    Examples:
+      | address    |
+      | an IPv4    |
+      | an IPv6    |
+      | a hostname |
+
+  """
+  For federation.
+  """
+  Rule: IPv4, IPv6 or hostname is mandatory
+
+    Scenario: IPv4
+      Given Temp
+
+    Scenario: IPv6
+      Given Temp
+
+    """
+    When the Prose Pod is deployed in a Cloud environment or behind a Load Balancer,
+    it doesn't have a static IP address, but can be accessed via a given hostname.
+    """
+    Scenario: The Prose Pod has a dynamic IP address
+      Given Temp
+
+  # Rule: IPv6 is optional

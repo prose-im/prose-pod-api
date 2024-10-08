@@ -10,5 +10,10 @@ pub use routes::*;
 use rocket::Route;
 
 pub(super) fn routes() -> Vec<Route> {
-    routes![get_dns_records]
+    routes![
+        check_network_configuration,
+        check_dns_records_stream,
+        check_ports_stream,
+        check_ip_stream,
+    ]
 }

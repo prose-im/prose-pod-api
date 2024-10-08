@@ -6,7 +6,7 @@
 use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use prose_pod_api::v1::network::dns::DnsRecordDiscriminants;
+use service::model::dns::DnsRecordDiscriminants;
 
 #[derive(Debug, Parameter)]
 #[param(name = "dns_record_type", regex = r"[A-Z]+")]

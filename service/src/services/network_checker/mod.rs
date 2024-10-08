@@ -3,12 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod routes;
+pub mod live_network_checker;
+mod network_checker;
 
-pub use routes::*;
-
-use rocket::Route;
-
-pub(super) fn routes() -> Vec<Route> {
-    routes![get_dns_records]
-}
+pub use live_network_checker as live;
+pub use network_checker::*;

@@ -579,6 +579,7 @@ impl HttpApiError for PodAddressError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::PodAddressNotInitialized => ErrorCode::PodAddressNotInitialized,
+            Self::InvalidData(_) => ErrorCode::InternalServerError,
         }
     }
 }

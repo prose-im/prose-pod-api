@@ -14,13 +14,14 @@ Feature: DNS setup instructions
        When Rémi requests DNS setup instructions
        Then the HTTP status code should be Forbidden
         And the response content type should be JSON
+        And the error reason should be "forbidden"
 
   """
   `SRV` records cannot point directly to IP addresses, we need to point it to a hostname.
   """
   Rule: If the Prose Pod has a static IP address, `SRV` records point to `xmpp.<domain>` and `xmpp.<domain>` points to the Prose Pod
 
-    Scenario Outline: IPv4
+    Scenario Outline: IPv4 only
       Given the Prose Pod is publicly accessible via an IPv4
         And the XMPP server domain is <domain>
        When Valerian requests DNS setup instructions
@@ -30,6 +31,22 @@ Feature: DNS setup instructions
         And step 2 should contain a single SRV record
         And step 3 should contain a single SRV record
         And A records hostnames should be xmpp.<domain>
+        And SRV records targets should be xmpp.<domain>.
+
+    Examples:
+      | domain         |
+      | prose.org      |
+      | chat.prose.org |
+
+    Scenario Outline: IPv6 only
+      Given the Prose Pod is publicly accessible via an IPv6
+        And the XMPP server domain is <domain>
+       When Valerian requests DNS setup instructions
+       Then the call should succeed
+        And DNS setup instructions should contain 3 steps
+        And step 1 should contain a single AAAA record
+        And step 2 should contain a single SRV record
+        And step 3 should contain a single SRV record
         And AAAA records hostnames should be xmpp.<domain>
         And SRV records targets should be xmpp.<domain>.
 
@@ -75,6 +92,7 @@ Feature: DNS setup instructions
     """
     Scenario: IPv4 + IPv6 + hostname
       Given the Prose Pod is publicly accessible via an IPv4
+        And the Prose Pod is publicly accessible via an IPv6
         And the Prose Pod is publicly accessible via a hostname
        When Valerian requests DNS setup instructions
        Then the call should succeed

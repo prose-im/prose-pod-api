@@ -18,7 +18,7 @@ use service::controllers::init_controller::WorkspaceCreateForm;
 use service::model::{JidDomain, JidNode};
 use service::repositories::ServerConfigCreateForm;
 
-use crate::cucumber_parameters::Text;
+use crate::cucumber_parameters::{DomainName, Text};
 use crate::TestWorld;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -89,10 +89,10 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     Ok(())
 }
 
-#[given(expr = "the XMPP server domain is {}")]
-async fn given_server_domain(world: &mut TestWorld, domain: String) -> Result<(), Error> {
+#[given(expr = "the XMPP server domain is {domain_name}")]
+async fn given_server_domain(world: &mut TestWorld, domain: DomainName) -> Result<(), Error> {
     let server_manager = world.server_manager().await?;
-    let domain = JidDomain::from_str(&domain).expect("Invalid domain");
+    let domain = JidDomain::from_str(&domain.to_string()).expect("Invalid domain");
     server_manager.set_domain(&domain).await?;
     Ok(())
 }

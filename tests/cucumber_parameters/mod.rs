@@ -8,22 +8,26 @@
 
 mod array;
 mod dns_record_type;
+mod domain_name;
 mod duration;
 mod email_address;
 mod http_status;
 mod invitations;
 mod jid;
 mod member_role;
+mod open_or_not;
 mod text;
 mod toggle_state;
 
 pub use array::*;
 pub use dns_record_type::*;
+pub use domain_name::*;
 pub use duration::*;
 pub use email_address::*;
 pub use http_status::*;
 pub use invitations::*;
 pub use jid::*;
 pub use member_role::*;
+pub use open_or_not::*;
 pub use text::*;
 pub use toggle_state::*;
