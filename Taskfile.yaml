@@ -34,7 +34,7 @@ tasks:
     deps: [smoke-test, integration-test]
     cmds:
       # NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
-      - 'sed -i '''' ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
+      - 'sed -i '''' -E ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
   smoke-test:
     desc: Runs smoke tests.
     cmds:
