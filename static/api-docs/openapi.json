@@ -563,6 +563,27 @@
 				}
 			}
 		},
+		"/v1/pod/config": {
+			"get": {
+				"tags": ["Pod / Configuration"],
+				"summary": "Get Pod config",
+				"description": "Get the current configuration of the Prose Pod.",
+				"operationId": "get_pod_config",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/PodConfig" }
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			}
+		},
 		"/v1/pod/config/address": {
 			"put": {
 				"tags": ["Init", "Pod / Configuration"],
@@ -575,7 +596,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/InitServerConfigRequest"
+								"$ref": "#/components/schemas/SetPodAddressRequest"
 							}
 						}
 					}
@@ -585,7 +606,7 @@
 						"description": "Success",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/PodConfig" }
+								"schema": { "$ref": "#/components/schemas/PodAddress" }
 							}
 						}
 					},
@@ -593,7 +614,7 @@
 						"description": "Created",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/PodConfig" }
+								"schema": { "$ref": "#/components/schemas/PodAddress" }
 							}
 						},
 						"headers": {
@@ -609,7 +630,17 @@
 				"operationId": "get_pod_address",
 				"security": [{ "BearerAuth": [] }],
 				"responses": {
-					"$ref": "#/components/responses/GetServerConfigAllResponses"
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/PodAddress" }
+							}
+						}
+					},
+					"400": { "$ref": "#/components/responses/PodAddressNotInitialized" },
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
 				}
 			}
 		},
@@ -1842,6 +1873,27 @@
 					"name": { "$ref": "#/components/schemas/WorkspaceName" }
 				}
 			},
+			"SetPodAddressRequest": {
+				"type": "object",
+				"required": [],
+				"properties": {
+					"ipv4": {
+						"type": "string",
+						"example": "104.18.28.104"
+					},
+					"ipv6": {
+						"type": "string",
+						"example": "2606:4700::6812:1c68"
+					},
+					"hostname": {
+						"type": "string",
+						"example": "crisp.chat"
+					}
+				},
+				"example": {
+					"hostname": "crisp.chat"
+				}
+			},
 			"InitServerConfigRequest": {
 				"type": "object",
 				"required": ["domain"],
@@ -1952,6 +2004,39 @@
 						"format": "duration",
 						"default": "P1W"
 					}
+				}
+			},
+			"PodConfig": {
+				"type": "object",
+				"required": [],
+				"properties": {
+					"address": { "$ref": "#/components/schemas/PodAddress" }
+				}
+			},
+			"PodAddress": {
+				"type": "object",
+				"required": ["type"],
+				"properties": {
+					"type": {
+						"type": "string",
+						"enum": ["Static", "Dynamic"]
+					},
+					"ipv4": {
+						"type": "string",
+						"example": "104.18.28.104"
+					},
+					"ipv6": {
+						"type": "string",
+						"example": "2606:4700::6812:1c68"
+					},
+					"hostname": {
+						"type": "string",
+						"example": "crisp.chat"
+					}
+				},
+				"example": {
+					"type": "Dynamic",
+					"hostname": "crisp.chat"
 				}
 			},
 			"DurationDateLike": {
@@ -2531,6 +2616,17 @@
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
 							"reason": "server_config_not_initialized"
+						}
+					}
+				}
+			},
+			"PodAddressNotInitialized": {
+				"description": "Pod address not initialized",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": {
+							"reason": "pod_address_not_initialized"
 						}
 					}
 				}

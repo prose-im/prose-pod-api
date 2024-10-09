@@ -11,6 +11,7 @@ use rocket::Route;
 
 pub(super) fn routes() -> Vec<Route> {
     routes![
+        get_pod_config,
         set_pod_address,
         get_pod_address,
     ]

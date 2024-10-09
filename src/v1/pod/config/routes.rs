@@ -7,7 +7,7 @@ use rocket::{response::status::Created, serde::json::Json, Either};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    model::PodConfig,
+    model::{PodAddress, PodConfig},
     repositories::{PodConfigCreateForm, PodConfigRepository},
 };
 
@@ -33,36 +33,48 @@ impl Into<PodConfigCreateForm> for SetPodAddressRequest {
     }
 }
 
+#[get("/v1/pod/config")]
+pub async fn get_pod_config<'r>(conn: Connection<'r, Db>) -> Result<Json<PodConfig>, Error> {
+    let db = conn.into_inner();
+
+    let model = PodConfigRepository::get(db).await?;
+
+    let res = model.map(PodConfig::from).unwrap_or_default();
+    Ok(res.into())
+}
+
 #[put("/v1/pod/config/address", format = "json", data = "<req>")]
 pub async fn set_pod_address<'r>(
     conn: Connection<'r, Db>,
     req: Json<SetPodAddressRequest>,
-) -> Result<Either<Created<Json<PodConfig>>, Json<PodConfig>>, Error> {
+) -> Result<Either<Created<Json<PodAddress>>, Json<PodAddress>>, Error> {
     let db = conn.into_inner();
     let req = req.into_inner();
 
     if PodConfigRepository::get(db).await?.is_some() {
         let model = PodConfigRepository::set(db, req).await?;
 
-        let res = PodConfig::from(model);
+        let res = PodConfig::from(model).address.unwrap();
         Ok(Either::Right(res.into()))
     } else {
         let model = PodConfigRepository::create(db, req).await?;
 
         let resource_uri = uri!(get_pod_address).to_string();
-        let res = PodConfig::from(model);
+        let res = PodConfig::from(model).address.unwrap();
         Ok(Either::Left(Created::new(resource_uri).body(res.into())))
     }
 }
 
 #[get("/v1/pod/config/address")]
-pub async fn get_pod_address<'r>(conn: Connection<'r, Db>) -> Result<Json<PodConfig>, Error> {
+pub async fn get_pod_address<'r>(conn: Connection<'r, Db>) -> Result<Json<PodAddress>, Error> {
     let db = conn.into_inner();
 
-    let Some(model) = PodConfigRepository::get(db).await? else {
+    let Some(address) = PodConfigRepository::get(db)
+        .await?
+        .and_then(|model| PodConfig::from(model).address)
+    else {
         return Err(error::PodAddressNotInitialized.into());
     };
 
-    let res = PodConfig::from(model);
-    Ok(res.into())
+    Ok(address.into())
 }

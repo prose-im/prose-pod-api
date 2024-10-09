@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::entity::pod_config;
 
 /// The Prose Pod configuration, almost as stored in the database.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PodConfig {
     pub address: Option<PodAddress>,
 }
@@ -29,6 +29,7 @@ impl From<pod_config::Model> for PodConfig {
 
 // TODO: Replace `String` by parsed types (ensuring format and preventing bad user input).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum PodAddress {
     Static {
         ipv4: Option<Ipv4Addr>,
