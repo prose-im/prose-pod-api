@@ -10,10 +10,7 @@ pub mod network;
 pub mod server;
 pub mod workspace;
 
-use base64::{
-    engine::general_purpose::{STANDARD as Base64, STANDARD_NO_PAD as Base64NoPad},
-    Engine,
-};
+use base64::{engine::general_purpose::STANDARD as Base64, Engine};
 use cucumber::{given, then, when};
 use prose_pod_api::{
     error::{self, Error},
