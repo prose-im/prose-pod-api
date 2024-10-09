@@ -74,17 +74,13 @@ pub async fn set_pod_address<'r>(
     if PodConfigRepository::get(db).await?.is_some() {
         let model = PodConfigRepository::set(db, req).await?;
 
-        let res = PodConfig::from(model)
-            .address
-            .expect("Pod address is None.");
+        let res = PodConfig::from(model).address.unwrap();
         Ok(Either::Right(res.into()))
     } else {
         let model = PodConfigRepository::create(db, req).await?;
 
         let resource_uri = uri!(get_pod_address).to_string();
-        let res = PodConfig::from(model)
-            .address
-            .expect("Pod address is None.");
+        let res = PodConfig::from(model).address.unwrap();
         Ok(Either::Left(Created::new(resource_uri).body(res.into())))
     }
 }
