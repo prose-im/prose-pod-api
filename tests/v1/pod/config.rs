@@ -3,7 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr as _,
+};
+
 use cucumber::when;
+use hickory_proto::rr::Name as DomainName;
 use prose_pod_api::v1::pod::config::SetPodAddressRequest;
 
 use crate::{api_call_fn, user_token, TestWorld};
@@ -22,7 +28,7 @@ async fn when_set_pod_address_ipv4(world: &mut TestWorld, name: String) {
         world.client(),
         token,
         SetPodAddressRequest {
-            ipv4: Some("104.18.28.104".to_string()),
+            ipv4: Some(Ipv4Addr::new(104, 18, 28, 104)),
             ..Default::default()
         },
     )
@@ -37,7 +43,7 @@ async fn when_set_pod_address_ipv6(world: &mut TestWorld, name: String) {
         world.client(),
         token,
         SetPodAddressRequest {
-            ipv6: Some("2606:4700::6812:1c68".to_string()),
+            ipv6: Some(Ipv6Addr::from_bits(0x2606470068121c68)),
             ..Default::default()
         },
     )
@@ -52,7 +58,7 @@ async fn when_set_pod_address_hostname(world: &mut TestWorld, name: String) {
         world.client(),
         token,
         SetPodAddressRequest {
-            hostname: Some("crisp.chat".to_string()),
+            hostname: Some(DomainName::from_str("crisp.chat").unwrap()),
             ..Default::default()
         },
     )

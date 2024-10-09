@@ -3,6 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::net::{Ipv4Addr, Ipv6Addr};
+
+use hickory_resolver::proto::rr::Name as DomainName;
 use rocket::{response::status::Created, serde::json::Json, Either};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
@@ -19,9 +22,9 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SetPodAddressRequest {
-    pub ipv4: Option<String>,
-    pub ipv6: Option<String>,
-    pub hostname: Option<String>,
+    pub ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub hostname: Option<DomainName>,
 }
 
 impl Into<PodConfigCreateForm> for SetPodAddressRequest {
