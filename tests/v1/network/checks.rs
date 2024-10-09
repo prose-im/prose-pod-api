@@ -12,7 +12,7 @@ api_call_fn!(
     check_dns_records,
     get,
     "/v1/network/checks/dns",
-    Accept::EventStream
+    accept: Accept::EventStream
 );
 
 #[when(expr = "{} checks the DNS records configuration")]
@@ -26,7 +26,7 @@ api_call_fn!(
     check_ports,
     get,
     "/v1/network/checks/ports",
-    Accept::EventStream
+    accept: Accept::EventStream
 );
 
 #[when(expr = "{} checks the ports reachability")]
@@ -40,7 +40,7 @@ api_call_fn!(
     check_ip_connectivity,
     get,
     "/v1/network/checks/ip",
-    Accept::EventStream
+    accept: Accept::EventStream
 );
 
 #[when(expr = "{} checks the IP connectivity")]

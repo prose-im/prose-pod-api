@@ -8,15 +8,16 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
     model::{PodAddress, PodConfig},
-    repositories::{PodConfigCreateForm, PodConfigRepository},
+    prose_xmpp::BareJid,
+    repositories::{MemberRepository, PodConfigCreateForm, PodConfigRepository},
 };
 
 use crate::{
     error::{self, Error},
-    guards::Db,
+    guards::{Db, LazyGuard},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SetPodAddressRequest {
     pub ipv4: Option<String>,
     pub ipv6: Option<String>,
@@ -34,8 +35,17 @@ impl Into<PodConfigCreateForm> for SetPodAddressRequest {
 }
 
 #[get("/v1/pod/config")]
-pub async fn get_pod_config<'r>(conn: Connection<'r, Db>) -> Result<Json<PodConfig>, Error> {
+pub async fn get_pod_config<'r>(
+    conn: Connection<'r, Db>,
+    jid: LazyGuard<BareJid>,
+) -> Result<Json<PodConfig>, Error> {
     let db = conn.into_inner();
+
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
 
     let model = PodConfigRepository::get(db).await?;
 
@@ -46,28 +56,48 @@ pub async fn get_pod_config<'r>(conn: Connection<'r, Db>) -> Result<Json<PodConf
 #[put("/v1/pod/config/address", format = "json", data = "<req>")]
 pub async fn set_pod_address<'r>(
     conn: Connection<'r, Db>,
+    jid: LazyGuard<BareJid>,
     req: Json<SetPodAddressRequest>,
 ) -> Result<Either<Created<Json<PodAddress>>, Json<PodAddress>>, Error> {
     let db = conn.into_inner();
     let req = req.into_inner();
 
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
+
     if PodConfigRepository::get(db).await?.is_some() {
         let model = PodConfigRepository::set(db, req).await?;
 
-        let res = PodConfig::from(model).address.unwrap();
+        let res = PodConfig::from(model)
+            .address
+            .expect("Pod address is None.");
         Ok(Either::Right(res.into()))
     } else {
         let model = PodConfigRepository::create(db, req).await?;
 
         let resource_uri = uri!(get_pod_address).to_string();
-        let res = PodConfig::from(model).address.unwrap();
+        let res = PodConfig::from(model)
+            .address
+            .expect("Pod address is None.");
         Ok(Either::Left(Created::new(resource_uri).body(res.into())))
     }
 }
 
 #[get("/v1/pod/config/address")]
-pub async fn get_pod_address<'r>(conn: Connection<'r, Db>) -> Result<Json<PodAddress>, Error> {
+pub async fn get_pod_address<'r>(
+    conn: Connection<'r, Db>,
+    jid: LazyGuard<BareJid>,
+) -> Result<Json<PodAddress>, Error> {
     let db = conn.into_inner();
+
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
 
     let Some(address) = PodConfigRepository::get(db)
         .await?

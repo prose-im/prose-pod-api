@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use sea_orm::{prelude::*, QueryOrder as _, Set};
+use sea_orm::{prelude::*, QueryOrder as _, Set, Unchanged};
 
 use crate::entity::pod_config::{self, ActiveModel, Column, Entity};
 
@@ -25,7 +25,9 @@ impl PodConfigRepository {
         db: &impl ConnectionTrait,
         form: impl Into<PodConfigCreateForm>,
     ) -> Result<pod_config::Model, DbErr> {
-        form.into().into_active_model().update(db).await
+        let mut active_model = form.into().into_active_model();
+        active_model.id = Unchanged(1);
+        active_model.update(db).await
     }
 }
 
