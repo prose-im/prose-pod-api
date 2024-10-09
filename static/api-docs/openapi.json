@@ -563,6 +563,56 @@
 				}
 			}
 		},
+		"/v1/pod/config/address": {
+			"put": {
+				"tags": ["Init", "Pod / Configuration"],
+				"summary": "Set Pod address",
+				"description": "Tells the API how the Pod is publicly accessible.",
+				"operationId": "set_pod_address",
+				"security": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/InitServerConfigRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/PodConfig" }
+							}
+						}
+					},
+					"201": {
+						"description": "Created",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/PodConfig" }
+							}
+						},
+						"headers": {
+							"Location": { "$ref": "#/components/headers/Location" }
+						}
+					}
+				}
+			},
+			"get": {
+				"tags": ["Pod / Configuration"],
+				"summary": "Get Pod address",
+				"description": "Get the current address of the Prose Pod.",
+				"operationId": "get_pod_address",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"$ref": "#/components/responses/GetServerConfigAllResponses"
+				}
+			}
+		},
 		"/v1/server/config": {
 			"put": {
 				"tags": ["Init"],

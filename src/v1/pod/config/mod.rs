@@ -10,5 +10,8 @@ pub use routes::*;
 use rocket::Route;
 
 pub(super) fn routes() -> Vec<Route> {
-    routes![set_pod_address]
+    routes![
+        set_pod_address,
+        get_pod_address,
+    ]
 }
