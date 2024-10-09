@@ -343,23 +343,19 @@ pub enum NetworkCheckEvent {
     IpConnectivityCheckResult,
 }
 
-impl From<&DnsRecordCheck> for NetworkCheckEvent {
-    fn from(_: &DnsRecordCheck) -> Self {
-        Self::DnsRecordCheckResult
-    }
+macro_rules! impl_network_check_event_from {
+    ($check:ty, $result:expr) => {
+        impl From<&$check> for NetworkCheckEvent {
+            fn from(_: &$check) -> Self {
+                $result
+            }
+        }
+    };
 }
 
-impl From<&PortReachabilityCheck> for NetworkCheckEvent {
-    fn from(_: &PortReachabilityCheck) -> Self {
-        Self::PortReachabilityCheckResult
-    }
-}
-
-impl From<&IpConnectivityCheck> for NetworkCheckEvent {
-    fn from(_: &IpConnectivityCheck) -> Self {
-        Self::IpConnectivityCheckResult
-    }
-}
+impl_network_check_event_from!(DnsRecordCheck, Self::DnsRecordCheckResult);
+impl_network_check_event_from!(PortReachabilityCheck, Self::PortReachabilityCheckResult);
+impl_network_check_event_from!(IpConnectivityCheck, Self::IpConnectivityCheckResult);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CheckResultData<Status> {
