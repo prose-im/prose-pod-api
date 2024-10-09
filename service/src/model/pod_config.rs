@@ -27,7 +27,6 @@ impl From<pod_config::Model> for PodConfig {
     }
 }
 
-// TODO: Replace `String` by parsed types (ensuring format and preventing bad user input).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum PodAddress {
