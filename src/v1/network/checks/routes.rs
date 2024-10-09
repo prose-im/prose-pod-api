@@ -303,7 +303,7 @@ impl NetworkCheckResult {
     }
 }
 
-macro_rules! derive_network_check_result_from {
+macro_rules! impl_network_check_result_from {
     ($check:ty, $result:ty, $status:ty, $id:ty) => {
         impl From<($check, $result)> for NetworkCheckResult {
             fn from((check, result): ($check, $result)) -> Self {
@@ -313,19 +313,19 @@ macro_rules! derive_network_check_result_from {
     };
 }
 
-derive_network_check_result_from!(
+impl_network_check_result_from!(
     DnsRecordCheck,
     DnsRecordCheckResult,
     DnsRecordStatus,
     DnsRecordCheckId
 );
-derive_network_check_result_from!(
+impl_network_check_result_from!(
     PortReachabilityCheck,
     PortReachabilityCheckResult,
     PortReachabilityStatus,
     PortReachabilityCheckId
 );
-derive_network_check_result_from!(
+impl_network_check_result_from!(
     IpConnectivityCheck,
     IpConnectivityCheckResult,
     IpConnectivityStatus,
