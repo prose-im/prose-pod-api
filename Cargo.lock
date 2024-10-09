@@ -2846,7 +2846,6 @@ dependencies = [
  "serde_with",
  "service",
  "strum",
- "strum_macros",
  "thiserror",
  "time",
  "tokio",

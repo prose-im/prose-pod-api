@@ -90,7 +90,6 @@ serde_with = "3"
 service = { path = "./service" }
 sha2 = "0.10"
 strum = { version = "0.26", features = ["derive"] }
-strum_macros = { version = "0.26" }
 tempfile = "3"
 thiserror = "1"
 # https://github.com/time-rs/time/issues/681
@@ -124,7 +123,6 @@ serde_json = { workspace = true }
 serde_with = { workspace = true }
 service = { workspace = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
