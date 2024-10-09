@@ -76,9 +76,6 @@ Feature: DNS setup instructions
 
   Rule: If the Prose Pod is publicly accessible via a hostname, `SRV` records point to it
 
-    """
-    TODO: Federation works with hostname only? Valerian says he thinks not but I can't find any mention of it.
-    """
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a hostname
        When Valerian requests DNS setup instructions
