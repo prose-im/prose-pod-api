@@ -17,7 +17,7 @@ use crate::{
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
 
-/// NOTE: This is a `struct` because [`DnsCheck`] is an enum (see [`DnsCheck`]'s doc).
+/// NOTE: This is a `struct` because [`DnsEntry`] is an enum (see [`DnsEntry`]'s doc).
 #[derive(Debug, Clone)]
 pub struct DnsRecordCheck {
     pub dns_entry: DnsEntry,
