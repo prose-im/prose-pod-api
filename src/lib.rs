@@ -30,8 +30,9 @@ use service::{
     dependencies::{Notifier, Uuid},
     repositories::ServerConfigRepository,
     services::{
-        auth_service::AuthService, jwt_service::JWTService, secrets_store::SecretsStore,
-        server_ctl::ServerCtl, server_manager::ServerManager, xmpp_service::XmppServiceInner,
+        auth_service::AuthService, jwt_service::JWTService, network_checker::NetworkChecker,
+        secrets_store::SecretsStore, server_ctl::ServerCtl, server_manager::ServerManager,
+        xmpp_service::XmppServiceInner,
     },
 };
 use tokio::time::sleep;
@@ -47,6 +48,7 @@ pub fn custom_rocket(
     notifier: Notifier,
     jwt_service: JWTService,
     secrets_store: SecretsStore,
+    network_checker: NetworkChecker,
 ) -> Rocket<Build> {
     rocket
         .attach(AdHoc::try_on_ignite(
@@ -76,6 +78,7 @@ pub fn custom_rocket(
         .manage(notifier)
         .manage(jwt_service)
         .manage(secrets_store)
+        .manage(network_checker)
 }
 
 async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {

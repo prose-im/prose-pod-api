@@ -14,7 +14,7 @@ use service::{
 };
 
 use crate::{
-    api_call_fn, api_call_with_body_fn,
+    api_call_fn,
     cucumber_parameters::{Duration, ToggleState},
     user_token,
     util::*,
@@ -57,7 +57,7 @@ api_call_fn!(
     put,
     "/v1/server/config/messaging/reset"
 );
-api_call_with_body_fn!(
+api_call_fn!(
     set_message_archiving,
     put,
     "/v1/server/config/message-archive-enabled",
@@ -65,7 +65,7 @@ api_call_with_body_fn!(
     message_archive_enabled,
     bool
 );
-api_call_with_body_fn!(
+api_call_fn!(
     set_message_archive_retention,
     put,
     "/v1/server/config/message-archive-retention",
@@ -185,7 +185,7 @@ api_call_fn!(
     put,
     "/v1/server/config/files/reset"
 );
-api_call_with_body_fn!(
+api_call_fn!(
     set_file_uploading,
     put,
     "/v1/server/config/file-upload-allowed",
@@ -193,7 +193,7 @@ api_call_with_body_fn!(
     file_upload_allowed,
     bool
 );
-api_call_with_body_fn!(
+api_call_fn!(
     set_file_retention,
     put,
     "/v1/server/config/file-storage-retention",

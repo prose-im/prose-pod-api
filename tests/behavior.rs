@@ -18,6 +18,7 @@ use cucumber_parameters::{HTTPStatus, JID};
 use lazy_static::lazy_static;
 use migration::{DbErr, MigratorTrait as _};
 use mock_auth_service::MockAuthService;
+use mock_network_checker::MockNetworkChecker;
 use mock_notifier::{MockNotifier, MockNotifierState};
 use mock_secrets_store::MockSecretsStore;
 use mock_server_ctl::{MockServerCtl, MockServerCtlState};
@@ -45,6 +46,7 @@ use service::{
         auth_service::AuthService,
         jwt_service::{JWTKey, JWTService},
         live_secrets_store::LiveSecretsStore,
+        network_checker::NetworkChecker,
         secrets_store::{SecretsStore, SecretsStoreImpl},
         server_ctl::{ServerCtl, ServerCtlImpl as _},
         server_manager::ServerManager,
@@ -71,30 +73,26 @@ async fn main() {
             format::DefaultFields::new(),
             Format::default(),
             |fmt_layer| {
-                let mut targets = vec![
+                let targets = vec![
                     ("rocket", LevelFilter::ERROR),
                     ("sea_orm_migration", LevelFilter::WARN),
                     ("rocket::server", LevelFilter::WARN),
+                    ("globset", LevelFilter::WARN),
                 ];
 
-                let running_few_scenarios = std::env::args()
-                    .collect::<Vec<_>>()
-                    .contains(&"--tags".to_owned());
-                if running_few_scenarios {
-                    targets.append(&mut vec![
-                        ("prose_pod_api", LevelFilter::TRACE),
-                        ("service", LevelFilter::TRACE),
-                        ("behavior", LevelFilter::TRACE),
-                    ]);
+                let args = std::env::args().collect::<Vec<_>>();
+                let running_few_scenarios = args.contains(&"@testing".to_owned());
+                let debug = args.contains(&"@debug".to_owned());
+
+                let default_level = if running_few_scenarios || debug {
+                    LevelFilter::TRACE
                 } else {
-                    targets.append(&mut vec![
-                        ("prose_pod_api", LevelFilter::WARN),
-                        ("service", LevelFilter::WARN),
-                    ]);
-                }
+                    LevelFilter::WARN
+                };
 
                 tracing_subscriber::registry().with(
                     filter::Targets::new()
+                        .with_default(default_level)
                         .with_targets(targets)
                         .and_then(fmt_layer),
                 )
@@ -164,6 +162,8 @@ pub struct TestWorld {
     notifier: dependencies::Notifier,
     mock_secrets_store: MockSecretsStore,
     secrets_store: SecretsStore,
+    mock_network_checker: MockNetworkChecker,
+    network_checker: NetworkChecker,
     jwt_service: JWTService,
     uuid_gen: dependencies::Uuid,
     client: Option<Client>,
@@ -193,6 +193,7 @@ impl TestWorld {
             self.notifier.clone(),
             self.jwt_service.clone(),
             self.secrets_store.clone(),
+            self.network_checker.clone(),
         ))
         .await
         .expect("valid rocket instance")
@@ -337,6 +338,7 @@ impl TestWorld {
         );
         let mock_secrets_store =
             MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
+        let mock_network_checker = MockNetworkChecker::default();
 
         let uuid_gen = dependencies::Uuid::from_config(&config);
 
@@ -386,6 +388,8 @@ impl TestWorld {
             mock_notifier,
             secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),
             mock_secrets_store,
+            network_checker: NetworkChecker::new(Arc::new(mock_network_checker.clone())),
+            mock_network_checker,
             jwt_service,
             uuid_gen,
         }
@@ -416,12 +420,14 @@ async fn run_migrations(conn: &DatabaseConnection) -> Result<(), DbErr> {
 
 #[given("the Prose Pod API has started")]
 async fn given_api_started(world: &mut TestWorld) {
+    assert!(world.client.is_none());
     world.client = Some(world.create_rocket_test_client().await);
     world.reset_server_ctl_counts();
 }
 
 #[when("the Prose Pod API starts")]
 async fn when_api_starts(world: &mut TestWorld) {
+    assert!(world.client.is_none());
     world.client = Some(world.create_rocket_test_client().await);
 }
 
@@ -493,7 +499,8 @@ fn then_response_is_sse_stream(world: &mut TestWorld) {
 }
 
 lazy_static! {
-    static ref UNEXPECTED_SEMICOLON_REGEX: Regex = Regex::new(r"\n:(\n|$)").unwrap();
+    static ref UNEXPECTED_SEMICOLON_REGEX: Regex = Regex::new(r"(\n|^):(\n|$)").unwrap();
+    static ref UNEXPECTED_NEWLINE_REGEX: Regex = Regex::new(r"\n$").unwrap();
 }
 
 #[then(expr = "one SSE event is {string}")]
@@ -503,7 +510,9 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
         .body()
         .split("\n\n")
         // Fix random "\n:" inconsistently added by Rocket for no apparent reason
-        .map(|s| UNEXPECTED_SEMICOLON_REGEX.replace_all(s, "$1").to_string())
+        .map(|s| UNEXPECTED_SEMICOLON_REGEX.replace_all(s, "$1"))
+        // Fix random "\n" inconsistently added by Rocket for no apparent reason
+        .map(|s| UNEXPECTED_NEWLINE_REGEX.replace_all(&s, "").to_string())
         .collect::<Vec<String>>();
     let expected = value
         // Unescape double quotes

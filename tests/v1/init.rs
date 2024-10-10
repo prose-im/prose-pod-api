@@ -18,7 +18,7 @@ use service::controllers::init_controller::WorkspaceCreateForm;
 use service::model::{JidDomain, JidNode};
 use service::repositories::ServerConfigCreateForm;
 
-use crate::cucumber_parameters::Text;
+use crate::cucumber_parameters::{DomainName, Text};
 use crate::TestWorld;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -89,16 +89,21 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     Ok(())
 }
 
-#[given(expr = "the XMPP server domain is <{}>")]
-async fn given_server_domain(world: &mut TestWorld, domain: String) -> Result<(), Error> {
+#[given(expr = "the XMPP server domain is {domain_name}")]
+async fn given_server_domain(world: &mut TestWorld, domain: DomainName) -> Result<(), Error> {
     let server_manager = world.server_manager().await?;
-    let domain = JidDomain::from_str(&domain).expect("Invalid domain");
+    let domain = JidDomain::from_str(&domain.to_string()).expect("Invalid domain");
     server_manager.set_domain(&domain).await?;
     Ok(())
 }
 
 #[given("nothing has changed since the initialization of the workspace")]
 fn given_nothing_changed(_world: &mut TestWorld) {
+    // Do nothing, even though we could performs checks
+}
+
+#[given("the Prose Pod address has not been initialized")]
+fn given_pod_address_not_initialized(_world: &mut TestWorld) {
     // Do nothing, even though we could performs checks
 }
 
@@ -158,6 +163,15 @@ async fn when_init_server_config(world: &mut TestWorld, domain: Text) {
 async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JidNode) {
     let res = init_first_account(world.client(), &node, &nickname).await;
     world.result = Some(res.into());
+}
+
+#[then(expr = "the error reason should be {string}")]
+async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), serde_json::Error> {
+    let res = world.result();
+    assert_eq!(res.content_type, Some(ContentType::JSON));
+    let body = serde_json::Value::from_str(res.body.as_ref().expect("No body found."))?;
+    assert_eq!(body["reason"].as_str(), Some(reason.as_str()));
+    Ok(())
 }
 
 #[then("the user should receive 'Workspace not initialized'")]

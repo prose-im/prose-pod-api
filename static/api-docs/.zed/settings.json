@@ -1,0 +1,14 @@
+// Folder-specific settings
+//
+// For a full list of overridable settings, and general information on folder-specific settings,
+// see the documentation: https://zed.dev/docs/configuring-zed#folder-specific-settings
+{
+  "languages": {
+    "JSON": {
+      "format_on_save": "on",
+      "hard_tabs": true,
+      "tab_size": 2,
+      "show_whitespaces": "boundary"
+    }
+  }
+}

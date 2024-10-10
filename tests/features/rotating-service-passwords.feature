@@ -10,6 +10,6 @@ Feature: Rotating service account passwords
 
     Scenario: At API startup
       Given the Prose Pod has been initialized
-        And the XMPP server domain is <test.org>
+        And the XMPP server domain is test.org
        When the Prose Pod API starts
        Then <prose-workspace@test.org>'s password is changed

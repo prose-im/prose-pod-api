@@ -6,6 +6,8 @@
 pub mod init;
 pub mod invitations;
 pub mod members;
+pub mod network;
+pub mod pod;
 pub mod routes;
 pub mod server;
 pub mod workspace;
@@ -24,6 +26,8 @@ pub(super) fn routes() -> Vec<Route> {
         server::routes(),
         workspace::routes(),
         init::routes(),
+        network::routes(),
+        pod::routes(),
     ]
     .concat()
 }

@@ -8,6 +8,7 @@ pub mod invitation_service;
 pub mod jwt_service;
 pub mod live_secrets_store;
 pub(crate) mod live_xmpp_service;
+pub mod network_checker;
 pub mod notifier;
 pub mod secrets_store;
 pub mod server_ctl;

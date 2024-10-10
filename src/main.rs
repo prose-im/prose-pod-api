@@ -18,6 +18,7 @@ use service::{
         auth_service::{AuthService, LiveAuthService},
         jwt_service::JWTService,
         live_secrets_store::LiveSecretsStore,
+        network_checker::{live::LiveNetworkChecker, NetworkChecker},
         secrets_store::SecretsStore,
         server_ctl::ServerCtl,
         xmpp_service::{LiveXmppService, XmppServiceInner},
@@ -53,6 +54,7 @@ fn rocket() -> _ {
         prosody_oauth2,
     )));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
+    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker));
 
     let rocket = rocket::build().attach(Db::init()).attach(AdHoc::on_ignite(
         "Tracing subsciber",
@@ -75,5 +77,6 @@ fn rocket() -> _ {
         notifier,
         jwt_service,
         secrets_store,
+        network_checker,
     )
 }
