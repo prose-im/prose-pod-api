@@ -1,0 +1,64 @@
+[package]
+name = "prose-pod-api"
+version = { workspace = true }
+description = "Prose Pod API server."
+readme = "README.md"
+license = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+publish = false
+authors = [
+    "Valerian Saliou <valerian@valeriansaliou.name>",
+    "Rémi Bardon <remi@remibardon.name>",
+]
+
+[dependencies]
+async-stream = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+hickory-resolver = { workspace = true }
+http-auth-basic = { workspace = true }
+iso8601-duration = { workspace = true }
+iso8601-timestamp = { workspace = true }
+lazy_static = { workspace = true }
+migration = { workspace = true }
+rocket = { workspace = true }
+sea-orm-rocket = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+service = { workspace = true }
+strum = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+cucumber = { workspace = true, features = ["tracing"] }
+hickory-proto = { workspace = true }
+lazy_static = { workspace = true }
+linked-hash-map = { workspace = true }
+regex = { workspace = true }
+tracing-subscriber = { workspace = true }
+urlencoding = { workspace = true }
+
+[[bin]]
+name = "prose-pod-api"
+path = "src/main.rs"
+doc = false
+
+[lib]
+name = "prose_pod_api"
+path = "src/lib.rs"
+
+[[test]]
+name = "behavior"
+harness = false
