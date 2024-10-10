@@ -1,6 +1,6 @@
 ---
 source: service/tests/prosody/mod.rs
-assertion_line: 39
+assertion_line: 43
 expression: world.prosody_config().to_string()
 ---
 -- Prose Pod Server
@@ -31,6 +31,7 @@ https_interfaces = {}
 
 -- Modules
 modules_enabled = {
+  "auto_activate_hosts";
   "roster";
   "groups_internal";
   "saslauth";
@@ -103,32 +104,42 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
--- Define server members groups file
-groups_file = "/etc/prosody/roster_groups.txt"
-
 -- Server hosts and components
-VirtualHost "prose.org.local"
+VirtualHost "prose.test.org"
+  admins = { "prose-pod-api@admin.prose.org.local" }
+
+  -- Modules
+  modules_enabled = {
+    "rest";
+    "http_oauth2";
+    "admin_rest";
+  }
+
+  -- HTTP settings
+  http_host = "prose-pod-server"
+
+  -- mod_http_oauth2
+  allowed_oauth2_grant_types = { "password" }
+  oauth2_access_token_ttl = 10800
+  oauth2_refresh_token_ttl = 0
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }
 
   -- Modules
   modules_enabled = {
-    "http_oauth2";
-    "rest";
     "admin_rest";
     "init_admin";
   }
 
   -- HTTP settings
-  http_host = "prose-pod-server"
-  http_external_url = "http://prose-pod-server:5280"
+  http_host = "prose-pod-server-admin"
 
   -- mod_init_admin
   init_admin_jid = "prose-pod-api@admin.prose.org.local"
   init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
 
-Component "groups.prose.org.local" "muc"
+Component "groups.prose.test.org" "muc"
   name = "Chatrooms"
 
   -- Modules
