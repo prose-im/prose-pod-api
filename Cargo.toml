@@ -1,20 +1,7 @@
-[package]
-name = "prose-pod-api"
-version = { workspace = true }
-description = "Prose Pod API server."
-readme = "README.md"
-license = { workspace = true }
-edition = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
-publish = false
-authors = [
-    "Valerian Saliou <valerian@valeriansaliou.name>",
-    "Rémi Bardon <remi@remibardon.name>",
-]
-
 [workspace]
-members = [".", "migration", "prosody-config", "service"]
+members = ["crates/*"]
+default-members = ["crates/*"]
+resolver = "2"
 
 [workspace.package]
 version = "0.2.0"
@@ -59,11 +46,11 @@ lettre = { version = "0.11", features = [
     "builder",
 ], default-features = false }
 linked-hash-map = "0.5"
-migration = { path = "./migration" }
+migration = { path = "crates/migration" }
 minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
 prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.92" }
-prosody-config = { path = "./prosody-config" }
+prosody-config = { path = "crates/prosody-config" }
 rand = "0.8"
 regex = "1"
 reqwest = { version = "0.12", features = [
@@ -87,7 +74,7 @@ secrecy = { version = "0.8", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_with = "3"
-service = { path = "./service" }
+service = { path = "crates/service" }
 sha2 = "0.10"
 strum = { version = "0.26", features = ["derive"] }
 tempfile = "3"
@@ -101,52 +88,6 @@ url_serde = "0.2"
 urlencoding = "2"
 uuid = "1"
 xmpp-parsers = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
-
-[dependencies]
-async-stream = { workspace = true }
-async-trait = { workspace = true }
-base64 = { workspace = true }
-chrono = { workspace = true }
-futures = { workspace = true }
-futures-util = { workspace = true }
-hickory-resolver = { workspace = true }
-http-auth-basic = { workspace = true }
-iso8601-duration = { workspace = true }
-iso8601-timestamp = { workspace = true }
-lazy_static = { workspace = true }
-migration = { workspace = true }
-rocket = { workspace = true }
-sea-orm-rocket = { workspace = true }
-secrecy = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_with = { workspace = true }
-service = { workspace = true }
-strum = { workspace = true }
-thiserror = { workspace = true }
-time = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-uuid = { workspace = true }
-
-[dev-dependencies]
-cucumber = { workspace = true, features = ["tracing"] }
-hickory-proto = { workspace = true }
-lazy_static = { workspace = true }
-linked-hash-map = { workspace = true }
-regex = { workspace = true }
-tracing-subscriber = { workspace = true }
-urlencoding = { workspace = true }
-
-[[bin]]
-name = "prose-pod-api"
-path = "src/main.rs"
-doc = false
-
-[lib]
-name = "prose_pod_api"
-path = "src/lib.rs"
 
 [profile.dev]
 opt-level = 0
@@ -165,7 +106,3 @@ lto = true
 debug = false
 debug-assertions = false
 panic = "abort"
-
-[[test]]
-name = "behavior"
-harness = false
