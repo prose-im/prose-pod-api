@@ -4,8 +4,8 @@
 # Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
 
 [branding]
-page_url = "https://admin.prose.org/"
-company_name = "Prose"
+page_url = "https://admin.prose.org.local/"
+company_name = "Prose Test"
 
 [debug_only.dependency_modes]
 notifier = "logging"

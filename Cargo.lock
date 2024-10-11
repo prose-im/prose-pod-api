@@ -3912,6 +3912,7 @@ dependencies = [
  "jwt",
  "lazy_static",
  "lettre",
+ "linked_hash_set",
  "migration",
  "minidom",
  "parking_lot",

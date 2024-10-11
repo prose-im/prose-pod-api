@@ -16,7 +16,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, strum::EnumDiscriminants, Eq)]
-#[strum_discriminants(derive(strum::EnumString))]
+#[strum_discriminants(derive(strum::EnumString, strum::IntoStaticStr))]
 #[serde(tag = "type")]
 pub enum DnsRecord {
     A {
@@ -143,6 +143,13 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
             }),
             _ => Err(UnsupportedDnsRecordType(record.record_type())),
         }
+    }
+}
+impl TryFrom<HickoryRecord> for DnsRecord {
+    type Error = UnsupportedDnsRecordType;
+
+    fn try_from(record: HickoryRecord) -> Result<Self, Self::Error> {
+        Self::try_from(&record)
     }
 }
 

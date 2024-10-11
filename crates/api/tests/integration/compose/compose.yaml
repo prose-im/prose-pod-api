@@ -1,0 +1,62 @@
+services:
+  api:
+    image: proseim/prose-pod-api:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - "${DATABASE_PATH-./integration-tests.sqlite}:/database.sqlite"
+      - "${PROSE_CONFIG_FILE-../Prose-test.toml}:/Prose.toml"
+      - "${ROCKET_CONFIG_FILE-../Rocket-test.toml}:/Rocket.toml"
+      - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
+    networks:
+      prose-network:
+        aliases:
+          - prose-pod-api
+    environment:
+      - RUST_LOG_STYLE=always
+    env_file:
+      - "${ENV_FILE-../in-memory.env}"
+    dns: 172.20.0.42
+
+  server:
+    image: proseim/prose-pod-server:latest
+    ports:
+      - "5222:5222" # Client-to-server connections (public)
+      - "5269:5269" # Server-to-server connections (public)
+      - "5280:5280" # HTTP (private)
+      - "5582:5582" # Telnet console (private)
+    volumes:
+      - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
+      - "${SERVER_ROOT:-}/var/lib/prosody/:/var/lib/prosody/"
+    networks:
+      prose-network:
+        aliases:
+          - prose-pod-server
+          - prose-pod-server-admin
+          - prose.org.local
+        ipv4_address: 172.20.0.40
+        ipv6_address: 2001:db8::40
+    env_file:
+      - "${ENV_FILE-../in-memory.env}"
+    entrypoint: >
+      sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
+
+  coredns:
+    image: coredns/coredns:latest
+    volumes:
+      - ${COREDNS_COREFILE:-../coredns/Corefile}:/etc/coredns/Corefile
+      - ${DNS_ZONE_FILE:-../dns-zones/working-static.zone}:/etc/coredns/zones.db
+    command: ["-conf", "/etc/coredns/Corefile"]
+    networks:
+      prose-network:
+        ipv4_address: 172.20.0.42
+
+networks:
+  prose-network:
+    name: Prose Pod API integration tests network
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+        - subnet: 2001:db8::/64

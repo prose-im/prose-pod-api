@@ -14,7 +14,7 @@ pub enum XmppConnectionType {
 }
 
 impl XmppConnectionType {
-    pub fn standard_port(&self) -> u32 {
+    pub fn standard_port(&self) -> u16 {
         match self {
             Self::C2S => 5222,
             Self::S2S => 5269,

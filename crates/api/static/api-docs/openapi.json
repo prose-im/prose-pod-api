@@ -2355,7 +2355,7 @@
 					"required": ["hostname", "type", "ttl", "value"],
 					"properties": {
 						"hostname": { "type": "string" },
-						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"type": { "type": "string", "enum": ["A"] },
 						"ttl": { "$ref": "#/components/schemas/Int32" },
 						"value": { "type": "string" }
 					},
@@ -2371,7 +2371,7 @@
 					"required": ["hostname", "type", "ttl", "value"],
 					"properties": {
 						"hostname": { "type": "string" },
-						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"type": { "type": "string", "enum": ["AAAA"] },
 						"ttl": { "$ref": "#/components/schemas/Int32" },
 						"value": { "type": "string" }
 					},
@@ -2395,7 +2395,7 @@
 					],
 					"properties": {
 						"hostname": { "type": "string" },
-						"type": { "$ref": "#/components/schemas/DnsRecordType" },
+						"type": { "type": "string", "enum": ["SRV"] },
 						"ttl": { "$ref": "#/components/schemas/Int32" },
 						"priority": { "$ref": "#/components/schemas/Int32" },
 						"weight": { "$ref": "#/components/schemas/Int32" },
@@ -2479,6 +2479,7 @@
 				}
 			},
 			"DnsSetupStep": {
+				"type": "object",
 				"required": ["purpose", "records"],
 				"properties": {
 					"purpose": {

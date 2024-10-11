@@ -1,5 +1,5 @@
 version: "1.1"
-name: List members
+name: DNS setup
 config:
   http:
     baseURL: ${{ env.host }}
@@ -18,39 +18,24 @@ before:
     - $ref: "init.yaml#/components/steps/init_server"
     - $ref: "init.yaml#/components/steps/create_first_admin"
     - $ref: "init.yaml#/components/steps/log_admin_in"
+    - $ref: "pod-config.yaml#/components/steps/init_pod_address_static"
 
 tests:
-  unprocessableBody:
-    name: Unprocessable body
+  getDnsRecords:
+    name: Get DNS records
     steps:
       - name: Invite member
         http:
-          method: POST
-          url: /v1/invitations
+          method: GET
+          url: /v1/network/dns/records
           auth:
             bearer:
               token: ${{ captures.token }}
-          json:
-            pre_assigned_role: ERROR
           check:
-            status: 422
+            status: 200
             headers:
               Content-Type: application/json
             schema:
-              $ref: openapi.json#/components/schemas/Error
+              $ref: openapi.json#/components/schemas/GetDnsRecordsResponse
             jsonpath:
               $.accept_token: null
-
-components:
-  steps:
-    add_member:
-      # NOTE: We used a config flag to auto-accept invitations,
-      #   because otherwise we'd have no way to accept them.
-      $ref: "invitations.yaml#/components/steps/invite_member"
-  headers:
-    paginated_json:
-      Content-Type: application/json
-      Pagination-Current-Page: /\d+/
-      Pagination-Page-Size: /\d+/
-      Pagination-Page-Count: /\d+/
-      Pagination-Item-Count: /\d+/
