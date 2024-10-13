@@ -15,7 +15,9 @@ use crate::model::dns::DnsRecord;
 use super::network_checker::{DnsLookupError, NetworkCheckerImpl};
 
 lazy_static! {
-    static ref RESOLVER: Resolver = Resolver::default().unwrap();
+    /// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
+    ///   so we use [`Resolver::from_system_conf`] explicitly.
+    static ref RESOLVER: Resolver = Resolver::from_system_conf().unwrap();
 }
 
 #[derive(Debug)]
