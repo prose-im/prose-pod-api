@@ -21,6 +21,7 @@ use service::controllers::invitation_controller::{
 use service::controllers::workspace_controller::{
     WorkspaceControllerError, WorkspaceControllerInitError,
 };
+use service::model::PodAddressError;
 use service::services::server_manager::CreateServiceAccountError;
 use service::services::{
     auth_service, invitation_service, jwt_service, notifier, server_ctl, server_manager,
@@ -40,6 +41,7 @@ pub(crate) enum ErrorCode {
     WorkspaceAlreadyInitialized,
     ServerConfigNotInitialized,
     ServerConfigAlreadyInitialized,
+    PodAddressNotInitialized,
     FirstAccountAlreadyCreated,
     BadRequest,
     NotFound,
@@ -59,6 +61,7 @@ impl ErrorCode {
             Self::WorkspaceAlreadyInitialized => "workspace_already_initialized",
             Self::ServerConfigNotInitialized => "server_config_not_initialized",
             Self::ServerConfigAlreadyInitialized => "server_config_already_initialized",
+            Self::PodAddressNotInitialized => "pod_address_not_initialized",
             Self::FirstAccountAlreadyCreated => "first_account_already_created",
             Self::BadRequest => "bad_request",
             Self::NotFound => "not_found",
@@ -73,9 +76,10 @@ impl ErrorCode {
             Self::InternalServerError | Self::DatabaseError => Status::InternalServerError,
             Self::Unauthorized => Status::Unauthorized,
             Self::Forbidden => Status::Forbidden,
-            Self::BadRequest | Self::WorkspaceNotInitialized | Self::ServerConfigNotInitialized => {
-                Status::BadRequest
-            }
+            Self::BadRequest
+            | Self::WorkspaceNotInitialized
+            | Self::ServerConfigNotInitialized
+            | Self::PodAddressNotInitialized => Status::BadRequest,
             Self::WorkspaceAlreadyInitialized
             | Self::ServerConfigAlreadyInitialized
             | Self::FirstAccountAlreadyCreated => Status::Conflict,
@@ -124,7 +128,11 @@ impl Error {
         } else {
             // Client error
             match self.code {
-                ErrorCode::Forbidden | ErrorCode::Unknown(_) => warn!("{}", self.message),
+                ErrorCode::Forbidden
+                | ErrorCode::Unknown(_)
+                | ErrorCode::WorkspaceNotInitialized
+                | ErrorCode::ServerConfigNotInitialized
+                | ErrorCode::PodAddressNotInitialized => warn!("{}", self.message),
                 _ => info!("{}", self.message),
             }
         }
@@ -267,6 +275,16 @@ impl HttpApiError for ServerConfigNotInitialized {
     }
 }
 impl_into_error_from_display!(ServerConfigNotInitialized);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::pod::config::set_pod_address))]
+pub struct PodAddressNotInitialized;
+impl HttpApiError for PodAddressNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::PodAddressNotInitialized
+    }
+}
+impl_into_error_from_display!(PodAddressNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Bad request: {reason}")]
@@ -556,3 +574,13 @@ impl HttpApiError for WorkspaceControllerInitError {
     }
 }
 impl_into_error!(WorkspaceControllerInitError);
+
+impl HttpApiError for PodAddressError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::PodAddressNotInitialized => ErrorCode::PodAddressNotInitialized,
+            Self::InvalidData(_) => ErrorCode::InternalServerError,
+        }
+    }
+}
+impl_into_error!(PodAddressError);
