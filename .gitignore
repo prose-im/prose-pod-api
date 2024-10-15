@@ -8,5 +8,6 @@
 target
 
 # Local execution files
+*.env
 *.sqlite
 *.log

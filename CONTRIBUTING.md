@@ -10,7 +10,9 @@ After release 1.0, contributions will be more than welcome though!
 
 ### `task`
 
-Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility. You can find installation instructions on [taskfile.dev/installation](https://taskfile.dev/installation/), or just run the folowing on macOS:
+Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility.
+You can find installation instructions on [taskfile.dev/installation],
+or just run the folowing on macOS:
 
 ```bash
 brew install go-task
@@ -24,7 +26,9 @@ task -a
 
 ### `cross`
 
-To build the Docker image locally, we need to cross-compile Rust code for a different architecture. To avoid cluttering your local environment, we use [`cross`] which handles everything transparently. You can find installation instructions on [github.com/cross-rs/cross#installation](https://github.com/cross-rs/cross?tab=readme-ov-file#installation), or just run the folowing:
+To build the Docker image locally, we need to cross-compile Rust code for a different architecture.
+To avoid cluttering your local environment, we use [`cross`] which handles everything transparently.
+You can find installation instructions on [github.com/cross-rs/cross#installation], or just run the following:
 
 ```bash
 cargo install cross --git https://github.com/cross-rs/cross
@@ -125,3 +129,5 @@ task build-image -- [TARGET_ARCH] --debug
 [Task]: https://stepci.com/ "Task"
 [GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"
 [`cross`]: https://github.com/cross-rs/cross "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"
+[github.com/cross-rs/cross#installation]: https://github.com/cross-rs/cross?tab=readme-ov-file#installation "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"
+[taskfile.dev/installation]: https://taskfile.dev/installation/ "Installation | Task"

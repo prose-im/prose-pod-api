@@ -53,7 +53,7 @@ tasks:
       - rustup upgrade
       - cargo update
   check-for-outdated-dependencies:
-    desc: Check for outdated dependencies.
+    desc: Checks for outdated dependencies.
     cmds:
       # Check for outdated dependencies
       - "if cargo install --list | grep -q '^cargo-edit v'; then \
@@ -76,3 +76,23 @@ tasks:
       SCRIPTS_ROOT: "{{.ROOT_DIR}}/scripts"
     cmds:
       - "{{.ROOT_DIR}}/scripts/build-image {{.CLI_ARGS}}"
+  local-init:
+    desc: Initializes a local environment allowing one to run a Prose Pod API in one command (`task local-run`).
+    dotenv: ["paths.env"]
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/run-locally/init {{.CLI_ARGS}}"
+  local-run:
+    desc: Runs a Prose Pod API.
+    dotenv: ["paths.env"]
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/run-locally/run {{.CLI_ARGS}}"
+  local-update:
+    desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
+    dotenv: ["paths.env"]
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/run-locally/update {{.CLI_ARGS}}"
+  local-reset:
+    desc: Starts fresh with a Prose Pod API that has no data.
+    dotenv: ["paths.env"]
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"

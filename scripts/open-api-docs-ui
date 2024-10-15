@@ -1,7 +1,7 @@
 #!/bin/bash
 
 : ${SCRIPTS_ROOT:="$(dirname $0)"}
-: ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}"/bash-toolbox}
+: ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
 # NOTE: `log.sh` provides utility for logging at different levels.
 source "${BASH_TOOLBOX:?}"/log.sh
 
