@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)/.."}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+test-env-vars 'tutorials/run-locally.md' \
+	PROSE_POD_SERVER_DIR \
+	PROSE_POD_API_DIR \
+	PROSE_POD_SYSTEM_DIR
+
+# Clone prose-pod-server.
+[ -d "${PROSE_POD_SERVER_DIR:?}" ] || edo git clone https://github.com/prose-im/prose-pod-server.git "${PROSE_POD_SERVER_DIR:?}"
+edo git -C "${PROSE_POD_SERVER_DIR:?}" submodule update --init
+
+# Clone prose-pod-api.
+[ -d "${PROSE_POD_API_DIR:?}" ] || edo git clone https://github.com/prose-im/prose-pod-api.git "${PROSE_POD_API_DIR:?}"
+edo git -C "${PROSE_POD_API_DIR:?}" submodule update --init
+
+# Clone prose-pod-system.
+[ -d "${PROSE_POD_SYSTEM_DIR:?}" ] || edo git clone https://github.com/prose-im/prose-pod-system.git "${PROSE_POD_SYSTEM_DIR:?}"
+
+# Create a `.env` file which we'll pass to prose-pod-api when it runs.
+edo echo "export ROCKET_DATABASES='{data={url=\"sqlite://database.sqlite?mode=rwc\"}}'
+export JWT_SIGNING_KEY='626290f2d56e43e872527a2fc40468a2ea0f075b51d4da00209f73be0ae40ed64dd164030035692c9ab07673caee8e8ccb0f87ca5572f977f6714f75640d5aeee98d76d514d60d3976b1073b179b314bf49d53913bfbab2bd82d0901e7c4b8f94aa766d914506c1643fa5e942518bc0a727f978f28d26464b116ab070bf0697881b991202814c4d8e2d630e11510777fd9abcf9d7fedfce9f886e970ec6dd670454feeb3be51af8cc04c19fa7cec7ebe623741dc7021562d08d243eac6299449023072c5fa9c0206733387432497b9e93b32988c0cf18762f1ec9fb634fc22bd89b6fe21efd03cb585cb2125b96386346f91e8ff02918209203383884429c4f9'
+export PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD='jSq_fbnUZWBJ#eNK6Yt&dz%Vvr)RsA\`x~}p3^?>LE(-8@\"u.'
+export RUST_LOG='info,sqlx=warn,hyper=warn,hyper_util=warn,sea_orm_migration=warn'" \
+> "${PROSE_POD_SYSTEM_DIR:?}"/local-run.env
+
+# Initialize an empty `.sqlite` file because otherwise Compose creates a directory and the API crashes.
+DATABASE_PATH="${PROSE_POD_SYSTEM_DIR}"/local-run.sqlite
+[ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
+
+traced "${SCRIPTS_ROOT:?}"/run-locally/build-images

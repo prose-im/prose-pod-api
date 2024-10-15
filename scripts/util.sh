@@ -1,4 +1,4 @@
-: ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}"/bash-toolbox}
+: ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
 # NOTE: `die` logs an error then exits.
 source "${BASH_TOOLBOX:?}"/die.sh
 # NOTE: `edo` supports dry mode via `DRY_MODE`. When not in dry mode,
@@ -47,4 +47,19 @@ change-build-target() {
 	PROSE_POD_API_IMAGE="${PREFIXED_PROSE_POD_API_IMAGE}"
 	: ${PREFIXED_PROSE_POD_SERVER_IMAGE:="${DOCKER_ARCH_PREFIX+"${DOCKER_ARCH_PREFIX%/}/"}${PROSE_POD_SERVER_IMAGE:?}"}
 	PROSE_POD_SERVER_IMAGE="${PREFIXED_PROSE_POD_SERVER_IMAGE}"
+}
+
+# Redirect users to the docs if env vars are not set.
+# NOTE: We still use `${X:?}` in the rest of the script, this is just to improve the dev UX.
+# COPYRIGHT: <https://stackoverflow.com/a/65396324/10967642>.
+test-env-vars() {
+	local doc_file="$1"
+	shift 1
+
+	local var_names=("$@") var_name
+	for var_name in "${var_names[@]}"; do
+		[ -z "${!var_name}" ] && echo "${var_name} isn't set. Check $(format_url "${doc_file}") for more information." && var_unset=true
+	done
+	[ -n "$var_unset" ] && exit 1
+	return 0
 }

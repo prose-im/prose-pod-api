@@ -4,6 +4,7 @@ ADRs
 .vscode
 .github
 scripts
+tutorials
 database*
 Prose.toml
 Rocket.toml
