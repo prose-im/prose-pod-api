@@ -1,0 +1,34 @@
+version: "1.1"
+name: DNS setup
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: prose.org.local
+
+# NOTE: Path are relative to the directory from which `stepci` is ran.
+before:
+  $ref: dns-setup.yaml#/before
+
+tests:
+  checkDnsRecords:
+    name: Check DNS records
+    steps:
+      - name: Check DNS records
+        http:
+          method: GET
+          url: /v1/network/checks/dns
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              Content-Type: application/json
+            schema:
+              type: array
+              items:
+                $ref: openapi.json#/components/schemas/sse-events/dns-record-check-result

@@ -2479,6 +2479,7 @@
 				}
 			},
 			"DnsSetupStep": {
+				"type": "object",
 				"required": ["purpose", "records"],
 				"properties": {
 					"purpose": {

@@ -1,0 +1,41 @@
+version: "1.1"
+name: DNS setup
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: ${{ internet.domainName | fake }}
+
+# NOTE: `.` is not this file's path, it's the directory from which `stepci` is ran.
+# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/init_server"
+    - $ref: "init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+    - $ref: "pod-config.yaml#/components/steps/init_pod_address"
+
+tests:
+  getDnsRecords:
+    name: Get DNS records
+    steps:
+      - name: Invite member
+        http:
+          method: GET
+          url: /v1/network/dns/records
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/GetDnsRecordsResponse
+            jsonpath:
+              $.accept_token: null

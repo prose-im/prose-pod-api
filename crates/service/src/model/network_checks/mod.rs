@@ -7,16 +7,18 @@ pub mod dns_records;
 pub mod ip_connectivity;
 pub mod ports_reachability;
 
+use async_trait::async_trait;
 pub use dns_records::*;
 pub use ip_connectivity::*;
 pub use ports_reachability::*;
 
 use crate::services::network_checker::NetworkChecker;
 
+#[async_trait]
 pub trait NetworkCheck {
     type CheckResult;
     fn description(&self) -> String;
-    fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult;
+    async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult;
 }
 
 pub trait RetryableNetworkCheckResult {

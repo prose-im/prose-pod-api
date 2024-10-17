@@ -12,6 +12,7 @@ use std::{
 
 use cucumber::given;
 use hickory_proto::rr::Name as HickoryDomainName;
+use rocket::async_trait;
 use service::{
     model::dns::{DnsRecord, DnsRecordDiscriminants},
     services::network_checker::{DnsLookupError, NetworkCheckerImpl},
@@ -54,18 +55,19 @@ impl MockNetworkChecker {
     }
 }
 
+#[async_trait]
 impl NetworkCheckerImpl for MockNetworkChecker {
-    fn ipv4_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+    async fn ipv4_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
         self.lookup_(domain, DnsRecordDiscriminants::A)
     }
-    fn ipv6_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+    async fn ipv6_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
         self.lookup_(domain, DnsRecordDiscriminants::AAAA)
     }
-    fn srv_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+    async fn srv_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
         self.lookup_(domain, DnsRecordDiscriminants::SRV)
     }
 
-    fn is_port_open(&self, host: &str, port_number: u32) -> bool {
+    async fn is_port_open(&self, host: &str, port_number: u32) -> bool {
         trace!("Checking if port {port_number} is open for {host}");
         let mut host =
             HickoryDomainName::from_str(host).expect(&format!("Invalid domain name: {host}"));
@@ -77,11 +79,11 @@ impl NetworkCheckerImpl for MockNetworkChecker {
             .is_some_and(|vec| vec.contains(&port_number))
     }
 
-    fn is_ipv4_available(&self, host: &str) -> bool {
+    async fn is_ipv4_available(&self, host: &str) -> bool {
         self.lookup_(host, DnsRecordDiscriminants::A)
             .is_ok_and(|vec| !vec.is_empty())
     }
-    fn is_ipv6_available(&self, host: &str) -> bool {
+    async fn is_ipv6_available(&self, host: &str) -> bool {
         self.lookup_(host, DnsRecordDiscriminants::AAAA)
             .is_ok_and(|vec| !vec.is_empty())
     }

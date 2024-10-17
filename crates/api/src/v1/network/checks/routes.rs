@@ -47,7 +47,7 @@ where
 {
     checks
         .map(|check| async move {
-            let result = check.run(network_checker);
+            let result = check.run(network_checker).await;
             NetworkCheckResult::from((check, result))
         })
         .collect::<FuturesOrdered<_>>()

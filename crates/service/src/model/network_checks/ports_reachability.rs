@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
 
 use crate::{model::xmpp::XmppConnectionType, services::network_checker::NetworkChecker};
@@ -57,6 +58,7 @@ impl RetryableNetworkCheckResult for PortReachabilityCheckResult {
     }
 }
 
+#[async_trait]
 impl NetworkCheck for PortReachabilityCheck {
     type CheckResult = PortReachabilityCheckResult;
 
@@ -73,10 +75,13 @@ impl NetworkCheck for PortReachabilityCheck {
             Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
         }
     }
-    fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
+    async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = PortReachabilityCheckResult::Closed;
         for hostname in self.hostnames().iter() {
-            if network_checker.is_port_open(&hostname.to_string(), self.port()) {
+            if network_checker
+                .is_port_open(&hostname.to_string(), self.port())
+                .await
+            {
                 status = PortReachabilityCheckResult::Open;
                 break;
             }

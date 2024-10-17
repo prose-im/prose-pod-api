@@ -41,7 +41,7 @@ services:
   coredns:
     image: coredns/coredns:latest
     volumes:
-      - ${DNS_ZONE_FILE:-../dns-zones/working.zone}?:/etc/coredns/zones.db # Mount your DNS zones directory
+      - ${DNS_ZONE_FILE:-../dns-zones/working.zone}:/etc/coredns/zones.db # Mount your DNS zones directory
     command: ["-conf", "/etc/coredns/zones.db"]
     networks:
       prose-network:

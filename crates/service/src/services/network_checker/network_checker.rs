@@ -5,6 +5,7 @@
 
 use std::{fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 
+use async_trait::async_trait;
 use tokio::{
     sync::mpsc::{error::SendError, Sender},
     task::JoinSet,
@@ -31,19 +32,20 @@ impl Deref for NetworkChecker {
     }
 }
 
+#[async_trait]
 pub trait NetworkCheckerImpl: Debug + Sync + Send {
-    fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
-    fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
-    fn srv_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
+    async fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
+    async fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
+    async fn srv_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
 
-    fn is_port_open(&self, host: &str, port_number: u32) -> bool;
+    async fn is_port_open(&self, host: &str, port_number: u32) -> bool;
 
-    fn is_ipv4_available(&self, host: &str) -> bool;
-    fn is_ipv6_available(&self, host: &str) -> bool;
-    fn is_ip_available(&self, host: &str, ip_version: IpVersion) -> bool {
+    async fn is_ipv4_available(&self, host: &str) -> bool;
+    async fn is_ipv6_available(&self, host: &str) -> bool;
+    async fn is_ip_available(&self, host: &str, ip_version: IpVersion) -> bool {
         match ip_version {
-            IpVersion::V4 => self.is_ipv4_available(host),
-            IpVersion::V6 => self.is_ipv6_available(host),
+            IpVersion::V4 => self.is_ipv4_available(host).await,
+            IpVersion::V6 => self.is_ipv6_available(host).await,
         }
     }
 }
@@ -82,7 +84,7 @@ impl NetworkChecker {
                     .await?;
 
                 loop {
-                    let result = check.run(&network_checker);
+                    let result = check.run(&network_checker).await;
                     tx_clone
                         .send(Some(map_to_event(&check, Status::from(result.clone()))))
                         .await?;
