@@ -152,6 +152,12 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 http_interfaces: Some(vec![Interface::AllIPv4]),
                 https_ports: Some(vec![]),
                 https_interfaces: Some(vec![]),
+                plugin_paths: Some(
+                    vec!["/usr/local/lib/prosody/modules"]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                ),
                 modules_enabled: Some(
                     vec![
                         "auto_activate_hosts",

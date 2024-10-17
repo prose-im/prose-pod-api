@@ -8,9 +8,7 @@ authentication = "internal_hashed"
 storage = "internal"
 
 log = {
-  info = "*console",
-  warn = "*console",
-  error = "*console",
+  debug = "*console",
 }
 
 -- Network interfaces/ports
@@ -23,6 +21,7 @@ https_ports = {}
 https_interfaces = {}
 
 -- Modules
+plugin_paths = { "/usr/local/lib/prosody/modules" }
 modules_enabled = {
   "auto_activate_hosts",
 }
@@ -55,17 +54,17 @@ consider_websocket_secure = true
 
 -- Server hosts and components
 VirtualHost "admin.prose.org.local"
-admins = { "prose-pod-api@admin.prose.org.local" }
+  admins = { "prose-pod-api@admin.prose.org.local" }
 
--- Modules
-modules_enabled = {
-  "admin_rest",
-  "init_admin",
-}
+  -- Modules
+  modules_enabled = {
+    "admin_rest",
+    "init_admin",
+  }
 
--- HTTP settings
-http_host = "prose-pod-server-admin"
+  -- HTTP settings
+  http_host = "prose-pod-server-admin"
 
--- mod_init_admin
-init_admin_jid = "prose-pod-api@admin.prose.org.local"
-init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
+  -- mod_init_admin
+  init_admin_jid = "prose-pod-api@admin.prose.org.local"
+  init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"

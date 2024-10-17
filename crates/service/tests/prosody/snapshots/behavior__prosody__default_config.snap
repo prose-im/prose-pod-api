@@ -30,6 +30,7 @@ https_ports = {}
 https_interfaces = {}
 
 -- Modules
+plugin_paths = { "/usr/local/lib/prosody/modules" }
 modules_enabled = {
   "auto_activate_hosts";
   "roster";

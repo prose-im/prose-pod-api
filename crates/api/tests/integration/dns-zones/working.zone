@@ -1,0 +1,10 @@
+example.com. IN SOA ns1.example.com. admin.example.com. (
+                2023101001 ; serial
+                3600       ; refresh (1 hour)
+                600        ; retry (10 minutes)
+                86400      ; expire (1 day)
+                3600       ; minimum (1 hour)
+)
+example.com.   IN NS    ns1.example.com.
+ns1            IN A     10.5.0.2
+api            IN A     10.5.0.3

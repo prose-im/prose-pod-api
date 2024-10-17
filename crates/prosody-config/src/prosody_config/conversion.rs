@@ -55,6 +55,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             Group::flattened(
                 Some("Modules"),
                 vec![
+                    option_def(None, "plugin_paths", self.plugin_paths),
                     option_def(None, "modules_enabled", self.modules_enabled),
                     option_def(None, "modules_disabled", self.modules_disabled),
                 ],
