@@ -3,7 +3,6 @@
 ADRs
 .vscode
 .github
-deploy
 scripts
 tutorials
 database*
