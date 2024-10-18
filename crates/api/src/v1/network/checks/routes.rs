@@ -280,7 +280,7 @@ pub(super) async fn check_ip_stream<'r>(
 pub struct NetworkCheckResult {
     id: String,
     event: NetworkCheckEvent,
-    data: String,
+    data: serde_json::Value,
 }
 
 impl NetworkCheckResult {
@@ -298,7 +298,7 @@ impl NetworkCheckResult {
         Self {
             event: NetworkCheckEvent::from(&check),
             id: Id::from(check.to_owned()).to_string(),
-            data: serde_json::to_string(&data).unwrap_or_default(),
+            data: serde_json::to_value(&data).unwrap_or_default(),
         }
     }
 }

@@ -12,6 +12,8 @@ services:
       prose-network:
         aliases:
           - prose-pod-api
+        ipv4_address: 172.20.0.40
+        ipv6_address: 2001:db8::40
     environment:
       - RUST_LOG_STYLE=always
     env_file:
@@ -41,8 +43,9 @@ services:
   coredns:
     image: coredns/coredns:latest
     volumes:
-      - ${DNS_ZONE_FILE:-../dns-zones/working.zone}:/etc/coredns/zones.db # Mount your DNS zones directory
-    command: ["-conf", "/etc/coredns/zones.db"]
+      - ${COREDNS_COREFILE:-../coredns/Corefile}:/etc/coredns/Corefile
+      - ${DNS_ZONE_FILE:-../dns-zones/working.zone}:/etc/coredns/zones.db
+    command: ["-conf", "/etc/coredns/Corefile"]
     networks:
       prose-network:
         ipv4_address: 172.20.0.42
@@ -53,3 +56,4 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/24
+        - subnet: 2001:db8::/64
