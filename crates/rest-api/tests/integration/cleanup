@@ -3,7 +3,7 @@
 # Configure the script to exit when a command fails.
 set -e
 
-: ${INTEGRATION_TESTS_DIR:="${PROSE_POD_API_DIR:?}/crates/api/tests/integration"}
+: ${INTEGRATION_TESTS_DIR:="${PROSE_POD_API_DIR:?}/crates/rest-api/tests/integration"}
 : ${SERVER_ROOT:="${INTEGRATION_TESTS_DIR:?}/fs-root"}
 : ${DATABASE_PATH:="${INTEGRATION_TESTS_DIR:?}/integration-tests.sqlite"}
 
