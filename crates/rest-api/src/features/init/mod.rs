@@ -3,6 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod guards;
 mod init_first_account;
 mod init_server_config;
 mod init_workspace;

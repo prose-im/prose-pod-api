@@ -5,7 +5,7 @@
 
 use service::{prose_xmpp::BareJid, services::jwt_service::JWT};
 
-use super::prelude::*;
+use crate::guards::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for BareJid {

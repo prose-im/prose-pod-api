@@ -21,11 +21,11 @@ use service::{
 
 use crate::{
     error::prelude::*,
-    guards::{Db, LazyGuard, UnauthenticatedInvitationService},
+    guards::{Db, LazyGuard},
     responders::Created,
 };
 
-use super::{model::*, rocket_uri_macro_get_invitation_route};
+use super::{guards::*, model::*, rocket_uri_macro_get_invitation_route};
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {

@@ -6,6 +6,7 @@
 mod forms;
 mod get_invitation;
 mod get_invitations;
+mod guards;
 mod invitation_actions;
 mod invite_member;
 mod model;

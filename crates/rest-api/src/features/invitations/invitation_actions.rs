@@ -19,9 +19,11 @@ use service::{
 use crate::{
     error::prelude::*,
     forms::Uuid,
-    guards::{Db, LazyGuard, UnauthenticatedInvitationService},
+    guards::{Db, LazyGuard},
     model::SerializableSecretString,
 };
+
+use super::guards::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct AcceptWorkspaceInvitationRequest {

@@ -8,10 +8,9 @@ use secrecy::{ExposeSecret as _, Secret, SecretString, SerializableSecret, Zeroi
 use serde::{Deserialize, Serialize};
 use service::services::auth_service::AuthService;
 
-use crate::{
-    error::Error,
-    guards::{BasicAuth, LazyGuard},
-};
+use crate::{error::Error, guards::LazyGuard};
+
+use super::guards::BasicAuth;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[repr(transparent)]

@@ -5,7 +5,7 @@
 
 use service::{controllers::invitation_controller::InvitationController, dependencies};
 
-use super::prelude::*;
+use crate::guards::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for InvitationController<'r> {

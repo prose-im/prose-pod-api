@@ -9,7 +9,7 @@ use http_auth_basic::Credentials;
 use secrecy::SecretString;
 use service::prose_xmpp::BareJid;
 
-use super::prelude::*;
+use crate::guards::prelude::*;
 
 pub struct BasicAuth {
     pub jid: BareJid,

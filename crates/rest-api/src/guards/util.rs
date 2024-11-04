@@ -32,7 +32,7 @@ macro_rules! request_state {
     };
 }
 
-pub(super) async fn database_connection<'r, 'a>(
+pub async fn database_connection<'r, 'a>(
     req: &'r Request<'a>,
 ) -> Outcome<&'r DatabaseConnection, Error> {
     req.guard::<Connection<'_, Db>>()
@@ -46,7 +46,7 @@ pub(super) async fn database_connection<'r, 'a>(
         })
 }
 
-pub(super) async fn check_caller_is_admin<'r, 'a>(
+pub async fn check_caller_is_admin<'r, 'a>(
     req: &'r Request<'a>,
     db: Option<&'r DatabaseConnection>,
 ) -> Outcome<(), Error> {

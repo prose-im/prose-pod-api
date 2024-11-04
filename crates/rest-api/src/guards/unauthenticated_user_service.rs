@@ -13,7 +13,7 @@ use service::services::{
 use super::prelude::*;
 
 /// WARN: Use only in initialization routes! Otherwise use `UserService` directly.
-pub struct UnauthenticatedUserService<'r>(pub(super) UserService<'r>);
+pub struct UnauthenticatedUserService<'r>(pub UserService<'r>);
 
 impl<'r> Deref for UnauthenticatedUserService<'r> {
     type Target = UserService<'r>;

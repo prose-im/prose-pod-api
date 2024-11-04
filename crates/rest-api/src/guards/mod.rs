@@ -3,41 +3,30 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod basic_auth;
 mod db;
-mod init_controller;
-mod invitation_controller;
-mod jid;
-mod jwt;
-mod member_controller;
 mod notifier;
 mod pod_network_config;
 mod server_config;
 mod server_manager;
-mod unauthenticated_invitation_service;
 mod unauthenticated_server_manager;
 mod unauthenticated_user_service;
 mod user_service;
 mod util;
 mod uuid_generator;
-mod workspace;
-mod workspace_controller;
 mod xmpp_service;
 
 use std::ops::Deref;
 
-pub use basic_auth::*;
 pub use db::*;
-pub use unauthenticated_invitation_service::*;
 pub use unauthenticated_server_manager::*;
 pub use unauthenticated_user_service::*;
 
 use prelude::*;
 use rocket::http::Status;
 
-mod prelude {
-    pub(super) use super::util::*;
-    pub(super) use super::LazyFromRequest;
+pub mod prelude {
+    pub use super::util::*;
+    pub use super::LazyFromRequest;
     pub use crate::error::{self, Error};
     pub use crate::request_state;
     pub use rocket::{outcome::try_outcome, request::Outcome, Request};
@@ -69,7 +58,7 @@ impl<Inner> Deref for LazyGuard<Inner> {
 }
 
 #[rocket::async_trait]
-trait LazyFromRequest<'r>: Sized {
+pub trait LazyFromRequest<'r>: Sized {
     type Error;
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>;
 }

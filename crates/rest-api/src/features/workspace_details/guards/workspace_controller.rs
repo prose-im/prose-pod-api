@@ -10,9 +10,7 @@ use service::{
     services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
 };
 
-use crate::error::prelude::*;
-
-use super::prelude::*;
+use crate::{error::prelude::*, guards::prelude::*};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for WorkspaceController<'r> {

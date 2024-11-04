@@ -5,9 +5,7 @@
 
 use service::repositories::WorkspaceRepository;
 
-use crate::features::init::WorkspaceNotInitialized;
-
-use super::prelude::*;
+use crate::{features::init::WorkspaceNotInitialized, guards::prelude::*};
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for service::model::Workspace {

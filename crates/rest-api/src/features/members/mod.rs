@@ -6,6 +6,7 @@
 mod enrich_members;
 mod get_member;
 mod get_members;
+mod guards;
 mod model;
 
 pub use enrich_members::*;

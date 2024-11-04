@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 use service::services::invitation_service::InvitationService;
 
-use super::{prelude::*, UnauthenticatedUserService};
+use crate::guards::{prelude::*, UnauthenticatedUserService};
 
 pub struct UnauthenticatedInvitationService<'r>(pub(super) InvitationService<'r>);
 

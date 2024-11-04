@@ -5,7 +5,7 @@
 
 use service::services::jwt_service::{JWTService, JWT};
 
-use super::prelude::*;
+use crate::guards::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for JWT {

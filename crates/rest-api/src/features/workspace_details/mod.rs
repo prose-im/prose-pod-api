@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod get_workspace;
+mod guards;
 mod workspace_accent_color;
 mod workspace_icon;
 mod workspace_name;
