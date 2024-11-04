@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)/.."}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+test-env-vars 'tutorials/run-locally.md' \
+	PROSE_POD_SYSTEM_DIR
+
+export ENV_FILE="${PROSE_POD_SYSTEM_DIR:?}"/local-run.env
+export SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod
+export DATABASE_PATH="${PROSE_POD_SYSTEM_DIR:?}"/local-run.sqlite
+export PROSE_CONFIG_FILE="${PROSE_POD_SYSTEM_DIR:?}"/Prose-example.toml
+COMPOSE_FILE="${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml
+
+edo docker compose -f "${COMPOSE_FILE:?}" up
