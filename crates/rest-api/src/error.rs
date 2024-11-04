@@ -6,29 +6,23 @@
 use std::io::Cursor;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use http_auth_basic::AuthBasicError;
 use rocket::http::{ContentType, Header, Status};
 use rocket::response::{self, Responder};
 use rocket::{Request, Response};
 use serde_json::json;
-use service::controllers::init_controller::{
-    InitFirstAccountError, InitServerConfigError, InitWorkspaceError,
-};
-use service::controllers::invitation_controller::{
-    InvitationAcceptError, InvitationCancelError, InvitationRejectError, InvitationResendError,
-    InviteMemberError,
-};
-use service::controllers::workspace_controller::{
-    WorkspaceControllerError, WorkspaceControllerInitError,
-};
-use service::model::PodAddressError;
 use service::services::server_manager::CreateServiceAccountError;
 use service::services::{
-    auth_service, invitation_service, jwt_service, notifier, server_ctl, server_manager,
-    user_service::{self, UserCreateError},
-    xmpp_service,
+    auth_service, jwt_service, notifier, server_ctl, server_manager, user_service, xmpp_service,
 };
 use service::{sea_orm, MutationError};
+
+pub mod prelude {
+    pub use rocket::http::Status;
+
+    pub use crate::{error, impl_into_error};
+
+    pub use super::{CustomErrorCode, Error, ErrorCode, HttpApiError, LogLevel};
+}
 
 #[derive(Debug)]
 pub struct ErrorCode {
@@ -73,36 +67,6 @@ impl ErrorCode {
         value: "database_error",
         http_status: Status::InternalServerError,
         log_level: LogLevel::Error,
-    };
-    pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
-        value: "workspace_not_initialized",
-        http_status: Status::BadRequest,
-        log_level: LogLevel::Warn,
-    };
-    pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
-        value: "workspace_already_initialized",
-        http_status: Status::Conflict,
-        log_level: LogLevel::Info,
-    };
-    pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
-        value: "server_config_not_initialized",
-        http_status: Status::BadRequest,
-        log_level: LogLevel::Warn,
-    };
-    pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
-        value: "server_config_already_initialized",
-        http_status: Status::Conflict,
-        log_level: LogLevel::Info,
-    };
-    pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
-        value: "pod_address_not_initialized",
-        http_status: Status::BadRequest,
-        log_level: LogLevel::Warn,
-    };
-    pub const FIRST_ACCOUNT_ALREADY_CREATED: Self = Self {
-        value: "first_account_already_created",
-        http_status: Status::Conflict,
-        log_level: LogLevel::Info,
     };
     pub const BAD_REQUEST: Self = Self {
         value: "bad_request",
@@ -218,7 +182,7 @@ impl<'r> Responder<'r, 'static> for Error {
     }
 }
 
-pub(crate) trait HttpApiError: std::fmt::Display {
+pub trait HttpApiError: std::fmt::Display {
     fn code(&self) -> ErrorCode;
     fn message(&self) -> String {
         format!("{self}")
@@ -288,33 +252,6 @@ impl HttpApiError for UnknownDbErr {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_workspace_route))]
-pub struct WorkspaceNotInitialized;
-impl HttpApiError for WorkspaceNotInitialized {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::WORKSPACE_NOT_INITIALIZED
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_server_config_route))]
-pub struct ServerConfigNotInitialized;
-impl HttpApiError for ServerConfigNotInitialized {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::SERVER_CONFIG_NOT_INITIALIZED
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::pod_config::set_pod_address_route))]
-pub struct PodAddressNotInitialized;
-impl HttpApiError for PodAddressNotInitialized {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::POD_ADDRESS_NOT_INITIALIZED
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
 #[error("Bad request: {reason}")]
 pub struct BadRequest {
     pub reason: String,
@@ -351,6 +288,7 @@ pub trait CustomErrorCode {
     fn error_code(&self) -> ErrorCode;
 }
 
+#[macro_export]
 macro_rules! impl_into_error {
     ($t:ty) => {
         impl HttpApiError for $t {
@@ -395,15 +333,6 @@ impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
 impl_into_error!(notifier::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
-impl_into_error!(
-    AuthBasicError,
-    ErrorCode::UNAUTHORIZED,
-    vec![(
-        "WWW-Authenticate".into(),
-        r#"Basic realm="Admin only area", charset="UTF-8""#.into(),
-    )]
-);
-
 impl CustomErrorCode for MutationError {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -434,16 +363,6 @@ impl CustomErrorCode for auth_service::Error {
 }
 impl_into_error!(auth_service::Error);
 
-impl CustomErrorCode for UserCreateError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(UserCreateError);
-
 impl CustomErrorCode for user_service::Error {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -464,16 +383,6 @@ impl CustomErrorCode for server_manager::Error {
 }
 impl_into_error!(server_manager::Error);
 
-impl CustomErrorCode for InitServerConfigError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::CouldNotInitServerConfig(err) => err.code(),
-            Self::CouldNotCreateServiceAccount(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InitServerConfigError);
-
 impl CustomErrorCode for CreateServiceAccountError {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -486,128 +395,9 @@ impl CustomErrorCode for CreateServiceAccountError {
 }
 impl_into_error!(CreateServiceAccountError);
 
-impl CustomErrorCode for InitWorkspaceError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
-            Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-            Self::CouldNotSetWorkspaceName(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InitWorkspaceError);
-
-impl CustomErrorCode for InitFirstAccountError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::FirstAccountAlreadyCreated => ErrorCode::FIRST_ACCOUNT_ALREADY_CREATED,
-            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
-            Self::CouldNotCreateFirstAccount(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InitFirstAccountError);
-
-impl CustomErrorCode for InviteMemberError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
-            Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
-            #[cfg(debug_assertions)]
-            Self::CouldNotAutoAcceptInvitation(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InviteMemberError);
-
-impl CustomErrorCode for invitation_service::InvitationAcceptError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(invitation_service::InvitationAcceptError);
-
-impl CustomErrorCode for InvitationAcceptError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
-            Self::ExpiredAcceptToken => ErrorCode::NOT_FOUND,
-            Self::ServiceError(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InvitationAcceptError);
-
-impl CustomErrorCode for InvitationRejectError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InvitationRejectError);
-
-impl CustomErrorCode for InvitationResendError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
-            Self::CouldNotSendInvitation(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InvitationResendError);
-
-impl CustomErrorCode for InvitationCancelError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InvitationCancelError);
-
 impl CustomErrorCode for std::io::Error {
     fn error_code(&self) -> ErrorCode {
         ErrorCode::INTERNAL_SERVER_ERROR
     }
 }
 impl_into_error!(std::io::Error);
-
-impl CustomErrorCode for WorkspaceControllerError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceNotInitialized => ErrorCode::WORKSPACE_NOT_INITIALIZED,
-            Self::XmppServiceError(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(WorkspaceControllerError);
-
-impl CustomErrorCode for WorkspaceControllerInitError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-        }
-    }
-}
-impl_into_error!(WorkspaceControllerInitError);
-
-impl CustomErrorCode for PodAddressError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::PodAddressNotInitialized => ErrorCode::POD_ADDRESS_NOT_INITIALIZED,
-            Self::InvalidData(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(PodAddressError);

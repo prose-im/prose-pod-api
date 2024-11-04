@@ -5,10 +5,12 @@
 
 use service::{
     config::AppConfig,
-    controllers::workspace_controller::WorkspaceController,
+    controllers::workspace_controller::{WorkspaceController, WorkspaceControllerInitError},
     model::ServerConfig,
     services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
 };
+
+use crate::error::prelude::*;
 
 use super::prelude::*;
 
@@ -30,3 +32,14 @@ impl<'r> LazyFromRequest<'r> for WorkspaceController<'r> {
         }
     }
 }
+
+// ERRORS
+
+impl CustomErrorCode for WorkspaceControllerInitError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
+        }
+    }
+}
+impl_into_error!(WorkspaceControllerInitError);

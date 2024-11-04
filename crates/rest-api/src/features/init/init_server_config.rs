@@ -7,13 +7,13 @@ use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
-    controllers::init_controller::InitController,
-    model::{JidDomain, ServerConfig},
+    controllers::init_controller::{InitController, InitServerConfigError},
+    model::{JidDomain, PodAddressError, ServerConfig},
     repositories::ServerConfigCreateForm,
     services::{auth_service::AuthService, secrets_store::SecretsStore, server_ctl::ServerCtl},
 };
 
-use crate::{guards::LazyGuard, responders::Created};
+use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
@@ -41,6 +41,64 @@ pub async fn init_server_config_route<'r>(
     let resource_uri = uri!(crate::features::server_config::get_server_config_route).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))
 }
+
+// ERRORS
+
+impl ErrorCode {
+    pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
+        value: "server_config_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+    pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
+        value: "server_config_already_initialized",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+    pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
+        value: "pod_address_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_server_config_route))]
+pub struct ServerConfigNotInitialized;
+impl HttpApiError for ServerConfigNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::SERVER_CONFIG_NOT_INITIALIZED
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::pod_config::set_pod_address_route))]
+pub struct PodAddressNotInitialized;
+impl HttpApiError for PodAddressNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+    }
+}
+
+impl CustomErrorCode for InitServerConfigError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::CouldNotInitServerConfig(err) => err.code(),
+            Self::CouldNotCreateServiceAccount(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InitServerConfigError);
+
+impl CustomErrorCode for PodAddressError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::PodAddressNotInitialized => ErrorCode::POD_ADDRESS_NOT_INITIALIZED,
+            Self::InvalidData(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(PodAddressError);
 
 // BOILERPLATE
 

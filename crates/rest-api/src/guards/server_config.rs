@@ -5,6 +5,8 @@
 
 use service::{entity::server_config, model::ServerConfig, repositories::ServerConfigRepository};
 
+use crate::features::init::ServerConfigNotInitialized;
+
 use super::prelude::*;
 
 #[rocket::async_trait]
@@ -16,7 +18,7 @@ impl<'r> LazyFromRequest<'r> for server_config::Model {
 
         match ServerConfigRepository::get(db).await {
             Ok(Some(model)) => Outcome::Success(model),
-            Ok(None) => Error::from(error::ServerConfigNotInitialized).into(),
+            Ok(None) => Error::from(ServerConfigNotInitialized).into(),
             Err(err) => Error::from(err).into(),
         }
     }

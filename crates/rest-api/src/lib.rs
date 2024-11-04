@@ -15,7 +15,8 @@ pub mod responders;
 
 use std::time::Duration;
 
-use error::{Error, ServerConfigNotInitialized};
+use error::Error;
+use features::init::ServerConfigNotInitialized;
 use guards::Db;
 use migration::MigratorTrait;
 use rocket::{

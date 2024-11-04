@@ -10,15 +10,14 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
-    controllers::invitation_controller::{InvitationAcceptForm, InvitationController},
+    controllers::invitation_controller::*,
     prose_xmpp::BareJid,
-    repositories::InvitationToken,
-    repositories::MemberRepository,
-    services::notifier::Notifier,
+    repositories::{InvitationToken, MemberRepository},
+    services::{invitation_service, notifier::Notifier},
 };
 
 use crate::{
-    error::{self, Error},
+    error::prelude::*,
     forms::Uuid,
     guards::{Db, LazyGuard, UnauthenticatedInvitationService},
     model::SerializableSecretString,
@@ -112,6 +111,60 @@ pub async fn invitation_cancel_route<'r>(
 
     Ok(NoContent)
 }
+
+// ERRORS
+
+impl CustomErrorCode for invitation_service::InvitationAcceptError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(invitation_service::InvitationAcceptError);
+
+impl CustomErrorCode for InvitationAcceptError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
+            Self::ExpiredAcceptToken => ErrorCode::NOT_FOUND,
+            Self::ServiceError(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InvitationAcceptError);
+
+impl CustomErrorCode for InvitationRejectError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InvitationRejectError);
+
+impl CustomErrorCode for InvitationResendError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
+            Self::CouldNotSendInvitation(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InvitationResendError);
+
+impl CustomErrorCode for InvitationCancelError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InvitationCancelError);
 
 // BOILERPLATE
 

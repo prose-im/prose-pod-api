@@ -7,12 +7,15 @@ use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
-    controllers::init_controller::{InitController, WorkspaceCreateForm},
+    controllers::{
+        init_controller::{InitController, InitWorkspaceError, WorkspaceCreateForm},
+        workspace_controller::WorkspaceControllerError,
+    },
     model::ServerConfig,
     services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
 };
 
-use crate::{guards::LazyGuard, responders::Created};
+use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -61,6 +64,53 @@ pub async fn init_workspace_route<'r>(
     let resource_uri = uri!(crate::features::workspace_details::get_workspace_route).to_string();
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
+
+// ERRORS
+
+impl ErrorCode {
+    pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
+        value: "workspace_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+    pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
+        value: "workspace_already_initialized",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_workspace_route))]
+pub struct WorkspaceNotInitialized;
+impl HttpApiError for WorkspaceNotInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::WORKSPACE_NOT_INITIALIZED
+    }
+}
+
+impl CustomErrorCode for InitWorkspaceError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
+            Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
+            Self::CouldNotSetWorkspaceName(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InitWorkspaceError);
+
+impl CustomErrorCode for WorkspaceControllerError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::WorkspaceNotInitialized => ErrorCode::WORKSPACE_NOT_INITIALIZED,
+            Self::XmppServiceError(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(WorkspaceControllerError);
 
 // BOILERPLATE
 

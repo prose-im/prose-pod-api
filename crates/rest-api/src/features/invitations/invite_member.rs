@@ -10,7 +10,9 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
     config::AppConfig,
-    controllers::invitation_controller::{InvitationController, InviteMemberForm},
+    controllers::invitation_controller::{
+        InvitationController, InviteMemberError, InviteMemberForm,
+    },
     model::{InvitationContact, JidNode, MemberRole, ServerConfig},
     prose_xmpp::BareJid,
     repositories::MemberRepository,
@@ -18,7 +20,7 @@ use service::{
 };
 
 use crate::{
-    error,
+    error::prelude::*,
     guards::{Db, LazyGuard, UnauthenticatedInvitationService},
     responders::Created,
 };
@@ -73,6 +75,21 @@ pub async fn invite_member_route<'r>(
     let response: WorkspaceInvitation = invitation.into();
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
+
+// ERRORS
+
+impl CustomErrorCode for InviteMemberError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
+            Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
+            #[cfg(debug_assertions)]
+            Self::CouldNotAutoAcceptInvitation(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InviteMemberError);
 
 // BOILERPLATE
 

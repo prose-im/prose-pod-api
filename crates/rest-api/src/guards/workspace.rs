@@ -5,6 +5,8 @@
 
 use service::repositories::WorkspaceRepository;
 
+use crate::features::init::WorkspaceNotInitialized;
+
 use super::prelude::*;
 
 #[rocket::async_trait]
@@ -16,7 +18,7 @@ impl<'r> LazyFromRequest<'r> for service::model::Workspace {
 
         match WorkspaceRepository::get(db).await {
             Ok(Some(model)) => Outcome::Success(model),
-            Ok(None) => Error::from(error::WorkspaceNotInitialized).into(),
+            Ok(None) => Error::from(WorkspaceNotInitialized).into(),
             Err(err) => Error::from(err).into(),
         }
     }

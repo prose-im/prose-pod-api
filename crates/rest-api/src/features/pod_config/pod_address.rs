@@ -17,6 +17,7 @@ use service::{
 
 use crate::{
     error::{self, Error},
+    features::init::PodAddressNotInitialized,
     guards::{Db, LazyGuard},
 };
 
@@ -83,7 +84,7 @@ pub async fn get_pod_address_route<'r>(
         .await?
         .and_then(|model| PodConfig::from(model).address)
     else {
-        return Err(error::PodAddressNotInitialized.into());
+        return Err(PodAddressNotInitialized.into());
     };
 
     Ok(address.into())

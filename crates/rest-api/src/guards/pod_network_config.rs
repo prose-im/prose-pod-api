@@ -8,6 +8,8 @@ use service::{
     repositories::PodConfigRepository,
 };
 
+use crate::features::init::PodAddressNotInitialized;
+
 use super::prelude::*;
 
 #[rocket::async_trait]
@@ -22,7 +24,7 @@ impl<'r> LazyFromRequest<'r> for PodNetworkConfig {
 
         let pod_config = match PodConfigRepository::get(db).await {
             Ok(Some(model)) => model,
-            Ok(None) => return Error::from(error::PodAddressNotInitialized).into(),
+            Ok(None) => return Error::from(PodAddressNotInitialized).into(),
             Err(err) => return Error::from(err).into(),
         };
         let pod_address = match PodAddress::try_from(pod_config) {

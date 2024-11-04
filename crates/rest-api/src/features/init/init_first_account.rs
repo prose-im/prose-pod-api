@@ -6,11 +6,13 @@
 use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    controllers::init_controller::{InitController, InitFirstAccountForm},
+    controllers::init_controller::{InitController, InitFirstAccountError, InitFirstAccountForm},
     model::{JidNode, ServerConfig},
+    services::user_service::UserCreateError,
 };
 
 use crate::{
+    error::prelude::*,
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
     guards::{LazyGuard, UnauthenticatedUserService},
@@ -45,6 +47,38 @@ pub async fn init_first_account_route<'r>(
     let response = Member::from(member);
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
+
+// ERRORS
+
+impl ErrorCode {
+    pub const FIRST_ACCOUNT_ALREADY_CREATED: Self = Self {
+        value: "first_account_already_created",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+}
+
+impl CustomErrorCode for InitFirstAccountError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::FirstAccountAlreadyCreated => ErrorCode::FIRST_ACCOUNT_ALREADY_CREATED,
+            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
+            Self::CouldNotCreateFirstAccount(err) => err.code(),
+            Self::DbErr(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(InitFirstAccountError);
+
+impl CustomErrorCode for UserCreateError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(UserCreateError);
 
 // BOILERPLATE
 
