@@ -31,129 +31,166 @@ use service::services::{
 use service::{sea_orm, MutationError};
 
 #[derive(Debug)]
-pub(crate) enum ErrorCode {
-    NotImplemented,
-    InternalServerError,
-    Unauthorized,
-    Forbidden,
-    DatabaseError,
-    WorkspaceNotInitialized,
-    WorkspaceAlreadyInitialized,
-    ServerConfigNotInitialized,
-    ServerConfigAlreadyInitialized,
-    PodAddressNotInitialized,
-    FirstAccountAlreadyCreated,
-    BadRequest,
-    NotFound,
-    Unknown(Status),
+pub struct ErrorCode {
+    /// User-facing error code (a string for easier understanding).
+    pub value: &'static str,
+    /// HTTP status to return for this error.
+    pub http_status: Status,
+    pub log_level: LogLevel,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
 }
 
 impl ErrorCode {
-    /// User-facing error code (a string for easier understanding).
-    fn value(&self) -> &'static str {
-        match self {
-            Self::NotImplemented => "not_implemented",
-            Self::InternalServerError => "internal_server_error",
-            Self::Unauthorized => "unauthorized",
-            Self::Forbidden => "forbidden",
-            Self::DatabaseError => "database_error",
-            Self::WorkspaceNotInitialized => "workspace_not_initialized",
-            Self::WorkspaceAlreadyInitialized => "workspace_already_initialized",
-            Self::ServerConfigNotInitialized => "server_config_not_initialized",
-            Self::ServerConfigAlreadyInitialized => "server_config_already_initialized",
-            Self::PodAddressNotInitialized => "pod_address_not_initialized",
-            Self::FirstAccountAlreadyCreated => "first_account_already_created",
-            Self::BadRequest => "bad_request",
-            Self::NotFound => "not_found",
-            Self::Unknown(_) => "unknown",
-        }
-    }
-
-    /// HTTP status to return for this error.
-    pub fn http_status(&self) -> Status {
-        match self {
-            Self::NotImplemented => Status::NotImplemented,
-            Self::InternalServerError | Self::DatabaseError => Status::InternalServerError,
-            Self::Unauthorized => Status::Unauthorized,
-            Self::Forbidden => Status::Forbidden,
-            Self::BadRequest
-            | Self::WorkspaceNotInitialized
-            | Self::ServerConfigNotInitialized
-            | Self::PodAddressNotInitialized => Status::BadRequest,
-            Self::WorkspaceAlreadyInitialized
-            | Self::ServerConfigAlreadyInitialized
-            | Self::FirstAccountAlreadyCreated => Status::Conflict,
-            Self::NotFound => Status::NotFound,
-            Self::Unknown(s) => s.to_owned(),
+    pub const NOT_IMPLEMENTED: Self = Self {
+        value: "not_implemented",
+        http_status: Status::NotImplemented,
+        log_level: LogLevel::Error,
+    };
+    pub const INTERNAL_SERVER_ERROR: Self = Self {
+        value: "internal_server_error",
+        http_status: Status::InternalServerError,
+        log_level: LogLevel::Error,
+    };
+    pub const UNAUTHORIZED: Self = Self {
+        value: "unauthorized",
+        http_status: Status::Unauthorized,
+        log_level: LogLevel::Info,
+    };
+    pub const FORBIDDEN: Self = Self {
+        value: "forbidden",
+        http_status: Status::Forbidden,
+        log_level: LogLevel::Warn,
+    };
+    pub const DATABASE_ERROR: Self = Self {
+        value: "database_error",
+        http_status: Status::InternalServerError,
+        log_level: LogLevel::Error,
+    };
+    pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
+        value: "workspace_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+    pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
+        value: "workspace_already_initialized",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+    pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
+        value: "server_config_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+    pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
+        value: "server_config_already_initialized",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+    pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
+        value: "pod_address_not_initialized",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Warn,
+    };
+    pub const FIRST_ACCOUNT_ALREADY_CREATED: Self = Self {
+        value: "first_account_already_created",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+    pub const BAD_REQUEST: Self = Self {
+        value: "bad_request",
+        http_status: Status::BadRequest,
+        log_level: LogLevel::Info,
+    };
+    pub const NOT_FOUND: Self = Self {
+        value: "not_found",
+        http_status: Status::NotFound,
+        log_level: LogLevel::Info,
+    };
+    pub fn unknown(status: Status) -> Self {
+        Self {
+            value: "unknown",
+            http_status: status,
+            log_level: if (500..600).contains(&status.code) {
+                // Server error
+                LogLevel::Error
+            } else {
+                // Client error
+                LogLevel::Warn
+            },
         }
     }
 }
 
 impl std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.value(), f)
+        std::fmt::Display::fmt(self.value, f)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
 pub struct Error {
-    code: ErrorCode,
+    code: &'static str,
     message: String,
-    headers: Vec<(String, String)>,
+    /// HTTP status to return for this error.
+    pub http_status: Status,
+    http_headers: Vec<(String, String)>,
+    log_level: LogLevel,
     /// Whether or not the error has already been logged.
     /// This way we can make sure an error is not logged twice.
     logged: AtomicBool,
 }
 
 impl Error {
-    fn new(code: ErrorCode, message: String, headers: Vec<(String, String)>) -> Self {
+    pub fn new(code: ErrorCode, message: String, http_headers: Vec<(String, String)>) -> Self {
         Self {
-            code,
+            code: code.value,
             message,
-            headers,
+            http_status: code.http_status,
+            http_headers,
+            log_level: code.log_level,
             logged: AtomicBool::new(false),
         }
     }
+}
 
+impl Error {
     /// Log the error.
     fn log(&self) {
         if self.logged.load(Ordering::Relaxed) {
             return;
         }
 
-        if (500..600).contains(&self.http_status().code) {
-            // Server error
-            error!("{}", self.message);
-        } else {
-            // Client error
-            match self.code {
-                ErrorCode::Forbidden
-                | ErrorCode::Unknown(_)
-                | ErrorCode::WorkspaceNotInitialized
-                | ErrorCode::ServerConfigNotInitialized
-                | ErrorCode::PodAddressNotInitialized => warn!("{}", self.message),
-                _ => info!("{}", self.message),
-            }
+        // NOTE: `tracing` does not allow passing the log level dynamically
+        //   therefore we introduced this custom `LogLevel` type and do a manual mapping.
+        match self.log_level {
+            LogLevel::Trace => trace!("{}", self.message),
+            LogLevel::Debug => debug!("{}", self.message),
+            LogLevel::Info => info!("{}", self.message),
+            LogLevel::Warn => warn!("{}", self.message),
+            LogLevel::Error => error!("{}", self.message),
         }
 
         self.logged.store(true, Ordering::Relaxed);
     }
 
-    /// HTTP status to return for this error.
-    pub(crate) fn http_status(&self) -> Status {
-        self.code.http_status()
-    }
-
     fn add_headers(&self, response: &mut Response<'_>) {
-        for (name, value) in self.headers.iter() {
+        for (name, value) in self.http_headers.iter() {
             response.set_header(Header::new(name.clone(), value.clone()));
         }
     }
 
     fn as_json(&self) -> String {
         json!({
-            "reason": self.code.to_string(),
+            "reason": self.code,
         })
         .to_string()
     }
@@ -162,7 +199,7 @@ impl Error {
     fn as_response(&self) -> response::Result<'static> {
         let body = self.as_json();
         let mut response = Response::build()
-            .status(self.http_status())
+            .status(self.http_status)
             .header(ContentType::JSON)
             .sized_body(body.len(), Cursor::new(body))
             .ok()?;
@@ -183,19 +220,18 @@ impl<'r> Responder<'r, 'static> for Error {
 
 pub(crate) trait HttpApiError: std::fmt::Display {
     fn code(&self) -> ErrorCode;
-    fn headers(&self) -> Vec<(String, String)> {
-        Vec::new()
+    fn message(&self) -> String {
+        format!("{self}")
+    }
+    fn http_headers(&self) -> Vec<(String, String)> {
+        vec![]
     }
 }
 
-macro_rules! impl_into_error_from_display {
-    ($t:ty) => {
-        impl From<$t> for Error {
-            fn from(error: $t) -> Self {
-                Self::new(error.code(), format!("{error}"), error.headers())
-            }
-        }
-    };
+impl<E: HttpApiError> From<E> for Error {
+    fn from(error: E) -> Self {
+        Self::new(error.code(), error.message(), error.http_headers())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -203,10 +239,9 @@ macro_rules! impl_into_error_from_display {
 pub struct NotImplemented(pub &'static str);
 impl HttpApiError for NotImplemented {
     fn code(&self) -> ErrorCode {
-        ErrorCode::NotImplemented
+        ErrorCode::NOT_IMPLEMENTED
     }
 }
-impl_into_error_from_display!(NotImplemented);
 
 /// Internal server error.
 /// Use it only when a nearly-impossible code path is taken.
@@ -215,76 +250,69 @@ impl_into_error_from_display!(NotImplemented);
 pub struct InternalServerError(pub String);
 impl HttpApiError for InternalServerError {
     fn code(&self) -> ErrorCode {
-        ErrorCode::InternalServerError
+        ErrorCode::INTERNAL_SERVER_ERROR
     }
 }
-impl_into_error_from_display!(InternalServerError);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Unauthorized: {0}")]
 pub struct Unauthorized(pub String);
 impl HttpApiError for Unauthorized {
     fn code(&self) -> ErrorCode {
-        ErrorCode::Unauthorized
+        ErrorCode::UNAUTHORIZED
     }
-    fn headers(&self) -> Vec<(String, String)> {
+    fn http_headers(&self) -> Vec<(String, String)> {
         vec![(
             "WWW-Authenticate".into(),
             r#"Bearer realm="Admin only area", charset="UTF-8""#.into(),
         )]
     }
 }
-impl_into_error_from_display!(Unauthorized);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Forbidden: {0}")]
 pub struct Forbidden(pub String);
 impl HttpApiError for Forbidden {
     fn code(&self) -> ErrorCode {
-        ErrorCode::Forbidden
+        ErrorCode::FORBIDDEN
     }
 }
-impl_into_error_from_display!(Forbidden);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Unknown database error")]
 pub struct UnknownDbErr;
 impl HttpApiError for UnknownDbErr {
     fn code(&self) -> ErrorCode {
-        ErrorCode::DatabaseError
+        ErrorCode::DATABASE_ERROR
     }
 }
-impl_into_error_from_display!(UnknownDbErr);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_workspace_route))]
 pub struct WorkspaceNotInitialized;
 impl HttpApiError for WorkspaceNotInitialized {
     fn code(&self) -> ErrorCode {
-        ErrorCode::WorkspaceNotInitialized
+        ErrorCode::WORKSPACE_NOT_INITIALIZED
     }
 }
-impl_into_error_from_display!(WorkspaceNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
 #[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_server_config_route))]
 pub struct ServerConfigNotInitialized;
 impl HttpApiError for ServerConfigNotInitialized {
     fn code(&self) -> ErrorCode {
-        ErrorCode::ServerConfigNotInitialized
+        ErrorCode::SERVER_CONFIG_NOT_INITIALIZED
     }
 }
-impl_into_error_from_display!(ServerConfigNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::pod_config::set_pod_address_route))]
 pub struct PodAddressNotInitialized;
 impl HttpApiError for PodAddressNotInitialized {
     fn code(&self) -> ErrorCode {
-        ErrorCode::PodAddressNotInitialized
+        ErrorCode::POD_ADDRESS_NOT_INITIALIZED
     }
 }
-impl_into_error_from_display!(PodAddressNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Bad request: {reason}")]
@@ -293,10 +321,9 @@ pub struct BadRequest {
 }
 impl HttpApiError for BadRequest {
     fn code(&self) -> ErrorCode {
-        ErrorCode::BadRequest
+        ErrorCode::BAD_REQUEST
     }
 }
-impl_into_error_from_display!(BadRequest);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Not found: {reason}")]
@@ -305,10 +332,9 @@ pub struct NotFound {
 }
 impl HttpApiError for NotFound {
     fn code(&self) -> ErrorCode {
-        ErrorCode::NotFound
+        ErrorCode::NOT_FOUND
     }
 }
-impl_into_error_from_display!(NotFound);
 
 /// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
 /// to change the output format).
@@ -317,108 +343,109 @@ impl_into_error_from_display!(NotFound);
 pub struct HTTPStatus(pub Status);
 impl HttpApiError for HTTPStatus {
     fn code(&self) -> ErrorCode {
-        ErrorCode::Unknown(self.0)
+        ErrorCode::unknown(self.0)
     }
 }
-impl_into_error_from_display!(HTTPStatus);
+
+pub trait CustomErrorCode {
+    fn error_code(&self) -> ErrorCode;
+}
 
 macro_rules! impl_into_error {
     ($t:ty) => {
-        impl From<$t> for Error {
-            fn from(error: $t) -> Self {
-                Self::new(
-                    error.code(),
-                    format!("{} error: {error}", stringify!($t)),
-                    error.headers(),
-                )
+        impl HttpApiError for $t {
+            fn code(&self) -> ErrorCode {
+                CustomErrorCode::error_code(self)
+            }
+            fn message(&self) -> String {
+                format!("{} error: {self}", stringify!($t))
+            }
+        }
+    };
+    ($t:ty, $code:expr) => {
+        impl HttpApiError for $t {
+            fn code(&self) -> ErrorCode {
+                $code
+            }
+            fn message(&self) -> String {
+                format!("{} error: {self}", stringify!($t))
+            }
+        }
+    };
+    ($t:ty, $code:expr, $headers:expr) => {
+        impl HttpApiError for $t {
+            fn code(&self) -> ErrorCode {
+                $code
+            }
+            fn message(&self) -> String {
+                format!("{} error: {self}", stringify!($t))
+            }
+            fn http_headers(&self) -> Vec<(String, String)> {
+                $headers
             }
         }
     };
 }
 
-impl HttpApiError for sea_orm::DbErr {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::DatabaseError
-    }
-}
-impl_into_error!(sea_orm::DbErr);
+impl_into_error!(sea_orm::DbErr, ErrorCode::DATABASE_ERROR);
 
-impl HttpApiError for server_ctl::Error {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::InternalServerError
-    }
-}
-impl_into_error!(server_ctl::Error);
+impl_into_error!(server_ctl::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
-impl HttpApiError for xmpp_service::Error {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::InternalServerError
-    }
-}
-impl_into_error!(xmpp_service::Error);
+impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
-impl HttpApiError for notifier::Error {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::InternalServerError
-    }
-}
-impl_into_error!(notifier::Error);
+impl_into_error!(notifier::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
-impl HttpApiError for AuthBasicError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::Unauthorized
-    }
-    fn headers(&self) -> Vec<(String, String)> {
-        vec![(
-            "WWW-Authenticate".into(),
-            r#"Basic realm="Admin only area", charset="UTF-8""#.into(),
-        )]
-    }
-}
-impl_into_error!(AuthBasicError);
+impl_into_error!(
+    AuthBasicError,
+    ErrorCode::UNAUTHORIZED,
+    vec![(
+        "WWW-Authenticate".into(),
+        r#"Basic realm="Admin only area", charset="UTF-8""#.into(),
+    )]
+);
 
-impl HttpApiError for MutationError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for MutationError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::EntityNotFound { .. } => ErrorCode::NotFound,
+            Self::EntityNotFound { .. } => ErrorCode::NOT_FOUND,
             Self::DbErr(err) => err.code(),
         }
     }
 }
 impl_into_error!(MutationError);
 
-impl HttpApiError for jwt_service::Error {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for jwt_service::Error {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::Sign(_) | Self::Other(_) => ErrorCode::InternalServerError,
-            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::Unauthorized,
+            Self::Sign(_) | Self::Other(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::UNAUTHORIZED,
         }
     }
 }
 impl_into_error!(jwt_service::Error);
 
-impl HttpApiError for auth_service::Error {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for auth_service::Error {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::InvalidCredentials => ErrorCode::Unauthorized,
-            _ => ErrorCode::InternalServerError,
+            Self::InvalidCredentials => ErrorCode::UNAUTHORIZED,
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
 impl_into_error!(auth_service::Error);
 
-impl HttpApiError for UserCreateError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for UserCreateError {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
-            _ => ErrorCode::InternalServerError,
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
 impl_into_error!(UserCreateError);
 
-impl HttpApiError for user_service::Error {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for user_service::Error {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotCreateUser(err) => err.code(),
         }
@@ -426,10 +453,10 @@ impl HttpApiError for user_service::Error {
 }
 impl_into_error!(user_service::Error);
 
-impl HttpApiError for server_manager::Error {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for server_manager::Error {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::ServerConfigAlreadyInitialized => ErrorCode::ServerConfigAlreadyInitialized,
+            Self::ServerConfigAlreadyInitialized => ErrorCode::SERVER_CONFIG_ALREADY_INITIALIZED,
             Self::ServerCtl(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -437,8 +464,8 @@ impl HttpApiError for server_manager::Error {
 }
 impl_into_error!(server_manager::Error);
 
-impl HttpApiError for InitServerConfigError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InitServerConfigError {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotInitServerConfig(err) => err.code(),
             Self::CouldNotCreateServiceAccount(err) => err.code(),
@@ -447,23 +474,23 @@ impl HttpApiError for InitServerConfigError {
 }
 impl_into_error!(InitServerConfigError);
 
-impl HttpApiError for CreateServiceAccountError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for CreateServiceAccountError {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotCreateXmppAccount(err) => err.code(),
             Self::CouldNotLogIn(_) | Self::InvalidJwt(_) | Self::MissingProsodyToken(_) => {
-                ErrorCode::InternalServerError
+                ErrorCode::INTERNAL_SERVER_ERROR
             }
         }
     }
 }
 impl_into_error!(CreateServiceAccountError);
 
-impl HttpApiError for InitWorkspaceError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InitWorkspaceError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceAlreadyInitialized => ErrorCode::WorkspaceAlreadyInitialized,
-            Self::XmppAccountNotInitialized => ErrorCode::ServerConfigNotInitialized,
+            Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
+            Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
             Self::CouldNotSetWorkspaceName(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -471,11 +498,11 @@ impl HttpApiError for InitWorkspaceError {
 }
 impl_into_error!(InitWorkspaceError);
 
-impl HttpApiError for InitFirstAccountError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InitFirstAccountError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::FirstAccountAlreadyCreated => ErrorCode::FirstAccountAlreadyCreated,
-            Self::InvalidJid(_) => ErrorCode::BadRequest,
+            Self::FirstAccountAlreadyCreated => ErrorCode::FIRST_ACCOUNT_ALREADY_CREATED,
+            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
             Self::CouldNotCreateFirstAccount(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -483,11 +510,11 @@ impl HttpApiError for InitFirstAccountError {
 }
 impl_into_error!(InitFirstAccountError);
 
-impl HttpApiError for InviteMemberError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InviteMemberError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::InvalidJid(_) => ErrorCode::BadRequest,
-            Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::InternalServerError,
+            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
+            Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::DbErr(err) => err.code(),
@@ -496,21 +523,21 @@ impl HttpApiError for InviteMemberError {
 }
 impl_into_error!(InviteMemberError);
 
-impl HttpApiError for invitation_service::InvitationAcceptError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for invitation_service::InvitationAcceptError {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
-            _ => ErrorCode::InternalServerError,
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
 impl_into_error!(invitation_service::InvitationAcceptError);
 
-impl HttpApiError for InvitationAcceptError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InvitationAcceptError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound => ErrorCode::Unauthorized,
-            Self::ExpiredAcceptToken => ErrorCode::NotFound,
+            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
+            Self::ExpiredAcceptToken => ErrorCode::NOT_FOUND,
             Self::ServiceError(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -518,20 +545,20 @@ impl HttpApiError for InvitationAcceptError {
 }
 impl_into_error!(InvitationAcceptError);
 
-impl HttpApiError for InvitationRejectError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InvitationRejectError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound => ErrorCode::Unauthorized,
+            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
             Self::DbErr(err) => err.code(),
         }
     }
 }
 impl_into_error!(InvitationRejectError);
 
-impl HttpApiError for InvitationResendError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InvitationResendError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound(_) => ErrorCode::NotFound,
+            Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
             Self::CouldNotSendInvitation(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -539,8 +566,8 @@ impl HttpApiError for InvitationResendError {
 }
 impl_into_error!(InvitationResendError);
 
-impl HttpApiError for InvitationCancelError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for InvitationCancelError {
+    fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
         }
@@ -548,17 +575,17 @@ impl HttpApiError for InvitationCancelError {
 }
 impl_into_error!(InvitationCancelError);
 
-impl HttpApiError for std::io::Error {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::InternalServerError
+impl CustomErrorCode for std::io::Error {
+    fn error_code(&self) -> ErrorCode {
+        ErrorCode::INTERNAL_SERVER_ERROR
     }
 }
 impl_into_error!(std::io::Error);
 
-impl HttpApiError for WorkspaceControllerError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for WorkspaceControllerError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceNotInitialized => ErrorCode::WorkspaceNotInitialized,
+            Self::WorkspaceNotInitialized => ErrorCode::WORKSPACE_NOT_INITIALIZED,
             Self::XmppServiceError(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
@@ -566,20 +593,20 @@ impl HttpApiError for WorkspaceControllerError {
 }
 impl_into_error!(WorkspaceControllerError);
 
-impl HttpApiError for WorkspaceControllerInitError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for WorkspaceControllerInitError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::ServerConfigNotInitialized,
+            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
         }
     }
 }
 impl_into_error!(WorkspaceControllerInitError);
 
-impl HttpApiError for PodAddressError {
-    fn code(&self) -> ErrorCode {
+impl CustomErrorCode for PodAddressError {
+    fn error_code(&self) -> ErrorCode {
         match self {
-            Self::PodAddressNotInitialized => ErrorCode::PodAddressNotInitialized,
-            Self::InvalidData(_) => ErrorCode::InternalServerError,
+            Self::PodAddressNotInitialized => ErrorCode::POD_ADDRESS_NOT_INITIALIZED,
+            Self::InvalidData(_) => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

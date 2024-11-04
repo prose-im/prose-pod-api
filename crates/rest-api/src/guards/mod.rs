@@ -95,7 +95,7 @@ where
 
 impl Into<(Status, Error)> for Error {
     fn into(self) -> (Status, Error) {
-        (self.http_status(), self)
+        (self.http_status, self)
     }
 }
 
