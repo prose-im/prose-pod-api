@@ -76,6 +76,7 @@ pub struct ProsodySettings {
     pub http_interfaces: Option<Vec<Interface>>,
     pub https_ports: Option<Vec<u16>>,
     pub https_interfaces: Option<Vec<Interface>>,
+    pub plugin_paths: Option<LinkedHashSet<String>>,
     pub modules_enabled: Option<LinkedHashSet<String>>,
     pub modules_disabled: Option<LinkedHashSet<String>>,
     pub ssl: Option<SSLConfig>,
