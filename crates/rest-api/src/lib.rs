@@ -10,7 +10,7 @@ pub mod error;
 pub mod features;
 pub mod forms;
 pub mod guards;
-pub mod model;
+pub mod models;
 pub mod responders;
 
 use error::Error;

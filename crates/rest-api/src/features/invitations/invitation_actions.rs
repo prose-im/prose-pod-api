@@ -20,7 +20,7 @@ use crate::{
     error::prelude::*,
     forms::Uuid,
     guards::{Db, LazyGuard},
-    model::SerializableSecretString,
+    models::SerializableSecretString,
 };
 
 use super::guards::*;

@@ -16,7 +16,7 @@ use crate::{
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
     guards::{LazyGuard, UnauthenticatedUserService},
-    model::SerializableSecretString,
+    models::SerializableSecretString,
     responders::Created,
 };
 
