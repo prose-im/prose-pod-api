@@ -88,7 +88,7 @@ task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.yaml local-init
 At the root of the `prose-pod-api` repository, run:
 
 ```sh
-task local-update
+task local-run
 ```
 
 ## When you want to update one of the repositories
