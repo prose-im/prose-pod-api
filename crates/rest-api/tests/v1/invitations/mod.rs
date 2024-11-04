@@ -9,7 +9,7 @@ use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
 use migration::DbErr;
 use prose_pod_api::error::Error;
-use prose_pod_api::v1::invitations::{
+use prose_pod_api::features::invitations::{
     AcceptWorkspaceInvitationRequest, InvitationTokenType as TokenType, InviteMemberRequest,
     WorkspaceInvitation,
 };

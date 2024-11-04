@@ -15,7 +15,7 @@ use base64::{engine::general_purpose::STANDARD as Base64, Engine};
 use cucumber::{given, then, when};
 use prose_pod_api::{
     error::{self, Error},
-    v1::LoginResponse,
+    features::auth::LoginResponse,
 };
 use rocket::{
     http::{ContentType, Header},

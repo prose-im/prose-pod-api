@@ -7,7 +7,7 @@ use std::str::FromStr as _;
 
 use cucumber::{given, then, when};
 use prose_pod_api::error::Error;
-use prose_pod_api::v1::init::{
+use prose_pod_api::features::init::{
     InitFirstAccountRequest, InitServerConfigRequest, InitWorkspaceRequest,
 };
 use rocket::http::{ContentType, Status};

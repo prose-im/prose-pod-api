@@ -10,7 +10,7 @@ use std::{
 
 use cucumber::when;
 use hickory_proto::rr::Name as DomainName;
-use prose_pod_api::v1::pod::config::SetPodAddressRequest;
+use prose_pod_api::features::pod_config::SetPodAddressRequest;
 
 use crate::{api_call_fn, user_token, TestWorld};
 

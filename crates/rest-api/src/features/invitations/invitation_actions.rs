@@ -1,0 +1,125 @@
+// prose-pod-api
+//
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
+use std::ops::Deref as _;
+
+use rocket::{delete, post, response::status::NoContent, serde::json::Json, State};
+use sea_orm_rocket::Connection;
+use serde::{Deserialize, Serialize};
+use service::{
+    config::AppConfig,
+    controllers::invitation_controller::{InvitationAcceptForm, InvitationController},
+    prose_xmpp::BareJid,
+    repositories::InvitationToken,
+    repositories::MemberRepository,
+    services::notifier::Notifier,
+};
+
+use crate::{
+    error::{self, Error},
+    forms::Uuid,
+    guards::{Db, LazyGuard, UnauthenticatedInvitationService},
+    model::SerializableSecretString,
+};
+
+#[derive(Serialize, Deserialize)]
+pub struct AcceptWorkspaceInvitationRequest {
+    pub nickname: String,
+    pub password: SerializableSecretString,
+}
+
+/// Accept a workspace invitation.
+#[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
+pub async fn invitation_accept_route<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_service: LazyGuard<UnauthenticatedInvitationService<'r>>,
+    token: Uuid,
+    req: Json<AcceptWorkspaceInvitationRequest>,
+) -> Result<(), Error> {
+    invitation_controller
+        .inner?
+        .accept(
+            InvitationToken::from(*token.deref()),
+            invitation_service.inner?.deref(),
+            req.into_inner(),
+        )
+        .await?;
+
+    Ok(())
+}
+
+/// Reject a workspace invitation.
+#[put("/v1/invitations/<token>/reject")]
+pub async fn invitation_reject_route<'r>(
+    invitation_controller: LazyGuard<InvitationController<'r>>,
+    token: Uuid,
+) -> Result<NoContent, Error> {
+    invitation_controller
+        .inner?
+        .reject(InvitationToken::from(*token.deref()))
+        .await?;
+
+    Ok(NoContent)
+}
+
+/// Resend a workspace invitation.
+#[post("/v1/invitations/<invitation_id>/resend")]
+pub async fn invitation_resend_route<'r>(
+    conn: Connection<'r, Db>,
+    invitation_controller: LazyGuard<InvitationController<'r>>,
+    app_config: &State<AppConfig>,
+    jid: LazyGuard<BareJid>,
+    notifier: LazyGuard<Notifier<'r>>,
+    invitation_id: i32,
+) -> Result<NoContent, Error> {
+    let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
+    let notifier = notifier.inner?;
+
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
+
+    invitation_controller
+        .resend(&app_config, &notifier, invitation_id)
+        .await?;
+
+    Ok(NoContent)
+}
+
+/// Cancel a workspace invitation.
+#[delete("/v1/invitations/<invitation_id>")]
+pub async fn invitation_cancel_route<'r>(
+    conn: Connection<'r, Db>,
+    invitation_controller: LazyGuard<InvitationController<'r>>,
+    jid: LazyGuard<BareJid>,
+    invitation_id: i32,
+) -> Result<NoContent, Error> {
+    let db = conn.into_inner();
+    let invitation_controller = invitation_controller.inner?;
+
+    let jid = jid.inner?;
+    // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
+    if !MemberRepository::is_admin(db, &jid).await? {
+        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    }
+
+    invitation_controller.cancel(invitation_id).await?;
+
+    Ok(NoContent)
+}
+
+// BOILERPLATE
+
+impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
+    fn into(self) -> InvitationAcceptForm {
+        InvitationAcceptForm {
+            nickname: self.nickname,
+            password: self.password.into(),
+        }
+    }
+}

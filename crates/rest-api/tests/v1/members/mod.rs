@@ -8,7 +8,7 @@ use std::cmp::max;
 use cucumber::{given, then, when};
 use migration::DbErr;
 use prose_pod_api::error::Error;
-use prose_pod_api::v1::members::Member as MemberDTO;
+use prose_pod_api::features::members::Member as MemberDTO;
 use rocket::{
     http::{Accept, Header},
     local::asynchronous::{Client, LocalResponse},

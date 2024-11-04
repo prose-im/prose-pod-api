@@ -257,7 +257,7 @@ impl HttpApiError for UnknownDbErr {
 impl_into_error_from_display!(UnknownDbErr);
 
 #[derive(Debug, thiserror::Error)]
-#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_workspace))]
+#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_workspace_route))]
 pub struct WorkspaceNotInitialized;
 impl HttpApiError for WorkspaceNotInitialized {
     fn code(&self) -> ErrorCode {
@@ -267,7 +267,7 @@ impl HttpApiError for WorkspaceNotInitialized {
 impl_into_error_from_display!(WorkspaceNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
-#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::init::init_server_config))]
+#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_server_config_route))]
 pub struct ServerConfigNotInitialized;
 impl HttpApiError for ServerConfigNotInitialized {
     fn code(&self) -> ErrorCode {
@@ -277,7 +277,7 @@ impl HttpApiError for ServerConfigNotInitialized {
 impl_into_error_from_display!(ServerConfigNotInitialized);
 
 #[derive(Debug, thiserror::Error)]
-#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::v1::pod::config::set_pod_address))]
+#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::pod_config::set_pod_address_route))]
 pub struct PodAddressNotInitialized;
 impl HttpApiError for PodAddressNotInitialized {
     fn code(&self) -> ErrorCode {

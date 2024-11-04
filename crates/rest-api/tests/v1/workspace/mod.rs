@@ -6,7 +6,7 @@
 use crate::TestWorld;
 use cucumber::{given, then, when};
 use prose_pod_api::error::Error;
-use prose_pod_api::v1::workspace::*;
+use prose_pod_api::features::workspace_details::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;

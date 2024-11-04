@@ -6,7 +6,7 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use cucumber::{given, then, when};
-use prose_pod_api::{error::Error, v1::network::dns::GetDnsRecordsResponse};
+use prose_pod_api::{error::Error, features::dns_setup::GetDnsRecordsResponse};
 use service::{
     entity::pod_config,
     model::dns::{DnsRecord, DnsRecordDiscriminants},

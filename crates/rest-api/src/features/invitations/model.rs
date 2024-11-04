@@ -1,0 +1,39 @@
+// prose-pod-api
+//
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use service::{
+    model::{InvitationContact, InvitationStatus, MemberRole},
+    prose_xmpp::BareJid,
+    util::to_bare_jid,
+};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WorkspaceInvitation {
+    pub invitation_id: i32,
+    pub created_at: DateTime<Utc>,
+    pub status: InvitationStatus,
+    pub jid: BareJid,
+    pub pre_assigned_role: MemberRole,
+    pub contact: InvitationContact,
+    pub accept_token_expires_at: DateTime<Utc>,
+}
+
+// BOILERPLATE
+
+impl From<service::model::Invitation> for WorkspaceInvitation {
+    fn from(value: service::model::Invitation) -> Self {
+        Self {
+            invitation_id: value.id,
+            created_at: value.created_at,
+            status: value.status,
+            jid: to_bare_jid(&value.jid).unwrap(),
+            pre_assigned_role: value.pre_assigned_role,
+            contact: value.contact(),
+            accept_token_expires_at: value.accept_token_expires_at,
+        }
+    }
+}

@@ -3,8 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod created;
-mod paginated;
+pub mod redoc;
 
-pub use created::Created;
-pub use paginated::Paginated;
+pub use redoc::*;
+
+pub(super) fn routes() -> Vec<rocket::Route> {
+    routes![redoc_route]
+}

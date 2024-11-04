@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use cucumber::{given, then, when};
-use prose_pod_api::{error::Error, v1::server::config::*};
+use prose_pod_api::{error::Error, features::server_config::*};
 use service::{
     entity::server_config,
     prosody::IntoProsody as _,

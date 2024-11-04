@@ -7,11 +7,11 @@
 extern crate rocket;
 
 pub mod error;
+pub mod features;
 pub mod forms;
 pub mod guards;
 pub mod model;
 pub mod responders;
-pub mod v1;
 
 use std::time::Duration;
 
@@ -20,7 +20,7 @@ use guards::Db;
 use migration::MigratorTrait;
 use rocket::{
     fairing::AdHoc,
-    fs::{FileServer, NamedFile},
+    fs::FileServer,
     http::Status,
     {Build, Request, Rocket},
 };
@@ -66,9 +66,8 @@ pub fn custom_rocket(
                 }
             },
         ))
-        .mount("/", v1::routes())
+        .mount("/", features::routes())
         .mount("/api-docs", FileServer::from("static/api-docs"))
-        .mount("/api-docs", routes![redoc])
         .register("/", catchers![default_catcher])
         .manage(Uuid::from_config(&config))
         .manage(config)
@@ -181,18 +180,6 @@ async fn create_service_accounts(rocket: &Rocket<Build>) -> Result<(), String> {
     }
 
     Ok(())
-}
-
-#[get("/redoc")]
-async fn redoc() -> Result<NamedFile, Error> {
-    NamedFile::open("static/api-docs/redoc.html")
-        .await
-        .map_err(|e| {
-            error::NotFound {
-                reason: format!("{e}"),
-            }
-            .into()
-        })
 }
 
 #[catch(default)]
