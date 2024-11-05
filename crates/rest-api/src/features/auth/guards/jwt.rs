@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::services::jwt_service::{JWTService, JWT};
+use service::features::auth::{JWTService, JWT};
 
 use crate::guards::prelude::*;
 

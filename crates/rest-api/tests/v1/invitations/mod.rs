@@ -19,10 +19,9 @@ use rocket::{
 };
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
-use service::model::{InvitationContact, JidNode};
 use service::{
-    prose_xmpp::BareJid,
-    repositories::{InvitationCreateForm, InvitationRepository},
+    features::invitations::{InvitationContact, InvitationCreateForm, InvitationRepository},
+    model::{BareJid, JidNode},
     sea_orm::{prelude::*, IntoActiveModel as _, Set},
     MutationError,
 };
@@ -247,7 +246,7 @@ async fn given_invitation_received(
     InvitationRepository::update_status_by_email(
         db,
         email_address.0,
-        service::model::InvitationStatus::Sent,
+        service::features::invitations::InvitationStatus::Sent,
     )
     .await?;
     Ok(())
@@ -301,7 +300,7 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     InvitationRepository::update_status(
         db,
         world.scenario_workspace_invitation().1,
-        service::model::InvitationStatus::SendFailed,
+        service::features::invitations::InvitationStatus::SendFailed,
     )
     .await?;
     Ok(())

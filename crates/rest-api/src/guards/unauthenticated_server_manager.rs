@@ -3,9 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    entity::server_config,
-    services::{server_ctl::ServerCtl, server_manager::ServerManager},
+use service::features::{
+    server_config::entities::server_config,
+    xmpp::{ServerCtl, ServerManager},
 };
 
 use super::prelude::*;
@@ -19,7 +19,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
-        let app_config = try_outcome!(request_state!(req, service::config::Config));
+        let app_config = try_outcome!(request_state!(req, service::AppConfig));
         let server_ctl = try_outcome!(request_state!(req, ServerCtl));
         let server_config = try_outcome!(server_config::Model::from_request(req).await);
 

@@ -6,13 +6,14 @@
 use linked_hash_map::LinkedHashMap;
 use secrecy::SecretString;
 use service::{
-    config::Config,
-    model::{MemberRole, ServerConfig},
-    prose_xmpp::BareJid,
+    features::{
+        members::MemberRole,
+        server_config::ServerConfig,
+        xmpp::{server_ctl::Error, ServerCtlImpl},
+    },
+    model::BareJid,
     prosody::ProsodyConfig,
-    prosody_config_from_db,
-    services::server_ctl::{Error, ServerCtlImpl},
-    ProsodyConfigSection,
+    prosody_config_from_db, AppConfig, ProsodyConfigSection,
 };
 
 use std::sync::{Arc, RwLock};
@@ -65,7 +66,7 @@ impl ServerCtlImpl for MockServerCtl {
     async fn save_config(
         &self,
         server_config: &ServerConfig,
-        app_config: &Config,
+        app_config: &AppConfig,
     ) -> Result<(), Error> {
         self.check_online()?;
 

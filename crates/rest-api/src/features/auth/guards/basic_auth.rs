@@ -7,7 +7,7 @@ use std::str::FromStr as _;
 
 use http_auth_basic::Credentials;
 use secrecy::SecretString;
-use service::prose_xmpp::BareJid;
+use service::model::BareJid;
 
 use crate::guards::prelude::*;
 

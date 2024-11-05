@@ -8,9 +8,10 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, features::dns_setup::GetDnsRecordsResponse};
 use service::{
-    entity::pod_config,
-    model::dns::{DnsRecord, DnsRecordDiscriminants},
-    repositories::PodConfigRepository,
+    features::{
+        network_checks::{DnsRecord, DnsRecordDiscriminants},
+        pod_config::{entities::pod_config, PodConfigRepository},
+    },
     sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set},
 };
 

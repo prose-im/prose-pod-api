@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{get, serde::json::Json};
-use service::{controllers::workspace_controller::WorkspaceController, model::Workspace};
+use service::features::workspace::{Workspace, WorkspaceController};
 
 use crate::{error::Error, guards::LazyGuard};
 

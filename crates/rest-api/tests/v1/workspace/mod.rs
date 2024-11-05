@@ -10,7 +10,7 @@ use prose_pod_api::features::workspace_details::*;
 use rocket::http::{Accept, ContentType};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use serde_json::json;
-use service::prose_xmpp::mods::AvatarData;
+use service::model::xmpp::AvatarData;
 
 // WORKSPACE NAME
 

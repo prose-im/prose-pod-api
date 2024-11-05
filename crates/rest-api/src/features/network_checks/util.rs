@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use futures::{stream::FuturesOrdered, StreamExt};
 use lazy_static::lazy_static;
 use rocket::response::stream::{Event, EventStream};
-use service::{model::network_checks::*, services::network_checker::*};
+use service::features::network_checks::*;
 use tokio::{
     sync::mpsc::{self, error::SendError},
     task::JoinSet,

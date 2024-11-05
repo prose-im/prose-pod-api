@@ -14,9 +14,10 @@ use rocket::http::{ContentType, Status};
 use rocket::local::asynchronous::{Client, LocalResponse};
 use secrecy::SecretString;
 use serde_json::json;
-use service::controllers::init_controller::WorkspaceCreateForm;
-use service::model::{JidDomain, JidNode};
-use service::repositories::ServerConfigCreateForm;
+use service::{
+    features::{init::WorkspaceCreateForm, server_config::ServerConfigCreateForm},
+    model::{JidDomain, JidNode},
+};
 
 use crate::cucumber_parameters::{DomainName, Text};
 use crate::TestWorld;

@@ -5,9 +5,10 @@
 
 use std::ops::Deref;
 
-use service::services::{
-    auth_service::AuthService, server_ctl::ServerCtl, user_service::UserService,
-    xmpp_service::XmppServiceInner,
+use service::features::{
+    auth::AuthService,
+    members::UserService,
+    xmpp::{ServerCtl, XmppServiceInner},
 };
 
 use super::prelude::*;

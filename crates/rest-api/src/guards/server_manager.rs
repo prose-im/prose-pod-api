@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::services::server_manager::ServerManager;
+use service::features::xmpp::ServerManager;
 
 use super::{prelude::*, UnauthenticatedServerManager};
 

@@ -5,7 +5,7 @@
 
 use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::controllers::workspace_controller::WorkspaceController;
+use service::features::workspace::WorkspaceController;
 
 use crate::{error::Error, guards::LazyGuard};
 

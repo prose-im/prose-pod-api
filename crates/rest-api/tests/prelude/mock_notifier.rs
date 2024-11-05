@@ -3,10 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use ::service::notifier::{GenericNotifier, Notification};
-use service::config::ConfigBranding;
-
 use std::sync::{Arc, RwLock};
+
+use service::features::{
+    app_config::ConfigBranding,
+    notifications::dependencies::any_notifier::{GenericNotifier, Notification},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct MockNotifier {
@@ -27,7 +29,7 @@ impl GenericNotifier for MockNotifier {
     fn attempt(
         &self,
         _branding: &ConfigBranding,
-        notification: &service::notifier::Notification,
+        notification: &Notification,
     ) -> Result<(), String> {
         let mut state = self.state.write().unwrap();
         state.send_count += 1;

@@ -4,7 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use serde::{Deserialize, Serialize};
-use service::{model::MemberRole, prose_xmpp::BareJid};
+use service::{
+    features::members::{self, MemberRole},
+    model::BareJid,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Member {
@@ -14,8 +17,8 @@ pub struct Member {
 
 // BOILERPLATE
 
-impl From<service::model::Member> for Member {
-    fn from(model: service::model::Member) -> Self {
+impl From<members::entities::Member> for Member {
+    fn from(model: members::entities::Member) -> Self {
         Self {
             jid: model.jid(),
             role: model.role,

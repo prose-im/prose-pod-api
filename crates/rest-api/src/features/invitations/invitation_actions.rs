@@ -9,11 +9,13 @@ use rocket::{delete, post, response::status::NoContent, serde::json::Json, State
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    config::AppConfig,
-    controllers::invitation_controller::*,
-    prose_xmpp::BareJid,
-    repositories::{InvitationToken, MemberRepository},
-    services::{invitation_service, notifier::Notifier},
+    features::{
+        invitations::{invitation_controller::*, invitation_service, InvitationToken},
+        members::MemberRepository,
+        notifications::Notifier,
+    },
+    model::BareJid,
+    AppConfig,
 };
 
 use crate::{
@@ -126,7 +128,7 @@ impl CustomErrorCode for invitation_service::InvitationAcceptError {
 }
 impl_into_error!(invitation_service::InvitationAcceptError);
 
-impl CustomErrorCode for InvitationAcceptError {
+impl CustomErrorCode for CannotAcceptInvitation {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
@@ -136,7 +138,7 @@ impl CustomErrorCode for InvitationAcceptError {
         }
     }
 }
-impl_into_error!(InvitationAcceptError);
+impl_into_error!(CannotAcceptInvitation);
 
 impl CustomErrorCode for InvitationRejectError {
     fn error_code(&self) -> ErrorCode {

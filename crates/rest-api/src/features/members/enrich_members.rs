@@ -13,8 +13,8 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use service::{
-    controllers::member_controller::{self, MemberController},
-    prose_xmpp::BareJid,
+    features::members::{member_controller, MemberController},
+    model::BareJid,
 };
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};

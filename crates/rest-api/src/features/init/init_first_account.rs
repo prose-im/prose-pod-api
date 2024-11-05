@@ -6,9 +6,12 @@
 use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    controllers::init_controller::{InitController, InitFirstAccountError, InitFirstAccountForm},
-    model::{JidNode, ServerConfig},
-    services::user_service::UserCreateError,
+    features::{
+        init::{InitController, InitFirstAccountError, InitFirstAccountForm},
+        members::UserCreateError,
+        server_config::ServerConfig,
+    },
+    model::JidNode,
 };
 
 use crate::{

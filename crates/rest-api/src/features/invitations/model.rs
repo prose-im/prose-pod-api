@@ -6,8 +6,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use service::{
-    model::{InvitationContact, InvitationStatus, MemberRole},
-    prose_xmpp::BareJid,
+    features::{
+        invitations::{self, InvitationContact, InvitationStatus},
+        members::MemberRole,
+    },
+    model::BareJid,
     util::to_bare_jid,
 };
 
@@ -24,8 +27,8 @@ pub struct WorkspaceInvitation {
 
 // BOILERPLATE
 
-impl From<service::model::Invitation> for WorkspaceInvitation {
-    fn from(value: service::model::Invitation) -> Self {
+impl From<invitations::entities::Invitation> for WorkspaceInvitation {
+    fn from(value: invitations::entities::Invitation) -> Self {
         Self {
             invitation_id: value.id,
             created_at: value.created_at,

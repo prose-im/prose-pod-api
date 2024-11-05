@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use rocket::get;
-use service::controllers::invitation_controller::InvitationController;
+use service::features::invitations::InvitationController;
 
 use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
 

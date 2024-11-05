@@ -10,27 +10,23 @@ use prose_pod_api::{custom_rocket, guards::Db};
 use rocket::fairing::AdHoc;
 use sea_orm_rocket::Database as _;
 use service::{
-    config::Config,
-    dependencies::Notifier,
+    features::{
+        auth::{AuthService, JWTService, LiveAuthService},
+        network_checks::{LiveNetworkChecker, NetworkChecker},
+        notifications::dependencies::Notifier,
+        secrets::{LiveSecretsStore, SecretsStore},
+        xmpp::{LiveXmppService, ServerCtl, XmppServiceInner},
+    },
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
-    services::{
-        auth_service::{AuthService, LiveAuthService},
-        jwt_service::JWTService,
-        live_secrets_store::LiveSecretsStore,
-        network_checker::{live::LiveNetworkChecker, NetworkChecker},
-        secrets_store::SecretsStore,
-        server_ctl::ServerCtl,
-        xmpp_service::{LiveXmppService, XmppServiceInner},
-    },
-    HttpClient,
+    AppConfig, HttpClient,
 };
 use std::sync::Arc;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[launch]
 fn rocket() -> _ {
-    let config = Config::figment();
+    let config = AppConfig::figment();
     #[cfg(debug_assertions)]
     dbg!(&config);
     let jwt_service = match JWTService::from_env() {

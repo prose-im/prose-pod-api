@@ -3,7 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{entity::server_config, model::ServerConfig, repositories::ServerConfigRepository};
+use service::features::server_config::{
+    entities::server_config, ServerConfig, ServerConfigRepository,
+};
 
 use crate::features::init::ServerConfigNotInitialized;
 
@@ -29,7 +31,7 @@ impl<'r> LazyFromRequest<'r> for ServerConfig {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let app_config = try_outcome!(request_state!(req, service::config::Config));
+        let app_config = try_outcome!(request_state!(req, service::AppConfig));
         let model = try_outcome!(server_config::Model::from_request(req).await);
         Outcome::Success(model.with_default_values_from(app_config))
     }

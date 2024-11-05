@@ -6,11 +6,16 @@
 use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
-    config::AppConfig,
-    controllers::init_controller::{InitController, InitServerConfigError},
-    model::{JidDomain, PodAddressError, ServerConfig},
-    repositories::ServerConfigCreateForm,
-    services::{auth_service::AuthService, secrets_store::SecretsStore, server_ctl::ServerCtl},
+    features::{
+        auth::AuthService,
+        init::{InitController, InitServerConfigError},
+        pod_config::PodAddressError,
+        secrets::SecretsStore,
+        server_config::{ServerConfig, ServerConfigCreateForm},
+        xmpp::ServerCtl,
+    },
+    model::JidDomain,
+    AppConfig,
 };
 
 use crate::{error::prelude::*, guards::LazyGuard, responders::Created};

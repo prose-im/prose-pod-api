@@ -6,13 +6,14 @@
 use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
-    config::AppConfig,
-    controllers::{
-        init_controller::{InitController, InitWorkspaceError, WorkspaceCreateForm},
-        workspace_controller::WorkspaceControllerError,
+    features::{
+        init::{InitController, InitWorkspaceError, WorkspaceCreateForm},
+        secrets::SecretsStore,
+        server_config::ServerConfig,
+        workspace::WorkspaceControllerError,
+        xmpp::XmppServiceInner,
     },
-    model::ServerConfig,
-    services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
+    AppConfig,
 };
 
 use crate::{error::prelude::*, guards::LazyGuard, responders::Created};

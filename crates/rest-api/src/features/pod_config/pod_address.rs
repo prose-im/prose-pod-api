@@ -10,9 +10,11 @@ use rocket::{response::status::Created, serde::json::Json, Either};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    model::{PodAddress, PodConfig},
-    prose_xmpp::BareJid,
-    repositories::{MemberRepository, PodConfigCreateForm, PodConfigRepository},
+    features::{
+        members::MemberRepository,
+        pod_config::{PodAddress, PodConfig, PodConfigCreateForm, PodConfigRepository},
+    },
+    model::BareJid,
 };
 
 use crate::{

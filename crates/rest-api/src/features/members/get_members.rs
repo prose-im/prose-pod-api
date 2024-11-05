@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use rocket::get;
-use service::{controllers::member_controller::MemberController, prose_xmpp::BareJid};
+use service::{features::members::MemberController, model::BareJid};
 
 use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
 

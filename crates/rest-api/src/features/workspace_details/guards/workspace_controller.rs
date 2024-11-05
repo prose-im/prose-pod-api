@@ -4,10 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    config::AppConfig,
-    controllers::workspace_controller::{WorkspaceController, WorkspaceControllerInitError},
-    model::ServerConfig,
-    services::{secrets_store::SecretsStore, xmpp_service::XmppServiceInner},
+    features::{
+        secrets::SecretsStore,
+        server_config::ServerConfig,
+        workspace::{WorkspaceController, WorkspaceControllerInitError},
+        xmpp::XmppServiceInner,
+    },
+    AppConfig,
 };
 
 use crate::{error::prelude::*, guards::prelude::*};

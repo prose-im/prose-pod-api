@@ -3,12 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
-use crate::config::Config;
 #[cfg(debug_assertions)]
-use crate::config::UuidDependencyMode;
+use crate::features::app_config::UuidDependencyMode;
+use crate::AppConfig;
 
 #[cfg(debug_assertions)]
 use self::incrementing::IncrementingUuidGenerator;
@@ -23,14 +22,14 @@ pub struct Uuid {
 
 impl Uuid {
     #[cfg(not(debug_assertions))]
-    pub fn from_config(_config: &Config) -> Self {
+    pub fn from_config(_config: &AppConfig) -> Self {
         Self {
             generator: Arc::new(LiveUuidGenerator),
         }
     }
 
     #[cfg(debug_assertions)]
-    pub fn from_config(config: &Config) -> Self {
+    pub fn from_config(config: &AppConfig) -> Self {
         Self {
             generator: match config.debug_only.dependency_modes.uuid {
                 UuidDependencyMode::Normal => Arc::new(LiveUuidGenerator),

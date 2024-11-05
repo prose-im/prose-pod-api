@@ -7,7 +7,7 @@ use std::fmt::Display;
 
 use rocket::response::stream::Event;
 use serde::{Deserialize, Serialize};
-use service::model::network_checks::*;
+use service::features::network_checks::*;
 
 // ===== JSON RESPONSES =====
 

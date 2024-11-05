@@ -4,8 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use linked_hash_map::LinkedHashMap;
-use service::prose_xmpp::{mods::AvatarData, BareJid};
-use service::services::xmpp_service::{Error, VCard, XmppServiceContext, XmppServiceImpl};
+use service::features::xmpp::{
+    xmpp_service::Error, AvatarData, BareJid, VCard, XmppServiceContext, XmppServiceImpl,
+};
 use tracing::trace;
 
 use std::{

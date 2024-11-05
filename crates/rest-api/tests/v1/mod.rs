@@ -23,11 +23,12 @@ use rocket::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use service::{
-    model::MemberRole,
-    prose_xmpp::{mods::AvatarData, BareJid},
+    features::{
+        auth::jwt_service,
+        members::{MemberCreateForm, MemberRepository, MemberRole},
+    },
+    model::xmpp::{AvatarData, BareJid},
     prosody_config::LuaValue,
-    repositories::{MemberCreateForm, MemberRepository},
-    services::jwt_service,
 };
 
 use crate::{cucumber_parameters::Duration, DbErr, TestWorld};

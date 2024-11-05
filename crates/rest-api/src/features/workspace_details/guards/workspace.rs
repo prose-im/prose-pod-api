@@ -3,12 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::repositories::WorkspaceRepository;
+use service::features::workspace::{Workspace, WorkspaceRepository};
 
 use crate::{features::init::WorkspaceNotInitialized, guards::prelude::*};
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for service::model::Workspace {
+impl<'r> LazyFromRequest<'r> for Workspace {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

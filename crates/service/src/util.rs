@@ -3,9 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use xmpp_parsers::jid::NodePart;
-
-use crate::{model::ServerConfig, prose_xmpp::BareJid, xmpp_parsers::jid};
+use crate::{
+    features::server_config::ServerConfig,
+    model::jid::{self, BareJid, NodePart},
+};
 
 pub fn to_bare_jid(jid: &crate::model::JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())

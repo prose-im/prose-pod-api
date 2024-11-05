@@ -34,25 +34,22 @@ use sea_orm_rocket::Database;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use service::{
-    config::AppConfig,
-    controllers::{init_controller::InitController, workspace_controller::WorkspaceController},
     dependencies,
-    entity::server_config,
-    model::{EmailAddress, Invitation, Member, ServerConfig},
-    notifier::AnyNotifier,
-    repositories::ServerConfigRepository,
-    sea_orm::DatabaseConnection,
-    services::{
-        auth_service::AuthService,
-        jwt_service::{JWTKey, JWTService},
-        live_secrets_store::LiveSecretsStore,
-        network_checker::NetworkChecker,
-        secrets_store::{SecretsStore, SecretsStoreImpl},
-        server_ctl::{ServerCtl, ServerCtlImpl as _},
-        server_manager::ServerManager,
-        user_service::UserService,
-        xmpp_service::XmppServiceInner,
+    features::{
+        auth::{AuthService, JWTKey, JWTService},
+        init::InitController,
+        invitations::Invitation,
+        members::{Member, UserService},
+        network_checks::NetworkChecker,
+        notifications::dependencies::{any_notifier::AnyNotifier, Notifier},
+        secrets::{LiveSecretsStore, SecretsStore, SecretsStoreImpl},
+        server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
+        workspace::WorkspaceController,
+        xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     },
+    model::EmailAddress,
+    sea_orm::DatabaseConnection,
+    AppConfig,
 };
 use tokio::{runtime::Handle, task};
 use tracing::debug;
@@ -159,7 +156,7 @@ pub struct TestWorld {
     mock_xmpp_service: MockXmppService,
     xmpp_service: XmppServiceInner,
     mock_notifier: MockNotifier,
-    notifier: dependencies::Notifier,
+    notifier: Notifier,
     mock_secrets_store: MockSecretsStore,
     secrets_store: SecretsStore,
     mock_network_checker: MockNetworkChecker,
@@ -382,9 +379,7 @@ impl TestWorld {
             mock_xmpp_service,
             auth_service: AuthService::new(Arc::new(mock_auth_service.clone())),
             mock_auth_service,
-            notifier: dependencies::Notifier::from(AnyNotifier::new(Box::new(
-                mock_notifier.clone(),
-            ))),
+            notifier: Notifier::from(AnyNotifier::new(Box::new(mock_notifier.clone()))),
             mock_notifier,
             secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),
             mock_secrets_store,

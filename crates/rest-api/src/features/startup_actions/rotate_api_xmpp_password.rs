@@ -5,8 +5,11 @@
 
 use rocket::{Build, Rocket};
 use service::{
-    config::AppConfig,
-    services::{secrets_store::SecretsStore, server_ctl::ServerCtl, server_manager::ServerManager},
+    features::{
+        secrets::SecretsStore,
+        xmpp::{ServerCtl, ServerManager},
+    },
+    AppConfig,
 };
 
 pub async fn rotate_api_xmpp_password(rocket: &Rocket<Build>) -> Result<(), String> {

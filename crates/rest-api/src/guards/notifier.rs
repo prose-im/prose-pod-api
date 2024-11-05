@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::services::notifier::Notifier;
+use service::features::notifications::{dependencies, Notifier};
 
 use super::prelude::*;
 
@@ -16,8 +16,8 @@ impl<'r> LazyFromRequest<'r> for Notifier<'r> {
 
         try_outcome!(check_caller_is_admin(req, Some(db)).await);
 
-        let notifier = try_outcome!(request_state!(req, service::dependencies::Notifier));
-        let config = try_outcome!(request_state!(req, service::config::Config));
+        let notifier = try_outcome!(request_state!(req, dependencies::Notifier));
+        let config = try_outcome!(request_state!(req, service::AppConfig));
 
         Outcome::Success(Self::new(db, notifier, &config.branding))
     }

@@ -9,7 +9,7 @@ use cucumber::Parameter;
 
 // ===== Invitation channel =====
 
-type InvitationChannelModel = service::model::InvitationChannel;
+type InvitationChannelModel = service::features::invitations::InvitationChannel;
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_channel", regex = r"Email")]
@@ -36,7 +36,7 @@ impl FromStr for InvitationChannel {
 
 // ===== Invitation status =====
 
-type InvitationStatusModel = service::model::InvitationStatus;
+type InvitationStatusModel = service::features::invitations::InvitationStatus;
 
 #[derive(Debug, Parameter)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]

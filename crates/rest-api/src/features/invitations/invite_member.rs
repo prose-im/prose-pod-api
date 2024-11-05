@@ -9,14 +9,16 @@ use rocket::{post, response::status, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    config::AppConfig,
-    controllers::invitation_controller::{
-        InvitationController, InviteMemberError, InviteMemberForm,
+    features::{
+        invitations::{
+            InvitationContact, InvitationController, InviteMemberError, InviteMemberForm,
+        },
+        members::{MemberRepository, MemberRole},
+        notifications::Notifier,
+        server_config::ServerConfig,
     },
-    model::{InvitationContact, JidNode, MemberRole, ServerConfig},
-    prose_xmpp::BareJid,
-    repositories::MemberRepository,
-    services::notifier::Notifier,
+    model::{BareJid, JidNode},
+    AppConfig,
 };
 
 use crate::{

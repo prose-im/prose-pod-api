@@ -6,7 +6,7 @@
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, features::server_config::*};
 use service::{
-    entity::server_config,
+    features::server_config::entities::server_config,
     prosody::IntoProsody as _,
     prosody_config::linked_hash_set::LinkedHashSet,
     prosody_config_from_db,

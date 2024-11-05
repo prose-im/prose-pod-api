@@ -3,9 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    model::{PodAddress, PodNetworkConfig, ServerConfig},
-    repositories::PodConfigRepository,
+use service::features::{
+    network_checks::PodNetworkConfig,
+    pod_config::{PodAddress, PodConfigRepository},
+    server_config::ServerConfig,
 };
 
 use crate::features::init::PodAddressNotInitialized;

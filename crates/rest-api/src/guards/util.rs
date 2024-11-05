@@ -8,7 +8,7 @@ use sea_orm_rocket::{
     rocket::{request::Outcome, Request},
     Connection,
 };
-use service::{prose_xmpp::BareJid, repositories::MemberRepository, sea_orm::DatabaseConnection};
+use service::{features::members::MemberRepository, model::BareJid, sea_orm::DatabaseConnection};
 
 use crate::error::{self, Error};
 

@@ -4,11 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use secrecy::{ExposeSecret as _, SecretString};
-use service::prose_xmpp::BareJid;
-use service::services::{
-    auth_service::{self, AuthServiceImpl, JWT_PROSODY_TOKEN_KEY},
-    jwt_service::JWT,
-    jwt_service::{self, JWTService},
+use service::{
+    features::auth::{
+        auth_service, jwt_service, AuthServiceImpl, JWTService, JWT, JWT_PROSODY_TOKEN_KEY,
+    },
+    model::BareJid,
 };
 
 use std::sync::{Arc, RwLock};

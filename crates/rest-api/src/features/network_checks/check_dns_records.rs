@@ -3,8 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::model::dns::DnsEntry;
-
 use super::{model::*, prelude::*, util::*};
 
 #[get("/v1/network/checks/dns", format = "application/json")]

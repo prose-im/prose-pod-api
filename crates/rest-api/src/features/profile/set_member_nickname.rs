@@ -7,7 +7,7 @@ use std::ops::Deref as _;
 
 use rocket::{put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::{prose_xmpp::BareJid, services::xmpp_service::XmppService};
+use service::features::xmpp::{BareJid, XmppService};
 
 use crate::{
     error::{self, Error},

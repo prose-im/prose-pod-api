@@ -22,18 +22,21 @@ use rocket::{
     {Build, Request, Rocket},
 };
 use service::{
-    config::Config,
-    dependencies::{Notifier, Uuid},
-    services::{
-        auth_service::AuthService, jwt_service::JWTService, network_checker::NetworkChecker,
-        secrets_store::SecretsStore, server_ctl::ServerCtl, xmpp_service::XmppServiceInner,
+    dependencies::Uuid,
+    features::{
+        auth::{AuthService, JWTService},
+        network_checks::NetworkChecker,
+        notifications::dependencies::Notifier,
+        secrets::SecretsStore,
+        xmpp::{ServerCtl, XmppServiceInner},
     },
+    AppConfig,
 };
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(
     rocket: Rocket<Build>,
-    config: Config,
+    config: AppConfig,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,

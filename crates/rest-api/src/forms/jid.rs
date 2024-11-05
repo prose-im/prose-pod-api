@@ -9,7 +9,7 @@ use std::{fmt::Display, ops::Deref};
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
-use service::prose_xmpp::BareJid;
+use service::model::BareJid;
 
 #[derive(Debug, Clone, Eq)]
 pub struct JID(pub(crate) BareJid);
