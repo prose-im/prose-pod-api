@@ -21,7 +21,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
 use service::{
     features::invitations::{InvitationContact, InvitationCreateForm, InvitationRepository},
-    model::{BareJid, JidNode},
+    models::{BareJid, JidNode},
     sea_orm::{prelude::*, IntoActiveModel as _, Set},
     MutationError,
 };
@@ -218,7 +218,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
     for i in 0..n {
         let email_address =
-            service::model::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
+            service::models::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
         let model = InvitationRepository::create(
             world.db(),
             InvitationCreateForm {

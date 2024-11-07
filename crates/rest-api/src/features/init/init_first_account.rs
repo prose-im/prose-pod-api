@@ -11,7 +11,7 @@ use service::{
         members::UserCreateError,
         server_config::ServerConfig,
     },
-    model::JidNode,
+    models::JidNode,
 };
 
 use crate::{

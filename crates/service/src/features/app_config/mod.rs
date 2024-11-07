@@ -19,7 +19,7 @@ use url_serde::SerdeUrl;
 
 use crate::{
     features::invitations::InvitationChannel,
-    model::{
+    models::{
         durations::{DateLike, Duration, PossiblyInfinite},
         xmpp::jid::{BareJid, DomainPart, DomainRef, JidNode},
     },

@@ -9,7 +9,7 @@ use std::{path::PathBuf, str::FromStr as _};
 
 use crate::{
     features::invitations::InvitationChannel,
-    model::{DateLike, Duration, JidNode, PossiblyInfinite},
+    models::{DateLike, Duration, JidNode, PossiblyInfinite},
 };
 
 use super::ConfigServiceAccount;

@@ -8,7 +8,7 @@ use std::{fmt::Debug, ops::Deref, sync::Arc};
 use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
-    model::BareJid,
+    models::BareJid,
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
 };
 

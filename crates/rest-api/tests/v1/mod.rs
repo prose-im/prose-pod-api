@@ -27,7 +27,7 @@ use service::{
         auth::jwt_service,
         members::{MemberCreateForm, MemberRepository, MemberRole},
     },
-    model::xmpp::{AvatarData, BareJid},
+    models::xmpp::{AvatarData, BareJid},
     prosody_config::LuaValue,
 };
 

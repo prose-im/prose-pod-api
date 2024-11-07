@@ -10,7 +10,7 @@ use crate::{
         app_config::{AppConfig, ConfigServerDefaults},
         server_config::ServerConfig,
     },
-    model::*,
+    models::*,
 };
 
 /// XMPP server configuration, as stored in the database.

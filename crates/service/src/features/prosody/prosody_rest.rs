@@ -21,7 +21,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use tokio::runtime::Handle;
 use tracing::{debug, trace};
 
-use crate::model::FullJid;
+use crate::models::FullJid;
 
 /// Rust interface to [`mod_http_rest`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_rest).
 #[derive(Debug, Clone)]

@@ -10,7 +10,7 @@ use tracing::debug;
 
 use crate::{
     features::network_checks::{DnsEntry, DnsLookupError, DnsRecord, NetworkChecker},
-    model::XmppConnectionType,
+    models::XmppConnectionType,
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};

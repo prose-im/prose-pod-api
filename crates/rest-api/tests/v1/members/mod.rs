@@ -19,7 +19,7 @@ use service::{
         members::{MemberCreateForm, MemberRepository},
         xmpp::xmpp_service,
     },
-    model::BareJid,
+    models::BareJid,
     prose_xmpp::stanza::vcard4::Nickname,
 };
 use urlencoding::encode;

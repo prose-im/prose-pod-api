@@ -8,7 +8,7 @@ pub mod server_ctl;
 pub mod server_manager;
 pub mod xmpp_service;
 pub mod models {
-    pub use crate::model::xmpp::*;
+    pub use crate::models::xmpp::*;
 }
 
 pub use live_xmpp_service::*;

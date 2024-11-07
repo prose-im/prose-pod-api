@@ -17,7 +17,7 @@ use service::{
         notifications::Notifier,
         server_config::ServerConfig,
     },
-    model::{BareJid, JidNode},
+    models::{BareJid, JidNode},
     AppConfig,
 };
 

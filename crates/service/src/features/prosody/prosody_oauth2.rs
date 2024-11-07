@@ -8,7 +8,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tracing::debug;
 
-use crate::{model::BareJid, AppConfig};
+use crate::{models::BareJid, AppConfig};
 
 /// Rust interface to [`mod_http_oauth2`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_oauth2).
 #[derive(Debug, Clone)]

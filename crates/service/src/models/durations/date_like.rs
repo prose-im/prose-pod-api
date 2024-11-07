@@ -88,7 +88,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::model::durations::{Duration, PossiblyInfinite};
+    use crate::models::durations::{Duration, PossiblyInfinite};
 
     #[test]
     fn test_deserializing() -> Result<(), serde_json::Error> {

@@ -14,7 +14,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use service::{
     features::members::{member_controller, MemberController},
-    model::BareJid,
+    models::BareJid,
 };
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};

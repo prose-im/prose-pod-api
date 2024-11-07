@@ -6,7 +6,7 @@
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use service::model::BareJid;
+use service::models::BareJid;
 
 #[derive(Debug, Parameter)]
 #[param(name = "jid", regex = r"[^<]+@[^>]+")]

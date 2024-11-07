@@ -5,10 +5,10 @@
 
 use crate::{
     features::server_config::ServerConfig,
-    model::jid::{self, BareJid, NodePart},
+    models::jid::{self, BareJid, NodePart, JID},
 };
 
-pub fn to_bare_jid(jid: &crate::model::JID) -> Result<BareJid, jid::Error> {
+pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())
 }
 

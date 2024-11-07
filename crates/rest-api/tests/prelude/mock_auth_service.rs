@@ -8,7 +8,7 @@ use service::{
     features::auth::{
         auth_service, jwt_service, AuthServiceImpl, JWTService, JWT, JWT_PROSODY_TOKEN_KEY,
     },
-    model::BareJid,
+    models::BareJid,
 };
 
 use std::sync::{Arc, RwLock};

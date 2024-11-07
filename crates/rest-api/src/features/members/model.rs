@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use service::{
     features::members::{self, MemberRole},
-    model::BareJid,
+    models::BareJid,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

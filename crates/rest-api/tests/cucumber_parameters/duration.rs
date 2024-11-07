@@ -8,7 +8,7 @@ use std::{fmt::Display, str::FromStr};
 use cucumber::codegen::Regex;
 use cucumber::Parameter;
 use iso8601_duration::Duration as ISODuration;
-use service::model::{DateLike, PossiblyInfinite};
+use service::models::{DateLike, PossiblyInfinite};
 
 #[derive(Debug, Parameter)]
 #[param(
@@ -94,8 +94,8 @@ impl Display for Duration {
     }
 }
 
-impl Into<PossiblyInfinite<service::model::Duration<DateLike>>> for Duration {
-    fn into(self) -> PossiblyInfinite<service::model::Duration<DateLike>> {
+impl Into<PossiblyInfinite<service::models::Duration<DateLike>>> for Duration {
+    fn into(self) -> PossiblyInfinite<service::models::Duration<DateLike>> {
         match self {
             Self::Finite(d) => PossiblyInfinite::Finite(d.try_into().unwrap()),
             Self::Infinite => PossiblyInfinite::Infinite,

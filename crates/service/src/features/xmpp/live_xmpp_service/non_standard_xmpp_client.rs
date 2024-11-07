@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 
-use crate::model::BareJid;
+use crate::models::BareJid;
 
 /// Sometimes there are actions the XMPP protocol doesn't support, like querying a user's presence.
 /// By discussing directly with the XMPP server, we can still get this information.

@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub use crate::features::invitations::*;
 use crate::{
     features::members::MemberRole,
-    model::{EmailAddress, JID},
+    models::{EmailAddress, JID},
 };
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]

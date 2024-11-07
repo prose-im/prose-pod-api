@@ -10,7 +10,7 @@ use service::{
         members::MemberRepository,
         pod_config::{PodConfig, PodConfigRepository},
     },
-    model::BareJid,
+    models::BareJid,
 };
 
 use crate::{

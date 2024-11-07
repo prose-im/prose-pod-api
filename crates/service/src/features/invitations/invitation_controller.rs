@@ -18,7 +18,7 @@ use crate::{
         notifications::{notifier, Notifier},
         server_config::ServerConfig,
     },
-    model::{BareJid, JidNode},
+    models::{BareJid, JidNode},
     util::bare_jid_from_username,
     AppConfig, MutationError,
 };

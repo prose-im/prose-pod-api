@@ -16,7 +16,7 @@ use service::{
         server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
         workspace::WorkspaceRepository,
     },
-    model::JidDomain,
+    models::JidDomain,
     prosody::ProsodyConfig,
     AppConfig,
 };

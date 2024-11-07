@@ -19,7 +19,7 @@ use crate::{
             entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
         },
     },
-    model::{DateLike, Duration, JidDomain, PossiblyInfinite},
+    models::{DateLike, Duration, JidDomain, PossiblyInfinite},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     AppConfig,
 };

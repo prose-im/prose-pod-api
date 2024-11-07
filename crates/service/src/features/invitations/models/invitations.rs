@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{EnumIter, EnumString, IntoEnumIterator as _};
 
-use crate::{model::EmailAddress, sea_orm_string_enum};
+use crate::{models::EmailAddress, sea_orm_string_enum};
 
 // ===== INVITATION STATUS =====
 

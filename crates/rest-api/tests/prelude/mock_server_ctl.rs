@@ -11,7 +11,7 @@ use service::{
         server_config::ServerConfig,
         xmpp::{server_ctl::Error, ServerCtlImpl},
     },
-    model::BareJid,
+    models::BareJid,
     prosody::ProsodyConfig,
     prosody_config_from_db, AppConfig, ProsodyConfigSection,
 };

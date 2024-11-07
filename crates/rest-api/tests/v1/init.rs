@@ -16,7 +16,7 @@ use secrecy::SecretString;
 use serde_json::json;
 use service::{
     features::{init::WorkspaceCreateForm, server_config::ServerConfigCreateForm},
-    model::{JidDomain, JidNode},
+    models::{JidDomain, JidNode},
 };
 
 use crate::cucumber_parameters::{DomainName, Text};

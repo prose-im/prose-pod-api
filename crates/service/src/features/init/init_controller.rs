@@ -20,7 +20,7 @@ use crate::{
             server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner,
         },
     },
-    model::JidNode,
+    models::JidNode,
     util::bare_jid_from_username,
     AppConfig,
 };

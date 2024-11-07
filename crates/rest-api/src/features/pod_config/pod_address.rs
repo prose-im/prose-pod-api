@@ -14,7 +14,7 @@ use service::{
         members::MemberRepository,
         pod_config::{PodAddress, PodConfig, PodConfigCreateForm, PodConfigRepository},
     },
-    model::BareJid,
+    models::BareJid,
 };
 
 use crate::{

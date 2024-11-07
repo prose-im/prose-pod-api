@@ -13,7 +13,7 @@ use crate::{
         app_config::{AppConfig, ADMIN_HOST, FILE_SHARE_HOST},
         server_config::ServerConfig,
     },
-    model::{self as db},
+    models::{self as db},
     ProseDefault,
 };
 

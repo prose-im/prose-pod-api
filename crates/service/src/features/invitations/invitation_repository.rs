@@ -20,7 +20,7 @@ use crate::{
         },
         members::MemberRole,
     },
-    model::{BareJid, EmailAddress},
+    models::{BareJid, EmailAddress},
     MutationError,
 };
 

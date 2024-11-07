@@ -8,7 +8,7 @@ use std::str::FromStr as _;
 pub use jid::*;
 use sea_orm::sea_query;
 
-use crate::{model::EmailAddress, sea_orm_string, wrapper_type};
+use crate::{models::EmailAddress, sea_orm_string, wrapper_type};
 
 // ===== BARE JID =====
 

@@ -16,7 +16,7 @@ use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::{
     features::xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
-    model::jid::ResourcePart,
+    models::jid::ResourcePart,
     prosody::ProsodyRest,
     AppConfig,
 };

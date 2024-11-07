@@ -14,7 +14,7 @@ use service::{
         server_config::{ServerConfig, ServerConfigCreateForm},
         xmpp::ServerCtl,
     },
-    model::JidDomain,
+    models::JidDomain,
     AppConfig,
 };
 

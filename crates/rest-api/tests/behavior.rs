@@ -47,7 +47,7 @@ use service::{
         workspace::WorkspaceController,
         xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     },
-    model::EmailAddress,
+    models::EmailAddress,
     sea_orm::DatabaseConnection,
     AppConfig,
 };

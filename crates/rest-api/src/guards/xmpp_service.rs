@@ -8,7 +8,7 @@ use service::{
         auth::JWT,
         xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
     },
-    model::BareJid,
+    models::BareJid,
 };
 
 use super::prelude::*;

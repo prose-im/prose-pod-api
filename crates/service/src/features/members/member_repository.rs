@@ -11,7 +11,7 @@ use crate::{
         member::{ActiveModel, Column, Entity},
         Member, MemberRole,
     },
-    model::BareJid,
+    models::BareJid,
 };
 
 pub enum MemberRepository {}

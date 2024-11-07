@@ -13,7 +13,7 @@ use sha2::Sha256;
 
 use crate::{
     features::auth::JWT_PROSODY_TOKEN_KEY,
-    model::xmpp::{jid, BareJid},
+    models::xmpp::{jid, BareJid},
 };
 
 const ENV_JWT_SIGNING_KEY: &'static str = "JWT_SIGNING_KEY";

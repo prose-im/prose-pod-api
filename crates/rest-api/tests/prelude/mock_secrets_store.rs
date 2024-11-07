@@ -12,7 +12,7 @@ use std::{
 use secrecy::SecretString;
 use service::{
     features::secrets::{LiveSecretsStore, SecretsStoreImpl, ServiceAccountSecrets},
-    model::xmpp::BareJid,
+    models::xmpp::BareJid,
     AppConfig,
 };
 

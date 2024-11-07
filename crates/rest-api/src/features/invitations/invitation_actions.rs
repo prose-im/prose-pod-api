@@ -14,7 +14,7 @@ use service::{
         members::MemberRepository,
         notifications::Notifier,
     },
-    model::BareJid,
+    models::BareJid,
     AppConfig,
 };
 

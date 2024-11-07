@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{features::auth::JWT, model::BareJid};
+use service::{features::auth::JWT, models::BareJid};
 
 use crate::guards::prelude::*;
 

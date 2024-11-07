@@ -10,7 +10,7 @@ use service::{
         invitations::{self, InvitationContact, InvitationStatus},
         members::MemberRole,
     },
-    model::BareJid,
+    models::BareJid,
     util::to_bare_jid,
 };
 

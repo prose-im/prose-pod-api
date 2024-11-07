@@ -9,7 +9,7 @@ extern crate xmpp_parsers;
 
 pub mod dependencies;
 pub mod features;
-pub mod model;
+pub mod models;
 mod mutation_error;
 pub mod util;
 

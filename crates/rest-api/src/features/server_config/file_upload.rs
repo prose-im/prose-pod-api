@@ -6,7 +6,7 @@
 use rocket::{put, serde::json::Json};
 use service::{
     features::{server_config::ServerConfig, xmpp::ServerManager},
-    model::{DateLike, Duration, PossiblyInfinite},
+    models::{DateLike, Duration, PossiblyInfinite},
 };
 
 use crate::{
