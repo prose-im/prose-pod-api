@@ -11,8 +11,8 @@ use std::{
 
 use secrecy::SecretString;
 use service::{
-    features::secrets::{LiveSecretsStore, SecretsStoreImpl, ServiceAccountSecrets},
     models::xmpp::BareJid,
+    secrets::{LiveSecretsStore, SecretsStoreImpl, ServiceAccountSecrets},
     AppConfig,
 };
 

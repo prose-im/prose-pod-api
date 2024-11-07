@@ -6,9 +6,9 @@
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
 use uuid::Uuid;
 
-pub use crate::features::invitations::*;
+pub use crate::invitations::*;
 use crate::{
-    features::members::MemberRole,
+    members::MemberRole,
     models::{EmailAddress, JID},
 };
 

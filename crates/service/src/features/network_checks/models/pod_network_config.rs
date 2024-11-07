@@ -9,7 +9,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::features::{
+use crate::{
     network_checks::{
         models::network_checks::*, DnsEntry, DnsRecordWithStringRepr, DnsSetupStep, IpVersion,
     },

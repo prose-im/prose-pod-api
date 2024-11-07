@@ -5,7 +5,7 @@
 
 use std::ops::Deref;
 
-use service::features::{
+use service::{
     auth::AuthService,
     members::UserService,
     xmpp::{ServerCtl, XmppServiceInner},

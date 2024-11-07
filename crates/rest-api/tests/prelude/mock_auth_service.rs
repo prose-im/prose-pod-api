@@ -5,9 +5,7 @@
 
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
-    features::auth::{
-        auth_service, jwt_service, AuthServiceImpl, JWTService, JWT, JWT_PROSODY_TOKEN_KEY,
-    },
+    auth::{auth_service, jwt_service, AuthServiceImpl, JWTService, JWT, JWT_PROSODY_TOKEN_KEY},
     models::BareJid,
 };
 

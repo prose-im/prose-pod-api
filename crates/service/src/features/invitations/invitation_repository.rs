@@ -13,13 +13,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     dependencies,
-    features::{
-        invitations::{
-            entities::workspace_invitation::{ActiveModel, Column, Entity},
-            Invitation, InvitationContact, InvitationStatus,
-        },
-        members::MemberRole,
+    invitations::{
+        entities::workspace_invitation::{ActiveModel, Column, Entity},
+        Invitation, InvitationContact, InvitationStatus,
     },
+    members::MemberRole,
     models::{BareJid, EmailAddress},
     MutationError,
 };

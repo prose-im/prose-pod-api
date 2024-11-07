@@ -12,7 +12,7 @@ pub use dns_record_check::*;
 pub use ip_connectivity_check::*;
 pub use port_reachability_check::*;
 
-use crate::features::network_checks::NetworkChecker;
+use crate::network_checks::NetworkChecker;
 
 #[async_trait]
 pub trait NetworkCheck {

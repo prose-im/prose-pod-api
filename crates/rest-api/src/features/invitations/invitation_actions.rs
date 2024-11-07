@@ -9,12 +9,10 @@ use rocket::{delete, post, response::status::NoContent, serde::json::Json, State
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    features::{
-        invitations::{invitation_controller::*, invitation_service, InvitationToken},
-        members::MemberRepository,
-        notifications::Notifier,
-    },
+    invitations::{invitation_controller::*, invitation_service, InvitationToken},
+    members::MemberRepository,
     models::BareJid,
+    notifications::Notifier,
     AppConfig,
 };
 

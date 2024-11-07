@@ -9,7 +9,7 @@ use std::fmt::Debug;
 
 use tracing::{debug, info};
 
-use crate::features::{app_config::ConfigBranding, notifications::NotificationPayload};
+use crate::{app_config::ConfigBranding, notifications::NotificationPayload};
 
 pub(super) const DISPATCH_TIMEOUT_SECONDS: u64 = 10;
 

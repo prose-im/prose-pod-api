@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::features::notifications::{dependencies, Notifier};
+use service::notifications::{dependencies, Notifier};
 
 use super::prelude::*;
 

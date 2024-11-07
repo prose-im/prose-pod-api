@@ -14,12 +14,10 @@ use tracing::trace;
 
 use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
-    features::{
-        members::MemberRole,
-        secrets::SecretsStore,
-        server_config::ServerConfig,
-        xmpp::{server_ctl, BareJid, NonStandardXmppClient, ServerCtlImpl},
-    },
+    members::MemberRole,
+    secrets::SecretsStore,
+    server_config::ServerConfig,
+    xmpp::{server_ctl, BareJid, NonStandardXmppClient, ServerCtlImpl},
     AppConfig,
 };
 

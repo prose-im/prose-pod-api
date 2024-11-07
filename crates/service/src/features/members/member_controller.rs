@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber};
 use tracing::{debug, trace, warn};
 
-use crate::features::xmpp::{BareJid, XmppService};
+use crate::xmpp::{BareJid, XmppService};
 
 use super::{Member, MemberRepository};
 

@@ -6,14 +6,12 @@
 use linked_hash_map::LinkedHashMap;
 use secrecy::SecretString;
 use service::{
-    features::{
-        members::MemberRole,
-        server_config::ServerConfig,
-        xmpp::{server_ctl::Error, ServerCtlImpl},
-    },
-    models::BareJid,
+    members::MemberRole,
     prosody::ProsodyConfig,
-    prosody_config_from_db, AppConfig, ProsodyConfigSection,
+    prosody_config_from_db,
+    server_config::ServerConfig,
+    xmpp::{server_ctl::Error, BareJid, ServerCtlImpl},
+    AppConfig, ProsodyConfigSection,
 };
 
 use std::sync::{Arc, RwLock};

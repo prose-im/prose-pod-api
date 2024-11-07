@@ -8,7 +8,7 @@ pub extern crate prosody_config;
 extern crate xmpp_parsers;
 
 pub mod dependencies;
-pub mod features;
+mod features;
 pub mod models;
 mod mutation_error;
 pub mod util;
@@ -16,6 +16,7 @@ pub mod util;
 pub use features::app_config::AppConfig;
 pub use features::prosody;
 use features::server_config::ServerConfig;
+pub use features::*;
 pub use mutation_error::MutationError;
 pub use prosody::prosody_config_from_db;
 pub use prosody_config::ProsodyConfigSection;

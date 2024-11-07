@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{prelude::*, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
 
 use crate::{
-    features::members::{
+    members::{
         member::{ActiveModel, Column, Entity},
         Member, MemberRole,
     },

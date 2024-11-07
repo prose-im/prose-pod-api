@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use crate::{
-    features::server_config::ServerConfig,
     models::jid::{self, BareJid, NodePart, JID},
+    server_config::ServerConfig,
 };
 
 pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {

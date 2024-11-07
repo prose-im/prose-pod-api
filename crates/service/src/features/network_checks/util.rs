@@ -7,7 +7,7 @@ use std::future::Future;
 
 use tracing::trace;
 
-use crate::features::network_checks::NetworkChecker;
+use crate::network_checks::NetworkChecker;
 
 /// Resolves SRV records for the host and follow them if possible, then runs the check on SRV targets.
 /// Falls back to checking on the host itself if the check didn't pass before that.

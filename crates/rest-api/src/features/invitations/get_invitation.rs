@@ -6,7 +6,7 @@
 use std::ops::Deref as _;
 
 use rocket::{get, serde::json::Json};
-use service::features::invitations::{InvitationController, InvitationToken};
+use service::invitations::{InvitationController, InvitationToken};
 
 use crate::{
     error::{self, Error},

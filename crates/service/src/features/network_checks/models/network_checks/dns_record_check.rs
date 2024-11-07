@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use tracing::debug;
 
 use crate::{
-    features::network_checks::{DnsEntry, DnsLookupError, DnsRecord, NetworkChecker},
     models::XmppConnectionType,
+    network_checks::{DnsEntry, DnsLookupError, DnsRecord, NetworkChecker},
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};

@@ -8,7 +8,7 @@ use sea_orm_rocket::{
     rocket::{request::Outcome, Request},
     Connection,
 };
-use service::{features::members::MemberRepository, models::BareJid, sea_orm::DatabaseConnection};
+use service::{members::MemberRepository, models::BareJid, sea_orm::DatabaseConnection};
 
 use crate::error::{self, Error};
 

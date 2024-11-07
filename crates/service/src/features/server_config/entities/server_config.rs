@@ -6,11 +6,9 @@
 use sea_orm::entity::prelude::*;
 
 use crate::{
-    features::{
-        app_config::{AppConfig, ConfigServerDefaults},
-        server_config::ServerConfig,
-    },
+    app_config::{AppConfig, ConfigServerDefaults},
     models::*,
+    server_config::ServerConfig,
 };
 
 /// XMPP server configuration, as stored in the database.

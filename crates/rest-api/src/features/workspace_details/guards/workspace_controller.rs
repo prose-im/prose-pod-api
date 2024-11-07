@@ -4,12 +4,10 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    features::{
-        secrets::SecretsStore,
-        server_config::ServerConfig,
-        workspace::{WorkspaceController, WorkspaceControllerInitError},
-        xmpp::XmppServiceInner,
-    },
+    secrets::SecretsStore,
+    server_config::ServerConfig,
+    workspace::{WorkspaceController, WorkspaceControllerInitError},
+    xmpp::XmppServiceInner,
     AppConfig,
 };
 

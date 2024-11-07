@@ -6,7 +6,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 #[cfg(debug_assertions)]
-use crate::features::app_config::UuidDependencyMode;
+use crate::app_config::UuidDependencyMode;
 use crate::AppConfig;
 
 #[cfg(debug_assertions)]

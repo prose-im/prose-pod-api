@@ -6,7 +6,7 @@
 use rocket::{serde::json::Json, State};
 use secrecy::{ExposeSecret as _, Secret, SecretString, SerializableSecret, Zeroize};
 use serde::{Deserialize, Serialize};
-use service::features::auth::AuthService;
+use service::auth::AuthService;
 
 use crate::{error::Error, guards::LazyGuard};
 

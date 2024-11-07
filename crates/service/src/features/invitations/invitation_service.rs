@@ -7,10 +7,8 @@ use sea_orm::{DbConn, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 
 use crate::{
-    features::{
-        invitations::{Invitation, InvitationRepository},
-        members::{UserCreateError, UserService},
-    },
+    invitations::{Invitation, InvitationRepository},
+    members::{UserCreateError, UserService},
     MutationError,
 };
 

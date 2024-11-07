@@ -8,7 +8,7 @@ use std::ops::Deref;
 use base64::{engine::general_purpose, Engine as _};
 use rocket::{put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::{features::xmpp::XmppService, models::BareJid};
+use service::{models::BareJid, xmpp::XmppService};
 
 use crate::{
     error::{self, Error},

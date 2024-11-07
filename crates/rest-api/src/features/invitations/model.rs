@@ -6,10 +6,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use service::{
-    features::{
-        invitations::{self, InvitationContact, InvitationStatus},
-        members::MemberRole,
-    },
+    invitations::{self, InvitationContact, InvitationStatus},
+    members::MemberRole,
     models::BareJid,
     util::to_bare_jid,
 };

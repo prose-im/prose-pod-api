@@ -8,7 +8,7 @@ use std::str::FromStr as _;
 use jid::BareJid;
 use sea_orm::{entity::prelude::*, Set};
 
-use crate::features::members::MemberRole;
+use crate::members::MemberRole;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "member")]

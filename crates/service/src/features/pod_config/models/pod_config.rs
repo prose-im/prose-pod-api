@@ -11,7 +11,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::features::pod_config::entities::pod_config;
+use crate::pod_config::entities::pod_config;
 
 /// The Prose Pod configuration, almost as stored in the database.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

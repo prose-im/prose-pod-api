@@ -3,9 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::features::server_config::{
-    entities::server_config, ServerConfig, ServerConfigRepository,
-};
+use service::server_config::{entities::server_config, ServerConfig, ServerConfigRepository};
 
 use crate::features::init::ServerConfigNotInitialized;
 

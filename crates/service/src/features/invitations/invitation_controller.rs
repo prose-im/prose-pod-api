@@ -12,13 +12,11 @@ use tracing::{debug, error, warn};
 
 use crate::{
     dependencies,
-    features::{
-        invitations::Invitation,
-        members::MemberRole,
-        notifications::{notifier, Notifier},
-        server_config::ServerConfig,
-    },
+    invitations::Invitation,
+    members::MemberRole,
     models::{BareJid, JidNode},
+    notifications::{notifier, Notifier},
+    server_config::ServerConfig,
     util::bare_jid_from_username,
     AppConfig, MutationError,
 };

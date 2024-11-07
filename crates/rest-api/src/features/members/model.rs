@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use service::{
-    features::members::{self, MemberRole},
+    members::{self, MemberRole},
     models::BareJid,
 };
 

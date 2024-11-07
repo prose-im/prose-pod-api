@@ -15,9 +15,9 @@ use tracing::{debug, trace};
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::{
-    features::xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
     models::jid::ResourcePart,
     prosody::ProsodyRest,
+    xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
     AppConfig,
 };
 

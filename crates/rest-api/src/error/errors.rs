@@ -4,13 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    features::{
-        auth::{auth_service, jwt_service},
-        members::user_service,
-        notifications::notifier,
-        xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
-    },
-    sea_orm, MutationError,
+    auth::{auth_service, jwt_service},
+    members::user_service,
+    notifications::notifier,
+    sea_orm,
+    xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
+    MutationError,
 };
 
 use super::prelude::*;

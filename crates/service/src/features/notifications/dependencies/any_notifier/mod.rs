@@ -10,7 +10,7 @@ mod generic;
 
 use std::ops::Deref;
 
-use crate::features::app_config::ConfigBranding;
+use crate::app_config::ConfigBranding;
 
 pub use self::email::EmailNotifier;
 pub use self::generic::{

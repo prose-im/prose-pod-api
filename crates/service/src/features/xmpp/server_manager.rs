@@ -12,15 +12,13 @@ use secrecy::SecretString;
 use tracing::{debug, trace};
 
 use crate::{
-    features::{
-        auth::{auth_service, AuthService, InvalidJwtClaimError, JWTError},
-        secrets::{SecretsStore, ServiceAccountSecrets},
-        server_config::{
-            entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
-        },
-    },
+    auth::{auth_service, AuthService, InvalidJwtClaimError, JWTError},
     models::{DateLike, Duration, JidDomain, PossiblyInfinite},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
+    secrets::{SecretsStore, ServiceAccountSecrets},
+    server_config::{
+        entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
+    },
     AppConfig,
 };
 

@@ -22,14 +22,12 @@ use rocket::{
     {Build, Request, Rocket},
 };
 use service::{
+    auth::{AuthService, JWTService},
     dependencies::Uuid,
-    features::{
-        auth::{AuthService, JWTService},
-        network_checks::NetworkChecker,
-        notifications::dependencies::Notifier,
-        secrets::SecretsStore,
-        xmpp::{ServerCtl, XmppServiceInner},
-    },
+    network_checks::NetworkChecker,
+    notifications::dependencies::Notifier,
+    secrets::SecretsStore,
+    xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
 };
 

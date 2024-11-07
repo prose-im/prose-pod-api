@@ -23,10 +23,8 @@ use rocket::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use service::{
-    features::{
-        auth::jwt_service,
-        members::{MemberCreateForm, MemberRepository, MemberRole},
-    },
+    auth::jwt_service,
+    members::{MemberCreateForm, MemberRepository, MemberRole},
     models::xmpp::{AvatarData, BareJid},
     prosody_config::LuaValue,
 };

@@ -5,7 +5,7 @@
 
 use std::ops::Deref;
 
-use service::features::invitations::InvitationService;
+use service::invitations::InvitationService;
 
 use crate::guards::{prelude::*, UnauthenticatedUserService};
 

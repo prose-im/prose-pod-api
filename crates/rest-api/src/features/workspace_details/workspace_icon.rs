@@ -6,7 +6,7 @@
 use base64::{engine::general_purpose, Engine as _};
 use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::features::workspace::WorkspaceController;
+use service::workspace::WorkspaceController;
 
 use crate::{
     error::{self, Error},

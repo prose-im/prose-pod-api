@@ -12,7 +12,7 @@ use jid::BareJid;
 use secrecy::SecretString;
 
 use crate::{
-    features::secrets::{SecretsStoreImpl, ServiceAccountSecrets},
+    secrets::{SecretsStoreImpl, ServiceAccountSecrets},
     AppConfig,
 };
 

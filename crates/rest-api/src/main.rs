@@ -6,22 +6,21 @@
 #[macro_use]
 extern crate rocket;
 
+use std::sync::Arc;
+
 use prose_pod_api::{custom_rocket, guards::Db};
 use rocket::fairing::AdHoc;
 use sea_orm_rocket::Database as _;
 use service::{
-    features::{
-        auth::{AuthService, JWTService, LiveAuthService},
-        network_checks::{LiveNetworkChecker, NetworkChecker},
-        notifications::dependencies::Notifier,
-        secrets::{LiveSecretsStore, SecretsStore},
-        xmpp::{LiveXmppService, ServerCtl, XmppServiceInner},
-    },
+    auth::{AuthService, JWTService, LiveAuthService},
+    network_checks::{LiveNetworkChecker, NetworkChecker},
+    notifications::dependencies::Notifier,
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
+    secrets::{LiveSecretsStore, SecretsStore},
+    xmpp::{LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use std::sync::Arc;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[launch]

@@ -6,7 +6,7 @@
 use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
-use service::features::network_checks::DnsRecordDiscriminants;
+use service::network_checks::DnsRecordDiscriminants;
 
 #[derive(Debug, Parameter)]
 #[param(name = "dns_record_type", regex = r"[A-Z]+")]

@@ -9,15 +9,11 @@ use rocket::{post, response::status, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    features::{
-        invitations::{
-            InvitationContact, InvitationController, InviteMemberError, InviteMemberForm,
-        },
-        members::{MemberRepository, MemberRole},
-        notifications::Notifier,
-        server_config::ServerConfig,
-    },
+    invitations::{InvitationContact, InvitationController, InviteMemberError, InviteMemberForm},
+    members::{MemberRepository, MemberRole},
     models::{BareJid, JidNode},
+    notifications::Notifier,
+    server_config::ServerConfig,
     AppConfig,
 };
 

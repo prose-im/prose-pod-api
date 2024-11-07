@@ -34,21 +34,19 @@ use sea_orm_rocket::Database;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use service::{
+    auth::{AuthService, JWTKey, JWTService},
     dependencies,
-    features::{
-        auth::{AuthService, JWTKey, JWTService},
-        init::InitController,
-        invitations::Invitation,
-        members::{Member, UserService},
-        network_checks::NetworkChecker,
-        notifications::dependencies::{any_notifier::AnyNotifier, Notifier},
-        secrets::{LiveSecretsStore, SecretsStore, SecretsStoreImpl},
-        server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
-        workspace::WorkspaceController,
-        xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
-    },
+    init::InitController,
+    invitations::Invitation,
+    members::{Member, UserService},
     models::EmailAddress,
+    network_checks::NetworkChecker,
+    notifications::dependencies::{any_notifier::AnyNotifier, Notifier},
     sea_orm::DatabaseConnection,
+    secrets::{LiveSecretsStore, SecretsStore, SecretsStoreImpl},
+    server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
+    workspace::WorkspaceController,
+    xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     AppConfig,
 };
 use tokio::{runtime::Handle, task};

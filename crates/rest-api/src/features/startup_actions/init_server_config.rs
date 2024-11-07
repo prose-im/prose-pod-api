@@ -5,7 +5,7 @@
 
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
-use service::features::{server_config::ServerConfigRepository, xmpp::ServerManager};
+use service::{server_config::ServerConfigRepository, xmpp::ServerManager};
 
 use crate::{features::init::ServerConfigNotInitialized, guards::Db};
 

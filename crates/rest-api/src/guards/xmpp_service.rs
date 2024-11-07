@@ -4,11 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    features::{
-        auth::JWT,
-        xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
-    },
-    models::BareJid,
+    auth::JWT,
+    xmpp::{BareJid, XmppService, XmppServiceContext, XmppServiceInner},
 };
 
 use super::prelude::*;

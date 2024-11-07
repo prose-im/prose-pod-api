@@ -6,11 +6,9 @@
 use rocket::serde::json::Json;
 use sea_orm_rocket::Connection;
 use service::{
-    features::{
-        members::MemberRepository,
-        pod_config::{PodConfig, PodConfigRepository},
-    },
+    members::MemberRepository,
     models::BareJid,
+    pod_config::{PodConfig, PodConfigRepository},
 };
 
 use crate::{

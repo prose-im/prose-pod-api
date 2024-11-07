@@ -7,8 +7,8 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 #[cfg(debug_assertions)]
-use crate::features::app_config::NotifierDependencyMode;
-use crate::features::app_config::{AppConfig, ConfigBranding};
+use crate::app_config::NotifierDependencyMode;
+use crate::app_config::{AppConfig, ConfigBranding};
 
 use super::any_notifier::{EmailNotifier, Notification};
 
@@ -67,8 +67,8 @@ trait NotifierImpl: Send + Sync + Debug {
 
 mod live {
     use super::NotifierImpl;
-    pub(super) use crate::features::notifications::dependencies::any_notifier::AnyNotifier as LiveNotifier;
-    use crate::features::{
+    pub(super) use crate::notifications::dependencies::any_notifier::AnyNotifier as LiveNotifier;
+    use crate::{
         app_config::ConfigBranding,
         notifications::dependencies::any_notifier::{GenericNotifier, Notification},
     };
@@ -89,7 +89,7 @@ mod logging {
     use tracing::debug;
 
     use super::NotifierImpl;
-    use crate::features::{
+    use crate::{
         app_config::ConfigBranding,
         notifications::dependencies::any_notifier::{
             notification_message, notification_subject, Notification,

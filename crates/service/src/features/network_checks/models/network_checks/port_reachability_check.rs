@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
 
 use crate::{
-    features::network_checks::{util::flattened_run, NetworkChecker},
     models::XmppConnectionType,
+    network_checks::{util::flattened_run, NetworkChecker},
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};

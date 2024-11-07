@@ -5,7 +5,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use service::features::{
+use service::{
     app_config::ConfigBranding,
     notifications::dependencies::any_notifier::{GenericNotifier, Notification},
 };

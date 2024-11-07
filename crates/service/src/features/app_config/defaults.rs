@@ -8,7 +8,7 @@
 use std::{path::PathBuf, str::FromStr as _};
 
 use crate::{
-    features::invitations::InvitationChannel,
+    invitations::InvitationChannel,
     models::{DateLike, Duration, JidNode, PossiblyInfinite},
 };
 

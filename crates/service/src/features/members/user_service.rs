@@ -6,7 +6,7 @@
 use sea_orm::{ConnectionTrait, DbErr};
 use secrecy::SecretString;
 
-use crate::features::{
+use crate::{
     auth::AuthService,
     xmpp::{
         BareJid, ServerCtl, ServerCtlError, XmppService, XmppServiceContext, XmppServiceError,

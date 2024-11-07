@@ -8,11 +8,12 @@ use std::{path::PathBuf, str::FromStr as _};
 use secrecy::ExposeSecret as _;
 
 use crate::{
-    features::{app_config::ConfigBranding, invitations::InvitationToken},
+    app_config::ConfigBranding,
+    invitations::InvitationToken,
     sea_orm::{prelude::*, DatabaseConnection},
 };
 
-use crate::features::notifications::{
+use crate::notifications::{
     dependencies, dependencies::any_notifier::Notification, NotificationCreateForm,
     NotificationRepository,
 };

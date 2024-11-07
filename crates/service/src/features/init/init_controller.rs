@@ -7,21 +7,17 @@ use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
 
 use crate::{
-    features::{
-        auth::AuthService,
-        members::{Member, MemberRepository, MemberRole, UserCreateError, UserService},
-        secrets::SecretsStore,
-        server_config::{ServerConfig, ServerConfigCreateForm},
-        workspace::{
-            entities::workspace, workspace_controller, Workspace, WorkspaceController,
-            WorkspaceControllerInitError, WorkspaceRepository,
-        },
-        xmpp::{
-            server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner,
-        },
-    },
+    auth::AuthService,
+    members::{Member, MemberRepository, MemberRole, UserCreateError, UserService},
     models::JidNode,
+    secrets::SecretsStore,
+    server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
+    workspace::{
+        entities::workspace, workspace_controller, Workspace, WorkspaceController,
+        WorkspaceControllerInitError, WorkspaceRepository,
+    },
+    xmpp::{server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner},
     AppConfig,
 };
 

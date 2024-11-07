@@ -16,10 +16,7 @@ use std::{
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 
-use crate::{
-    features::{members::MemberRole, server_config::ServerConfig},
-    AppConfig,
-};
+use crate::{members::MemberRole, server_config::ServerConfig, AppConfig};
 
 #[derive(Debug, Clone)]
 pub struct ServerCtl {

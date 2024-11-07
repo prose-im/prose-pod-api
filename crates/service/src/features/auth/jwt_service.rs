@@ -12,7 +12,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use sha2::Sha256;
 
 use crate::{
-    features::auth::JWT_PROSODY_TOKEN_KEY,
+    auth::JWT_PROSODY_TOKEN_KEY,
     models::xmpp::{jid, BareJid},
 };
 

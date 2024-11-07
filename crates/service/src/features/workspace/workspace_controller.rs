@@ -6,13 +6,11 @@
 use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
-    features::{
-        secrets::SecretsStore,
-        server_config::ServerConfig,
-        workspace::{Workspace, WorkspaceRepository},
-        xmpp::{xmpp_service, AvatarData, XmppService, XmppServiceContext, XmppServiceInner},
-    },
     sea_orm::{ActiveModelTrait as _, Set},
+    secrets::SecretsStore,
+    server_config::ServerConfig,
+    workspace::{Workspace, WorkspaceRepository},
+    xmpp::{xmpp_service, AvatarData, XmppService, XmppServiceContext, XmppServiceInner},
     AppConfig,
 };
 

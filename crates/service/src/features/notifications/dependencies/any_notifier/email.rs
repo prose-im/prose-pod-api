@@ -18,7 +18,7 @@ use super::generic::{
     notification_message, notification_subject, GenericNotifier, Notification,
     DISPATCH_TIMEOUT_SECONDS,
 };
-use crate::features::app_config::{Config, ConfigBranding};
+use crate::app_config::{Config, ConfigBranding};
 
 #[derive(Debug)]
 pub struct EmailNotifier {

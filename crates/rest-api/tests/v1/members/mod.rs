@@ -15,12 +15,9 @@ use rocket::{
 };
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
-    features::{
-        members::{MemberCreateForm, MemberRepository},
-        xmpp::xmpp_service,
-    },
-    models::BareJid,
+    members::{MemberCreateForm, MemberRepository},
     prose_xmpp::stanza::vcard4::Nickname,
+    xmpp::{xmpp_service, BareJid},
 };
 use urlencoding::encode;
 

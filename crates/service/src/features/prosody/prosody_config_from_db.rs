@@ -9,11 +9,9 @@ use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use utils::def;
 
 use crate::{
-    features::{
-        app_config::{AppConfig, ADMIN_HOST, FILE_SHARE_HOST},
-        server_config::ServerConfig,
-    },
+    app_config::{AppConfig, ADMIN_HOST, FILE_SHARE_HOST},
     models::{self as db},
+    server_config::ServerConfig,
     ProseDefault,
 };
 

@@ -13,7 +13,7 @@ use std::{
 use cucumber::given;
 use hickory_proto::rr::Name as HickoryDomainName;
 use rocket::async_trait;
-use service::features::network_checks::{
+use service::network_checks::{
     DnsLookupError, DnsRecord, DnsRecordDiscriminants, NetworkCheckerImpl, SrvLookupResponse,
 };
 use tracing::trace;

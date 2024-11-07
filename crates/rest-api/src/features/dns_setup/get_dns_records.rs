@@ -5,7 +5,7 @@
 
 use rocket::{get, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::features::network_checks::{DnsRecordWithStringRepr, DnsSetupStep, PodNetworkConfig};
+use service::network_checks::{DnsRecordWithStringRepr, DnsSetupStep, PodNetworkConfig};
 
 use crate::{error::Error, guards::LazyGuard};
 

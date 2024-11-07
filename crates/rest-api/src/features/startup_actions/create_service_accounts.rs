@@ -6,10 +6,8 @@
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use service::{
-    features::{
-        server_config::ServerConfigRepository,
-        xmpp::{ServerCtl, ServerManager},
-    },
+    server_config::ServerConfigRepository,
+    xmpp::{ServerCtl, ServerManager},
     AppConfig,
 };
 

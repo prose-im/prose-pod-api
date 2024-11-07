@@ -6,8 +6,8 @@
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
 use crate::{
-    features::server_config::entities::server_config::{self, ActiveModel, Column, Entity},
     models::JidDomain,
+    server_config::entities::server_config::{self, ActiveModel, Column, Entity},
 };
 
 pub enum ServerConfigRepository {}

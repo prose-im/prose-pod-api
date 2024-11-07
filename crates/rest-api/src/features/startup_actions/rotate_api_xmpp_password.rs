@@ -5,10 +5,8 @@
 
 use rocket::{Build, Rocket};
 use service::{
-    features::{
-        secrets::SecretsStore,
-        xmpp::{ServerCtl, ServerManager},
-    },
+    secrets::SecretsStore,
+    xmpp::{ServerCtl, ServerManager},
     AppConfig,
 };
 

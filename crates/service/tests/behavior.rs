@@ -11,13 +11,11 @@ use cucumber::World;
 use migration::{self, MigratorTrait};
 use sea_orm::*;
 use service::{
-    features::{
-        init::WorkspaceCreateForm,
-        server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
-        workspace::WorkspaceRepository,
-    },
+    init::WorkspaceCreateForm,
     models::JidDomain,
     prosody::ProsodyConfig,
+    server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
+    workspace::WorkspaceRepository,
     AppConfig,
 };
 

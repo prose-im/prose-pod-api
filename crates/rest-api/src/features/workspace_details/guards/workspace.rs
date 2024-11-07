@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::features::workspace::{Workspace, WorkspaceRepository};
+use service::workspace::{Workspace, WorkspaceRepository};
 
 use crate::{features::init::WorkspaceNotInitialized, guards::prelude::*};
 

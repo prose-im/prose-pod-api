@@ -13,7 +13,7 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use service::{
-    features::members::{member_controller, MemberController},
+    members::{member_controller, MemberController},
     models::BareJid,
 };
 
