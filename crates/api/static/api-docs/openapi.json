@@ -151,7 +151,25 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": { "$ref": "#/components/schemas/InviteMemberRequest" }
+							"schema": { "$ref": "#/components/schemas/InviteMemberRequest" },
+							"examples": {
+								"Inviting a member": {
+									"value": {
+										"username": "remi",
+										"pre_assigned_role": "MEMBER",
+										"channel": "email",
+										"email_address": "remi@example.org"
+									}
+								},
+								"Inviting an admin": {
+									"value": {
+										"username": "marc",
+										"pre_assigned_role": "ADMIN",
+										"channel": "email",
+										"email_address": "marc@example.org"
+									}
+								}
+							}
 						}
 					}
 				},
@@ -442,6 +460,7 @@
 				"description": "When listing members, Prose Pod API only returns the data stored in its database (e.g. user JID, role…). To get more information like a user's display name and avatar, Prose Pod API needs to query the XMPP server. This route can be used to get more information about given JIDs in a single batch or as Server-Sent Events. By default, Prose Pod API will return results in a batch (as JSON) for straightforward processing.\n\nWhen requesting Server-Sent Events, the server will send one `enriched-member` event per JID to enrich, then one `end` event and close the stream. All enriched data fields are optional; if an error occurs (e.g. unknown JID), the server won't return an error but rather a regular `enriched-member` event with all fields being `null` except `jid`.\nNOTE: There might be a `(\\n|^):(\\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.",
 				"operationId": "enrich_members",
 				"security": [{ "BearerAuth": [] }],
+				"parameters": [{ "$ref": "#/components/parameters/JidArray" }],
 				"responses": {
 					"200": {
 						"description": "Success",
@@ -2073,7 +2092,13 @@
 							"username": { "$ref": "#/components/schemas/Username" }
 						}
 					}
-				]
+				],
+				"example": {
+					"username": "remi",
+					"pre_assigned_role": "MEMBER",
+					"channel": "email",
+					"email_address": "remi@example.org"
+				}
 			},
 			"SetMemberMfaRequest": {
 				"type": "object"
@@ -2214,6 +2239,10 @@
 						"summary": "An email address.",
 						"example": "remi@example.org"
 					}
+				},
+				"example": {
+					"channel": "email",
+					"email_address": "remi@example.org"
 				}
 			},
 			"InvitationChannel": {
@@ -2841,6 +2870,19 @@
 				"in": "path",
 				"name": "token",
 				"schema": { "$ref": "#/components/schemas/InvitationRejectToken" },
+				"required": true
+			},
+			"JidArray": {
+				"description": "A list of JIDs (as defined by [RFC 6120, section 2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1)). Can be passed as `jids=a@example.org&jids=b@example.org` or `jids[]=a@example.org&jids[]=b@example.org`.",
+				"in": "query",
+				"name": "jids",
+				"schema": {
+					"type": "array",
+					"items": {
+						"$ref": "#/components/schemas/JID"
+					},
+					"example": ["valerian@prose.org", "remi@prose.org", "marc@prose.org"]
+				},
 				"required": true
 			},
 			"PageNumber": {
