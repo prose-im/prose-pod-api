@@ -54,7 +54,7 @@ fn rocket() -> _ {
         prosody_oauth2,
     )));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
-    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker));
+    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
     let rocket = rocket::build().attach(Db::init()).attach(AdHoc::on_ignite(
         "Tracing subsciber",
