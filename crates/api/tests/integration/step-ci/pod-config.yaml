@@ -1,0 +1,127 @@
+version: "1.1"
+name: Prose Pod initialization
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  host: http://127.0.0.1:8000
+  mainAdminUsername: ${{ internet.userName | fake }}
+  mainAdminPassword: ${{ internet.password | fake }}
+  hostname: prose.org.local
+
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
+#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/init_server"
+    - $ref: "init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+
+tests:
+  getDefaultPodConfig:
+    name: Get default Pod config
+    steps:
+      - $ref: "#/components/steps/get_pod_config"
+  getPodConfig:
+    name: Get Pod config
+    steps:
+      - $ref: "#/components/steps/init_pod_address_dynamic"
+      - $ref: "#/components/steps/get_pod_config_check_schema"
+  getPodAddressDynamic:
+    name: Get Pod address (dyamic)
+    steps:
+      - $ref: "#/components/steps/init_pod_address_dynamic"
+      - $ref: "#/components/steps/get_pod_address"
+  getPodAddressStatic:
+    name: Get Pod address (static)
+    steps:
+      - $ref: "#/components/steps/init_pod_address_static"
+      - $ref: "#/components/steps/get_pod_address"
+
+components:
+  steps:
+    get_pod_config:
+      name: Get Pod config
+      http:
+        method: GET
+        url: /v1/pod/config
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          headers:
+            Content-Type: application/json
+    # NOTE: Step CI raises an error if a non-required field is `null`. To avoid having failing tests
+    #   while the API is behaving as expected, or changing the behavior of the API because of the testing tool
+    #   (which wouldn't make sense, and sending `null` is the desired behavior), we just don't check the schema
+    #   when we know that `address` will be `null`.
+    get_pod_config_check_schema:
+      name: Get Pod config
+      http:
+        method: GET
+        url: /v1/pod/config
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: openapi.json#/components/schemas/PodConfig
+    init_pod_address_dynamic:
+      name: Initialize Pod address (dynamic address)
+      http:
+        method: PUT
+        url: /v1/pod/config/address
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        headers:
+          Content-Type: application/json
+        json:
+          hostname: ${{ env.hostname }}
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: openapi.json#/components/schemas/PodAddress
+    init_pod_address_static:
+      name: Initialize Pod address (static address)
+      http:
+        method: PUT
+        url: /v1/pod/config/address
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        headers:
+          Content-Type: application/json
+        json:
+          ipv4: 172.20.0.40
+          ipv6: 2001:db8::40
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: openapi.json#/components/schemas/PodAddress
+    get_pod_address:
+      name: Get Pod address
+      http:
+        method: GET
+        url: /v1/pod/config/address
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: openapi.json#/components/schemas/PodAddress

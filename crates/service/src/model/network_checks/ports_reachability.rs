@@ -3,11 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::future;
+
+use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
 
 use crate::{model::xmpp::XmppConnectionType, services::network_checker::NetworkChecker};
 
-use super::{NetworkCheck, RetryableNetworkCheckResult};
+use super::{flattened_run, NetworkCheck, RetryableNetworkCheckResult};
 
 /// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
 ///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
@@ -23,7 +26,7 @@ pub enum PortReachabilityCheck {
 }
 
 impl PortReachabilityCheck {
-    pub fn port(&self) -> u32 {
+    pub fn port(&self) -> u16 {
         match self {
             Self::Xmpp { conn_type, .. } => conn_type.standard_port(),
             Self::Https { .. } => 443,
@@ -57,6 +60,7 @@ impl RetryableNetworkCheckResult for PortReachabilityCheckResult {
     }
 }
 
+#[async_trait]
 impl NetworkCheck for PortReachabilityCheck {
     type CheckResult = PortReachabilityCheckResult;
 
@@ -73,10 +77,16 @@ impl NetworkCheck for PortReachabilityCheck {
             Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
         }
     }
-    fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
+    async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = PortReachabilityCheckResult::Closed;
         for hostname in self.hostnames().iter() {
-            if network_checker.is_port_open(&hostname.to_string(), self.port()) {
+            if flattened_run(
+                &hostname.to_string(),
+                |host| future::ready(network_checker.is_port_open(host, self.port())),
+                network_checker,
+            )
+            .await
+            {
                 status = PortReachabilityCheckResult::Open;
                 break;
             }

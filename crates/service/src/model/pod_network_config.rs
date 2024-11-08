@@ -23,6 +23,11 @@ pub struct PodNetworkConfig {
     pub pod_address: PodAddress,
 }
 
+// NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
+fn domain_name_unchecked(str: &str) -> DomainName {
+    DomainName::from_str(str).expect(&format!("Invalid domain name: {str}"))
+}
+
 impl PodNetworkConfig {
     fn dns_entries(&self) -> Vec<DnsSetupStep<DnsEntry>> {
         let Self {
@@ -32,10 +37,6 @@ impl PodNetworkConfig {
 
         // === Helpers to create DNS records ===
 
-        // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
-        fn domain_name_unchecked(str: &str) -> DomainName {
-            DomainName::from_str(str).expect(&format!("Invalid domain name: {str}"))
-        }
         let a = |ipv4: Ipv4Addr| DnsEntry::Ipv4 {
             hostname: domain_name_unchecked(&format!("xmpp.{server_domain}")),
             ipv4,
@@ -138,29 +139,37 @@ impl PodNetworkConfig {
 
     /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     pub fn ip_connectivity_checks(&self) -> Vec<IpConnectivityCheck> {
-        let Self { server_domain, .. } = self;
+        let Self {
+            server_domain,
+            pod_address,
+        } = self;
         // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
         let server_domain = &DomainName::from_str(server_domain)
             .expect(&format!("Invalid domain name: {server_domain}"));
 
+        let hostname = match pod_address {
+            PodAddress::Static { .. } => server_domain,
+            PodAddress::Dynamic { hostname } => hostname,
+        };
+
         vec![
             IpConnectivityCheck::XmppServer {
-                hostname: server_domain.clone(),
+                hostname: hostname.clone(),
                 conn_type: XmppConnectionType::C2S,
                 ip_version: IpVersion::V4,
             },
             IpConnectivityCheck::XmppServer {
-                hostname: server_domain.clone(),
+                hostname: hostname.clone(),
                 conn_type: XmppConnectionType::C2S,
                 ip_version: IpVersion::V6,
             },
             IpConnectivityCheck::XmppServer {
-                hostname: server_domain.clone(),
+                hostname: hostname.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V4,
             },
             IpConnectivityCheck::XmppServer {
-                hostname: server_domain.clone(),
+                hostname: hostname.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V6,
             },

@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
 
 use crate::{
@@ -10,7 +11,7 @@ use crate::{
     services::network_checker::{IpVersion, NetworkChecker},
 };
 
-use super::{NetworkCheck, RetryableNetworkCheckResult};
+use super::{flattened_run, NetworkCheck, RetryableNetworkCheckResult};
 
 /// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
 ///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
@@ -58,6 +59,7 @@ impl RetryableNetworkCheckResult for IpConnectivityCheckResult {
     }
 }
 
+#[async_trait]
 impl NetworkCheck for IpConnectivityCheck {
     type CheckResult = IpConnectivityCheckResult;
 
@@ -85,10 +87,16 @@ impl NetworkCheck for IpConnectivityCheck {
             } => "Server-to-server connectivity over IPv6".to_owned(),
         }
     }
-    fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
+    async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = IpConnectivityCheckResult::Failure;
         for hostname in self.hostnames().iter() {
-            if network_checker.is_ip_available(&hostname.to_string(), self.ip_version()) {
+            if flattened_run(
+                &hostname.to_string(),
+                |host| network_checker.is_ip_available(host.to_string(), self.ip_version()),
+                network_checker,
+            )
+            .await
+            {
                 status = IpConnectivityCheckResult::Success;
                 break;
             }

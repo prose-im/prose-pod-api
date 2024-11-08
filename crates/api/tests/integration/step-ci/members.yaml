@@ -4,7 +4,7 @@ config:
   http:
     baseURL: ${{ env.host }}
 
-# NOTE: `.` is not this file's path, it's the directory from which `stepci` is ran.
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
 before:
   name: "Before all (not a test)"
   steps:

@@ -5,6 +5,7 @@
 
 use std::ops::Deref;
 
+use async_trait::async_trait;
 use tracing::debug;
 
 use crate::{
@@ -54,19 +55,22 @@ impl RetryableNetworkCheckResult for DnsRecordCheckResult {
     }
 }
 
+#[async_trait]
 impl NetworkCheck for DnsRecordCheck {
     type CheckResult = DnsRecordCheckResult;
 
     fn description(&self) -> String {
         self.dns_entry.description()
     }
-    fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
-        network_checker.check_dns_entry(self.dns_entry.clone())
+    async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
+        network_checker
+            .check_dns_entry(self.dns_entry.clone())
+            .await
     }
 }
 
 impl NetworkChecker {
-    fn check_dns_entry(&self, dns_entry: DnsEntry) -> DnsRecordCheckResult {
+    async fn check_dns_entry(&self, dns_entry: DnsEntry) -> DnsRecordCheckResult {
         let check = |dns_lookup_result: Result<Vec<DnsRecord>, DnsLookupError>,
                      expected: &DnsRecord|
          -> DnsRecordCheckResult {
@@ -97,34 +101,43 @@ impl NetworkChecker {
             return DnsRecordCheckResult::Invalid;
         };
 
-        let check_ipv4 = |expected: &DnsRecord| -> DnsRecordCheckResult {
-            let host = expected.hostname().to_string();
-            check(self.ipv4_lookup(&host), expected)
-        };
-
-        let check_ipv6 = |expected: &DnsRecord| -> DnsRecordCheckResult {
-            let host = expected.hostname().to_string();
-            check(self.ipv6_lookup(&host), expected)
-        };
-
-        let check_srv =
-            |expected: &DnsRecord, conn_type: XmppConnectionType| -> DnsRecordCheckResult {
+        macro_rules! check_ipv4 {
+            ($expected:expr) => {{
+                let expected = $expected;
+                let host = expected.hostname().to_string();
+                check(self.ipv4_lookup(&host).await, expected)
+            }};
+        }
+        macro_rules! check_ipv6 {
+            ($expected:expr) => {{
+                let expected = $expected;
+                let host = expected.hostname().to_string();
+                check(self.ipv6_lookup(&host).await, expected)
+            }};
+        }
+        macro_rules! check_srv {
+            ($expected:expr, $conn_type:expr) => {{
+                let expected = $expected;
                 let host = expected.hostname();
-                check(
-                    self.srv_lookup(&conn_type.standard_domain(host.clone()).to_string())
-                        .or_else(|_err| self.srv_lookup(&host.to_string())),
-                    expected,
-                )
-            };
+                let result = match self
+                    .srv_lookup(&$conn_type.standard_domain(host.clone()).to_string())
+                    .await
+                {
+                    Ok(res) => Ok(res),
+                    Err(_) => self.srv_lookup(&host.to_string()).await,
+                };
+                check(result.map(|res| res.records), expected)
+            }};
+        }
 
         match dns_entry {
-            DnsEntry::Ipv4 { .. } => check_ipv4(&dns_entry.into_dns_record()),
-            DnsEntry::Ipv6 { .. } => check_ipv6(&dns_entry.into_dns_record()),
+            DnsEntry::Ipv4 { .. } => check_ipv4!(&dns_entry.into_dns_record()),
+            DnsEntry::Ipv6 { .. } => check_ipv6!(&dns_entry.into_dns_record()),
             DnsEntry::SrvC2S { .. } => {
-                check_srv(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
+                check_srv!(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
             }
             DnsEntry::SrvS2S { .. } => {
-                check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
+                check_srv!(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
             }
         }
     }
