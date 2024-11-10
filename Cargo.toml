@@ -60,6 +60,7 @@ reqwest = { version = "0.12", features = [
     "trust-dns",
 ], default-features = false }
 rocket = { version = "0.5", features = ["json"] }
+rocket_oauth2 = "0.5"
 sea-orm = { version = "1.0.1", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
