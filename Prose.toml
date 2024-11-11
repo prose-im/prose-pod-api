@@ -8,8 +8,6 @@
 page_url = "https://admin.prose.org/"
 company_name = "Prose"
 
-[notify]
-
 [notify.email]
 from = "pod@prose.org"
 to = "pod@prose.org"
