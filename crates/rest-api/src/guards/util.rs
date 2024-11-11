@@ -8,7 +8,7 @@ use sea_orm_rocket::{
     rocket::{request::Outcome, Request},
     Connection,
 };
-use service::{members::MemberRepository, models::BareJid, sea_orm::DatabaseConnection};
+use service::{auth::UserInfo, members::MemberRepository, sea_orm::DatabaseConnection};
 
 use crate::error::{self, Error};
 
@@ -54,7 +54,7 @@ pub async fn check_caller_is_admin<'r, 'a>(
         Some(db) => db,
         None => try_outcome!(database_connection(req).await),
     };
-    let jid = try_outcome!(BareJid::from_request(req).await);
+    let jid = try_outcome!(UserInfo::from_request(req).await).jid;
     match MemberRepository::is_admin(db, &jid).await {
         Ok(true) => Outcome::Success(()),
         Ok(false) => {

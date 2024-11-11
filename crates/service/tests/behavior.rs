@@ -10,6 +10,7 @@ use std::str::FromStr;
 use cucumber::World;
 use migration::{self, MigratorTrait};
 use sea_orm::*;
+use secrecy::SecretString;
 use service::{
     init::WorkspaceCreateForm,
     models::JidDomain,
@@ -44,7 +45,8 @@ struct TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let app_config = AppConfig::figment();
+        let mut app_config = AppConfig::figment();
+        app_config.server.oauth2_registration_key = SecretString::new("dummy-test-key".to_string());
 
         // Connecting SQLite
         let db = match Database::connect("sqlite::memory:").await {

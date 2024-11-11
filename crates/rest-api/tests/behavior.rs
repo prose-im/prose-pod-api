@@ -34,7 +34,7 @@ use sea_orm_rocket::Database;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use service::{
-    auth::{AuthService, JWTKey, JWTService},
+    auth::{AuthService, AuthToken},
     dependencies,
     init::InitController,
     invitations::Invitation,
@@ -159,12 +159,11 @@ pub struct TestWorld {
     secrets_store: SecretsStore,
     mock_network_checker: MockNetworkChecker,
     network_checker: NetworkChecker,
-    jwt_service: JWTService,
     uuid_gen: dependencies::Uuid,
     client: Option<Client>,
     result: Option<Response>,
     /// Map a name to a member and an authorization token.
-    members: HashMap<String, (Member, SecretString)>,
+    members: HashMap<String, (Member, AuthToken)>,
     /// Map an email address to an invitation.
     workspace_invitations: HashMap<EmailAddress, Invitation>,
     scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
@@ -186,7 +185,6 @@ impl TestWorld {
             self.xmpp_service.clone(),
             self.auth_service.clone(),
             self.notifier.clone(),
-            self.jwt_service.clone(),
             self.secrets_store.clone(),
             self.network_checker.clone(),
         ))
@@ -325,12 +323,7 @@ impl TestWorld {
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
         let mock_xmpp_service = MockXmppService::default();
         let mock_notifier = MockNotifier::default();
-        let jwt_service = JWTService::new(JWTKey::custom("test_key"));
-        let mock_auth_service = MockAuthService::new(
-            jwt_service.clone(),
-            Default::default(),
-            mock_server_ctl_state,
-        );
+        let mock_auth_service = MockAuthService::new(Default::default(), mock_server_ctl_state);
         let mock_secrets_store =
             MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
         let mock_network_checker = MockNetworkChecker::default();
@@ -383,7 +376,6 @@ impl TestWorld {
             mock_secrets_store,
             network_checker: NetworkChecker::new(Arc::new(mock_network_checker.clone())),
             mock_network_checker,
-            jwt_service,
             uuid_gen,
         }
     }

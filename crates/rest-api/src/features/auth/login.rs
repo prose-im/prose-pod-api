@@ -6,7 +6,7 @@
 use rocket::{serde::json::Json, State};
 use secrecy::{ExposeSecret as _, Secret, SecretString, SerializableSecret, Zeroize};
 use serde::{Deserialize, Serialize};
-use service::auth::AuthService;
+use service::auth::{auth_service::AuthToken, AuthService};
 
 use crate::{error::Error, guards::LazyGuard};
 
@@ -46,8 +46,8 @@ impl Zeroize for LoginToken {
     }
 }
 impl SerializableSecret for LoginToken {}
-impl From<SecretString> for LoginToken {
-    fn from(value: SecretString) -> Self {
+impl From<AuthToken> for LoginToken {
+    fn from(value: AuthToken) -> Self {
         Self(value.expose_secret().to_owned())
     }
 }

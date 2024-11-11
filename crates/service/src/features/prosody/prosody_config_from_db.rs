@@ -6,6 +6,7 @@
 use std::ops::Deref;
 
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
+use secrecy::ExposeSecret;
 use utils::def;
 
 use crate::{
@@ -254,10 +255,25 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                             Group::new(
                                 "mod_http_oauth2",
                                 vec![
-                                    def("allowed_oauth2_grant_types", vec!["password"]),
+                                    def(
+                                        "allowed_oauth2_grant_types",
+                                        vec![
+                                            "authorization_code",
+                                            "refresh_token",
+                                            "password",
+                                        ],
+                                    ),
                                     def("oauth2_access_token_ttl", 10800),
                                     // We don't want tokens to be refreshed
                                     def("oauth2_refresh_token_ttl", 0),
+                                    def(
+                                        "oauth2_registration_key",
+                                        app_config
+                                            .server
+                                            .oauth2_registration_key
+                                            .expose_secret()
+                                            .clone(),
+                                    ),
                                 ],
                             ),
                             // // See <https://github.com/prose-im/prose-pod-server/blob/3b54d071880dff669f0193a8068733b089936751/plugins/mod_init_admin.lua>.

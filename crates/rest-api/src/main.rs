@@ -12,13 +12,13 @@ use prose_pod_api::{custom_rocket, guards::Db};
 use rocket::fairing::AdHoc;
 use sea_orm_rocket::Database as _;
 use service::{
-    auth::{AuthService, JWTService, LiveAuthService},
+    auth::{AuthService, LiveAuthService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::dependencies::Notifier,
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
     secrets::{LiveSecretsStore, SecretsStore},
-    xmpp::{LiveXmppService, ServerCtl, XmppServiceInner},
+    xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -28,26 +28,25 @@ fn rocket() -> _ {
     let config = AppConfig::figment();
     #[cfg(debug_assertions)]
     dbg!(&config);
-    let jwt_service = match JWTService::from_env() {
-        Ok(service) => service,
-        Err(err) => panic!("{err}"),
-    };
     let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::from_config(&config)));
     let http_client = HttpClient::new();
-    let prosody_admin_rest =
-        ProsodyAdminRest::from_config(&config, http_client.clone(), secrets_store.clone());
-    let server_ctl = ServerCtl::new(Arc::new(prosody_admin_rest.clone()));
+    let prosody_admin_rest = Arc::new(ProsodyAdminRest::from_config(
+        &config,
+        http_client.clone(),
+        secrets_store.clone(),
+    ));
+    let server_ctl = ServerCtl::new(Arc::new(LiveServerCtl::from_config(
+        &config,
+        prosody_admin_rest.clone(),
+    )));
     let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
         &config,
         http_client.clone(),
-        Arc::new(prosody_admin_rest),
+        prosody_admin_rest.clone(),
         Arc::new(UUIDProvider::new()),
     )));
-    let prosody_oauth2 = ProsodyOAuth2::from_config(&config, http_client.clone());
-    let auth_service = AuthService::new(Arc::new(LiveAuthService::new(
-        jwt_service.clone(),
-        prosody_oauth2,
-    )));
+    let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&config, http_client.clone()));
+    let auth_service = AuthService::new(Arc::new(LiveAuthService::new(prosody_oauth2.clone())));
     let notifier = Notifier::from_config(&config).unwrap_or_else(|e| panic!("{e}"));
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
@@ -70,7 +69,6 @@ fn rocket() -> _ {
         xmpp_service,
         auth_service,
         notifier,
-        jwt_service,
         secrets_store,
         network_checker,
     )

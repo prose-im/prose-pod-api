@@ -81,22 +81,15 @@ impl<'r> UserService<'r> {
 
         // NOTE: We need to log the user in to get a Prosody authentication token
         //   in order to set the user's vCard.
-        let jwt = self
+        let auth_token = self
             .auth_service
             .log_in(jid, &password)
             .await
             .expect("User was created with credentials which doesn't work.");
-        let jwt = self
-            .auth_service
-            .verify(&jwt)
-            .expect("The just-created JWT is invalid.");
-        let prosody_token = jwt
-            .prosody_token()
-            .expect("The just-created JWT doesn't contain a Prosody token.");
 
         let ctx = XmppServiceContext {
             bare_jid: jid.to_owned(),
-            prosody_token,
+            prosody_token: auth_token.clone(),
         };
         let xmpp_service = XmppService::new(&self.xmpp_service_inner, ctx);
 

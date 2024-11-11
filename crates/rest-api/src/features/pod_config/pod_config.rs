@@ -6,8 +6,8 @@
 use rocket::serde::json::Json;
 use sea_orm_rocket::Connection;
 use service::{
+    auth::UserInfo,
     members::MemberRepository,
-    models::BareJid,
     pod_config::{PodConfig, PodConfigRepository},
 };
 
@@ -19,11 +19,11 @@ use crate::{
 #[get("/v1/pod/config")]
 pub async fn get_pod_config_route<'r>(
     conn: Connection<'r, Db>,
-    jid: LazyGuard<BareJid>,
+    user_info: LazyGuard<UserInfo>,
 ) -> Result<Json<PodConfig>, Error> {
     let db = conn.into_inner();
 
-    let jid = jid.inner?;
+    let jid = user_info.inner?.jid;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !MemberRepository::is_admin(db, &jid).await? {
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());

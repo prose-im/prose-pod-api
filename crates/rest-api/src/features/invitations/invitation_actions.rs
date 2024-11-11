@@ -9,9 +9,9 @@ use rocket::{delete, post, response::status::NoContent, serde::json::Json, State
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
+    auth::UserInfo,
     invitations::{invitation_controller::*, invitation_service, InvitationToken},
     members::MemberRepository,
-    models::BareJid,
     notifications::Notifier,
     AppConfig,
 };
@@ -71,7 +71,7 @@ pub async fn invitation_resend_route<'r>(
     conn: Connection<'r, Db>,
     invitation_controller: LazyGuard<InvitationController<'r>>,
     app_config: &State<AppConfig>,
-    jid: LazyGuard<BareJid>,
+    jid: LazyGuard<UserInfo>,
     notifier: LazyGuard<Notifier<'r>>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
@@ -79,7 +79,7 @@ pub async fn invitation_resend_route<'r>(
     let invitation_controller = invitation_controller.inner?;
     let notifier = notifier.inner?;
 
-    let jid = jid.inner?;
+    let jid = jid.inner?.jid;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
@@ -97,13 +97,13 @@ pub async fn invitation_resend_route<'r>(
 pub async fn invitation_cancel_route<'r>(
     conn: Connection<'r, Db>,
     invitation_controller: LazyGuard<InvitationController<'r>>,
-    jid: LazyGuard<BareJid>,
+    user_info: LazyGuard<UserInfo>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
     let invitation_controller = invitation_controller.inner?;
 
-    let jid = jid.inner?;
+    let jid = user_info.inner?.jid;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
     if !MemberRepository::is_admin(db, &jid).await? {
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());

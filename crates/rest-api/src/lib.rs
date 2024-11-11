@@ -22,7 +22,7 @@ use rocket::{
     {Build, Request, Rocket},
 };
 use service::{
-    auth::{AuthService, JWTService},
+    auth::AuthService,
     dependencies::Uuid,
     network_checks::NetworkChecker,
     notifications::dependencies::Notifier,
@@ -39,7 +39,6 @@ pub fn custom_rocket(
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
     notifier: Notifier,
-    jwt_service: JWTService,
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
 ) -> Rocket<Build> {
@@ -68,7 +67,6 @@ pub fn custom_rocket(
         .manage(xmpp_service)
         .manage(auth_service)
         .manage(notifier)
-        .manage(jwt_service)
         .manage(secrets_store)
         .manage(network_checker)
 }

@@ -3,12 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::auth::{JWTService, JWT};
+use secrecy::SecretString;
+use service::auth::auth_service::AuthToken;
 
 use crate::guards::prelude::*;
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for JWT {
+impl<'r> LazyFromRequest<'r> for AuthToken {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -26,25 +27,6 @@ impl<'r> LazyFromRequest<'r> for JWT {
             .into();
         };
 
-        let jwt_service = try_outcome!(request_state!(req, JWTService));
-
-        match Self::try_from(&token.to_string().into(), jwt_service) {
-            Ok(jwt) => {
-                match jwt.jid() {
-                    Ok(jid) => debug!("Request authenticated as <{jid}>."),
-                    Err(err) => {
-                        return Error::from(error::Unauthorized(format!("Invalid JWT: {err}")))
-                            .into()
-                    }
-                }
-                Outcome::Success(jwt)
-            }
-            Err(err) => {
-                return Error::from(error::Unauthorized(format!(
-                    "The provided JWT is invalid: {err}"
-                )))
-                .into();
-            }
-        }
+        Outcome::Success(AuthToken(SecretString::new(token.to_string())))
     }
 }

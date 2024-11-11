@@ -7,7 +7,10 @@ use std::ops::Deref as _;
 
 use rocket::{put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::xmpp::{BareJid, XmppService};
+use service::{
+    auth::UserInfo,
+    xmpp::{BareJid, XmppService},
+};
 
 use crate::{
     error::{self, Error},
@@ -30,11 +33,11 @@ pub struct SetMemberNicknameResponse {
 #[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
 pub async fn set_member_nickname_route<'r>(
     member_id: JIDUriParam,
-    jid: LazyGuard<BareJid>,
+    user_info: LazyGuard<UserInfo>,
     xmpp_service: LazyGuard<XmppService<'r>>,
     req: Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
-    let jid = jid.inner?;
+    let jid = user_info.inner?.jid;
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {

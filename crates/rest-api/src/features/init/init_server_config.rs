@@ -98,6 +98,7 @@ impl CustomErrorCode for InitServerConfigError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotInitServerConfig(err) => err.code(),
+            Self::CouldNotRegisterOAuth2Client(err) => err.code(),
             Self::CouldNotCreateServiceAccount(err) => err.code(),
         }
     }

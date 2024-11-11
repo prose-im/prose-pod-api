@@ -7,7 +7,7 @@ use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
 
 use crate::{
-    auth::AuthService,
+    auth::{auth_service, AuthService},
     members::{Member, MemberRepository, MemberRole, UserCreateError, UserService},
     models::JidNode,
     secrets::SecretsStore,
@@ -40,6 +40,12 @@ impl<'r> InitController<'r> {
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
+        // Register OAuth 2.0 client
+        auth_service
+            .register_oauth2_client()
+            .await
+            .map_err(InitServerConfigError::CouldNotRegisterOAuth2Client)?;
+
         // Create service XMPP accounts
         ServerManager::create_service_accounts(
             &server_config.domain,
@@ -58,6 +64,8 @@ impl<'r> InitController<'r> {
 pub enum InitServerConfigError {
     #[error("Could not init server config: {0}")]
     CouldNotInitServerConfig(server_manager::Error),
+    #[error("Could register OAuth 2.0 client: {0}")]
+    CouldNotRegisterOAuth2Client(auth_service::Error),
     #[error("Could not create service XMPP account: {0}")]
     CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
 }

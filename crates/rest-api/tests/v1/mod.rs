@@ -13,17 +13,13 @@ pub mod workspace;
 
 use base64::{engine::general_purpose::STANDARD as Base64, Engine};
 use cucumber::{given, then, when};
-use prose_pod_api::{
-    error::{self, Error},
-    features::auth::LoginResponse,
-};
+use prose_pod_api::error::{self, Error};
 use rocket::{
     http::{ContentType, Header},
     local::asynchronous::{Client, LocalResponse},
 };
 use secrecy::{ExposeSecret, SecretString};
 use service::{
-    auth::jwt_service,
     members::{MemberCreateForm, MemberRepository, MemberRole},
     models::xmpp::{AvatarData, BareJid},
     prosody_config::LuaValue,
@@ -157,32 +153,6 @@ async fn when_user_logs_in(world: &mut TestWorld, name: String) -> Result<(), Er
         .clone();
     let res = log_in(world.client(), &jid, password).await;
     world.result = Some(res.into());
-    Ok(())
-}
-
-#[then(expr = "their access token should expire after {duration}")]
-async fn then_token_expires_after(
-    world: &mut TestWorld,
-    duration: Duration,
-) -> Result<(), jwt_service::Error> {
-    let response: LoginResponse = world.result().body_into();
-    let token: SecretString = response.token.expose_secret().clone().into();
-    let claims = world.jwt_service.verify(&token)?;
-
-    fn date(claims: &serde_json::Map<String, serde_json::Value>, claim: &str) -> u64 {
-        claims
-            .get(claim)
-            .expect(&format!("JWT has no '{claim}' claim."))
-            .as_u64()
-            .expect(&format!("JWT '{claim}' claim could not be parsed."))
-    }
-
-    let issued_at = date(&claims, "iat");
-    let expires_at = date(&claims, "exp");
-
-    let lifetime = expires_at - issued_at;
-    assert_eq!(lifetime, duration.seconds() as u64);
-
     Ok(())
 }
 

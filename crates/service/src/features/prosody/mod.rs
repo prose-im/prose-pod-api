@@ -19,7 +19,7 @@ pub use prosody_rest::ProsodyRest;
 /// Map our types to their representation in Prosody.
 ///
 /// E.g. our `ADMIN` role maps to `"prosody:admin"`.
-trait AsProsody {
+pub trait AsProsody {
     fn as_prosody(&self) -> String;
 }
 

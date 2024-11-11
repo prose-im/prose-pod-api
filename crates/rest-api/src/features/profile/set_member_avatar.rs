@@ -8,7 +8,7 @@ use std::ops::Deref;
 use base64::{engine::general_purpose, Engine as _};
 use rocket::{put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::{models::BareJid, xmpp::XmppService};
+use service::{auth::UserInfo, models::BareJid, xmpp::XmppService};
 
 use crate::{
     error::{self, Error},
@@ -33,11 +33,11 @@ pub struct SetMemberAvatarResponse {
 #[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
 pub async fn set_member_avatar_route<'r>(
     member_id: JIDUriParam,
-    jid: LazyGuard<BareJid>,
+    user_info: LazyGuard<UserInfo>,
     xmpp_service: LazyGuard<XmppService<'r>>,
     req: Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {
-    let jid = jid.inner?;
+    let jid = user_info.inner?.jid;
     let xmpp_service = xmpp_service.inner?;
 
     if jid.deref() != member_id.deref() {

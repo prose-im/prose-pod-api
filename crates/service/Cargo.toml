@@ -20,7 +20,6 @@ hickory-resolver = { workspace = true }
 hmac = { workspace = true }
 iso8601-duration = { workspace = true }
 jid = { workspace = true }
-jwt = { workspace = true }
 lazy_static = { workspace = true }
 lettre = { workspace = true }
 minidom = { workspace = true }
