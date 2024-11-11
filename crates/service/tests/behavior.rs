@@ -11,12 +11,12 @@ use cucumber::World;
 use migration::{self, MigratorTrait};
 use sea_orm::*;
 use service::{
-    config::Config,
-    controllers::init_controller::WorkspaceCreateForm,
-    entity::server_config,
-    model::JidDomain,
+    init::WorkspaceCreateForm,
+    models::JidDomain,
     prosody::ProsodyConfig,
-    repositories::{ServerConfigCreateForm, ServerConfigRepository, WorkspaceRepository},
+    server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
+    workspace::WorkspaceRepository,
+    AppConfig,
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -37,14 +37,14 @@ async fn main() {
 #[world(init = Self::new)]
 struct TestWorld {
     db: DatabaseConnection,
-    app_config: Config,
+    app_config: AppConfig,
     server_config: server_config::Model,
     prosody_config: Option<ProsodyConfig>,
 }
 
 impl TestWorld {
     async fn new() -> Self {
-        let app_config = Config::figment();
+        let app_config = AppConfig::figment();
 
         // Connecting SQLite
         let db = match Database::connect("sqlite::memory:").await {

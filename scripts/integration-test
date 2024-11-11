@@ -13,7 +13,7 @@ test-env-vars 'CONTRIBUTING.md' \
 	PROSE_POD_API_DIR \
 	PROSE_POD_SYSTEM_DIR
 
-INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/crates/api/tests/integration
+INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/crates/rest-api/tests/integration
 STEPCI_DIR="${INTEGRATION_TESTS_DIR:?}"/step-ci
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8000}
 export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/in-memory.env

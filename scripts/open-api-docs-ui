@@ -16,7 +16,7 @@ fi
 
 warn "Because the Prose Pod API cannot be started alone, this script uses the local $(format_code proseim/prose-pod-api:latest) image. This means the OpenAPI description will not reload until you run $(format_code 'task build-image -- --debug') again."
 
-ENV_FILE="${PROSE_POD_API_DIR:?}"/crates/api/tests/integration/in-memory.env \
+ENV_FILE="${PROSE_POD_API_DIR:?}"/crates/rest-api/tests/integration/in-memory.env \
 	SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod \
 	PROSE_CONFIG_FILE="${PROSE_POD_API_DIR:?}"/crates/api/tests/integration/Prose-test.toml \
 	docker compose -f "${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml up

@@ -5,27 +5,24 @@
 
 pub extern crate prose_xmpp;
 pub extern crate prosody_config;
-pub extern crate xmpp_parsers;
+extern crate xmpp_parsers;
 
-pub mod config;
-pub mod controllers;
 pub mod dependencies;
-pub mod entity;
-pub mod model;
+mod features;
+pub mod models;
 mod mutation_error;
-pub mod prosody;
-pub mod repositories;
-pub mod services;
 pub mod util;
 
-pub use dependencies::any_notifier as notifier;
+pub use features::app_config::AppConfig;
+pub use features::prosody;
+use features::server_config::ServerConfig;
+pub use features::*;
 pub use mutation_error::MutationError;
 pub use prosody::prosody_config_from_db;
-pub use reqwest::Client as HttpClient;
-
 pub use prosody_config::ProsodyConfigSection;
+pub use reqwest::Client as HttpClient;
 pub use sea_orm;
 
 trait ProseDefault {
-    fn prose_default(server_config: &model::ServerConfig, app_config: &config::Config) -> Self;
+    fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self;
 }
