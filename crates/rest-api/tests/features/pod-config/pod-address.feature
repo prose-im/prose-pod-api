@@ -32,7 +32,7 @@ Feature: Setting the Prose Pod address
        When Rémi sets the Prose Pod address to <address>
        Then the HTTP status code should be Forbidden
         And the response content type should be JSON
-        And the error reason should be "forbidden"
+        And the error code should be "forbidden"
 
     Examples:
       | address    |

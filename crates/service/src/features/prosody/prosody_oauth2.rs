@@ -46,23 +46,35 @@ impl ProsodyOAuth2 {
         if accept(&response) {
             Ok(response)
         } else {
-            let mut err = format!(
-                "Prosody OAuth2 API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
-                response.status(),
-                response.headers().clone(),
-                response.text().await.unwrap_or("<nil>".to_string()),
-            );
-            if let Some(request) = request_clone {
-                err.push_str(&format!(
-                    "\n  Request headers: {:?}\n  Request body: {:?}",
-                    request.headers().clone(),
-                    request
-                        .body()
-                        .and_then(|body| body.as_bytes())
-                        .map(std::str::from_utf8),
-                ));
-            }
-            Err(Error::UnexpectedResponse(err))
+            Err(match response.status() {
+                StatusCode::UNAUTHORIZED => {
+                    let body = response.text().await.unwrap_or("<nil>".to_string());
+                    Error::Unauthorized(body)
+                }
+                StatusCode::FORBIDDEN => {
+                    let body = response.text().await.unwrap_or("<nil>".to_string());
+                    Error::Unauthorized(body)
+                }
+                _ => {
+                    let mut err = format!(
+                        "Prosody OAuth2 API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
+                        response.status(),
+                        response.headers().clone(),
+                        response.text().await.unwrap_or("<nil>".to_string()),
+                    );
+                    if let Some(request) = request_clone {
+                        err.push_str(&format!(
+                            "\n  Request headers: {:?}\n  Request body: {:?}",
+                            request.headers().clone(),
+                            request
+                                .body()
+                                .and_then(|body| body.as_bytes())
+                                .map(std::str::from_utf8),
+                        ));
+                    }
+                    Error::UnexpectedResponse(err)
+                }
+            })
         }
     }
 
@@ -149,6 +161,10 @@ pub enum ProsodyOAuth2Error {
     CallFailed(reqwest::Error),
     #[error("Could not decode Prosody OAuth2 API response: {0}")]
     InvalidResponse(#[from] serde_json::Error),
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
     #[error("Unexpected Prosody OAuth2 API response: {0}")]
     UnexpectedResponse(String),
     #[error("Internal server error: {0}")]

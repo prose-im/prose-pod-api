@@ -14,7 +14,7 @@ Feature: DNS setup instructions
        When Rémi requests DNS setup instructions
        Then the HTTP status code should be Forbidden
         And the response content type should be JSON
-        And the error reason should be "forbidden"
+        And the error code should be "forbidden"
 
   """
   `SRV` records cannot point directly to IP addresses, we need to point it to a hostname.
@@ -145,4 +145,4 @@ Feature: DNS setup instructions
       Given the Prose Pod address has not been initialized
        When Valerian requests DNS setup instructions
        Then the HTTP status code should be Bad Request
-        And the error reason should be "pod_address_not_initialized"
+        And the error code should be "pod_address_not_initialized"

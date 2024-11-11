@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    auth::{auth_service, jwt_service},
     members::user_service,
     notifications::notifier,
     sea_orm,
@@ -182,26 +181,6 @@ impl CustomErrorCode for MutationError {
 }
 impl_into_error!(MutationError);
 
-impl CustomErrorCode for jwt_service::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::Sign(_) | Self::Other(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::UNAUTHORIZED,
-        }
-    }
-}
-impl_into_error!(jwt_service::Error);
-
-impl CustomErrorCode for auth_service::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvalidCredentials => ErrorCode::UNAUTHORIZED,
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(auth_service::Error);
-
 impl CustomErrorCode for user_service::Error {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -233,10 +212,3 @@ impl CustomErrorCode for CreateServiceAccountError {
     }
 }
 impl_into_error!(CreateServiceAccountError);
-
-impl CustomErrorCode for std::io::Error {
-    fn error_code(&self) -> ErrorCode {
-        ErrorCode::INTERNAL_SERVER_ERROR
-    }
-}
-impl_into_error!(std::io::Error);

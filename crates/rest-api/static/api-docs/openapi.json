@@ -1809,9 +1809,9 @@
 		"schemas": {
 			"Error": {
 				"type": "object",
-				"required": ["reason"],
+				"required": ["error"],
 				"properties": {
-					"reason": {
+					"error": {
 						"type": "string",
 						"enum": [
 							"bad_request",
@@ -2709,7 +2709,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "workspace_already_initialized"
+							"error": "workspace_already_initialized"
 						}
 					}
 				}
@@ -2720,7 +2720,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "workspace_not_initialized"
+							"error": "workspace_not_initialized"
 						}
 					}
 				}
@@ -2731,7 +2731,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "server_config_already_initialized"
+							"error": "server_config_already_initialized"
 						}
 					}
 				}
@@ -2742,7 +2742,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "server_config_not_initialized"
+							"error": "server_config_not_initialized"
 						}
 					}
 				}
@@ -2753,7 +2753,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "pod_address_not_initialized"
+							"error": "pod_address_not_initialized"
 						}
 					}
 				}
@@ -2764,7 +2764,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "first_account_already_created"
+							"error": "first_account_already_created"
 						}
 					}
 				}
@@ -2775,7 +2775,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "unauthorized"
+							"error": "unauthorized"
 						}
 					}
 				},
@@ -2791,7 +2791,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "forbidden"
+							"error": "forbidden"
 						}
 					}
 				}
@@ -2802,7 +2802,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "not_found"
+							"error": "not_found"
 						}
 					}
 				}
@@ -2813,7 +2813,7 @@
 					"application/json": {
 						"schema": { "$ref": "#/components/schemas/Error" },
 						"example": {
-							"reason": "not_found"
+							"error": "not_found"
 						}
 					}
 				}
