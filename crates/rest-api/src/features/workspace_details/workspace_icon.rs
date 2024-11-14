@@ -24,8 +24,7 @@ pub async fn get_workspace_icon_route<'r>(
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;
 
-    let avatar_data = workspace_controller.get_workspace_icon().await?;
-    let icon = avatar_data.map(|d| d.base64().into_owned());
+    let icon = workspace_controller.get_workspace_icon_base64().await?;
 
     let response = GetWorkspaceIconResponse { icon }.into();
     Ok(response)

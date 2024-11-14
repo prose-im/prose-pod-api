@@ -1042,6 +1042,27 @@
 			}
 		},
 		"/v1/workspace": {
+			"get": {
+				"tags": ["Workspace"],
+				"summary": "Get workspace details.",
+				"description": "Get the details of your workspace.",
+				"operationId": "get_workspace",
+				"security": [{ "BearerAuth": [] }],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Workspace"
+								}
+							}
+						}
+					},
+					"401": { "$ref": "#/components/responses/Unauthorized" },
+					"403": { "$ref": "#/components/responses/Forbidden" }
+				}
+			},
 			"put": {
 				"tags": ["Init"],
 				"summary": "Initialize the workspace",
@@ -1877,10 +1898,7 @@
 			"GetWorkspaceIconResponse": {
 				"type": "object",
 				"properties": {
-					"icon": {
-						"type": "string",
-						"nullable": true
-					}
+					"icon": { "$ref": "#/components/schemas/Avatar" }
 				}
 			},
 			"GetWorkspaceNameResponse": {
@@ -1939,9 +1957,10 @@
 			},
 			"Workspace": {
 				"type": "object",
-				"required": ["name", "accent_color"],
+				"required": ["name"],
 				"properties": {
 					"name": { "$ref": "#/components/schemas/WorkspaceName" },
+					"icon": { "$ref": "#/components/schemas/Avatar" },
 					"accent_color": {
 						"$ref": "#/components/schemas/WorkspaceAccentColor"
 					}
