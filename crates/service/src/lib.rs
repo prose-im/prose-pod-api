@@ -5,9 +5,11 @@
 
 pub extern crate prose_xmpp;
 pub extern crate prosody_config;
+pub extern crate reqwest;
 extern crate xmpp_parsers;
 
 pub mod dependencies;
+pub mod errors;
 mod features;
 pub mod models;
 mod mutation_error;

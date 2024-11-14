@@ -3,17 +3,17 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fs::File, future::Future, io::Write as _, path::PathBuf};
+use std::{fs::File, io::Write as _, path::PathBuf};
 
-use reqwest::{
-    header::HeaderMap, Client as HttpClient, Method, RequestBuilder, Response, StatusCode,
-};
+use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
+use serde_json::json;
 use tracing::trace;
 
 use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
+    errors::{RequestData, ResponseData, UnexpectedHttpResponse},
     members::MemberRole,
     secrets::SecretsStore,
     server_config::ServerConfig,
@@ -54,25 +54,21 @@ impl ProsodyAdminRest {
     async fn call(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
-    ) -> Result<Response, server_ctl::Error> {
-        self.call_(make_req, |response| async {
-            if response.status().is_success() {
+    ) -> Result<ResponseData, server_ctl::Error> {
+        self.call_(make_req, |response| {
+            if response.status.is_success() {
                 Ok(response)
             } else {
-                Err(ResponseData {
-                    status: response.status(),
-                    headers: response.headers().clone(),
-                    body: response.text().await.unwrap_or("<nil>".into()),
-                })
+                Err(response)
             }
         })
         .await
     }
 
-    async fn call_<T, F: Future<Output = Result<T, ResponseData>>>(
+    async fn call_<T>(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
-        map_res: impl FnOnce(Response) -> F,
+        map_res: impl FnOnce(ResponseData) -> Result<T, ResponseData>,
     ) -> Result<T, server_ctl::Error> {
         let client = self.http_client.clone();
         let request = make_req(&client)
@@ -87,37 +83,26 @@ impl ProsodyAdminRest {
             .build()?;
         trace!("Calling `{} {}`…", request.method(), request.url());
 
-        let (response, request_clone) = {
-            let request_clone = request.try_clone();
-            (
-                client.execute(request).await.map_err(|err| {
-                    server_ctl::Error::Other(format!("Prosody Admin REST API call failed: {err}"))
-                })?,
-                request_clone,
-            )
+        let request_data = match request.try_clone() {
+            Some(request_clone) => Some(RequestData::from(request_clone).await),
+            None => None,
         };
-        match map_res(response).await {
+        let response = {
+            let response = client.execute(request).await.map_err(|err| {
+                server_ctl::Error::Other(format!("Prosody Admin REST API call failed: {err}"))
+            })?;
+            ResponseData::from(response).await
+        };
+
+        match map_res(response) {
             Ok(res) => Ok(res),
-            Err(response) => {
-                let mut err = "Prosody Admin REST API returned an error.".to_owned();
-                if let Some(request) = request_clone {
-                    err.push_str(&format!(
-                        "\n  Request: {} {}\n  Request headers: {:?}\n  Request body: {:?}",
-                        request.method(),
-                        request.url().to_string(),
-                        request.headers().clone(),
-                        request
-                            .body()
-                            .and_then(|body| body.as_bytes())
-                            .map(std::str::from_utf8),
-                    ));
-                }
-                err.push_str(&format!(
-                    "\n  Response status: {}\n  Response headers: {:?}\n  Response body: {}",
-                    response.status, response.headers, response.body,
-                ));
-                Err(server_ctl::Error::Other(err))
-            }
+            Err(response) => Err(match response.status {
+                StatusCode::UNAUTHORIZED => server_ctl::Error::Unauthorized(response.text()),
+                StatusCode::FORBIDDEN => server_ctl::Error::Forbidden(response.text()),
+                _ => server_ctl::Error::UnexpectedResponse(
+                    UnexpectedHttpResponse::new(request_data, response, error_description).await,
+                ),
+            }),
         }
     }
 
@@ -160,20 +145,17 @@ impl ProsodyAdminRest {
                 ),
             )
         };
-        let map_res = |response: Response| async {
-            let status = response.status();
-            let headers = response.headers().clone();
-            let body = response.text().await.unwrap_or("<nil>".into());
-            if status.is_success() {
+        let map_res = |response: ResponseData| {
+            if response.status.is_success() {
                 Ok(Ok(()))
-            } else if body.as_str() == r#"{"result":"group-not-found"}"# {
+            } else if response
+                .body
+                .as_ref()
+                .is_ok_and(|body| body == &json!({ "result": "group-not-found" }))
+            {
                 Ok(Err(AddMemberFailed::GroupNotFound))
             } else {
-                Err(ResponseData {
-                    status,
-                    headers,
-                    body,
-                })
+                Err(response)
             }
         };
 
@@ -188,12 +170,6 @@ impl ProsodyAdminRest {
             }
         }
     }
-}
-
-struct ResponseData {
-    status: StatusCode,
-    headers: HeaderMap,
-    body: String,
 }
 
 enum AddMemberFailed {
@@ -312,8 +288,7 @@ impl NonStandardXmppClient for ProsodyAdminRest {
                 ))
             })
             .await?;
-        let body = response.text().await?;
-        let res: ConnectedResponse = serde_json::from_str(&body)?;
+        let res: ConnectedResponse = response.deserialize()?;
         Ok(res.connected)
     }
 }
@@ -321,4 +296,13 @@ impl NonStandardXmppClient for ProsodyAdminRest {
 #[derive(Debug, Deserialize)]
 struct ConnectedResponse {
     connected: bool,
+}
+
+fn error_description(json: Option<serde_json::Value>, text: Option<String>) -> String {
+    json.as_ref()
+        .map(|v| v.as_str())
+        .flatten()
+        .map(ToString::to_string)
+        .or(text.clone())
+        .unwrap_or("Prosody admin_rest call failed.".to_string())
 }

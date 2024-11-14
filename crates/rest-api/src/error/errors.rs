@@ -165,7 +165,27 @@ impl HttpApiError for HTTPStatus {
 
 impl_into_error!(sea_orm::DbErr, ErrorCode::DATABASE_ERROR);
 
-impl_into_error!(server_ctl::Error, ErrorCode::INTERNAL_SERVER_ERROR);
+impl HttpApiError for server_ctl::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::Unauthorized(_) => ErrorCode::UNAUTHORIZED,
+            Self::Forbidden(_) => ErrorCode::FORBIDDEN,
+            Self::UnexpectedResponse(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    fn message(&self) -> String {
+        std::format!("server_ctl::Error: {self}")
+    }
+
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        match self {
+            Self::UnexpectedResponse(err) => err.debug_info(),
+            _ => None,
+        }
+    }
+}
 
 impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
@@ -212,3 +232,19 @@ impl CustomErrorCode for CreateServiceAccountError {
     }
 }
 impl_into_error!(CreateServiceAccountError);
+
+impl HttpApiError for service::errors::UnexpectedHttpResponse {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INTERNAL_SERVER_ERROR
+    }
+
+    fn message(&self) -> String {
+        std::format!("{self}")
+    }
+
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(self)
+            .inspect_err(|err| error!("Could not serialize error `{self}`: {err}"))
+            .ok()
+    }
+}

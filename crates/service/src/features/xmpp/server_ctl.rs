@@ -16,7 +16,9 @@ use std::{
 use prose_xmpp::BareJid;
 use secrecy::SecretString;
 
-use crate::{members::MemberRole, server_config::ServerConfig, AppConfig};
+use crate::{
+    errors::UnexpectedHttpResponse, members::MemberRole, server_config::ServerConfig, AppConfig,
+};
 
 #[derive(Debug, Clone)]
 pub struct ServerCtl {
@@ -77,6 +79,12 @@ pub enum ServerCtlError {
     CommandFailed(Output),
     #[error("UTF-8 error: {0}")]
     Utf8Error(#[from] Utf8Error),
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+    #[error("Unexpected API response: {0}")]
+    UnexpectedResponse(UnexpectedHttpResponse),
     #[error("{0}")]
     Other(String),
 }

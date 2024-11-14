@@ -61,7 +61,7 @@ pub struct Error {
     message: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    payload: Option<serde_json::Value>,
+    debug_info: Option<serde_json::Value>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     recovery_suggestions: Vec<String>,
@@ -86,14 +86,14 @@ impl Error {
     pub fn new(
         code: ErrorCode,
         message: String,
-        payload: Option<serde_json::Value>,
+        debug_info: Option<serde_json::Value>,
         recovery_suggestions: Vec<String>,
         http_headers: Vec<(String, String)>,
     ) -> Self {
         Self {
             code: code.value,
             message,
-            payload,
+            debug_info,
             recovery_suggestions,
             http_status: code.http_status,
             http_headers,
@@ -147,7 +147,7 @@ impl Error {
                 json!({
                     "error": self.code,
                     "message": self.message,
-                    "payload": self.payload,
+                    "debug_info": self.debug_info,
                 })
                 .to_string()
             })
@@ -187,7 +187,7 @@ pub trait HttpApiError: std::fmt::Display {
     fn message(&self) -> String {
         format!("{self}")
     }
-    fn payload(&self) -> Option<serde_json::Value> {
+    fn debug_info(&self) -> Option<serde_json::Value> {
         None
     }
     fn recovery_suggestions(&self) -> Vec<String> {
@@ -203,7 +203,7 @@ impl<E: HttpApiError> From<E> for Error {
         Self::new(
             error.code(),
             error.message(),
-            error.payload(),
+            error.debug_info(),
             error.recovery_suggestions(),
             error.http_headers(),
         )

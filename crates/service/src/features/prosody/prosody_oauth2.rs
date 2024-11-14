@@ -3,12 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
+use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use tracing::debug;
 
-use crate::{models::BareJid, AppConfig};
+use crate::{
+    errors::{RequestData, ResponseData, UnexpectedHttpResponse},
+    models::BareJid,
+    AppConfig,
+};
 
 /// Rust interface to [`mod_http_oauth2`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_oauth2).
 #[derive(Debug, Clone)]
@@ -28,52 +32,32 @@ impl ProsodyOAuth2 {
     async fn call(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
-        accept: impl FnOnce(&Response) -> bool,
-    ) -> Result<Response, Error> {
+        accept: impl FnOnce(&ResponseData) -> bool,
+    ) -> Result<ResponseData, Error> {
         let client = self.http_client.clone();
         let request = make_req(&client)
             .build()
             .map_err(Error::CannotBuildRequest)?;
         debug!("Calling `{} {}`…", request.method(), request.url());
 
-        let (response, request_clone) = {
-            let request_clone = request.try_clone();
-            (
-                client.execute(request).await.map_err(Error::CallFailed)?,
-                request_clone,
-            )
+        let request_data = match request.try_clone() {
+            Some(request_clone) => Some(RequestData::from(request_clone).await),
+            None => None,
         };
+        let response = {
+            let response = client.execute(request).await.map_err(Error::CallFailed)?;
+            ResponseData::from(response).await
+        };
+
         if accept(&response) {
             Ok(response)
         } else {
-            Err(match response.status() {
-                StatusCode::UNAUTHORIZED => {
-                    let body = response.text().await.unwrap_or("<nil>".to_string());
-                    Error::Unauthorized(body)
-                }
-                StatusCode::FORBIDDEN => {
-                    let body = response.text().await.unwrap_or("<nil>".to_string());
-                    Error::Unauthorized(body)
-                }
-                _ => {
-                    let mut err = format!(
-                        "Prosody OAuth2 API call failed.\n  Status: {}\n  Headers: {:?}\n  Body: {}",
-                        response.status(),
-                        response.headers().clone(),
-                        response.text().await.unwrap_or("<nil>".to_string()),
-                    );
-                    if let Some(request) = request_clone {
-                        err.push_str(&format!(
-                            "\n  Request headers: {:?}\n  Request body: {:?}",
-                            request.headers().clone(),
-                            request
-                                .body()
-                                .and_then(|body| body.as_bytes())
-                                .map(std::str::from_utf8),
-                        ));
-                    }
-                    Error::UnexpectedResponse(err)
-                }
+            Err(match response.status {
+                StatusCode::UNAUTHORIZED => Error::Unauthorized(response.text()),
+                StatusCode::FORBIDDEN => Error::Forbidden(response.text()),
+                _ => Error::UnexpectedResponse(
+                    UnexpectedHttpResponse::new(request_data, response, error_description).await,
+                ),
             })
         }
     }
@@ -108,21 +92,16 @@ impl ProsodyOAuth2 {
                                 .finish(),
                         )
                 },
-                |res| res.status().is_success() || res.status() == StatusCode::UNAUTHORIZED,
+                |res| res.status.is_success() || res.status == StatusCode::UNAUTHORIZED,
             )
             .await?;
 
-        if response.status() == StatusCode::UNAUTHORIZED {
-            debug!("Prosody OAuth2 API returned status {}", response.status());
+        if response.status == StatusCode::UNAUTHORIZED {
+            debug!("Prosody OAuth2 API returned status {}", response.status);
             return Ok(None);
         }
 
-        let body = response
-            .text()
-            .await
-            .map_err(|e| Error::UnexpectedResponse(format!("Could not read response body: {e}")))?;
-
-        let res: ProsodyOAuth2TokenResponse = serde_json::from_str(&body)?;
+        let res: ProsodyOAuth2TokenResponse = serde_json::from_str(&response.text())?;
 
         debug!("Logged in as {jid}");
 
@@ -165,8 +144,21 @@ pub enum ProsodyOAuth2Error {
     Unauthorized(String),
     #[error("Forbidden: {0}")]
     Forbidden(String),
-    #[error("Unexpected Prosody OAuth2 API response: {0}")]
-    UnexpectedResponse(String),
+    #[error("Unexpected API response: {0}")]
+    UnexpectedResponse(UnexpectedHttpResponse),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
+}
+
+fn error_description(json: Option<serde_json::Value>, text: Option<String>) -> String {
+    json.clone()
+        .map(|json| {
+            json.get("error_description")
+                .map(|v| v.as_str())
+                .flatten()
+                .map(ToString::to_string)
+        })
+        .flatten()
+        .or(text.clone())
+        .unwrap_or("Prosody http_oauth2 call failed.".to_string())
 }
