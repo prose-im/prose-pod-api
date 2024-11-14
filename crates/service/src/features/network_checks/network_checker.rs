@@ -118,4 +118,28 @@ impl NetworkChecker {
             });
         }
     }
+    pub fn run_checks_oneshot<'a, Check, Status, Event>(
+        &self,
+        checks: impl Iterator<Item = Check>,
+        map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
+        sender: Sender<Event>,
+        join_set: &mut JoinSet<Result<(), SendError<Event>>>,
+    ) where
+        Check: NetworkCheck + Send + 'static,
+        Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
+        Status: From<Check::CheckResult> + Default,
+        Event: Send + 'static,
+    {
+        for check in checks {
+            let tx_clone = sender.clone();
+            let network_checker = self.to_owned();
+
+            join_set.spawn(async move {
+                let result = check.run(&network_checker).await;
+                tx_clone
+                    .send(map_to_event(&check, Status::from(result.clone())))
+                    .await
+            });
+        }
+    }
 }

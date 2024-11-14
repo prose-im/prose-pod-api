@@ -35,6 +35,7 @@ pub use model::*;
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
         check_network_configuration_route,
+        check_network_configuration_stream_route,
         check_dns_records_route,
         check_dns_records_stream_route,
         check_ip_route,
