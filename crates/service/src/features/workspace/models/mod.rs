@@ -4,3 +4,5 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod workspace;
+
+pub use workspace::*;

@@ -14,6 +14,8 @@ use crate::{
     AppConfig,
 };
 
+use super::entities::workspace;
+
 pub struct WorkspaceController<'r> {
     db: &'r DatabaseConnection,
     xmpp_service: XmppService<'r>,
@@ -47,10 +49,21 @@ pub enum WorkspaceControllerInitError {
 }
 
 impl<'r> WorkspaceController<'r> {
-    pub async fn get_workspace(&self) -> Result<Workspace, Error> {
+    async fn get_workspace_entity(&self) -> Result<workspace::Model, Error> {
         WorkspaceRepository::get(self.db)
             .await?
             .ok_or(Error::WorkspaceNotInitialized)
+    }
+    pub async fn get_workspace(&self) -> Result<Workspace, Error> {
+        let entity = self.get_workspace_entity().await?;
+        let name = self.get_workspace_name().await?;
+        let icon = self.get_workspace_icon_base64().await?;
+
+        Ok(Workspace {
+            name,
+            icon,
+            accent_color: entity.accent_color,
+        })
     }
 
     pub async fn get_workspace_name(&self) -> Result<String, Error> {
@@ -62,7 +75,6 @@ impl<'r> WorkspaceController<'r> {
             .ok_or(Error::WorkspaceNotInitialized)?;
         Ok(nickname)
     }
-
     pub async fn set_workspace_name(&self, name: String) -> Result<String, Error> {
         // FIXME: Set `FN` instead of `NICK`
         self.xmpp_service.set_own_nickname(&name).await?;
@@ -72,6 +84,10 @@ impl<'r> WorkspaceController<'r> {
     pub async fn get_workspace_icon(&self) -> Result<Option<AvatarData>, Error> {
         let avatar = self.xmpp_service.get_own_avatar().await?;
         Ok(avatar)
+    }
+    pub async fn get_workspace_icon_base64(&self) -> Result<Option<String>, Error> {
+        let avatar_data = self.get_workspace_icon().await?;
+        Ok(avatar_data.map(|d| d.base64().into_owned()))
     }
     pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {
         self.xmpp_service.set_own_avatar(png_data).await?;
@@ -92,7 +108,7 @@ impl<'r> WorkspaceController<'r> {
 
 impl<'r> WorkspaceController<'r> {
     pub async fn set_workspace_accent_color(&self, color: String) -> Result<Option<String>, Error> {
-        let workspace = self.get_workspace().await?;
+        let workspace = self.get_workspace_entity().await?;
 
         let mut active = workspace.into_active_model();
         // TODO: Validate `color`

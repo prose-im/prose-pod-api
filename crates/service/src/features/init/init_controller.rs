@@ -14,7 +14,7 @@ use crate::{
     server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
     workspace::{
-        entities::workspace, workspace_controller, Workspace, WorkspaceController,
+        entities::workspace, workspace_controller, WorkspaceController,
         WorkspaceControllerInitError, WorkspaceRepository,
     },
     xmpp::{server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner},
@@ -85,7 +85,7 @@ impl<'r> InitController<'r> {
         xmpp_service: &XmppServiceInner,
         server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,
-    ) -> Result<Workspace, InitWorkspaceError> {
+    ) -> Result<workspace::Model, InitWorkspaceError> {
         // Check that the workspace isn't already initialized.
         let None = WorkspaceRepository::get(self.db).await? else {
             return Err(InitWorkspaceError::WorkspaceAlreadyInitialized);
