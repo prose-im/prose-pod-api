@@ -1847,7 +1847,8 @@
 							"first_account_already_initialized",
 							"unauthorized",
 							"forbidden",
-							"unknown"
+							"unknown",
+							"invitation_already_exists"
 						],
 						"example": "bad_request"
 					}
