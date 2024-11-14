@@ -19,6 +19,7 @@ pub struct Model {
     pub id: i32,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
+    #[sea_orm(unique)]
     pub jid: JID,
     pub pre_assigned_role: MemberRole,
     invitation_channel: InvitationChannel,

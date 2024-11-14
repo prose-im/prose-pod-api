@@ -64,6 +64,16 @@ impl InvitationRepository {
         Entity::find_by_id(*id).one(db).await
     }
 
+    pub async fn get_by_jid(
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+    ) -> Result<Option<Invitation>, DbErr> {
+        Entity::find()
+            .filter(Column::Jid.eq(jid.as_str()))
+            .one(db)
+            .await
+    }
+
     pub async fn get_by_accept_token(
         db: &impl ConnectionTrait,
         token: InvitationToken,

@@ -41,11 +41,19 @@ impl<'r> InvitationController<'r> {
         #[cfg(debug_assertions)] invitation_service: &InvitationService<'r>,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
+        let jid = form.jid(&server_config)?;
+
+        if InvitationRepository::get_by_jid(self.db, &jid)
+            .await
+            .is_ok_and(|opt| opt.is_some())
+        {
+            return Err(InviteMemberError::Confict);
+        }
 
         let invitation = InvitationRepository::create(
             self.db,
             InvitationCreateForm {
-                jid: form.jid(&server_config)?,
+                jid,
                 pre_assigned_role: Some(form.pre_assigned_role.clone()),
                 contact: form.contact.clone(),
                 created_at: None,
@@ -149,6 +157,8 @@ impl InviteMemberForm {
 pub enum InviteMemberError {
     #[error("Invalid JID: {0}")]
     InvalidJid(String),
+    #[error("Invitation already exists (username already taken).")]
+    Confict,
     #[error("Could not mark workspace invitation `{id}` as `{status}`: {err}")]
     CouldNotUpdateInvitationStatus {
         id: i32,

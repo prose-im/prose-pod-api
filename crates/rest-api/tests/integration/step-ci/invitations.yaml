@@ -68,6 +68,44 @@ tests:
                 $ref: openapi.json#/components/schemas/WorkspaceInvitation
             jsonpath:
               $.length: 2
+  doubleInviteConflict:
+    name: Double invitation returns 409 Conflict
+    steps:
+      - name: Invite a first time
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: paloma
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: paloma@crisp.chat
+          check:
+            status: 201
+            headers:
+              Content-Type: application/json
+              Location: /.+/
+            schema:
+              $ref: openapi.json#/components/schemas/WorkspaceInvitation
+      - name: Invite a second time
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: paloma
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: paloma@crisp.chat
+          check:
+            status: 409
+            schema:
+              $ref: openapi.json#/components/schemas/Error
 
 components:
   steps:
