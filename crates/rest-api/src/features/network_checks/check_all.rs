@@ -5,6 +5,7 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use futures::{stream::FuturesOrdered, StreamExt};
 use tokio::{
     sync::mpsc::{self, error::SendError},
     task::JoinSet,
@@ -18,12 +19,49 @@ use crate::features::network_checks::{
 
 use super::{model::*, prelude::*, util::*};
 
+#[get("/v1/network/checks", format = "application/json")]
+pub async fn check_network_configuration_route<'r>(
+    pod_network_config: LazyGuard<PodNetworkConfig>,
+    network_checker: &'r State<NetworkChecker>,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let pod_network_config = pod_network_config.inner?;
+    let network_checker = network_checker.inner().to_owned();
+
+    let mut tasks: FuturesOrdered<tokio::task::JoinHandle<_>> = FuturesOrdered::default();
+
+    for check in pod_network_config.dns_record_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+    for check in pod_network_config.port_reachability_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+    for check in pod_network_config.ip_connectivity_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+
+    let res: Vec<NetworkCheckResult> = tasks.filter_map(|res| async { res.ok() }).collect().await;
+
+    Ok(Json(res))
+}
+
 #[get(
     "/v1/network/checks?<interval>",
     format = "text/event-stream",
     rank = 2
 )]
-pub fn check_network_configuration_route<'r>(
+pub fn check_network_configuration_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
     interval: Option<forms::Duration>,
