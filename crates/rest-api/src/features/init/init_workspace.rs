@@ -80,11 +80,17 @@ impl ErrorCode {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Workspace not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_workspace_route))]
+#[error("Workspace not initialized.")]
 pub struct WorkspaceNotInitialized;
 impl HttpApiError for WorkspaceNotInitialized {
     fn code(&self) -> ErrorCode {
         ErrorCode::WORKSPACE_NOT_INITIALIZED
+    }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        vec![format!(
+            "Call `PUT {}` to initialize it.",
+            uri!(crate::features::init::init_workspace_route)
+        )]
     }
 }
 
@@ -100,16 +106,24 @@ impl CustomErrorCode for InitWorkspaceError {
 }
 impl_into_error!(InitWorkspaceError);
 
-impl CustomErrorCode for WorkspaceControllerError {
-    fn error_code(&self) -> ErrorCode {
+impl HttpApiError for WorkspaceControllerError {
+    fn code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceNotInitialized => ErrorCode::WORKSPACE_NOT_INITIALIZED,
+            Self::WorkspaceNotInitialized => WorkspaceNotInitialized.code(),
             Self::XmppServiceError(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
     }
+    fn message(&self) -> String {
+        format!("WorkspaceControllerError: {self}")
+    }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        match self {
+            Self::WorkspaceNotInitialized => WorkspaceNotInitialized.recovery_suggestions(),
+            _ => vec![],
+        }
+    }
 }
-impl_into_error!(WorkspaceControllerError);
 
 // BOILERPLATE
 

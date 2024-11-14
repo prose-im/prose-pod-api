@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    auth::{auth_service, jwt_service},
     members::user_service,
     notifications::notifier,
     sea_orm,
@@ -166,7 +165,27 @@ impl HttpApiError for HTTPStatus {
 
 impl_into_error!(sea_orm::DbErr, ErrorCode::DATABASE_ERROR);
 
-impl_into_error!(server_ctl::Error, ErrorCode::INTERNAL_SERVER_ERROR);
+impl HttpApiError for server_ctl::Error {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::Unauthorized(_) => ErrorCode::UNAUTHORIZED,
+            Self::Forbidden(_) => ErrorCode::FORBIDDEN,
+            Self::UnexpectedResponse(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    fn message(&self) -> String {
+        std::format!("server_ctl::Error: {self}")
+    }
+
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        match self {
+            Self::UnexpectedResponse(err) => err.debug_info(),
+            _ => None,
+        }
+    }
+}
 
 impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
@@ -181,26 +200,6 @@ impl CustomErrorCode for MutationError {
     }
 }
 impl_into_error!(MutationError);
-
-impl CustomErrorCode for jwt_service::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::Sign(_) | Self::Other(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-            Self::Verify(_) | Self::InvalidClaim(_) => ErrorCode::UNAUTHORIZED,
-        }
-    }
-}
-impl_into_error!(jwt_service::Error);
-
-impl CustomErrorCode for auth_service::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvalidCredentials => ErrorCode::UNAUTHORIZED,
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(auth_service::Error);
 
 impl CustomErrorCode for user_service::Error {
     fn error_code(&self) -> ErrorCode {
@@ -234,9 +233,18 @@ impl CustomErrorCode for CreateServiceAccountError {
 }
 impl_into_error!(CreateServiceAccountError);
 
-impl CustomErrorCode for std::io::Error {
-    fn error_code(&self) -> ErrorCode {
+impl HttpApiError for service::errors::UnexpectedHttpResponse {
+    fn code(&self) -> ErrorCode {
         ErrorCode::INTERNAL_SERVER_ERROR
     }
+
+    fn message(&self) -> String {
+        std::format!("{self}")
+    }
+
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(self)
+            .inspect_err(|err| error!("Could not serialize error `{self}`: {err}"))
+            .ok()
+    }
 }
-impl_into_error!(std::io::Error);

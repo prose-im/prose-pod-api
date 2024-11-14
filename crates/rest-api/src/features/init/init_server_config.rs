@@ -65,20 +65,32 @@ impl ErrorCode {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("XMPP server not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::init::init_server_config_route))]
+#[error("XMPP server not initialized.")]
 pub struct ServerConfigNotInitialized;
 impl HttpApiError for ServerConfigNotInitialized {
     fn code(&self) -> ErrorCode {
         ErrorCode::SERVER_CONFIG_NOT_INITIALIZED
     }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        vec![format!(
+            "Call `PUT {}` to initialize it.",
+            uri!(crate::features::init::init_server_config_route)
+        )]
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Prose Pod address not initialized. Call `PUT {}` to initialize it.", uri!(crate::features::pod_config::set_pod_address_route))]
+#[error("Prose Pod address not initialized.")]
 pub struct PodAddressNotInitialized;
 impl HttpApiError for PodAddressNotInitialized {
     fn code(&self) -> ErrorCode {
         ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+    }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        vec![format!(
+            "Call `PUT {}` to initialize it.",
+            uri!(crate::features::pod_config::set_pod_address_route)
+        )]
     }
 }
 

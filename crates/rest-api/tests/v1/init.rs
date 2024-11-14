@@ -167,12 +167,12 @@ async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: 
     world.result = Some(res.into());
 }
 
-#[then(expr = "the error reason should be {string}")]
+#[then(expr = "the error code should be {string}")]
 async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), serde_json::Error> {
     let res = world.result();
     assert_eq!(res.content_type, Some(ContentType::JSON));
     let body = serde_json::Value::from_str(res.body.as_ref().expect("No body found."))?;
-    assert_eq!(body["reason"].as_str(), Some(reason.as_str()));
+    assert_eq!(body["error"].as_str(), Some(reason.as_str()));
     Ok(())
 }
 
@@ -190,7 +190,11 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "reason": "workspace_not_initialized",
+                "error": "workspace_not_initialized",
+                "message": "WorkspaceControllerError: Workspace not initialized.",
+                "recovery_suggestions": [
+                    "Call `PUT /v1/workspace` to initialize it.",
+                ]
             })
             .to_string()
         )
@@ -206,7 +210,8 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "reason": "workspace_already_initialized",
+                "error": "workspace_already_initialized",
+                "message": "InitWorkspaceError error: Workspace already initialized.",
             })
             .to_string()
         )
@@ -227,7 +232,9 @@ async fn then_error_server_config_not_initialized(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "reason": "server_config_not_initialized",
+                "error": "server_config_not_initialized",
+                "message": "XMPP server not initialized.",
+                "recovery_suggestions": ["Call `PUT /v1/server/config` to initialize it."],
             })
             .to_string()
         )
@@ -243,7 +250,8 @@ async fn then_error_first_account_already_created(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "reason": "first_account_already_created",
+                "error": "first_account_already_created",
+                "message": "InitFirstAccountError error: First account already created.",
             })
             .to_string()
         )
@@ -259,7 +267,8 @@ async fn then_error_server_config_already_initialized(world: &mut TestWorld) {
         res.body,
         Some(
             json!({
-                "reason": "server_config_already_initialized",
+                "error": "server_config_already_initialized",
+                "message": "InitServerConfigError error: Could not init server config: XMPP server already initialized.",
             })
             .to_string()
         )

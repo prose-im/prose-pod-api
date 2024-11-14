@@ -16,6 +16,7 @@ use rocket::{
     serde::json::json,
     Request, Response,
 };
+use serde::Serialize;
 
 pub use self::errors::*;
 
@@ -51,25 +52,49 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Serialize)]
 #[error("{message}")]
 pub struct Error {
+    #[serde(rename = "error")]
     code: &'static str,
+
     message: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    debug_info: Option<serde_json::Value>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    recovery_suggestions: Vec<String>,
+
     /// HTTP status to return for this error.
+    #[serde(skip_serializing)]
     pub http_status: Status,
+
+    #[serde(skip_serializing)]
     http_headers: Vec<(String, String)>,
+
+    #[serde(skip_serializing)]
     log_level: LogLevel,
+
     /// Whether or not the error has already been logged.
     /// This way we can make sure an error is not logged twice.
+    #[serde(skip_serializing)]
     logged: AtomicBool,
 }
 
 impl Error {
-    pub fn new(code: ErrorCode, message: String, http_headers: Vec<(String, String)>) -> Self {
+    pub fn new(
+        code: ErrorCode,
+        message: String,
+        debug_info: Option<serde_json::Value>,
+        recovery_suggestions: Vec<String>,
+        http_headers: Vec<(String, String)>,
+    ) -> Self {
         Self {
             code: code.value,
             message,
+            debug_info,
+            recovery_suggestions,
             http_status: code.http_status,
             http_headers,
             log_level: code.log_level,
@@ -85,15 +110,27 @@ impl Error {
             return;
         }
 
+        let message = match self.recovery_suggestions.len() {
+            0 => self.message.clone(),
+            1 => format!(
+                "{} (recovery suggestion: {})",
+                self.message, self.recovery_suggestions[0],
+            ),
+            _ => format!(
+                "{} (recovery suggestions: {:?})",
+                self.message, self.recovery_suggestions,
+            ),
+        };
+
         // NOTE: `tracing` does not allow passing the log level dynamically
         //   therefore we introduced this custom `LogLevel` type and do a manual mapping.
         match self.log_level {
-            LogLevel::Trace => trace!("{}", self.message),
-            LogLevel::Debug => debug!("{}", self.message),
-            LogLevel::Info => info!("{}", self.message),
-            LogLevel::Warn => warn!("{}", self.message),
-            LogLevel::Error => error!("{}", self.message),
-        }
+            LogLevel::Trace => trace!("{message}"),
+            LogLevel::Debug => debug!("{message}"),
+            LogLevel::Info => info!("{message}"),
+            LogLevel::Warn => warn!("{message}"),
+            LogLevel::Error => error!("{message}"),
+        };
 
         self.logged.store(true, Ordering::Relaxed);
     }
@@ -105,10 +142,21 @@ impl Error {
     }
 
     fn as_json(&self) -> String {
-        json!({
-            "reason": self.code,
-        })
-        .to_string()
+        if cfg!(debug_assertions) {
+            serde_json::to_string(self).unwrap_or_else(|_| {
+                json!({
+                    "error": self.code,
+                    "message": self.message,
+                    "debug_info": self.debug_info,
+                })
+                .to_string()
+            })
+        } else {
+            json!({
+                "error": self.code,
+            })
+            .to_string()
+        }
     }
 
     /// Construct the HTTP response.
@@ -139,6 +187,12 @@ pub trait HttpApiError: std::fmt::Display {
     fn message(&self) -> String {
         format!("{self}")
     }
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        None
+    }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        vec![]
+    }
     fn http_headers(&self) -> Vec<(String, String)> {
         vec![]
     }
@@ -146,7 +200,13 @@ pub trait HttpApiError: std::fmt::Display {
 
 impl<E: HttpApiError> From<E> for Error {
     fn from(error: E) -> Self {
-        Self::new(error.code(), error.message(), error.http_headers())
+        Self::new(
+            error.code(),
+            error.message(),
+            error.debug_info(),
+            error.recovery_suggestions(),
+            error.http_headers(),
+        )
     }
 }
 
