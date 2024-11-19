@@ -8,3 +8,4 @@ log_level = "debug"
 [default.databases.data]
 url = "sqlite::memory:"
 sqlx_logging = false
+

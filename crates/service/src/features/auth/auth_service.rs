@@ -5,16 +5,10 @@
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
-use secrecy::{ExposeSecret as _, SecretString};
+use secrecy::SecretString;
+use serde::{Deserialize, Serialize};
 
-use crate::{
-    models::BareJid,
-    prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
-};
-
-use super::{JWTError, JWTService, JWT};
-
-pub const JWT_PROSODY_TOKEN_KEY: &'static str = "prosody_token";
+use crate::{models::BareJid, prosody::ProsodyOAuth2Error};
 
 #[derive(Debug, Clone)]
 pub struct AuthService {
@@ -35,56 +29,30 @@ impl Deref for AuthService {
     }
 }
 
+/// An OAuth 2.0 token (provided by Prosody).
+#[derive(Debug)]
+pub struct AuthToken(pub SecretString);
+
+impl Deref for AuthToken {
+    type Target = SecretString;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(debug_assertions, derive(Serialize, Deserialize))]
+pub struct UserInfo {
+    pub jid: BareJid,
+}
+
 #[async_trait::async_trait]
 pub trait AuthServiceImpl: Debug + Sync + Send {
     /// Generates a token from a username and password.
-    async fn log_in(
-        &self,
-        jid: &BareJid,
-        password: &SecretString,
-    ) -> Result<SecretString, AuthError>;
-    fn verify(&self, jwt: &SecretString) -> Result<JWT, JWTError>;
-}
-
-#[derive(Debug, Clone)]
-pub struct LiveAuthService {
-    jwt_service: JWTService,
-    prosody_oauth2: ProsodyOAuth2,
-}
-
-impl LiveAuthService {
-    pub fn new(jwt_service: JWTService, prosody_oauth2: ProsodyOAuth2) -> Self {
-        Self {
-            jwt_service,
-            prosody_oauth2,
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl AuthServiceImpl for LiveAuthService {
-    async fn log_in(
-        &self,
-        jid: &BareJid,
-        password: &SecretString,
-    ) -> Result<SecretString, AuthError> {
-        let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password).await? else {
-            Err(AuthError::InvalidCredentials)?
-        };
-
-        let token = self.jwt_service.generate_jwt(jid, |claims| {
-            // TODO: Do not store this in the JWT (potential security issue?)
-            claims.insert(
-                JWT_PROSODY_TOKEN_KEY.into(),
-                prosody_token.expose_secret().to_owned().into(),
-            );
-        })?;
-
-        Ok(token)
-    }
-    fn verify(&self, jwt: &SecretString) -> Result<JWT, JWTError> {
-        JWT::try_from(jwt, &self.jwt_service)
-    }
+    async fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<AuthToken, AuthError>;
+    async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError>;
+    async fn register_oauth2_client(&self) -> Result<(), AuthError>;
 }
 
 pub type Error = AuthError;
@@ -95,8 +63,6 @@ pub enum AuthError {
     ProsodyOAuth2Err(#[from] ProsodyOAuth2Error),
     #[error("Invalid credentials")]
     InvalidCredentials,
-    #[error("`{}` error: {0}", stringify!(JWTService))]
-    JWTErr(#[from] JWTError),
     #[cfg(debug_assertions)]
     #[error("{0}")]
     Other(String),

@@ -225,9 +225,7 @@ impl CustomErrorCode for CreateServiceAccountError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotCreateXmppAccount(err) => err.code(),
-            Self::CouldNotLogIn(_) | Self::InvalidJwt(_) | Self::MissingProsodyToken(_) => {
-                ErrorCode::INTERNAL_SERVER_ERROR
-            }
+            Self::CouldNotLogIn(_) => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

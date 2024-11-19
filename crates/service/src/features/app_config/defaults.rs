@@ -7,6 +7,9 @@
 
 use std::{path::PathBuf, str::FromStr as _};
 
+use rand::RngCore as _;
+use secrecy::SecretString;
+
 use crate::{
     invitations::InvitationChannel,
     models::{DateLike, Duration, JidNode, PossiblyInfinite},
@@ -44,6 +47,21 @@ pub fn server_http_port() -> u16 {
 
 pub fn server_prosody_config_file_path() -> PathBuf {
     PathBuf::from("/etc/prosody/prosody.cfg.lua")
+}
+
+pub fn server_oauth2_registration_key() -> SecretString {
+    let mut key = [0u8; 256];
+    rand::thread_rng().fill_bytes(&mut key);
+
+    // fn bytes_to_hex(bytes: &[u8]) -> String {
+    //     bytes.iter().map(|byte| format!("{:02x}", byte)).collect()
+    // }
+    fn bytes_to_base64(bytes: &[u8]) -> String {
+        use base64::Engine as _;
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    }
+
+    SecretString::new(bytes_to_base64(&key))
 }
 
 /// Enable message archiving by default.

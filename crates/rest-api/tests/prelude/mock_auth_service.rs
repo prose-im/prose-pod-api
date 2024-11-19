@@ -5,7 +5,7 @@
 
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
-    auth::{auth_service, jwt_service, AuthServiceImpl, JWTService, JWT, JWT_PROSODY_TOKEN_KEY},
+    auth::{auth_service, AuthServiceImpl, AuthToken, UserInfo},
     models::BareJid,
 };
 
@@ -15,7 +15,6 @@ use crate::mock_server_ctl::MockServerCtlState;
 
 #[derive(Debug, Clone)]
 pub struct MockAuthService {
-    pub(crate) jwt_service: JWTService,
     pub(crate) state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
 }
@@ -27,12 +26,10 @@ pub struct MockAuthServiceState {
 
 impl MockAuthService {
     pub fn new(
-        jwt_service: JWTService,
         state: Arc<RwLock<MockAuthServiceState>>,
         mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
     ) -> Self {
         Self {
-            jwt_service,
             state,
             mock_server_ctl_state,
         }
@@ -46,12 +43,11 @@ impl MockAuthService {
         }
     }
 
-    pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<SecretString, auth_service::Error> {
-        let token = self.jwt_service.generate_jwt(jid, |claims| {
-            claims.insert(JWT_PROSODY_TOKEN_KEY.into(), "dummy-prosody-token".into());
-        })?;
+    pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<AuthToken, auth_service::Error> {
+        let token =
+            SecretString::new(serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap());
 
-        Ok(token)
+        Ok(AuthToken(token))
     }
 }
 
@@ -67,7 +63,7 @@ impl AuthServiceImpl for MockAuthService {
         &self,
         jid: &BareJid,
         password: &SecretString,
-    ) -> Result<SecretString, auth_service::Error> {
+    ) -> Result<AuthToken, auth_service::Error> {
         self.check_online()?;
 
         let state = self.mock_server_ctl_state.read().unwrap();
@@ -83,7 +79,15 @@ impl AuthServiceImpl for MockAuthService {
 
         self.log_in_unchecked(jid)
     }
-    fn verify(&self, jwt: &SecretString) -> Result<JWT, jwt_service::Error> {
-        JWT::try_from(jwt, &self.jwt_service)
+
+    async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, auth_service::Error> {
+        serde_json::from_str(&token.expose_secret()).map_err(|err| {
+            auth_service::Error::Other(format!("Could not parse data from test token: {err}"))
+        })
+    }
+
+    async fn register_oauth2_client(&self) -> Result<(), auth_service::Error> {
+        // NOTE: Nothing to do in tests
+        Ok(())
     }
 }

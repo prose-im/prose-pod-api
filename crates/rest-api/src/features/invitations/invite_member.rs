@@ -9,9 +9,10 @@ use rocket::{post, response::status, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
+    auth::UserInfo,
     invitations::{InvitationContact, InvitationController, InviteMemberError, InviteMemberForm},
     members::{MemberRepository, MemberRole},
-    models::{BareJid, JidNode},
+    models::JidNode,
     notifications::Notifier,
     server_config::ServerConfig,
     AppConfig,
@@ -40,7 +41,7 @@ pub async fn invite_member_route<'r>(
     conn: Connection<'r, Db>,
     app_config: &State<AppConfig>,
     server_config: LazyGuard<ServerConfig>,
-    jid: LazyGuard<BareJid>,
+    user_info: LazyGuard<UserInfo>,
     notifier: LazyGuard<Notifier<'r>>,
     invitation_controller: LazyGuard<InvitationController<'r>>,
     req: Json<InviteMemberRequest>,
@@ -52,7 +53,7 @@ pub async fn invite_member_route<'r>(
     let invitation_controller = invitation_controller.inner?;
     let form = req.into_inner();
 
-    let jid = jid.inner?;
+    let jid = user_info.inner?.jid;
     // TODO: Use a request guard instead of checking in the route body if the user can invite members.
     if !MemberRepository::is_admin(db, &jid).await? {
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());

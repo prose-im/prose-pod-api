@@ -6,6 +6,7 @@
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
+use serde_json::json;
 use tracing::debug;
 
 use crate::{
@@ -29,7 +30,7 @@ impl ProsodyOAuth2 {
         }
     }
 
-    async fn call(
+    pub async fn call(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
         accept: impl FnOnce(&ResponseData) -> bool,
@@ -62,7 +63,7 @@ impl ProsodyOAuth2 {
         }
     }
 
-    fn url(&self, path: &str) -> String {
+    pub fn url(&self, path: &str) -> String {
         format!("{}/{path}", self.base_url)
     }
 }
@@ -88,7 +89,13 @@ impl ProsodyOAuth2 {
                                 .append_pair("grant_type", "password")
                                 .append_pair("username", jid.clone().as_str())
                                 .append_pair("password", password.expose_secret())
-                                .append_pair("scope", "xmpp")
+                                // DOC: Space-separated list of scopes the client promises to restrict itself to.
+                                //   Supported scopes: [
+                                //     "prosody:operator", "prosody:admin", "prosody:member", "prosody:registered", "prosody:guest",
+                                //     "xmpp", "openid"
+                                //   ]
+                                // NOTE: "openid" scope required for `/userinfo` route.
+                                .append_pair("scope", "xmpp openid")
                                 .finish(),
                         )
                 },
@@ -101,11 +108,32 @@ impl ProsodyOAuth2 {
             return Ok(None);
         }
 
-        let res: ProsodyOAuth2TokenResponse = serde_json::from_str(&response.text())?;
+        let res: TokenResponse = serde_json::from_str(&response.text())?;
 
         debug!("Logged in as {jid}");
 
         Ok(Some(res.access_token))
+    }
+
+    pub async fn register(&self) -> Result<(), Error> {
+        let response = self
+            .call(
+                |client| {
+                    client.post(self.url("register")).json(&json!({
+                        "client_name": "Prose Pod API",
+                        "client_uri": "https://prose-pod-api:8000",
+                        "redirect_uris": [
+                            "https://prose-pod-api:8000/redirect"
+                        ],
+                    }))
+                },
+                |res| res.status.is_success(),
+            )
+            .await?;
+
+        let _: RegisterResponse = serde_json::from_str(&response.text())?;
+
+        Ok(())
     }
 }
 
@@ -121,7 +149,7 @@ impl ProsodyOAuth2 {
 /// }
 /// ```
 #[derive(Debug, Deserialize)]
-struct ProsodyOAuth2TokenResponse {
+struct TokenResponse {
     // scope: String,
     // expires_in: u16,
     // token_type: String,
@@ -129,6 +157,35 @@ struct ProsodyOAuth2TokenResponse {
     access_token: SecretString,
     // grant_jid: String,
 }
+
+/// Example value:
+///
+/// ```json
+/// {
+///     "application_type": "web",
+///     "client_secret": "3e841d9de79645a1c4c3f82f5d59485531b7e03119d8622acc31dc243baff2a5",
+///     "redirect_uris": [
+///         "https://prose-pod-api:8000/redirect"
+///     ],
+///     "iat": 1731265591,
+///     "nonce": "Rxd4I7sqjsFq",
+///     "response_types": [
+///         "code"
+///     ],
+///     "exp": 1731269191,
+///     "client_uri": "https://prose-pod-api:8000",
+///     "client_name": "Prose Pod API",
+///     "client_id_issued_at": 1731265591,
+///     "client_id":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBsaWNhdGlvbl90eXBlIjoid2ViIiwiaWF0IjoxNzMxMjY1NTkxLCJjbGllbnRfbmFtZSI6IlByb3NlIFBvZCBBUEkiLCJyZXwb25zZV90eXBlcyI6WyJjb2RlIl0sImNsaWVudF91cmkiOiJodHRwczovL3Byb3NlLXBvZC1hcGk6ODA4MCIsImdyYW50X3R5cGVzIjpbImF1dGhvcml6YXRpb25fY29kZSJdLCJyZWRcmVjdF91cmlzIjpbImh0dHBzOi8vcHJvc2UtcG9kLWFwaTo4MDgwL3JlZGlyZWN0Il0sIm5vbmNlIjoiUnhkNEk3c3Fqc0ZxIiwidG9rZW5fZW5kcG9pbnRfYXV0aF9tZXRob2QiOiJjGllbnRfc2VjcmV0X2Jhc2ljIiwiZXhwIjoxNzMxMjY5MTkxfQ.-4b6hnqllAzH9TjzaRhQWbJ09cGuVs-8hXB05yLx1Qo",
+///     "grant_types": [
+///         "authorization_code"
+///     ],
+///     "token_endpoint_auth_method": "client_secret_basic",
+///     "client_secret_expires_at": 0
+/// }
+/// ```
+#[derive(Debug, Deserialize)]
+struct RegisterResponse {}
 
 type Error = ProsodyOAuth2Error;
 

@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    auth::JWT,
-    xmpp::{BareJid, XmppService, XmppServiceContext, XmppServiceInner},
+    auth::{auth_service::AuthToken, UserInfo},
+    xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
 };
 
 use super::prelude::*;
@@ -17,21 +17,12 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
 
-        let bare_jid = try_outcome!(BareJid::from_request(req).await);
-
-        let jwt = try_outcome!(JWT::from_request(req).await);
-        let prosody_token = match jwt.prosody_token() {
-            Ok(prosody_token) => prosody_token,
-            Err(err) => {
-                return Outcome::Error(
-                    Error::from(error::Unauthorized(format!("Invalid JWT: {err}"))).into(),
-                );
-            }
-        };
+        let bare_jid = try_outcome!(UserInfo::from_request(req).await).jid;
+        let token = try_outcome!(AuthToken::from_request(req).await);
 
         let ctx = XmppServiceContext {
             bare_jid,
-            prosody_token,
+            prosody_token: token.clone(),
         };
         Outcome::Success(XmppService::new(xmpp_service_inner, ctx))
     }

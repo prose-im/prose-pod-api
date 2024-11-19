@@ -3,21 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fs::File, io::Write as _, path::PathBuf};
-
 use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
-use secrecy::{ExposeSecret as _, SecretString};
+use secrecy::ExposeSecret as _;
 use serde::Deserialize;
 use serde_json::json;
 use tracing::trace;
 
-use super::{prosody_config_from_db, AsProsody as _};
 use crate::{
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
-    members::MemberRole,
     secrets::SecretsStore,
-    server_config::ServerConfig,
-    xmpp::{server_ctl, BareJid, NonStandardXmppClient, ServerCtlImpl},
+    xmpp::{server_ctl, BareJid, NonStandardXmppClient},
     AppConfig,
 };
 
@@ -28,7 +23,6 @@ const TEAM_GROUP_NAME: &'static str = "Team";
 #[derive(Debug, Clone)]
 pub struct ProsodyAdminRest {
     http_client: HttpClient,
-    config_file_path: PathBuf,
     admin_rest_api_url: String,
     admin_rest_api_on_main_host_url: String,
     api_jid: BareJid,
@@ -43,7 +37,6 @@ impl ProsodyAdminRest {
     ) -> Self {
         Self {
             http_client,
-            config_file_path: config.server.prosody_config_file_path.to_owned(),
             admin_rest_api_url: config.server.admin_rest_api_url(),
             admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
             api_jid: config.api_jid(),
@@ -51,7 +44,7 @@ impl ProsodyAdminRest {
         }
     }
 
-    async fn call(
+    pub async fn call(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
     ) -> Result<ResponseData, server_ctl::Error> {
@@ -106,14 +99,14 @@ impl ProsodyAdminRest {
         }
     }
 
-    fn url(&self, path: &str) -> String {
+    pub fn url(&self, path: &str) -> String {
         format!("{}/{path}", self.admin_rest_api_url)
     }
-    fn url_on_main_host(&self, path: &str) -> String {
+    pub fn url_on_main_host(&self, path: &str) -> String {
         format!("{}/{path}", self.admin_rest_api_on_main_host_url)
     }
 
-    async fn create_team_group(&self) -> Result<(), server_ctl::Error> {
+    pub async fn create_team_group(&self) -> Result<(), server_ctl::Error> {
         self.call(|client| {
             client
                 .put(format!(
@@ -126,7 +119,7 @@ impl ProsodyAdminRest {
         Ok(())
     }
 
-    async fn update_team_members(
+    pub async fn update_team_members(
         &self,
         method: Method,
         jid: &BareJid,
@@ -174,106 +167,6 @@ impl ProsodyAdminRest {
 
 enum AddMemberFailed {
     GroupNotFound,
-}
-
-#[async_trait::async_trait]
-impl ServerCtlImpl for ProsodyAdminRest {
-    async fn save_config(
-        &self,
-        server_config: &ServerConfig,
-        app_config: &AppConfig,
-    ) -> Result<(), server_ctl::Error> {
-        let mut file = File::create(&self.config_file_path).map_err(|e| {
-            server_ctl::Error::CannotOpenConfigFile(self.config_file_path.clone(), e)
-        })?;
-        let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
-        file.write_all(prosody_config.to_string().as_bytes())
-            .map_err(|e| {
-                server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e)
-            })?;
-
-        Ok(())
-    }
-    async fn reload(&self) -> Result<(), server_ctl::Error> {
-        self.call(|client| client.put(self.url("reload")))
-            .await
-            .map(|_| ())
-    }
-
-    async fn add_user(
-        &self,
-        jid: &BareJid,
-        password: &SecretString,
-    ) -> Result<(), server_ctl::Error> {
-        self.call(|client| {
-            client
-                .post(format!(
-                    "{}/{}",
-                    self.url("user"),
-                    urlencoding::encode(&jid.to_string())
-                ))
-                .body(format!(r#"{{"password":"{}"}}"#, password.expose_secret()))
-        })
-        .await?;
-
-        Ok(())
-    }
-    async fn remove_user(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
-        self.call(|client| {
-            client.delete(format!(
-                "{}/{}",
-                self.url("user"),
-                urlencoding::encode(&jid.to_string())
-            ))
-        })
-        .await?;
-
-        Ok(())
-    }
-
-    async fn set_user_role(
-        &self,
-        jid: &BareJid,
-        role: &MemberRole,
-    ) -> Result<(), server_ctl::Error> {
-        self.call(|client| {
-            client
-                .patch(format!(
-                    "{}/{}/role",
-                    self.url("user"),
-                    urlencoding::encode(&jid.to_string()),
-                ))
-                .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
-        })
-        .await
-        .map(|_| ())
-    }
-    async fn set_user_password(
-        &self,
-        jid: &BareJid,
-        password: &SecretString,
-    ) -> Result<(), server_ctl::Error> {
-        self.call(|client| {
-            client
-                .patch(format!(
-                    "{}/{}/password",
-                    self.url("user"),
-                    urlencoding::encode(&jid.to_string())
-                ))
-                .body(format!(r#"{{"password":"{}"}}"#, password.expose_secret()))
-        })
-        .await
-        .map(|_| ())
-    }
-
-    async fn add_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
-        self.update_team_members(Method::PUT, jid).await?;
-        Ok(())
-    }
-    async fn remove_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
-        self.update_team_members(Method::DELETE, jid).await?;
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]

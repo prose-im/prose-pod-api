@@ -12,7 +12,7 @@ use secrecy::SecretString;
 use tracing::{debug, trace};
 
 use crate::{
-    auth::{auth_service, AuthService, InvalidJwtClaimError, JWTError},
+    auth::{auth_service, AuthService},
     models::{DateLike, Duration, JidDomain, PossiblyInfinite},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     secrets::{SecretsStore, ServiceAccountSecrets},
@@ -236,16 +236,12 @@ impl<'r> ServerManager<'r> {
         server_ctl.add_user(&jid, &password).await?;
 
         // Log in as the service account (to get a JWT with access tokens)
-        let jwt = auth_service.log_in(&jid, &password).await?;
-        let jwt = auth_service.verify(&jwt)?;
-
-        // Read the access tokens from the JWT
-        let prosody_token = jwt
-            .prosody_token()
-            .map_err(CreateServiceAccountError::MissingProsodyToken)?;
+        let auth_token = auth_service.log_in(&jid, &password).await?;
 
         // Store the secrets
-        let secrets = ServiceAccountSecrets { prosody_token };
+        let secrets = ServiceAccountSecrets {
+            prosody_token: auth_token.clone(),
+        };
         secrets_store.set_service_account_secrets(jid, secrets);
 
         Ok(())
@@ -258,10 +254,6 @@ pub enum CreateServiceAccountError {
     CouldNotCreateXmppAccount(#[from] server_ctl::Error),
     #[error("Could not log in: {0}")]
     CouldNotLogIn(#[from] auth_service::Error),
-    #[error("The just-created JWT is invalid: {0}")]
-    InvalidJwt(#[from] JWTError),
-    #[error("The just-created JWT doesn't contain a Prosody token: {0}")]
-    MissingProsodyToken(InvalidJwtClaimError),
 }
 
 macro_rules! set_bool {
