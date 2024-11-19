@@ -3,8 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, ops::Deref};
+use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
+use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use rocket::{
     form::Strict,
     get,
@@ -16,6 +17,7 @@ use service::{
     members::{member_controller, MemberController},
     models::BareJid,
 };
+use tokio::task::JoinHandle;
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
@@ -40,10 +42,21 @@ pub async fn enrich_members_route<'r>(
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner();
 
-    let mut res = HashMap::with_capacity(jids.len());
+    let mut tasks: FuturesUnordered<JoinHandle<EnrichedMember>> = FuturesUnordered::new();
     for jid in jids.iter() {
-        let enriched_member = member_controller.enrich_member(jid).await;
-        res.insert(jid.deref().to_owned(), enriched_member.into());
+        let jid = jid.clone();
+        let member_controller = member_controller.clone();
+        tasks.push(tokio::spawn(async move {
+            member_controller
+                .enrich_member(&jid)
+                .map(EnrichedMember::from)
+                .await
+        }));
+    }
+
+    let mut res = HashMap::with_capacity(jids.len());
+    while let Some(Ok(member)) = tasks.next().await {
+        res.insert(member.jid.clone(), member.into());
     }
     Ok(res.into())
 }
@@ -53,7 +66,7 @@ pub fn enrich_members_stream_route<'r>(
     member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
 ) -> Result<EventStream![Event + 'r], Error> {
-    let member_controller = member_controller.inner?;
+    let member_controller = Arc::new(member_controller.inner?);
     let jids = jids.into_inner();
 
     Ok(EventStream! {
@@ -62,9 +75,18 @@ pub fn enrich_members_stream_route<'r>(
             event
         }
 
+        let mut tasks: FuturesUnordered<JoinHandle<EnrichedMember>> = FuturesUnordered::new();
         for jid in jids.iter() {
-            let res: EnrichedMember = member_controller.enrich_member(jid).await.into();
-            yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
+            let jid = jid.clone();
+            let member_controller = member_controller.clone();
+            tasks.push(tokio::spawn(async move {
+                member_controller.enrich_member(&jid).map(EnrichedMember::from).await
+            }));
+        }
+
+        while let Some(Ok(member)) = tasks.next().await {
+            let jid = member.jid.clone();
+            yield logged(Event::json(&member).id(jid.to_string()).event("enriched-member"));
         }
 
         yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
