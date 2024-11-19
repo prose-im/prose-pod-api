@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr as _;
+use std::{str::FromStr as _, sync::Arc};
 
 use cucumber::{given, then, when};
 use prose_pod_api::error::Error;
@@ -54,9 +54,9 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
     world
         .init_controller()
         .init_workspace(
-            &world.app_config,
-            &world.secrets_store,
-            &world.xmpp_service,
+            Arc::new(world.app_config.clone()),
+            Arc::new(world.secrets_store.clone()),
+            Arc::new(world.xmpp_service.clone()),
             &world.server_config().await?,
             form,
         )

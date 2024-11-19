@@ -16,7 +16,7 @@ pub struct GetWorkspaceNameResponse {
 
 #[get("/v1/workspace/name")]
 pub async fn get_workspace_name_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
 ) -> Result<Json<GetWorkspaceNameResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;
 
@@ -35,7 +35,7 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub async fn set_workspace_name_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> Result<Json<SetWorkspaceNameResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;

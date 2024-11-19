@@ -34,8 +34,8 @@ pub struct AcceptWorkspaceInvitationRequest {
 /// Accept a workspace invitation.
 #[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
 pub async fn invitation_accept_route<'r>(
-    invitation_controller: LazyGuard<InvitationController<'r>>,
-    invitation_service: LazyGuard<UnauthenticatedInvitationService<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<UnauthenticatedInvitationService>,
     token: Uuid,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
@@ -54,7 +54,7 @@ pub async fn invitation_accept_route<'r>(
 /// Reject a workspace invitation.
 #[put("/v1/invitations/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
     token: Uuid,
 ) -> Result<NoContent, Error> {
     invitation_controller
@@ -69,10 +69,10 @@ pub async fn invitation_reject_route<'r>(
 #[post("/v1/invitations/<invitation_id>/resend")]
 pub async fn invitation_resend_route<'r>(
     conn: Connection<'r, Db>,
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
     app_config: &State<AppConfig>,
     jid: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier<'r>>,
+    notifier: LazyGuard<Notifier>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
@@ -96,7 +96,7 @@ pub async fn invitation_resend_route<'r>(
 #[delete("/v1/invitations/<invitation_id>")]
 pub async fn invitation_cancel_route<'r>(
     conn: Connection<'r, Db>,
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
     user_info: LazyGuard<UserInfo>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {

@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use jid::BareJid;
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
@@ -24,25 +24,26 @@ use crate::{
 
 use super::{server_ctl, ServerCtl, ServerCtlError};
 
-pub struct ServerManager<'r> {
-    db: &'r DatabaseConnection,
-    app_config: &'r AppConfig,
-    server_ctl: &'r ServerCtl,
-    server_config: RwLock<server_config::Model>,
+#[derive(Clone)]
+pub struct ServerManager {
+    db: Arc<DatabaseConnection>,
+    app_config: Arc<AppConfig>,
+    server_ctl: Arc<ServerCtl>,
+    server_config: Arc<RwLock<server_config::Model>>,
 }
 
-impl<'r> ServerManager<'r> {
+impl ServerManager {
     pub fn new(
-        db: &'r DatabaseConnection,
-        app_config: &'r AppConfig,
-        server_ctl: &'r ServerCtl,
+        db: Arc<DatabaseConnection>,
+        app_config: Arc<AppConfig>,
+        server_ctl: Arc<ServerCtl>,
         server_config: server_config::Model,
     ) -> Self {
         Self {
             db,
             app_config,
             server_ctl,
-            server_config: RwLock::new(server_config),
+            server_config: Arc::new(RwLock::new(server_config)),
         }
     }
 
@@ -60,7 +61,7 @@ impl<'r> ServerManager<'r> {
     }
 }
 
-impl<'r> ServerManager<'r> {
+impl ServerManager {
     async fn update<U>(&self, update: U) -> Result<ServerConfig, Error>
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
@@ -70,7 +71,7 @@ impl<'r> ServerManager<'r> {
         let mut active: server_config::ActiveModel = old_server_config.clone().into_active_model();
         update(&mut active);
         trace!("Updating config in database…");
-        let new_server_config = active.update(self.db).await?;
+        let new_server_config = active.update(self.db.as_ref()).await?;
         *self.server_config_mut() = new_server_config.clone();
 
         if new_server_config != old_server_config {
@@ -90,14 +91,14 @@ impl<'r> ServerManager<'r> {
 
     /// Reload the XMPP server using the server configuration passed as an argument.
     async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
-        let server_ctl = self.server_ctl;
+        let server_ctl = self.server_ctl.as_ref();
 
         // Save new server config
         trace!("Saving server config…");
         server_ctl
             .save_config(
-                &server_config.with_default_values_from(self.app_config),
-                self.app_config,
+                &server_config.with_default_values_from(&self.app_config),
+                &self.app_config,
             )
             .await?;
         // Reload server config
@@ -120,7 +121,7 @@ impl<'r> ServerManager<'r> {
     }
 }
 
-impl<'r> ServerManager<'r> {
+impl ServerManager {
     pub async fn init_server_config(
         db: &DatabaseConnection,
         server_ctl: &ServerCtl,
@@ -200,7 +201,7 @@ impl<'r> ServerManager<'r> {
     }
 }
 
-impl<'r> ServerManager<'r> {
+impl ServerManager {
     pub async fn create_service_accounts(
         domain: &JidDomain,
         server_ctl: &ServerCtl,
@@ -287,7 +288,7 @@ macro_rules! reset {
     };
 }
 
-impl<'r> ServerManager<'r> {
+impl ServerManager {
     set_bool!(set_message_archive_enabled, message_archive_enabled);
 
     set!(

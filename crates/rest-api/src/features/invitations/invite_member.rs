@@ -42,10 +42,10 @@ pub async fn invite_member_route<'r>(
     app_config: &State<AppConfig>,
     server_config: LazyGuard<ServerConfig>,
     user_info: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier<'r>>,
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    notifier: LazyGuard<Notifier>,
+    invitation_controller: LazyGuard<InvitationController>,
     req: Json<InviteMemberRequest>,
-    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService<'r>>,
+    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService>,
 ) -> Created<WorkspaceInvitation> {
     let db = conn.into_inner();
     let server_config = server_config.inner?;

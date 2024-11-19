@@ -34,7 +34,7 @@ pub struct JIDs {
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub async fn enrich_members_route<'r>(
-    member_controller: LazyGuard<MemberController<'r>>,
+    member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_controller = member_controller.inner?;
@@ -50,7 +50,7 @@ pub async fn enrich_members_route<'r>(
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
 pub fn enrich_members_stream_route<'r>(
-    member_controller: LazyGuard<MemberController<'r>>,
+    member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = member_controller.inner?;

@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr as _};
+use std::{path::PathBuf, str::FromStr as _, sync::Arc};
 
 use secrecy::ExposeSecret as _;
 
@@ -18,17 +18,17 @@ use crate::notifications::{
     NotificationRepository,
 };
 
-pub struct Notifier<'r> {
-    db: &'r DatabaseConnection,
-    notifier: &'r dependencies::Notifier,
-    branding: &'r ConfigBranding,
+pub struct Notifier {
+    db: Arc<DatabaseConnection>,
+    notifier: Arc<dependencies::Notifier>,
+    branding: Arc<ConfigBranding>,
 }
 
-impl<'r> Notifier<'r> {
+impl Notifier {
     pub fn new(
-        db: &'r DatabaseConnection,
-        notifier: &'r dependencies::Notifier,
-        branding: &'r ConfigBranding,
+        db: Arc<DatabaseConnection>,
+        notifier: Arc<dependencies::Notifier>,
+        branding: Arc<ConfigBranding>,
     ) -> Self {
         Self {
             db,
@@ -40,7 +40,7 @@ impl<'r> Notifier<'r> {
     async fn send(&self, notification: &Notification) -> Result<(), Error> {
         // Store in DB
         NotificationRepository::create(
-            self.db,
+            self.db.as_ref(),
             NotificationCreateForm {
                 content: notification,
                 created_at: None,
@@ -50,7 +50,7 @@ impl<'r> Notifier<'r> {
 
         // Try sending
         self.notifier
-            .dispatch(self.branding, notification)
+            .dispatch(&self.branding, notification)
             .map_err(|e| Error::CouldNotDispatch(e))?;
 
         // Store status if undelivered
