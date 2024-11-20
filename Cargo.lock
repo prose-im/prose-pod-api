@@ -3892,6 +3892,7 @@ dependencies = [
  "lettre",
  "linked_hash_set",
  "migration",
+ "mime",
  "minidom",
  "parking_lot",
  "prose-xmpp",

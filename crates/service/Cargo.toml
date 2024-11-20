@@ -22,6 +22,7 @@ iso8601-duration = { workspace = true }
 jid = { workspace = true }
 lazy_static = { workspace = true }
 lettre = { workspace = true }
+mime = { workspace = true }
 minidom = { workspace = true }
 parking_lot = { workspace = true }
 prose-xmpp = { workspace = true }
