@@ -7,7 +7,7 @@ use reqwest::{header::HeaderMap, Request, Response, StatusCode, Url};
 use serde::{de::DeserializeOwned, Serialize, Serializer};
 
 #[derive(Debug, thiserror::Error, Serialize)]
-#[error("{message}")]
+#[error("{message} (response: {response:#?})")]
 pub struct UnexpectedHttpResponse {
     pub message: String,
     pub request: Option<RequestData>,
