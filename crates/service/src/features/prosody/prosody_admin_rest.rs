@@ -173,17 +173,33 @@ enum AddMemberFailed {
 impl NonStandardXmppClient for ProsodyAdminRest {
     async fn is_connected(&self, jid: &BareJid) -> Result<bool, anyhow::Error> {
         let response = self
-            .call(|client| {
-                client.get(format!(
-                    "{}/{}/connected",
-                    self.url("user"),
-                    urlencoding::encode(&jid.to_string()),
-                ))
-            })
+            .call_(
+                |client| {
+                    client.get(format!(
+                        "{}/{}/connected",
+                        self.url("user"),
+                        urlencoding::encode(&jid.to_string()),
+                    ))
+                },
+                |response| {
+                    // Accept the response if it's a 404, as the API returns a 404
+                    // when the user has no session (<=> not connected).
+                    if response.status.is_success() || response.status == StatusCode::NOT_FOUND {
+                        Ok(response)
+                    } else {
+                        Err(response)
+                    }
+                },
+            )
             .await?;
-        let res: ConnectedResponse = response.deserialize()?;
-        Ok(res.connected)
+        let res: ProsodyAdminRestApiResponse<ConnectedResponse> = response.deserialize()?;
+        Ok(res.result.connected)
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ProsodyAdminRestApiResponse<T> {
+    result: T,
 }
 
 #[derive(Debug, Deserialize)]
