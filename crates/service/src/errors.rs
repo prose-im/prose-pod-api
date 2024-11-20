@@ -119,7 +119,11 @@ impl UnexpectedHttpResponse {
     pub async fn new(
         request: Option<RequestData>,
         response: ResponseData,
-        error_description: impl FnOnce(Option<serde_json::Value>, Option<String>) -> String,
+        error_description: impl FnOnce(
+            Option<Mime>,
+            Option<serde_json::Value>,
+            Option<String>,
+        ) -> String,
     ) -> Self {
         let response_text: Option<String> = match response.body.as_ref() {
             Ok(json) => serde_json::to_string(&json).ok(),
@@ -128,7 +132,11 @@ impl UnexpectedHttpResponse {
         let response_json: Option<serde_json::Value> = response.body.as_ref().ok().cloned();
 
         Self {
-            message: error_description(response_json.clone(), response_text.clone()),
+            message: error_description(
+                response.content_type.clone(),
+                response_json.clone(),
+                response_text.clone(),
+            ),
             request,
             response,
         }
