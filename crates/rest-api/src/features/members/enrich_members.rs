@@ -17,7 +17,12 @@ use service::{
     members::{member_controller, MemberController},
     models::BareJid,
 };
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::{mpsc, Notify},
+    task::JoinHandle,
+    time::{sleep, Duration},
+};
+use tracing::{debug, error};
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
@@ -35,27 +40,59 @@ pub struct JIDs {
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub async fn enrich_members_route<'r>(
+pub async fn enrich_members_route(
     member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner();
 
-    let mut tasks: FuturesUnordered<JoinHandle<EnrichedMember>> = FuturesUnordered::new();
+    let (tx, mut rx) = mpsc::channel::<EnrichedMember>(jids.len());
+    let notify = Arc::new(Notify::new());
+    let tasks: FuturesUnordered<JoinHandle<()>> = FuturesUnordered::new();
     for jid in jids.iter() {
         let jid = jid.clone();
         let member_controller = member_controller.clone();
+        let tx = tx.clone();
+        let notify = notify.clone();
         tasks.push(tokio::spawn(async move {
-            member_controller
+            let member = member_controller
                 .enrich_member(&jid)
                 .map(EnrichedMember::from)
-                .await
+                .await;
+            if let Err(err) = tx.send(member).await {
+                if tx.is_closed() {
+                    debug!("Cannot send enriched member: Task aborted.");
+                } else {
+                    error!("Cannot send enriched member: {err}");
+                }
+            }
+            notify.notify_waiters();
         }));
     }
 
+    tokio::select! {
+        _ = async {
+            // NOTE: If `jids.len() == 0` then this `tokio::select!` ends instantly.
+            while rx.len() < jids.len() {
+                // NOTE: Waiting using `rx.recv().await` would consume messages
+                //   and we can have only one `Receiver` so we used a `Notify`.
+                notify.notified().await
+            }
+        } => {}
+        _ = sleep(Duration::from_secs(1)) => {
+            debug!("Timed out. Cancelling all task…");
+
+            rx.close();
+            for task in tasks {
+                task.abort();
+            }
+            member_controller.cancel_tasks();
+        }
+    };
+
     let mut res = HashMap::with_capacity(jids.len());
-    while let Some(Ok(member)) = tasks.next().await {
+    while let Some(member) = rx.recv().await {
         res.insert(member.jid.clone(), member.into());
     }
     Ok(res.into())

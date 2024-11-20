@@ -17,9 +17,9 @@ impl<'r> LazyFromRequest<'r> for MemberController {
         let db = try_outcome!(database_connection(req).await);
         let xmpp_service = try_outcome!(XmppService::from_request(req).await);
 
-        Outcome::Success(MemberController {
-            db: Arc::new(db.clone()),
-            xmpp_service: Arc::new(xmpp_service),
-        })
+        Outcome::Success(MemberController::new(
+            Arc::new(db.clone()),
+            Arc::new(xmpp_service),
+        ))
     }
 }
