@@ -41,7 +41,10 @@ $(format_title 'Options:')
       Do not build the Rust project.
       $(format_secondary "Use when you haven't changed the code and only want to rebuild the Docker images.")
     $(format_flag --debug)
-      Build projects the Prose Pod API in debug mode.
+      Builds the Prose Pod API in debug mode.
+    $(format_flag --offline)
+      Run without accessing the network. Implies $(format_flag --no-pull).
+      $(format_secondary "Speeds up the builds and does not use the network, but does not update crates.")
     $(format_flag --no-pull)
       Do not pull referenced Docker images.
       $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
@@ -100,6 +103,12 @@ for arg in "$@"; do
 			info 'Will not build the Rust project.'
 			SKIP_RUST_BUILD=1
 			;;
+		--offline)
+			info 'Will build without accesing the network.'
+			OFFLINE=1
+			info 'Will not pull referenced Docker images.'
+			NO_PULL=1
+			;;
 		--no-pull)
 			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
@@ -116,7 +125,8 @@ info "Using $(format_code $(rustc --version)), $(format_code $(rustup --version 
 if ! (( $SKIP_RUST_BUILD )); then
 	edo "${RUST_ENGINE}" build \
 		${TARGET_ARCH:+--target "${TARGET_ARCH}"} \
-		--profile "${CARGO_PROFILE}"
+		--profile "${CARGO_PROFILE}" \
+		${OFFLINE+--offline}
 fi
 
 edo docker buildx build \
