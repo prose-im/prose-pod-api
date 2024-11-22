@@ -11,16 +11,18 @@ use rocket::{
     get,
     response::stream::{Event, EventStream},
     serde::json::Json,
+    State,
 };
 use serde::{Deserialize, Serialize};
 use service::{
     members::{member_controller, MemberController},
     models::BareJid,
+    AppConfig,
 };
 use tokio::{
     sync::{mpsc, Notify},
     task::JoinHandle,
-    time::{sleep, Duration},
+    time::sleep,
 };
 use tracing::{debug, error};
 
@@ -42,6 +44,7 @@ pub struct JIDs {
 pub async fn run_parallel_tasks<F, R>(
     futures: Vec<F>,
     on_cancel: impl FnOnce() -> (),
+    timeout: std::time::Duration,
 ) -> mpsc::Receiver<R>
 where
     F: Future<Output = R> + Send + 'static,
@@ -76,7 +79,7 @@ where
                 notify.notified().await
             }
         } => {}
-        _ = sleep(Duration::from_secs(1)) => {
+        _ = sleep(timeout) => {
             debug!("Timed out. Cancelling all tasks…");
 
             rx.close();
@@ -94,6 +97,7 @@ where
 pub async fn enrich_members_route(
     member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
+    app_config: &State<AppConfig>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner().jids;
@@ -109,7 +113,12 @@ pub async fn enrich_members_route(
                 .await
         });
     }
-    let mut rx = run_parallel_tasks(futures, || member_controller.cancel_tasks()).await;
+    let mut rx = run_parallel_tasks(
+        futures,
+        || member_controller.cancel_tasks(),
+        app_config.default_response_timeout.into_std_duration(),
+    )
+    .await;
 
     let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {

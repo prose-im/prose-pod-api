@@ -36,12 +36,26 @@ impl TimeLike {
             Self::Hours(n) => ISODuration::new(0., 0., 0., n as f32, 0., 0.),
         }
     }
+    /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
+    ///   As this situation will probably never happen, it's good enough.
+    pub fn into_std_duration(self) -> std::time::Duration {
+        match self {
+            Self::Seconds(n) => std::time::Duration::from_secs(n as u64),
+            Self::Minutes(n) => std::time::Duration::from_secs(60 * n as u64),
+            Self::Hours(n) => std::time::Duration::from_secs(3600 * n as u64),
+        }
+    }
 }
 
 impl Eq for TimeLike {}
 impl Into<ISODuration> for TimeLike {
     fn into(self) -> ISODuration {
         self.into_iso_duration()
+    }
+}
+impl Into<std::time::Duration> for TimeLike {
+    fn into(self) -> std::time::Duration {
+        self.into_std_duration()
     }
 }
 impl TryFrom<ISODuration> for TimeLike {
