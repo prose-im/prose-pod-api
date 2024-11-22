@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
+use std::{collections::HashMap, fmt::Display, future::Future, ops::Deref, sync::Arc};
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use rocket::{
@@ -26,7 +26,7 @@ use tracing::{debug, error};
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
     pub online: Option<bool>,
@@ -39,32 +39,28 @@ pub struct JIDs {
     jids: Vec<JIDUriParam>,
 }
 
-#[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub async fn enrich_members_route(
-    member_controller: LazyGuard<MemberController>,
-    jids: Strict<JIDs>,
-) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
-    let member_controller = member_controller.inner?;
-    let jids = jids.into_inner();
-
-    let (tx, mut rx) = mpsc::channel::<EnrichedMember>(jids.len());
+pub async fn run_parallel_tasks<F, R>(
+    futures: Vec<F>,
+    on_cancel: impl FnOnce() -> (),
+) -> mpsc::Receiver<R>
+where
+    F: Future<Output = R> + Send + 'static,
+    R: Send + 'static,
+{
+    let len = futures.len();
+    let (tx, mut rx) = mpsc::channel::<R>(len);
     let notify = Arc::new(Notify::new());
     let tasks: FuturesUnordered<JoinHandle<()>> = FuturesUnordered::new();
-    for jid in jids.iter() {
-        let jid = jid.clone();
-        let member_controller = member_controller.clone();
+    for future in futures.into_iter() {
         let tx = tx.clone();
         let notify = notify.clone();
         tasks.push(tokio::spawn(async move {
-            let member = member_controller
-                .enrich_member(&jid)
-                .map(EnrichedMember::from)
-                .await;
-            if let Err(err) = tx.send(member).await {
+            let msg = future.await;
+            if let Err(err) = tx.send(msg).await {
                 if tx.is_closed() {
-                    debug!("Cannot send enriched member: Task aborted.");
+                    debug!("Cannot send task result: Task aborted.");
                 } else {
-                    error!("Cannot send enriched member: {err}");
+                    error!("Cannot send task result: {err}");
                 }
             }
             notify.notify_waiters();
@@ -73,25 +69,49 @@ pub async fn enrich_members_route(
 
     tokio::select! {
         _ = async {
-            // NOTE: If `jids.len() == 0` then this `tokio::select!` ends instantly.
-            while rx.len() < jids.len() {
+            // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
+            while rx.len() < len {
                 // NOTE: Waiting using `rx.recv().await` would consume messages
                 //   and we can have only one `Receiver` so we used a `Notify`.
                 notify.notified().await
             }
         } => {}
         _ = sleep(Duration::from_secs(1)) => {
-            debug!("Timed out. Cancelling all task…");
+            debug!("Timed out. Cancelling all tasks…");
 
             rx.close();
             for task in tasks {
                 task.abort();
             }
-            member_controller.cancel_tasks();
+            on_cancel();
         }
     };
 
-    let mut res = HashMap::with_capacity(jids.len());
+    rx
+}
+
+#[get("/v1/enrich-members?<jids..>", format = "application/json")]
+pub async fn enrich_members_route(
+    member_controller: LazyGuard<MemberController>,
+    jids: Strict<JIDs>,
+) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
+    let member_controller = member_controller.inner?;
+    let jids = jids.into_inner().jids;
+    let jids_count = jids.len();
+
+    let mut futures = Vec::with_capacity(jids_count);
+    for jid in jids.into_iter() {
+        let member_controller = member_controller.clone();
+        futures.push(async move {
+            member_controller
+                .enrich_member(&jid)
+                .map(EnrichedMember::from)
+                .await
+        });
+    }
+    let mut rx = run_parallel_tasks(futures, || member_controller.cancel_tasks()).await;
+
+    let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {
         res.insert(member.jid.clone(), member.into());
     }
