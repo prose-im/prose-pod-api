@@ -5,7 +5,7 @@
 
 use std::{collections::HashMap, fmt::Display, future::Future, ops::Deref, sync::Arc};
 
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
+use futures::{stream::FuturesUnordered, FutureExt as _};
 use rocket::{
     form::Strict,
     get,
@@ -128,12 +128,31 @@ pub async fn enrich_members_route(
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub fn enrich_members_stream_route<'r>(
+pub async fn enrich_members_stream_route<'r>(
     member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
+    app_config: &State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = Arc::new(member_controller.inner?);
-    let jids = jids.into_inner();
+    let jids = jids.into_inner().jids;
+    let jids_count = jids.len();
+
+    let mut futures = Vec::with_capacity(jids_count);
+    for jid in jids.into_iter() {
+        let member_controller = member_controller.clone();
+        futures.push(async move {
+            member_controller
+                .enrich_member(&jid)
+                .map(EnrichedMember::from)
+                .await
+        });
+    }
+    let mut rx = run_parallel_tasks(
+        futures,
+        || member_controller.cancel_tasks(),
+        app_config.default_response_timeout.into_std_duration(),
+    )
+    .await;
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
@@ -141,16 +160,7 @@ pub fn enrich_members_stream_route<'r>(
             event
         }
 
-        let mut tasks: FuturesUnordered<JoinHandle<EnrichedMember>> = FuturesUnordered::new();
-        for jid in jids.iter() {
-            let jid = jid.clone();
-            let member_controller = member_controller.clone();
-            tasks.push(tokio::spawn(async move {
-                member_controller.enrich_member(&jid).map(EnrichedMember::from).await
-            }));
-        }
-
-        while let Some(Ok(member)) = tasks.next().await {
+        while let Some(member) = rx.recv().await {
             let jid = member.jid.clone();
             yield logged(Event::json(&member).id(jid.to_string()).event("enriched-member"));
         }
