@@ -5,7 +5,7 @@
 
 use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
-use futures::FutureExt as _;
+use futures::{stream::FuturesUnordered, FutureExt as _};
 use rocket::{
     form::Strict,
     get,
@@ -46,16 +46,18 @@ pub async fn enrich_members_route(
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
 
-    let mut futures = Vec::with_capacity(jids_count);
-    for jid in jids.into_iter() {
-        let member_controller = member_controller.clone();
-        futures.push(async move {
-            member_controller
-                .enrich_member(&jid)
-                .map(EnrichedMember::from)
-                .await
-        });
-    }
+    let futures = jids
+        .into_iter()
+        .map(|jid| {
+            let member_controller = member_controller.clone();
+            Box::pin(async move {
+                member_controller
+                    .enrich_member(&jid)
+                    .map(EnrichedMember::from)
+                    .await
+            })
+        })
+        .collect::<FuturesUnordered<_>>();
     let mut rx = run_parallel_tasks(
         futures,
         || member_controller.cancel_tasks(),
@@ -78,18 +80,19 @@ pub async fn enrich_members_stream_route<'r>(
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = Arc::new(member_controller.inner?);
     let jids = jids.into_inner().jids;
-    let jids_count = jids.len();
 
-    let mut futures = Vec::with_capacity(jids_count);
-    for jid in jids.into_iter() {
-        let member_controller = member_controller.clone();
-        futures.push(async move {
-            member_controller
-                .enrich_member(&jid)
-                .map(EnrichedMember::from)
-                .await
-        });
-    }
+    let futures = jids
+        .into_iter()
+        .map(|jid| {
+            let member_controller = member_controller.clone();
+            Box::pin(async move {
+                member_controller
+                    .enrich_member(&jid)
+                    .map(EnrichedMember::from)
+                    .await
+            })
+        })
+        .collect::<FuturesUnordered<_>>();
     let mut rx = run_parallel_tasks(
         futures,
         || member_controller.cancel_tasks(),
