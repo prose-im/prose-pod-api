@@ -3,14 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
-use futures::stream::FuturesUnordered;
-use tokio::{
-    sync::{mpsc, Notify},
-    task::JoinHandle,
-    time::sleep,
-};
+use futures::{stream::FuturesUnordered, StreamExt};
+use tokio::{sync::mpsc, task::JoinHandle, time::sleep};
 use tracing::{debug, error};
 
 use crate::{
@@ -153,57 +149,46 @@ macro_rules! sea_orm_string_enum {
     };
 }
 
-pub async fn run_parallel_tasks<F, R>(
+pub fn run_parallel_tasks<F, R>(
     futures: FuturesUnordered<F>,
-    on_cancel: impl FnOnce() -> (),
+    on_cancel: impl FnOnce() -> () + Send + 'static,
     timeout: std::time::Duration,
 ) -> mpsc::Receiver<R>
 where
     F: Future<Output = R> + Send + Unpin + 'static,
     R: Send + 'static,
 {
-    let len = futures.len();
+    let (tx, rx) = mpsc::channel::<R>(futures.len());
+    tokio::spawn(async move {
+        let mut tasks: FuturesUnordered<JoinHandle<R>> = futures
+            .into_iter()
+            .map(|future| tokio::spawn(future))
+            .collect();
 
-    let (tx, mut rx) = mpsc::channel::<R>(len);
-    let notify = Arc::new(Notify::new());
-    let tasks: FuturesUnordered<JoinHandle<()>> = futures
-        .into_iter()
-        .map(|future| {
-            let tx = tx.clone();
-            let notify = notify.clone();
-            tokio::spawn(async move {
-                let msg = future.await;
-                if let Err(err) = tx.send(msg).await {
-                    if tx.is_closed() {
-                        debug!("Cannot send task result: Task aborted.");
-                    } else {
-                        error!("Cannot send task result: {err}");
+        tokio::select! {
+            _ = async {
+                // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
+                while let Some(Ok(msg)) = tasks.next().await {
+                    if let Err(err) = tx.send(msg).await {
+                        if tx.is_closed() {
+                            debug!("Cannot send task result: Task aborted.");
+                        } else {
+                            error!("Cannot send task result: {err}");
+                        }
                     }
                 }
-                notify.notify_waiters();
-            })
-        })
-        .collect::<FuturesUnordered<_>>();
+            } => {}
+            _ = sleep(timeout) => {
+                debug!("Timed out. Cancelling all tasks…");
 
-    tokio::select! {
-        _ = async {
-            // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
-            while rx.len() < len {
-                // NOTE: Waiting using `rx.recv().await` would consume messages
-                //   and we can have only one `Receiver` so we used a `Notify`.
-                notify.notified().await
+                // rx.close();
+                for task in tasks {
+                    task.abort();
+                }
+                on_cancel();
             }
-        } => {}
-        _ = sleep(timeout) => {
-            debug!("Timed out. Cancelling all tasks…");
-
-            rx.close();
-            for task in tasks {
-                task.abort();
-            }
-            on_cancel();
-        }
-    };
+        };
+    });
 
     rx
 }

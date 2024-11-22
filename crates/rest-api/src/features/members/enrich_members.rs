@@ -45,6 +45,7 @@ pub async fn enrich_members_route(
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
+    let timeout = app_config.default_response_timeout.into_std_duration();
 
     let futures = jids
         .into_iter()
@@ -58,12 +59,7 @@ pub async fn enrich_members_route(
             })
         })
         .collect::<FuturesUnordered<_>>();
-    let mut rx = run_parallel_tasks(
-        futures,
-        || member_controller.cancel_tasks(),
-        app_config.default_response_timeout.into_std_duration(),
-    )
-    .await;
+    let mut rx = run_parallel_tasks(futures, move || member_controller.cancel_tasks(), timeout);
 
     let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {
@@ -80,31 +76,31 @@ pub async fn enrich_members_stream_route<'r>(
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = Arc::new(member_controller.inner?);
     let jids = jids.into_inner().jids;
-
-    let futures = jids
-        .into_iter()
-        .map(|jid| {
-            let member_controller = member_controller.clone();
-            Box::pin(async move {
-                member_controller
-                    .enrich_member(&jid)
-                    .map(EnrichedMember::from)
-                    .await
-            })
-        })
-        .collect::<FuturesUnordered<_>>();
-    let mut rx = run_parallel_tasks(
-        futures,
-        || member_controller.cancel_tasks(),
-        app_config.default_response_timeout.into_std_duration(),
-    )
-    .await;
+    let timeout = app_config.default_response_timeout.into_std_duration();
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
             trace!("Sending {event:?}…");
             event
         }
+
+        let futures = jids
+            .into_iter()
+            .map(|jid| {
+                let member_controller = member_controller.clone();
+                Box::pin(async move {
+                    member_controller
+                        .enrich_member(&jid)
+                        .map(EnrichedMember::from)
+                        .await
+                })
+            })
+            .collect::<FuturesUnordered<_>>();
+        let mut rx = run_parallel_tasks(
+            futures,
+            move || member_controller.cancel_tasks(),
+            timeout,
+        );
 
         while let Some(member) = rx.recv().await {
             let jid = member.jid.clone();
