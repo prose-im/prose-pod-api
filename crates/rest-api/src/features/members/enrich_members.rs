@@ -3,9 +3,9 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, future::Future, ops::Deref, sync::Arc};
+use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
-use futures::{stream::FuturesUnordered, FutureExt as _};
+use futures::FutureExt as _;
 use rocket::{
     form::Strict,
     get,
@@ -17,14 +17,9 @@ use serde::{Deserialize, Serialize};
 use service::{
     members::{member_controller, MemberController},
     models::BareJid,
+    util::run_parallel_tasks,
     AppConfig,
 };
-use tokio::{
-    sync::{mpsc, Notify},
-    task::JoinHandle,
-    time::sleep,
-};
-use tracing::{debug, error};
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
@@ -39,58 +34,6 @@ pub struct EnrichedMember {
 #[derive(Debug, Clone, FromForm)]
 pub struct JIDs {
     jids: Vec<JIDUriParam>,
-}
-
-pub async fn run_parallel_tasks<F, R>(
-    futures: Vec<F>,
-    on_cancel: impl FnOnce() -> (),
-    timeout: std::time::Duration,
-) -> mpsc::Receiver<R>
-where
-    F: Future<Output = R> + Send + 'static,
-    R: Send + 'static,
-{
-    let len = futures.len();
-    let (tx, mut rx) = mpsc::channel::<R>(len);
-    let notify = Arc::new(Notify::new());
-    let tasks: FuturesUnordered<JoinHandle<()>> = FuturesUnordered::new();
-    for future in futures.into_iter() {
-        let tx = tx.clone();
-        let notify = notify.clone();
-        tasks.push(tokio::spawn(async move {
-            let msg = future.await;
-            if let Err(err) = tx.send(msg).await {
-                if tx.is_closed() {
-                    debug!("Cannot send task result: Task aborted.");
-                } else {
-                    error!("Cannot send task result: {err}");
-                }
-            }
-            notify.notify_waiters();
-        }));
-    }
-
-    tokio::select! {
-        _ = async {
-            // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
-            while rx.len() < len {
-                // NOTE: Waiting using `rx.recv().await` would consume messages
-                //   and we can have only one `Receiver` so we used a `Notify`.
-                notify.notified().await
-            }
-        } => {}
-        _ = sleep(timeout) => {
-            debug!("Timed out. Cancelling all tasks…");
-
-            rx.close();
-            for task in tasks {
-                task.abort();
-            }
-            on_cancel();
-        }
-    };
-
-    rx
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]

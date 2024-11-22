@@ -3882,6 +3882,7 @@ dependencies = [
  "email_address 0.2.5",
  "figment",
  "form_urlencoded",
+ "futures",
  "hickory-proto",
  "hickory-resolver",
  "hmac",
