@@ -5,7 +5,7 @@
 
 use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
-use futures::{stream::FuturesUnordered, FutureExt as _};
+use futures::FutureExt as _;
 use rocket::{
     form::Strict,
     get,
@@ -58,8 +58,13 @@ pub async fn enrich_members_route(
                     .await
             })
         })
-        .collect::<FuturesUnordered<_>>();
-    let mut rx = run_parallel_tasks(futures, move || member_controller.cancel_tasks(), timeout);
+        .collect::<Vec<_>>();
+    let mut rx = run_parallel_tasks(
+        futures,
+        move || member_controller.cancel_tasks(),
+        timeout,
+        false,
+    );
 
     let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {
@@ -95,11 +100,12 @@ pub async fn enrich_members_stream_route<'r>(
                         .await
                 })
             })
-            .collect::<FuturesUnordered<_>>();
+            .collect::<Vec<_>>();
         let mut rx = run_parallel_tasks(
             futures,
             move || member_controller.cancel_tasks(),
             timeout,
+            false,
         );
 
         while let Some(member) = rx.recv().await {
