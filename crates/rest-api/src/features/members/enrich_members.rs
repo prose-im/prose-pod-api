@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use service::{
     members::{member_controller, MemberController},
     models::BareJid,
-    util::run_parallel_tasks,
+    util::ParallelTaskRunner,
     AppConfig,
 };
 
@@ -45,7 +45,7 @@ pub async fn enrich_members_route(
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
-    let timeout = app_config.default_response_timeout.into_std_duration();
+    let runner = ParallelTaskRunner::default(&app_config);
 
     let futures = jids
         .into_iter()
@@ -59,12 +59,7 @@ pub async fn enrich_members_route(
             })
         })
         .collect::<Vec<_>>();
-    let mut rx = run_parallel_tasks(
-        futures,
-        move || member_controller.cancel_tasks(),
-        timeout,
-        false,
-    );
+    let mut rx = runner.run(futures, move || member_controller.cancel_tasks());
 
     let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {
@@ -81,7 +76,7 @@ pub async fn enrich_members_stream_route<'r>(
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = Arc::new(member_controller.inner?);
     let jids = jids.into_inner().jids;
-    let timeout = app_config.default_response_timeout.into_std_duration();
+    let runner = ParallelTaskRunner::default(&app_config);
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
@@ -101,11 +96,9 @@ pub async fn enrich_members_stream_route<'r>(
                 })
             })
             .collect::<Vec<_>>();
-        let mut rx = run_parallel_tasks(
+        let mut rx = runner.run(
             futures,
             move || member_controller.cancel_tasks(),
-            timeout,
-            false,
         );
 
         while let Some(member) = rx.recv().await {
