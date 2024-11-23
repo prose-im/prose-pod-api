@@ -19,6 +19,7 @@ use crate::AppConfig;
 pub struct ParallelTaskRunner {
     pub timeout: Duration,
     pub ordered: bool,
+    pub cancellation_token: CancellationToken,
 }
 
 impl ParallelTaskRunner {
@@ -26,12 +27,13 @@ impl ParallelTaskRunner {
         Self {
             timeout: app_config.default_response_timeout.into_std_duration(),
             ordered: false,
+            cancellation_token: CancellationToken::new(),
         }
     }
     pub fn ordered(self) -> Self {
         Self {
-            timeout: self.timeout,
             ordered: true,
+            ..self
         }
     }
 
@@ -47,10 +49,10 @@ impl ParallelTaskRunner {
         let Self {
             timeout, ordered, ..
         } = self.clone();
+        let cancellation_token = self.cancellation_token.child_token();
 
         let (tx, rx) = mpsc::channel::<R>(min(futures.len(), 32));
         tokio::spawn(async move {
-            let cancellation_token = CancellationToken::new();
             let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
                 futures.into_iter().map(|future| {
                     let cancellation_token = cancellation_token.clone();
@@ -87,6 +89,10 @@ impl ParallelTaskRunner {
         });
 
         rx
+    }
+
+    pub fn cancel_all_tasks(&self) {
+        self.cancellation_token.cancel();
     }
 }
 
