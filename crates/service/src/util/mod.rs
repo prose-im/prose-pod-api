@@ -3,14 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod parallel_task_runner;
+mod concurrent_task_runner;
 
 use crate::{
     models::jid::{self, BareJid, NodePart, JID},
     server_config::ServerConfig,
 };
 
-pub use self::parallel_task_runner::*;
+pub use self::concurrent_task_runner::*;
 
 pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())

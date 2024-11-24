@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use service::{
     members::{member_controller, MemberController},
     models::BareJid,
-    util::ParallelTaskRunner,
+    util::ConcurrentTaskRunner,
     AppConfig,
 };
 
@@ -45,7 +45,7 @@ pub async fn enrich_members_route(
     let member_controller = member_controller.inner?;
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
-    let runner = ParallelTaskRunner::default(&app_config);
+    let runner = ConcurrentTaskRunner::default(&app_config);
 
     let futures = jids
         .into_iter()
@@ -76,7 +76,7 @@ pub async fn enrich_members_stream_route<'r>(
 ) -> Result<EventStream![Event + 'r], Error> {
     let member_controller = Arc::new(member_controller.inner?);
     let jids = jids.into_inner().jids;
-    let runner = ParallelTaskRunner::default(&app_config);
+    let runner = ConcurrentTaskRunner::default(&app_config);
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {

@@ -16,7 +16,7 @@ use tracing::{debug, error};
 use crate::AppConfig;
 
 #[derive(Debug, Clone)]
-pub struct ParallelTaskRunner {
+pub struct ConcurrentTaskRunner {
     pub timeout: Duration,
     pub ordered: bool,
     pub cancellation_token: CancellationToken,
@@ -37,7 +37,7 @@ macro_rules! send {
     };
 }
 
-impl ParallelTaskRunner {
+impl ConcurrentTaskRunner {
     pub fn default(app_config: &AppConfig) -> Self {
         let default_reponse_timeout = app_config.default_response_timeout.into_std_duration();
         Self {
@@ -110,8 +110,8 @@ impl ParallelTaskRunner {
         rx
     }
 
-    /// NOTE: Make sure to increase [`timeout`][ParallelTaskRunner::timeout] in order
-    ///   for retries to work as expected. You can use [`ParallelTaskRunner::no_timeout`].
+    /// NOTE: Make sure to increase [`timeout`][Self::timeout] in order
+    ///   for retries to work as expected. You can use [`Self::no_timeout`].
     pub fn run_with_retries<F, R>(
         &self,
         futures: Vec<F>,
