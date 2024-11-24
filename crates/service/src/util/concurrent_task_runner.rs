@@ -15,6 +15,10 @@ use tracing::{debug, error};
 
 use crate::AppConfig;
 
+/// Helper used to run multiple tasks concurrently.
+///
+/// It supports timeouts and cancellation out of the box,
+/// along with retry logic if needed.
 #[derive(Debug, Clone)]
 pub struct ConcurrentTaskRunner {
     pub timeout: Duration,
@@ -22,19 +26,6 @@ pub struct ConcurrentTaskRunner {
     pub cancellation_token: CancellationToken,
     pub retry_interval: Duration,
     pub retry_timeout: Duration,
-}
-
-/// Just a helper.
-macro_rules! send {
-    ($tx:expr, $msg:expr) => {
-        if let Err(err) = $tx.send($msg).await {
-            if $tx.is_closed() {
-                debug!("Cannot send task result: Task aborted.");
-            } else {
-                error!("Cannot send task result: {err}");
-            }
-        }
-    };
 }
 
 impl ConcurrentTaskRunner {
@@ -61,7 +52,22 @@ impl ConcurrentTaskRunner {
             ..self
         }
     }
+}
 
+/// Just a helper.
+macro_rules! send {
+    ($tx:expr, $msg:expr) => {
+        if let Err(err) = $tx.send($msg).await {
+            if $tx.is_closed() {
+                debug!("Cannot send task result: Task aborted.");
+            } else {
+                error!("Cannot send task result: {err}");
+            }
+        }
+    };
+}
+
+impl ConcurrentTaskRunner {
     /// Run tasks concurrently without retries.
     pub fn run<D, F, R>(
         &self,
