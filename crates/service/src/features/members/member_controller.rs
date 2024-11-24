@@ -18,8 +18,7 @@ use super::{Member, MemberRepository};
 pub struct MemberController {
     pub db: Arc<DatabaseConnection>,
     pub xmpp_service: Arc<XmppService>,
-    /// token used When
-    cancellation_token: CancellationToken,
+    pub cancellation_token: CancellationToken,
 }
 
 impl MemberController {

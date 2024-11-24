@@ -62,9 +62,11 @@ impl ConcurrentTaskRunner {
         }
     }
 
-    pub fn run<F, R>(
+    /// Run tasks concurrently without retries.
+    pub fn run<D, F, R>(
         &self,
-        futures: Vec<F>,
+        data: Vec<D>,
+        make_future: impl FnMut(D) -> F,
         on_cancel: impl FnOnce() -> () + Send + 'static,
     ) -> mpsc::Receiver<R>
     where
@@ -76,24 +78,28 @@ impl ConcurrentTaskRunner {
         } = self.clone();
         let cancellation_token = self.cancellation_token.child_token();
 
-        let (tx, rx) = mpsc::channel::<R>(min(futures.len(), 32));
-        tokio::spawn(async move {
-            let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
-                futures.into_iter().map(|future| {
-                    let cancellation_token = cancellation_token.clone();
-                    tokio::spawn(async move {
-                        tokio::select! {
-                            res = future => { Some(res) },
-                            _ = cancellation_token.cancelled() => { None },
-                        }
-                    })
-                }),
-                ordered,
-            );
+        // Create a mpsc channel to receive task results.
+        let (tx, rx) = mpsc::channel::<R>(min(data.len(), 32));
 
+        // Map futures to cancellable tasks.
+        let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
+            data.into_iter().map(make_future).map(|future| {
+                let cancellation_token = cancellation_token.clone();
+                tokio::spawn(async move {
+                    tokio::select! {
+                        res = future => { Some(res) },
+                        _ = cancellation_token.cancelled() => { None },
+                    }
+                })
+            }),
+            ordered,
+        );
+
+        // Spawn a task which will send results to the mpsc channel.
+        tokio::spawn(async move {
             tokio::select! {
+                // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
                 _ = async {
-                    // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
                     while let Some(Ok(Some(msg))) = tasks.next().await {
                         send!(tx, msg);
                     }
@@ -110,99 +116,100 @@ impl ConcurrentTaskRunner {
         rx
     }
 
-    /// NOTE: Make sure to increase [`timeout`][Self::timeout] in order
+    /// Run tasks concurrently with retries.
+    ///
+    /// NOTE: No matter [`ordered`][Self::ordered], "default results" (e.g. "QUEUED" events)
+    ///   will always be ordered and retry results unordered.
+    ///
+    /// WARN: Make sure to increase [`timeout`][Self::timeout] in order
     ///   for retries to work as expected. You can use [`Self::no_timeout`].
-    pub fn run_with_retries<F, R>(
+    pub fn run_with_retries<D, F, R, DefaultResult>(
         &self,
-        futures: Vec<F>,
+        data: Vec<D>,
+        make_future: impl FnMut(D) -> F,
+        default_result: Option<DefaultResult>,
         on_cancel: impl FnOnce() -> () + Send + 'static,
         should_retry: impl Fn(&R) -> bool + Send + 'static + Copy + Sync,
-        default_result: impl Fn(&R) -> Option<R> + Send + 'static + Copy,
     ) -> mpsc::Receiver<R>
     where
+        DefaultResult: Fn(&D) -> R + Send + 'static + Copy,
         F: Future<Output = R> + Send + Unpin + 'static + Copy + Sync,
         R: Send + 'static,
     {
         let Self {
             timeout,
-            ordered,
             retry_interval,
             retry_timeout,
             ..
         } = self.clone();
         let cancellation_token = self.cancellation_token.child_token();
 
+        let default_msgs: Option<Vec<R>> = default_result.map(|f| data.iter().map(f).collect());
+
         // Create a mpsc channel to receive task results.
-        let (tx, rx) = mpsc::channel::<R>(min(futures.len(), 32));
+        let (tx, rx) = mpsc::channel::<R>(min(data.len(), 32));
+
+        // Map futures to cancellable and retryable tasks.
+        let mut tasks: FuturesUnordered<JoinHandle<()>> = data
+            .into_iter()
+            .map(make_future)
+            .map(|future| {
+                let cancellation_token = cancellation_token.clone();
+                let tx = tx.clone();
+
+                // Spawn a new task so the future runs concurrently with the other ones.
+                tokio::spawn(async move {
+                    tokio::select! {
+                        // Try a first time.
+                        res = future => {
+                            // Test if we should retry.
+                            let mut should_retry_this = should_retry(&res);
+
+                            // Send the result.
+                            send!(tx, res);
+
+                            while should_retry_this {
+                                // Wait before retry.
+                                sleep(retry_interval).await;
+                                // Retry.
+                                tokio::select! {
+                                    res = future => {
+                                        // Test if we should retry.
+                                        should_retry_this = should_retry(&res);
+                                        // Send the result.
+                                        send!(tx, res);
+                                    },
+                                    // Add retry timeout.
+                                    _ = sleep(retry_timeout) => {
+                                        // If we hit the timeout, `should_retry_this` is still `true`.
+                                        // TODO: Notify we hit the timeout.
+                                    },
+                                };
+                            }
+                        },
+                        // Allow cancellation.
+                        _ = cancellation_token.cancelled() => {},
+                    }
+                })
+            })
+            .collect();
 
         // Spawn a task which will send results to the mpsc channel.
         tokio::spawn(async move {
-            // Map futures to cancellable and retryable tasks.
-            let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
-                futures.into_iter().map(|future| {
-                    let cancellation_token = cancellation_token.clone();
-                    let tx = tx.clone();
-
-                    // Spawn a new task so the future runs concurrently with the other ones.
-                    tokio::spawn(async move {
-                        tokio::select! {
-                            // Try a first time.
-                            res = future => {
-                                // Test if we should retry.
-                                let mut should_retry_this = should_retry(&res);
-                                let default_result = default_result(&res);
-
-                                // Send the result.
-                                send!(tx, res);
-
-                                if should_retry_this {
-                                    tokio::spawn(async move {
-                                        tokio::select! {
-                                            _ = async {
-                                                while should_retry_this {
-                                                    // Wait before retry.
-                                                    sleep(retry_interval).await;
-                                                    // Retry.
-                                                    tokio::select! {
-                                                        res = future => {
-                                                            // Test if we should retry.
-                                                            should_retry_this = should_retry(&res);
-                                                            // Send the result.
-                                                            send!(tx, res);
-                                                        },
-                                                        // Add retry timeout.
-                                                        _ = sleep(retry_timeout) => {
-                                                            // If we hit the timeout, `should_retry_this` is still `true`.
-                                                            // TODO: Notify we hit the timeout.
-                                                        },
-                                                        // Allow cancellation.
-                                                        _ = cancellation_token.cancelled() => {},
-                                                    };
-                                                }
-                                            } => {}
-                                        };
-                                    });
-                                }
-
-                                default_result
-                            },
-                            // Allow cancellation.
-                            _ = cancellation_token.cancelled() => { None },
-                        }
-                    })
-                }),
-                ordered,
-            );
-
             tokio::select! {
+                // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
                 _ = async {
-                    // NOTE: If `futures.len() == 0` then this `tokio::select!` ends instantly.
-                    while let Some(Ok(res)) = tasks.next().await {
-                        if let Some(msg) = res {
+                    // Send default messages if needed.
+                    // For example, send `QUEUED` event before tasks start.
+                    if let Some(default_msgs) = default_msgs {
+                        for msg in default_msgs {
                             send!(tx, msg);
                         }
                     }
+                    // Wait for all tasks to finish.
+                    while let Some(Ok(())) = tasks.next().await {}
                 } => {}
+                // Add global timeout.
                 _ = sleep(timeout) => {
                     debug!("Timed out. Cancelling all tasks…");
 

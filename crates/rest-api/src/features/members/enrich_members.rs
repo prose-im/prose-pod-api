@@ -47,9 +47,10 @@ pub async fn enrich_members_route(
     let jids_count = jids.len();
     let runner = ConcurrentTaskRunner::default(&app_config);
 
-    let futures = jids
-        .into_iter()
-        .map(|jid| {
+    let cancellation_token = member_controller.cancellation_token.clone();
+    let mut rx = runner.run(
+        jids,
+        |jid| {
             let member_controller = member_controller.clone();
             Box::pin(async move {
                 member_controller
@@ -57,9 +58,9 @@ pub async fn enrich_members_route(
                     .map(EnrichedMember::from)
                     .await
             })
-        })
-        .collect::<Vec<_>>();
-    let mut rx = runner.run(futures, move || member_controller.cancel_tasks());
+        },
+        move || cancellation_token.cancel(),
+    );
 
     let mut res = HashMap::with_capacity(jids_count);
     while let Some(member) = rx.recv().await {
@@ -84,9 +85,10 @@ pub async fn enrich_members_stream_route<'r>(
             event
         }
 
-        let futures = jids
-            .into_iter()
-            .map(|jid| {
+        let cancellation_token = member_controller.cancellation_token.clone();
+        let mut rx = runner.run(
+            jids,
+            |jid| {
                 let member_controller = member_controller.clone();
                 Box::pin(async move {
                     member_controller
@@ -94,11 +96,8 @@ pub async fn enrich_members_stream_route<'r>(
                         .map(EnrichedMember::from)
                         .await
                 })
-            })
-            .collect::<Vec<_>>();
-        let mut rx = runner.run(
-            futures,
-            move || member_controller.cancel_tasks(),
+            },
+            move || cancellation_token.cancel(),
         );
 
         while let Some(member) = rx.recv().await {
