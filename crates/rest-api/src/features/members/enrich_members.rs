@@ -50,7 +50,7 @@ pub async fn enrich_members_route(
     let cancellation_token = member_controller.cancellation_token.clone();
     let mut rx = runner.run(
         jids,
-        |jid| {
+        move |jid| {
             let member_controller = member_controller.clone();
             Box::pin(async move {
                 member_controller
@@ -88,7 +88,7 @@ pub async fn enrich_members_stream_route<'r>(
         let cancellation_token = member_controller.cancellation_token.clone();
         let mut rx = runner.run(
             jids,
-            |jid| {
+            move |jid| {
                 let member_controller = member_controller.clone();
                 Box::pin(async move {
                     member_controller

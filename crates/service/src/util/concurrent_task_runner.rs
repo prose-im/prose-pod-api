@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{cmp::min, future::Future, time::Duration};
+use std::{cmp::min, fmt::Debug, future::Future, sync::Arc, time::Duration};
 
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -11,7 +11,7 @@ use futures::{
 };
 use tokio::{sync::mpsc, task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error};
+use tracing::{debug, error, instrument, trace, trace_span, Instrument as _};
 
 use crate::AppConfig;
 
@@ -46,78 +46,93 @@ impl ConcurrentTaskRunner {
         }
     }
     /// "No timeout" means 1 hour (which should never happen).
-    pub fn no_timeout(self) -> Self {
-        Self {
-            timeout: Duration::from_secs(3600),
-            ..self
-        }
+    pub fn no_timeout(mut self) -> Self {
+        self.timeout = Duration::from_secs(3600);
+        self
+    }
+    pub fn with_retry_interval(mut self, retry_interval: Duration) -> Self {
+        self.retry_interval = retry_interval;
+        self
     }
 }
 
 /// Just a helper.
 macro_rules! send {
-    ($tx:expr, $msg:expr) => {
+    ($tx:expr, $msg:expr, $cancellation_token:expr) => {
         if let Err(err) = $tx.send($msg).await {
             if $tx.is_closed() {
                 debug!("Cannot send task result: Task aborted.");
             } else {
                 error!("Cannot send task result: {err}");
             }
+            // We can't send task results so cancel all tasks.
+            $cancellation_token.cancel();
         }
     };
 }
 
 impl ConcurrentTaskRunner {
     /// Run tasks concurrently without retries.
+    #[instrument(level = "trace", skip_all)]
     pub fn run<D, F, R>(
         &self,
         data: Vec<D>,
-        make_future: impl FnMut(D) -> F,
+        make_future: impl Fn(D) -> F + Send + 'static + Sync,
         on_cancel: impl FnOnce() -> () + Send + 'static,
     ) -> mpsc::Receiver<R>
     where
-        F: Future<Output = R> + Send + Unpin + 'static,
+        D: Debug + Clone + Send + 'static,
+        F: Future<Output = R> + Send + 'static + Unpin,
         R: Send + 'static,
     {
         let Self {
             timeout, ordered, ..
         } = self.clone();
         let cancellation_token = self.cancellation_token.child_token();
+        let make_future = Arc::new(make_future);
 
         // Create a mpsc channel to receive task results.
         let (tx, rx) = mpsc::channel::<R>(min(data.len(), 32));
 
         // Map futures to cancellable tasks.
         let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
-            data.into_iter().map(make_future).map(|future| {
+            data.into_iter().map(|data| {
                 let cancellation_token = cancellation_token.clone();
-                tokio::spawn(async move {
-                    tokio::select! {
-                        res = future => { Some(res) },
-                        _ = cancellation_token.cancelled() => { None },
+                let make_future = make_future.clone();
+
+                let span = trace_span!("task", data = format!("{data:?}"));
+                tokio::spawn(
+                    async move {
+                        tokio::select! {
+                            res = make_future(data) => { Some(res) },
+                            _ = cancellation_token.cancelled() => { None },
+                        }
                     }
-                })
+                    .instrument(span),
+                )
             }),
             ordered,
         );
 
         // Spawn a task which will send results to the mpsc channel.
-        tokio::spawn(async move {
-            tokio::select! {
-                // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
-                _ = async {
-                    while let Some(Ok(Some(msg))) = tasks.next().await {
-                        send!(tx, msg);
+        tokio::spawn(
+            async move {
+                tokio::select! {
+                    // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
+                    _ = async {
+                        while let Some(Ok(Some(msg))) = tasks.next().await {
+                            send!(tx, msg, cancellation_token);
+                        }
+                    } => {}
+                    _ = sleep(timeout) => {
+                        trace!("⌛️ Timed out. Cancelling all tasks…");
+                        on_cancel();
+                        cancellation_token.cancel();
                     }
-                } => {}
-                _ = sleep(timeout) => {
-                    debug!("Timed out. Cancelling all tasks…");
-
-                    cancellation_token.cancel();
-                    on_cancel();
-                }
-            };
-        });
+                };
+            }
+            .instrument(trace_span!("send_results")),
+        );
 
         rx
     }
@@ -129,17 +144,19 @@ impl ConcurrentTaskRunner {
     ///
     /// WARN: Make sure to increase [`timeout`][Self::timeout] in order
     ///   for retries to work as expected. You can use [`Self::no_timeout`].
+    #[instrument(level = "trace", skip_all)]
     pub fn run_with_retries<D, F, R, DefaultResult>(
         &self,
         data: Vec<D>,
-        make_future: impl FnMut(D) -> F,
+        make_future: impl Fn(D) -> F + Send + 'static + Sync,
         default_result: Option<DefaultResult>,
         on_cancel: impl FnOnce() -> () + Send + 'static,
         should_retry: impl Fn(&R) -> bool + Send + 'static + Copy + Sync,
     ) -> mpsc::Receiver<R>
     where
+        D: Debug + Clone + Send + 'static,
         DefaultResult: Fn(&D) -> R + Send + 'static + Copy,
-        F: Future<Output = R> + Send + Unpin + 'static + Copy + Sync,
+        F: Future<Output = R> + Send + 'static + Unpin,
         R: Send + 'static,
     {
         let Self {
@@ -149,6 +166,7 @@ impl ConcurrentTaskRunner {
             ..
         } = self.clone();
         let cancellation_token = self.cancellation_token.child_token();
+        let make_future = Arc::new(make_future);
 
         let default_msgs: Option<Vec<R>> = default_result.map(|f| data.iter().map(f).collect());
 
@@ -158,72 +176,81 @@ impl ConcurrentTaskRunner {
         // Map futures to cancellable and retryable tasks.
         let mut tasks: FuturesUnordered<JoinHandle<()>> = data
             .into_iter()
-            .map(make_future)
-            .map(|future| {
+            .map(|data| {
                 let cancellation_token = cancellation_token.clone();
                 let tx = tx.clone();
+                let make_future = make_future.clone();
 
                 // Spawn a new task so the future runs concurrently with the other ones.
-                tokio::spawn(async move {
-                    tokio::select! {
-                        // Try a first time.
-                        res = future => {
-                            // Test if we should retry.
-                            let mut should_retry_this = should_retry(&res);
+                let span = trace_span!("task", data = format!("{data:?}"));
+                tokio::spawn(
+                    async move {
+                        let mut should_retry_this = true;
+                        let mut try_n = 1;
 
-                            // Send the result.
-                            send!(tx, res);
+                        while should_retry_this {
+                            // Avoid an unnecessary retry if applicable.
+                            if cancellation_token.is_cancelled() || tx.is_closed() {
+                                break
+                            }
 
-                            while should_retry_this {
+                            tokio::select! {
+                                res = make_future(data.clone()).instrument(trace_span!("try", n = try_n)) => {
+                                    // Test if we should retry.
+                                    should_retry_this = should_retry(&res);
+                                    // Send the result.
+                                    send!(tx, res, cancellation_token);
+                                },
+                                // Add retry timeout.
+                                _ = sleep(retry_timeout) => {
+                                    // If we hit the timeout, `should_retry_this` is still `true`.
+                                    // TODO: Notify we hit the timeout.
+                                },
+                                // Allow cancellation of retries.
+                                _ = cancellation_token.cancelled() => {
+                                    // If the task if cancelled, break out of the loop.
+                                    break
+                                },
+                            };
+
+                            if should_retry_this {
                                 // Wait before retry.
                                 sleep(retry_interval).await;
-                                // Retry.
-                                tokio::select! {
-                                    res = future => {
-                                        // Test if we should retry.
-                                        should_retry_this = should_retry(&res);
-                                        // Send the result.
-                                        send!(tx, res);
-                                    },
-                                    // Add retry timeout.
-                                    _ = sleep(retry_timeout) => {
-                                        // If we hit the timeout, `should_retry_this` is still `true`.
-                                        // TODO: Notify we hit the timeout.
-                                    },
-                                };
+                                try_n += 1;
                             }
-                        },
-                        // Allow cancellation.
-                        _ = cancellation_token.cancelled() => {},
+                        }
                     }
-                })
+                    .instrument(span),
+                )
             })
             .collect();
 
         // Spawn a task which will send results to the mpsc channel.
-        tokio::spawn(async move {
-            tokio::select! {
-                // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
-                _ = async {
-                    // Send default messages if needed.
-                    // For example, send `QUEUED` event before tasks start.
-                    if let Some(default_msgs) = default_msgs {
-                        for msg in default_msgs {
-                            send!(tx, msg);
+        tokio::spawn(
+            async move {
+                tokio::select! {
+                    // NOTE: If `data.len() == 0` then this `tokio::select!` ends instantly.
+                    _ = async {
+                        // Send default messages if needed.
+                        // For example, send `QUEUED` event before tasks start.
+                        if let Some(default_msgs) = default_msgs {
+                            for msg in default_msgs {
+                                send!(tx, msg, cancellation_token);
+                            }
                         }
+                        // Wait for all tasks to finish.
+                        while let Some(Ok(())) = tasks.next().await {}
+                    } => {}
+                    // Add global timeout.
+                    _ = sleep(timeout) => {
+                        trace!("⌛️ Timed out. Cancelling all tasks…");
+                        on_cancel();
+                        cancellation_token.cancel();
                     }
-                    // Wait for all tasks to finish.
-                    while let Some(Ok(())) = tasks.next().await {}
-                } => {}
-                // Add global timeout.
-                _ = sleep(timeout) => {
-                    debug!("Timed out. Cancelling all tasks…");
-
-                    cancellation_token.cancel();
-                    on_cancel();
-                }
-            };
-        });
+                };
+            }
+            .instrument(trace_span!("send_results")),
+        );
 
         rx
     }

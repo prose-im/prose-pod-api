@@ -8,7 +8,6 @@ use std::{
     net::{IpAddr, SocketAddr, ToSocketAddrs as _},
     ops::Deref,
     sync::Arc,
-    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -17,8 +16,10 @@ use linked_hash_set::LinkedHashSet;
 use tokio::{
     sync::mpsc::{error::SendError, Sender},
     task::JoinSet,
-    time::sleep,
 };
+use tracing::{debug, error, instrument, trace_span, Instrument as _};
+
+use crate::util::ConcurrentTaskRunner;
 
 use super::models::{dns::*, network_checks::*};
 
@@ -81,43 +82,55 @@ pub enum IpVersion {
 }
 
 impl NetworkChecker {
+    #[instrument(level = "trace", skip(self, checks, map_to_event, sender, runner), fields(r#type = Check::check_type()))]
     pub fn run_checks<'a, Check, Status, Event>(
         &self,
         checks: impl Iterator<Item = Check>,
         map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
-        retry_interval: Duration,
-        sender: Sender<Option<Event>>,
-        join_set: &mut JoinSet<Result<(), SendError<Option<Event>>>>,
+        sender: Sender<Event>,
+        runner: &ConcurrentTaskRunner,
     ) where
-        Check: NetworkCheck + Send + 'static,
+        Check: NetworkCheck + Debug + Clone + Send + 'static + Sync,
         Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-        Status: From<Check::CheckResult> + Default,
+        Status: From<Check::CheckResult> + Default + Send,
         Event: Send + 'static,
     {
-        for check in checks {
-            let tx_clone = sender.clone();
-            let network_checker = self.to_owned();
+        let network_checker = self.clone();
+        let mut rx = runner.run_with_retries(
+            checks.collect(),
+            move |check: Check| {
+                let network_checker = network_checker.clone();
 
-            join_set.spawn(async move {
-                tx_clone
-                    .send(Some(map_to_event(&check, Status::default())))
-                    .await?;
-
-                loop {
+                Box::pin(async move {
                     let result = check.run(&network_checker).await;
-                    tx_clone
-                        .send(Some(map_to_event(&check, Status::from(result.clone()))))
-                        .await?;
+                    (check, Some(result))
+                })
+            },
+            Some(|check: &Check| (check.clone(), None)),
+            move || {},
+            |(_, res)| res.as_ref().unwrap().should_retry(),
+        );
 
-                    if result.should_retry() {
-                        sleep(retry_interval).await;
-                    } else {
-                        return tx_clone.send(None).await;
+        tokio::spawn(
+            async move {
+                while let Some((check, result)) = rx.recv().await {
+                    let event = map_to_event(&check, result.map(Status::from).unwrap_or_default());
+                    if let Err(err) = sender.send(event).await {
+                        if sender.is_closed() {
+                            debug!("Cannot send event: Task aborted.");
+                        } else {
+                            error!("Cannot send event: {err}");
+                        }
+                        // Close `rx` so this loop breaks and `runner` is informed to cancel its tasks.
+                        rx.close();
                     }
                 }
-            });
-        }
+            }
+            .instrument(trace_span!("task")),
+        );
     }
+
+    #[instrument(level = "trace", skip(self, checks, map_to_event, sender, join_set), fields(r#type = Check::check_type()))]
     pub fn run_checks_oneshot<'a, Check, Status, Event>(
         &self,
         checks: impl Iterator<Item = Check>,

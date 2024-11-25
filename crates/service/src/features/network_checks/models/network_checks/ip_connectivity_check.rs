@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::{Debug, Display};
+
 use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
 
@@ -15,13 +17,19 @@ use super::{NetworkCheck, RetryableNetworkCheckResult};
 
 /// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
 ///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum IpConnectivityCheck {
     XmppServer {
         hostname: DomainName,
         conn_type: XmppConnectionType,
         ip_version: IpVersion,
     },
+}
+
+impl Debug for IpConnectivityCheck {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&format!("{}/{}", Self::check_type(), self.id()), f)
+    }
 }
 
 impl IpConnectivityCheck {
@@ -46,6 +54,46 @@ impl IpConnectivityCheck {
     }
 }
 
+#[derive(Debug)]
+#[derive(strum::Display)]
+pub enum IpConnectivityCheckId {
+    #[strum(to_string = "IPv4-c2s")]
+    Ipv4C2S,
+    #[strum(to_string = "IPv6-c2s")]
+    Ipv6C2S,
+    #[strum(to_string = "IPv4-s2s")]
+    Ipv4S2S,
+    #[strum(to_string = "IPv6-s2s")]
+    Ipv6S2S,
+}
+
+impl From<&IpConnectivityCheck> for IpConnectivityCheckId {
+    fn from(check: &IpConnectivityCheck) -> Self {
+        match check {
+            IpConnectivityCheck::XmppServer {
+                conn_type: XmppConnectionType::C2S,
+                ip_version: IpVersion::V4,
+                ..
+            } => Self::Ipv4C2S,
+            IpConnectivityCheck::XmppServer {
+                conn_type: XmppConnectionType::C2S,
+                ip_version: IpVersion::V6,
+                ..
+            } => Self::Ipv6C2S,
+            IpConnectivityCheck::XmppServer {
+                conn_type: XmppConnectionType::S2S,
+                ip_version: IpVersion::V4,
+                ..
+            } => Self::Ipv4S2S,
+            IpConnectivityCheck::XmppServer {
+                conn_type: XmppConnectionType::S2S,
+                ip_version: IpVersion::V6,
+                ..
+            } => Self::Ipv6S2S,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IpConnectivityCheckResult {
     Success,
@@ -61,6 +109,7 @@ impl RetryableNetworkCheckResult for IpConnectivityCheckResult {
 
 #[async_trait]
 impl NetworkCheck for IpConnectivityCheck {
+    type CheckId = IpConnectivityCheckId;
     type CheckResult = IpConnectivityCheckResult;
 
     fn description(&self) -> String {
@@ -86,6 +135,12 @@ impl NetworkCheck for IpConnectivityCheck {
                 ..
             } => "Server-to-server connectivity over IPv6".to_owned(),
         }
+    }
+    fn check_type() -> &'static str {
+        "ip"
+    }
+    fn id(&self) -> Self::CheckId {
+        <Self as NetworkCheck>::CheckId::from(self)
     }
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = IpConnectivityCheckResult::Failure;

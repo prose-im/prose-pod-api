@@ -3,13 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use futures::{stream::FuturesOrdered, StreamExt};
-use tokio::{
-    sync::mpsc::{self, error::SendError},
-    task::JoinSet,
-};
+use service::{util::ConcurrentTaskRunner, AppConfig};
+use tokio::sync::mpsc;
 
 use crate::features::network_checks::{
     check_dns_records::dns_record_check_result,
@@ -65,6 +61,7 @@ pub fn check_network_configuration_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
     interval: Option<forms::Duration>,
+    app_config: &'r State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -78,46 +75,36 @@ pub fn check_network_configuration_stream_route<'r>(
             event
         }
 
-        let (tx, mut rx) = mpsc::channel::<Option<Event>>(32);
-        let mut join_set = JoinSet::<Result<(), SendError<Option<Event>>>>::new();
+        let runner = ConcurrentTaskRunner::default(&app_config)
+            .no_timeout()
+            .with_retry_interval(retry_interval);
+        let (tx, mut rx) = mpsc::channel::<Event>(32);
 
         let dns_record_checks = pod_network_config.dns_record_checks();
         let port_reachability_checks = pod_network_config.port_reachability_checks();
         let ip_connectivity_checks = pod_network_config.ip_connectivity_checks();
 
-        let remaining = AtomicUsize::new(
-            dns_record_checks.clone().count()
-            + port_reachability_checks.len()
-            + ip_connectivity_checks.len()
-        );
         network_checker.run_checks(
             dns_record_checks,
             dns_record_check_result,
-            retry_interval,
             tx.clone(),
-            &mut join_set,
+            &runner,
         );
         network_checker.run_checks(
             port_reachability_checks.into_iter(),
             port_reachability_check_result,
-            retry_interval,
             tx.clone(),
-            &mut join_set,
+            &runner,
         );
         network_checker.run_checks(
             ip_connectivity_checks.into_iter(),
             ip_connectivity_check_result,
-            retry_interval,
             tx.clone(),
-            &mut join_set,
+            &runner,
         );
 
-        while remaining.load(Ordering::Relaxed) != 0 {
-            match rx.recv().await {
-                Some(Some(event)) => yield logged(event),
-                Some(None) => { remaining.fetch_sub(1, Ordering::Relaxed); },
-                None => break,
-            }
+        while let Some(event) = rx.recv().await {
+            yield logged(event);
         }
 
         yield logged(end_event());

@@ -21,7 +21,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter, FmtSubscriber};
 
 #[launch]
 fn rocket() -> _ {
@@ -55,6 +55,7 @@ fn rocket() -> _ {
         |rocket| async move {
             let subscriber = FmtSubscriber::builder()
                 .with_env_filter(EnvFilter::from_default_env())
+                .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
                 .finish();
             tracing::subscriber::set_global_default(subscriber)
                 .expect("Failed to set tracing subscriber.");

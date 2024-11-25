@@ -30,6 +30,7 @@ pub fn check_ports_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
     interval: Option<forms::Duration>,
+    app_config: &'r State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -39,6 +40,7 @@ pub fn check_ports_stream_route<'r>(
         &network_checker,
         port_reachability_check_result,
         interval,
+        app_config,
     )
 }
 
@@ -51,17 +53,6 @@ pub enum PortReachabilityStatus {
     Checking,
     Open,
     Closed,
-}
-
-#[derive(Debug)]
-#[derive(strum::Display)]
-enum PortReachabilityCheckId {
-    #[strum(to_string = "TCP-c2s")]
-    TcpC2S,
-    #[strum(to_string = "TCP-s2s")]
-    TcpS2S,
-    #[strum(to_string = "TCP-HTTPS")]
-    TcpHttps,
 }
 
 // BOILERPLATE
@@ -85,22 +76,6 @@ impl From<PortReachabilityCheckResult> for PortReachabilityStatus {
         match check_result {
             PortReachabilityCheckResult::Open => Self::Open,
             PortReachabilityCheckResult::Closed => Self::Closed,
-        }
-    }
-}
-
-impl From<&PortReachabilityCheck> for PortReachabilityCheckId {
-    fn from(check: &PortReachabilityCheck) -> Self {
-        match check {
-            PortReachabilityCheck::Xmpp {
-                conn_type: XmppConnectionType::C2S,
-                ..
-            } => Self::TcpC2S,
-            PortReachabilityCheck::Xmpp {
-                conn_type: XmppConnectionType::S2S,
-                ..
-            } => Self::TcpS2S,
-            PortReachabilityCheck::Https { .. } => Self::TcpHttps,
         }
     }
 }
