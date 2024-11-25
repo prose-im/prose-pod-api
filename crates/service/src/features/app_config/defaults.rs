@@ -12,7 +12,7 @@ use secrecy::SecretString;
 
 use crate::{
     invitations::InvitationChannel,
-    models::{DateLike, Duration, JidNode, PossiblyInfinite},
+    models::{DateLike, Duration, JidNode, PossiblyInfinite, TimeLike},
 };
 
 use super::ConfigServiceAccount;
@@ -140,4 +140,9 @@ pub fn notify_email_smtp_port() -> u16 {
 
 pub fn notify_email_smtp_encrypt() -> bool {
     true
+}
+
+/// 1 second seems ok for most tasks, while keeping response time short.
+pub fn default_response_timeout() -> Duration<TimeLike> {
+    Duration(TimeLike::Seconds(1))
 }

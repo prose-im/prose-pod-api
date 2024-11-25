@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use sea_orm::{ConnectionTrait, DbErr};
 use secrecy::SecretString;
 
@@ -17,17 +19,17 @@ use crate::{
 use super::{Member, MemberCreateForm, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
-pub struct UserService<'r> {
-    server_ctl: &'r ServerCtl,
-    auth_service: &'r AuthService,
-    xmpp_service_inner: &'r XmppServiceInner,
+pub struct UserService {
+    server_ctl: Arc<ServerCtl>,
+    auth_service: Arc<AuthService>,
+    xmpp_service_inner: Arc<XmppServiceInner>,
 }
 
-impl<'r> UserService<'r> {
+impl UserService {
     pub fn new(
-        server_ctl: &'r ServerCtl,
-        auth_service: &'r AuthService,
-        xmpp_service_inner: &'r XmppServiceInner,
+        server_ctl: Arc<ServerCtl>,
+        auth_service: Arc<AuthService>,
+        xmpp_service_inner: Arc<XmppServiceInner>,
     ) -> Self {
         Self {
             server_ctl,
@@ -91,7 +93,7 @@ impl<'r> UserService<'r> {
             bare_jid: jid.to_owned(),
             prosody_token: auth_token.clone(),
         };
-        let xmpp_service = XmppService::new(&self.xmpp_service_inner, ctx);
+        let xmpp_service = XmppService::new(self.xmpp_service_inner.clone(), ctx);
 
         // TODO: Create the vCard using a display name instead of the nickname
         xmpp_service

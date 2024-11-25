@@ -3,7 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::future;
+use std::{
+    fmt::{Debug, Display},
+    future,
+};
 
 use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
@@ -17,7 +20,7 @@ use super::{NetworkCheck, RetryableNetworkCheckResult};
 
 /// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
 ///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum PortReachabilityCheck {
     Xmpp {
         hostname: DomainName,
@@ -26,6 +29,12 @@ pub enum PortReachabilityCheck {
     Https {
         hostname: DomainName,
     },
+}
+
+impl Debug for PortReachabilityCheck {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&format!("{}/{}", Self::check_type(), self.id()), f)
+    }
 }
 
 impl PortReachabilityCheck {
@@ -51,6 +60,33 @@ impl PortReachabilityCheck {
     }
 }
 
+#[derive(Debug)]
+#[derive(strum::Display)]
+pub enum PortReachabilityCheckId {
+    #[strum(to_string = "TCP-c2s")]
+    TcpC2S,
+    #[strum(to_string = "TCP-s2s")]
+    TcpS2S,
+    #[strum(to_string = "TCP-HTTPS")]
+    TcpHttps,
+}
+
+impl From<&PortReachabilityCheck> for PortReachabilityCheckId {
+    fn from(check: &PortReachabilityCheck) -> Self {
+        match check {
+            PortReachabilityCheck::Xmpp {
+                conn_type: XmppConnectionType::C2S,
+                ..
+            } => Self::TcpC2S,
+            PortReachabilityCheck::Xmpp {
+                conn_type: XmppConnectionType::S2S,
+                ..
+            } => Self::TcpS2S,
+            PortReachabilityCheck::Https { .. } => Self::TcpHttps,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PortReachabilityCheckResult {
     Open,
@@ -65,6 +101,7 @@ impl RetryableNetworkCheckResult for PortReachabilityCheckResult {
 
 #[async_trait]
 impl NetworkCheck for PortReachabilityCheck {
+    type CheckId = PortReachabilityCheckId;
     type CheckResult = PortReachabilityCheckResult;
 
     fn description(&self) -> String {
@@ -79,6 +116,12 @@ impl NetworkCheck for PortReachabilityCheck {
             } => format!("Server-to-server port at TCP {}", self.port()),
             Self::Https { .. } => format!("HTTP server port at TCP {}", self.port()),
         }
+    }
+    fn check_type() -> &'static str {
+        "port"
+    }
+    fn id(&self) -> Self::CheckId {
+        <Self as NetworkCheck>::CheckId::from(self)
     }
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = PortReachabilityCheckResult::Closed;

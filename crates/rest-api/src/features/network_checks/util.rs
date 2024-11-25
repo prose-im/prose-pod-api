@@ -3,17 +3,16 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::fmt::Debug;
 
 use futures::{stream::FuturesOrdered, StreamExt};
 use lazy_static::lazy_static;
-use rocket::response::stream::{Event, EventStream};
-use service::network_checks::*;
-use tokio::{
-    sync::mpsc::{self, error::SendError},
-    task::JoinSet,
-    time::Duration,
+use rocket::{
+    response::stream::{Event, EventStream},
+    State,
 };
+use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
+use tokio::{sync::mpsc, time::Duration};
 
 use crate::{
     error::{self, Error},
@@ -50,11 +49,12 @@ pub fn run_checks_stream<'r, Check, Status>(
     network_checker: &'r NetworkChecker,
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
     retry_interval: Option<forms::Duration>,
+    app_config: &'r State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error>
 where
-    Check: NetworkCheck + Send + 'static,
+    Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-    Status: From<Check::CheckResult> + Default,
+    Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
 {
     let retry_interval =
         retry_interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;
@@ -65,24 +65,19 @@ where
             event
         }
 
-        let (tx, mut rx) = mpsc::channel::<Option<Event>>(32);
-        let mut join_set = JoinSet::<Result<(), SendError<Option<Event>>>>::new();
-
-        let remaining = AtomicUsize::new(checks.clone().count());
+        let runner = ConcurrentTaskRunner::default(&app_config)
+            .no_timeout()
+            .with_retry_interval(retry_interval);
+        let (tx, mut rx) = mpsc::channel::<Event>(32);
         network_checker.run_checks(
             checks,
             map_to_event,
-            retry_interval.into(),
             tx,
-            &mut join_set,
+            &runner,
         );
 
-        while remaining.load(Ordering::Relaxed) != 0 {
-            match rx.recv().await {
-                Some(Some(event)) => yield logged(event),
-                Some(None) => { remaining.fetch_sub(1, Ordering::Relaxed); },
-                None => {},
-            }
+        while let Some(event) = rx.recv().await {
+            yield logged(event);
         }
 
         yield logged(end_event());

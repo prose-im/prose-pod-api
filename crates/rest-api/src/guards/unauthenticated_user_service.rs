@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 use service::{
     auth::AuthService,
@@ -14,24 +14,25 @@ use service::{
 use super::prelude::*;
 
 /// WARN: Use only in initialization routes! Otherwise use `UserService` directly.
-pub struct UnauthenticatedUserService<'r>(pub UserService<'r>);
+#[derive(Clone)]
+pub struct UnauthenticatedUserService(pub UserService);
 
-impl<'r> Deref for UnauthenticatedUserService<'r> {
-    type Target = UserService<'r>;
+impl Deref for UnauthenticatedUserService {
+    type Target = UserService;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'r> Into<UserService<'r>> for UnauthenticatedUserService<'r> {
-    fn into(self) -> UserService<'r> {
+impl Into<UserService> for UnauthenticatedUserService {
+    fn into(self) -> UserService {
         self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService<'r> {
+impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -49,9 +50,9 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService<'r> {
         // }
 
         Outcome::Success(Self(UserService::new(
-            server_ctl,
-            auth_service,
-            xmpp_service_inner,
+            Arc::new(server_ctl.clone()),
+            Arc::new(auth_service.clone()),
+            Arc::new(xmpp_service_inner.clone()),
         )))
     }
 }

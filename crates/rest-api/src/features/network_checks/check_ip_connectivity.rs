@@ -30,6 +30,7 @@ pub async fn check_ip_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
     interval: Option<forms::Duration>,
+    app_config: &'r State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
@@ -39,6 +40,7 @@ pub async fn check_ip_stream_route<'r>(
         &network_checker,
         ip_connectivity_check_result,
         interval,
+        app_config,
     )
 }
 
@@ -48,23 +50,11 @@ pub async fn check_ip_stream_route<'r>(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum IpConnectivityStatus {
+    Queued,
     Checking,
     Success,
     Failure,
     Missing,
-}
-
-#[derive(Debug)]
-#[derive(strum::Display)]
-enum IpConnectivityCheckId {
-    #[strum(to_string = "IPv4-c2s")]
-    Ipv4C2S,
-    #[strum(to_string = "IPv6-c2s")]
-    Ipv6C2S,
-    #[strum(to_string = "IPv4-s2s")]
-    Ipv4S2S,
-    #[strum(to_string = "IPv6-s2s")]
-    Ipv6S2S,
 }
 
 // BOILERPLATE
@@ -77,8 +67,13 @@ impl_network_check_result_from!(
 );
 impl_network_check_event_from!(IpConnectivityCheck, Self::IpConnectivityCheckResult);
 
-impl Default for IpConnectivityStatus {
-    fn default() -> Self {
+impl WithQueued for IpConnectivityStatus {
+    fn queued() -> Self {
+        Self::Queued
+    }
+}
+impl WithChecking for IpConnectivityStatus {
+    fn checking() -> Self {
         Self::Checking
     }
 }
@@ -89,33 +84,6 @@ impl From<IpConnectivityCheckResult> for IpConnectivityStatus {
             IpConnectivityCheckResult::Success => Self::Success,
             IpConnectivityCheckResult::Failure => Self::Failure,
             IpConnectivityCheckResult::Missing => Self::Missing,
-        }
-    }
-}
-
-impl From<&IpConnectivityCheck> for IpConnectivityCheckId {
-    fn from(check: &IpConnectivityCheck) -> Self {
-        match check {
-            IpConnectivityCheck::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => Self::Ipv4C2S,
-            IpConnectivityCheck::XmppServer {
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => Self::Ipv6C2S,
-            IpConnectivityCheck::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V4,
-                ..
-            } => Self::Ipv4S2S,
-            IpConnectivityCheck::XmppServer {
-                conn_type: XmppConnectionType::S2S,
-                ip_version: IpVersion::V6,
-                ..
-            } => Self::Ipv6S2S,
         }
     }
 }

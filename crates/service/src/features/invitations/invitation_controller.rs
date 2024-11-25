@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
@@ -26,24 +28,25 @@ use super::{
     InvitationService, InvitationStatus, InvitationToken,
 };
 
-pub struct InvitationController<'r> {
-    pub db: &'r DatabaseConnection,
-    pub uuid_gen: &'r dependencies::Uuid,
+#[derive(Clone)]
+pub struct InvitationController {
+    pub db: Arc<DatabaseConnection>,
+    pub uuid_gen: Arc<dependencies::Uuid>,
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn invite_member(
         &self,
         app_config: &AppConfig,
         server_config: &ServerConfig,
-        notifier: &Notifier<'r>,
+        notifier: &Notifier,
         form: impl Into<InviteMemberForm>,
-        #[cfg(debug_assertions)] invitation_service: &InvitationService<'r>,
+        #[cfg(debug_assertions)] invitation_service: &InvitationService,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
         let jid = form.jid(&server_config)?;
 
-        if InvitationRepository::get_by_jid(self.db, &jid)
+        if InvitationRepository::get_by_jid(self.db.as_ref(), &jid)
             .await
             .is_ok_and(|opt| opt.is_some())
         {
@@ -51,14 +54,14 @@ impl<'r> InvitationController<'r> {
         }
 
         let invitation = InvitationRepository::create(
-            self.db,
+            self.db.as_ref(),
             InvitationCreateForm {
                 jid,
                 pre_assigned_role: Some(form.pre_assigned_role.clone()),
                 contact: form.contact.clone(),
                 created_at: None,
             },
-            self.uuid_gen,
+            &self.uuid_gen,
         )
         .await?;
 
@@ -72,7 +75,7 @@ impl<'r> InvitationController<'r> {
         {
             error!("Could not send workspace invitation: {err}");
             InvitationRepository::update_status(
-                self.db,
+                self.db.as_ref(),
                 invitation.clone(),
                 InvitationStatus::SendFailed,
             )
@@ -95,13 +98,17 @@ impl<'r> InvitationController<'r> {
             );
         };
 
-        InvitationRepository::update_status(self.db, invitation.clone(), InvitationStatus::Sent)
-            .await
-            .map_err(|err| InviteMemberError::CouldNotUpdateInvitationStatus {
-                id: invitation.id,
-                status: InvitationStatus::Sent,
-                err,
-            })?;
+        InvitationRepository::update_status(
+            self.db.as_ref(),
+            invitation.clone(),
+            InvitationStatus::Sent,
+        )
+        .await
+        .map_err(|err| InviteMemberError::CouldNotUpdateInvitationStatus {
+            id: invitation.id,
+            status: InvitationStatus::Sent,
+            err,
+        })?;
 
         #[cfg(debug_assertions)]
         if app_config.debug_only.automatically_accept_invitations {
@@ -172,26 +179,26 @@ pub enum InviteMemberError {
     DbErr(#[from] DbErr),
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn get_by_accept_token(
         &self,
         token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_accept_token(self.db, token).await
+        InvitationRepository::get_by_accept_token(self.db.as_ref(), token).await
     }
     pub async fn get_by_reject_token(
         &self,
         token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_reject_token(self.db, token).await
+        InvitationRepository::get_by_reject_token(self.db.as_ref(), token).await
     }
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn accept(
         &self,
         token: InvitationToken,
-        invitation_service: &InvitationService<'r>,
+        invitation_service: &InvitationService,
         form: impl Into<InvitationAcceptForm>,
     ) -> Result<(), CannotAcceptInvitation> {
         let form = form.into();
@@ -210,7 +217,7 @@ impl<'r> InvitationController<'r> {
         }
 
         invitation_service
-            .accept(self.db, invitation, &form.password, &form.nickname)
+            .accept(self.db.as_ref(), invitation, &form.password, &form.nickname)
             .await?;
 
         Ok(())
@@ -235,7 +242,7 @@ pub enum CannotAcceptInvitation {
     DbErr(#[from] DbErr),
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn reject(&self, token: InvitationToken) -> Result<(), InvitationRejectError> {
         // NOTE: We don't check that the invitation status is "SENT"
         //   because it would cause a lot of useless edge cases.
@@ -246,7 +253,7 @@ impl<'r> InvitationController<'r> {
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.reject_token);
 
-        invitation.delete(self.db).await?;
+        invitation.delete(self.db.as_ref()).await?;
 
         Ok(())
     }
@@ -260,14 +267,14 @@ pub enum InvitationRejectError {
     DbErr(#[from] DbErr),
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn resend(
         &self,
         config: &AppConfig,
-        notifier: &Notifier<'r>,
+        notifier: &Notifier,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
-        let invitation = InvitationRepository::get_by_id(self.db, &invitation_id)
+        let invitation = InvitationRepository::get_by_id(self.db.as_ref(), &invitation_id)
             .await?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
@@ -294,9 +301,9 @@ pub enum InvitationResendError {
     DbErr(#[from] DbErr),
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn cancel(&self, invitation_id: i32) -> Result<(), InvitationCancelError> {
-        InvitationRepository::delete_by_id(self.db, invitation_id).await?;
+        InvitationRepository::delete_by_id(self.db.as_ref(), invitation_id).await?;
 
         Ok(())
     }
@@ -308,13 +315,13 @@ pub enum InvitationCancelError {
     DbErr(#[from] DbErr),
 }
 
-impl<'r> InvitationController<'r> {
+impl InvitationController {
     pub async fn get_invitations(
         &self,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), DbErr> {
-        InvitationRepository::get_all(self.db, page_number, page_size, until).await
+        InvitationRepository::get_all(self.db.as_ref(), page_number, page_size, until).await
     }
 }

@@ -3,11 +3,15 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use reqwest::{header::HeaderMap, Request, Response, StatusCode, Url};
+use mime::Mime;
+use reqwest::{
+    header::{HeaderMap, CONTENT_TYPE},
+    Request, Response, StatusCode, Url,
+};
 use serde::{de::DeserializeOwned, Serialize, Serializer};
 
 #[derive(Debug, thiserror::Error, Serialize)]
-#[error("{message}")]
+#[error("{message} (response: {response:#?})")]
 pub struct UnexpectedHttpResponse {
     pub message: String,
     pub request: Option<RequestData>,
@@ -39,6 +43,11 @@ impl RequestData {
 pub struct ResponseData {
     #[serde(serialize_with = "ser_status_code")]
     pub status: StatusCode,
+    #[serde(
+        serialize_with = "ser_content_type",
+        skip_serializing_if = "Option::is_none"
+    )]
+    content_type: Option<Mime>,
     #[serde(serialize_with = "ser_headermap")]
     pub headers: HeaderMap,
     #[serde(serialize_with = "ser_body")]
@@ -48,6 +57,11 @@ pub struct ResponseData {
 impl ResponseData {
     pub async fn from(response: Response) -> Self {
         let status = response.status();
+        let content_type: Option<Mime> = response
+            .headers()
+            .get(CONTENT_TYPE)
+            .and_then(|val| val.to_str().ok())
+            .and_then(|val| val.parse().ok());
         let headers = response.headers().clone();
         let text: Option<String> = response.text().await.ok();
         let json: Option<serde_json::Value> = text
@@ -56,6 +70,7 @@ impl ResponseData {
             .flatten();
         Self {
             status,
+            content_type,
             headers,
             body: json.ok_or(text.unwrap_or("<none>".to_string())),
         }
@@ -79,6 +94,9 @@ impl ResponseData {
 fn ser_status_code<S: Serializer>(sc: &StatusCode, serializer: S) -> Result<S::Ok, S::Error> {
     sc.to_string().serialize(serializer)
 }
+fn ser_content_type<S: Serializer>(ct: &Option<Mime>, serializer: S) -> Result<S::Ok, S::Error> {
+    ct.as_ref().map(ToString::to_string).serialize(serializer)
+}
 fn headermap_to_vec(hm: &HeaderMap) -> Vec<String> {
     hm.iter()
         .map(|(k, v)| format!("{k}: {}", v.to_str().unwrap_or("<error>")))
@@ -101,7 +119,11 @@ impl UnexpectedHttpResponse {
     pub async fn new(
         request: Option<RequestData>,
         response: ResponseData,
-        error_description: impl FnOnce(Option<serde_json::Value>, Option<String>) -> String,
+        error_description: impl FnOnce(
+            Option<Mime>,
+            Option<serde_json::Value>,
+            Option<String>,
+        ) -> String,
     ) -> Self {
         let response_text: Option<String> = match response.body.as_ref() {
             Ok(json) => serde_json::to_string(&json).ok(),
@@ -110,7 +132,11 @@ impl UnexpectedHttpResponse {
         let response_json: Option<serde_json::Value> = response.body.as_ref().ok().cloned();
 
         Self {
-            message: error_description(response_json.clone(), response_text.clone()),
+            message: error_description(
+                response.content_type.clone(),
+                response_json.clone(),
+                response_text.clone(),
+            ),
             request,
             response,
         }

@@ -34,7 +34,7 @@ pub struct SetMemberAvatarResponse {
 pub async fn set_member_avatar_route<'r>(
     member_id: JIDUriParam,
     user_info: LazyGuard<UserInfo>,
-    xmpp_service: LazyGuard<XmppService<'r>>,
+    xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {
     let jid = user_info.inner?.jid;

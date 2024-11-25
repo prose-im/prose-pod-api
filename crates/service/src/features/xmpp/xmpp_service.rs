@@ -13,18 +13,19 @@ use tracing::debug;
 
 pub use super::live_xmpp_service::LiveXmppService;
 
-pub struct XmppService<'r> {
-    inner: &'r XmppServiceInner,
+#[derive(Clone)]
+pub struct XmppService {
+    inner: Arc<XmppServiceInner>,
     ctx: XmppServiceContext,
 }
 
-impl<'r> XmppService<'r> {
-    pub fn new(inner: &'r XmppServiceInner, ctx: XmppServiceContext) -> Self {
+impl XmppService {
+    pub fn new(inner: Arc<XmppServiceInner>, ctx: XmppServiceContext) -> Self {
         Self { inner, ctx }
     }
 }
 
-impl<'r> Deref for XmppService<'r> {
+impl Deref for XmppService {
     type Target = Arc<dyn XmppServiceImpl>;
 
     fn deref(&self) -> &Self::Target {
@@ -32,6 +33,7 @@ impl<'r> Deref for XmppService<'r> {
     }
 }
 
+#[derive(Clone)]
 pub struct XmppServiceContext {
     pub bare_jid: BareJid,
     pub prosody_token: SecretString,
@@ -48,7 +50,7 @@ impl XmppServiceInner {
 
 pub type VCard = prose_xmpp::stanza::VCard4;
 
-impl<'r> XmppService<'r> {
+impl XmppService {
     pub async fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, XmppServiceError> {
         self.deref().get_vcard(&self.ctx, jid).await
     }

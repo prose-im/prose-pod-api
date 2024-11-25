@@ -3,23 +3,27 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, ops::Deref};
+use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
+use futures::FutureExt as _;
 use rocket::{
     form::Strict,
     get,
     response::stream::{Event, EventStream},
     serde::json::Json,
+    State,
 };
 use serde::{Deserialize, Serialize};
 use service::{
     members::{member_controller, MemberController},
     models::BareJid,
+    util::ConcurrentTaskRunner,
+    AppConfig,
 };
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
     pub online: Option<bool>,
@@ -33,28 +37,47 @@ pub struct JIDs {
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
-pub async fn enrich_members_route<'r>(
-    member_controller: LazyGuard<MemberController<'r>>,
+pub async fn enrich_members_route(
+    member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
+    app_config: &State<AppConfig>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_controller = member_controller.inner?;
-    let jids = jids.into_inner();
+    let jids = jids.into_inner().jids;
+    let jids_count = jids.len();
+    let runner = ConcurrentTaskRunner::default(&app_config);
 
-    let mut res = HashMap::with_capacity(jids.len());
-    for jid in jids.iter() {
-        let enriched_member = member_controller.enrich_member(jid).await;
-        res.insert(jid.deref().to_owned(), enriched_member.into());
+    let cancellation_token = member_controller.cancellation_token.clone();
+    let mut rx = runner.run(
+        jids,
+        move |jid| {
+            let member_controller = member_controller.clone();
+            Box::pin(async move {
+                member_controller
+                    .enrich_member(&jid)
+                    .map(EnrichedMember::from)
+                    .await
+            })
+        },
+        move || cancellation_token.cancel(),
+    );
+
+    let mut res = HashMap::with_capacity(jids_count);
+    while let Some(member) = rx.recv().await {
+        res.insert(member.jid.clone(), member.into());
     }
     Ok(res.into())
 }
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub fn enrich_members_stream_route<'r>(
-    member_controller: LazyGuard<MemberController<'r>>,
+pub async fn enrich_members_stream_route<'r>(
+    member_controller: LazyGuard<MemberController>,
     jids: Strict<JIDs>,
+    app_config: &State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
-    let member_controller = member_controller.inner?;
-    let jids = jids.into_inner();
+    let member_controller = Arc::new(member_controller.inner?);
+    let jids = jids.into_inner().jids;
+    let runner = ConcurrentTaskRunner::default(&app_config);
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
@@ -62,9 +85,24 @@ pub fn enrich_members_stream_route<'r>(
             event
         }
 
-        for jid in jids.iter() {
-            let res: EnrichedMember = member_controller.enrich_member(jid).await.into();
-            yield logged(Event::json(&res).id(jid.to_string()).event("enriched-member"));
+        let cancellation_token = member_controller.cancellation_token.clone();
+        let mut rx = runner.run(
+            jids,
+            move |jid| {
+                let member_controller = member_controller.clone();
+                Box::pin(async move {
+                    member_controller
+                        .enrich_member(&jid)
+                        .map(EnrichedMember::from)
+                        .await
+                })
+            },
+            move || cancellation_token.cancel(),
+        );
+
+        while let Some(member) = rx.recv().await {
+            let jid = member.jid.clone();
+            yield logged(Event::json(&member).id(jid.to_string()).event("enriched-member"));
         }
 
         yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));

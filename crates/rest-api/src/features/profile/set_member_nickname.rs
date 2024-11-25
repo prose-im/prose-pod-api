@@ -34,7 +34,7 @@ pub struct SetMemberNicknameResponse {
 pub async fn set_member_nickname_route<'r>(
     member_id: JIDUriParam,
     user_info: LazyGuard<UserInfo>,
-    xmpp_service: LazyGuard<XmppService<'r>>,
+    xmpp_service: LazyGuard<XmppService>,
     req: Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
     let jid = user_info.inner?.jid;

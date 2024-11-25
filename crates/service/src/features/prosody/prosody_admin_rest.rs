@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use mime::Mime;
 use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use secrecy::ExposeSecret as _;
 use serde::Deserialize;
@@ -173,17 +174,33 @@ enum AddMemberFailed {
 impl NonStandardXmppClient for ProsodyAdminRest {
     async fn is_connected(&self, jid: &BareJid) -> Result<bool, anyhow::Error> {
         let response = self
-            .call(|client| {
-                client.get(format!(
-                    "{}/{}/connected",
-                    self.url("user"),
-                    urlencoding::encode(&jid.to_string()),
-                ))
-            })
+            .call_(
+                |client| {
+                    client.get(format!(
+                        "{}/{}/connected",
+                        self.url("user"),
+                        urlencoding::encode(&jid.to_string()),
+                    ))
+                },
+                |response| {
+                    // Accept the response if it's a 404, as the API returns a 404
+                    // when the user has no session (<=> not connected).
+                    if response.status.is_success() || response.status == StatusCode::NOT_FOUND {
+                        Ok(response)
+                    } else {
+                        Err(response)
+                    }
+                },
+            )
             .await?;
-        let res: ConnectedResponse = response.deserialize()?;
-        Ok(res.connected)
+        let res: ProsodyAdminRestApiResponse<ConnectedResponse> = response.deserialize()?;
+        Ok(res.result.connected)
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ProsodyAdminRestApiResponse<T> {
+    result: T,
 }
 
 #[derive(Debug, Deserialize)]
@@ -191,11 +208,22 @@ struct ConnectedResponse {
     connected: bool,
 }
 
-fn error_description(json: Option<serde_json::Value>, text: Option<String>) -> String {
+fn error_description(
+    content_type: Option<Mime>,
+    json: Option<serde_json::Value>,
+    text: Option<String>,
+) -> String {
     json.as_ref()
         .map(|v| v.as_str())
         .flatten()
         .map(ToString::to_string)
-        .or(text.clone())
+        .or_else(|| {
+            let mime = content_type.unwrap_or(mime::STAR_STAR);
+            if mime.essence_str() == "text/html" {
+                Some(format!("`{mime}` content"))
+            } else {
+                text.clone()
+            }
+        })
         .unwrap_or("Prosody admin_rest call failed.".to_string())
 }

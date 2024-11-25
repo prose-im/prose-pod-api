@@ -221,32 +221,38 @@ impl TestWorld {
     async fn server_manager(&self) -> Result<ServerManager, DbErr> {
         let server_config = self.server_config_model().await?;
         Ok(ServerManager::new(
-            &self.db(),
-            &self.app_config,
-            &self.server_ctl,
+            Arc::new(self.db().clone()),
+            Arc::new(self.app_config.clone()),
+            Arc::new(self.server_ctl.clone()),
             server_config,
         ))
     }
 
     fn user_service(&self) -> UserService {
-        UserService::new(&self.server_ctl, &self.auth_service, &self.xmpp_service)
+        UserService::new(
+            Arc::new(self.server_ctl.clone()),
+            Arc::new(self.auth_service.clone()),
+            Arc::new(self.xmpp_service.clone()),
+        )
     }
 
     fn init_controller(&self) -> InitController {
         let db = self.db();
-        InitController { db }
+        InitController {
+            db: Arc::new(db.clone()),
+        }
     }
 
-    async fn workspace_controller<'r>(&'r self) -> WorkspaceController<'r> {
+    async fn workspace_controller(&self) -> WorkspaceController {
         WorkspaceController::new(
-            self.db(),
-            &self.xmpp_service,
-            &self.app_config,
+            Arc::new(self.db().clone()),
+            Arc::new(self.xmpp_service.clone()),
+            Arc::new(self.app_config.clone()),
             &self
                 .server_config()
                 .await
                 .expect("Server config not initialized"),
-            &self.secrets_store,
+            Arc::new(self.secrets_store.clone()),
         )
         .expect("Workspace not initialized")
     }

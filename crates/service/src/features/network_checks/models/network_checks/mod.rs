@@ -16,8 +16,11 @@ use crate::network_checks::NetworkChecker;
 
 #[async_trait]
 pub trait NetworkCheck {
+    type CheckId;
     type CheckResult;
     fn description(&self) -> String;
+    fn check_type() -> &'static str;
+    fn id(&self) -> Self::CheckId;
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult;
 }
 

@@ -13,12 +13,12 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct InvitationService<'r> {
-    user_service: UserService<'r>,
+pub struct InvitationService {
+    user_service: UserService,
 }
 
-impl<'r> InvitationService<'r> {
-    pub fn new(user_service: UserService<'r>) -> Self {
+impl InvitationService {
+    pub fn new(user_service: UserService) -> Self {
         Self { user_service }
     }
 

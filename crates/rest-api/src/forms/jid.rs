@@ -4,14 +4,17 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::str::FromStr;
-use std::{fmt::Display, ops::Deref};
+use std::{
+    fmt::{Debug, Display},
+    ops::Deref,
+};
 
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
 use service::models::BareJid;
 
-#[derive(Debug, Clone, Eq)]
+#[derive(Clone, Eq)]
 pub struct JID(pub(crate) BareJid);
 
 impl<'v> FromFormField<'v> for JID {
@@ -57,7 +60,13 @@ impl Deref for JID {
 
 impl Display for JID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Debug for JID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self.as_str(), f)
     }
 }
 

@@ -8,7 +8,7 @@ use service::members::UserService;
 use super::{prelude::*, UnauthenticatedUserService};
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for UserService<'r> {
+impl<'r> LazyFromRequest<'r> for UserService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

@@ -26,7 +26,7 @@ pub struct InitServerConfigRequest {
 
 #[put("/v1/server/config", format = "json", data = "<req>")]
 pub async fn init_server_config_route<'r>(
-    init_controller: LazyGuard<InitController<'r>>,
+    init_controller: LazyGuard<InitController>,
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
     auth_service: &State<AuthService>,

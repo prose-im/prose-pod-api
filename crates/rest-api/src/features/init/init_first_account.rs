@@ -29,10 +29,10 @@ pub struct InitFirstAccountRequest {
 }
 
 #[put("/v1/init/first-account", format = "json", data = "<req>")]
-pub async fn init_first_account_route<'r>(
-    init_controller: LazyGuard<InitController<'r>>,
+pub async fn init_first_account_route(
+    init_controller: LazyGuard<InitController>,
     server_config: LazyGuard<ServerConfig>,
-    user_service: LazyGuard<UnauthenticatedUserService<'r>>,
+    user_service: LazyGuard<UnauthenticatedUserService>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
     let init_controller = init_controller.inner?;
