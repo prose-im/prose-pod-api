@@ -50,6 +50,7 @@ pub async fn check_ip_stream_route<'r>(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum IpConnectivityStatus {
+    Queued,
     Checking,
     Success,
     Failure,
@@ -66,8 +67,13 @@ impl_network_check_result_from!(
 );
 impl_network_check_event_from!(IpConnectivityCheck, Self::IpConnectivityCheckResult);
 
-impl Default for IpConnectivityStatus {
-    fn default() -> Self {
+impl WithQueued for IpConnectivityStatus {
+    fn queued() -> Self {
+        Self::Queued
+    }
+}
+impl WithChecking for IpConnectivityStatus {
+    fn checking() -> Self {
         Self::Checking
     }
 }

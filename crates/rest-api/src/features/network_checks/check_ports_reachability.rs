@@ -50,6 +50,7 @@ pub fn check_ports_stream_route<'r>(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PortReachabilityStatus {
+    Queued,
     Checking,
     Open,
     Closed,
@@ -65,8 +66,13 @@ impl_network_check_result_from!(
 );
 impl_network_check_event_from!(PortReachabilityCheck, Self::PortReachabilityCheckResult);
 
-impl Default for PortReachabilityStatus {
-    fn default() -> Self {
+impl WithQueued for PortReachabilityStatus {
+    fn queued() -> Self {
+        Self::Queued
+    }
+}
+impl WithChecking for PortReachabilityStatus {
+    fn checking() -> Self {
         Self::Checking
     }
 }

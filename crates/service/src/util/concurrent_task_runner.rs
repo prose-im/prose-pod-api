@@ -9,7 +9,11 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
-use tokio::{sync::mpsc, task::JoinHandle, time::sleep};
+use tokio::{
+    sync::{mpsc, Barrier},
+    task::JoinHandle,
+    time::sleep,
+};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, Instrument as _};
 
@@ -145,17 +149,19 @@ impl ConcurrentTaskRunner {
     /// WARN: Make sure to increase [`timeout`][Self::timeout] in order
     ///   for retries to work as expected. You can use [`Self::no_timeout`].
     #[instrument(level = "trace", skip_all)]
-    pub fn run_with_retries<D, F, R, DefaultResult>(
+    pub fn run_with_retries<D, F, R, DefaultResult, RetryResult>(
         &self,
         data: Vec<D>,
         make_future: impl Fn(D) -> F + Send + 'static + Sync,
-        default_result: Option<DefaultResult>,
-        on_cancel: impl FnOnce() -> () + Send + 'static,
+        before_all: Option<DefaultResult>,
+        before_retry: Option<RetryResult>,
         should_retry: impl Fn(&R) -> bool + Send + 'static + Copy + Sync,
+        on_cancel: impl FnOnce() -> () + Send + 'static,
     ) -> mpsc::Receiver<R>
     where
         D: Debug + Clone + Send + 'static,
         DefaultResult: Fn(&D) -> R + Send + 'static + Copy,
+        RetryResult: Fn(&D) -> R + Send + 'static + Copy,
         F: Future<Output = R> + Send + 'static + Unpin,
         R: Send + 'static,
     {
@@ -168,10 +174,12 @@ impl ConcurrentTaskRunner {
         let cancellation_token = self.cancellation_token.child_token();
         let make_future = Arc::new(make_future);
 
-        let default_msgs: Option<Vec<R>> = default_result.map(|f| data.iter().map(f).collect());
+        let default_msgs: Option<Vec<R>> = before_all.map(|f| data.iter().map(f).collect());
 
         // Create a mpsc channel to receive task results.
         let (tx, rx) = mpsc::channel::<R>(min(data.len(), 32));
+
+        let barrier = before_all.map(|_| Arc::new(Barrier::new(data.len() + 1)));
 
         // Map futures to cancellable and retryable tasks.
         let mut tasks: FuturesUnordered<JoinHandle<()>> = data
@@ -179,12 +187,18 @@ impl ConcurrentTaskRunner {
             .map(|data| {
                 let cancellation_token = cancellation_token.clone();
                 let tx = tx.clone();
+                let barrier = barrier.clone();
                 let make_future = make_future.clone();
 
                 // Spawn a new task so the future runs concurrently with the other ones.
                 let span = trace_span!("task", data = format!("{data:?}"));
                 tokio::spawn(
                     async move {
+                        if let Some(barrier) = barrier {
+                            // Wait for default messages to be sent.
+                            barrier.wait().await;
+                        };
+
                         let mut should_retry_this = true;
                         let mut try_n = 1;
 
@@ -192,6 +206,11 @@ impl ConcurrentTaskRunner {
                             // Avoid an unnecessary retry if applicable.
                             if cancellation_token.is_cancelled() || tx.is_closed() {
                                 break
+                            }
+
+                            // Optionally send messages before retrying (e.g. "CHECKING").
+                            if let Some(before_retry) = before_retry {
+                                send!(tx, before_retry(&data), cancellation_token);
                             }
 
                             tokio::select! {
@@ -238,6 +257,12 @@ impl ConcurrentTaskRunner {
                                 send!(tx, msg, cancellation_token);
                             }
                         }
+
+                        // Notify that default messages have been sent.
+                        if let Some(barrier) = barrier {
+                            barrier.wait().await;
+                        }
+
                         // Wait for all tasks to finish.
                         while let Some(Ok(())) = tasks.next().await {}
                     } => {}

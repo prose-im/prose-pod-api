@@ -54,7 +54,7 @@ pub fn run_checks_stream<'r, Check, Status>(
 where
     Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-    Status: From<Check::CheckResult> + Default + Send,
+    Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
 {
     let retry_interval =
         retry_interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;

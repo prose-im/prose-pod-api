@@ -19,7 +19,7 @@ use tokio::{
 };
 use tracing::{debug, error, instrument, trace_span, Instrument as _};
 
-use crate::util::ConcurrentTaskRunner;
+use crate::util::{ConcurrentTaskRunner, Either};
 
 use super::models::{dns::*, network_checks::*};
 
@@ -81,6 +81,13 @@ pub enum IpVersion {
     V6,
 }
 
+pub trait WithQueued {
+    fn queued() -> Self;
+}
+pub trait WithChecking {
+    fn checking() -> Self;
+}
+
 impl NetworkChecker {
     #[instrument(level = "trace", skip(self, checks, map_to_event, sender, runner), fields(r#type = Check::check_type()))]
     pub fn run_checks<'a, Check, Status, Event>(
@@ -92,7 +99,7 @@ impl NetworkChecker {
     ) where
         Check: NetworkCheck + Debug + Clone + Send + 'static + Sync,
         Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-        Status: From<Check::CheckResult> + Default + Send,
+        Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
         Event: Send + 'static,
     {
         let network_checker = self.clone();
@@ -103,18 +110,23 @@ impl NetworkChecker {
 
                 Box::pin(async move {
                     let result = check.run(&network_checker).await;
-                    (check, Some(result))
+                    (check, Either::Left(result))
                 })
             },
-            Some(|check: &Check| (check.clone(), None)),
+            Some(|check: &Check| (check.clone(), Either::Right(Status::queued()))),
+            Some(|check: &Check| (check.clone(), Either::Right(Status::checking()))),
+            |(_, res)| res.left().unwrap().should_retry(),
             move || {},
-            |(_, res)| res.as_ref().unwrap().should_retry(),
         );
 
         tokio::spawn(
             async move {
                 while let Some((check, result)) = rx.recv().await {
-                    let event = map_to_event(&check, result.map(Status::from).unwrap_or_default());
+                    let status = match result {
+                        Either::Left(r) => Status::from(r),
+                        Either::Right(s) => s,
+                    };
+                    let event = map_to_event(&check, status);
                     if let Err(err) = sender.send(event).await {
                         if sender.is_closed() {
                             debug!("Cannot send event: Task aborted.");

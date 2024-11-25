@@ -46,6 +46,7 @@ pub fn check_dns_records_stream_route<'r>(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DnsRecordStatus {
+    Queued,
     Checking,
     Valid,
     PartiallyValid,
@@ -62,8 +63,13 @@ impl_network_check_result_from!(
 );
 impl_network_check_event_from!(DnsRecordCheck, Self::DnsRecordCheckResult);
 
-impl Default for DnsRecordStatus {
-    fn default() -> Self {
+impl WithQueued for DnsRecordStatus {
+    fn queued() -> Self {
+        Self::Queued
+    }
+}
+impl WithChecking for DnsRecordStatus {
+    fn checking() -> Self {
         Self::Checking
     }
 }
