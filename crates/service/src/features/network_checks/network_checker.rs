@@ -13,10 +13,7 @@ use std::{
 use async_trait::async_trait;
 use hickory_proto::rr::Name as DomainName;
 use linked_hash_set::LinkedHashSet;
-use tokio::{
-    sync::mpsc::{error::SendError, Sender},
-    task::JoinSet,
-};
+use tokio::sync::mpsc::Sender;
 use tracing::{debug, error, instrument, trace_span, Instrument as _};
 
 use crate::util::{ConcurrentTaskRunner, Either};
@@ -140,31 +137,5 @@ impl NetworkChecker {
             }
             .instrument(trace_span!("task")),
         );
-    }
-
-    #[instrument(level = "trace", skip(self, checks, map_to_event, sender, join_set), fields(r#type = Check::check_type()))]
-    pub fn run_checks_oneshot<'a, Check, Status, Event>(
-        &self,
-        checks: impl Iterator<Item = Check>,
-        map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
-        sender: Sender<Event>,
-        join_set: &mut JoinSet<Result<(), SendError<Event>>>,
-    ) where
-        Check: NetworkCheck + Send + 'static,
-        Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-        Status: From<Check::CheckResult> + Default,
-        Event: Send + 'static,
-    {
-        for check in checks {
-            let tx_clone = sender.clone();
-            let network_checker = self.to_owned();
-
-            join_set.spawn(async move {
-                let result = check.run(&network_checker).await;
-                tx_clone
-                    .send(map_to_event(&check, Status::from(result.clone())))
-                    .await
-            });
-        }
     }
 }
