@@ -3,9 +3,75 @@
 # Configure the script to exit when a command fails.
 set -e
 
-: ${SCRIPTS_ROOT:="$(dirname $0)/.."}
+# ===== SHARED CODE =====
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Updates the Prose Pod API and the repositories it depends on to get the latest updates.${Bold_Off}
+
+This script pulls the latest changes from $(format_code prose-pod-server), $(format_code prose-pod-api)
+and $(format_code prose-pod-system), then builds the Docker images.
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to update without changing the checked out branches:
+    $(format_command task local-update)
+  You want to test a hotfix made on a specific branch of the Prose Pod API:
+    $(format_command task local-update) $(format_arg --api-branch=BRANCH)
+
+$(format_title 'Options:')
+  $(format_subtitle 'Main options:')
+    $(format_flag --server-branch=BRANCH)
+      Choose the branch to checkout in $(format_code prose-pod-server).
+    $(format_flag --api-branch=BRANCH)
+      Choose the branch to checkout in $(format_code prose-pod-api).
+    $(format_flag --system-branch=BRANCH)
+      Choose the branch to checkout in $(format_code prose-pod-system).
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+# ===== ARGUMENT PARSING =====
+
+for arg in "$@"; do
+		case $arg in
+			--server-branch=*)
+				SERVER_BRANCH="${arg#'--server-branch='}"
+				info "Will use branch $(format_code $SERVER_BRANCH) for prose-pod-server."
+				;;
+			--api-branch=*)
+				API_BRANCH="${arg#'--api-branch='}"
+				info "Will use branch $(format_code $API_BRANCH) for prose-pod-api."
+				;;
+			--system-branch=*)
+				SYSTEM_BRANCH="${arg#'--system-branch='}"
+				info "Will use branch $(format_code $SYSTEM_BRANCH) for prose-pod-system."
+				;;
+			--help) help ;;
+			*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+		esac
+done
+
+# ===== MAIN LOGIC =====
 
 test-env-vars 'tutorials/run-locally.md' \
 	PROSE_POD_SERVER_DIR \
@@ -13,14 +79,17 @@ test-env-vars 'tutorials/run-locally.md' \
 	PROSE_POD_SYSTEM_DIR
 
 info 'Updating prose-pod-server…'
+[ -n "${SERVER_BRANCH}" ] && edo git -C "${PROSE_POD_SERVER_DIR:?}" checkout "${SERVER_BRANCH:?}"
 edo git -C "${PROSE_POD_SERVER_DIR:?}" pull || :
 edo git -C "${PROSE_POD_SERVER_DIR:?}" submodule update
 
 info 'Updating prose-pod-api…'
+[ -n "${API_BRANCH}" ] && ( edo git -C "${PROSE_POD_API_DIR:?}" checkout "${API_BRANCH:?}" 2>/dev/null || edo git -C "${PROSE_POD_API_DIR:?}" checkout -t origin/"${API_BRANCH:?}" )
 edo git -C "${PROSE_POD_API_DIR:?}" pull || :
 edo git -C "${PROSE_POD_API_DIR:?}" submodule update
 
 info 'Updating prose-pod-system…'
+[ -n "${SYSTEM_BRANCH}" ] && edo git -C "${PROSE_POD_SYSTEM_DIR:?}" checkout "${SYSTEM_BRANCH:?}"
 edo git -C "${PROSE_POD_SYSTEM_DIR:?}" pull || :
 
 traced "${SCRIPTS_ROOT:?}"/run-locally/build-images
