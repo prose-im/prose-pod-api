@@ -12,7 +12,7 @@ use tracing::{debug, trace, warn};
 
 use crate::xmpp::{BareJid, XmppService};
 
-use super::{Member, MemberRepository};
+use super::{Member, MemberRepository, MemberRole};
 
 #[derive(Clone)]
 pub struct MemberController {
@@ -47,14 +47,25 @@ impl MemberController {
 }
 
 impl MemberController {
-    pub async fn enrich_member(&self, jid: &BareJid) -> EnrichedMember {
+    pub async fn enrich_member(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
         trace!("Enriching `{jid}`…");
 
-        let mut member = EnrichedMember {
-            jid: jid.to_owned(),
-            nickname: None,
-            avatar: None,
-            online: None,
+        let mut member = match MemberRepository::get(self.db.as_ref(), jid).await {
+            Ok(Some(entity)) => EnrichedMember {
+                jid: jid.to_owned(),
+                role: entity.role,
+                nickname: None,
+                avatar: None,
+                online: None,
+            },
+            Ok(None) => {
+                warn!("Member '{jid}' does not exist in database. Won't try enriching it with XMPP data.");
+                return Ok(None);
+            }
+            Err(err) => {
+                warn!("Couldn't find member '{jid}' in database: {err}");
+                return Err(err);
+            }
         };
 
         trace!("-> Getting `{jid}`'s vCard…");
@@ -76,7 +87,7 @@ impl MemberController {
             .map(|p| p.value);
 
         if self.cancellation_token.is_cancelled() {
-            return member;
+            return Ok(Some(member));
         }
         trace!("-> Getting `{jid}`'s avatar…");
         member.avatar = match self.xmpp_service.get_avatar(jid).await {
@@ -94,7 +105,7 @@ impl MemberController {
         };
 
         if self.cancellation_token.is_cancelled() {
-            return member;
+            return Ok(Some(member));
         }
         trace!("-> Checking if `{jid}` is connected…");
         member.online = self
@@ -106,13 +117,14 @@ impl MemberController {
             // But dismiss it
             .ok();
 
-        member
+        Ok(Some(member))
     }
 }
 
 #[derive(Debug)]
 pub struct EnrichedMember {
     pub jid: BareJid,
+    pub role: MemberRole,
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,

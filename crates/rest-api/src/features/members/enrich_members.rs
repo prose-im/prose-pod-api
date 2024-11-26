@@ -5,7 +5,6 @@
 
 use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
-use futures::FutureExt as _;
 use rocket::{
     form::Strict,
     get,
@@ -15,7 +14,7 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use service::{
-    members::{member_controller, MemberController},
+    members::{member_controller, MemberController, MemberRole},
     models::BareJid,
     util::ConcurrentTaskRunner,
     AppConfig,
@@ -23,9 +22,12 @@ use service::{
 
 use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
 
+use super::Member;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
+    pub role: MemberRole,
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,
@@ -52,19 +54,14 @@ pub async fn enrich_members_route(
         jids,
         move |jid| {
             let member_controller = member_controller.clone();
-            Box::pin(async move {
-                member_controller
-                    .enrich_member(&jid)
-                    .map(EnrichedMember::from)
-                    .await
-            })
+            Box::pin(async move { member_controller.enrich_member(&jid).await })
         },
         move || cancellation_token.cancel(),
     );
 
     let mut res = HashMap::with_capacity(jids_count);
-    while let Some(member) = rx.recv().await {
-        res.insert(member.jid.clone(), member.into());
+    while let Some(Ok(Some(member))) = rx.recv().await {
+        res.insert(member.jid.clone(), EnrichedMember::from(member).into());
     }
     Ok(res.into())
 }
@@ -90,19 +87,14 @@ pub async fn enrich_members_stream_route<'r>(
             jids,
             move |jid| {
                 let member_controller = member_controller.clone();
-                Box::pin(async move {
-                    member_controller
-                        .enrich_member(&jid)
-                        .map(EnrichedMember::from)
-                        .await
-                })
+                Box::pin(async move { member_controller .enrich_member(&jid).await })
             },
             move || cancellation_token.cancel(),
         );
 
-        while let Some(member) = rx.recv().await {
+        while let Some(Ok(Some(member))) = rx.recv().await {
             let jid = member.jid.clone();
-            yield logged(Event::json(&member).id(jid.to_string()).event("enriched-member"));
+            yield logged(Event::json(&EnrichedMember::from(member)).id(jid.to_string()).event("enriched-member"));
         }
 
         yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
@@ -115,9 +107,20 @@ impl From<member_controller::EnrichedMember> for EnrichedMember {
     fn from(value: member_controller::EnrichedMember) -> Self {
         Self {
             jid: value.jid,
+            role: value.role,
             online: value.online,
             nickname: value.nickname,
             avatar: value.avatar,
+        }
+    }
+}
+
+// NOTE: This is just to ensure that `EnrichedMember` is a supertype of `Member`.
+impl From<EnrichedMember> for Member {
+    fn from(value: EnrichedMember) -> Self {
+        Self {
+            jid: value.jid,
+            role: value.role,
         }
     }
 }

@@ -14,6 +14,7 @@ use crate::{
     models::BareJid,
 };
 
+#[derive(Debug, Clone)]
 pub enum MemberRepository {}
 
 impl MemberRepository {

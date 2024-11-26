@@ -2132,9 +2132,10 @@
 			},
 			"EnrichedMember": {
 				"type": "object",
-				"required": ["jid"],
+				"required": ["jid", "role"],
 				"properties": {
 					"jid": { "$ref": "#/components/schemas/JID" },
+					"role": { "$ref": "#/components/schemas/MemberRole" },
 					"online": { "$ref": "#/components/schemas/OnlineStatus" },
 					"nickname": { "$ref": "#/components/schemas/Nickname" },
 					"avatar": { "$ref": "#/components/schemas/Avatar" }
