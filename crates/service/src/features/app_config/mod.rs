@@ -52,6 +52,8 @@ pub struct Config {
     /// response timeouts, but don't want to hardcode a value.
     #[serde(default = "defaults::default_response_timeout")]
     pub default_response_timeout: Duration<TimeLike>,
+    #[serde(default = "defaults::default_retry_interval")]
+    pub default_retry_interval: Duration<TimeLike>,
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub debug_only: ConfigDebugOnly,

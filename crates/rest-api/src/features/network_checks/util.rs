@@ -6,7 +6,6 @@
 use std::fmt::Debug;
 
 use futures::{stream::FuturesOrdered, StreamExt};
-use lazy_static::lazy_static;
 use rocket::{
     response::stream::{Event, EventStream},
     State,
@@ -20,10 +19,6 @@ use crate::{
 };
 
 use super::{end_event, NetworkCheckResult};
-
-lazy_static! {
-    pub static ref DEFAULT_RETRY_INTERVAL: Duration = Duration::from_secs(5);
-}
 
 pub async fn run_checks<'r, Check>(
     checks: impl Iterator<Item = Check> + 'r,
@@ -56,8 +51,10 @@ where
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
     Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
 {
-    let retry_interval =
-        retry_interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;
+    let retry_interval = retry_interval.map_or_else(
+        || Ok(app_config.default_retry_interval.into_std_duration()),
+        validate_retry_interval,
+    )?;
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {
@@ -68,6 +65,7 @@ where
         let runner = ConcurrentTaskRunner::default(&app_config)
             .no_timeout()
             .with_retry_interval(retry_interval);
+
         let (tx, mut rx) = mpsc::channel::<Event>(32);
         network_checker.run_checks(
             checks,

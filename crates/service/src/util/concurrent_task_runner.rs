@@ -39,7 +39,7 @@ impl ConcurrentTaskRunner {
             timeout: default_reponse_timeout,
             ordered: false,
             cancellation_token: CancellationToken::new(),
-            retry_interval: Duration::from_secs(5),
+            retry_interval: app_config.default_retry_interval.into_std_duration(),
             retry_timeout: default_reponse_timeout,
         }
     }

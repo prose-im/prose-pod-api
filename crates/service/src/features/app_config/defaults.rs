@@ -146,3 +146,7 @@ pub fn notify_email_smtp_encrypt() -> bool {
 pub fn default_response_timeout() -> Duration<TimeLike> {
     Duration(TimeLike::Seconds(10))
 }
+
+pub fn default_retry_interval() -> Duration<TimeLike> {
+    Duration(TimeLike::Seconds(5))
+}
