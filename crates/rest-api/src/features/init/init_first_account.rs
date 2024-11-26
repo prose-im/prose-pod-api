@@ -7,7 +7,6 @@ use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitController, InitFirstAccountError, InitFirstAccountForm},
-    members::UserCreateError,
     models::JidNode,
     server_config::ServerConfig,
 };
@@ -70,16 +69,6 @@ impl CustomErrorCode for InitFirstAccountError {
     }
 }
 impl_into_error!(InitFirstAccountError);
-
-impl CustomErrorCode for UserCreateError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(UserCreateError);
 
 // BOILERPLATE
 

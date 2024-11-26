@@ -66,8 +66,10 @@ pub fn check_network_configuration_stream_route<'r>(
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    let retry_interval =
-        interval.map_or_else(|| Ok(*DEFAULT_RETRY_INTERVAL), validate_retry_interval)?;
+    let retry_interval = interval.map_or_else(
+        || Ok(app_config.default_retry_interval.into_std_duration()),
+        validate_retry_interval,
+    )?;
 
     Ok(EventStream! {
         fn logged(event: Event) -> Event {

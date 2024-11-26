@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    members::user_service,
+    members::{user_service, UserCreateError, UserDeleteError},
     notifications::notifier,
     sea_orm,
     xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
@@ -205,10 +205,31 @@ impl CustomErrorCode for user_service::Error {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotCreateUser(err) => err.code(),
+            Self::CouldNotDeleteUser(err) => err.code(),
         }
     }
 }
 impl_into_error!(user_service::Error);
+
+impl CustomErrorCode for UserCreateError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(UserCreateError);
+
+impl CustomErrorCode for UserDeleteError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(UserDeleteError);
 
 impl CustomErrorCode for server_manager::Error {
     fn error_code(&self) -> ErrorCode {

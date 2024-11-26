@@ -142,7 +142,11 @@ pub fn notify_email_smtp_encrypt() -> bool {
     true
 }
 
-/// 1 second seems ok for most tasks, while keeping response time short.
+/// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
 pub fn default_response_timeout() -> Duration<TimeLike> {
-    Duration(TimeLike::Seconds(1))
+    Duration(TimeLike::Seconds(10))
+}
+
+pub fn default_retry_interval() -> Duration<TimeLike> {
+    Duration(TimeLike::Seconds(5))
 }

@@ -159,7 +159,8 @@ impl InvitationRepository {
     }
 
     /// Accept a user invitation (i.e. delete it from database).
-    /// To also create the associated user at the same time, use `UserFactory`.
+    /// To also create the associated user at the same time,
+    /// use [`UserService`][crate::members::UserService].
     pub async fn accept(
         db: &impl ConnectionTrait,
         invitation: Invitation,
