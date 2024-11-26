@@ -7,9 +7,8 @@ on:
 name: Test
 
 jobs:
-  test:
+  format:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,6 +18,25 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
+          override: true
+
+      - name: Verify versions
+        run: rustc --version && rustup --version && cargo --version
+
+      - name: Check code style
+        run: cargo fmt -- --check
+
+  smoke-test:
+    needs: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
           override: true
 
       - name: Verify versions
@@ -37,11 +55,101 @@ jobs:
       - name: Install SQLite3
         run: sudo apt-get update && sudo apt-get install -y sqlite3
 
-      - name: Create SQLite Database
-        run: sqlite3 database.sqlite ""
-
       - name: Test code
         run: cargo test
 
-      - name: Check code style
-        run: cargo fmt -- --check
+  integration-test:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    env:
+      PROSE_POD_SERVER_DIR: ${{ github.workspace }}/server
+      # For the API we don't use a subfolder just to make things easier.
+      PROSE_POD_API_DIR: ${{ github.workspace }}
+      PROSE_POD_SYSTEM_DIR: ${{ github.workspace }}/system
+    steps:
+      # NOTE: We **must** checkout `prose-pod-api` first otherwise checking it out
+      #   silently deletes the other checked out repositories.
+      - name: Checkout prose-pod-api
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.PROSE_POD_API_DIR }}
+          submodules: true
+      - name: Checkout prose-pod-server
+        uses: actions/checkout@v4
+        with:
+          repository: prose-im/prose-pod-server
+          path: ${{ env.PROSE_POD_SERVER_DIR }}
+          submodules: true
+      - name: Checkout prose-pod-system
+        uses: actions/checkout@v4
+        with:
+          repository: prose-im/prose-pod-system
+          path: ${{ env.PROSE_POD_SYSTEM_DIR }}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Verify versions
+        run: rustc --version && rustup --version && cargo --version
+
+      - name: Cache build context
+        id: cache-cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo
+
+      # NOTE: Recommended by [the Task documentation](https://taskfile.dev/installation/#github-actions).
+      - name: Install Task
+        uses: arduino/setup-task@v2
+
+      # SEE: https://github.com/cross-rs/cross/wiki/Getting-Started#installing-cross-1
+      - name: Install `cross`
+        run: cargo install cross
+
+      - name: Build images
+        run: scripts/run-locally/build-images
+
+      - name: Install SQLite3
+        run: sudo apt-get update && sudo apt-get install -y sqlite3
+
+      # Install our fork of Step CI (has more features we need).
+      # - name: Install Step CI
+      #   run: npm install -g stepci
+      - name: Checkout stepci-runner
+        uses: actions/checkout@v4
+        with:
+          repository: RemiBardon/stepci-runner
+          ref: prose
+          path: ${{ github.workspace }}/stepci-runner
+      - name: Build stepci-runner
+        run: |
+          cd "${{ github.workspace }}/stepci-runner"
+          npm install
+          npm run build
+          npm link
+      - name: Checkout stepci
+        uses: actions/checkout@v4
+        with:
+          repository: RemiBardon/stepci
+          ref: prose
+          path: ${{ github.workspace }}/stepci
+      - name: Build & install stepci
+        run: |
+          cd "${{ github.workspace }}/stepci"
+          # NOTE: `npm install` must be ran **before** `npm link @stepci/runner`
+          #   otherwise the link doesn't work properly and `stepci` fails at runtime
+          #   because of missing fixes from our branch.
+          npm install
+          npm link @stepci/runner
+          npm run build
+          npm install -g .
+
+      - name: Run integration tests
+        run: task integration-test
