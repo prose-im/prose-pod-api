@@ -57,7 +57,7 @@ impl UserService {
         )
         .await?;
 
-        // NOTE: We can't rollback changes made to the XMPP server so let's do it
+        // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
@@ -104,6 +104,28 @@ impl UserService {
 
         Ok(member)
     }
+    pub async fn delete_user(
+        &self,
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+    ) -> Result<(), UserDeleteError> {
+        // Delete the user from database.
+        MemberRepository::delete(db, jid).await?;
+
+        // NOTE: We can't rollback changes made to the XMPP server so we do it
+        //   after "rollbackable" DB changes in case they fail. It's not perfect
+        //   but better than nothing.
+        // TODO: Find a way to rollback XMPP server changes.
+        let server_ctl = self.server_ctl.clone();
+
+        // Delete the user from the XMPP server.
+        server_ctl
+            .remove_user(jid)
+            .await
+            .map_err(UserDeleteError::XmppServerCannotDeleteUser)?;
+
+        Ok(())
+    }
 }
 
 pub type Error = UserServiceError;
@@ -112,6 +134,8 @@ pub type Error = UserServiceError;
 pub enum UserServiceError {
     #[error("Could not create user: {0}")]
     CouldNotCreateUser(#[from] UserCreateError),
+    #[error("Could not delete user: {0}")]
+    CouldNotDeleteUser(#[from] UserDeleteError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -126,4 +150,12 @@ pub enum UserCreateError {
     XmppServerCannotAddTeamMember(ServerCtlError),
     #[error("XMPP server cannot set user role: {0}")]
     XmppServerCannotSetUserRole(ServerCtlError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UserDeleteError {
+    #[error("Database error: {0}")]
+    DbErr(#[from] DbErr),
+    #[error("XMPP server cannot delete user: {0}")]
+    XmppServerCannotDeleteUser(ServerCtlError),
 }

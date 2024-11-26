@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use sea_orm::{prelude::*, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
+use sea_orm::{prelude::*, DeleteResult, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
 
 use crate::{
     members::{
@@ -19,12 +19,26 @@ pub enum MemberRepository {}
 
 impl MemberRepository {
     /// Create the user in database but NOT on the XMPP server.
-    /// Use `UserFactory` instead, to create users in both places at the same time.
+    /// Use [`UserService`][crate::members::UserService] instead,
+    /// to create users in both places at the same time.
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<MemberCreateForm>,
     ) -> Result<Member, DbErr> {
         form.into().into_active_model().insert(db).await
+    }
+
+    /// Delete the user from database but NOT from the XMPP server.
+    /// Use [`UserService`][crate::members::UserService] instead,
+    /// to delete users from both places at the same time.
+    pub async fn delete(
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+    ) -> Result<Option<DeleteResult>, DbErr> {
+        match Self::get(db, jid).await? {
+            Some(model) => Ok(Some(model.delete(db).await?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Member>, DbErr> {
