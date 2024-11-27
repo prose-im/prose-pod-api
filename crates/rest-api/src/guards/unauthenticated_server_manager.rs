@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use service::{
     server_config::entities::server_config,
     xmpp::{ServerCtl, ServerManager},
@@ -11,10 +13,10 @@ use service::{
 use super::prelude::*;
 
 /// WARN: Use only in initialization routes! Otherwise use `ServerManager` directly.
-pub struct UnauthenticatedServerManager<'r>(pub(super) ServerManager<'r>);
+pub struct UnauthenticatedServerManager(pub(super) ServerManager);
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
+impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -24,9 +26,9 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager<'r> {
         let server_config = try_outcome!(server_config::Model::from_request(req).await);
 
         Outcome::Success(Self(ServerManager::new(
-            db,
-            app_config,
-            server_ctl,
+            Arc::new(db.clone()),
+            Arc::new(app_config.clone()),
+            Arc::new(server_ctl.clone()),
             server_config,
         )))
     }

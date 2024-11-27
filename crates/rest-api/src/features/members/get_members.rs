@@ -13,7 +13,7 @@ use super::model::*;
 
 #[get("/v1/members?<page_number>&<page_size>&<until>")]
 pub async fn get_members_route<'r>(
-    member_controller: LazyGuard<MemberController<'r>>,
+    member_controller: LazyGuard<MemberController>,
     user_info: LazyGuard<UserInfo>,
     page_number: Option<u64>,
     page_size: Option<u64>,

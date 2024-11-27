@@ -16,7 +16,7 @@ pub struct GetWorkspaceAccentColorResponse {
 
 #[get("/v1/workspace/accent-color")]
 pub async fn get_workspace_accent_color_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
 ) -> Result<Json<GetWorkspaceAccentColorResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;
 
@@ -33,7 +33,7 @@ pub struct SetWorkspaceAccentColorRequest {
 
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub async fn set_workspace_accent_color_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> Result<Json<GetWorkspaceAccentColorResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;

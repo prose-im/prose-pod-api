@@ -20,7 +20,7 @@ pub struct GetWorkspaceIconResponse {
 
 #[get("/v1/workspace/icon")]
 pub async fn get_workspace_icon_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;
 
@@ -38,7 +38,7 @@ pub struct SetWorkspaceIconRequest {
 
 #[put("/v1/workspace/icon", format = "json", data = "<req>")]
 pub async fn set_workspace_icon_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
     req: Json<SetWorkspaceIconRequest>,
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
     let workspace_controller = workspace_controller.inner?;

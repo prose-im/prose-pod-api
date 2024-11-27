@@ -22,6 +22,7 @@ use crate::{
     models::{
         durations::{DateLike, Duration, PossiblyInfinite},
         xmpp::jid::{BareJid, DomainPart, DomainRef, JidNode},
+        TimeLike,
     },
 };
 
@@ -47,6 +48,12 @@ pub struct Config {
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
+    /// Some requests may take a long time to execute. Sometimes we support
+    /// response timeouts, but don't want to hardcode a value.
+    #[serde(default = "defaults::default_response_timeout")]
+    pub default_response_timeout: Duration<TimeLike>,
+    #[serde(default = "defaults::default_retry_interval")]
+    pub default_retry_interval: Duration<TimeLike>,
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub debug_only: ConfigDebugOnly,
@@ -60,6 +67,7 @@ impl Config {
             .merge(Env::prefixed("PROSE_").split("__"))
             .extract()
             .expect("Could not read config")
+        // TODO: Check values intervals (e.g. `default_response_timeout`).
     }
 
     pub fn api_jid(&self) -> BareJid {

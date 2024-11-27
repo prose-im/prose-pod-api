@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
@@ -16,18 +18,19 @@ use crate::{
 
 use super::entities::workspace;
 
-pub struct WorkspaceController<'r> {
-    db: &'r DatabaseConnection,
-    xmpp_service: XmppService<'r>,
+#[derive(Clone)]
+pub struct WorkspaceController {
+    db: Arc<DatabaseConnection>,
+    xmpp_service: XmppService,
 }
 
-impl<'r> WorkspaceController<'r> {
+impl WorkspaceController {
     pub fn new(
-        db: &'r DatabaseConnection,
-        xmpp_service: &'r XmppServiceInner,
-        app_config: &'r AppConfig,
+        db: Arc<DatabaseConnection>,
+        xmpp_service: Arc<XmppServiceInner>,
+        app_config: Arc<AppConfig>,
         server_config: &ServerConfig,
-        secrets_store: &'r SecretsStore,
+        secrets_store: Arc<SecretsStore>,
     ) -> Result<Self, WorkspaceControllerInitError> {
         let workspace_jid = app_config.workspace_jid(&server_config.domain);
         let prosody_token = secrets_store
@@ -48,9 +51,9 @@ pub enum WorkspaceControllerInitError {
     WorkspaceXmppAccountNotInitialized,
 }
 
-impl<'r> WorkspaceController<'r> {
+impl WorkspaceController {
     async fn get_workspace_entity(&self) -> Result<workspace::Model, Error> {
-        WorkspaceRepository::get(self.db)
+        WorkspaceRepository::get(self.db.as_ref())
             .await?
             .ok_or(Error::WorkspaceNotInitialized)
     }
@@ -100,20 +103,20 @@ pub struct GetWorkspaceAccentColorResponse {
     pub color: Option<String>,
 }
 
-impl<'r> WorkspaceController<'r> {
+impl WorkspaceController {
     pub async fn get_workspace_accent_color(&self) -> Result<Option<String>, Error> {
         Ok(self.get_workspace().await?.accent_color)
     }
 }
 
-impl<'r> WorkspaceController<'r> {
+impl WorkspaceController {
     pub async fn set_workspace_accent_color(&self, color: String) -> Result<Option<String>, Error> {
         let workspace = self.get_workspace_entity().await?;
 
         let mut active = workspace.into_active_model();
         // TODO: Validate `color`
         active.accent_color = Set(Some(color));
-        let workspace = active.update(self.db).await?;
+        let workspace = active.update(self.db.as_ref()).await?;
 
         Ok(workspace.accent_color)
     }

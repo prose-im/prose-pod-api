@@ -8,17 +8,15 @@ use std::{
     net::{IpAddr, SocketAddr, ToSocketAddrs as _},
     ops::Deref,
     sync::Arc,
-    time::Duration,
 };
 
 use async_trait::async_trait;
 use hickory_proto::rr::Name as DomainName;
 use linked_hash_set::LinkedHashSet;
-use tokio::{
-    sync::mpsc::{error::SendError, Sender},
-    task::JoinSet,
-    time::sleep,
-};
+use tokio::sync::mpsc::Sender;
+use tracing::{debug, error, instrument, trace_span, Instrument as _};
+
+use crate::util::{ConcurrentTaskRunner, Either};
 
 use super::models::{dns::*, network_checks::*};
 
@@ -80,66 +78,64 @@ pub enum IpVersion {
     V6,
 }
 
+pub trait WithQueued {
+    fn queued() -> Self;
+}
+pub trait WithChecking {
+    fn checking() -> Self;
+}
+
 impl NetworkChecker {
+    #[instrument(level = "trace", skip(self, checks, map_to_event, sender, runner), fields(r#type = Check::check_type()))]
     pub fn run_checks<'a, Check, Status, Event>(
         &self,
         checks: impl Iterator<Item = Check>,
         map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
-        retry_interval: Duration,
-        sender: Sender<Option<Event>>,
-        join_set: &mut JoinSet<Result<(), SendError<Option<Event>>>>,
+        sender: Sender<Event>,
+        runner: &ConcurrentTaskRunner,
     ) where
-        Check: NetworkCheck + Send + 'static,
+        Check: NetworkCheck + Debug + Clone + Send + 'static + Sync,
         Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-        Status: From<Check::CheckResult> + Default,
+        Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
         Event: Send + 'static,
     {
-        for check in checks {
-            let tx_clone = sender.clone();
-            let network_checker = self.to_owned();
+        let network_checker = self.clone();
+        let mut rx = runner.run_with_retries(
+            checks.collect(),
+            move |check: Check| {
+                let network_checker = network_checker.clone();
 
-            join_set.spawn(async move {
-                tx_clone
-                    .send(Some(map_to_event(&check, Status::default())))
-                    .await?;
-
-                loop {
+                Box::pin(async move {
                     let result = check.run(&network_checker).await;
-                    tx_clone
-                        .send(Some(map_to_event(&check, Status::from(result.clone()))))
-                        .await?;
+                    (check, Either::Left(result))
+                })
+            },
+            Some(|check: &Check| (check.clone(), Either::Right(Status::queued()))),
+            Some(|check: &Check| (check.clone(), Either::Right(Status::checking()))),
+            |(_, res)| res.left().unwrap().should_retry(),
+            move || {},
+        );
 
-                    if result.should_retry() {
-                        sleep(retry_interval).await;
-                    } else {
-                        return tx_clone.send(None).await;
+        tokio::spawn(
+            async move {
+                while let Some((check, result)) = rx.recv().await {
+                    let status = match result {
+                        Either::Left(r) => Status::from(r),
+                        Either::Right(s) => s,
+                    };
+                    let event = map_to_event(&check, status);
+                    if let Err(err) = sender.send(event).await {
+                        if sender.is_closed() {
+                            debug!("Cannot send event: Task aborted.");
+                        } else {
+                            error!("Cannot send event: {err}");
+                        }
+                        // Close `rx` so this loop breaks and `runner` is informed to cancel its tasks.
+                        rx.close();
                     }
                 }
-            });
-        }
-    }
-    pub fn run_checks_oneshot<'a, Check, Status, Event>(
-        &self,
-        checks: impl Iterator<Item = Check>,
-        map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
-        sender: Sender<Event>,
-        join_set: &mut JoinSet<Result<(), SendError<Event>>>,
-    ) where
-        Check: NetworkCheck + Send + 'static,
-        Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-        Status: From<Check::CheckResult> + Default,
-        Event: Send + 'static,
-    {
-        for check in checks {
-            let tx_clone = sender.clone();
-            let network_checker = self.to_owned();
-
-            join_set.spawn(async move {
-                let result = check.run(&network_checker).await;
-                tx_clone
-                    .send(map_to_event(&check, Status::from(result.clone())))
-                    .await
-            });
-        }
+            }
+            .instrument(trace_span!("task")),
+        );
     }
 }

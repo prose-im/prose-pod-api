@@ -7,7 +7,6 @@ use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitController, InitFirstAccountError, InitFirstAccountForm},
-    members::UserCreateError,
     models::JidNode,
     server_config::ServerConfig,
 };
@@ -29,10 +28,10 @@ pub struct InitFirstAccountRequest {
 }
 
 #[put("/v1/init/first-account", format = "json", data = "<req>")]
-pub async fn init_first_account_route<'r>(
-    init_controller: LazyGuard<InitController<'r>>,
+pub async fn init_first_account_route(
+    init_controller: LazyGuard<InitController>,
     server_config: LazyGuard<ServerConfig>,
-    user_service: LazyGuard<UnauthenticatedUserService<'r>>,
+    user_service: LazyGuard<UnauthenticatedUserService>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
     let init_controller = init_controller.inner?;
@@ -70,16 +69,6 @@ impl CustomErrorCode for InitFirstAccountError {
     }
 }
 impl_into_error!(InitFirstAccountError);
-
-impl CustomErrorCode for UserCreateError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(UserCreateError);
 
 // BOILERPLATE
 

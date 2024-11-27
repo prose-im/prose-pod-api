@@ -18,7 +18,7 @@ mod prelude {
     };
     pub use serde::{Deserialize, Serialize};
     pub use serde_with::serde_as;
-    pub use service::{models::XmppConnectionType, network_checks::*};
+    pub use service::{network_checks::*, AppConfig};
 
     pub use crate::{
         error::Error, forms, guards::LazyGuard, impl_network_check_event_from,

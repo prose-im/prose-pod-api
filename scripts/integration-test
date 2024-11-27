@@ -23,7 +23,10 @@ COMPOSE_FILE="${INTEGRATION_TESTS_DIR:?}"/compose/compose.yaml
 
 before-all() {
 	trace 'Running "Before all"…'
-	# Nothing to do
+
+	# NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
+	#   because `$SERVER_ROOT` belongs to `runner:docker`.
+	[ -n "$GITHUB_ACTIONS" ] && sudo chmod -R a+w "${SERVER_ROOT:?}"
 }
 
 after-all() {
@@ -33,6 +36,11 @@ after-all() {
 
 cleanup() {
 	trace 'Cleaning up the Prose Pod…'
+
+	# NOTE: When running in a GitHub Action, `tools/cleanup` fails because `prose-pod-server` creates files
+	#   as `systemd-network:systemd-journal` and the current user (`runner:docker`) can't delete it.
+	[ -n "$GITHUB_ACTIONS" ] && sudo chmod -R a+w "${SERVER_ROOT:?}"
+
 	edo "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup
 }
 

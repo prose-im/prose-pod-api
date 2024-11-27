@@ -7,6 +7,7 @@ use std::fmt::Display;
 
 use rocket::response::stream::Event;
 use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use service::network_checks::*;
 
 // ===== JSON RESPONSES =====
@@ -51,8 +52,9 @@ macro_rules! impl_network_check_result_from {
 
 // ===== EVENTS =====
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[derive(strum::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(SerializeDisplay, DeserializeFromStr)]
+#[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "kebab-case")]
 pub enum NetworkCheckEvent {
     DnsRecordCheckResult,

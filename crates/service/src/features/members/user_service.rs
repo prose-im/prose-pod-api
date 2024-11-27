@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use sea_orm::{ConnectionTrait, DbErr};
 use secrecy::SecretString;
 
@@ -17,17 +19,17 @@ use crate::{
 use super::{Member, MemberCreateForm, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
-pub struct UserService<'r> {
-    server_ctl: &'r ServerCtl,
-    auth_service: &'r AuthService,
-    xmpp_service_inner: &'r XmppServiceInner,
+pub struct UserService {
+    server_ctl: Arc<ServerCtl>,
+    auth_service: Arc<AuthService>,
+    xmpp_service_inner: Arc<XmppServiceInner>,
 }
 
-impl<'r> UserService<'r> {
+impl UserService {
     pub fn new(
-        server_ctl: &'r ServerCtl,
-        auth_service: &'r AuthService,
-        xmpp_service_inner: &'r XmppServiceInner,
+        server_ctl: Arc<ServerCtl>,
+        auth_service: Arc<AuthService>,
+        xmpp_service_inner: Arc<XmppServiceInner>,
     ) -> Self {
         Self {
             server_ctl,
@@ -55,7 +57,7 @@ impl<'r> UserService<'r> {
         )
         .await?;
 
-        // NOTE: We can't rollback changes made to the XMPP server so let's do it
+        // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
@@ -91,7 +93,7 @@ impl<'r> UserService<'r> {
             bare_jid: jid.to_owned(),
             prosody_token: auth_token.clone(),
         };
-        let xmpp_service = XmppService::new(&self.xmpp_service_inner, ctx);
+        let xmpp_service = XmppService::new(self.xmpp_service_inner.clone(), ctx);
 
         // TODO: Create the vCard using a display name instead of the nickname
         xmpp_service
@@ -102,6 +104,28 @@ impl<'r> UserService<'r> {
 
         Ok(member)
     }
+    pub async fn delete_user(
+        &self,
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+    ) -> Result<(), UserDeleteError> {
+        // Delete the user from database.
+        MemberRepository::delete(db, jid).await?;
+
+        // NOTE: We can't rollback changes made to the XMPP server so we do it
+        //   after "rollbackable" DB changes in case they fail. It's not perfect
+        //   but better than nothing.
+        // TODO: Find a way to rollback XMPP server changes.
+        let server_ctl = self.server_ctl.clone();
+
+        // Delete the user from the XMPP server.
+        server_ctl
+            .remove_user(jid)
+            .await
+            .map_err(UserDeleteError::XmppServerCannotDeleteUser)?;
+
+        Ok(())
+    }
 }
 
 pub type Error = UserServiceError;
@@ -110,6 +134,8 @@ pub type Error = UserServiceError;
 pub enum UserServiceError {
     #[error("Could not create user: {0}")]
     CouldNotCreateUser(#[from] UserCreateError),
+    #[error("Could not delete user: {0}")]
+    CouldNotDeleteUser(#[from] UserDeleteError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -124,4 +150,12 @@ pub enum UserCreateError {
     XmppServerCannotAddTeamMember(ServerCtlError),
     #[error("XMPP server cannot set user role: {0}")]
     XmppServerCannotSetUserRole(ServerCtlError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UserDeleteError {
+    #[error("Database error: {0}")]
+    DbErr(#[from] DbErr),
+    #[error("XMPP server cannot delete user: {0}")]
+    XmppServerCannotDeleteUser(ServerCtlError),
 }

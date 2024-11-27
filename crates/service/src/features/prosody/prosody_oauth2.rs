@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
@@ -207,7 +208,11 @@ pub enum ProsodyOAuth2Error {
     InternalServerError(String),
 }
 
-fn error_description(json: Option<serde_json::Value>, text: Option<String>) -> String {
+fn error_description(
+    content_type: Option<Mime>,
+    json: Option<serde_json::Value>,
+    text: Option<String>,
+) -> String {
     json.clone()
         .map(|json| {
             json.get("error_description")
@@ -216,6 +221,13 @@ fn error_description(json: Option<serde_json::Value>, text: Option<String>) -> S
                 .map(ToString::to_string)
         })
         .flatten()
-        .or(text.clone())
+        .or_else(|| {
+            let mime = content_type.unwrap_or(mime::STAR_STAR);
+            if mime.essence_str() == "text/html" {
+                Some(format!("`{mime}` content"))
+            } else {
+                text.clone()
+            }
+        })
         .unwrap_or("Prosody http_oauth2 call failed.".to_string())
 }

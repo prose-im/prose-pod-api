@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
 
@@ -21,11 +23,11 @@ use crate::{
     AppConfig,
 };
 
-pub struct InitController<'r> {
-    pub db: &'r DatabaseConnection,
+pub struct InitController {
+    pub db: Arc<DatabaseConnection>,
 }
 
-impl<'r> InitController<'r> {
+impl InitController {
     pub async fn init_server_config(
         &self,
         server_ctl: &ServerCtl,
@@ -36,7 +38,7 @@ impl<'r> InitController<'r> {
     ) -> Result<ServerConfig, InitServerConfigError> {
         // Initialize XMPP server configuration
         let server_config =
-            ServerManager::init_server_config(self.db, server_ctl, app_config, server_config)
+            ServerManager::init_server_config(&self.db, server_ctl, app_config, server_config)
                 .await
                 .map_err(InitServerConfigError::CouldNotInitServerConfig)?;
 
@@ -85,26 +87,26 @@ impl Into<workspace::ActiveModel> for WorkspaceCreateForm {
     }
 }
 
-impl<'r> InitController<'r> {
+impl InitController {
     pub async fn init_workspace(
         &self,
-        app_config: &AppConfig,
-        secrets_store: &SecretsStore,
-        xmpp_service: &XmppServiceInner,
+        app_config: Arc<AppConfig>,
+        secrets_store: Arc<SecretsStore>,
+        xmpp_service: Arc<XmppServiceInner>,
         server_config: &ServerConfig,
         form: impl Into<WorkspaceCreateForm>,
     ) -> Result<workspace::Model, InitWorkspaceError> {
         // Check that the workspace isn't already initialized.
-        let None = WorkspaceRepository::get(self.db).await? else {
+        let None = WorkspaceRepository::get(self.db.as_ref()).await? else {
             return Err(InitWorkspaceError::WorkspaceAlreadyInitialized);
         };
 
         let form = form.into();
 
-        let workspace = WorkspaceRepository::create(self.db, form.clone()).await?;
+        let workspace = WorkspaceRepository::create(self.db.as_ref(), form.clone()).await?;
 
         let workspace_controller = WorkspaceController::new(
-            self.db,
+            self.db.clone(),
             xmpp_service,
             app_config,
             server_config,
@@ -141,18 +143,18 @@ impl From<WorkspaceControllerInitError> for InitWorkspaceError {
     }
 }
 
-impl<'r> InitController<'r> {
+impl InitController {
     pub async fn init_first_account(
         &self,
         server_config: &ServerConfig,
-        user_service: &UserService<'_>,
+        user_service: &UserService,
         form: impl Into<InitFirstAccountForm>,
     ) -> Result<Member, InitFirstAccountError> {
         let form = form.into();
         let jid = bare_jid_from_username(&form.username, &server_config)
             .map_err(InitFirstAccountError::InvalidJid)?;
 
-        if MemberRepository::count(self.db).await? > 0 {
+        if MemberRepository::count(self.db.as_ref()).await? > 0 {
             return Err(InitFirstAccountError::FirstAccountAlreadyCreated);
         }
 

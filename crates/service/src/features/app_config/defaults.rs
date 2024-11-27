@@ -12,7 +12,7 @@ use secrecy::SecretString;
 
 use crate::{
     invitations::InvitationChannel,
-    models::{DateLike, Duration, JidNode, PossiblyInfinite},
+    models::{DateLike, Duration, JidNode, PossiblyInfinite, TimeLike},
 };
 
 use super::ConfigServiceAccount;
@@ -140,4 +140,13 @@ pub fn notify_email_smtp_port() -> u16 {
 
 pub fn notify_email_smtp_encrypt() -> bool {
     true
+}
+
+/// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
+pub fn default_response_timeout() -> Duration<TimeLike> {
+    Duration(TimeLike::Seconds(10))
+}
+
+pub fn default_retry_interval() -> Duration<TimeLike> {
+    Duration(TimeLike::Seconds(5))
 }

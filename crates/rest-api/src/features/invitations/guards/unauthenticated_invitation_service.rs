@@ -9,24 +9,24 @@ use service::invitations::InvitationService;
 
 use crate::guards::{prelude::*, UnauthenticatedUserService};
 
-pub struct UnauthenticatedInvitationService<'r>(pub(super) InvitationService<'r>);
+pub struct UnauthenticatedInvitationService(pub(super) InvitationService);
 
-impl<'r> Deref for UnauthenticatedInvitationService<'r> {
-    type Target = InvitationService<'r>;
+impl<'r> Deref for UnauthenticatedInvitationService {
+    type Target = InvitationService;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<'r> Into<InvitationService<'r>> for UnauthenticatedInvitationService<'r> {
-    fn into(self) -> InvitationService<'r> {
+impl<'r> Into<InvitationService> for UnauthenticatedInvitationService {
+    fn into(self) -> InvitationService {
         self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for UnauthenticatedInvitationService<'r> {
+impl<'r> LazyFromRequest<'r> for UnauthenticatedInvitationService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

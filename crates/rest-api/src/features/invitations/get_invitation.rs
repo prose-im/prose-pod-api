@@ -25,7 +25,7 @@ pub fn get_invitation_route() -> Result<Json<WorkspaceInvitation>, Error> {
 /// Get information about an invitation from an accept or reject token.
 #[get("/v1/invitations/<token>?<token_type>", rank = 1)]
 pub async fn get_invitation_by_token_route<'r>(
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
     token: Uuid,
     token_type: InvitationTokenType,
 ) -> Result<Json<WorkspaceInvitation>, Error> {

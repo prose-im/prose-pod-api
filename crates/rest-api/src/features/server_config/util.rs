@@ -15,7 +15,7 @@ macro_rules! server_config_set_route {
 
         #[rocket::put($route, format = "json", data = "<req>")]
         pub async fn $route_fn(
-            server_manager: LazyGuard<ServerManager<'_>>,
+            server_manager: LazyGuard<ServerManager>,
             req: Json<$req_type>,
         ) -> Result<Json<ServerConfig>, crate::error::Error> {
             let server_manager = server_manager.inner?;
@@ -32,7 +32,7 @@ macro_rules! server_config_reset_route {
     ($route:expr, $fn:ident, $route_fn:ident) => {
         #[rocket::put($route)]
         pub async fn $route_fn(
-            server_manager: LazyGuard<ServerManager<'_>>,
+            server_manager: LazyGuard<ServerManager>,
         ) -> Result<Json<ServerConfig>, crate::error::Error> {
             let server_manager = server_manager.inner?;
             let new_config = server_manager.$fn().await?;

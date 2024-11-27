@@ -10,7 +10,7 @@ use crate::{error::Error, guards::LazyGuard};
 
 #[get("/v1/workspace")]
 pub async fn get_workspace_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController<'r>>,
+    workspace_controller: LazyGuard<WorkspaceController>,
 ) -> Result<Json<Workspace>, Error> {
     Ok(workspace_controller.inner?.get_workspace().await?.into())
 }

@@ -14,7 +14,7 @@ use super::model::*;
 /// Get workspace invitations.
 #[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
 pub(super) async fn get_invitations_route<'r>(
-    invitation_controller: LazyGuard<InvitationController<'r>>,
+    invitation_controller: LazyGuard<InvitationController>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,

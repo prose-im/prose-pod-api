@@ -21,7 +21,10 @@ use service::{
 };
 use urlencoding::encode;
 
-use crate::cucumber_parameters::{Array, Text};
+use crate::{
+    cucumber_parameters::{Array, Text},
+    user_token,
+};
 use crate::{
     cucumber_parameters::{MemberRole, JID as JIDParam},
     TestWorld,
@@ -79,6 +82,21 @@ async fn enrich_members<'a>(
                 .join("&")
         ))
         .header(Accept::EventStream)
+        .header(Header::new(
+            "Authorization",
+            format!("Bearer {}", token.expose_secret()),
+        ))
+        .dispatch()
+        .await
+}
+
+async fn delete_member<'a>(
+    client: &'a Client,
+    token: SecretString,
+    jid: &BareJid,
+) -> LocalResponse<'a> {
+    client
+        .delete(format!("/v1/members/{jid}"))
         .header(Header::new(
             "Authorization",
             format!("Bearer {}", token.expose_secret()),
@@ -156,6 +174,13 @@ async fn when_getting_members_details(world: &mut TestWorld, name: String, names
         jids.push(name_to_jid(world, name).await.unwrap());
     }
     let res = enrich_members(world.client(), token, jids).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{} deletes {jid}’s account")]
+async fn when_delete_member(world: &mut TestWorld, name: String, jid: JIDParam) {
+    let token = user_token!(world, name);
+    let res = delete_member(world.client(), token, &jid).await;
     world.result = Some(res.into());
 }
 

@@ -8,7 +8,7 @@ use service::xmpp::ServerManager;
 use super::{prelude::*, UnauthenticatedServerManager};
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for ServerManager<'r> {
+impl<'r> LazyFromRequest<'r> for ServerManager {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {

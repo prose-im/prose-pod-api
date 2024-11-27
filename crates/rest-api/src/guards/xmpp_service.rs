@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use service::{
     auth::{auth_service::AuthToken, UserInfo},
     xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
@@ -11,7 +13,7 @@ use service::{
 use super::prelude::*;
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for XmppService<'r> {
+impl<'r> LazyFromRequest<'r> for XmppService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -24,6 +26,6 @@ impl<'r> LazyFromRequest<'r> for XmppService<'r> {
             bare_jid,
             prosody_token: token.clone(),
         };
-        Outcome::Success(XmppService::new(xmpp_service_inner, ctx))
+        Outcome::Success(XmppService::new(Arc::new(xmpp_service_inner.clone()), ctx))
     }
 }

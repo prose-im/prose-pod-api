@@ -3,6 +3,8 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
@@ -34,7 +36,7 @@ pub struct InitWorkspaceResponse {
 
 #[put("/v1/workspace", format = "json", data = "<req>")]
 pub async fn init_workspace_route<'r>(
-    init_controller: LazyGuard<InitController<'r>>,
+    init_controller: LazyGuard<InitController>,
     app_config: &State<AppConfig>,
     secrets_store: &State<SecretsStore>,
     xmpp_service: &State<XmppServiceInner>,
@@ -47,9 +49,9 @@ pub async fn init_workspace_route<'r>(
 
     let workspace = init_controller
         .init_workspace(
-            app_config,
-            secrets_store,
-            xmpp_service,
+            Arc::new(app_config.inner().clone()),
+            Arc::new(secrets_store.inner().clone()),
+            Arc::new(xmpp_service.inner().clone()),
             &server_config,
             req.clone(),
         )
