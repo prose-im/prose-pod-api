@@ -14,11 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt
-          override: true
 
       - name: Verify versions
         run: rustc --version && rustup --version && cargo --version
@@ -34,10 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Verify versions
         run: rustc --version && rustup --version && cargo --version
@@ -87,10 +82,7 @@ jobs:
           path: ${{ env.PROSE_POD_SYSTEM_DIR }}
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Verify versions
         run: rustc --version && rustup --version && cargo --version
