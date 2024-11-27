@@ -27,6 +27,7 @@ iso8601-timestamp = { workspace = true }
 lazy_static = { workspace = true }
 migration = { workspace = true }
 rocket = { workspace = true }
+rocket_oauth2 = { workspace = true }
 sea-orm-rocket = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true }

@@ -9,3 +9,9 @@ log_level = "debug"
 url = "sqlite::memory:"
 sqlx_logging = false
 
+[default.oauth.custom]
+auth_uri = "https://example.com/oauth/authorize"
+token_uri = "https://example.com/oauth/token"
+client_id = "..."
+client_secret = "..."
+redirect_uri = "http://localhost:8000/auth/custom"
