@@ -49,7 +49,6 @@ cleanup() {
 		sudo chmod -R a+w "${SERVER_ROOT:?}"
 	fi
 
-
 	edo "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup
 }
 

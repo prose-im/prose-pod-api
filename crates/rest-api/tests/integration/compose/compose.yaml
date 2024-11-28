@@ -1,6 +1,6 @@
 services:
   api:
-    image: proseim/prose-pod-api:latest
+    image: proseim/prose-pod-api:tests
     ports:
       - "8000:8000"
     volumes:
