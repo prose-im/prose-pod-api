@@ -100,10 +100,6 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v2
 
-      # SEE: https://github.com/cross-rs/cross/wiki/Getting-Started#installing-cross-1
-      - name: Install `cross`
-        run: cargo install cross
-
       - name: Build images
         run: scripts/run-locally/build-images
 
