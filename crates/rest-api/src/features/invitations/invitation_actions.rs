@@ -131,6 +131,7 @@ impl CustomErrorCode for CannotAcceptInvitation {
         match self {
             Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
             Self::ExpiredAcceptToken => ErrorCode::NOT_FOUND,
+            Self::MemberAlreadyExists => ErrorCode::MEMBER_ALREADY_EXISTS,
             Self::ServiceError(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }
