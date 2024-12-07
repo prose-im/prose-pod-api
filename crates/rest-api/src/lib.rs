@@ -15,12 +15,7 @@ pub mod responders;
 
 use error::Error;
 use features::startup_actions::sequential_fairings;
-use rocket::{
-    fairing::AdHoc,
-    fs::FileServer,
-    http::Status,
-    {Build, Request, Rocket},
-};
+use rocket::{fairing::AdHoc, fs::FileServer, http::Status, Build, Request, Rocket};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
@@ -30,6 +25,7 @@ use service::{
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
 };
+use tracing::error;
 
 /// A custom `Rocket` with a default configuration.
 pub fn custom_rocket(

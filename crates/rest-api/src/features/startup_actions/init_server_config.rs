@@ -12,6 +12,7 @@ use service::{
     xmpp::{ServerCtl, ServerManager},
     AppConfig,
 };
+use tracing::{debug, info};
 
 use crate::{features::init::ServerConfigNotInitialized, guards::Db};
 

@@ -17,6 +17,7 @@ use rocket::{
     Request, Response,
 };
 use serde::Serialize;
+use tracing::{debug, error, info, trace, warn};
 
 pub use self::errors::*;
 

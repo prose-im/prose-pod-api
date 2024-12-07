@@ -6,6 +6,7 @@
 use rocket::{Build, Rocket};
 use sea_orm_rocket::Database as _;
 use service::{auth::AuthService, server_config::ServerConfigRepository};
+use tracing::{debug, info};
 
 use crate::{features::init::ServerConfigNotInitialized, guards::Db};
 

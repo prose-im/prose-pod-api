@@ -6,6 +6,7 @@
 use futures::{stream::FuturesOrdered, StreamExt};
 use service::{util::ConcurrentTaskRunner, AppConfig};
 use tokio::sync::mpsc;
+use tracing::trace;
 
 use crate::features::network_checks::{
     check_dns_records::dns_record_check_result,

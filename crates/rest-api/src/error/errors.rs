@@ -263,7 +263,7 @@ impl HttpApiError for service::errors::UnexpectedHttpResponse {
 
     fn debug_info(&self) -> Option<serde_json::Value> {
         serde_json::to_value(self)
-            .inspect_err(|err| error!("Could not serialize error `{self}`: {err}"))
+            .inspect_err(|err| tracing::error!("Could not serialize error `{self}`: {err}"))
             .ok()
     }
 }

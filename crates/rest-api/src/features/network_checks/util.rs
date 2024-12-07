@@ -12,6 +12,7 @@ use rocket::{
 };
 use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
 use tokio::{sync::mpsc, time::Duration};
+use tracing::trace;
 
 use crate::{
     error::{self, Error},

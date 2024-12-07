@@ -9,6 +9,7 @@ use service::{
     xmpp::{ServerCtl, ServerManager},
     AppConfig,
 };
+use tracing::debug;
 
 pub async fn rotate_api_xmpp_password(rocket: &Rocket<Build>) -> Result<(), String> {
     debug!("Rotating Prose Pod API's XMPP password…");
