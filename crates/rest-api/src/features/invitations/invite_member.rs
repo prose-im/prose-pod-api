@@ -21,7 +21,12 @@ use service::{
 use crate::{
     error::prelude::*,
     guards::{Db, LazyGuard},
-    responders::Created,
+    responders::Either,
+};
+#[cfg(debug_assertions)]
+use crate::{
+    features::members::{rocket_uri_macro_get_member_route, Member},
+    forms::JID as JIDUriParam,
 };
 
 use super::{guards::*, model::*, rocket_uri_macro_get_invitation_route};
@@ -46,17 +51,20 @@ pub async fn invite_member_route<'r>(
     invitation_controller: LazyGuard<InvitationController>,
     req: Json<InviteMemberRequest>,
     #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService>,
-) -> Created<WorkspaceInvitation> {
+) -> Result<Either<status::Created<Json<WorkspaceInvitation>>, status::Created<Json<Member>>>, Error>
+{
     let db = conn.into_inner();
     let server_config = server_config.inner?;
     let notifier = notifier.inner?;
     let invitation_controller = invitation_controller.inner?;
     let form = req.into_inner();
 
-    let jid = user_info.inner?.jid;
-    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+    {
+        let jid = user_info.inner?.jid;
+        // TODO: Use a request guard instead of checking in the route body if the user can invite members.
+        if !MemberRepository::is_admin(db, &jid).await? {
+            return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
+        }
     }
 
     let invitation = invitation_controller
@@ -70,9 +78,21 @@ pub async fn invite_member_route<'r>(
         )
         .await?;
 
-    let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
-    let response: WorkspaceInvitation = invitation.into();
-    Ok(status::Created::new(resource_uri).body(response.into()))
+    if cfg!(debug_assertions) && app_config.debug_only.automatically_accept_invitations {
+        let jid = invitation.jid;
+        let resource_uri = uri!(get_member_route(jid.clone().into())).to_string();
+        let member = MemberRepository::get(db, &jid).await?.unwrap();
+        let response: Member = member.into();
+        Ok(Either::right(
+            status::Created::new(resource_uri).body(response.into()),
+        ))
+    } else {
+        let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
+        let response: WorkspaceInvitation = invitation.into();
+        Ok(Either::left(
+            status::Created::new(resource_uri).body(response.into()),
+        ))
+    }
 }
 
 // ERRORS

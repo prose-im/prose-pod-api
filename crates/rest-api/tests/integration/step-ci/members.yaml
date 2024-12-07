@@ -232,9 +232,28 @@ tests:
 components:
   steps:
     add_member:
-      # NOTE: We used a config flag to auto-accept invitations,
-      #   because otherwise we'd have no way to accept them.
-      $ref: "invitations.yaml#/components/steps/invite_member"
+      name: Add member (via auto-accepted invitation)
+      http:
+        method: POST
+        url: /v1/invitations
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        json:
+          username: ${{ internet.userName | fake }}
+          pre_assigned_role: MEMBER
+          channel: email
+          email_address: ${{ internet.email | fake }}
+        captures:
+          lastInvitationJid:
+            jsonpath: $.jid
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: openapi.json#/components/schemas/Member
   headers:
     paginated_json:
       Content-Type: application/json

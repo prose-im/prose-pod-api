@@ -44,6 +44,12 @@ macro_rules! wrapper_type {
             }
         }
 
+        impl std::ops::DerefMut for $wrapper {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+
         impl std::fmt::Display for $wrapper {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 std::fmt::Display::fmt(&self.0, f)
@@ -61,6 +67,12 @@ macro_rules! wrapper_type {
         impl From<$t> for $wrapper {
             fn from(bare_jid: $t) -> Self {
                 Self(bare_jid)
+            }
+        }
+
+        impl Into<$t> for $wrapper {
+            fn into(self) -> $t {
+                self.0
             }
         }
     };
