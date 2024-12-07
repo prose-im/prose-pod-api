@@ -26,7 +26,11 @@ before-all() {
 
 	# NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
 	#   because `$SERVER_ROOT` belongs to `runner:docker`.
-	[ -n "$GITHUB_ACTIONS" ] && sudo chmod -R a+w "${SERVER_ROOT:?}"
+	# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
+	#   Let's use `if [ … ]; then …; fi` instead for clarity.
+	if [ -n "$GITHUB_ACTIONS" ]; then
+		sudo chmod -R a+w "${SERVER_ROOT:?}"
+	fi
 }
 
 after-all() {
@@ -39,7 +43,12 @@ cleanup() {
 
 	# NOTE: When running in a GitHub Action, `tools/cleanup` fails because `prose-pod-server` creates files
 	#   as `systemd-network:systemd-journal` and the current user (`runner:docker`) can't delete it.
-	[ -n "$GITHUB_ACTIONS" ] && sudo chmod -R a+w "${SERVER_ROOT:?}"
+	# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
+	#   Let's use `if [ … ]; then …; fi` instead for clarity.
+	if [ -n "$GITHUB_ACTIONS" ]; then
+		sudo chmod -R a+w "${SERVER_ROOT:?}"
+	fi
+
 
 	edo "${PROSE_POD_SYSTEM_DIR:?}"/tools/cleanup
 }
