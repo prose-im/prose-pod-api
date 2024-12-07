@@ -104,12 +104,20 @@ impl ErrorCode {
         log_level: LogLevel::Info,
     };
 }
+impl ErrorCode {
+    pub(super) const MEMBER_ALREADY_EXISTS: Self = Self {
+        value: "member_already_exists",
+        http_status: Status::Conflict,
+        log_level: LogLevel::Info,
+    };
+}
 
 impl CustomErrorCode for InviteMemberError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
-            Self::Confict => ErrorCode::INVITE_ALREADY_EXISTS,
+            Self::InvitationConfict => ErrorCode::INVITE_ALREADY_EXISTS,
+            Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
             Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),

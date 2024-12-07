@@ -1848,7 +1848,8 @@
 							"unauthorized",
 							"forbidden",
 							"unknown",
-							"invitation_already_exists"
+							"invitation_already_exists",
+							"member_already_exists"
 						],
 						"example": "bad_request"
 					}

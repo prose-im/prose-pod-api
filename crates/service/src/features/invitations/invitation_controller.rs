@@ -15,7 +15,7 @@ use tracing::{debug, error, warn};
 use crate::{
     dependencies,
     invitations::Invitation,
-    members::MemberRole,
+    members::{MemberRepository, MemberRole},
     models::{BareJid, JidNode},
     notifications::{notifier, Notifier},
     server_config::ServerConfig,
@@ -48,9 +48,10 @@ impl InvitationController {
 
         if InvitationRepository::get_by_jid(self.db.as_ref(), &jid)
             .await
-            .is_ok_and(|opt| opt.is_some())
+            .as_ref()
+            .is_ok_and(Option::is_some)
         {
-            return Err(InviteMemberError::Confict);
+            return Err(InviteMemberError::InvitationConfict);
         }
 
         let invitation = InvitationRepository::create(
@@ -164,8 +165,10 @@ impl InviteMemberForm {
 pub enum InviteMemberError {
     #[error("Invalid JID: {0}")]
     InvalidJid(String),
-    #[error("Invitation already exists (username already taken).")]
-    Confict,
+    #[error("Invitation already exists (choose a different username).")]
+    InvitationConfict,
+    #[error("Username already taken.")]
+    UsernameConfict,
     #[error("Could not mark workspace invitation `{id}` as `{status}`: {err}")]
     CouldNotUpdateInvitationStatus {
         id: i32,
@@ -216,6 +219,15 @@ impl InvitationController {
             return Err(CannotAcceptInvitation::ExpiredAcceptToken);
         }
 
+        // Check if JID is already taken (in which case the member cannot be created).
+        if MemberRepository::get(self.db.as_ref(), &invitation.jid)
+            .await
+            .as_ref()
+            .is_ok_and(Option::is_some)
+        {
+            return Err(CannotAcceptInvitation::MemberAlreadyExists);
+        }
+
         invitation_service
             .accept(self.db.as_ref(), invitation, &form.password, &form.nickname)
             .await?;
@@ -236,6 +248,8 @@ pub enum CannotAcceptInvitation {
     InvitationNotFound,
     #[error("Invitation accept token has expired.")]
     ExpiredAcceptToken,
+    #[error("Member already exists (JID already taken).")]
+    MemberAlreadyExists,
     #[error("{0}")]
     ServiceError(#[from] invitation_service::InvitationAcceptError),
     #[error("Database error: {0}")]
