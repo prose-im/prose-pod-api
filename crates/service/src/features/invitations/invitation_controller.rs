@@ -53,6 +53,13 @@ impl InvitationController {
         {
             return Err(InviteMemberError::InvitationConfict);
         }
+        if MemberRepository::get(self.db.as_ref(), &jid)
+            .await
+            .as_ref()
+            .is_ok_and(Option::is_some)
+        {
+            return Err(InviteMemberError::UsernameConfict);
+        }
 
         let invitation = InvitationRepository::create(
             self.db.as_ref(),
@@ -220,6 +227,8 @@ impl InvitationController {
         }
 
         // Check if JID is already taken (in which case the member cannot be created).
+        // NOTE: There should not be any invitation for an already-taken username,
+        //   but let's keep this as a safeguard.
         if MemberRepository::get(self.db.as_ref(), &invitation.jid)
             .await
             .as_ref()

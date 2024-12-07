@@ -106,6 +106,25 @@ tests:
             status: 409
             schema:
               $ref: openapi.json#/components/schemas/Error
+  inviteAlreadyTakenUsernameConflict:
+    name: Inviting for an already-taken username returns 409 Conflict
+    steps:
+      - name: Invite using an already-taken username
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: ${{ env.mainAdminUsername }}
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: ${{ internet.email | fake }}
+          check:
+            status: 409
+            schema:
+              $ref: openapi.json#/components/schemas/Error
 
 components:
   steps:
