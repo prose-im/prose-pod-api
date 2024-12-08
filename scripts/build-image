@@ -17,7 +17,7 @@ ${Bold}Builds the Prose Pod API Docker image.${Bold_Off}
 
 By default, the Docker image will be named $(format_code ${PROSE_POD_API_IMAGE:?}) but you can override
 this by defining $(format_code PROSE_POD_API_IMAGE). This script also allows cross-compiling for a different
-architecture (see the list of supported targets on $(format_hyperlink 'github.com/cross-rs/cross#supported-targets' 'https://github.com/cross-rs/cross#supported-targets')).
+platform (see the list of supported platforms using $(format_code 'docker buildx ls')).
 EOF
 }
 
@@ -26,25 +26,19 @@ usage() {
 $(format_title 'Usage:')
   You want to build $(format_code ${PROSE_POD_API_IMAGE:?}) for a local usage:
     $(format_command $(basename $0)) $(format_opt_arg '--|local') $(format_opt_arg --debug)
-  You want to cross-compile the Prose Pod API for a different architecture (uses $(format_code cross)):
-    $(format_command $(basename $0)) $(format_arg TARGET_ARCH) $(format_opt_arg --debug)
+  You want to build the Prose Pod API for a different platform:
+    $(format_command $(basename $0)) $(format_arg TARGET_PLATFORM) $(format_opt_arg --debug)
 
 $(format_title 'Positional arguments:')
-  $(format_opt_arg TARGET_ARCH)
-    The architecture to cross-compile for (a target triple).
-    $(format_secondary "See the list of supported targets on $(format_hyperlink 'github.com/cross-rs/cross#supported-targets' 'https://github.com/cross-rs/cross#supported-targets').")
+  $(format_opt_arg TARGET_PLATFORM)
+    The platform to compile for.
+    $(format_secondary "See the list of supported targets via $(format_code 'docker buildx ls').")
     $(format_secondary "You can also pass $(format_code '--') or $(format_code 'local') if you don't want to cross-compile.")
 
 $(format_title 'Options:')
   $(format_subtitle 'Build phase options:')
-    $(format_flag --skip-rust-build)
-      Do not build the Rust project.
-      $(format_secondary "Use when you haven't changed the code and only want to rebuild the Docker images.")
     $(format_flag --debug)
       Builds the Prose Pod API in debug mode.
-    $(format_flag --offline)
-      Run without accessing the network. Implies $(format_flag --no-pull).
-      $(format_secondary "Speeds up the builds and does not use the network, but does not update crates.")
     $(format_flag --no-pull)
       Do not pull referenced Docker images.
       $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
@@ -53,6 +47,10 @@ $(format_title 'Options:')
     $(format_flag --help)
       Explains what the command does and how to use it.
 EOF
+	# NOTE: Outdated documentation, kept for when we'll reintroduce this flag.
+	# $(format_flag --offline)
+	#   Run without accessing the network. Implies $(format_flag --no-pull).
+	#   $(format_secondary "Speeds up the builds and does not use the network, but does not update crates.")
 }
 
 help() {
@@ -64,48 +62,40 @@ help() {
 
 # ===== ARGUMENT PARSING =====
 
-# Engine used to build (`cargo` or `cross`).
-RUST_ENGINE=cross
-
 case "${1:-local}" in
 	--help) help ;;
 	# Not cross-compiling.
 	--*|local)
-		# RUST_ENGINE=cargo
 		change-build-target "$1" ;;
 	*) change-build-target "$1" ;;
 esac
 
-if [ -z "${TARGET_ARCH}" ]; then
-	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local architecture."
+if [ -z "${TARGET_PLATFORM}" ]; then
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local platform."
 else
-	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the $(format_code $TARGET_ARCH) architecture."
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the $(format_code $TARGET_PLATFORM) platform."
 fi
 
 # Skip already interpreted argument.
 # NOTE: We need to check the argument count because `shift`
 #   will exit if the command was invoked with no argument.
 # NOTE: We also have to check that the first argument doesn't match `--*`
-#   in which case it would mean no `TARGET_ARCH` was passed.
+#   in which case it would mean no `TARGET_PLATFORM` was passed.
 [ "$#" -gt 0 ] && [[ "$1" != --* ]] && shift
 
-CARGO_PROFILE=release RUST_BUILD_MODE=release
-unset SKIP_RUST_BUILD NO_PULL
+CARGO_INSTALL_EXTRA_ARGS=()
+unset NO_PULL
 
 for arg in "$@"; do
 	case $arg in
 		--debug)
 			info 'Will build in debug mode.'
-			CARGO_PROFILE=dev
-			RUST_BUILD_MODE=debug
-			;;
-		--skip-rust-build)
-			info 'Will not build the Rust project.'
-			SKIP_RUST_BUILD=1
+			CARGO_INSTALL_EXTRA_ARGS+=('--profile=dev')
 			;;
 		--offline)
+			die "Offline builds are not supported anymore, because we build the Rust project in the Dockerfile. If you need this feature, consider using $(format_hyperlink 'cargo-chef' 'https://github.com/LukeMathWalker/cargo-chef')."
 			info 'Will build without accesing the network.'
-			OFFLINE=1
+			CARGO_INSTALL_EXTRA_ARGS+=('--offline')
 			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
 			;;
@@ -120,18 +110,9 @@ done
 
 # ===== MAIN LOGIC =====
 
-info "Using $(format_code $(rustc --version)), $(format_code $(rustup --version 2>/dev/null)) and $(format_code $("${RUST_ENGINE}" --version 2> /dev/null))."
-
-if ! (( $SKIP_RUST_BUILD )); then
-	edo "${RUST_ENGINE}" build \
-		${TARGET_ARCH:+--target "${TARGET_ARCH}"} \
-		--profile "${CARGO_PROFILE}" \
-		${OFFLINE+--offline}
-fi
-
 edo docker buildx build \
-	--platform "${DOCKER_TARGET_PLATFORM:?}" \
+	${DOCKER_TARGET_PLATFORM:+--platform "${DOCKER_TARGET_PLATFORM:?}"} \
 	-t "${PROSE_POD_API_IMAGE:?}" \
-	--build-arg RUST_OUT_DIR="./target${TARGET_ARCH+"/${TARGET_ARCH}"}/${RUST_BUILD_MODE:?}" \
+	--build-arg CARGO_INSTALL_EXTRA_ARGS="${CARGO_INSTALL_EXTRA_ARGS[*]}" \
 	${NO_PULL:+--pull=false} \
 	"${PROSE_POD_API_DIR:?}"
