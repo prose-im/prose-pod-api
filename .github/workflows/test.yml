@@ -1,10 +1,9 @@
+name: Test
 on:
   push:
     branches:
       - main
   pull_request: {}
-
-name: Test
 
 jobs:
   format:
@@ -100,10 +99,6 @@ jobs:
       # NOTE: Recommended by [the Task documentation](https://taskfile.dev/installation/#github-actions).
       - name: Install Task
         uses: arduino/setup-task@v2
-
-      # SEE: https://github.com/cross-rs/cross/wiki/Getting-Started#installing-cross-1
-      - name: Install `cross`
-        run: cargo install cross
 
       - name: Build images
         run: scripts/run-locally/build-images

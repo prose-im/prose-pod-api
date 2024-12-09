@@ -34,16 +34,6 @@ task -a
 We need to build and run Docker container so you must have Docker installed.
 See [Install | Docker Docs](https://docs.docker.com/engine/install/).
 
-#### `cross`
-
-To build the Docker image locally, we need to cross-compile Rust code for a different architecture.
-To avoid cluttering your local environment, we use [`cross`] which handles everything transparently.
-You can find installation instructions on [github.com/cross-rs/cross#installation], or just run the following:
-
-```bash
-cargo install cross --git https://github.com/cross-rs/cross
-```
-
 ### Initialize your environment
 
 To avoid you having to copy-paste tons of commands, we hid all of the logic behind helper scripts
@@ -113,6 +103,4 @@ This way you can have multiple instances of the API with different states.
 [Prose Pod Dashboard]: https://github.com/prose-im/prose-pod-dashboard "prose-im/prose-pod-dashboard: Prose Pod dashboard. Static Web application used to interact with the Prose Pod API."
 [Task]: https://stepci.com/ "Task"
 [GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"
-[`cross`]: https://github.com/cross-rs/cross "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"
-[github.com/cross-rs/cross#installation]: https://github.com/cross-rs/cross?tab=readme-ov-file#installation "cross-rs/cross: “Zero setup” cross compilation and “cross testing” of Rust crates"
 [taskfile.dev/installation]: https://taskfile.dev/installation/ "Installation | Task"
