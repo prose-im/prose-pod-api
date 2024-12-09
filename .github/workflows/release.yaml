@@ -44,7 +44,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ vars.DOCKERHUB_USERNAME }}/prose-pod-api
+            ${{ vars.DOCKERHUB_ORGANIZATION }}/prose-pod-api
             ghcr.io/${{ github.repository }}
           # NOTE: `latest` tag automatically handled (see https://github.com/docker/metadata-action?tab=readme-ov-file#latest-tag).
           tags: |
