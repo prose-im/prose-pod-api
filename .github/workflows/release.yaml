@@ -81,7 +81,6 @@ jobs:
           platforms: |
             linux/amd64
             linux/arm64
-            linux/arm/v7
           # FIXME: Fix release builds (https://github.com/prose-im/prose-pod-api/issues/54)
           #   and then remove the `--debug` flag.
           build-args: |
