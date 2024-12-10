@@ -1,4 +1,4 @@
-name: Release
+name: Release & Ship
 on:
   push:
     tags:
