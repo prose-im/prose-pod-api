@@ -8,13 +8,8 @@ export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 
 test-env-vars 'tutorials/run-locally.md' \
-	PROSE_POD_SERVER_DIR \
 	PROSE_POD_API_DIR \
 	PROSE_POD_SYSTEM_DIR
-
-# Clone prose-pod-server.
-[ -d "${PROSE_POD_SERVER_DIR:?}" ] || edo git clone https://github.com/prose-im/prose-pod-server.git "${PROSE_POD_SERVER_DIR:?}"
-edo git -C "${PROSE_POD_SERVER_DIR:?}" submodule update --init
 
 # Clone prose-pod-api.
 [ -d "${PROSE_POD_API_DIR:?}" ] || edo git clone https://github.com/prose-im/prose-pod-api.git "${PROSE_POD_API_DIR:?}"
@@ -26,11 +21,9 @@ edo git -C "${PROSE_POD_API_DIR:?}" submodule update --init
 # Create a `.env` file which we'll pass to prose-pod-api when it runs.
 edo echo "export ROCKET_DATABASES='{data={url=\"sqlite://database.sqlite?mode=rwc\"}}'
 export PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD='jSq_fbnUZWBJ#eNK6Yt&dz%Vvr)RsA\`x~}p3^?>LE(-8@\"u.'
-export RUST_LOG='info,sqlx=warn,hyper=warn,hyper_util=warn,sea_orm_migration=warn,service=debug,prose_pod_api=debug'" \
+export RUST_LOG='debug,sqlx=warn,hyper=warn,hyper_util=warn,sea_orm_migration=warn,sea_orm=warn,hickory_resolver=warn,hickory_proto=info,hickory_proto::xfer::dns_handle=debug,prose_xmpp::client::module_context=warn,service=trace,service::features::prosody::prosody_rest=debug,prose_pod_api=trace'" \
 > "${PROSE_POD_SYSTEM_DIR:?}"/local-run.env
 
 # Initialize an empty `.sqlite` file because otherwise Compose creates a directory and the API crashes.
 DATABASE_PATH="${PROSE_POD_SYSTEM_DIR}"/local-run.sqlite
 [ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
-
-traced "${SCRIPTS_ROOT:?}"/run-locally/build-images

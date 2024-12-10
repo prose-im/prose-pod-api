@@ -9,6 +9,17 @@ set -e
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 
+# ===== CONSTANTS =====
+
+: ${SELF:="$(basename $0)"}
+
+source "${SCRIPTS_ROOT:?}"/constants.sh
+PROSE_POD_API_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
+
+# Regenerate image name (so it's up-to-date in logs until arguments are passed).
+unset PROSE_POD_API_IMAGE
+source "${SCRIPTS_ROOT:?}"/constants.sh
+
 test-env-vars 'CONTRIBUTING.md' \
 	PROSE_POD_API_DIR \
 	PROSE_POD_SYSTEM_DIR
@@ -20,6 +31,32 @@ export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/in-memory.env
 export SERVER_ROOT="${INTEGRATION_TESTS_DIR:?}"/fs-root
 export DATABASE_PATH="${INTEGRATION_TESTS_DIR:?}"/integration-tests.sqlite
 COMPOSE_FILE="${INTEGRATION_TESTS_DIR:?}"/compose/compose.yaml
+
+# ===== ARGUMENT PARSING =====
+
+ARGS_=()
+for arg in "$@"; do
+	case $arg in
+		--server=*)
+			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
+			;;
+		# --help) help ;;
+		*) ARGS_+=("$arg") ;;
+	esac
+done
+set -- "${ARGS_[@]}"
+unset ARGS_
+
+# Regenerate image names.
+unset PROSE_POD_SERVER_IMAGE
+source "${SCRIPTS_ROOT:?}"/constants.sh
+export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
+
+info "Selected versions:"
+info "- API: $(format_code $PROSE_POD_API_IMAGE)"
+info "- Server: $(format_code $PROSE_POD_SERVER_IMAGE)"
+
+# ===== MAIN LOGIC =====
 
 before-all() {
 	trace 'Running "Before all"…'
@@ -89,7 +126,7 @@ stepci_run() {
 }
 
 if [ "$#" -eq 0 ]; then
-	info "No argument provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
+	info "No test file provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
 	# WARN: Spaces in `*.yaml` files will break.
 	set -- $(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/")
 fi

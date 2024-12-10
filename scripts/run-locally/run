@@ -7,6 +7,11 @@ set -e
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 
+# ===== CONSTANTS =====
+
+: ${SELF:="$(basename $0)"}
+
+source "${SCRIPTS_ROOT:?}"/constants.sh
 test-env-vars 'tutorials/run-locally.md' \
 	PROSE_POD_SYSTEM_DIR
 
@@ -15,5 +20,72 @@ export SERVER_ROOT="${PROSE_POD_SYSTEM_DIR:?}"/server/pod
 export DATABASE_PATH="${PROSE_POD_SYSTEM_DIR:?}"/local-run.sqlite
 export PROSE_CONFIG_FILE="${PROSE_POD_SYSTEM_DIR:?}"/Prose-example.toml
 COMPOSE_FILE="${PROSE_POD_SYSTEM_DIR:?}"/compose.yaml
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Runs a Prose Pod API.${Bold_Off}
+
+By default, this script will use the latest released images but you can override
+this behavior by using $(format_arg --api=DOCKER_TAG) and $(format_arg --server=DOCKER_TAG).
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to run the latest released versions:
+    $(format_command "${SELF:?}")
+  You want to run with the latest patches (latest commits, unreleased):
+    $(format_command "${SELF:?}") $(format_arg --) $(format_arg '--api=edge')
+  You want to run the image you built locally (e.g. for integration tests):
+    $(format_command "${SELF:?}") $(format_arg --) $(format_arg "--api=${LOCAL_DOCKER_TAG:?}")
+
+$(format_title 'Options:')
+  $(format_subtitle 'Version options:')
+    $(format_flag --api=DOCKER_TAG)
+      Choose which version of the Prose Pod API to run (default: $(format_code "${PROSE_POD_API_IMAGE_TAG:?}")).
+    $(format_flag --server=DOCKER_TAG)
+      Choose which version of the Prose Pod Server to run (default: $(format_code "${PROSE_POD_SERVER_IMAGE_TAG:?}")).
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+# ===== ARGUMENT PARSING =====
+
+for arg in "$@"; do
+	case $arg in
+		--api=*)
+			PROSE_POD_API_IMAGE_TAG="${arg#'--api='}"
+			;;
+		--server=*)
+			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
+			;;
+		--help) help ;;
+		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+	esac
+done
+
+# Regenerate image names.
+unset PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
+source "${SCRIPTS_ROOT:?}"/constants.sh
+export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
+
+info "Selected versions:"
+info "- API: $(format_code $PROSE_POD_API_IMAGE)"
+info "- Server: $(format_code $PROSE_POD_SERVER_IMAGE)"
+
+# ===== MAIN LOGIC =====
 
 edo docker compose -f "${COMPOSE_FILE:?}" up
