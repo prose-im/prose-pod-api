@@ -17,7 +17,7 @@ You probably have it installed already, but if you don't, have a look at
 
 Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility.
 You can find installation instructions on [taskfile.dev/installation],
-or just run the folowing on macOS:
+or just run the following on macOS:
 
 ```bash
 brew install go-task
@@ -31,7 +31,7 @@ task -a
 
 #### Docker
 
-We need to build and run Docker container so you must have Docker installed.
+We need to run Docker images so you must have Docker installed.
 See [Install | Docker Docs](https://docs.docker.com/engine/install/).
 
 ### Initialize your environment
@@ -43,7 +43,6 @@ But before that, you must declare where you want the repositories to be
 (replace `???` by the desired location):
 
 ```sh
-export PROSE_POD_SERVER_DIR=???
 export PROSE_POD_API_DIR=???
 export PROSE_POD_SYSTEM_DIR=???
 ```
@@ -61,8 +60,7 @@ task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.yaml local-init
 > which will be sourced automatically when you run the next commands:
 >
 > ```sh
-> echo "export PROSE_POD_SERVER_DIR='${PROSE_POD_SERVER_DIR:?}'
-> export PROSE_POD_API_DIR='${PROSE_POD_API_DIR:?}'
+> echo "export PROSE_POD_API_DIR='${PROSE_POD_API_DIR:?}'
 > export PROSE_POD_SYSTEM_DIR='${PROSE_POD_SYSTEM_DIR:?}'" \
 > >> "${PROSE_POD_API_DIR:?}"/paths.env
 > ```
@@ -81,12 +79,15 @@ At the root of the `prose-pod-api` repository, run:
 task local-run
 ```
 
-## When you want to update one of the repositories
-
-At the root of the `prose-pod-api` repository, run:
+The above command runs the latest released versions, but you can change this behavior:
 
 ```sh
-task local-update
+# Run latest patches (latest commits, unreleased):
+task local-run -- --api=edge
+# Run a specific version:
+task local-run -- --api=1.2.3
+task local-run -- --api=1.2
+task local-run -- --api=1
 ```
 
 ## When you want to start fresh with a Prose Pod API that has no data

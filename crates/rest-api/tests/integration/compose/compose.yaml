@@ -1,6 +1,7 @@
+name: prose-pod-api-tests
 services:
   api:
-    image: proseim/prose-pod-api:latest
+    image: proseim/prose-pod-api:local
     ports:
       - "8000:8000"
     volumes:
@@ -19,7 +20,7 @@ services:
     dns: 172.20.0.42
 
   server:
-    image: proseim/prose-pod-server:latest
+    image: "${PROSE_POD_SERVER_IMAGE:-proseim/prose-pod-server:${PROSE_POD_SERVER_IMAGE_TAG:-${DEFAULT_DOCKER_TAG:-latest}}}"
     ports:
       - "5222:5222" # Client-to-server connections (public)
       - "5269:5269" # Server-to-server connections (public)

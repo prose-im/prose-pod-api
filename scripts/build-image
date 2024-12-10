@@ -5,7 +5,14 @@ set -e
 
 # ===== CONSTANTS =====
 
+: ${SELF:="$(basename $0)"}
+
 source "$(dirname $0)"/constants.sh
+PROSE_POD_API_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
+
+# Regenerate image name (so it's up-to-date in logs until arguments are passed).
+unset PROSE_POD_API_IMAGE
+source "${SCRIPTS_ROOT:?}"/constants.sh
 
 # ===== HELPER FUNCTIONS =====
 
@@ -24,19 +31,20 @@ EOF
 usage() {
 	cat <<EOF
 $(format_title 'Usage:')
-  You want to build $(format_code ${PROSE_POD_API_IMAGE:?}) for a local usage:
-    $(format_command $(basename $0)) $(format_opt_arg '--|local') $(format_opt_arg --debug)
+  You want to build the Prose Pod API for a local usage:
+    $(format_command "${SELF:?}") $(format_opt_arg --debug)
+  You want to build $(format_code "${PROSE_POD_API_IMAGE_NAME:?}:latest"):
+    $(format_command "${SELF:?}") $(format_arg --tag=latest) $(format_opt_arg --debug)
   You want to build the Prose Pod API for a different platform:
-    $(format_command $(basename $0)) $(format_arg TARGET_PLATFORM) $(format_opt_arg --debug)
-
-$(format_title 'Positional arguments:')
-  $(format_opt_arg TARGET_PLATFORM)
-    The platform to compile for.
-    $(format_secondary "See the list of supported targets via $(format_code 'docker buildx ls').")
-    $(format_secondary "You can also pass $(format_code '--') or $(format_code 'local') if you don't want to cross-compile.")
+    $(format_command "${SELF:?}") $(format_arg --platform=TARGET_PLATFORM) $(format_opt_arg --debug)
 
 $(format_title 'Options:')
   $(format_subtitle 'Build phase options:')
+    $(format_flag --platform=TARGET_PLATFORM)
+      A platform to cross-compile for.
+      $(format_secondary "See the list of supported targets via $(format_code 'docker buildx ls').")
+    $(format_flag --tag=DOCKER_TAG)
+      Choose which version of the Prose Pod API to build (default: "${PROSE_POD_API_IMAGE_TAG:?}").
     $(format_flag --debug)
       Builds the Prose Pod API in debug mode.
     $(format_flag --no-pull)
@@ -62,32 +70,17 @@ help() {
 
 # ===== ARGUMENT PARSING =====
 
-case "${1:-local}" in
-	--help) help ;;
-	# Not cross-compiling.
-	--*|local)
-		change-build-target "$1" ;;
-	*) change-build-target "$1" ;;
-esac
-
-if [ -z "${TARGET_PLATFORM}" ]; then
-	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local platform."
-else
-	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the $(format_code $TARGET_PLATFORM) platform."
-fi
-
-# Skip already interpreted argument.
-# NOTE: We need to check the argument count because `shift`
-#   will exit if the command was invoked with no argument.
-# NOTE: We also have to check that the first argument doesn't match `--*`
-#   in which case it would mean no `TARGET_PLATFORM` was passed.
-[ "$#" -gt 0 ] && [[ "$1" != --* ]] && shift
-
 CARGO_INSTALL_EXTRA_ARGS=()
 unset NO_PULL
 
 for arg in "$@"; do
 	case $arg in
+		--platform=*)
+			change-build-target "${arg#'--platform='}"
+			;;
+		--tag=*)
+			PROSE_POD_API_IMAGE_TAG="${arg#'--tag='}"
+			;;
 		--debug)
 			info 'Will build in debug mode.'
 			CARGO_INSTALL_EXTRA_ARGS+=('--profile=dev')
@@ -107,6 +100,16 @@ for arg in "$@"; do
 		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 	esac
 done
+
+# Regenerate image name.
+unset PROSE_POD_API_IMAGE
+source "${SCRIPTS_ROOT:?}"/constants.sh
+
+if [ -z "${TARGET_PLATFORM}" ]; then
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local platform."
+else
+	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the $(format_code $TARGET_PLATFORM) platform."
+fi
 
 # ===== MAIN LOGIC =====
 

@@ -5,12 +5,14 @@ version: "3"
 tasks:
   open-api-docs-ui:
     desc: Runs the Prose Pod API and opens the visual API documentation.
+    env:
+      SELF: task open-api-docs-ui
     cmds:
-      - ./scripts/open-api-docs-ui
+      - "{{.ROOT_DIR}}/scripts/open-api-docs-ui {{.CLI_ARGS}}"
   reset-db:
     desc: Backs up the database and resets it using `sea-orm-cli`.
     cmds:
-      - ./scripts/reset-db
+      - "{{.ROOT_DIR}}/scripts/reset-db"
   entity:
     desc: Generates database entities using `sea-orm-cli`.
     deps: [reset-db]
@@ -37,13 +39,17 @@ tasks:
       - 'sed -i '''' -E ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
   smoke-test:
     desc: Runs smoke tests.
+    env:
+      SELF: task smoke-test
     cmds:
       - cargo test --test behavior -- {{.CLI_ARGS}}
   integration-test:
     desc: Runs integration tests.
+    env:
+      SELF: task integration-test
     cmds:
       # NOTE: Analytics are temporarily disabled because of [stepci/stepci#239](https://github.com/stepci/stepci/issues/239).
-      - STEPCI_DISABLE_ANALYTICS=true ./scripts/integration-test {{.CLI_ARGS}}
+      - "STEPCI_DISABLE_ANALYTICS=true {{.ROOT_DIR}}/scripts/integration-test {{.CLI_ARGS}}"
   update:
     desc: Updates all dependencies.
     deps: [update-redoc]
@@ -74,25 +80,42 @@ tasks:
     desc: Builds the Prose Pod API Docker image. Run `task build-image -- --help` for more info.
     env:
       SCRIPTS_ROOT: "{{.ROOT_DIR}}/scripts"
+      SELF: task build-image
     cmds:
       - "{{.ROOT_DIR}}/scripts/build-image {{.CLI_ARGS}}"
   local-init:
     desc: Initializes a local environment allowing one to run a Prose Pod API in one command (`task local-run`).
     dotenv: ["paths.env"]
+    env:
+      SELF: task local-init
     cmds:
       - "{{.ROOT_DIR}}/scripts/run-locally/init {{.CLI_ARGS}}"
   local-run:
     desc: Runs a Prose Pod API.
     dotenv: ["paths.env"]
+    env:
+      SELF: task local-run
     cmds:
       - "{{.ROOT_DIR}}/scripts/run-locally/run {{.CLI_ARGS}}"
   local-update:
     desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
     dotenv: ["paths.env"]
+    env:
+      SELF: task local-update
     cmds:
       - "{{.ROOT_DIR}}/scripts/run-locally/update {{.CLI_ARGS}}"
+  local-build:
+    desc: Builds the Prose Pod API and the repositories it depends on without updating the code.
+    dotenv: ["paths.env"]
+    env:
+      SELF: task local-build
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/run-locally/build-images {{.CLI_ARGS}}"
   local-reset:
     desc: Starts fresh with a Prose Pod API that has no data.
+    prompt: This command will delete all your local Prose data, do you want to continue?
     dotenv: ["paths.env"]
+    env:
+      SELF: task local-reset
     cmds:
       - "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"

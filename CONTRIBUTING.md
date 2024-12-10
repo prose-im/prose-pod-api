@@ -82,7 +82,7 @@ Finally, since integration tests run on final containers, you have to build `pro
 task build-image -- --debug
 # Build the Prose Pod Server image.
 PROSE_POD_SERVER_DIR=???
-docker build -t proseim/prose-pod-server:latest "${PROSE_POD_SERVER_DIR:?}"
+docker build -t proseim/prose-pod-server:local "${PROSE_POD_SERVER_DIR:?}"
 ```
 
 #### Running tests
@@ -90,7 +90,7 @@ docker build -t proseim/prose-pod-server:latest "${PROSE_POD_SERVER_DIR:?}"
 Then, run the tests using:
 
 ```bash
-task integration-test
+task integration-test -- --server=local
 ```
 
 If a test fails, Step CI will automatically print some additional information to help you debug the issue. We also print container logs so you can see internal errors.
@@ -101,18 +101,18 @@ If a test fails, Step CI will automatically print some additional information to
 
 ## Building the Docker image
 
-To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:latest`):
+To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:local`):
 
 ```bash
-task build-image [-- [TARGET_PLATFORM] [--debug] [--help]]
+task build-image [-- [--platform=TARGET_PLATFORM] [--debug] [--help]]
 ```
 
-If you don't set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:latest` for your local platform. If you set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:latest` for the desired platform. You can set `PROSE_POD_API_IMAGE` to override the final name of the image.
+If you don't set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:local` for your local platform. If you set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:local` for the desired platform. You can set `PROSE_POD_API_IMAGE` to override the final name of the image.
 
 To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
 
 ```bash
-task build-image -- [TARGET_PLATFORM] --debug
+task build-image -- [--platform=TARGET_PLATFORM] --debug
 ```
 
 [Step CI]: https://stepci.com/ "Step CI homepage"
