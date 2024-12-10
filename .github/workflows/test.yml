@@ -3,7 +3,22 @@ on:
   push:
     branches:
       - master
-  pull_request: {}
+    # Do not run the workflow if the project hasn't changed.
+    paths: &changed_paths # We changed the code:
+      - "crates/*/src/**"
+      - "crates/*/src/Cargo.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      # We changed how the image is built:
+      - "Dockerfile"
+      - ".dockerignore"
+      # We changed how the workflow is ran:
+      - ".github/workflows/test.yaml"
+      # We changed some packaged documentation:
+      - "crates/*/static/**"
+  pull_request:
+    # Do not run the workflow if the project hasn't changed.
+    paths: *changed_paths
 
 jobs:
   format:
