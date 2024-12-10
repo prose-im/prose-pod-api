@@ -1,6 +1,6 @@
 # prose-pod-api
 
-[![Test](https://github.com/prose-im/prose-pod-api/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/prose-im/prose-pod-api/actions/workflows/test.yml)
+[![Test](https://github.com/prose-im/prose-pod-api/actions/workflows/test.yaml/badge.svg?branch=master)](https://github.com/prose-im/prose-pod-api/actions/workflows/test.yaml)
 
 **Prose Pod API server. REST API used for administration and management.**
 
