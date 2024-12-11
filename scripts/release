@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== CONSTANTS =====
+
+: ${SELF:="$(basename $0)"}
+
+: ${REPOSITORY_ROOT:="${SCRIPTS_ROOT:?}"/..}
+VERSION_FILE="${REPOSITORY_ROOT:?}"/VERSION
+OPENAPI_JSON_FILE="${REPOSITORY_ROOT:?}"/crates/rest-api/static/api-docs/openapi.json
+CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
+CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
+
+VERSION="$(cat "${VERSION_FILE:?}")"
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Creates a new release for the Prose Pod API.${Bold_Off}
+
+This script bumps the version number, then adds and pushes a tag to $(format_code origin).
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  $(format_command "${SELF:?}") $(format_arg 'major|minor|patch')
+
+$(format_title 'Options:')
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+# A simplified `sed` command that works on both macOS and Linux.
+replace() {
+	local pattern="s/${1:?}/\1${NEW_VERSION:?}\2/" file="${2:?}"
+
+	if [[ "$(uname)" == "Darwin" ]]; then
+		edo sed -i '' -E "$pattern" "$file"
+	else
+		edo sed -i "$pattern" "$file"
+	fi
+}
+
+# ===== ARGUMENT PARSING =====
+
+VERSION_COMPONENTS=($(echo "${VERSION:?}" | tr '.' ' '))
+
+case "$1" in
+	major)
+		VERSION_COMPONENTS[0]=$(( VERSION_COMPONENTS[0] + 1 ))
+		VERSION_COMPONENTS[1]=0
+		VERSION_COMPONENTS[2]=0
+		;;
+	minor)
+		VERSION_COMPONENTS[1]=$(( VERSION_COMPONENTS[1] + 1 ))
+		VERSION_COMPONENTS[2]=0
+		;;
+	patch)
+		VERSION_COMPONENTS[2]=$(( VERSION_COMPONENTS[2] + 1 ))
+		;;
+	--help) help ;;
+	*) die "Expected one argument.\n$(usage)" ;;
+esac
+
+# ===== MAIN LOGIC =====
+
+# Ensure there are no uncommitted changes.
+git diff-index --quiet HEAD || die "Your index contains uncommitted changes. Please commit or stash them before creating a release."
+
+# Convert the new version to a string.
+info "Previous version: ${VERSION:?}"
+NEW_VERSION=$(echo "${VERSION_COMPONENTS[*]}" | tr ' ' '.')
+info "New version: ${NEW_VERSION:?}"
+
+# Update version numbers in files.
+info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
+echo "${NEW_VERSION:?}" > "${VERSION_FILE:?}"
+info "Changing version number in $(format_code openapi.json)…"
+replace '^(\t\t"version": ").+(")' "${OPENAPI_JSON_FILE:?}"
+info "Changing version number in $(format_code Cargo.toml)…"
+replace '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
+info "Updating $(format_code Cargo.lock)…"
+edo cargo check
+
+# Create & push a new git tag.
+GIT_BRANCH="$(git branch --show-current)"
+info "Pulling $(format_code origin)…"
+edo git pull origin "${GIT_BRANCH:?}"
+info "Committing changes…"
+edo git add "${VERSION_FILE:?}" "${OPENAPI_JSON_FILE:?}" "${CARGO_TOML_FILE:?}" "${CARGO_LOCK_FILE:?}"
+edo git commit -m "v${NEW_VERSION:?}"
+info "Creating tag…"
+edo git tag "v${NEW_VERSION:?}"
+info "Pushing tag…"
+edo git push --atomic origin "${GIT_BRANCH:?}" "v${NEW_VERSION:?}"
