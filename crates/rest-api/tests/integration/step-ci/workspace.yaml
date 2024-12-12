@@ -1,0 +1,113 @@
+version: "1.1"
+name: Workspace details
+
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/init_server"
+    - $ref: "init.yaml#/components/steps/create_first_admin"
+    - $ref: "init.yaml#/components/steps/init_workspace"
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+    - $ref: "#/components/steps/add_member"
+
+tests:
+  getWorkspaceDetailsAsAdmin:
+    name: Get workspace details as admin
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - $ref: "#/components/steps/get_workspace_details"
+      - $ref: "#/components/steps/get_workspace_name"
+      - $ref: "#/components/steps/get_workspace_icon"
+      - $ref: "#/components/steps/get_workspace_accent_color"
+  getWorkspaceDetailsAsMember:
+    name: Get workspace details as member
+    steps:
+      - $ref: "#/components/steps/log_member_in"
+      - $ref: "#/components/steps/get_workspace_details"
+      - $ref: "#/components/steps/get_workspace_name"
+      - $ref: "#/components/steps/get_workspace_icon"
+      - $ref: "#/components/steps/get_workspace_accent_color"
+
+components:
+  steps:
+    get_workspace_details:
+      name: Get workspace details
+      http:
+        method: GET
+        url: /v1/workspace
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          schema:
+            $ref: openapi.json#/components/schemas/Workspace
+    get_workspace_name:
+      name: Get workspace name
+      http:
+        method: GET
+        url: /v1/workspace/name
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          schema:
+            $ref: openapi.json#/components/schemas/GetWorkspaceNameResponse
+    get_workspace_icon:
+      name: Get workspace icon
+      http:
+        method: GET
+        url: /v1/workspace/icon
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          schema:
+            $ref: openapi.json#/components/schemas/GetWorkspaceIconResponse
+    get_workspace_accent_color:
+      name: Get workspace accent color
+      http:
+        method: GET
+        url: /v1/workspace/accent-color
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        check:
+          status: 200
+          schema:
+            $ref: openapi.json#/components/schemas/GetWorkspaceAccentColorResponse
+
+    add_member:
+      name: Add member (via auto-accepted invitation)
+      http:
+        method: POST
+        url: /v1/invitations
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        json:
+          username: ${{ internet.userName | fake }}
+          pre_assigned_role: MEMBER
+          channel: email
+          email_address: ${{ internet.email | fake }}
+        captures:
+          lastInvitationJid:
+            jsonpath: $.jid
+        check:
+          status: 201
+          headers:
+            Content-Type: application/json
+            Location: /.+/
+          schema:
+            $ref: openapi.json#/components/schemas/Member
+    log_member_in:
+      $ref: "invitations.yaml#/components/steps/log_last_invited_member_in"
+
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  host: http://127.0.0.1:8000

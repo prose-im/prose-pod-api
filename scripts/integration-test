@@ -145,7 +145,7 @@ for arg in "$@"; do
 	fi
 
 	case $arg in
-		members)
+		members|workspace)
 			stepci_run "$test_file" test-auto_accept_invitations ;;
 		*dns-configured-correctly-dynamic)
 			DNS_ZONE_FILE=../dns-zones/working-dynamic.zone stepci_run "$test_file" ;;
