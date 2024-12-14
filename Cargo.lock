@@ -1104,17 +1104,12 @@ dependencies = [
 
 [[package]]
 name = "email_address"
-version = "0.2.5"
-source = "git+https://github.com/johnstonskj/rust-email_address.git?rev=b4296cd4ff621b27da55bb5182558e0ce691c611#b4296cd4ff621b27da55bb5182558e0ce691c611"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "email_address"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e079f19b08ca6239f47f8ba8509c11cf3ea30095831f7fed61441475edd8c449"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "encode_unicode"
@@ -2253,7 +2248,7 @@ dependencies = [
  "base64",
  "chumsky",
  "email-encoding",
- "email_address 0.2.9",
+ "email_address",
  "fastrand",
  "hostname 0.4.0",
  "httpdate",
@@ -3918,7 +3913,7 @@ dependencies = [
  "base64",
  "chrono",
  "cucumber",
- "email_address 0.2.5",
+ "email_address",
  "figment",
  "form_urlencoded",
  "futures",
