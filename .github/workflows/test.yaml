@@ -74,10 +74,13 @@ jobs:
             target
           key: ${{ runner.os }}-cargo
 
+      - name: Try building in release mode
+        run: cargo check --release
+
       - name: Install SQLite3
         run: sudo apt-get update && sudo apt-get install -y sqlite3
 
-      - name: Test code
+      - name: Test code in debug mode
         run: cargo test
 
   integration-test:
@@ -128,8 +131,10 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v2
 
-      - name: Build images
-        run: scripts/run-locally/build-images
+      - name: Build image
+        # NOTE: We need to build in debug mode because we need to use
+        #   `debug_only` configuration during integration tests.
+        run: task build-image -- --debug
 
       - name: Install SQLite3
         run: sudo apt-get update && sudo apt-get install -y sqlite3

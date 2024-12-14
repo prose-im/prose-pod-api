@@ -10,7 +10,9 @@ use chrono::{DateTime, Utc};
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{DatabaseConnection, DbErr, ItemsAndPagesNumber, ModelTrait as _};
 use secrecy::{ExposeSecret as _, SecretString};
-use tracing::{debug, error, warn};
+#[cfg(debug_assertions)]
+use tracing::warn;
+use tracing::{debug, error};
 
 use crate::{
     dependencies,
