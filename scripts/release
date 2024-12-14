@@ -38,6 +38,8 @@ $(format_title 'Options:')
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
       Explains what the command does and how to use it.
+    $(format_flag --force)
+      The script won't stop you if your index contains uncommitted changes.
 EOF
 }
 
@@ -77,13 +79,26 @@ case "$1" in
 		VERSION_COMPONENTS[2]=$(( VERSION_COMPONENTS[2] + 1 ))
 		;;
 	--help) help ;;
-	*) die "Expected one argument.\n$(usage)" ;;
+	'') die "Expected at least one argument.\n$(usage)" ;;
+	*) die "Unknown argument: $(format_code $1).\n$(usage)" ;;
 esac
+# Skip first argument now that it's processed.
+shift 1
+
+for arg in "$@"; do
+	case $arg in
+		--force) FORCE=1 ;;
+		--help) help ;;
+		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+	esac
+done
 
 # ===== MAIN LOGIC =====
 
 # Ensure there are no uncommitted changes.
-git diff-index --quiet HEAD || die "Your index contains uncommitted changes. Please commit or stash them before creating a release."
+if [ -z "$FORCE" ]; then
+	git diff-index --quiet HEAD || die "Your index contains uncommitted changes. Please commit or stash them before creating a release."
+fi
 
 # Convert the new version to a string.
 info "Previous version: ${VERSION:?}"
