@@ -14,3 +14,7 @@ pub async fn get_workspace_route<'r>(
 ) -> Result<Json<Workspace>, Error> {
     Ok(workspace_service.inner?.get_workspace().await?.into())
 }
+
+pub async fn get_workspace_route_axum() {
+    todo!()
+}

@@ -44,6 +44,10 @@ pub async fn init_server_config_route<'r>(
     Ok(status::Created::new(resource_uri).body(server_config.into()))
 }
 
+pub async fn init_server_config_route_axum() {
+    todo!()
+}
+
 // ERRORS
 
 impl ErrorCode {

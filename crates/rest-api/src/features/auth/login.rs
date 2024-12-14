@@ -38,6 +38,10 @@ pub async fn login_route(
     Ok(response.into())
 }
 
+pub async fn login_route_axum() {
+    todo!()
+}
+
 // BOILERPLATE
 
 impl From<AuthToken> for LoginToken {

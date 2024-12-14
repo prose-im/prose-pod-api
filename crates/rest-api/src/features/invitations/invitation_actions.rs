@@ -48,6 +48,10 @@ pub async fn invitation_accept_route<'r>(
     Ok(())
 }
 
+pub async fn invitation_accept_route_axum() {
+    todo!()
+}
+
 /// Reject a workspace invitation.
 #[put("/v1/invitation-tokens/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
@@ -60,6 +64,10 @@ pub async fn invitation_reject_route<'r>(
         .await?;
 
     Ok(NoContent)
+}
+
+pub async fn invitation_reject_route_axum() {
+    todo!()
 }
 
 /// Resend a workspace invitation.
@@ -89,6 +97,10 @@ pub async fn invitation_resend_route<'r>(
     Ok(NoContent)
 }
 
+pub async fn invitation_resend_route_axum() {
+    todo!()
+}
+
 /// Cancel a workspace invitation.
 #[delete("/v1/invitations/<invitation_id>")]
 pub async fn invitation_cancel_route<'r>(
@@ -109,6 +121,10 @@ pub async fn invitation_cancel_route<'r>(
     invitation_service.cancel(invitation_id).await?;
 
     Ok(NoContent)
+}
+
+pub async fn invitation_cancel_route_axum() {
+    todo!()
 }
 
 // ERRORS

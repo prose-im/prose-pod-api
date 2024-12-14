@@ -53,6 +53,10 @@ pub async fn check_network_configuration_route<'r>(
     Ok(Json(res))
 }
 
+pub async fn check_network_configuration_route_axum() {
+    todo!()
+}
+
 #[get(
     "/v1/network/checks?<interval>",
     format = "text/event-stream",
@@ -112,4 +116,8 @@ pub fn check_network_configuration_stream_route<'r>(
 
         yield logged(end_event());
     })
+}
+
+pub async fn check_network_configuration_stream_route_axum() {
+    todo!()
 }

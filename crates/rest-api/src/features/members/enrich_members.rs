@@ -67,6 +67,10 @@ pub async fn enrich_members_route(
     Ok(res.into())
 }
 
+pub async fn enrich_members_route_axum() {
+    todo!()
+}
+
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
 pub async fn enrich_members_stream_route<'r>(
     member_service: LazyGuard<MemberService>,
@@ -100,6 +104,10 @@ pub async fn enrich_members_stream_route<'r>(
 
         yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
     })
+}
+
+pub async fn enrich_members_stream_route_axum() {
+    todo!()
 }
 
 // BOILERPLATE

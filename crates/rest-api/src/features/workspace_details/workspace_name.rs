@@ -26,6 +26,10 @@ pub async fn get_workspace_name_route<'r>(
     Ok(response)
 }
 
+pub async fn get_workspace_name_route_axum() {
+    todo!()
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SetWorkspaceNameRequest {
     pub name: String,
@@ -45,4 +49,8 @@ pub async fn set_workspace_name_route<'r>(
 
     let response = SetWorkspaceNameResponse { name }.into();
     Ok(response)
+}
+
+pub async fn set_workspace_name_route_axum() {
+    todo!()
 }

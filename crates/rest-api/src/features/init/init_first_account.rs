@@ -49,6 +49,10 @@ pub async fn init_first_account_route(
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
+pub async fn init_first_account_route_axum() {
+    todo!()
+}
+
 // ERRORS
 
 impl ErrorCode {

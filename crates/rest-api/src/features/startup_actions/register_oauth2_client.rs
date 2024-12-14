@@ -8,7 +8,7 @@ use sea_orm_rocket::Database as _;
 use service::{auth::AuthService, server_config::ServerConfigRepository};
 use tracing::{debug, info};
 
-use crate::{features::init::ServerConfigNotInitialized, guards::Db};
+use crate::{features::init::ServerConfigNotInitialized, guards::Db, AppState};
 
 pub async fn register_oauth2_client(rocket: &Rocket<Build>) -> Result<(), String> {
     debug!("Registering the OAuth 2.0 client…");
@@ -35,4 +35,8 @@ pub async fn register_oauth2_client(rocket: &Rocket<Build>) -> Result<(), String
         .map_err(|err| format!("Could not register OAuth 2.0 client: {err}"))?;
 
     Ok(())
+}
+
+pub async fn register_oauth2_client_axum(_app_state: &AppState) -> Result<(), String> {
+    todo!()
 }

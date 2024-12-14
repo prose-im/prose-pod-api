@@ -35,6 +35,10 @@ pub async fn get_invitation_route<'r>(
     Ok(response.into())
 }
 
+pub async fn get_invitation_route_axum() {
+    todo!()
+}
+
 /// Get information about an invitation from an accept or reject token.
 #[get("/v1/invitation-tokens/<token>/details?<token_type>")]
 pub async fn get_invitation_token_details_route<'r>(
@@ -55,4 +59,8 @@ pub async fn get_invitation_token_details_route<'r>(
 
     let response = WorkspaceInvitationBasicDetails::from(invitation);
     Ok(response.into())
+}
+
+pub async fn get_invitation_by_token_route_axum() {
+    todo!()
 }

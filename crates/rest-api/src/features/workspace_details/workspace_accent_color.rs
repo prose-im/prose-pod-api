@@ -26,6 +26,10 @@ pub async fn get_workspace_accent_color_route<'r>(
     Ok(response)
 }
 
+pub async fn get_workspace_accent_color_route_axum() {
+    todo!()
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SetWorkspaceAccentColorRequest {
     pub color: String,
@@ -45,4 +49,8 @@ pub async fn set_workspace_accent_color_route<'r>(
 
     let response = GetWorkspaceAccentColorResponse { color }.into();
     Ok(response)
+}
+
+pub async fn set_workspace_accent_color_route_axum() {
+    todo!()
 }

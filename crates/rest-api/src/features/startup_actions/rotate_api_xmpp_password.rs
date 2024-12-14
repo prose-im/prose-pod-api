@@ -11,6 +11,8 @@ use service::{
 };
 use tracing::debug;
 
+use crate::AppState;
+
 pub async fn rotate_api_xmpp_password(rocket: &Rocket<Build>) -> Result<(), String> {
     debug!("Rotating Prose Pod API's XMPP password…");
 
@@ -25,4 +27,8 @@ pub async fn rotate_api_xmpp_password(rocket: &Rocket<Build>) -> Result<(), Stri
     }
 
     Ok(())
+}
+
+pub async fn rotate_api_xmpp_password_axum(_app_state: &AppState) -> Result<(), String> {
+    todo!()
 }

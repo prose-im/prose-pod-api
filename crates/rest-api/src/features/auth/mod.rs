@@ -6,10 +6,16 @@
 pub mod guards;
 mod login;
 
-pub use login::*;
+use axum::routing::post;
+
+pub use self::login::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![login_route]
+}
+
+pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+    axum::Router::new().route("/v1/login", post(login_route_axum))
 }
 
 mod error {

@@ -54,3 +54,7 @@ pub async fn set_member_nickname_route<'r>(
     }
     .into())
 }
+
+pub async fn set_member_nickname_route_axum() {
+    todo!()
+}

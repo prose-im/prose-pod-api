@@ -35,3 +35,7 @@ pub async fn get_member_route<'r>(
     let response = EnrichedMember::from(member);
     Ok(response.into())
 }
+
+pub async fn get_member_route_axum() {
+    todo!()
+}

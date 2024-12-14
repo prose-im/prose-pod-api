@@ -64,6 +64,10 @@ pub async fn set_member_role_route<'r>(
     }
 }
 
+pub async fn set_member_role_route_axum() {
+    todo!()
+}
+
 impl CustomErrorCode for SetMemberRoleError {
     fn error_code(&self) -> ErrorCode {
         match self {

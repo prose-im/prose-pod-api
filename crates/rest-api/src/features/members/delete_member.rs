@@ -26,3 +26,7 @@ pub async fn delete_member_route<'r>(
 
     Ok(NoContent)
 }
+
+pub async fn delete_member_route_axum() {
+    todo!()
+}

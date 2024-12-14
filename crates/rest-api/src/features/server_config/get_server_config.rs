@@ -15,3 +15,7 @@ pub async fn get_server_config_route(
     let model = server_config.inner?;
     Ok(model.into())
 }
+
+pub async fn get_server_config_route_axum() {
+    todo!()
+}

@@ -67,6 +67,10 @@ pub async fn set_pod_address_route<'r>(
     }
 }
 
+pub async fn set_pod_address_route_axum() {
+    todo!()
+}
+
 #[get("/v1/pod/config/address")]
 pub async fn get_pod_address_route<'r>(
     conn: Connection<'r, Db>,
@@ -88,4 +92,8 @@ pub async fn get_pod_address_route<'r>(
     };
 
     Ok(address.into())
+}
+
+pub async fn get_pod_address_route_axum() {
+    todo!()
 }

@@ -66,6 +66,10 @@ pub async fn init_workspace_route<'r>(
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
+pub async fn init_workspace_route_axum() {
+    todo!()
+}
+
 // ERRORS
 
 impl ErrorCode {

@@ -38,3 +38,7 @@ pub(super) async fn get_invitations_route<'r>(
         pages_metadata,
     ))
 }
+
+pub async fn get_invitations_route_axum() {
+    todo!()
+}

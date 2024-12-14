@@ -26,11 +26,13 @@ mod prelude {
     };
 }
 
-pub use check_all::*;
-pub use check_dns_records::*;
-pub use check_ip_connectivity::*;
-pub use check_ports_reachability::*;
-pub use model::*;
+use axum::routing::get;
+
+pub use self::check_all::*;
+pub use self::check_dns_records::*;
+pub use self::check_ip_connectivity::*;
+pub use self::check_ports_reachability::*;
+pub use self::model::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
@@ -43,4 +45,28 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         check_ports_route,
         check_ports_stream_route,
     ]
+}
+
+pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+    axum::Router::new()
+        .route(
+            "/v1/network/checks",
+            get(check_network_configuration_route_axum),
+        )
+        .route(
+            "/v1/network/checks",
+            get(check_network_configuration_stream_route_axum),
+        )
+        .route("/v1/network/checks/dns", get(check_dns_records_route_axum))
+        .route(
+            "/v1/network/checks/dns",
+            get(check_dns_records_stream_route_axum),
+        )
+        .route("/v1/network/checks/ip", get(check_ip_route_axum))
+        .route("/v1/network/checks/ip", get(check_ip_stream_route_axum))
+        .route("/v1/network/checks/ports", get(check_ports_route_axum))
+        .route(
+            "/v1/network/checks/ports",
+            get(check_ports_stream_route_axum),
+        )
 }
