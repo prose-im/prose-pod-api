@@ -136,3 +136,5 @@ info "Creating tag…"
 edo git tag "$(to-tag "${NEW_VERSION:?}")"
 info "Pushing tag…"
 edo git push --atomic origin "${GIT_BRANCH:?}" "$(to-tag "${NEW_VERSION:?}")"
+
+success "Successfully created and pushed tag '$(to-tag "${NEW_VERSION:?}")'"
