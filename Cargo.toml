@@ -79,7 +79,7 @@ service = { path = "crates/service" }
 sha2 = "0.10"
 strum = { version = "0.26", features = ["derive"] }
 tempfile = "3"
-thiserror = "1"
+thiserror = "2"
 # https://github.com/time-rs/time/issues/681
 time = "=0.3.36"
 tokio = { version = "1", features = ["rt"] }
