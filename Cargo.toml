@@ -36,7 +36,6 @@ http-auth-basic = "0.3"
 insta = "1"
 iso8601-duration = { version = "0.2", features = ["serde"] }
 iso8601-timestamp = "0.3"
-jid = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main", default-features = false }
 lazy_static = "1"
 lettre = { version = "0.11", features = [
     "smtp-transport",
@@ -48,9 +47,7 @@ linked-hash-map = "0.5"
 linked_hash_set = "0.1"
 migration = { path = "crates/migration" }
 mime = "0.3"
-minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.92" }
 prosody-config = { path = "crates/prosody-config" }
 rand = "0.8"
 regex = "1"
@@ -87,7 +84,14 @@ tracing-subscriber = "0.3"
 url_serde = "0.2"
 urlencoding = "2"
 uuid = "1"
-xmpp-parsers = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
+
+# `prose-xmpp` and its dependencies.
+# NOTE: See <https://github.com/prose-im/prose-core-client/blob/master/Cargo.toml>
+#   for up-to-date versions (make sure to switch to the appropriate tag).
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.99" }
+jid = { version = "0.11", default-features = false }
+minidom = "0.16"
+xmpp-parsers = "0.21"
 
 [profile.dev]
 opt-level = 0

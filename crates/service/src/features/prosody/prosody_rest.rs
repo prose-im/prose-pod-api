@@ -104,7 +104,7 @@ impl Connection {
             jid: self.jid.clone(),
             prosody_token: self.prosody_token.clone(),
         };
-        (event_handler)(&conn, ConnectionEvent::Stanza(stanza.into())).await
+        (event_handler)(Box::new(conn), ConnectionEvent::Stanza(stanza.into())).await
     }
 }
 
