@@ -6,3 +6,7 @@
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![]
 }
+
+pub(super) fn router() -> axum::Router {
+    axum::Router::new()
+}

@@ -86,6 +86,8 @@ thiserror = "1"
 time = "=0.3.36"
 tokio = { version = "1", features = ["rt"] }
 tokio-util = "0.7"
+tower = "0.5"
+tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = { version = "0.1" }
 tracing-subscriber = "0.3"
 url_serde = "0.2"

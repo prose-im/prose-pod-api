@@ -11,3 +11,7 @@ use crate::error::{self, Error};
 pub fn set_member_role_route() -> Result<NoContent, Error> {
     Err(error::NotImplemented("Set member role").into())
 }
+
+pub async fn set_member_role_route_axum() {
+    todo!()
+}

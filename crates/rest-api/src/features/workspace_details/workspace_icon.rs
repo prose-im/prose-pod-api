@@ -30,6 +30,10 @@ pub async fn get_workspace_icon_route<'r>(
     Ok(response)
 }
 
+pub async fn get_workspace_icon_route_axum() {
+    todo!()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetWorkspaceIconRequest {
     // Base64 encoded image
@@ -56,4 +60,8 @@ pub async fn set_workspace_icon_route<'r>(
     }
     .into();
     Ok(response)
+}
+
+pub async fn set_workspace_icon_route_axum() {
+    todo!()
 }

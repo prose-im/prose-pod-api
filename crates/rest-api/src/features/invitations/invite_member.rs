@@ -95,6 +95,10 @@ pub async fn invite_member_route<'r>(
     }
 }
 
+pub async fn invite_member_route_axum() {
+    todo!()
+}
+
 // ERRORS
 
 impl ErrorCode {

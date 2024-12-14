@@ -14,3 +14,7 @@ use crate::{
 pub fn get_member_route(_jid: JIDUriParam) -> Result<NoContent, Error> {
     Err(error::NotImplemented("Get member").into())
 }
+
+pub async fn get_member_route_axum() {
+    todo!()
+}

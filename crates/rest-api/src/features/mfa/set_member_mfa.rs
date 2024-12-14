@@ -12,3 +12,7 @@ use crate::error::{self, Error};
 pub fn set_member_mfa_route() -> Result<NoContent, Error> {
     Err(error::NotImplemented("Set member MFA status").into())
 }
+
+pub async fn set_member_mfa_route_axum() {
+    todo!()
+}

@@ -25,3 +25,7 @@ pub async fn get_dns_records_route(
     let res = GetDnsRecordsResponse { steps };
     Ok(res.into())
 }
+
+pub async fn get_dns_records_route_axum() {
+    todo!()
+}

@@ -38,6 +38,10 @@ pub async fn login_route(
     Ok(response)
 }
 
+pub async fn login_route_axum() {
+    todo!()
+}
+
 // BOILERPLATE
 
 impl Zeroize for LoginToken {

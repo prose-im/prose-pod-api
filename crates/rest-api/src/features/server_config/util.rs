@@ -7,7 +7,7 @@
 /// Also generates its associated request type.
 #[macro_export]
 macro_rules! server_config_set_route {
-    ($route:expr, $req_type:ident, $var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
+    ($route:expr, $req_type:ident, $var_type:ty, $var:ident, $fn:ident, $route_fn:ident, $route_fn_axum:ident) => {
         #[derive(serde::Serialize, serde::Deserialize)]
         pub struct $req_type {
             pub $var: $var_type,
@@ -23,13 +23,17 @@ macro_rules! server_config_set_route {
             let new_config = server_manager.$fn(new_state).await?;
             Ok(new_config.into())
         }
+
+        pub async fn $route_fn_axum() {
+            todo!()
+        }
     };
 }
 
 /// Generates a route for resetting a specific server config.
 #[macro_export]
 macro_rules! server_config_reset_route {
-    ($route:expr, $fn:ident, $route_fn:ident) => {
+    ($route:expr, $fn:ident, $route_fn:ident, $route_fn_axum:ident) => {
         #[rocket::put($route)]
         pub async fn $route_fn(
             server_manager: LazyGuard<ServerManager>,
@@ -37,6 +41,10 @@ macro_rules! server_config_reset_route {
             let server_manager = server_manager.inner?;
             let new_config = server_manager.$fn().await?;
             Ok(new_config.into())
+        }
+
+        pub async fn $route_fn_axum() {
+            todo!()
         }
     };
 }

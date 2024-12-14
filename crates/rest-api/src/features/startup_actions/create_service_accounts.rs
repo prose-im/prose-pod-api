@@ -12,7 +12,7 @@ use service::{
 };
 use tracing::{debug, info};
 
-use crate::{features::init::ServerConfigNotInitialized, guards::Db};
+use crate::{features::init::ServerConfigNotInitialized, guards::Db, AppState};
 
 pub async fn create_service_accounts(rocket: &Rocket<Build>) -> Result<(), String> {
     debug!("Creating service accounts…");
@@ -51,4 +51,8 @@ pub async fn create_service_accounts(rocket: &Rocket<Build>) -> Result<(), Strin
     }
 
     Ok(())
+}
+
+pub async fn create_service_accounts_axum(_app_state: &AppState) -> Result<(), String> {
+    todo!()
 }
