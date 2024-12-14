@@ -50,6 +50,10 @@ help() {
 	exit 0
 }
 
+to-tag() {
+	echo "v${1:?"Must pass a version number"}"
+}
+
 # A simplified `sed` command that works on both macOS and Linux.
 replace() {
 	local pattern="s/${1:?}/\1${NEW_VERSION:?}\2/" file="${2:?}"
@@ -101,9 +105,15 @@ if [ -z "$FORCE" ]; then
 fi
 
 # Convert the new version to a string.
-info "Previous version: ${VERSION:?}"
 NEW_VERSION=$(echo "${VERSION_COMPONENTS[*]}" | tr ' ' '.')
-info "New version: ${NEW_VERSION:?}"
+
+# Log some useful info.
+info "Current version: $(to-tag "${VERSION:?}")"
+info "New version: $(to-tag "${NEW_VERSION:?}")"
+info "New commits:"
+log_as_info_ git --no-pager log --reverse --no-merges \
+  --format="- %C(auto)%h %s %C(green)(%ad)" --date=short --color \
+  "$(to-tag "${VERSION:?}")"..HEAD
 
 # Update version numbers in files.
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
@@ -121,8 +131,8 @@ info "Pulling $(format_code origin)…"
 edo git pull origin "${GIT_BRANCH:?}"
 info "Committing changes…"
 edo git add "${VERSION_FILE:?}" "${OPENAPI_JSON_FILE:?}" "${CARGO_TOML_FILE:?}" "${CARGO_LOCK_FILE:?}"
-edo git commit -m "v${NEW_VERSION:?}"
+edo git commit -m "$(to-tag "${NEW_VERSION:?}")"
 info "Creating tag…"
-edo git tag "v${NEW_VERSION:?}"
+edo git tag "$(to-tag "${NEW_VERSION:?}")"
 info "Pushing tag…"
-edo git push --atomic origin "${GIT_BRANCH:?}" "v${NEW_VERSION:?}"
+edo git push --atomic origin "${GIT_BRANCH:?}" "$(to-tag "${NEW_VERSION:?}")"
