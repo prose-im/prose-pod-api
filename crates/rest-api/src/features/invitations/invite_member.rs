@@ -3,6 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+#[cfg(debug_assertions)]
 use std::ops::Deref as _;
 
 use rocket::{post, response::status, serde::json::Json, State};
@@ -18,18 +19,39 @@ use service::{
     AppConfig,
 };
 
+#[cfg(not(debug_assertions))]
+use crate::responders::Created;
 use crate::{
     error::prelude::*,
     guards::{Db, LazyGuard},
-    responders::Either,
 };
 #[cfg(debug_assertions)]
 use crate::{
+    features::invitations::guards::UnauthenticatedInvitationService,
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
+    responders::Either,
 };
 
-use super::{guards::*, model::*, rocket_uri_macro_get_invitation_route};
+use super::{model::*, rocket_uri_macro_get_invitation_route};
+
+#[cfg(not(debug_assertions))]
+pub type InviteMemberResponse = Created<WorkspaceInvitation>;
+#[cfg(not(debug_assertions))]
+fn ok(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponse {
+    Ok(status::Created::new(resource_uri).body(invitation.into()))
+}
+#[cfg(debug_assertions)]
+pub type InviteMemberResponse = Result<
+    Either<status::Created<Json<WorkspaceInvitation>>, status::Created<Json<Member>>>,
+    Error,
+>;
+#[cfg(debug_assertions)]
+fn ok(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponse {
+    Ok(Either::left(
+        status::Created::new(resource_uri).body(invitation.into()),
+    ))
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct InviteMemberRequest {
@@ -41,6 +63,7 @@ pub struct InviteMemberRequest {
 }
 
 /// Invite a new member.
+#[cfg(not(debug_assertions))]
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub async fn invite_member_route<'r>(
     conn: Connection<'r, Db>,
@@ -50,9 +73,56 @@ pub async fn invite_member_route<'r>(
     notifier: LazyGuard<Notifier>,
     invitation_controller: LazyGuard<InvitationController>,
     req: Json<InviteMemberRequest>,
+) -> InviteMemberResponse {
+    invite_member_route_(
+        conn,
+        app_config,
+        server_config,
+        user_info,
+        notifier,
+        invitation_controller,
+        req,
+    )
+    .await
+}
+
+/// Invite a new member and auto-accept the invitation if enabled.
+#[cfg(debug_assertions)]
+#[post("/v1/invitations", format = "json", data = "<req>")]
+pub async fn invite_member_route<'r>(
+    conn: Connection<'r, Db>,
+    app_config: &State<AppConfig>,
+    server_config: LazyGuard<ServerConfig>,
+    user_info: LazyGuard<UserInfo>,
+    notifier: LazyGuard<Notifier>,
+    invitation_controller: LazyGuard<InvitationController>,
+    req: Json<InviteMemberRequest>,
+    invitation_service: LazyGuard<UnauthenticatedInvitationService>,
+) -> InviteMemberResponse {
+    invite_member_route_(
+        conn,
+        app_config,
+        server_config,
+        user_info,
+        notifier,
+        invitation_controller,
+        req,
+        invitation_service,
+    )
+    .await
+}
+
+/// Invite a new member.
+pub async fn invite_member_route_<'r>(
+    conn: Connection<'r, Db>,
+    app_config: &State<AppConfig>,
+    server_config: LazyGuard<ServerConfig>,
+    user_info: LazyGuard<UserInfo>,
+    notifier: LazyGuard<Notifier>,
+    invitation_controller: LazyGuard<InvitationController>,
+    req: Json<InviteMemberRequest>,
     #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService>,
-) -> Result<Either<status::Created<Json<WorkspaceInvitation>>, status::Created<Json<Member>>>, Error>
-{
+) -> InviteMemberResponse {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
     let notifier = notifier.inner?;
@@ -78,21 +148,21 @@ pub async fn invite_member_route<'r>(
         )
         .await?;
 
-    if cfg!(debug_assertions) && app_config.debug_only.automatically_accept_invitations {
-        let jid = invitation.jid;
-        let resource_uri = uri!(get_member_route(jid.clone().into())).to_string();
-        let member = MemberRepository::get(db, &jid).await?.unwrap();
-        let response: Member = member.into();
-        Ok(Either::right(
-            status::Created::new(resource_uri).body(response.into()),
-        ))
-    } else {
-        let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
-        let response: WorkspaceInvitation = invitation.into();
-        Ok(Either::left(
-            status::Created::new(resource_uri).body(response.into()),
-        ))
+    #[cfg(debug_assertions)]
+    {
+        if app_config.debug_only.automatically_accept_invitations {
+            let jid = invitation.jid;
+            let resource_uri = uri!(get_member_route(jid.clone().into())).to_string();
+            let member = MemberRepository::get(db, &jid).await?.unwrap();
+            let response: Member = member.into();
+            return Ok(Either::right(
+                status::Created::new(resource_uri).body(response.into()),
+            ));
+        }
     }
+
+    let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
+    ok(invitation.into(), resource_uri)
 }
 
 // ERRORS

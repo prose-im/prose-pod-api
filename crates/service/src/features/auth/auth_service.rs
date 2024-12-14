@@ -6,6 +6,7 @@
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
 use secrecy::SecretString;
+#[cfg(debug_assertions)]
 use serde::{Deserialize, Serialize};
 
 use crate::{models::BareJid, prosody::ProsodyOAuth2Error};
@@ -63,7 +64,6 @@ pub enum AuthError {
     ProsodyOAuth2Err(#[from] ProsodyOAuth2Error),
     #[error("Invalid credentials")]
     InvalidCredentials,
-    #[cfg(debug_assertions)]
     #[error("{0}")]
     Other(String),
 }

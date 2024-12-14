@@ -39,18 +39,21 @@ pub enum DnsRecord {
     },
 }
 
-/// NOTE: Only used in tests.
-#[cfg(debug_assertions)]
 impl DnsRecord {
-    pub fn record_type(&self) -> DnsRecordDiscriminants {
-        DnsRecordDiscriminants::from(self)
-    }
     pub fn hostname(&self) -> &DomainName {
         match self {
             Self::A { hostname, .. } | Self::AAAA { hostname, .. } | Self::SRV { hostname, .. } => {
                 hostname
             }
         }
+    }
+}
+
+/// NOTE: Only used in tests.
+#[cfg(debug_assertions)]
+impl DnsRecord {
+    pub fn record_type(&self) -> DnsRecordDiscriminants {
+        DnsRecordDiscriminants::from(self)
     }
 }
 
