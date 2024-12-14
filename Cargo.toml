@@ -35,7 +35,7 @@ hmac = "0.12"
 http-auth-basic = "0.3"
 insta = "1"
 iso8601-duration = { version = "0.2", features = ["serde"] }
-iso8601-timestamp = "0.2"
+iso8601-timestamp = "0.3"
 jid = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main", default-features = false }
 lazy_static = "1"
 lettre = { version = "0.11", features = [
