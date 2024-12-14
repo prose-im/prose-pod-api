@@ -11,13 +11,16 @@ mod run_migrations;
 
 use std::time::Duration;
 
-use create_service_accounts::*;
-use init_server_config::*;
-use register_oauth2_client::*;
 use rocket::{Build, Rocket};
-use rotate_api_xmpp_password::*;
-use run_migrations::*;
 use tokio::time::sleep;
+
+use crate::AppState;
+
+use self::create_service_accounts::*;
+use self::init_server_config::*;
+use self::register_oauth2_client::*;
+use self::rotate_api_xmpp_password::*;
+use self::run_migrations::*;
 
 pub async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
     run_migrations(rocket).await?;
@@ -27,5 +30,16 @@ pub async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
     init_server_config(rocket).await?;
     register_oauth2_client(rocket).await?;
     create_service_accounts(rocket).await?;
+    Ok(())
+}
+
+pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
+    run_migrations_axum(app_state).await?;
+    // Wait for the XMPP server to finish starting up (1 second should be more than enough)
+    sleep(Duration::from_secs(1)).await;
+    rotate_api_xmpp_password_axum(app_state).await?;
+    init_server_config_axum(app_state).await?;
+    register_oauth2_client_axum(app_state).await?;
+    create_service_accounts_axum(app_state).await?;
     Ok(())
 }

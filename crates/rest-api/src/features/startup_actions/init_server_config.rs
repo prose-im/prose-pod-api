@@ -14,7 +14,7 @@ use service::{
 };
 use tracing::{debug, info};
 
-use crate::{features::init::ServerConfigNotInitialized, guards::Db};
+use crate::{features::init::ServerConfigNotInitialized, guards::Db, AppState};
 
 pub async fn init_server_config(rocket: &Rocket<Build>) -> Result<(), String> {
     debug!("Initializing the XMPP server configuration…");
@@ -50,4 +50,8 @@ pub async fn init_server_config(rocket: &Rocket<Build>) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+pub async fn init_server_config_axum(_app_state: &AppState) -> Result<(), String> {
+    todo!()
 }

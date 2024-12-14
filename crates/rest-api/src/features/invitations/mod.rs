@@ -11,12 +11,14 @@ mod invitation_actions;
 mod invite_member;
 mod model;
 
-pub use forms::*;
-pub use get_invitation::*;
-pub use get_invitations::*;
-pub use invitation_actions::*;
-pub use invite_member::*;
-pub use model::*;
+use axum::routing::{get, post, put};
+
+pub use self::forms::*;
+pub use self::get_invitation::*;
+pub use self::get_invitations::*;
+pub use self::invitation_actions::*;
+pub use self::invite_member::*;
+pub use self::model::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
@@ -29,4 +31,34 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         invitation_resend_route,
         invitation_cancel_route,
     ]
+}
+
+pub(super) fn router() -> axum::Router {
+    axum::Router::new()
+        .route("/v1/invitations", post(invite_member_route_axum))
+        .route("/v1/invitations", get(get_invitations_route_axum))
+        .route(
+            "/v1/invitations/:invitation_id",
+            get(get_invitation_route_axum),
+        )
+        .route(
+            "/v1/invitations/:token",
+            get(get_invitation_by_token_route_axum),
+        )
+        .route(
+            "/v1/invitations/:token/accept",
+            put(invitation_accept_route_axum),
+        )
+        .route(
+            "/v1/invitations/:token/reject",
+            put(invitation_reject_route_axum),
+        )
+        .route(
+            "/v1/invitations/:token/resend",
+            put(invitation_resend_route_axum),
+        )
+        .route(
+            "/v1/invitations/:token/cancel",
+            put(invitation_cancel_route_axum),
+        )
 }

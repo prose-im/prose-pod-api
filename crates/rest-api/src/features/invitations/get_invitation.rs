@@ -22,6 +22,10 @@ pub fn get_invitation_route() -> Result<Json<WorkspaceInvitation>, Error> {
     Err(error::NotImplemented("Get invitation").into())
 }
 
+pub async fn get_invitation_route_axum() {
+    todo!()
+}
+
 /// Get information about an invitation from an accept or reject token.
 #[get("/v1/invitations/<token>?<token_type>", rank = 1)]
 pub async fn get_invitation_by_token_route<'r>(
@@ -42,4 +46,8 @@ pub async fn get_invitation_by_token_route<'r>(
 
     let response: WorkspaceInvitation = invitation.into();
     Ok(response.into())
+}
+
+pub async fn get_invitation_by_token_route_axum() {
+    todo!()
 }

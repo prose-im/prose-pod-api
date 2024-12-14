@@ -17,6 +17,10 @@ pub async fn check_dns_records_route<'r>(
     Ok(res.into())
 }
 
+pub async fn check_dns_records_route_axum() {
+    todo!()
+}
+
 #[get(
     "/v1/network/checks/dns?<interval>",
     format = "text/event-stream",
@@ -38,6 +42,10 @@ pub fn check_dns_records_stream_route<'r>(
         interval,
         app_config,
     )
+}
+
+pub async fn check_dns_records_stream_route_axum() {
+    todo!()
 }
 
 // MODEL

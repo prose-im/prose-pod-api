@@ -21,6 +21,10 @@ pub async fn check_ports_route<'r>(
     Ok(res.into())
 }
 
+pub async fn check_ports_route_axum() {
+    todo!()
+}
+
 #[get(
     "/v1/network/checks/ports?<interval>",
     format = "text/event-stream",
@@ -42,6 +46,10 @@ pub fn check_ports_stream_route<'r>(
         interval,
         app_config,
     )
+}
+
+pub async fn check_ports_stream_route_axum() {
+    todo!()
 }
 
 // MODEL

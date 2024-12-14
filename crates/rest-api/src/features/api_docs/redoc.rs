@@ -18,3 +18,7 @@ pub async fn redoc_route() -> Result<NamedFile, Error> {
             .into()
         })
 }
+
+pub async fn redoc_route_axum() {
+    todo!()
+}

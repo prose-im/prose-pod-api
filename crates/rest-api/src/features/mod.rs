@@ -41,3 +41,22 @@ pub(super) fn routes() -> Vec<rocket::Route> {
     ]
     .concat()
 }
+
+pub(super) fn router() -> axum::Router {
+    axum::Router::new()
+        .merge(api_docs::router())
+        .merge(auth::router())
+        .merge(backups::router())
+        .merge(dns_setup::router())
+        .merge(init::router())
+        .merge(invitations::router())
+        .merge(members::router())
+        .merge(mfa::router())
+        .merge(network_checks::router())
+        .merge(pod_config::router())
+        .merge(profile::router())
+        .merge(reactions::router())
+        .merge(roles::router())
+        .merge(server_config::router())
+        .merge(workspace_details::router())
+}

@@ -60,3 +60,7 @@ pub async fn set_member_avatar_route<'r>(
     }
     .into())
 }
+
+pub async fn set_member_avatar_route_axum() {
+    todo!()
+}

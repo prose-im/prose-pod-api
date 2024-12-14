@@ -34,3 +34,7 @@ pub async fn get_pod_config_route<'r>(
     let res = model.map(PodConfig::from).unwrap_or_default();
     Ok(res.into())
 }
+
+pub async fn get_pod_config_route_axum() {
+    todo!()
+}

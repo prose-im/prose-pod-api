@@ -41,3 +41,7 @@ pub async fn get_members_route<'r>(
         pages_metadata,
     ))
 }
+
+pub async fn get_members_route_axum() {
+    todo!()
+}
