@@ -57,6 +57,7 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "s2s_bidi";
+  "cloud_notify";
   "mam";
 }
 

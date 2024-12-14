@@ -6,11 +6,13 @@
 mod file_upload;
 mod get_server_config;
 mod message_archive;
+mod push_notifications;
 mod util;
 
 pub use file_upload::*;
 pub use get_server_config::*;
 pub use message_archive::*;
+pub use push_notifications::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
@@ -26,5 +28,11 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         set_message_archive_enabled_route,
         set_message_archive_retention_route,
         reset_message_archive_retention_route,
+        // Push notifications
+        reset_push_notifications_config_route,
+        set_push_notification_with_body_route,
+        reset_push_notification_with_body_route,
+        set_push_notification_with_sender_route,
+        reset_push_notification_with_sender_route,
     ]
 }

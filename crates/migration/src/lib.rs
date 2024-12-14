@@ -6,6 +6,7 @@ mod m20240320_095326_create_workspace_invitation;
 mod m20240326_160834_create_notification;
 mod m20240506_080027_create_workspace;
 mod m20240830_080808_create_pod_config;
+mod m20241214_134500_add_push_notif_config;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240326_160834_create_notification::Migration),
             Box::new(m20240506_080027_create_workspace::Migration),
             Box::new(m20240830_080808_create_pod_config::Migration),
+            Box::new(m20241214_134500_add_push_notif_config::Migration),
         ]
     }
 }

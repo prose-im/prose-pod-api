@@ -199,6 +199,17 @@ impl ServerManager {
             .await?;
         Ok(model)
     }
+
+    pub async fn reset_push_notifications_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting push notifications configuration…");
+        let model = self
+            .update(|active| {
+                active.push_notification_with_body = Set(None);
+                active.push_notification_with_sender = Set(None);
+            })
+            .await?;
+        Ok(model)
+    }
 }
 
 impl ServerManager {
@@ -303,6 +314,21 @@ impl ServerManager {
         PossiblyInfinite<Duration<DateLike>>,
         set_file_storage_retention,
         file_storage_retention
+    );
+
+    // Push notifications
+    set_bool!(set_push_notification_with_body, push_notification_with_body);
+    reset!(
+        reset_push_notification_with_body,
+        push_notification_with_body
+    );
+    set_bool!(
+        set_push_notification_with_sender,
+        push_notification_with_sender
+    );
+    reset!(
+        reset_push_notification_with_sender,
+        push_notification_with_sender
     );
 }
 

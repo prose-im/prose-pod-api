@@ -37,7 +37,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum ServerConfig {
+pub(super) enum ServerConfig {
     Table,
     Id,
     Domain,
