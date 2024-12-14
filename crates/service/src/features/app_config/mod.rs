@@ -175,6 +175,8 @@ pub struct ConfigServerDefaults {
     pub federation_enabled: bool,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
+    pub push_notification_with_body: bool,
+    pub push_notification_with_sender: bool,
 }
 
 impl Default for ConfigServerDefaults {
@@ -192,6 +194,9 @@ impl Default for ConfigServerDefaults {
             federation_enabled: defaults::server_defaults_federation_enabled(),
             settings_backup_interval: defaults::server_defaults_settings_backup_interval(),
             user_data_backup_interval: defaults::server_defaults_user_data_backup_interval(),
+            push_notification_with_body: defaults::server_defaults_push_notification_with_body(),
+            push_notification_with_sender: defaults::server_defaults_push_notification_with_sender(
+            ),
         }
     }
 }

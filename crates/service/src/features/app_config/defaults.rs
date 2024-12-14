@@ -122,6 +122,14 @@ pub fn server_defaults_user_data_backup_interval() -> String {
     "P1W".to_string()
 }
 
+pub fn server_defaults_push_notification_with_body() -> bool {
+    false
+}
+
+pub fn server_defaults_push_notification_with_sender() -> bool {
+    false
+}
+
 pub fn branding_page_title() -> String {
     "Prose Pod API".to_string()
 }

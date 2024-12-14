@@ -37,6 +37,8 @@ pub struct Model {
     pub federation_enabled: Option<bool>,
     pub settings_backup_interval: Option<String>,
     pub user_data_backup_interval: Option<String>,
+    pub push_notification_with_body: Option<bool>,
+    pub push_notification_with_sender: Option<bool>,
 }
 
 impl Model {
@@ -56,6 +58,8 @@ impl Model {
             federation_enabled: self.federation_enabled(defaults),
             settings_backup_interval: self.settings_backup_interval(defaults).to_owned(),
             user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
+            push_notification_with_body: self.push_notification_with_body(defaults).to_owned(),
+            push_notification_with_sender: self.push_notification_with_sender(defaults).to_owned(),
         }
     }
     /// Same as [Model::with_default_values], used in places where we have easier access to a full [AppConfig].
@@ -100,6 +104,8 @@ impl Model {
     get_or_default!(federation_enabled, bool);
     get_or_default_string!(settings_backup_interval);
     get_or_default_string!(user_data_backup_interval);
+    get_or_default!(push_notification_with_body, bool);
+    get_or_default!(push_notification_with_sender, bool);
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

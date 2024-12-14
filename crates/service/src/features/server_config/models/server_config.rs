@@ -21,4 +21,6 @@ pub struct ServerConfig {
     pub federation_enabled: bool,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
+    pub push_notification_with_body: bool,
+    pub push_notification_with_sender: bool,
 }
