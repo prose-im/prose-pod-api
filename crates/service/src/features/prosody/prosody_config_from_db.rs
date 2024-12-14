@@ -189,6 +189,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         "server_contact_info",
                         "websocket",
                         "s2s_bidi",
+                        "cloud_notify",
                     ]
                     .into_iter()
                     .map(ToString::to_string)
