@@ -1,3 +1,5 @@
 *
 !Cargo.*
-!crates/
+!crates/**/*.rs
+!crates/*/Cargo.*
+!crates/*/static/
