@@ -70,8 +70,9 @@ help() {
 
 # ===== ARGUMENT PARSING =====
 
+CARGO_CHEF_EXTRA_ARGS=()
 CARGO_INSTALL_EXTRA_ARGS=()
-unset NO_PULL
+unset NO_PULL CARGO_PROFILE
 
 for arg in "$@"; do
 	case $arg in
@@ -83,11 +84,12 @@ for arg in "$@"; do
 			;;
 		--debug)
 			info 'Will build in debug mode.'
-			CARGO_INSTALL_EXTRA_ARGS+=('--profile=dev')
+			CARGO_PROFILE='dev'
 			;;
 		--offline)
-			die "Offline builds are not supported anymore, because we build the Rust project in the Dockerfile. If you need this feature, consider using $(format_hyperlink 'cargo-chef' 'https://github.com/LukeMathWalker/cargo-chef')."
+			die "Offline builds are not supported anymore, because we build the Rust project in a Dockerfile and we have a git dependency ($(format_code prose-core-client)). If you need this feature, consider adding $(format_code prose-core-client) as a $(format_hyperlink 'git submodule' 'https://git-scm.com/book/en/v2/Git-Tools-Submodules') instead."
 			info 'Will build without accesing the network.'
+			CARGO_CHEF_EXTRA_ARGS+=('--offline')
 			CARGO_INSTALL_EXTRA_ARGS+=('--offline')
 			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
@@ -116,6 +118,8 @@ fi
 edo docker buildx build \
 	${DOCKER_TARGET_PLATFORM:+--platform "${DOCKER_TARGET_PLATFORM:?}"} \
 	-t "${PROSE_POD_API_IMAGE:?}" \
-	--build-arg CARGO_INSTALL_EXTRA_ARGS="${CARGO_INSTALL_EXTRA_ARGS[*]}" \
+	${CARGO_PROFILE:+--build-arg CARGO_PROFILE="${CARGO_PROFILE}"} \
+	${CARGO_CHEF_EXTRA_ARGS:+--build-arg CARGO_CHEF_EXTRA_ARGS="${CARGO_CHEF_EXTRA_ARGS[*]}"} \
+	${CARGO_INSTALL_EXTRA_ARGS:+--build-arg CARGO_INSTALL_EXTRA_ARGS="${CARGO_INSTALL_EXTRA_ARGS[*]}"} \
 	${NO_PULL:+--pull=false} \
 	"${PROSE_POD_API_DIR:?}"

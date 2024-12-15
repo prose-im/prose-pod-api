@@ -1,24 +1,38 @@
-FROM rust:alpine AS build
+# syntax=docker/dockerfile:1.7-labs
 
-ARG CARGO_INSTALL_EXTRA_ARGS=''
+FROM lukemathwalker/cargo-chef:latest-rust-alpine AS chef
+WORKDIR /usr/src/prose-pod-api
 
+
+FROM chef AS planner
+COPY --exclude=crates/*/static/ . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+
+FROM chef AS builder
+COPY --from=planner /usr/src/prose-pod-api/recipe.json recipe.json
 RUN apk update && apk add musl-dev
 
-RUN rustc --version && \
-    rustup --version && \
-    cargo --version
+ARG CARGO_PROFILE='release'
 
-WORKDIR /usr/src/prose-pod-api
-COPY . .
+# Build the dependencies (and use Docker’s cache to avoid rebuilding it next time).
+ARG CARGO_CHEF_EXTRA_ARGS=''
+RUN cargo chef cook --profile="${CARGO_PROFILE}" --recipe-path recipe.json ${CARGO_CHEF_EXTRA_ARGS}
 
-RUN cargo install --path crates/rest-api ${CARGO_INSTALL_EXTRA_ARGS}
+# Build the application.
+COPY --exclude=crates/*/static/ . .
+ARG CARGO_INSTALL_EXTRA_ARGS=''
+RUN cargo install --path crates/rest-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
+
 
 FROM alpine:latest
 
 RUN apk update && apk add libgcc libc6-compat
 
-COPY --from=build /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
-COPY --from=build /usr/src/prose-pod-api/crates/rest-api/static /static
+WORKDIR /usr/share/prose-pod-api
+
+COPY --from=builder /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
+COPY ./crates/rest-api/static /usr/share/prose-pod-api/static
 
 CMD ["prose-pod-api"]
 
