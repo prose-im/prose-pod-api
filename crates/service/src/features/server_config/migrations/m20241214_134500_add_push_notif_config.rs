@@ -1,3 +1,9 @@
+// prose-pod-api
+//
+// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
+use async_trait::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
 use super::m20231221_172027_create_server_config::ServerConfig;
@@ -5,7 +11,7 @@ use super::m20231221_172027_create_server_config::ServerConfig;
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager

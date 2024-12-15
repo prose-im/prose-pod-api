@@ -2407,14 +2407,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
-name = "migration"
-version = "0.3.0"
-dependencies = [
- "async-std",
- "sea-orm-migration",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2942,7 +2934,6 @@ dependencies = [
  "iso8601-timestamp",
  "lazy_static",
  "linked-hash-map",
- "migration",
  "regex",
  "rocket",
  "sea-orm-rocket",
@@ -3909,6 +3900,7 @@ name = "service"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "async-std",
  "async-trait",
  "base64",
  "chrono",
@@ -3926,7 +3918,6 @@ dependencies = [
  "lazy_static",
  "lettre",
  "linked_hash_set",
- "migration",
  "mime",
  "minidom",
  "parking_lot",
@@ -3935,6 +3926,7 @@ dependencies = [
  "rand",
  "reqwest",
  "sea-orm",
+ "sea-orm-migration",
  "secrecy",
  "serde",
  "serde_json",

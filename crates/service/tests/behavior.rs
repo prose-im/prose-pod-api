@@ -8,9 +8,9 @@ mod prosody;
 use std::str::FromStr;
 
 use cucumber::World;
-use migration::{self, MigratorTrait};
 use sea_orm::*;
 use secrecy::SecretString;
+use service::MigratorTrait as _;
 use service::{
     init::WorkspaceCreateForm,
     models::JidDomain,
@@ -55,7 +55,7 @@ impl TestWorld {
         };
 
         // Setup database schema
-        if let Err(e) = migration::Migrator::up(&db, None).await {
+        if let Err(e) = service::Migrator::up(&db, None).await {
             panic!("Could not setup test database schema: {e}");
         }
 

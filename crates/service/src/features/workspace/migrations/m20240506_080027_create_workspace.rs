@@ -1,3 +1,8 @@
+// prose-pod-api
+//
+// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -9,12 +14,10 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Notification::Table)
+                    .table(Workspace::Table)
                     .if_not_exists()
-                    .col(pk_auto(Notification::Id))
-                    .col(timestamp(Notification::CreatedAt))
-                    .col(string(Notification::Template))
-                    .col(json(Notification::Data))
+                    .col(pk_auto(Workspace::Id))
+                    .col(string_null(Workspace::AccentColor))
                     .to_owned(),
             )
             .await
@@ -22,16 +25,14 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Notification::Table).to_owned())
+            .drop_table(Table::drop().table(Workspace::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum Notification {
+enum Workspace {
     Table,
     Id,
-    CreatedAt,
-    Template,
-    Data,
+    AccentColor,
 }

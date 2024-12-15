@@ -16,7 +16,6 @@ use std::{
 use cucumber::{given, then, when, World};
 use cucumber_parameters::{HTTPStatus, JID};
 use lazy_static::lazy_static;
-use migration::{DbErr, MigratorTrait as _};
 use mock_auth_service::MockAuthService;
 use mock_network_checker::MockNetworkChecker;
 use mock_notifier::{MockNotifier, MockNotifierState};
@@ -49,6 +48,7 @@ use service::{
     xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     AppConfig,
 };
+use service::{errors::DbErr, MigratorTrait as _};
 use tokio::{runtime::Handle, task};
 use tracing::debug;
 use tracing_subscriber::{
@@ -406,7 +406,7 @@ async fn db_pool(rocket_config_provider: &Figment) -> <Db as sea_orm_rocket::Dat
 
 async fn run_migrations(conn: &DatabaseConnection) -> Result<(), DbErr> {
     debug!("Running database migrations before creating the Rocket…");
-    migration::Migrator::up(conn, None).await
+    service::Migrator::up(conn, None).await
 }
 
 #[given("the Prose Pod API has started")]

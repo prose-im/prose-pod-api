@@ -8,6 +8,7 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 
 [dependencies]
 anyhow = { workspace = true }
+async-std = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
@@ -31,6 +32,7 @@ prosody-config = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -46,10 +48,14 @@ urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 xmpp-parsers = { workspace = true }
 
+[[bin]]
+name = "migration"
+path = "src/migrations/main.rs"
+doc = false
+
 [dev-dependencies]
 cucumber = { workspace = true }
 insta = { workspace = true }
-migration = { workspace = true }
 
 [[test]]
 name = "behavior"

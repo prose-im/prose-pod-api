@@ -22,7 +22,7 @@ RUN cargo chef cook --profile="${CARGO_PROFILE}" --recipe-path recipe.json ${CAR
 # Build the application.
 COPY --exclude=crates/*/static/ . .
 ARG CARGO_INSTALL_EXTRA_ARGS=''
-RUN cargo install --path crates/rest-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
+RUN cargo install --path crates/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
 
 
 FROM alpine:latest

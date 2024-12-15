@@ -1,3 +1,8 @@
+// prose-pod-api
+//
+// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -9,10 +14,12 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Workspace::Table)
+                    .table(PodConfig::Table)
                     .if_not_exists()
-                    .col(pk_auto(Workspace::Id))
-                    .col(string_null(Workspace::AccentColor))
+                    .col(pk_auto(PodConfig::Id))
+                    .col(string_null(PodConfig::Ipv4))
+                    .col(string_null(PodConfig::Ipv6))
+                    .col(string_null(PodConfig::Hostname))
                     .to_owned(),
             )
             .await
@@ -20,14 +27,16 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Workspace::Table).to_owned())
+            .drop_table(Table::drop().table(PodConfig::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum Workspace {
+enum PodConfig {
     Table,
     Id,
-    AccentColor,
+    Ipv4,
+    Ipv6,
+    Hostname,
 }

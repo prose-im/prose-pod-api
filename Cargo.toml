@@ -44,7 +44,6 @@ lettre = { version = "0.11", features = [
 ], default-features = false }
 linked-hash-map = "0.5"
 linked_hash_set = "0.1"
-migration = { path = "crates/migration" }
 mime = "0.3"
 parking_lot = "0.12"
 prosody-config = { path = "crates/prosody-config" }

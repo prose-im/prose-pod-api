@@ -1,16 +1,19 @@
-pub use sea_orm_migration::prelude::*;
+// prose-pod-api
+//
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod m20231221_172027_create_server_config;
-mod m20240220_171150_create_member;
-mod m20240320_095326_create_workspace_invitation;
-mod m20240326_160834_create_notification;
-mod m20240506_080027_create_workspace;
-mod m20240830_080808_create_pod_config;
-mod m20241214_134500_add_push_notif_config;
+use async_trait::async_trait;
+use sea_orm_migration::prelude::*;
+
+use crate::features::{
+    invitations::migrations::*, members::migrations::*, notifications::migrations::*,
+    pod_config::migrations::*, server_config::migrations::*, workspace::migrations::*,
+};
 
 pub struct Migrator;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![

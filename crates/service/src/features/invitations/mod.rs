@@ -7,6 +7,7 @@ pub mod entities;
 pub mod invitation_controller;
 pub mod invitation_repository;
 pub mod invitation_service;
+pub(crate) mod migrations;
 pub mod models;
 
 pub use entities::*;

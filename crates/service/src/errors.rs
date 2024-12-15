@@ -10,6 +10,8 @@ use reqwest::{
 };
 use serde::{de::DeserializeOwned, Serialize, Serializer};
 
+pub use sea_orm::DbErr;
+
 #[derive(Debug, thiserror::Error, Serialize)]
 #[error("{message} (response: {response:#?})")]
 pub struct UnexpectedHttpResponse {

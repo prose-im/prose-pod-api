@@ -5,6 +5,7 @@
 
 pub mod dependencies;
 pub mod entities;
+pub(crate) mod migrations;
 pub mod notification_repository;
 pub mod services;
 
