@@ -18,8 +18,7 @@ async-trait = "0.1"
 base64 = "0.22"
 chrono = "0.4"
 cucumber = "0.21"
-# See <https://github.com/johnstonskj/rust-email_address/issues/29>.
-email_address = { git = "https://github.com/johnstonskj/rust-email_address.git", rev = "b4296cd4ff621b27da55bb5182558e0ce691c611" }
+email_address = "0.2"
 figment = { version = "0.10", features = ["env", "toml"] }
 form_urlencoded = "1"
 futures = "0.3"
@@ -35,8 +34,7 @@ hmac = "0.12"
 http-auth-basic = "0.3"
 insta = "1"
 iso8601-duration = { version = "0.2", features = ["serde"] }
-iso8601-timestamp = "0.2"
-jid = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main", default-features = false }
+iso8601-timestamp = "0.3"
 lazy_static = "1"
 lettre = { version = "0.11", features = [
     "smtp-transport",
@@ -48,9 +46,7 @@ linked-hash-map = "0.5"
 linked_hash_set = "0.1"
 migration = { path = "crates/migration" }
 mime = "0.3"
-minidom = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
 parking_lot = "0.12"
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.92" }
 prosody-config = { path = "crates/prosody-config" }
 rand = "0.8"
 regex = "1"
@@ -61,12 +57,12 @@ reqwest = { version = "0.12", features = [
     "trust-dns",
 ], default-features = false }
 rocket = { version = "0.5", features = ["json"] }
-sea-orm = { version = "1.0.1", features = [
+sea-orm = { version = "1", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
     #"macros",
 ] }
-sea-orm-migration = { version = "1.0.1", features = [
+sea-orm-migration = { version = "1", features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
 ] }
@@ -78,10 +74,8 @@ serde_with = "3"
 service = { path = "crates/service" }
 sha2 = "0.10"
 strum = { version = "0.26", features = ["derive"] }
-tempfile = "3"
-thiserror = "1"
-# https://github.com/time-rs/time/issues/681
-time = "=0.3.36"
+thiserror = "2"
+time = "0.3"
 tokio = { version = "1", features = ["rt"] }
 tokio-util = "0.7"
 tracing = { version = "0.1" }
@@ -89,7 +83,14 @@ tracing-subscriber = "0.3"
 url_serde = "0.2"
 urlencoding = "2"
 uuid = "1"
-xmpp-parsers = { git = "https://gitlab.com/nesium/xmpp-rs", branch = "main" }
+
+# `prose-xmpp` and its dependencies.
+# NOTE: See <https://github.com/prose-im/prose-core-client/blob/master/Cargo.toml>
+#   for up-to-date versions (make sure to switch to the appropriate tag).
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.99" }
+jid = { version = "0.11", default-features = false }
+minidom = "0.16"
+xmpp-parsers = "0.21"
 
 [profile.dev]
 opt-level = 0

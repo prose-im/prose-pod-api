@@ -60,7 +60,7 @@ pub type Error = AuthError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
-    #[error("`{}` error: {0}", stringify!(ProsodyOAuth2))]
+    #[error("`{t}` error: {0}", t = stringify!(ProsodyOAuth2))]
     ProsodyOAuth2Err(#[from] ProsodyOAuth2Error),
     #[error("Invalid credentials")]
     InvalidCredentials,

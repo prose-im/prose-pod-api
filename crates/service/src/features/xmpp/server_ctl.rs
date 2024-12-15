@@ -66,9 +66,9 @@ pub type Error = ServerCtlError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCtlError {
-    #[error("Cannot create Prosody config file at path `{}`: {1}", ._0.display())]
+    #[error("Cannot create Prosody config file at path `{path}`: {1}", path = ._0.display())]
     CannotOpenConfigFile(PathBuf, io::Error),
-    #[error("Cannot write Prosody config file at path `{}`: {1}", ._0.display())]
+    #[error("Cannot write Prosody config file at path `{path}`: {1}", path = ._0.display())]
     CannotWriteConfigFile(PathBuf, io::Error),
     #[error(
         "Command failed ({}):\nstdout: {}\nstderr: {}",
