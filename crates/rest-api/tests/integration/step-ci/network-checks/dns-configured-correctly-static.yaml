@@ -38,7 +38,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: openapi.json#/components/schemas/sse-events/dns-record-check-result
+                $ref: openapi.json#/components/schemas/dns-record-check-result
             jsonpath:
               $.[0].id: IPv4
               $.[0].data.status: VALID
@@ -65,7 +65,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: openapi.json#/components/schemas/sse-events/port-reachability-check-result
+                $ref: openapi.json#/components/schemas/port-reachability-check-result
             jsonpath:
               $.[0].id: TCP-c2s
               $.[0].data.status: OPEN
@@ -91,7 +91,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: openapi.json#/components/schemas/sse-events/ip-connectivity-check-result
+                $ref: openapi.json#/components/schemas/ip-connectivity-check-result
             jsonpath:
               $.[0].id: IPv4-c2s
               $.[0].data.status: SUCCESS

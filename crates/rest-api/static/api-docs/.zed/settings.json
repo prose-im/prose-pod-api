@@ -8,7 +8,9 @@
       "format_on_save": "on",
       "hard_tabs": true,
       "tab_size": 2,
-      "show_whitespaces": "boundary"
+      "show_whitespaces": "boundary",
+      "wrap_guides": [100],
+      "preferred_line_length": 100
     }
   }
 }

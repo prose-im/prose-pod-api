@@ -38,7 +38,7 @@ tests:
             schema:
               type: array
               items:
-                $ref: openapi.json#/components/schemas/sse-events/dns-record-check-result
+                $ref: openapi.json#/components/schemas/dns-record-check-result
             jsonpath:
               $.[0].id: SRV-c2s
               $.[0].data.status: VALID
