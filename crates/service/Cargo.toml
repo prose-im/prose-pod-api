@@ -54,8 +54,6 @@ sea-orm = { workspace = true, features = [
 sea-orm-migration = { workspace = true, features = [
     "runtime-tokio-rustls",
     "sqlx-sqlite",
-    # TODO: Remove `"cli"` if we don't feel like we need the CLI.
-    "cli",
 ] }
 secrecy = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
@@ -70,11 +68,6 @@ url_serde = { workspace = true }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 xmpp-parsers = { workspace = true }
-
-[[bin]]
-name = "migration"
-path = "src/migrations/main.rs"
-doc = false
 
 [dev-dependencies]
 cucumber = { workspace = true, features = ["macros"] }

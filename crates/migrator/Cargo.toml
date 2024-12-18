@@ -1,0 +1,11 @@
+[package]
+name = "migrator"
+version = { workspace = true }
+edition = { workspace = true }
+publish = false
+license = { workspace = true }
+
+[dependencies]
+sea-orm-migration = { workspace = true, features = ["cli"] }
+service = { workspace = true }
+tokio = { workspace = true }
