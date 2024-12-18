@@ -1,0 +1,153 @@
+paths:
+  check_dns_records:
+    tags: ["Network configuration checker"]
+    summary: Check DNS records
+    description: |-
+      Checks that all DNS records are properly configured.
+
+      This route regularly checks the domain's DNS records to provide "live" information. It opens a stream of Server-Sent Events and sends `dns-record-check-result` events every few seconds.
+
+      NOTE: There might be a `(\n|^):(\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.
+    operationId: check_dns_records
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "../shared.yaml#/components/parameters/RetryInterval"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/sse-events/dns-record-check-result" }
+            example:
+              - id: IPv4
+                event: dns-record-check-result
+                data:
+                  description: IPv4 record for xmpp.crisp.chat
+                  status: VALID
+              - id: IPv6
+                event: dns-record-check-result
+                data:
+                  description: IPv6 record for xmpp.crisp.chat
+                  status: VALID
+              - id: SRV-c2s
+                event: dns-record-check-result
+                data:
+                  description: SRV record for client-to-server connections
+                  status: VALID
+              - id: SRV-s2s
+                event: dns-record-check-result
+                data:
+                  description: SRV record for server-to-server connections
+                  status: VALID
+          text/event-stream:
+            schema:
+              type: array
+              items:
+                oneOf:
+                  - $ref: "#/components/schemas/sse-events/dns-record-check-result"
+                  - $ref: "../shared.yaml#/components/schemas/sse-events/end"
+                discriminator:
+                  propertyName: event
+            example: |-
+              id:IPv4
+              event:dns-record-check-result
+              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"QUEUED"}
+
+              id:IPv6
+              event:dns-record-check-result
+              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"QUEUED"}
+
+              id:SRV-c2s
+              event:dns-record-check-result
+              data:{"description":"SRV record for client-to-server connections","status":"QUEUED"}
+
+              id:SRV-s2s
+              :
+              event:dns-record-check-result
+              data:{"description":"SRV record for server-to-server connections","status":"QUEUED"}
+
+              id:IPv4
+              event:dns-record-check-result
+              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"CHECKING"}
+
+              id:IPv6
+              event:dns-record-check-result
+              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"CHECKING"}
+
+              id:SRV-c2s
+              event:dns-record-check-result
+              data:{"description":"SRV record for client-to-server connections","status":"CHECKING"}
+
+              id:SRV-s2s
+              event:dns-record-check-result
+              data:{"description":"SRV record for server-to-server connections","status":"CHECKING"}
+
+              id:IPv4
+              event:dns-record-check-result
+              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"VALID"}
+
+              id:IPv6
+              event:dns-record-check-result
+              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"VALID"}
+
+              id:SRV-c2s
+              event:dns-record-check-result
+              data:{"description":"SRV record for client-to-server connections","status":"VALID"}
+
+              id:SRV-s2s
+              event:dns-record-check-result
+              data:{"description":"SRV record for server-to-server connections","status":"VALID"}
+
+              :End of stream
+              id:end
+              event:end
+              data:
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    DnsRecordStatus:
+      type: string
+      enum:
+        - QUEUED
+        - CHECKING
+        - VALID
+        - PARTIALLY_VALID
+        - INVALID
+    DnsRecordCheckResult:
+      type: object
+      required:
+        - description
+        - status
+      properties:
+        description:
+          type: string
+        status: { $ref: "#/components/schemas/DnsRecordStatus" }
+      example:
+        description: IPv4 record for xmpp.crisp.chat
+        status: VALID
+    sse-events:
+      dns-record-check-result:
+        summary: A Server-Sent Event containing the result of a DNS record check.
+        type: object
+        required:
+          - event
+          - id
+          - data
+        properties:
+          event:
+            type: string
+            example: dns-record-check-result
+          id: { $ref: "#/components/schemas/sse-event-ids/DnsRecordCheckId" }
+          data: { $ref: "#/components/schemas/DnsRecordCheckResult" }
+    sse-event-ids:
+      DnsRecordCheckId:
+        type: string
+        enum:
+          - IPv4
+          - IPv6
+          - SRV-c2s
+          - SRV-s2s

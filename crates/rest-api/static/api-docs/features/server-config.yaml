@@ -1,0 +1,380 @@
+paths:
+  init_server_config:
+    tags: [Init]
+    summary: Initialize the XMPP server
+    description: Initializes the XMPP server and returns its default configuration.
+    operationId: init_server_config
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - domain
+            properties:
+              domain:
+                type: string
+                example: crisp.chat
+    responses:
+      "201":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig" }
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "409": { $ref: "#/components/responses/ServerConfigAlreadyInitialized" }
+  get_server_config:
+    tags: ["Server / Configuration"]
+    summary: Get server config
+    description: Get the current configuration of the XMPP server.
+    operationId: get_server_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_file_upload_allowed:
+    tags: ["Server / Configuration"]
+    summary: Change file upload settings
+    description: Activate or deactivate file upload and sharing.
+    operationId: set_file_upload_allowed
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - file_upload_allowed
+            properties:
+              file_upload_allowed:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_file_storage_retention:
+    tags: ["Server / Configuration"]
+    summary: Change uploaded files retention
+    description: Change the retention of uploaded files.
+    operationId: set_file_storage_retention
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - file_storage_retention
+            properties:
+              file_storage_retention:
+                oneOf:
+                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
+                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_file_storage_encryption_scheme:
+    tags: ["Server / Configuration"]
+    summary: Change file storage encryption scheme
+    description: Change the file storage encryption scheme.
+    operationId: set_file_storage_encryption_scheme
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_messaging_config:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Messaging' configuration
+    description: Reset the 'Messaging' configuration to its default value.
+    operationId: reset_messaging_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_message_archive_retention:
+    tags: ["Server / Configuration"]
+    summary: Change message archive retention
+    description: Update message archive retention.
+    operationId: set_message_archive_retention
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message_archive_retention
+            properties:
+              message_archive_retention:
+                oneOf:
+                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
+                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_message_archive_retention:
+    tags: ["Server / Configuration"]
+    summary: Reset message archive retention
+    description: Reset the message archive retention to its default value.
+    operationId: reset_message_archive_retention
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_files_config:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Files' configuration
+    description: Reset the 'Files' configuration to its default value.
+    operationId: reset_files_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_message_archive_enabled:
+    tags: ["Server / Configuration"]
+    summary: Activate or deactivate message archiving
+    description: Activate or deactivate message archiving.
+    operationId: set_message_archive_enabled
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message_archive_enabled
+            properties:
+              message_archive_enabled:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_push_notifications_config:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Push notifications' configuration
+    description: Reset the 'Push notifications' configuration to its default value.
+    operationId: reset_push_notifications_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_push_notification_with_body:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Push notification with body'
+    description: Reset 'Push notification with body' to its default value.
+    operationId: reset_push_notification_with_body
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_push_notification_with_body:
+    tags: ["Server / Configuration"]
+    summary: Change 'Push notification with body'
+    description: Whether or not to send the real message body to remote pubsub node.
+      Without end-to-end encryption, enabling this may expose your message
+      contents to your client developers and OS vendor. Not recommended.
+    operationId: set_push_notification_with_body
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - push_notification_with_body
+            properties:
+              push_notification_with_body:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_push_notification_with_sender:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Push notification with sender'
+    description: Reset 'Push notification with sender' to its default value.
+    operationId: reset_push_notification_with_sender
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_push_notification_with_sender:
+    tags: ["Server / Configuration"]
+    summary: Change 'Push notification with sender'
+    description: Whether or not to send the real message sender to remote pubsub
+      node. Enabling this may expose your contacts to your client developers and
+      OS vendor. Not recommended.
+    operationId: set_push_notification_with_sender
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - push_notification_with_sender
+            properties:
+              push_notification_with_sender:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    ServerConfig:
+      type: object
+      required:
+        - domain
+        - message_archive_enabled
+        - message_archive_retention
+        - file_upload_allowed
+        - file_storage_encryption_scheme
+        - file_storage_retention
+        - mfa_required
+        - minimum_tls_version
+        - minimum_cipher_suite
+        - federation_enabled
+        - settings_backup_interval
+        - user_data_backup_interval
+        - push_notification_with_body
+        - push_notification_with_sender
+      properties:
+        domain:
+          type: string
+          example: crisp.chat
+        message_archive_enabled:
+          type: boolean
+          default: true
+        message_archive_retention:
+          oneOf:
+            - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
+            - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          default: infinite
+        file_upload_allowed:
+          type: boolean
+          default: true
+        file_storage_encryption_scheme:
+          type: string
+          default: AES-256
+        file_storage_retention:
+          oneOf:
+            - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
+            - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          default: infinite
+        mfa_required:
+          title: Require Multi-Factor Authentication
+          description: Whether or not [Multi-Factor Authentication
+            (MFA)](https://en.wikipedia.org/wiki/Multi-factor_authentication) is
+            required for users to log into their account.
+          type: boolean
+          default: true
+        minimum_tls_version:
+          title: Minimum SSL/TLS version
+          description: The minimum
+            SSL/[TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security).
+          type: string
+          default: "1.2"
+        minimum_cipher_suite:
+          title: Minimum cipher suite (encryption strength)
+          description: Accepting lower-security encryption ciphers let older user devices
+            and servers connect to your server, but is also much less secure. A
+            minimum cipher suite of High strength is recommended.
+          type: string
+          enum:
+            - HIGH_STRENGTH
+          default: HIGH_STRENGTH
+        federation_enabled:
+          description: Whether or not the XMPP server should support interdomain
+            federation. For more information, see [RFC 6120, section
+            13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).
+          type: boolean
+          default: true
+        settings_backup_interval:
+          type: string
+          format: duration
+          default: P1D
+        user_data_backup_interval:
+          type: string
+          format: duration
+          default: P1W
+        push_notification_with_body:
+          description: Whether or not to send the real message body to remote pubsub node.
+            Without end-to-end encryption, enabling this may expose your message
+            contents to your client developers and OS vendor. Not recommended.
+          type: boolean
+          default: false
+        push_notification_with_sender:
+          description: Whether or not to send the real message sender to remote pubsub
+            node. Enabling this may expose your contacts to your client
+            developers and OS vendor. Not recommended.
+          type: boolean
+          default: false
+  responses:
+    ServerConfig:
+      description: Success
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServerConfig" }
+    ServerConfigAlreadyInitialized:
+      description: XMPP server already initialized
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          example:
+            error: server_config_already_initialized
+    ServerConfigNotInitialized:
+      description: XMPP server not initialized
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          example:
+            error: server_config_not_initialized

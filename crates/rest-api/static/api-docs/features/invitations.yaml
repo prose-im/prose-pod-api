@@ -1,0 +1,305 @@
+paths:
+  invite_member:
+    tags: [Invitations]
+    summary: Invite a member
+    description: |-
+      Invite a new member to the workspace.
+
+      The person will receive a notification with a link to join the workspace and create their account.
+    operationId: invite_member
+    security:
+      - BearerAuth: []
+    requestBody:
+      description: Information about who to invite.
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/InvitationContact"
+              - type: object
+                required:
+                  - username
+                properties:
+                  pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+                  username: { $ref: "../shared.yaml#/components/schemas/Username" }
+            example:
+              username: remi
+              pre_assigned_role: MEMBER
+              channel: email
+              email_address: remi@example.org
+          examples:
+            Inviting a member:
+              value:
+                username: remi
+                pre_assigned_role: MEMBER
+                channel: email
+                email_address: remi@example.org
+            Inviting an admin:
+              value:
+                username: marc
+                pre_assigned_role: ADMIN
+                channel: email
+                email_address: marc@example.org
+    responses:
+      "201":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_invitations:
+    tags: [Invitations]
+    summary: Get all invitations
+    description: Get all workspace invitations in a paginated manner.
+    operationId: get_invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "../shared.yaml#/components/parameters/PageNumber"
+      - $ref: "../shared.yaml#/components/parameters/PageSize"
+      - $ref: "../shared.yaml#/components/parameters/Until"
+    responses:
+      "200":
+        description: End of results
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/WorkspaceInvitation" }
+        headers:
+          Pagination-Current-Page:
+            { $ref: "../shared.yaml#/components/headers/PaginationCurrentPage" }
+          Pagination-Page-Size: { $ref: "../shared.yaml#/components/headers/PaginationPageSize" }
+          Pagination-Page-Count: { $ref: "../shared.yaml#/components/headers/PaginationPageCount" }
+          Pagination-Item-Count: { $ref: "../shared.yaml#/components/headers/PaginationItemCount" }
+      "206":
+        description: Partial results
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/WorkspaceInvitation" }
+        headers:
+          Pagination-Current-Page:
+            { $ref: "../shared.yaml#/components/headers/PaginationCurrentPage" }
+          Pagination-Page-Size: { $ref: "../shared.yaml#/components/headers/PaginationPageSize" }
+          Pagination-Page-Count: { $ref: "../shared.yaml#/components/headers/PaginationPageCount" }
+          Pagination-Item-Count: { $ref: "../shared.yaml#/components/headers/PaginationItemCount" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_invitation:
+    tags: [Invitations]
+    summary: Get an invitation
+    description: |-
+      Get information about a workspace invitation.
+
+      If an accept or reject token is used in the path and `token_type` is provided as a query parameter, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
+    operationId: get_invitation
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationIdOrToken"
+      - description: Type of invitation token
+        in: query
+        name: token_type
+        schema: { $ref: "#/components/schemas/InvitationTokenType" }
+        required: false
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  invitation_cancel:
+    tags: [Invitations]
+    summary: Cancel an invitation
+    description: Cancel a workspace invitation.
+    operationId: invitation_cancel
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationId"
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  invitation_accept:
+    tags: [Invitations]
+    summary: Accept an invitation
+    description: Accept a workspace invitation.
+    operationId: invitation_accept
+    security: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationAcceptToken"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - nickname
+              - password
+            properties:
+              nickname: { $ref: "members.yaml#/components/schemas/Nickname" }
+              password: { $ref: "../shared.yaml#/components/schemas/Password" }
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "410": { $ref: "../shared.yaml#/components/responses/Gone" }
+  invitation_reject:
+    tags: [Invitations]
+    summary: Reject an invitation
+    description: Reject a workspace invitation.
+    operationId: invitation_reject
+    security: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationRejectToken"
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "410": { $ref: "../shared.yaml#/components/responses/Gone" }
+  invitation_resend:
+    tags: [Invitations]
+    summary: Resend an invitation
+    description: Resend a workspace invitation.
+    operationId: invitation_resend
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationId"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    InvitationToken:
+      oneOf:
+        - $ref: "#/components/schemas/InvitationAcceptToken"
+        - $ref: "#/components/schemas/InvitationRejectToken"
+    InvitationAcceptToken:
+      type: string
+      format: uuid
+      example: 20edadc2-6c3b-4297-b92a-042f23249225
+    InvitationRejectToken:
+      type: string
+      format: uuid
+      example: f2736e87-850e-4776-bb26-52c12a7d8bd8
+    InvitationTokenType:
+      type: string
+      enum:
+        - accept
+        - reject
+      example: accept
+    WorkspaceInvitation:
+      type: object
+      required:
+        - invitation_id
+        - created_at
+        - status
+        - jid
+        - pre_assigned_role
+        - contact
+        - accept_token_expires_at
+      properties:
+        accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        contact: { $ref: "#/components/schemas/InvitationContact" }
+        created_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        invitation_id: { $ref: "#/components/schemas/InvitationId" }
+        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
+        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+        status: { $ref: "#/components/schemas/InvitationStatus" }
+    InvitationId:
+      summary: The unique identifier of an invitation.
+      type: integer
+      format: int32
+      example: 42
+    InvitationStatus:
+      summary: The status of an invitation.
+      type: string
+      enum:
+        - TO_SEND
+        - SENT
+        - SEND_FAILED
+      example: SENT
+    InvitationContact:
+      description: |-
+        How to contact someone.
+
+        For now only email is supported, but we could extend it to SMS for example.
+      oneOf:
+        - $ref: "#/components/schemas/InvitationContactEmail"
+      discriminator:
+        propertyName: channel
+    InvitationContactEmail:
+      type: object
+      required:
+        - channel
+        - email_address
+      properties:
+        channel: { $ref: "#/components/schemas/InvitationChannel" }
+        email_address:
+          type: string
+          format: email
+          summary: An email address.
+          example: remi@example.org
+      example:
+        channel: email
+        email_address: remi@example.org
+    InvitationChannel:
+      type: string
+      enum:
+        - email
+      summary: |-
+        The channel used to invite someone.
+
+        For now only email is supported, but we could extend it to SMS for example.
+  parameters:
+    InvitationId:
+      description: Unique identifier of a workspace invitation
+      name: invitationId
+      in: path
+      schema: { $ref: "#/components/schemas/InvitationId" }
+      required: true
+    InvitationIdOrToken:
+      description: Unique identifier of a workspace invitation
+      name: invitationIdOrToken
+      in: path
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/InvitationId"
+          - $ref: "#/components/schemas/InvitationToken"
+      required: true
+    InvitationToken:
+      description: Invitation accept or reject token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationToken" }
+      required: true
+    InvitationAcceptToken:
+      description: Invitation accept token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationAcceptToken" }
+      required: true
+    InvitationRejectToken:
+      description: Invitation reject token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationRejectToken" }
+      required: true

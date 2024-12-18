@@ -1,0 +1,29 @@
+paths:
+  login:
+    tags: [Misc]
+    summary: Log in
+    description: Logs a user in and returns an authentication token (using the JWT format).
+    operationId: login
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+components:
+  schemas:
+    LoginResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          title: An authentication token
+          summary: summary
+          description: description
+          type: string
+          format: jwt
+          example: eyJhbGciOiJIUzI1NiJ9.eyJqaWQiOiJleGFtcGxlQHByb3NlLm9yZy5sb2NhbCJ9.y88lyu9q0dFx9zYxllJo3XUtNnyc3Z_ad3w1hsfTJQ0

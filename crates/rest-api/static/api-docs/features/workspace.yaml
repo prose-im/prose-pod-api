@@ -1,0 +1,251 @@
+paths:
+  get_workspace:
+    tags: [Workspace]
+    summary: Get workspace details.
+    description: Get the details of your workspace.
+    operationId: get_workspace
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Workspace" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  init_workspace:
+    tags: [Init]
+    summary: Initialize the workspace
+    description: Initializes the workspace and returns its default configuration.
+    operationId: init_workspace
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/InitWorkspaceRequest" }
+    responses:
+      "201":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Workspace" }
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "409": { $ref: "#/components/responses/WorkspaceAlreadyInitialized" }
+  get_workspace_name:
+    tags: [Workspace]
+    summary: Get workspace name
+    description: Get the name of your workspace.
+    operationId: get_workspace_name
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_workspace_name:
+    tags: [Workspace]
+    summary: Set workspace name
+    description: Set the name of your workspace.
+    operationId: set_workspace_name
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SetWorkspaceNameRequest" }
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_workspace_accent_color:
+    tags: [Workspace]
+    summary: Get the accent color of your workspace.
+    description: Get the accent color of your workspace.
+    operationId: get_workspace_accent_color
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_workspace_accent_color:
+    tags: [Workspace]
+    summary: Set the accent color of your workspace.
+    description: Set the accent color of your workspace.
+    operationId: set_workspace_accent_color
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SetWorkspaceAccentColorRequest" }
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_workspace_icon:
+    tags: [Workspace]
+    summary: Get workspace icon
+    description: Get the icon of your workspace.
+    operationId: get_workspace_icon
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_workspace_icon:
+    tags: [Workspace]
+    summary: Set workspace icon
+    description: |-
+      Set the icon of your workspace.
+
+      Accepted content types are: `image/jpeg`, `image/png`, `image/gif`, `image/webp` and `text/plain` (containing either the URL to an external image or a base64-encoded image).
+    operationId: set_workspace_icon
+    security:
+      - BearerAuth: []
+    requestBody:
+      description: Workspace icon
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SetWorkspaceIconRequest" }
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_workspace_details_card:
+    tags: [Workspace]
+    summary: Get the details card of your workspace.
+    description: Get the details card of your workspace.
+    operationId: get_workspace_details_card
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          text/vcard:
+            schema:
+              type: string
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_workspace_details_card:
+    tags: [Workspace]
+    summary: Set the details card of your workspace.
+    description: Set the details card of your workspace.
+    operationId: set_workspace_details_card
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        text/vcard:
+          schema:
+            type: string
+    responses:
+      "201":
+        description: Success
+        headers:
+          Location: { $ref: "#/components/headers/Location" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    Workspace:
+      type: object
+      required:
+        - name
+      properties:
+        name: { $ref: "#/components/schemas/WorkspaceName" }
+        icon: { $ref: "members.yaml#/components/schemas/NullableAvatar" }
+        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+    WorkspaceName:
+      type: string
+      summary: The name of a Prose workspace.
+      example: Crisp
+    WorkspaceAccentColor:
+      type: string
+      example: "#4233BE"
+      nullable: true
+    InitWorkspaceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name: { $ref: "#/components/schemas/WorkspaceName" }
+    GetWorkspaceNameResponse:
+      type: object
+      required:
+        - name
+      properties:
+        name: { $ref: "#/components/schemas/WorkspaceName" }
+    SetWorkspaceNameRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name: { $ref: "#/components/schemas/WorkspaceName" }
+    GetWorkspaceIconResponse:
+      type: object
+      properties:
+        icon: { $ref: "members.yaml#/components/schemas/NullableAvatar" }
+    SetWorkspaceIconRequest:
+      type: object
+      required:
+        - image
+      properties:
+        image: { $ref: "members.yaml#/components/schemas/Avatar" }
+    GetWorkspaceAccentColorResponse:
+      type: object
+      properties:
+        color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+    SetWorkspaceAccentColorRequest:
+      type: object
+      required:
+        - color
+      properties:
+        color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+  responses:
+    WorkspaceNotInitialized:
+      description: Workspace not initialized
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          example:
+            error: workspace_not_initialized
+    WorkspaceAlreadyInitialized:
+      description: Workspace already initialized
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          example:
+            error: workspace_already_initialized
