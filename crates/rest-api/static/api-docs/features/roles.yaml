@@ -26,8 +26,6 @@ components:
       properties:
         role: { $ref: "#/components/schemas/MemberRole" }
     MemberRole:
-      summary: A member's role.
+      description: A member's role.
       type: string
-      enum:
-        - MEMBER
-        - ADMIN
+      enum: [MEMBER, ADMIN]

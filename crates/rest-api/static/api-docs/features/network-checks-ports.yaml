@@ -98,11 +98,7 @@ components:
   schemas:
     PortReachabilityStatus:
       type: string
-      enum:
-        - QUEUED
-        - CHECKING
-        - OPEN
-        - CLOSED
+      enum: [QUEUED, CHECKING, OPEN, CLOSED]
     PortReachabilityCheckResult:
       type: object
       required:
@@ -117,7 +113,7 @@ components:
         status: OPEN
     sse-events:
       port-reachability-check-result:
-        summary: A Server-Sent Event containing the result of a port reachability check.
+        description: A Server-Sent Event containing the result of a port reachability check.
         type: object
         required:
           - event
@@ -126,13 +122,10 @@ components:
         properties:
           event:
             type: string
-            example: port-reachability-check-result
+            const: port-reachability-check-result
           id: { $ref: "#/components/schemas/sse-event-ids/PortReachabilityCheckId" }
           data: { $ref: "#/components/schemas/PortReachabilityCheckResult" }
     sse-event-ids:
       PortReachabilityCheckId:
         type: string
-        enum:
-          - TCP-c2s
-          - TCP-s2s
-          - TCP-HTTPS
+        enum: [TCP-c2s, TCP-s2s, TCP-HTTPS]

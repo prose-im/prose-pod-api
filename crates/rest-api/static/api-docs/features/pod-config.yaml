@@ -52,6 +52,9 @@ paths:
             schema: { $ref: "#/components/schemas/PodAddress" }
         headers:
           Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
   get_pod_address:
     tags: ["Pod / Configuration"]
     summary: Get Pod address
@@ -82,9 +85,7 @@ components:
       properties:
         type:
           type: string
-          enum:
-            - Static
-            - Dynamic
+          enum: [Static, Dynamic]
         ipv4:
           type: string
           example: 104.18.28.104

@@ -111,12 +111,7 @@ components:
   schemas:
     DnsRecordStatus:
       type: string
-      enum:
-        - QUEUED
-        - CHECKING
-        - VALID
-        - PARTIALLY_VALID
-        - INVALID
+      enum: [QUEUED, CHECKING, VALID, PARTIALLY_VALID, INVALID]
     DnsRecordCheckResult:
       type: object
       required:
@@ -131,7 +126,7 @@ components:
         status: VALID
     sse-events:
       dns-record-check-result:
-        summary: A Server-Sent Event containing the result of a DNS record check.
+        description: A Server-Sent Event containing the result of a DNS record check.
         type: object
         required:
           - event
@@ -140,14 +135,10 @@ components:
         properties:
           event:
             type: string
-            example: dns-record-check-result
+            const: dns-record-check-result
           id: { $ref: "#/components/schemas/sse-event-ids/DnsRecordCheckId" }
           data: { $ref: "#/components/schemas/DnsRecordCheckResult" }
     sse-event-ids:
       DnsRecordCheckId:
         type: string
-        enum:
-          - IPv4
-          - IPv6
-          - SRV-c2s
-          - SRV-s2s
+        enum: [IPv4, IPv6, SRV-c2s, SRV-s2s]

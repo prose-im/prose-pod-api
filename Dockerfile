@@ -28,7 +28,7 @@ RUN cargo install --path crates/rest-api --bin prose-pod-api --profile="${CARGO_
 FROM redocly/cli as api-docs
 
 COPY crates/rest-api/static/api-docs .
-RUN redocly bundle openapi.yaml -o /usr/share/prose-pod-api/static/api-docs/openapi.json
+RUN redocly bundle openapi.yaml -o /usr/share/prose-pod-api/static/api-docs/openapi.json --config redocly.cfg.yaml
 
 COPY crates/rest-api/static/api-docs/redoc* /usr/share/prose-pod-api/static/api-docs
 

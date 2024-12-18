@@ -119,11 +119,7 @@ components:
   schemas:
     IpConnectivityStatus:
       type: string
-      enum:
-        - QUEUED
-        - CHECKING
-        - SUCCESS
-        - FAILURE
+      enum: [QUEUED, CHECKING, SUCCESS, FAILURE]
     IpConnectivityCheckResult:
       type: object
       required:
@@ -138,7 +134,7 @@ components:
         status: SUCCESS
     sse-events:
       ip-connectivity-check-result:
-        summary: A Server-Sent Event containing the result of an IP connectivity check.
+        description: A Server-Sent Event containing the result of an IP connectivity check.
         type: object
         required:
           - event
@@ -147,14 +143,10 @@ components:
         properties:
           event:
             type: string
-            example: ip-connectivity-check-result
+            const: ip-connectivity-check-result
           id: { $ref: "#/components/schemas/sse-event-ids/IpConnectivityCheckId" }
           data: { $ref: "#/components/schemas/IpConnectivityCheckResult" }
     sse-event-ids:
       IpConnectivityCheckId:
         type: string
-        enum:
-          - IPv4-c2s
-          - IPv6-c2s
-          - IPv4-s2s
-          - IPv6-s2s
+        enum: [IPv4-c2s, IPv6-c2s, IPv4-s2s, IPv6-s2s]

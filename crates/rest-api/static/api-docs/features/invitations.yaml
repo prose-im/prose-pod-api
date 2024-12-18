@@ -202,9 +202,7 @@ components:
       example: f2736e87-850e-4776-bb26-52c12a7d8bd8
     InvitationTokenType:
       type: string
-      enum:
-        - accept
-        - reject
+      enum: [accept, reject]
       example: accept
     WorkspaceInvitation:
       type: object
@@ -225,17 +223,14 @@ components:
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
         status: { $ref: "#/components/schemas/InvitationStatus" }
     InvitationId:
-      summary: The unique identifier of an invitation.
+      description: The unique identifier of an invitation.
       type: integer
       format: int32
       example: 42
     InvitationStatus:
-      summary: The status of an invitation.
+      description: The status of an invitation.
       type: string
-      enum:
-        - TO_SEND
-        - SENT
-        - SEND_FAILED
+      enum: [TO_SEND, SENT, SEND_FAILED]
       example: SENT
     InvitationContact:
       description: |-
@@ -252,23 +247,17 @@ components:
         - channel
         - email_address
       properties:
-        channel: { $ref: "#/components/schemas/InvitationChannel" }
+        channel:
+          type: string
+          const: email
         email_address:
           type: string
           format: email
-          summary: An email address.
+          description: An email address.
           example: remi@example.org
       example:
         channel: email
         email_address: remi@example.org
-    InvitationChannel:
-      type: string
-      enum:
-        - email
-      summary: |-
-        The channel used to invite someone.
-
-        For now only email is supported, but we could extend it to SMS for example.
   parameters:
     InvitationId:
       description: Unique identifier of a workspace invitation

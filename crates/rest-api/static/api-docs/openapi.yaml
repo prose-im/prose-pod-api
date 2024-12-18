@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: prose-pod-api
   description: Prose Pod API server.
@@ -7,7 +7,11 @@ info:
     email: valerian@valeriansaliou.name
   license:
     name: MPL-2.0
+    url: https://github.com/prose-im/prose-pod-api/blob/master/LICENSE.md
   version: 0.3.1
+servers:
+  - url: http://127.0.0.1:8000
+    description: Localhost
 paths:
   "/v1/init/first-account":
     put: { $ref: "features/init.yaml#/paths/init_first_account" }
@@ -94,4 +98,10 @@ paths:
   "/v1/network/checks/ports":
     get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
 components:
-  securitySchemes: { $ref: "shared.yaml#/components/securitySchemes" }
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: Basic
+    BearerAuth:
+      type: http
+      scheme: Bearer

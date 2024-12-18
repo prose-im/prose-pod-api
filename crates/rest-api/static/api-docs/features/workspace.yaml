@@ -175,7 +175,7 @@ paths:
       "201":
         description: Success
         headers:
-          Location: { $ref: "#/components/headers/Location" }
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
@@ -190,12 +190,11 @@ components:
         accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
     WorkspaceName:
       type: string
-      summary: The name of a Prose workspace.
+      description: The name of a Prose workspace.
       example: Crisp
     WorkspaceAccentColor:
-      type: string
+      type: ["null", string]
       example: "#4233BE"
-      nullable: true
     InitWorkspaceRequest:
       type: object
       required:

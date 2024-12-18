@@ -41,17 +41,16 @@ components:
       example: PT4H
     DurationInfinite:
       type: string
-      enum:
-        - infinite
+      const: infinite
     JID:
-      summary: A bare JID, as defined by [RFC 6120, section
+      description: A bare JID, as defined by [RFC 6120, section
         2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).
       type: string
       format: jid
       example: remi@prose.org
     Username:
       type: string
-      summary: The local part of a JID, as defined by [RFC 6120, section
+      description: The local part of a JID, as defined by [RFC 6120, section
         2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).
       example: remi.bardon
     Password:
@@ -67,7 +66,7 @@ components:
       minimum: 0
     sse-events:
       end:
-        summary: A Server-Sent Event indicating all events have been sent (the
+        description: A Server-Sent Event indicating all events have been sent (the
           connection will be closed).
         type: object
         required:
@@ -77,13 +76,16 @@ components:
         properties:
           event:
             type: string
-            example: end
+            const: end
           id:
             type: string
-            example: end
+            const: end
           comment:
             type: string
-            example: End of stream
+            const: End of stream
+          data:
+            type: string
+            const: ""
   headers:
     Location:
       description: URL to the created resource. See [`Location` on
@@ -130,13 +132,6 @@ components:
         format: int64
         minimum: 0
       example: 42
-  securitySchemes:
-    BasicAuth:
-      type: http
-      scheme: basic
-    BearerAuth:
-      type: http
-      scheme: bearer
   responses:
     NoContent:
       description: Success
@@ -170,6 +165,13 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           example:
             error: not_found
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: unknown
   parameters:
     JidArray:
       description: A list of JIDs (as defined by [RFC 6120, section

@@ -329,8 +329,7 @@ components:
             and servers connect to your server, but is also much less secure. A
             minimum cipher suite of High strength is recommended.
           type: string
-          enum:
-            - HIGH_STRENGTH
+          enum: [HIGH_STRENGTH]
           default: HIGH_STRENGTH
         federation_enabled:
           description: Whether or not the XMPP server should support interdomain

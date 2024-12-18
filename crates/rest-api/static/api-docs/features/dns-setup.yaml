@@ -21,10 +21,7 @@ components:
   schemas:
     DnsRecordType:
       type: string
-      enum:
-        - A
-        - AAAA
-        - SRV
+      enum: [A, AAAA, SRV]
     DnsRecord:
       Any:
         oneOf:
@@ -45,8 +42,7 @@ components:
             type: string
           type:
             type: string
-            enum:
-              - A
+            const: A
           ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
           value:
             type: string
@@ -67,8 +63,7 @@ components:
             type: string
           type:
             type: string
-            enum:
-              - AAAA
+            const: AAAA
           ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
           value:
             type: string
@@ -92,8 +87,7 @@ components:
             type: string
           type:
             type: string
-            enum:
-              - SRV
+            const: SRV
           ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
           priority: { $ref: "../shared.yaml#/components/schemas/Int32" }
           weight: { $ref: "../shared.yaml#/components/schemas/Int32" }
