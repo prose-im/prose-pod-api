@@ -14,36 +14,32 @@ authors = [
 ]
 
 [dependencies]
-async-stream = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
-futures-util = { workspace = true }
 hickory-resolver = { workspace = true }
 http-auth-basic = { workspace = true }
 iso8601-duration = { workspace = true }
 iso8601-timestamp = { workspace = true }
 lazy_static = { workspace = true }
-rocket = { workspace = true }
+rocket = { workspace = true, features = ["http2", "json"] }
 sea-orm-rocket = { workspace = true }
 secrecy = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
 service = { workspace = true }
-strum = { workspace = true }
+strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
-time = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
-cucumber = { workspace = true, features = ["tracing"] }
+cucumber = { workspace = true, features = ["macros", "tracing"] }
 hickory-proto = { workspace = true }
-lazy_static = { workspace = true }
 linked-hash-map = { workspace = true }
 regex = { workspace = true }
 tracing-subscriber = { workspace = true }
