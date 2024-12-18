@@ -95,7 +95,7 @@ async fn main() {
         )
         // Fail on undefined steps
         // .fail_on_skipped()
-        .run_and_exit("tests/features")
+        .run_and_exit("../../features")
         .await;
 }
 
