@@ -1,3 +1,4 @@
+@workspace-icon @workspace-details
 Feature: Workspace icon
 
   Background:

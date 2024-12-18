@@ -1,3 +1,4 @@
+@invitations
 Feature: Inviting members
 
   Background:

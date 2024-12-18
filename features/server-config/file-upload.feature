@@ -1,3 +1,4 @@
+@file-upload @server-config
 Feature: XMPP server configuration: File upload
 
   Background:

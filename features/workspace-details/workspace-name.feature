@@ -1,3 +1,4 @@
+@workspace-name @workspace-details
 Feature: Workspace name
 
   Background:

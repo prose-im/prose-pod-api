@@ -1,3 +1,4 @@
+@init-workspace @init
 Feature: Initializing the Prose Workspace
 
   Background:

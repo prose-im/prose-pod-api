@@ -1,3 +1,4 @@
+@members-list @members
 Feature: Members list
 
   Background:

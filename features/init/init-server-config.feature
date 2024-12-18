@@ -1,3 +1,4 @@
+@init-server-config @init
 Feature: Initializing the XMPP server configuration
 
   Background:

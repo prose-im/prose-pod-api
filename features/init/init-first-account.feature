@@ -1,3 +1,4 @@
+@init-first-account @init
 Feature: Initializing the first admin account
 
   Background:

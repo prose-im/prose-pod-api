@@ -1,3 +1,4 @@
+@message-archive @server-config
 Feature: XMPP server configuration: Message archive
 
   Background:

@@ -3,13 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod dns_setup;
 pub mod init;
 pub mod invitations;
 pub mod members;
-pub mod network;
-pub mod pod;
-pub mod server;
-pub mod workspace;
+pub mod network_checks;
+pub mod pod_config;
+pub mod server_config;
+pub mod workspace_details;
 
 use base64::{engine::general_purpose::STANDARD as Base64, Engine};
 use cucumber::{given, then, when};

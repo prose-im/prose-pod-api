@@ -1,4 +1,4 @@
-@delete-member
+@member-delete @members
 Feature: Deleting a member
 
   Background:

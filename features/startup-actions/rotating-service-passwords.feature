@@ -1,3 +1,4 @@
+@rotating-service-passwords @startup-actions
 Feature: Rotating service account passwords
 
   Rule: The "super admin" account password is rotated
