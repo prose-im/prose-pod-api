@@ -6,7 +6,6 @@
 use std::cmp::max;
 
 use cucumber::{given, then, when};
-use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::features::members::Member as MemberDTO;
 use rocket::{
@@ -14,6 +13,7 @@ use rocket::{
     local::asynchronous::{Client, LocalResponse},
 };
 use secrecy::{ExposeSecret as _, SecretString};
+use service::errors::DbErr;
 use service::{
     members::{MemberCreateForm, MemberRepository},
     prose_xmpp::stanza::vcard4::Nickname,

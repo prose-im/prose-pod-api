@@ -6,6 +6,7 @@
 pub mod entities;
 pub mod member_controller;
 pub mod member_repository;
+pub(crate) mod migrations;
 pub mod models;
 pub mod user_service;
 

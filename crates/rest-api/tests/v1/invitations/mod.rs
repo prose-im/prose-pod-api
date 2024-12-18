@@ -7,7 +7,6 @@ use std::str::FromStr as _;
 
 use chrono::{TimeDelta, Utc};
 use cucumber::{given, then, when};
-use migration::DbErr;
 use prose_pod_api::error::Error;
 use prose_pod_api::features::invitations::{
     AcceptWorkspaceInvitationRequest, InvitationTokenType as TokenType, InviteMemberRequest,
@@ -19,6 +18,7 @@ use rocket::{
 };
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
+use service::errors::DbErr;
 use service::{
     invitations::{InvitationContact, InvitationCreateForm, InvitationRepository},
     models::{BareJid, JidNode},

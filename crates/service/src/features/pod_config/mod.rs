@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod entities;
+pub(crate) mod migrations;
 pub mod models;
 pub mod pod_config_repository;
 

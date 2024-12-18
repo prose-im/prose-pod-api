@@ -7,38 +7,63 @@ license = { workspace = true }
 authors = ["Rémi Bardon <remi@remibardon.name>"]
 
 [dependencies]
-anyhow = { workspace = true }
+anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 email_address = { workspace = true }
-figment = { workspace = true }
+figment = { workspace = true, features = ["env", "toml"] }
 form_urlencoded = { workspace = true }
 futures = { workspace = true }
 linked_hash_set = { workspace = true }
-hickory-proto = { workspace = true }
-hickory-resolver = { workspace = true }
+hickory-proto = { workspace = true, features = [
+    "tokio-runtime",
+    "serde-config",
+] }
+hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
 hmac = { workspace = true }
-iso8601-duration = { workspace = true }
+iso8601-duration = { workspace = true, features = ["serde"] }
 jid = { workspace = true }
 lazy_static = { workspace = true }
-lettre = { workspace = true }
+lettre = { workspace = true, features = [
+    "smtp-transport",
+    "rustls-tls",
+    "hostname",
+    "builder",
+] }
 mime = { workspace = true }
 minidom = { workspace = true }
 parking_lot = { workspace = true }
 prose-xmpp = { workspace = true }
 prosody-config = { workspace = true }
 rand = { workspace = true }
-reqwest = { workspace = true }
-sea-orm = { workspace = true }
-secrecy = { workspace = true }
-serde = { workspace = true }
+reqwest = { workspace = true, features = [
+    "blocking",
+    "rustls-tls",
+    "json",
+    "trust-dns",
+] }
+sea-orm = { workspace = true, features = [
+    "runtime-tokio-rustls",
+    "sqlx-sqlite",
+    "macros",
+    "with-json",
+    "with-chrono",
+    "with-uuid",
+] }
+sea-orm-migration = { workspace = true, features = [
+    "runtime-tokio-rustls",
+    "sqlx-sqlite",
+    # TODO: Remove `"cli"` if we don't feel like we need the CLI.
+    "cli",
+] }
+secrecy = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_with = { workspace = true }
-sha2 = { workspace = true }
-strum = { workspace = true }
+serde_with = { workspace = true, features = ["macros"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
 url_serde = { workspace = true }
@@ -46,10 +71,14 @@ urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 xmpp-parsers = { workspace = true }
 
+[[bin]]
+name = "migration"
+path = "src/migrations/main.rs"
+doc = false
+
 [dev-dependencies]
-cucumber = { workspace = true }
+cucumber = { workspace = true, features = ["macros"] }
 insta = { workspace = true }
-migration = { workspace = true }
 
 [[test]]
 name = "behavior"
