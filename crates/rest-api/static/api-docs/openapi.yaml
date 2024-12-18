@@ -69,13 +69,14 @@ paths:
   "/v1/invitations":
     get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
     post: { $ref: "features/invitations.yaml#/paths/invite_member" }
-  "/v1/invitations/{invitationIdOrToken}":
-    get: { $ref: "features/invitations.yaml#/paths/get_invitation" }
   "/v1/invitations/{invitationId}":
+    get: { $ref: "features/invitations.yaml#/paths/get_invitation" }
     delete: { $ref: "features/invitations.yaml#/paths/invitation_cancel" }
-  "/v1/invitations/{token}/accept":
+  "/v1/invitation-tokens/{token}/details":
+    get: { $ref: "features/invitations.yaml#/paths/get_invitation_token_details" }
+  "/v1/invitation-tokens/{token}/accept":
     put: { $ref: "features/invitations.yaml#/paths/invitation_accept" }
-  "/v1/invitations/{token}/reject":
+  "/v1/invitation-tokens/{token}/reject":
     put: { $ref: "features/invitations.yaml#/paths/invitation_reject" }
   "/v1/invitations/{invitationId}/resend":
     post: { $ref: "features/invitations.yaml#/paths/invitation_resend" }

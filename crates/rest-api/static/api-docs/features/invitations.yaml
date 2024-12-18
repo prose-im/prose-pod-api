@@ -103,12 +103,7 @@ paths:
     security:
       - BearerAuth: []
     parameters:
-      - $ref: "#/components/parameters/InvitationIdOrToken"
-      - description: Type of invitation token
-        in: query
-        name: token_type
-        schema: { $ref: "#/components/schemas/InvitationTokenType" }
-        required: false
+      - $ref: "#/components/parameters/InvitationId"
     responses:
       "200":
         description: Success
@@ -118,6 +113,7 @@ paths:
       "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "404": { $ref: "../shared.yaml#/components/responses/NotFound" }
   invitation_cancel:
     tags: [Invitations]
     summary: Cancel an invitation
@@ -129,6 +125,27 @@ paths:
       - $ref: "#/components/parameters/InvitationId"
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_invitation_token_details:
+    tags: [Invitations]
+    summary: Get details associated to an invitation token
+    description: |-
+      Get rudimentary information about a workspace invitation from an invitation token (accept or reject).
+
+      This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
+    operationId: get_invitation_token_details
+    security: []
+    parameters:
+      - $ref: "#/components/parameters/InvitationToken"
+      - $ref: "#/components/parameters/InvitationTokenType"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceInvitationBasicDetails" }
       "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -222,6 +239,14 @@ components:
         jid: { $ref: "../shared.yaml#/components/schemas/JID" }
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
         status: { $ref: "#/components/schemas/InvitationStatus" }
+    WorkspaceInvitationBasicDetails:
+      type: object
+      required:
+        - jid
+        - pre_assigned_role
+      properties:
+        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
+        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
     InvitationId:
       description: The unique identifier of an invitation.
       type: integer
@@ -265,15 +290,6 @@ components:
       in: path
       schema: { $ref: "#/components/schemas/InvitationId" }
       required: true
-    InvitationIdOrToken:
-      description: Unique identifier of a workspace invitation
-      name: invitationIdOrToken
-      in: path
-      schema:
-        oneOf:
-          - $ref: "#/components/schemas/InvitationId"
-          - $ref: "#/components/schemas/InvitationToken"
-      required: true
     InvitationToken:
       description: Invitation accept or reject token
       in: path
@@ -291,4 +307,10 @@ components:
       in: path
       name: token
       schema: { $ref: "#/components/schemas/InvitationRejectToken" }
+      required: true
+    InvitationTokenType:
+      description: Type of invitation token
+      in: query
+      name: token_type
+      schema: { $ref: "#/components/schemas/InvitationTokenType" }
       required: true

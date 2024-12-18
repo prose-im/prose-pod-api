@@ -97,7 +97,9 @@ async fn get_workspace_invitation_by_token<'a>(
     token_type: TokenType,
 ) -> LocalResponse<'a> {
     client
-        .get(format!("/v1/invitations/{token}?token_type={token_type}"))
+        .get(format!(
+            "/v1/invitation-tokens/{token}/details?token_type={token_type}"
+        ))
         .header(Accept::JSON)
         .dispatch()
         .await
@@ -110,7 +112,7 @@ async fn accept_workspace_invitation<'a>(
     password: Option<SecretString>,
 ) -> LocalResponse<'a> {
     client
-        .put(format!("/v1/invitations/{token}/accept"))
+        .put(format!("/v1/invitation-tokens/{token}/accept"))
         .header(ContentType::JSON)
         .body(
             json!(AcceptWorkspaceInvitationRequest {
@@ -126,7 +128,7 @@ async fn accept_workspace_invitation<'a>(
 
 async fn reject_workspace_invitation<'a>(client: &'a Client, token: Uuid) -> LocalResponse<'a> {
     client
-        .put(format!("/v1/invitations/{token}/reject"))
+        .put(format!("/v1/invitation-tokens/{token}/reject"))
         .header(Accept::JSON)
         .dispatch()
         .await
