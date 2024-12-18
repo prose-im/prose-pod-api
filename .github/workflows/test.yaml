@@ -18,6 +18,7 @@ on:
       # We changed some packaged documentation:
       - "crates/*/static/**"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     # Do not run the workflow if the project hasn't changed.
     paths:
       # We changed the code:
@@ -52,6 +53,7 @@ jobs:
         run: cargo fmt -- --check
 
   smoke-test:
+    if: github.event.pull_request.draft == false
     needs: format
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +86,7 @@ jobs:
         run: cargo test
 
   integration-test:
+    if: github.event.pull_request.draft == false
     needs: smoke-test
     runs-on: ubuntu-latest
     env:
