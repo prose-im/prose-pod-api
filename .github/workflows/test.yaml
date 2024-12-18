@@ -1,4 +1,4 @@
-name: Check format & Test
+name: Lint & Test
 on:
   push:
     branches:
@@ -35,7 +35,7 @@ on:
       - "crates/*/static/**"
 
 jobs:
-  format:
+  lint-rust:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -52,9 +52,23 @@ jobs:
       - name: Check code style
         run: cargo fmt -- --check
 
+  lint-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Redocly CLI
+        run: npm install -g @redocly/cli@latest
+
+      - name: Lint OpenAPI specification file
+        run: scripts/openapi-lint
+
   smoke-test:
     if: github.event.pull_request.draft == false
-    needs: format
+    needs: [lint-rust, lint-openapi]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
