@@ -10,7 +10,7 @@
 		"license": {
 			"name": "MPL-2.0"
 		},
-		"version": "0.3.0"
+		"version": "0.3.1"
 	},
 	"paths": {
 		"/v1/init/first-account": {
