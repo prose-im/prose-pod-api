@@ -61,6 +61,10 @@ impl Default for MockServerCtlState {
 
 #[async_trait::async_trait]
 impl ServerCtlImpl for MockServerCtl {
+    async fn wait_until_ready(&self) -> Result<(), Error> {
+        Ok(())
+    }
+
     async fn save_config(
         &self,
         server_config: &ServerConfig,

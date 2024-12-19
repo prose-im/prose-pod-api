@@ -43,6 +43,8 @@ impl Deref for ServerCtl {
 /// Also facilitates testing.
 #[async_trait::async_trait]
 pub trait ServerCtlImpl: Debug + Sync + Send {
+    async fn wait_until_ready(&self) -> Result<(), Error>;
+
     async fn save_config(
         &self,
         server_config: &ServerConfig,

@@ -7,6 +7,8 @@ use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 
 use reqwest::Method;
 use secrecy::{ExposeSecret as _, SecretString};
+use tokio::time::{sleep, Duration, Instant};
+use tracing::error;
 
 use crate::{
     members::MemberRole,
@@ -33,6 +35,28 @@ impl LiveServerCtl {
 
 #[async_trait::async_trait]
 impl ServerCtlImpl for LiveServerCtl {
+    async fn wait_until_ready(&self) -> Result<(), server_ctl::Error> {
+        let start = Instant::now();
+        let timeout = Duration::from_secs(10);
+        let retry_interval = Duration::from_millis(100);
+
+        while self
+            .admin_rest
+            .call(|client| client.get(self.admin_rest.url("modules")))
+            .await
+            .is_err()
+            && start.elapsed() < timeout
+        {
+            sleep(retry_interval).await;
+        }
+
+        if start.elapsed() >= timeout {
+            error!("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.");
+        }
+
+        Ok(())
+    }
+
     async fn save_config(
         &self,
         server_config: &ServerConfig,

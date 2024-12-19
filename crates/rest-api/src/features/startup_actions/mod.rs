@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod create_service_accounts;
@@ -8,21 +8,20 @@ mod init_server_config;
 mod register_oauth2_client;
 mod rotate_api_xmpp_password;
 mod run_migrations;
+mod wait_for_server;
 
-use std::time::Duration;
-
-use create_service_accounts::*;
-use init_server_config::*;
-use register_oauth2_client::*;
 use rocket::{Build, Rocket};
-use rotate_api_xmpp_password::*;
-use run_migrations::*;
-use tokio::time::sleep;
+
+use self::create_service_accounts::*;
+use self::init_server_config::*;
+use self::register_oauth2_client::*;
+use self::rotate_api_xmpp_password::*;
+use self::run_migrations::*;
+use self::wait_for_server::*;
 
 pub async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
     run_migrations(rocket).await?;
-    // Wait for the XMPP server to finish starting up (1 second should be more than enough)
-    sleep(Duration::from_secs(1)).await;
+    wait_for_server(rocket).await?;
     rotate_api_xmpp_password(rocket).await?;
     init_server_config(rocket).await?;
     register_oauth2_client(rocket).await?;
