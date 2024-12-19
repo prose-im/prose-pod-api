@@ -3,12 +3,6 @@
 version: "3"
 
 tasks:
-  open-api-docs-ui:
-    desc: Runs the Prose Pod API and opens the visual API documentation.
-    env:
-      SELF: task open-api-docs-ui
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/open-api-docs-ui {{.CLI_ARGS}}"
   reset-db:
     desc: Backs up the database and resets it using `sea-orm-cli`.
     cmds:
@@ -126,3 +120,11 @@ tasks:
       SELF: task local-reset
     cmds:
       - "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"
+  openapi-lint:
+    desc: Lint the OpenAPI specification file.
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"
+  openapi-preview-docs:
+    desc: Preview the OpenAPI specification file in a graphical interface.
+    cmds:
+      - "{{.ROOT_DIR}}/scripts/openapi-preview-docs {{.CLI_ARGS}}"

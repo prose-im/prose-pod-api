@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod cucumber_parameters;
+mod features;
 mod prelude;
-mod v1;
 
 use std::{
     collections::HashMap,
@@ -95,7 +95,7 @@ async fn main() {
         )
         // Fail on undefined steps
         // .fail_on_skipped()
-        .run_and_exit("tests/features")
+        .run_and_exit("../../features")
         .await;
 }
 

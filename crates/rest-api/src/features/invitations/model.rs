@@ -23,6 +23,12 @@ pub struct WorkspaceInvitation {
     pub accept_token_expires_at: DateTime<Utc>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WorkspaceInvitationBasicDetails {
+    pub jid: BareJid,
+    pub pre_assigned_role: MemberRole,
+}
+
 // BOILERPLATE
 
 impl From<invitations::entities::Invitation> for WorkspaceInvitation {
@@ -35,6 +41,15 @@ impl From<invitations::entities::Invitation> for WorkspaceInvitation {
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,
+        }
+    }
+}
+
+impl From<invitations::entities::Invitation> for WorkspaceInvitationBasicDetails {
+    fn from(value: invitations::entities::Invitation) -> Self {
+        Self {
+            jid: to_bare_jid(&value.jid).unwrap(),
+            pre_assigned_role: value.pre_assigned_role,
         }
     }
 }

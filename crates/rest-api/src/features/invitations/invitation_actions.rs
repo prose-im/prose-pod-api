@@ -32,7 +32,11 @@ pub struct AcceptWorkspaceInvitationRequest {
 }
 
 /// Accept a workspace invitation.
-#[put("/v1/invitations/<token>/accept", format = "json", data = "<req>")]
+#[put(
+    "/v1/invitation-tokens/<token>/accept",
+    format = "json",
+    data = "<req>"
+)]
 pub async fn invitation_accept_route<'r>(
     invitation_controller: LazyGuard<InvitationController>,
     invitation_service: LazyGuard<UnauthenticatedInvitationService>,
@@ -52,7 +56,7 @@ pub async fn invitation_accept_route<'r>(
 }
 
 /// Reject a workspace invitation.
-#[put("/v1/invitations/<token>/reject")]
+#[put("/v1/invitation-tokens/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
     invitation_controller: LazyGuard<InvitationController>,
     token: Uuid,

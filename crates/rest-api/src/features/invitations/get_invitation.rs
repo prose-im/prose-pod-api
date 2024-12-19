@@ -17,18 +17,31 @@ use crate::{
 use super::{forms::InvitationTokenType, model::*};
 
 /// Get information about a workspace invitation.
-#[get("/v1/invitations/<_>", rank = 2)]
-pub fn get_invitation_route() -> Result<Json<WorkspaceInvitation>, Error> {
-    Err(error::NotImplemented("Get invitation").into())
+#[get("/v1/invitations/<invitation_id>")]
+pub async fn get_invitation_route<'r>(
+    invitation_controller: LazyGuard<InvitationController>,
+    invitation_id: i32,
+) -> Result<Json<WorkspaceInvitation>, Error> {
+    let invitation_controller = invitation_controller.inner?;
+
+    let invitation = invitation_controller.get(&invitation_id).await?;
+    let Some(invitation) = invitation else {
+        return Err(Error::from(error::NotFound {
+            reason: format!("No invitation with id '{invitation_id}'"),
+        }));
+    };
+
+    let response = WorkspaceInvitation::from(invitation);
+    Ok(response.into())
 }
 
 /// Get information about an invitation from an accept or reject token.
-#[get("/v1/invitations/<token>?<token_type>", rank = 1)]
-pub async fn get_invitation_by_token_route<'r>(
+#[get("/v1/invitation-tokens/<token>/details?<token_type>")]
+pub async fn get_invitation_token_details_route<'r>(
     invitation_controller: LazyGuard<InvitationController>,
     token: Uuid,
     token_type: InvitationTokenType,
-) -> Result<Json<WorkspaceInvitation>, Error> {
+) -> Result<Json<WorkspaceInvitationBasicDetails>, Error> {
     let invitation_controller = invitation_controller.inner?;
     let token = InvitationToken::from(*token.deref());
 
@@ -40,6 +53,6 @@ pub async fn get_invitation_by_token_route<'r>(
         return Err(error::Forbidden("No invitation found for provided token".to_string()).into());
     };
 
-    let response: WorkspaceInvitation = invitation.into();
+    let response = WorkspaceInvitationBasicDetails::from(invitation);
     Ok(response.into())
 }

@@ -341,6 +341,9 @@ pub enum InvitationCancelError {
 }
 
 impl InvitationController {
+    pub async fn get(&self, id: &i32) -> Result<Option<Invitation>, DbErr> {
+        InvitationRepository::get_by_id(self.db.as_ref(), id).await
+    }
     pub async fn get_invitations(
         &self,
         page_number: u64,

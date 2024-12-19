@@ -25,6 +25,14 @@ ARG CARGO_INSTALL_EXTRA_ARGS=''
 RUN cargo install --path crates/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
 
 
+FROM redocly/cli as api-docs
+
+COPY crates/rest-api/static/api-docs .
+RUN redocly bundle openapi.yaml -o /usr/share/prose-pod-api/static/api-docs/openapi.json --config redocly.cfg.yaml
+
+COPY crates/rest-api/static/api-docs/redoc* /usr/share/prose-pod-api/static/api-docs
+
+
 FROM alpine:latest
 
 RUN apk update && apk add libgcc libc6-compat
@@ -32,7 +40,7 @@ RUN apk update && apk add libgcc libc6-compat
 WORKDIR /usr/share/prose-pod-api
 
 COPY --from=builder /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
-COPY ./crates/rest-api/static /usr/share/prose-pod-api/static
+COPY --from=api-docs /usr/share/prose-pod-api/static /usr/share/prose-pod-api/static
 
 CMD ["prose-pod-api"]
 

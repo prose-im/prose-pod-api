@@ -1,0 +1,12 @@
+extends:
+  - recommended
+
+rules:
+  no-invalid-media-type-examples:
+    # NOTE: We want to add unstructured examples to `text/event-stream` responses,
+    #   which raises a warning by default.
+    severity: off
+    # Fix false warnings when using `allOf`.
+    # NOTE: See <https://github.com/Redocly/redocly-cli/issues/1658#issuecomment-2278178224>.
+    # severity: warn
+    # allowAdditionalProperties: true
