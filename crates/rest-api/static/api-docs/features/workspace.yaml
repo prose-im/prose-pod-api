@@ -142,42 +142,6 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  get_workspace_details_card:
-    tags: [Workspace]
-    summary: Get the details card of your workspace.
-    description: Get the details card of your workspace.
-    operationId: get_workspace_details_card
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Success
-        content:
-          text/vcard:
-            schema:
-              type: string
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  set_workspace_details_card:
-    tags: [Workspace]
-    summary: Set the details card of your workspace.
-    description: Set the details card of your workspace.
-    operationId: set_workspace_details_card
-    security:
-      - BearerAuth: []
-    requestBody:
-      required: true
-      content:
-        text/vcard:
-          schema:
-            type: string
-    responses:
-      "201":
-        description: Success
-        headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
     Workspace:

@@ -63,9 +63,6 @@ paths:
   "/v1/workspace/icon":
     get: { $ref: "features/workspace.yaml#/paths/get_workspace_icon" }
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_icon" }
-  "/v1/workspace/details-card":
-    get: { $ref: "features/workspace.yaml#/paths/get_workspace_details_card" }
-    put: { $ref: "features/workspace.yaml#/paths/set_workspace_details_card" }
   "/v1/invitations":
     get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
     post: { $ref: "features/invitations.yaml#/paths/invite_member" }
