@@ -13,7 +13,7 @@ use tracing::debug;
 
 pub use super::live_xmpp_service::LiveXmppService;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct XmppService {
     inner: Arc<XmppServiceInner>,
     ctx: XmppServiceContext,
@@ -33,7 +33,7 @@ impl Deref for XmppService {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct XmppServiceContext {
     pub bare_jid: BareJid,
     pub prosody_token: SecretString,

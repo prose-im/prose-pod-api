@@ -1,0 +1,17 @@
+#!/bin/bash
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"}
+: ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
+# NOTE: `die` logs an error then exits.
+source "${BASH_TOOLBOX:?}"/die.sh
+# NOTE: `edo` supports dry mode via `DRY_MODE`. When not in dry mode,
+#   logs the command as a `TRACE` and executes it.
+source "${BASH_TOOLBOX:?}"/edo.sh
+
+OPENAPI_SPEC=crates/rest-api/static/api-docs/openapi.yaml
+
+if ! command -v redocly &>/dev/null; then
+    die "$(format_hyperlink "Install $(format_code redocly)" "https://redocly.com/docs/cli/installation") first ($(format_code 'npm i -g @redocly/cli@latest') / $(format_code 'volta install @redocly/cli'))."
+fi
+
+edo redocly preview-docs "${OPENAPI_SPEC:?}" "$@"

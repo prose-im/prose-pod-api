@@ -4,21 +4,20 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{serde::json::Json, State};
-use secrecy::{ExposeSecret as _, Secret, SecretString, SerializableSecret, Zeroize};
 use serde::{Deserialize, Serialize};
 use service::auth::{auth_service::AuthToken, AuthService};
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::{error::Error, guards::LazyGuard, models::SerializableSecretString};
 
 use super::guards::BasicAuth;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[repr(transparent)]
-pub struct LoginToken(String);
+pub struct LoginToken(SerializableSecretString);
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
-    pub token: Secret<LoginToken>,
+    pub token: LoginToken,
 }
 
 /// Log user in and return an authentication token.
@@ -28,31 +27,21 @@ pub async fn login_route(
     auth_service: &State<AuthService>,
 ) -> Result<Json<LoginResponse>, Error> {
     let basic_auth = basic_auth.inner?;
+
     let token = auth_service
         .log_in(&basic_auth.jid, &basic_auth.password)
         .await?;
+
     let response = LoginResponse {
-        token: LoginToken::from(token).into(),
-    }
-    .into();
-    Ok(response)
+        token: LoginToken::from(token),
+    };
+    Ok(response.into())
 }
 
 // BOILERPLATE
 
-impl Zeroize for LoginToken {
-    fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
-}
-impl SerializableSecret for LoginToken {}
 impl From<AuthToken> for LoginToken {
     fn from(value: AuthToken) -> Self {
-        Self(value.expose_secret().to_owned())
-    }
-}
-impl Into<SecretString> for LoginToken {
-    fn into(self) -> SecretString {
-        SecretString::new(self.0)
+        Self(SerializableSecretString::from(value.0))
     }
 }

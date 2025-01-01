@@ -8,13 +8,11 @@ mod guards;
 mod workspace_accent_color;
 mod workspace_icon;
 mod workspace_name;
-mod workspace_vcard;
 
 pub use get_workspace::*;
 pub use workspace_accent_color::*;
 pub use workspace_icon::*;
 pub use workspace_name::*;
-pub use workspace_vcard::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
     routes![
@@ -25,7 +23,5 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         set_workspace_icon_route,
         get_workspace_name_route,
         set_workspace_name_route,
-        get_workspace_details_card_route,
-        set_workspace_details_card_route,
     ]
 }

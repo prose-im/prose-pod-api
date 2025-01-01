@@ -5,7 +5,7 @@
 
 use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::workspace::WorkspaceController;
+use service::workspace::WorkspaceService;
 
 use crate::{error::Error, guards::LazyGuard};
 
@@ -16,11 +16,11 @@ pub struct GetWorkspaceNameResponse {
 
 #[get("/v1/workspace/name")]
 pub async fn get_workspace_name_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceNameResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
 
-    let name = workspace_controller.get_workspace_name().await?;
+    let name = workspace_service.get_workspace_name().await?;
 
     let response = GetWorkspaceNameResponse { name }.into();
     Ok(response)
@@ -35,13 +35,13 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
 #[put("/v1/workspace/name", format = "json", data = "<req>")]
 pub async fn set_workspace_name_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceNameRequest>,
 ) -> Result<Json<SetWorkspaceNameResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
     let req = req.into_inner();
 
-    let name = workspace_controller.set_workspace_name(req.name).await?;
+    let name = workspace_service.set_workspace_name(req.name).await?;
 
     let response = SetWorkspaceNameResponse { name }.into();
     Ok(response)

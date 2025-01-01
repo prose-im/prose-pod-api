@@ -7,7 +7,7 @@ use linked_hash_map::LinkedHashMap;
 use secrecy::SecretString;
 use service::{
     members::MemberRole,
-    prosody::ProsodyConfig,
+    prosody::{AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
     server_config::ServerConfig,
     xmpp::{server_ctl::Error, BareJid, ServerCtlImpl},
@@ -24,6 +24,7 @@ pub struct MockServerCtl {
 #[derive(Debug, Clone)]
 pub struct UserAccount {
     pub password: SecretString,
+    pub role: String,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +113,7 @@ impl ServerCtlImpl for MockServerCtl {
             jid.clone(),
             UserAccount {
                 password: password.to_owned(),
+                role: MemberRole::Member.as_prosody(),
             },
         );
         Ok(())
@@ -124,11 +126,18 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    async fn set_user_role(&self, _jid: &BareJid, _role: &MemberRole) -> Result<(), Error> {
+    async fn set_user_role(&self, jid: &BareJid, role: &MemberRole) -> Result<(), Error> {
         self.check_online()?;
 
-        // NOTE: The role is stored on our side in the database,
-        //   our `DummyServerCtl` has nothing to save.
+        let mut state = self.state.write().unwrap();
+        state
+            .users
+            .get_mut(jid)
+            .expect(&format!(
+                "`MockServerCtl` cannot set <{jid}>'s password: User must be created first."
+            ))
+            .role = role.as_prosody();
+
         Ok(())
     }
     async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {

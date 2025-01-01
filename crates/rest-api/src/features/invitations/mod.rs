@@ -23,7 +23,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         invite_member_route,
         get_invitations_route,
         get_invitation_route,
-        get_invitation_by_token_route,
+        get_invitation_token_details_route,
         invitation_accept_route,
         invitation_reject_route,
         invitation_resend_route,

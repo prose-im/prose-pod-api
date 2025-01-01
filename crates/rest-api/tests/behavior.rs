@@ -4,8 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod cucumber_parameters;
+mod features;
 mod prelude;
-mod v1;
 
 use std::{
     collections::HashMap,
@@ -35,16 +35,16 @@ use serde::Deserialize;
 use service::{
     auth::{AuthService, AuthToken},
     dependencies,
-    init::InitController,
+    init::InitService,
     invitations::Invitation,
-    members::{Member, UserService},
+    members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
     network_checks::NetworkChecker,
     notifications::dependencies::{any_notifier::AnyNotifier, Notifier},
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore, SecretsStoreImpl},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
-    workspace::WorkspaceController,
+    workspace::WorkspaceService,
     xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     AppConfig,
 };
@@ -95,7 +95,7 @@ async fn main() {
         )
         // Fail on undefined steps
         // .fail_on_skipped()
-        .run_and_exit("tests/features")
+        .run_and_exit("../../features")
         .await;
 }
 
@@ -228,23 +228,23 @@ impl TestWorld {
         ))
     }
 
-    fn user_service(&self) -> UserService {
-        UserService::new(
+    fn member_service(&self) -> UnauthenticatedMemberService {
+        UnauthenticatedMemberService::new(
             Arc::new(self.server_ctl.clone()),
             Arc::new(self.auth_service.clone()),
             Arc::new(self.xmpp_service.clone()),
         )
     }
 
-    fn init_controller(&self) -> InitController {
+    fn init_service(&self) -> InitService {
         let db = self.db();
-        InitController {
+        InitService {
             db: Arc::new(db.clone()),
         }
     }
 
-    async fn workspace_controller(&self) -> WorkspaceController {
-        WorkspaceController::new(
+    async fn workspace_service(&self) -> WorkspaceService {
+        WorkspaceService::new(
             Arc::new(self.db().clone()),
             Arc::new(self.xmpp_service.clone()),
             Arc::new(self.app_config.clone()),

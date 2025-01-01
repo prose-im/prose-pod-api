@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: prose-pod-api
+  description: Prose Pod API server.
+  contact:
+    name: Valerian Saliou
+    email: valerian@valeriansaliou.name
+  license:
+    name: MPL-2.0
+    url: https://github.com/prose-im/prose-pod-api/blob/master/LICENSE.md
+  version: 0.3.1
+servers:
+  - url: http://127.0.0.1:8000
+    description: Localhost
+paths:
+  "/v1/init/first-account":
+    put: { $ref: "features/init.yaml#/paths/init_first_account" }
+  "/v1/login":
+    post: { $ref: "features/auth.yaml#/paths/login" }
+  "/v1/server/config":
+    get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
+    put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
+  "/v1/server/config/file-upload-allowed":
+    put: { $ref: "features/server-config.yaml#/paths/set_file_upload_allowed" }
+  "/v1/server/config/file-storage-retention":
+    put: { $ref: "features/server-config.yaml#/paths/set_file_storage_retention" }
+  "/v1/server/config/file-storage-encryption-scheme":
+    put: { $ref: "features/server-config.yaml#/paths/set_file_storage_encryption_scheme" }
+  "/v1/server/config/messaging/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_messaging_config" }
+  "/v1/server/config/message-archive-retention":
+    put: { $ref: "features/server-config.yaml#/paths/set_message_archive_retention" }
+  "/v1/server/config/message-archive-retention/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_message_archive_retention" }
+  "/v1/server/config/files/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_files_config" }
+  "/v1/server/config/message-archive-enabled":
+    put: { $ref: "features/server-config.yaml#/paths/set_message_archive_enabled" }
+  "/v1/server/config/push-notifications/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_push_notifications_config" }
+  "/v1/server/config/push-notification-with-body/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_body" }
+  "/v1/server/config/push-notification-with-body":
+    put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_body" }
+  "/v1/server/config/push-notification-with-sender/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_sender" }
+  "/v1/server/config/push-notification-with-sender":
+    put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_sender" }
+  "/v1/pod/config":
+    get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
+  "/v1/pod/config/address":
+    get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
+    put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
+  "/v1/workspace":
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
+    put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
+  "/v1/workspace/name":
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_name" }
+    put: { $ref: "features/workspace.yaml#/paths/set_workspace_name" }
+  "/v1/workspace/accent-color":
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_accent_color" }
+    put: { $ref: "features/workspace.yaml#/paths/set_workspace_accent_color" }
+  "/v1/workspace/icon":
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_icon" }
+    put: { $ref: "features/workspace.yaml#/paths/set_workspace_icon" }
+  "/v1/invitations":
+    get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
+    post: { $ref: "features/invitations.yaml#/paths/invite_member" }
+  "/v1/invitations/{invitationId}":
+    get: { $ref: "features/invitations.yaml#/paths/get_invitation" }
+    delete: { $ref: "features/invitations.yaml#/paths/invitation_cancel" }
+  "/v1/invitation-tokens/{token}/details":
+    get: { $ref: "features/invitations.yaml#/paths/get_invitation_token_details" }
+  "/v1/invitation-tokens/{token}/accept":
+    put: { $ref: "features/invitations.yaml#/paths/invitation_accept" }
+  "/v1/invitation-tokens/{token}/reject":
+    put: { $ref: "features/invitations.yaml#/paths/invitation_reject" }
+  "/v1/invitations/{invitationId}/resend":
+    post: { $ref: "features/invitations.yaml#/paths/invitation_resend" }
+  "/v1/members":
+    get: { $ref: "features/members.yaml#/paths/get_members" }
+  "/v1/members/{memberId}":
+    get: { $ref: "features/members.yaml#/paths/get_member" }
+  "/v1/enrich-members":
+    get: { $ref: "features/members.yaml#/paths/enrich_members" }
+  "/v1/members/{memberId}/role":
+    put: { $ref: "features/roles.yaml#/paths/set_member_role" }
+  "/v1/network/dns/records":
+    get: { $ref: "features/dns-setup.yaml#/paths/get_dns_records" }
+  "/v1/network/checks":
+    get: { $ref: "features/network-checks.yaml#/paths/check_network_configuration" }
+  "/v1/network/checks/dns":
+    get: { $ref: "features/network-checks-dns.yaml#/paths/check_dns_records" }
+  "/v1/network/checks/ip":
+    get: { $ref: "features/network-checks-ip.yaml#/paths/check_ip" }
+  "/v1/network/checks/ports":
+    get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: Basic
+    BearerAuth:
+      type: http
+      scheme: Bearer

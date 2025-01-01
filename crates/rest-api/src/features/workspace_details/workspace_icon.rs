@@ -6,7 +6,7 @@
 use base64::{engine::general_purpose, Engine as _};
 use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::workspace::WorkspaceController;
+use service::workspace::WorkspaceService;
 
 use crate::{
     error::{self, Error},
@@ -20,11 +20,11 @@ pub struct GetWorkspaceIconResponse {
 
 #[get("/v1/workspace/icon")]
 pub async fn get_workspace_icon_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
 
-    let icon = workspace_controller.get_workspace_icon_base64().await?;
+    let icon = workspace_service.get_workspace_icon_base64().await?;
 
     let response = GetWorkspaceIconResponse { icon }.into();
     Ok(response)
@@ -38,10 +38,10 @@ pub struct SetWorkspaceIconRequest {
 
 #[put("/v1/workspace/icon", format = "json", data = "<req>")]
 pub async fn set_workspace_icon_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceIconRequest>,
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
 
     let image_data = general_purpose::STANDARD
         .decode(req.image.to_owned())
@@ -49,7 +49,7 @@ pub async fn set_workspace_icon_route<'r>(
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 
-    workspace_controller.set_workspace_icon(image_data).await?;
+    workspace_service.set_workspace_icon(image_data).await?;
 
     let response = GetWorkspaceIconResponse {
         icon: Some(req.image.to_owned()),

@@ -1,0 +1,220 @@
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - bad_request
+            - database_error
+            - internal_server_error
+            - not_found
+            - not_implemented
+            - workspace_already_initialized
+            - workspace_not_initialized
+            - server_config_already_initialized
+            - server_config_not_initialized
+            - first_account_already_created
+            - pod_address_not_initialized
+            - unauthorized
+            - forbidden
+            - unknown
+            - invitation_already_exists
+            - member_already_exists
+          example: bad_request
+    DurationDateLike:
+      description: A duration in [ISO 8601
+        format](https://en.wikipedia.org/wiki/ISO_8601#Durations) containing
+        only date components.
+      type: string
+      format: duration
+      example: P1Y
+    DurationTimeLike:
+      description: A duration in [ISO 8601
+        format](https://en.wikipedia.org/wiki/ISO_8601#Durations) containing
+        only time components.
+      type: string
+      format: duration
+      example: PT4H
+    DurationInfinite:
+      type: string
+      const: infinite
+    JID:
+      description: A bare JID, as defined by [RFC 6120, section
+        2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).
+      type: string
+      format: jid
+      example: remi@prose.org
+    Username:
+      type: string
+      description: The local part of a JID, as defined by [RFC 6120, section
+        2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1).
+      example: remi.bardon
+    Password:
+      type: string
+      format: password
+      example: HsV>dFx^P[m!jM+4W9wf5k:_t{8pSQ*?
+    DateTime:
+      type: string
+      format: date-time
+    Int32:
+      type: integer
+      format: int32
+      minimum: 0
+    sse-events:
+      end:
+        description: A Server-Sent Event indicating all events have been sent (the
+          connection will be closed).
+        type: object
+        required:
+          - event
+          - id
+          - comment
+        properties:
+          event:
+            type: string
+            const: end
+          id:
+            type: string
+            const: end
+          comment:
+            type: string
+            const: End of stream
+          data:
+            type: string
+            const: ""
+  headers:
+    Location:
+      description: URL to the created resource. See [`Location` on
+        MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location).
+      schema:
+        type: string
+        format: uri
+      example: /v1/invitations/42
+    WWW-Authenticate:
+      description: Standard `WWW-Authenticate` header. See [`WWW-Authenticate` on
+        MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/WWW-Authenticate).
+      schema:
+        type: string
+        format: www-authenticate
+      example: Bearer realm="Admin only area", charset="UTF-8"
+    PaginationCurrentPage:
+      description: Current pagination page (non standard header). Starts at `1`.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1
+    PaginationPageSize:
+      description: Size of a pagination page (non standard header). Starts at `1`.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        default: 20
+      example: 20
+    PaginationPageCount:
+      description: "Total number of pagination pages (non standard header). Warning:
+        `Page-Count` will be `0` with `Current-Page` at `1` if there are no
+        result."
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      example: 3
+    PaginationItemCount:
+      description: Total number of items (non standard header).
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      example: 42
+  responses:
+    NoContent:
+      description: Success
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: unauthorized
+      headers:
+        WWW-Authenticate: { $ref: "#/components/headers/WWW-Authenticate" }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: forbidden
+    NotFound:
+      description: Object not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: not_found
+    Gone:
+      description: Object does not exist
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: not_found
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example:
+            error: unknown
+  parameters:
+    JidArray:
+      description: A list of JIDs (as defined by [RFC 6120, section
+        2.1](https://www.rfc-editor.org/rfc/rfc6120#section-2.1)). Can be passed
+        as `jids=a@example.org&jids=b@example.org` or
+        `jids[]=a@example.org&jids[]=b@example.org`.
+      in: query
+      name: jids
+      schema:
+        type: array
+        items: { $ref: "#/components/schemas/JID" }
+        example:
+          - valerian@prose.org
+          - remi@prose.org
+          - marc@prose.org
+      required: true
+    PageNumber:
+      in: query
+      name: page_number
+      schema:
+        type: integer
+        format: int64
+        default: 1
+        example: 2
+    PageSize:
+      in: query
+      name: page_size
+      schema:
+        type: integer
+        format: int64
+        default: 20
+        example: 50
+    Until:
+      in: query
+      name: until
+      schema: { $ref: "#/components/schemas/DateTime" }
+    RetryInterval:
+      description: Time to wait between retries (when requesting Server-Sent Events).
+        It must be between 1 second and 1 minute (inclusive), and will default
+        to 5 seconds is unspecified. It does not mean checks will be retried
+        exactly every `interval` but rather the API will wait `interval` between
+        a failure and the start of another check.
+      in: query
+      name: interval
+      schema: { $ref: "#/components/schemas/DurationTimeLike" }
+      example: PT5S

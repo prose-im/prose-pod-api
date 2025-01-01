@@ -13,7 +13,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 
 : ${REPOSITORY_ROOT:="${SCRIPTS_ROOT:?}"/..}
 VERSION_FILE="${REPOSITORY_ROOT:?}"/VERSION
-OPENAPI_JSON_FILE="${REPOSITORY_ROOT:?}"/crates/rest-api/static/api-docs/openapi.json
+OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/crates/rest-api/static/api-docs/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
 
@@ -118,8 +118,8 @@ log_as_info_ git --no-pager log --reverse --no-merges \
 # Update version numbers in files.
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
 echo "${NEW_VERSION:?}" > "${VERSION_FILE:?}"
-info "Changing version number in $(format_code openapi.json)…"
-replace '^(\t\t"version": ").+(")' "${OPENAPI_JSON_FILE:?}"
+info "Changing version number in $(format_code "$(basename "${OPENAPI_SPEC_FILE:?}")")…"
+replace '^(\t\t"version": ").+(")' "${OPENAPI_SPEC_FILE:?}"
 info "Changing version number in $(format_code Cargo.toml)…"
 replace '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
 info "Updating $(format_code Cargo.lock)…"

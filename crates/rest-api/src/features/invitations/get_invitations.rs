@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use rocket::get;
-use service::invitations::InvitationController;
+use service::invitations::InvitationService;
 
 use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
 
@@ -14,12 +14,12 @@ use super::model::*;
 /// Get workspace invitations.
 #[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
 pub(super) async fn get_invitations_route<'r>(
-    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<InvitationService>,
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
 ) -> Result<Paginated<WorkspaceInvitation>, Error> {
-    let invitation_controller = invitation_controller.inner?;
+    let invitation_service = invitation_service.inner?;
     let page_number = page_number.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
     let until: Option<DateTime<Utc>> = match until {
@@ -27,7 +27,7 @@ pub(super) async fn get_invitations_route<'r>(
         None => None,
     };
 
-    let (pages_metadata, invitations) = invitation_controller
+    let (pages_metadata, invitations) = invitation_service
         .get_invitations(page_number, page_size, until)
         .await?;
 

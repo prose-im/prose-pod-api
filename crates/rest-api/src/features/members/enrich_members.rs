@@ -14,7 +14,7 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 use service::{
-    members::{member_controller, MemberController, MemberRole},
+    members::{member_service, MemberRole, MemberService},
     models::BareJid,
     util::ConcurrentTaskRunner,
     AppConfig,
@@ -41,21 +41,21 @@ pub struct JIDs {
 
 #[get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub async fn enrich_members_route(
-    member_controller: LazyGuard<MemberController>,
+    member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
     app_config: &State<AppConfig>,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
-    let member_controller = member_controller.inner?;
+    let member_service = member_service.inner?;
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
     let runner = ConcurrentTaskRunner::default(&app_config);
 
-    let cancellation_token = member_controller.cancellation_token.clone();
+    let cancellation_token = member_service.cancellation_token.clone();
     let mut rx = runner.run(
         jids,
         move |jid| {
-            let member_controller = member_controller.clone();
-            Box::pin(async move { member_controller.enrich_member(&jid).await })
+            let member_service = member_service.clone();
+            Box::pin(async move { member_service.enrich_member(&jid).await })
         },
         move || cancellation_token.cancel(),
     );
@@ -69,11 +69,11 @@ pub async fn enrich_members_route(
 
 #[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
 pub async fn enrich_members_stream_route<'r>(
-    member_controller: LazyGuard<MemberController>,
+    member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
     app_config: &State<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
-    let member_controller = Arc::new(member_controller.inner?);
+    let member_service = Arc::new(member_service.inner?);
     let jids = jids.into_inner().jids;
     let runner = ConcurrentTaskRunner::default(&app_config);
 
@@ -83,12 +83,12 @@ pub async fn enrich_members_stream_route<'r>(
             event
         }
 
-        let cancellation_token = member_controller.cancellation_token.clone();
+        let cancellation_token = member_service.cancellation_token.clone();
         let mut rx = runner.run(
             jids,
             move |jid| {
-                let member_controller = member_controller.clone();
-                Box::pin(async move { member_controller .enrich_member(&jid).await })
+                let member_service = member_service.clone();
+                Box::pin(async move { member_service .enrich_member(&jid).await })
             },
             move || cancellation_token.cancel(),
         );
@@ -104,8 +104,8 @@ pub async fn enrich_members_stream_route<'r>(
 
 // BOILERPLATE
 
-impl From<member_controller::EnrichedMember> for EnrichedMember {
-    fn from(value: member_controller::EnrichedMember) -> Self {
+impl From<member_service::EnrichedMember> for EnrichedMember {
+    fn from(value: member_service::EnrichedMember) -> Self {
         Self {
             jid: value.jid,
             role: value.role,
