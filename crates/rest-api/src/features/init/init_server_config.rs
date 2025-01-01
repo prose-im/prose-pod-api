@@ -7,7 +7,7 @@ use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
     auth::AuthService,
-    init::{InitController, InitServerConfigError},
+    init::{InitServerConfigError, InitService},
     pod_config::PodAddressError,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
@@ -26,17 +26,17 @@ pub struct InitServerConfigRequest {
 
 #[put("/v1/server/config", format = "json", data = "<req>")]
 pub async fn init_server_config_route<'r>(
-    init_controller: LazyGuard<InitController>,
+    init_service: LazyGuard<InitService>,
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
     auth_service: &State<AuthService>,
     secrets_store: &State<SecretsStore>,
     req: Json<InitServerConfigRequest>,
 ) -> Created<ServerConfig> {
-    let init_controller = init_controller.inner?;
+    let init_service = init_service.inner?;
     let form = req.into_inner();
 
-    let server_config = init_controller
+    let server_config = init_service
         .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
         .await?;
 

@@ -52,7 +52,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
     };
 
     world
-        .init_controller()
+        .init_service()
         .init_workspace(
             Arc::new(world.app_config.clone()),
             Arc::new(world.secrets_store.clone()),
@@ -77,7 +77,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     };
 
     world
-        .init_controller()
+        .init_service()
         .init_server_config(
             &world.server_ctl,
             &world.app_config,

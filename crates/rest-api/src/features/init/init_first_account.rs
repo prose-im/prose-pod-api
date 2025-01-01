@@ -6,7 +6,7 @@
 use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    init::{InitController, InitFirstAccountError, InitFirstAccountForm},
+    init::{InitFirstAccountError, InitFirstAccountForm, InitService},
     models::JidNode,
     server_config::ServerConfig,
 };
@@ -29,17 +29,17 @@ pub struct InitFirstAccountRequest {
 
 #[put("/v1/init/first-account", format = "json", data = "<req>")]
 pub async fn init_first_account_route(
-    init_controller: LazyGuard<InitController>,
+    init_service: LazyGuard<InitService>,
     server_config: LazyGuard<ServerConfig>,
     user_service: LazyGuard<UnauthenticatedUserService>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
-    let init_controller = init_controller.inner?;
+    let init_service = init_service.inner?;
     let server_config = &server_config.inner?;
     let user_service = &user_service.inner?;
     let form = req.into_inner();
 
-    let member = init_controller
+    let member = init_service
         .init_first_account(server_config, user_service, form)
         .await?;
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use rocket::{response::status, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 use service::{
-    init::{InitController, InitWorkspaceError, WorkspaceCreateForm},
+    init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
     secrets::SecretsStore,
     server_config::ServerConfig,
     workspace::WorkspaceControllerError,
@@ -36,18 +36,18 @@ pub struct InitWorkspaceResponse {
 
 #[put("/v1/workspace", format = "json", data = "<req>")]
 pub async fn init_workspace_route<'r>(
-    init_controller: LazyGuard<InitController>,
+    init_service: LazyGuard<InitService>,
     app_config: &State<AppConfig>,
     secrets_store: &State<SecretsStore>,
     xmpp_service: &State<XmppServiceInner>,
     server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
 ) -> Created<InitWorkspaceResponse> {
-    let init_controller = init_controller.inner?;
+    let init_service = init_service.inner?;
     let server_config = server_config.inner?;
     let req = req.into_inner();
 
-    let workspace = init_controller
+    let workspace = init_service
         .init_workspace(
             Arc::new(app_config.inner().clone()),
             Arc::new(secrets_store.inner().clone()),

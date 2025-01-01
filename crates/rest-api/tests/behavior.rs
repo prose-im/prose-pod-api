@@ -35,7 +35,7 @@ use serde::Deserialize;
 use service::{
     auth::{AuthService, AuthToken},
     dependencies,
-    init::InitController,
+    init::InitService,
     invitations::Invitation,
     members::{Member, UserService},
     models::EmailAddress,
@@ -236,9 +236,9 @@ impl TestWorld {
         )
     }
 
-    fn init_controller(&self) -> InitController {
+    fn init_service(&self) -> InitService {
         let db = self.db();
-        InitController {
+        InitService {
             db: Arc::new(db.clone()),
         }
     }

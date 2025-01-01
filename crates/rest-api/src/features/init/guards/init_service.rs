@@ -5,18 +5,18 @@
 
 use std::sync::Arc;
 
-use service::init::InitController;
+use service::init::InitService;
 
 use crate::guards::prelude::*;
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for InitController {
+impl<'r> LazyFromRequest<'r> for InitService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
 
-        Outcome::Success(InitController {
+        Outcome::Success(InitService {
             db: Arc::new(db.clone()),
         })
     }

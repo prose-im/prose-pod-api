@@ -23,11 +23,11 @@ use crate::{
     AppConfig,
 };
 
-pub struct InitController {
+pub struct InitService {
     pub db: Arc<DatabaseConnection>,
 }
 
-impl InitController {
+impl InitService {
     pub async fn init_server_config(
         &self,
         server_ctl: &ServerCtl,
@@ -87,7 +87,7 @@ impl Into<workspace::ActiveModel> for WorkspaceCreateForm {
     }
 }
 
-impl InitController {
+impl InitService {
     pub async fn init_workspace(
         &self,
         app_config: Arc<AppConfig>,
@@ -143,7 +143,7 @@ impl From<WorkspaceControllerInitError> for InitWorkspaceError {
     }
 }
 
-impl InitController {
+impl InitService {
     pub async fn init_first_account(
         &self,
         server_config: &ServerConfig,
