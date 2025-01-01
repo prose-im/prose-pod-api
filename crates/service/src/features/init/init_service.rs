@@ -10,7 +10,9 @@ use secrecy::SecretString;
 
 use crate::{
     auth::{auth_service, AuthService},
-    members::{Member, MemberRepository, MemberRole, MemberService, UserCreateError},
+    members::{
+        Member, MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError,
+    },
     models::JidNode,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
@@ -147,7 +149,7 @@ impl InitService {
     pub async fn init_first_account(
         &self,
         server_config: &ServerConfig,
-        member_service: &MemberService,
+        member_service: &UnauthenticatedMemberService,
         form: impl Into<InitFirstAccountForm>,
     ) -> Result<Member, InitFirstAccountError> {
         let form = form.into();

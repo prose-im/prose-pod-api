@@ -5,105 +5,43 @@
 
 use std::sync::Arc;
 
-use sea_orm::{ConnectionTrait, DbErr};
-use secrecy::SecretString;
+use chrono::{DateTime, Utc};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber};
+use tokio_util::sync::CancellationToken;
+use tracing::{debug, trace, warn};
 
-use crate::{
-    auth::AuthService,
-    xmpp::{
-        BareJid, ServerCtl, ServerCtlError, XmppService, XmppServiceContext, XmppServiceError,
-        XmppServiceInner,
-    },
-};
+use crate::xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService};
 
-use super::{Member, MemberCreateForm, MemberRepository, MemberRole};
+use super::{Member, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
 pub struct MemberService {
+    db: Arc<DatabaseConnection>,
     server_ctl: Arc<ServerCtl>,
-    auth_service: Arc<AuthService>,
-    xmpp_service_inner: Arc<XmppServiceInner>,
+    xmpp_service: Arc<XmppService>,
+    pub cancellation_token: CancellationToken,
 }
 
 impl MemberService {
     pub fn new(
+        db: Arc<DatabaseConnection>,
         server_ctl: Arc<ServerCtl>,
-        auth_service: Arc<AuthService>,
-        xmpp_service_inner: Arc<XmppServiceInner>,
+        xmpp_service: Arc<XmppService>,
     ) -> Self {
         Self {
-            server_ctl,
-            auth_service,
-            xmpp_service_inner,
-        }
-    }
-
-    pub async fn create_user(
-        &self,
-        db: &impl ConnectionTrait,
-        jid: &BareJid,
-        password: &SecretString,
-        nickname: &str,
-        role: &Option<MemberRole>,
-    ) -> Result<Member, UserCreateError> {
-        // Create the user in database
-        let member = MemberRepository::create(
             db,
-            MemberCreateForm {
-                jid: jid.to_owned(),
-                role: role.to_owned(),
-                joined_at: None,
-            },
-        )
-        .await?;
-
-        // NOTE: We can't rollback changes made to the XMPP server so we do it
-        //   after "rollbackable" DB changes in case they fail. It's not perfect
-        //   but better than nothing.
-        // TODO: Find a way to rollback XMPP server changes.
-        let server_ctl = self.server_ctl.clone();
-
-        // Create the user
-        server_ctl
-            .add_user(jid, &password)
-            .await
-            .map_err(UserCreateError::XmppServerCannotCreateUser)?;
-        // Add the user to everyone's roster
-        server_ctl
-            .add_team_member(jid)
-            .await
-            .map_err(UserCreateError::XmppServerCannotAddTeamMember)?;
-        if let Some(role) = role {
-            // Set the user's role for servers which support it
-            server_ctl
-                .set_user_role(jid, &role)
-                .await
-                .map_err(UserCreateError::XmppServerCannotSetUserRole)?;
+            server_ctl,
+            xmpp_service,
+            cancellation_token: CancellationToken::new(),
         }
-
-        // NOTE: We need to log the user in to get a Prosody authentication token
-        //   in order to set the user's vCard.
-        let auth_token = self
-            .auth_service
-            .log_in(jid, &password)
-            .await
-            .expect("User was created with credentials which doesn't work.");
-
-        let ctx = XmppServiceContext {
-            bare_jid: jid.to_owned(),
-            prosody_token: auth_token.clone(),
-        };
-        let xmpp_service = XmppService::new(self.xmpp_service_inner.clone(), ctx);
-
-        // TODO: Create the vCard using a display name instead of the nickname
-        xmpp_service
-            .create_own_vcard(nickname)
-            .await
-            .map_err(UserCreateError::CouldNotCreateVCard)?;
-        // xmpp_service.set_own_nickname(nickname)?;
-
-        Ok(member)
     }
+
+    pub fn cancel_tasks(&self) {
+        self.cancellation_token.cancel();
+    }
+}
+
+impl MemberService {
     pub async fn delete_user(
         &self,
         db: &impl ConnectionTrait,
@@ -126,30 +64,97 @@ impl MemberService {
 
         Ok(())
     }
+
+    pub async fn get_members(
+        &self,
+        page_number: u64,
+        page_size: u64,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
+        MemberRepository::get_all(self.db.as_ref(), page_number, page_size, until).await
+    }
+
+    pub async fn enrich_member(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
+        trace!("Enriching `{jid}`…");
+
+        let mut member = match MemberRepository::get(self.db.as_ref(), jid).await {
+            Ok(Some(entity)) => EnrichedMember {
+                jid: jid.to_owned(),
+                role: entity.role,
+                nickname: None,
+                avatar: None,
+                online: None,
+            },
+            Ok(None) => {
+                warn!("Member '{jid}' does not exist in database. Won't try enriching it with XMPP data.");
+                return Ok(None);
+            }
+            Err(err) => {
+                warn!("Couldn't find member '{jid}' in database: {err}");
+                return Err(err);
+            }
+        };
+
+        trace!("-> Getting `{jid}`'s vCard…");
+        let vcard = match self.xmpp_service.get_vcard(jid).await {
+            Ok(Some(vcard)) => Some(vcard),
+            Ok(None) => {
+                debug!("`{jid}` has no vCard.");
+                None
+            }
+            Err(err) => {
+                // Log error
+                warn!("Could not get `{jid}`'s vCard: {err}");
+                // But dismiss it
+                None
+            }
+        };
+        member.nickname = vcard
+            .and_then(|vcard| vcard.nickname.first().cloned())
+            .map(|p| p.value);
+
+        if self.cancellation_token.is_cancelled() {
+            return Ok(Some(member));
+        }
+        trace!("-> Getting `{jid}`'s avatar…");
+        member.avatar = match self.xmpp_service.get_avatar(jid).await {
+            Ok(Some(avatar)) => Some(avatar.base64().to_string()),
+            Ok(None) => {
+                debug!("`{jid}` has no avatar.");
+                None
+            }
+            Err(err) => {
+                // Log error
+                warn!("Could not get `{jid}`'s avatar: {err}");
+                // But dismiss it
+                None
+            }
+        };
+
+        if self.cancellation_token.is_cancelled() {
+            return Ok(Some(member));
+        }
+        trace!("-> Checking if `{jid}` is connected…");
+        member.online = self
+            .xmpp_service
+            .is_connected(jid)
+            .await
+            // Log error
+            .inspect_err(|err| warn!("Could not get `{jid}`'s online status: {err}"))
+            // But dismiss it
+            .ok();
+
+        Ok(Some(member))
+    }
 }
 
-pub type Error = MemberServiceError;
-
-#[derive(Debug, thiserror::Error)]
-pub enum MemberServiceError {
-    #[error("Could not create user: {0}")]
-    CouldNotCreateUser(#[from] UserCreateError),
-    #[error("Could not delete user: {0}")]
-    CouldNotDeleteUser(#[from] UserDeleteError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UserCreateError {
-    #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
-    #[error("Could not create user vCard: {0}")]
-    CouldNotCreateVCard(XmppServiceError),
-    #[error("XMPP server cannot create user: {0}")]
-    XmppServerCannotCreateUser(ServerCtlError),
-    #[error("XMPP server cannot add team member: {0}")]
-    XmppServerCannotAddTeamMember(ServerCtlError),
-    #[error("XMPP server cannot set user role: {0}")]
-    XmppServerCannotSetUserRole(ServerCtlError),
+#[derive(Debug)]
+pub struct EnrichedMember {
+    pub jid: BareJid,
+    pub role: MemberRole,
+    pub online: Option<bool>,
+    pub nickname: Option<String>,
+    pub avatar: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]

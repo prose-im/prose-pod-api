@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod db;
-mod member_service;
 mod notifier;
 mod pod_network_config;
 mod server_config;

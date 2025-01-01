@@ -7,7 +7,7 @@ use std::{ops::Deref, sync::Arc};
 
 use service::{
     auth::AuthService,
-    members::MemberService,
+    members,
     xmpp::{ServerCtl, XmppServiceInner},
 };
 
@@ -15,18 +15,18 @@ use super::prelude::*;
 
 /// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
 #[derive(Clone)]
-pub struct UnauthenticatedMemberService(pub MemberService);
+pub struct UnauthenticatedMemberService(pub members::UnauthenticatedMemberService);
 
 impl Deref for UnauthenticatedMemberService {
-    type Target = MemberService;
+    type Target = members::UnauthenticatedMemberService;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Into<MemberService> for UnauthenticatedMemberService {
-    fn into(self) -> MemberService {
+impl Into<members::UnauthenticatedMemberService> for UnauthenticatedMemberService {
+    fn into(self) -> members::UnauthenticatedMemberService {
         self.0
     }
 }
@@ -49,7 +49,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
         //     Err(err) => return Error::DbErr(err).into(),
         // }
 
-        Outcome::Success(Self(MemberService::new(
+        Outcome::Success(Self(members::UnauthenticatedMemberService::new(
             Arc::new(server_ctl.clone()),
             Arc::new(auth_service.clone()),
             Arc::new(xmpp_service_inner.clone()),

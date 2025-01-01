@@ -8,17 +8,17 @@ use secrecy::SecretString;
 
 use crate::{
     invitations::{Invitation, InvitationRepository},
-    members::{MemberService, UserCreateError},
+    members::{UnauthenticatedMemberService, UserCreateError},
     MutationError,
 };
 
 #[derive(Debug, Clone)]
 pub struct InvitationService {
-    member_service: MemberService,
+    member_service: UnauthenticatedMemberService,
 }
 
 impl InvitationService {
-    pub fn new(member_service: MemberService) -> Self {
+    pub fn new(member_service: UnauthenticatedMemberService) -> Self {
         Self { member_service }
     }
 
