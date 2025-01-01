@@ -16,7 +16,7 @@ use crate::{
     guards::{Db, LazyGuard},
 };
 
-#[get("/v1/pod/config")]
+#[rocket::get("/v1/pod/config")]
 pub async fn get_pod_config_route<'r>(
     conn: Connection<'r, Db>,
     user_info: LazyGuard<UserInfo>,

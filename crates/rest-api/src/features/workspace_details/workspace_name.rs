@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{get, put, serde::json::Json};
+use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use service::workspace::WorkspaceService;
 
@@ -14,7 +14,7 @@ pub struct GetWorkspaceNameResponse {
     pub name: String,
 }
 
-#[get("/v1/workspace/name")]
+#[rocket::get("/v1/workspace/name")]
 pub async fn get_workspace_name_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceNameResponse>, Error> {
@@ -37,7 +37,7 @@ pub struct SetWorkspaceNameRequest {
 
 pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
-#[put("/v1/workspace/name", format = "json", data = "<req>")]
+#[rocket::put("/v1/workspace/name", format = "json", data = "<req>")]
 pub async fn set_workspace_name_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceNameRequest>,

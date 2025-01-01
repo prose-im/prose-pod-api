@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{post, response::status, serde::json::Json, State};
+use rocket::{response::status, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -59,7 +59,7 @@ pub struct InviteMemberRequest {
 }
 
 /// Invite a new member and auto-accept the invitation if enabled.
-#[post("/v1/invitations", format = "json", data = "<req>")]
+#[rocket::post("/v1/invitations", format = "json", data = "<req>")]
 pub async fn invite_member_route<'r>(
     conn: Connection<'r, Db>,
     app_config: &State<AppConfig>,
@@ -91,7 +91,7 @@ pub async fn invite_member_route<'r>(
     {
         if app_config.debug_only.automatically_accept_invitations {
             let jid = invitation.jid;
-            let resource_uri = uri!(get_member_route(jid.clone().into())).to_string();
+            let resource_uri = rocket::uri!(get_member_route(jid.clone().into())).to_string();
             let member = MemberRepository::get(db, &jid).await?.unwrap();
             let response: Member = member.into();
             return Ok(Either::right(
@@ -100,7 +100,7 @@ pub async fn invite_member_route<'r>(
         }
     }
 
-    let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
+    let resource_uri = rocket::uri!(get_invitation_route(invitation.id)).to_string();
     ok(invitation.into(), resource_uri)
 }
 

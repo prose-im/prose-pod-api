@@ -4,14 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use rocket::get;
 use service::{auth::UserInfo, members::MemberService};
 
 use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
 
 use super::model::*;
 
-#[get("/v1/members?<page_number>&<page_size>&<until>")]
+#[rocket::get("/v1/members?<page_number>&<page_size>&<until>")]
 pub async fn get_members_route<'r>(
     member_service: LazyGuard<MemberService>,
     user_info: LazyGuard<UserInfo>,

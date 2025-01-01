@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{get, serde::json::Json};
+use rocket::serde::json::Json;
 use service::{auth::UserInfo, members::MemberService};
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 
 use super::EnrichedMember;
 
-#[get("/v1/members/<jid>")]
+#[rocket::get("/v1/members/<jid>")]
 pub async fn get_member_route<'r>(
     jid: JIDUriParam,
     member_service: LazyGuard<MemberService>,

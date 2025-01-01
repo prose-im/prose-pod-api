@@ -6,7 +6,7 @@
 use std::ops::Deref;
 
 use base64::{engine::general_purpose, Engine as _};
-use rocket::{put, serde::json::Json};
+use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use service::{auth::UserInfo, models::BareJid, xmpp::XmppService};
 
@@ -30,7 +30,7 @@ pub struct SetMemberAvatarResponse {
 }
 
 /// Change a member's avatar.
-#[put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
+#[rocket::put("/v1/members/<member_id>/avatar", format = "json", data = "<req>")]
 pub async fn set_member_avatar_route<'r>(
     member_id: JIDUriParam,
     user_info: LazyGuard<UserInfo>,

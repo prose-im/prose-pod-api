@@ -24,7 +24,7 @@ pub struct InitServerConfigRequest {
     pub domain: JidDomain,
 }
 
-#[put("/v1/server/config", format = "json", data = "<req>")]
+#[rocket::put("/v1/server/config", format = "json", data = "<req>")]
 pub async fn init_server_config_route<'r>(
     init_service: LazyGuard<InitService>,
     server_ctl: &State<ServerCtl>,
@@ -40,7 +40,8 @@ pub async fn init_server_config_route<'r>(
         .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
         .await?;
 
-    let resource_uri = uri!(crate::features::server_config::get_server_config_route).to_string();
+    let resource_uri =
+        rocket::uri!(crate::features::server_config::get_server_config_route).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))
 }
 
@@ -78,7 +79,7 @@ impl HttpApiError for ServerConfigNotInitialized {
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
             "Call `PUT {}` to initialize it.",
-            uri!(crate::features::init::init_server_config_route)
+            rocket::uri!(crate::features::init::init_server_config_route)
         )]
     }
 }
@@ -93,7 +94,7 @@ impl HttpApiError for PodAddressNotInitialized {
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
             "Call `PUT {}` to initialize it.",
-            uri!(crate::features::pod_config::set_pod_address_route)
+            rocket::uri!(crate::features::pod_config::set_pod_address_route)
         )]
     }
 }

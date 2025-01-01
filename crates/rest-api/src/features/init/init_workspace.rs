@@ -34,7 +34,7 @@ pub struct InitWorkspaceResponse {
     pub accent_color: Option<String>,
 }
 
-#[put("/v1/workspace", format = "json", data = "<req>")]
+#[rocket::put("/v1/workspace", format = "json", data = "<req>")]
 pub async fn init_workspace_route<'r>(
     init_service: LazyGuard<InitService>,
     app_config: &State<AppConfig>,
@@ -62,7 +62,8 @@ pub async fn init_workspace_route<'r>(
         accent_color: workspace.accent_color,
     };
 
-    let resource_uri = uri!(crate::features::workspace_details::get_workspace_route).to_string();
+    let resource_uri =
+        rocket::uri!(crate::features::workspace_details::get_workspace_route).to_string();
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
@@ -95,7 +96,7 @@ impl HttpApiError for WorkspaceNotInitialized {
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
             "Call `PUT {}` to initialize it.",
-            uri!(crate::features::init::init_workspace_route)
+            rocket::uri!(crate::features::init::init_workspace_route)
         )]
     }
 }

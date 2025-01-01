@@ -19,7 +19,7 @@ pub use self::get_members::*;
 pub use self::model::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         enrich_members_route,
         enrich_members_stream_route,
         get_member_route,

@@ -12,7 +12,7 @@ pub use self::set_member_avatar::*;
 pub use self::set_member_nickname::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         set_member_avatar_route,
         set_member_nickname_route,
     ]

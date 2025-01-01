@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use base64::{engine::general_purpose, Engine as _};
-use rocket::{get, put, serde::json::Json};
+use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use service::workspace::WorkspaceService;
 
@@ -18,7 +18,7 @@ pub struct GetWorkspaceIconResponse {
     pub icon: Option<String>,
 }
 
-#[get("/v1/workspace/icon")]
+#[rocket::get("/v1/workspace/icon")]
 pub async fn get_workspace_icon_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceIconResponse>, Error> {
@@ -40,7 +40,7 @@ pub struct SetWorkspaceIconRequest {
     pub image: String,
 }
 
-#[put("/v1/workspace/icon", format = "json", data = "<req>")]
+#[rocket::put("/v1/workspace/icon", format = "json", data = "<req>")]
 pub async fn set_workspace_icon_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceIconRequest>,

@@ -15,7 +15,7 @@ pub use self::init_server_config::*;
 pub use self::init_workspace::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         init_first_account_route,
         init_server_config_route,
         init_workspace_route,

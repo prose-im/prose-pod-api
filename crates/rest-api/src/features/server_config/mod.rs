@@ -17,7 +17,7 @@ pub use message_archive::*;
 pub use push_notifications::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         // Server config
         get_server_config_route,
         // File upload

@@ -5,7 +5,7 @@
 
 use super::{model::*, prelude::*, util::*};
 
-#[get("/v1/network/checks/ip", format = "application/json")]
+#[rocket::get("/v1/network/checks/ip", format = "application/json")]
 pub async fn check_ip_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
@@ -25,7 +25,7 @@ pub async fn check_ip_route_axum() {
     todo!()
 }
 
-#[get(
+#[rocket::get(
     "/v1/network/checks/ip?<interval>",
     format = "text/event-stream",
     rank = 2

@@ -11,7 +11,7 @@ use axum::routing::post;
 pub use self::login::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![login_route]
+    rocket::routes![login_route]
 }
 
 pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {

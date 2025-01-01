@@ -10,7 +10,7 @@ use axum::routing::put;
 pub use self::set_member_role::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![set_member_role_route]
+    rocket::routes![set_member_role_route]
 }
 
 pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {

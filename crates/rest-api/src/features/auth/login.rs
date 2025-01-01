@@ -21,7 +21,7 @@ pub struct LoginResponse {
 }
 
 /// Log user in and return an authentication token.
-#[post("/v1/login")]
+#[rocket::post("/v1/login")]
 pub async fn login_route(
     basic_auth: LazyGuard<BasicAuth>,
     auth_service: &State<AuthService>,

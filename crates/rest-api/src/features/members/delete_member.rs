@@ -13,7 +13,7 @@ use crate::{
     guards::{Db, LazyGuard},
 };
 
-#[delete("/v1/members/<jid>")]
+#[rocket::delete("/v1/members/<jid>")]
 pub async fn delete_member_route<'r>(
     conn: Connection<'r, Db>,
     jid: JIDUriParam,

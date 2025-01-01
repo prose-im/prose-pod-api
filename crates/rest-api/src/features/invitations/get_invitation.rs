@@ -5,7 +5,7 @@
 
 use std::ops::Deref as _;
 
-use rocket::{get, serde::json::Json};
+use rocket::serde::json::Json;
 use service::invitations::{InvitationService, InvitationToken};
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
 use super::{forms::InvitationTokenType, model::*};
 
 /// Get information about a workspace invitation.
-#[get("/v1/invitations/<invitation_id>")]
+#[rocket::get("/v1/invitations/<invitation_id>")]
 pub async fn get_invitation_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     invitation_id: i32,
@@ -40,7 +40,7 @@ pub async fn get_invitation_route_axum() {
 }
 
 /// Get information about an invitation from an accept or reject token.
-#[get("/v1/invitation-tokens/<token>/details?<token_type>")]
+#[rocket::get("/v1/invitation-tokens/<token>/details?<token_type>")]
 pub async fn get_invitation_token_details_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     token: Uuid,

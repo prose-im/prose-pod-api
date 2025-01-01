@@ -35,7 +35,7 @@ pub use self::check_ports_reachability::*;
 pub use self::model::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         check_network_configuration_route,
         check_network_configuration_stream_route,
         check_dns_records_route,

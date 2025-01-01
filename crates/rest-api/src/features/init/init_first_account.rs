@@ -28,7 +28,7 @@ pub struct InitFirstAccountRequest {
     pub nickname: String,
 }
 
-#[put("/v1/init/first-account", format = "json", data = "<req>")]
+#[rocket::put("/v1/init/first-account", format = "json", data = "<req>")]
 pub async fn init_first_account_route(
     init_service: LazyGuard<InitService>,
     server_config: LazyGuard<ServerConfig>,
@@ -44,7 +44,7 @@ pub async fn init_first_account_route(
         .init_first_account(server_config, member_service, form)
         .await?;
 
-    let resource_uri = uri!(get_member_route(member.jid())).to_string();
+    let resource_uri = rocket::uri!(get_member_route(member.jid())).to_string();
     let response = Member::from(member);
     Ok(status::Created::new(resource_uri).body(response.into()))
 }

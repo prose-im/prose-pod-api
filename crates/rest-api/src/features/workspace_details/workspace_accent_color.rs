@@ -3,7 +3,7 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{get, put, serde::json::Json};
+use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use service::workspace::WorkspaceService;
 
@@ -14,7 +14,7 @@ pub struct GetWorkspaceAccentColorResponse {
     pub color: Option<String>,
 }
 
-#[get("/v1/workspace/accent-color")]
+#[rocket::get("/v1/workspace/accent-color")]
 pub async fn get_workspace_accent_color_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceAccentColorResponse>, Error> {
@@ -35,7 +35,7 @@ pub struct SetWorkspaceAccentColorRequest {
     pub color: String,
 }
 
-#[put("/v1/workspace/accent-color", data = "<req>")]
+#[rocket::put("/v1/workspace/accent-color", data = "<req>")]
 pub async fn set_workspace_accent_color_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceAccentColorRequest>,

@@ -139,14 +139,14 @@ async fn then_workspace_icon_url_should_be(
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color_not_initialized() {
-//     test_workspace_must_be_initialized(uri!(super::get_workspace_accent_color));
+//     test_workspace_must_be_initialized(rocket::uri!(super::get_workspace_accent_color));
 // }
 
 // #[tokio::test]
 // async fn test_get_workspace_accent_color() -> Result<(), Box<dyn ErrorError> {
 //     let client = rocket_test_client().await;
 //     init_workspace(&client).await?;
-//     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
+//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
 
 //     assert_eq!(res.color, None);
 
@@ -158,13 +158,13 @@ async fn then_workspace_icon_url_should_be(
 //     let client = rocket_test_client().await;
 //     init_workspace(&client).await?;
 
-//     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
+//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
 //     assert_eq!(res.color, None);
 
 //     let color = "#4233BE";
 //     let res: GetWorkspaceAccentColorResponse = put(
 //         &client,
-//         uri!(super::set_workspace_accent_color),
+//         rocket::uri!(super::set_workspace_accent_color),
 //         ContentType::Plain,
 //         json!(SetWorkspaceAccentColorRequest {
 //             color: color.to_string(),
@@ -172,7 +172,7 @@ async fn then_workspace_icon_url_should_be(
 //     )?;
 //     assert_eq!(res.color, Some(color.to_string()));
 
-//     let res: GetWorkspaceAccentColorResponse = get(&client, uri!(super::get_workspace_accent_color))?;
+//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
 //     assert_eq!(res.color, Some(color.to_string()));
 
 //     Ok(())

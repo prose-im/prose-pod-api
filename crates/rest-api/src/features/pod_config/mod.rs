@@ -12,7 +12,7 @@ pub use self::pod_address::*;
 pub use self::pod_config::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         get_pod_config_route,
         set_pod_address_route,
         get_pod_address_route,

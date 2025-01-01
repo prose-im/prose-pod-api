@@ -5,7 +5,7 @@
 
 use std::ops::Deref as _;
 
-use rocket::{delete, post, response::status::NoContent, serde::json::Json, State};
+use rocket::{response::status::NoContent, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -30,7 +30,7 @@ pub struct AcceptWorkspaceInvitationRequest {
 }
 
 /// Accept a workspace invitation.
-#[put(
+#[rocket::put(
     "/v1/invitation-tokens/<token>/accept",
     format = "json",
     data = "<req>"
@@ -53,7 +53,7 @@ pub async fn invitation_accept_route_axum() {
 }
 
 /// Reject a workspace invitation.
-#[put("/v1/invitation-tokens/<token>/reject")]
+#[rocket::put("/v1/invitation-tokens/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
@@ -71,7 +71,7 @@ pub async fn invitation_reject_route_axum() {
 }
 
 /// Resend a workspace invitation.
-#[post("/v1/invitations/<invitation_id>/resend")]
+#[rocket::post("/v1/invitations/<invitation_id>/resend")]
 pub async fn invitation_resend_route<'r>(
     conn: Connection<'r, Db>,
     invitation_service: LazyGuard<InvitationService>,
@@ -102,7 +102,7 @@ pub async fn invitation_resend_route_axum() {
 }
 
 /// Cancel a workspace invitation.
-#[delete("/v1/invitations/<invitation_id>")]
+#[rocket::delete("/v1/invitations/<invitation_id>")]
 pub async fn invitation_cancel_route<'r>(
     conn: Connection<'r, Db>,
     invitation_service: LazyGuard<InvitationService>,

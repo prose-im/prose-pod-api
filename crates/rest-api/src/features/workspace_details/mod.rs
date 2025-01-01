@@ -17,7 +17,7 @@ pub use self::workspace_icon::*;
 pub use self::workspace_name::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         get_workspace_route,
         get_workspace_accent_color_route,
         set_workspace_accent_color_route,

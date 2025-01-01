@@ -5,7 +5,7 @@
 
 use std::ops::Deref as _;
 
-use rocket::{put, serde::json::Json};
+use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
@@ -30,7 +30,7 @@ pub struct SetMemberNicknameResponse {
 }
 
 /// Change a member's nickname.
-#[put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
+#[rocket::put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
 pub async fn set_member_nickname_route<'r>(
     member_id: JIDUriParam,
     user_info: LazyGuard<UserInfo>,

@@ -7,7 +7,6 @@ use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
 use rocket::{
     form::Strict,
-    get,
     response::stream::{Event, EventStream},
     serde::json::Json,
     State,
@@ -34,12 +33,12 @@ pub struct EnrichedMember {
     pub avatar: Option<String>,
 }
 
-#[derive(Debug, Clone, FromForm)]
+#[derive(Debug, Clone, rocket::FromForm)]
 pub struct JIDs {
     jids: Vec<JIDUriParam>,
 }
 
-#[get("/v1/enrich-members?<jids..>", format = "application/json")]
+#[rocket::get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub async fn enrich_members_route(
     member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
@@ -71,7 +70,7 @@ pub async fn enrich_members_route_axum() {
     todo!()
 }
 
-#[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
+#[rocket::get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
 pub async fn enrich_members_stream_route<'r>(
     member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,

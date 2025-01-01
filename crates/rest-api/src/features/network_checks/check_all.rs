@@ -16,7 +16,7 @@ use crate::features::network_checks::{
 
 use super::{model::*, prelude::*, util::*};
 
-#[get("/v1/network/checks", format = "application/json")]
+#[rocket::get("/v1/network/checks", format = "application/json")]
 pub async fn check_network_configuration_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
     network_checker: &'r State<NetworkChecker>,
@@ -57,7 +57,7 @@ pub async fn check_network_configuration_route_axum() {
     todo!()
 }
 
-#[get(
+#[rocket::get(
     "/v1/network/checks?<interval>",
     format = "text/event-stream",
     rank = 2

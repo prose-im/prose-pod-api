@@ -3,7 +3,6 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-#[macro_use]
 extern crate rocket;
 
 pub mod error;
@@ -14,7 +13,9 @@ pub mod models;
 pub mod responders;
 
 use axum::{http::StatusCode, routing::get_service, Router};
-use rocket::{fairing::AdHoc, fs::FileServer, http::Status, Build, Request, Rocket};
+use rocket::{
+    catch, catchers, fairing::AdHoc, fs::FileServer, http::Status, Build, Request, Rocket,
+};
 use service::{
     auth::AuthService,
     dependencies::Uuid,

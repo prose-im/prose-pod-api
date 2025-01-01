@@ -7,7 +7,7 @@ use rocket::fs::NamedFile;
 
 use crate::error::{self, Error};
 
-#[get("/api-docs/redoc")]
+#[rocket::get("/api-docs/redoc")]
 pub async fn redoc_route() -> Result<NamedFile, Error> {
     NamedFile::open("static/api-docs/redoc.html")
         .await

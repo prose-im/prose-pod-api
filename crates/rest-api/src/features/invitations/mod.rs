@@ -21,7 +21,7 @@ pub use self::invite_member::*;
 pub use self::model::*;
 
 pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![
+    rocket::routes![
         invite_member_route,
         get_invitations_route,
         get_invitation_route,

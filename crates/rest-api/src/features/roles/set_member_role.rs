@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{put, response::status::NoContent, serde::json::Json};
+use rocket::{response::status::NoContent, serde::json::Json};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -25,7 +25,7 @@ pub struct SetMemberRoleRequest {
     pub role: MemberRole,
 }
 
-#[put("/v1/members/<jid>/role", format = "json", data = "<req>")]
+#[rocket::put("/v1/members/<jid>/role", format = "json", data = "<req>")]
 pub async fn set_member_role_route<'r>(
     conn: Connection<'r, Db>,
     jid: JIDUriParam,

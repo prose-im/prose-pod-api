@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use rocket::get;
 use service::invitations::InvitationService;
 
 use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
@@ -12,7 +11,7 @@ use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Pagin
 use super::model::*;
 
 /// Get workspace invitations.
-#[get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
+#[rocket::get("/v1/invitations?<page_number>&<page_size>&<until>", rank = 2)]
 pub(super) async fn get_invitations_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     page_number: Option<u64>,

@@ -38,7 +38,7 @@ impl Into<PodConfigCreateForm> for SetPodAddressRequest {
     }
 }
 
-#[put("/v1/pod/config/address", format = "json", data = "<req>")]
+#[rocket::put("/v1/pod/config/address", format = "json", data = "<req>")]
 pub async fn set_pod_address_route<'r>(
     conn: Connection<'r, Db>,
     user_info: LazyGuard<UserInfo>,
@@ -61,7 +61,7 @@ pub async fn set_pod_address_route<'r>(
     } else {
         let model = PodConfigRepository::create(db, req).await?;
 
-        let resource_uri = uri!(get_pod_address_route).to_string();
+        let resource_uri = rocket::uri!(get_pod_address_route).to_string();
         let res = PodConfig::from(model).address.unwrap();
         Ok(Either::Left(Created::new(resource_uri).body(res.into())))
     }
@@ -71,7 +71,7 @@ pub async fn set_pod_address_route_axum() {
     todo!()
 }
 
-#[get("/v1/pod/config/address")]
+#[rocket::get("/v1/pod/config/address")]
 pub async fn get_pod_address_route<'r>(
     conn: Connection<'r, Db>,
     user_info: LazyGuard<UserInfo>,
