@@ -7,6 +7,7 @@ use rocket::{response::status, serde::json::Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
+    members::UnauthenticatedMemberService,
     models::JidNode,
     server_config::ServerConfig,
 };
@@ -15,7 +16,7 @@ use crate::{
     error::prelude::*,
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
-    guards::{LazyGuard, UnauthenticatedMemberService},
+    guards::LazyGuard,
     models::SerializableSecretString,
     responders::Created,
 };

@@ -8,7 +8,6 @@ mod notifier;
 mod pod_network_config;
 mod server_config;
 mod server_manager;
-mod unauthenticated_member_service;
 mod unauthenticated_server_manager;
 mod util;
 mod uuid_generator;
@@ -17,7 +16,6 @@ mod xmpp_service;
 use std::ops::Deref;
 
 pub use db::*;
-pub use unauthenticated_member_service::*;
 pub use unauthenticated_server_manager::*;
 
 use prelude::*;

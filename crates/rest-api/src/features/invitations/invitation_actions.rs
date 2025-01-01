@@ -10,7 +10,7 @@ use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
-    invitations::{invitation_controller::*, invitation_service, InvitationToken},
+    invitations::{invitation_service::*, InvitationAcceptError, InvitationToken},
     members::MemberRepository,
     notifications::Notifier,
     AppConfig,
@@ -22,8 +22,6 @@ use crate::{
     guards::{Db, LazyGuard},
     models::SerializableSecretString,
 };
-
-use super::guards::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct AcceptWorkspaceInvitationRequest {
@@ -38,18 +36,13 @@ pub struct AcceptWorkspaceInvitationRequest {
     data = "<req>"
 )]
 pub async fn invitation_accept_route<'r>(
-    invitation_controller: LazyGuard<InvitationController>,
-    invitation_service: LazyGuard<UnauthenticatedInvitationService>,
+    invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
     req: Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
-    invitation_controller
+    invitation_service
         .inner?
-        .accept(
-            InvitationToken::from(*token.deref()),
-            invitation_service.inner?.deref(),
-            req.into_inner(),
-        )
+        .accept_by_token(InvitationToken::from(*token.deref()), req.into_inner())
         .await?;
 
     Ok(())
@@ -58,12 +51,12 @@ pub async fn invitation_accept_route<'r>(
 /// Reject a workspace invitation.
 #[put("/v1/invitation-tokens/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
-    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
 ) -> Result<NoContent, Error> {
-    invitation_controller
+    invitation_service
         .inner?
-        .reject(InvitationToken::from(*token.deref()))
+        .reject_by_token(InvitationToken::from(*token.deref()))
         .await?;
 
     Ok(NoContent)
@@ -73,14 +66,14 @@ pub async fn invitation_reject_route<'r>(
 #[post("/v1/invitations/<invitation_id>/resend")]
 pub async fn invitation_resend_route<'r>(
     conn: Connection<'r, Db>,
-    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<InvitationService>,
     app_config: &State<AppConfig>,
     jid: LazyGuard<UserInfo>,
     notifier: LazyGuard<Notifier>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
-    let invitation_controller = invitation_controller.inner?;
+    let invitation_service = invitation_service.inner?;
     let notifier = notifier.inner?;
 
     let jid = jid.inner?.jid;
@@ -89,7 +82,7 @@ pub async fn invitation_resend_route<'r>(
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
-    invitation_controller
+    invitation_service
         .resend(&app_config, &notifier, invitation_id)
         .await?;
 
@@ -100,12 +93,12 @@ pub async fn invitation_resend_route<'r>(
 #[delete("/v1/invitations/<invitation_id>")]
 pub async fn invitation_cancel_route<'r>(
     conn: Connection<'r, Db>,
-    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<InvitationService>,
     user_info: LazyGuard<UserInfo>,
     invitation_id: i32,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
-    let invitation_controller = invitation_controller.inner?;
+    let invitation_service = invitation_service.inner?;
 
     let jid = user_info.inner?.jid;
     // TODO: Use a request guard instead of checking in the route body if the user can invitation members.
@@ -113,14 +106,14 @@ pub async fn invitation_cancel_route<'r>(
         return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
     }
 
-    invitation_controller.cancel(invitation_id).await?;
+    invitation_service.cancel(invitation_id).await?;
 
     Ok(NoContent)
 }
 
 // ERRORS
 
-impl CustomErrorCode for invitation_service::InvitationAcceptError {
+impl CustomErrorCode for InvitationAcceptError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
@@ -128,7 +121,7 @@ impl CustomErrorCode for invitation_service::InvitationAcceptError {
         }
     }
 }
-impl_into_error!(invitation_service::InvitationAcceptError);
+impl_into_error!(InvitationAcceptError);
 
 impl CustomErrorCode for CannotAcceptInvitation {
     fn error_code(&self) -> ErrorCode {

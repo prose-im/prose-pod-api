@@ -3,15 +3,12 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-#[cfg(debug_assertions)]
-use std::ops::Deref as _;
-
 use rocket::{post, response::status, serde::json::Json, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
-    invitations::{InvitationContact, InvitationController, InviteMemberError, InviteMemberForm},
+    invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
     members::{MemberRepository, MemberRole},
     models::JidNode,
     notifications::Notifier,
@@ -27,7 +24,6 @@ use crate::{
 };
 #[cfg(debug_assertions)]
 use crate::{
-    features::invitations::guards::UnauthenticatedInvitationService,
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
     responders::Either,
@@ -62,32 +58,7 @@ pub struct InviteMemberRequest {
     pub contact: InvitationContact,
 }
 
-/// Invite a new member.
-#[cfg(not(debug_assertions))]
-#[post("/v1/invitations", format = "json", data = "<req>")]
-pub async fn invite_member_route<'r>(
-    conn: Connection<'r, Db>,
-    app_config: &State<AppConfig>,
-    server_config: LazyGuard<ServerConfig>,
-    user_info: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier>,
-    invitation_controller: LazyGuard<InvitationController>,
-    req: Json<InviteMemberRequest>,
-) -> InviteMemberResponse {
-    invite_member_route_(
-        conn,
-        app_config,
-        server_config,
-        user_info,
-        notifier,
-        invitation_controller,
-        req,
-    )
-    .await
-}
-
 /// Invite a new member and auto-accept the invitation if enabled.
-#[cfg(debug_assertions)]
 #[post("/v1/invitations", format = "json", data = "<req>")]
 pub async fn invite_member_route<'r>(
     conn: Connection<'r, Db>,
@@ -95,38 +66,13 @@ pub async fn invite_member_route<'r>(
     server_config: LazyGuard<ServerConfig>,
     user_info: LazyGuard<UserInfo>,
     notifier: LazyGuard<Notifier>,
-    invitation_controller: LazyGuard<InvitationController>,
+    invitation_service: LazyGuard<InvitationService>,
     req: Json<InviteMemberRequest>,
-    invitation_service: LazyGuard<UnauthenticatedInvitationService>,
-) -> InviteMemberResponse {
-    invite_member_route_(
-        conn,
-        app_config,
-        server_config,
-        user_info,
-        notifier,
-        invitation_controller,
-        req,
-        invitation_service,
-    )
-    .await
-}
-
-/// Invite a new member.
-pub async fn invite_member_route_<'r>(
-    conn: Connection<'r, Db>,
-    app_config: &State<AppConfig>,
-    server_config: LazyGuard<ServerConfig>,
-    user_info: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier>,
-    invitation_controller: LazyGuard<InvitationController>,
-    req: Json<InviteMemberRequest>,
-    #[cfg(debug_assertions)] invitation_service: LazyGuard<UnauthenticatedInvitationService>,
 ) -> InviteMemberResponse {
     let db = conn.into_inner();
     let server_config = server_config.inner?;
     let notifier = notifier.inner?;
-    let invitation_controller = invitation_controller.inner?;
+    let invitation_service = invitation_service.inner?;
     let form = req.into_inner();
 
     {
@@ -137,15 +83,8 @@ pub async fn invite_member_route_<'r>(
         }
     }
 
-    let invitation = invitation_controller
-        .invite_member(
-            app_config,
-            &server_config,
-            &notifier,
-            form,
-            #[cfg(debug_assertions)]
-            invitation_service.inner?.deref(),
-        )
+    let invitation = invitation_service
+        .invite_member(app_config, &server_config, &notifier, form)
         .await?;
 
     #[cfg(debug_assertions)]

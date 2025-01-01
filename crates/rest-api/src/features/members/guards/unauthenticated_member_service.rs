@@ -1,40 +1,23 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use service::{
     auth::AuthService,
-    members,
+    members::UnauthenticatedMemberService,
     xmpp::{ServerCtl, XmppServiceInner},
 };
 
-use super::prelude::*;
-
-/// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
-#[derive(Clone)]
-pub struct UnauthenticatedMemberService(pub members::UnauthenticatedMemberService);
-
-impl Deref for UnauthenticatedMemberService {
-    type Target = members::UnauthenticatedMemberService;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Into<members::UnauthenticatedMemberService> for UnauthenticatedMemberService {
-    fn into(self) -> members::UnauthenticatedMemberService {
-        self.0
-    }
-}
+use crate::guards::prelude::*;
 
 #[rocket::async_trait]
 impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
     type Error = error::Error;
 
+    /// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let server_ctl = try_outcome!(request_state!(req, ServerCtl));
         let auth_service = try_outcome!(request_state!(req, AuthService));
@@ -49,10 +32,10 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
         //     Err(err) => return Error::DbErr(err).into(),
         // }
 
-        Outcome::Success(Self(members::UnauthenticatedMemberService::new(
+        Outcome::Success(Self::new(
             Arc::new(server_ctl.clone()),
             Arc::new(auth_service.clone()),
             Arc::new(xmpp_service_inner.clone()),
-        )))
+        ))
     }
 }
