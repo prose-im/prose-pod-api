@@ -53,7 +53,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Member" }
+            schema: { $ref: "#/components/schemas/EnrichedMember" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "404": { $ref: "../shared.yaml#/components/responses/NotFound" }
