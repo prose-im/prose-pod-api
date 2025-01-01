@@ -5,7 +5,7 @@
 
 use rocket::response::status::NoContent;
 use sea_orm_rocket::Connection;
-use service::members::UserService;
+use service::members::MemberService;
 
 use crate::{
     error::Error,
@@ -17,12 +17,12 @@ use crate::{
 pub async fn delete_member_route<'r>(
     conn: Connection<'r, Db>,
     jid: JIDUriParam,
-    user_service: LazyGuard<UserService>,
+    member_service: LazyGuard<MemberService>,
 ) -> Result<NoContent, Error> {
     let db = conn.into_inner();
-    let user_service = user_service.inner?;
+    let member_service = member_service.inner?;
 
-    user_service.delete_user(db, &jid).await?;
+    member_service.delete_user(db, &jid).await?;
 
     Ok(NoContent)
 }

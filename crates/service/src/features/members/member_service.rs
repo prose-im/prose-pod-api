@@ -19,13 +19,13 @@ use crate::{
 use super::{Member, MemberCreateForm, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
-pub struct UserService {
+pub struct MemberService {
     server_ctl: Arc<ServerCtl>,
     auth_service: Arc<AuthService>,
     xmpp_service_inner: Arc<XmppServiceInner>,
 }
 
-impl UserService {
+impl MemberService {
     pub fn new(
         server_ctl: Arc<ServerCtl>,
         auth_service: Arc<AuthService>,
@@ -128,10 +128,10 @@ impl UserService {
     }
 }
 
-pub type Error = UserServiceError;
+pub type Error = MemberServiceError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum UserServiceError {
+pub enum MemberServiceError {
     #[error("Could not create user: {0}")]
     CouldNotCreateUser(#[from] UserCreateError),
     #[error("Could not delete user: {0}")]

@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 use service::invitations::InvitationService;
 
-use crate::guards::{prelude::*, UnauthenticatedUserService};
+use crate::guards::{prelude::*, UnauthenticatedMemberService};
 
 pub struct UnauthenticatedInvitationService(pub(super) InvitationService);
 
@@ -30,8 +30,8 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedInvitationService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let user_service = try_outcome!(UnauthenticatedUserService::from_request(req).await).0;
+        let member_service = try_outcome!(UnauthenticatedMemberService::from_request(req).await).0;
 
-        Outcome::Success(Self(InvitationService::new(user_service)))
+        Outcome::Success(Self(InvitationService::new(member_service)))
     }
 }

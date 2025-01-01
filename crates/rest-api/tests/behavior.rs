@@ -37,7 +37,7 @@ use service::{
     dependencies,
     init::InitService,
     invitations::Invitation,
-    members::{Member, UserService},
+    members::{Member, MemberService},
     models::EmailAddress,
     network_checks::NetworkChecker,
     notifications::dependencies::{any_notifier::AnyNotifier, Notifier},
@@ -228,8 +228,8 @@ impl TestWorld {
         ))
     }
 
-    fn user_service(&self) -> UserService {
-        UserService::new(
+    fn member_service(&self) -> MemberService {
+        MemberService::new(
             Arc::new(self.server_ctl.clone()),
             Arc::new(self.auth_service.clone()),
             Arc::new(self.xmpp_service.clone()),

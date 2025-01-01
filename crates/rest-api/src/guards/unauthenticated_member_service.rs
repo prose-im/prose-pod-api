@@ -7,32 +7,32 @@ use std::{ops::Deref, sync::Arc};
 
 use service::{
     auth::AuthService,
-    members::UserService,
+    members::MemberService,
     xmpp::{ServerCtl, XmppServiceInner},
 };
 
 use super::prelude::*;
 
-/// WARN: Use only in initialization routes! Otherwise use `UserService` directly.
+/// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
 #[derive(Clone)]
-pub struct UnauthenticatedUserService(pub UserService);
+pub struct UnauthenticatedMemberService(pub MemberService);
 
-impl Deref for UnauthenticatedUserService {
-    type Target = UserService;
+impl Deref for UnauthenticatedMemberService {
+    type Target = MemberService;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Into<UserService> for UnauthenticatedUserService {
-    fn into(self) -> UserService {
+impl Into<MemberService> for UnauthenticatedMemberService {
+    fn into(self) -> MemberService {
         self.0
     }
 }
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService {
+impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -49,7 +49,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedUserService {
         //     Err(err) => return Error::DbErr(err).into(),
         // }
 
-        Outcome::Success(Self(UserService::new(
+        Outcome::Success(Self(MemberService::new(
             Arc::new(server_ctl.clone()),
             Arc::new(auth_service.clone()),
             Arc::new(xmpp_service_inner.clone()),

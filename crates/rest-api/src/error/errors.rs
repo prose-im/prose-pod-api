@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    members::{user_service, UserCreateError, UserDeleteError},
+    members::{member_service, UserCreateError, UserDeleteError},
     notifications::notifier,
     sea_orm,
     xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
@@ -201,7 +201,7 @@ impl CustomErrorCode for MutationError {
 }
 impl_into_error!(MutationError);
 
-impl CustomErrorCode for user_service::Error {
+impl CustomErrorCode for member_service::Error {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotCreateUser(err) => err.code(),
@@ -209,7 +209,7 @@ impl CustomErrorCode for user_service::Error {
         }
     }
 }
-impl_into_error!(user_service::Error);
+impl_into_error!(member_service::Error);
 
 impl CustomErrorCode for UserCreateError {
     fn error_code(&self) -> ErrorCode {

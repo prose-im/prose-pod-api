@@ -4,13 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod db;
+mod member_service;
 mod notifier;
 mod pod_network_config;
 mod server_config;
 mod server_manager;
+mod unauthenticated_member_service;
 mod unauthenticated_server_manager;
-mod unauthenticated_user_service;
-mod user_service;
 mod util;
 mod uuid_generator;
 mod xmpp_service;
@@ -18,8 +18,8 @@ mod xmpp_service;
 use std::ops::Deref;
 
 pub use db::*;
+pub use unauthenticated_member_service::*;
 pub use unauthenticated_server_manager::*;
-pub use unauthenticated_user_service::*;
 
 use prelude::*;
 use rocket::http::Status;

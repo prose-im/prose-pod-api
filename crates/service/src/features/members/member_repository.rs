@@ -19,7 +19,7 @@ pub enum MemberRepository {}
 
 impl MemberRepository {
     /// Create the user in database but NOT on the XMPP server.
-    /// Use [`UserService`][crate::members::UserService] instead,
+    /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to create users in both places at the same time.
     pub async fn create(
         db: &impl ConnectionTrait,
@@ -29,7 +29,7 @@ impl MemberRepository {
     }
 
     /// Delete the user from database but NOT from the XMPP server.
-    /// Use [`UserService`][crate::members::UserService] instead,
+    /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to delete users from both places at the same time.
     pub async fn delete(
         db: &impl ConnectionTrait,

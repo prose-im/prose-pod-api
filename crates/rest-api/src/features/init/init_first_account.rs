@@ -15,7 +15,7 @@ use crate::{
     error::prelude::*,
     features::members::{rocket_uri_macro_get_member_route, Member},
     forms::JID as JIDUriParam,
-    guards::{LazyGuard, UnauthenticatedUserService},
+    guards::{LazyGuard, UnauthenticatedMemberService},
     models::SerializableSecretString,
     responders::Created,
 };
@@ -31,16 +31,16 @@ pub struct InitFirstAccountRequest {
 pub async fn init_first_account_route(
     init_service: LazyGuard<InitService>,
     server_config: LazyGuard<ServerConfig>,
-    user_service: LazyGuard<UnauthenticatedUserService>,
+    member_service: LazyGuard<UnauthenticatedMemberService>,
     req: Json<InitFirstAccountRequest>,
 ) -> Created<Member> {
     let init_service = init_service.inner?;
     let server_config = &server_config.inner?;
-    let user_service = &user_service.inner?;
+    let member_service = &member_service.inner?;
     let form = req.into_inner();
 
     let member = init_service
-        .init_first_account(server_config, user_service, form)
+        .init_first_account(server_config, member_service, form)
         .await?;
 
     let resource_uri = uri!(get_member_route(member.jid())).to_string();

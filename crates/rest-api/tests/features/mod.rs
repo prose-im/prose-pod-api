@@ -62,7 +62,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
 
     let jid = name_to_jid(world, &name).await?;
     let model = world
-        .user_service()
+        .member_service()
         .create_user(
             db,
             &jid,

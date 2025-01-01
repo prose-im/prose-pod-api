@@ -8,18 +8,18 @@ use secrecy::SecretString;
 
 use crate::{
     invitations::{Invitation, InvitationRepository},
-    members::{UserCreateError, UserService},
+    members::{MemberService, UserCreateError},
     MutationError,
 };
 
 #[derive(Debug, Clone)]
 pub struct InvitationService {
-    user_service: UserService,
+    member_service: MemberService,
 }
 
 impl InvitationService {
-    pub fn new(user_service: UserService) -> Self {
-        Self { user_service }
+    pub fn new(member_service: MemberService) -> Self {
+        Self { member_service }
     }
 
     pub async fn accept(
@@ -32,7 +32,7 @@ impl InvitationService {
         let txn = db.begin().await?;
 
         // Create the user
-        self.user_service
+        self.member_service
             .create_user(
                 &txn,
                 &invitation.jid,
