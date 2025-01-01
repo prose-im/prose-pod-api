@@ -35,7 +35,7 @@ async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse
 #[given(expr = "the workspace is named {string}")]
 async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
     world
-        .workspace_controller()
+        .workspace_service()
         .await
         .set_workspace_name(name)
         .await?;
@@ -62,11 +62,7 @@ async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
 
 #[then(expr = "the workspace should be named {string}")]
 async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let workspace_name = world
-        .workspace_controller()
-        .await
-        .get_workspace_name()
-        .await?;
+    let workspace_name = world.workspace_service().await.get_workspace_name().await?;
     assert_eq!(workspace_name, name);
     Ok(())
 }
@@ -130,7 +126,7 @@ async fn then_workspace_icon_url_should_be(
     png_data: String,
 ) -> Result<(), Error> {
     let workspace_icon = world
-        .workspace_controller()
+        .workspace_service()
         .await
         .get_workspace_icon()
         .await?

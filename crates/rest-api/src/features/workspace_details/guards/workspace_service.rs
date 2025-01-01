@@ -8,7 +8,7 @@ use std::sync::Arc;
 use service::{
     secrets::SecretsStore,
     server_config::ServerConfig,
-    workspace::{WorkspaceController, WorkspaceControllerInitError},
+    workspace::{WorkspaceService, WorkspaceServiceInitError},
     xmpp::XmppServiceInner,
     AppConfig,
 };
@@ -16,7 +16,7 @@ use service::{
 use crate::{error::prelude::*, guards::prelude::*};
 
 #[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for WorkspaceController {
+impl<'r> LazyFromRequest<'r> for WorkspaceService {
     type Error = error::Error;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
@@ -26,14 +26,14 @@ impl<'r> LazyFromRequest<'r> for WorkspaceController {
         let server_config = try_outcome!(ServerConfig::from_request(req).await);
         let secrets_store = try_outcome!(request_state!(req, SecretsStore));
 
-        match WorkspaceController::new(
+        match WorkspaceService::new(
             Arc::new(db.clone()),
             Arc::new(xmpp_service.clone()),
             Arc::new(app_config.clone()),
             &server_config,
             Arc::new(secrets_store.clone()),
         ) {
-            Ok(controller) => Outcome::Success(controller),
+            Ok(service) => Outcome::Success(service),
             Err(err) => Error::from(err).into(),
         }
     }
@@ -41,11 +41,11 @@ impl<'r> LazyFromRequest<'r> for WorkspaceController {
 
 // ERRORS
 
-impl CustomErrorCode for WorkspaceControllerInitError {
+impl CustomErrorCode for WorkspaceServiceInitError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
         }
     }
 }
-impl_into_error!(WorkspaceControllerInitError);
+impl_into_error!(WorkspaceServiceInitError);

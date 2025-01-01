@@ -18,8 +18,8 @@ use crate::{
     server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
     workspace::{
-        entities::workspace, workspace_controller, WorkspaceController,
-        WorkspaceControllerInitError, WorkspaceRepository,
+        entities::workspace, workspace_service, WorkspaceRepository, WorkspaceService,
+        WorkspaceServiceInitError,
     },
     xmpp::{server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner},
     AppConfig,
@@ -107,14 +107,14 @@ impl InitService {
 
         let workspace = WorkspaceRepository::create(self.db.as_ref(), form.clone()).await?;
 
-        let workspace_controller = WorkspaceController::new(
+        let workspace_service = WorkspaceService::new(
             self.db.clone(),
             xmpp_service,
             app_config,
             server_config,
             secrets_store,
         )?;
-        workspace_controller
+        workspace_service
             .set_workspace_name(form.name)
             .await
             .map_err(InitWorkspaceError::CouldNotSetWorkspaceName)?;
@@ -130,15 +130,15 @@ pub enum InitWorkspaceError {
     #[error("Workspace XMPP account not initialized.")]
     XmppAccountNotInitialized,
     #[error("Could not set workspace name: {0}")]
-    CouldNotSetWorkspaceName(workspace_controller::Error),
+    CouldNotSetWorkspaceName(workspace_service::Error),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
 
-impl From<WorkspaceControllerInitError> for InitWorkspaceError {
-    fn from(value: WorkspaceControllerInitError) -> Self {
+impl From<WorkspaceServiceInitError> for InitWorkspaceError {
+    fn from(value: WorkspaceServiceInitError) -> Self {
         match value {
-            WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized => {
+            WorkspaceServiceInitError::WorkspaceXmppAccountNotInitialized => {
                 Self::XmppAccountNotInitialized
             }
         }

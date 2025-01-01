@@ -5,7 +5,7 @@
 
 use rocket::{get, put, serde::json::Json};
 use serde::{Deserialize, Serialize};
-use service::workspace::WorkspaceController;
+use service::workspace::WorkspaceService;
 
 use crate::{error::Error, guards::LazyGuard};
 
@@ -16,11 +16,11 @@ pub struct GetWorkspaceAccentColorResponse {
 
 #[get("/v1/workspace/accent-color")]
 pub async fn get_workspace_accent_color_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<GetWorkspaceAccentColorResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
 
-    let color = workspace_controller.get_workspace_accent_color().await?;
+    let color = workspace_service.get_workspace_accent_color().await?;
 
     let response = GetWorkspaceAccentColorResponse { color }.into();
     Ok(response)
@@ -33,13 +33,13 @@ pub struct SetWorkspaceAccentColorRequest {
 
 #[put("/v1/workspace/accent-color", data = "<req>")]
 pub async fn set_workspace_accent_color_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
     req: Json<SetWorkspaceAccentColorRequest>,
 ) -> Result<Json<GetWorkspaceAccentColorResponse>, Error> {
-    let workspace_controller = workspace_controller.inner?;
+    let workspace_service = workspace_service.inner?;
     let req = req.into_inner();
 
-    let color = workspace_controller
+    let color = workspace_service
         .set_workspace_accent_color(req.color)
         .await?;
 

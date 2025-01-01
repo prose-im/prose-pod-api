@@ -19,23 +19,23 @@ use crate::{
 use super::entities::workspace;
 
 #[derive(Clone)]
-pub struct WorkspaceController {
+pub struct WorkspaceService {
     db: Arc<DatabaseConnection>,
     xmpp_service: XmppService,
 }
 
-impl WorkspaceController {
+impl WorkspaceService {
     pub fn new(
         db: Arc<DatabaseConnection>,
         xmpp_service: Arc<XmppServiceInner>,
         app_config: Arc<AppConfig>,
         server_config: &ServerConfig,
         secrets_store: Arc<SecretsStore>,
-    ) -> Result<Self, WorkspaceControllerInitError> {
+    ) -> Result<Self, WorkspaceServiceInitError> {
         let workspace_jid = app_config.workspace_jid(&server_config.domain);
         let prosody_token = secrets_store
             .get_service_account_prosody_token(&workspace_jid)
-            .ok_or(WorkspaceControllerInitError::WorkspaceXmppAccountNotInitialized)?;
+            .ok_or(WorkspaceServiceInitError::WorkspaceXmppAccountNotInitialized)?;
         let ctx = XmppServiceContext {
             bare_jid: workspace_jid,
             prosody_token,
@@ -46,12 +46,12 @@ impl WorkspaceController {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WorkspaceControllerInitError {
+pub enum WorkspaceServiceInitError {
     #[error("Workspace XMPP account not initialized.")]
     WorkspaceXmppAccountNotInitialized,
 }
 
-impl WorkspaceController {
+impl WorkspaceService {
     async fn get_workspace_entity(&self) -> Result<workspace::Model, Error> {
         WorkspaceRepository::get(self.db.as_ref())
             .await?
@@ -103,13 +103,13 @@ pub struct GetWorkspaceAccentColorResponse {
     pub color: Option<String>,
 }
 
-impl WorkspaceController {
+impl WorkspaceService {
     pub async fn get_workspace_accent_color(&self) -> Result<Option<String>, Error> {
         Ok(self.get_workspace().await?.accent_color)
     }
 }
 
-impl WorkspaceController {
+impl WorkspaceService {
     pub async fn set_workspace_accent_color(&self, color: String) -> Result<Option<String>, Error> {
         let workspace = self.get_workspace_entity().await?;
 
@@ -122,10 +122,10 @@ impl WorkspaceController {
     }
 }
 
-pub type Error = WorkspaceControllerError;
+pub type Error = WorkspaceServiceError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum WorkspaceControllerError {
+pub enum WorkspaceServiceError {
     #[error("Workspace not initialized.")]
     WorkspaceNotInitialized,
     #[error("XmppServiceError: {0}")]

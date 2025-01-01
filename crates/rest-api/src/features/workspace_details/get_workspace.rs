@@ -4,13 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{get, serde::json::Json};
-use service::workspace::{Workspace, WorkspaceController};
+use service::workspace::{Workspace, WorkspaceService};
 
 use crate::{error::Error, guards::LazyGuard};
 
 #[get("/v1/workspace")]
 pub async fn get_workspace_route<'r>(
-    workspace_controller: LazyGuard<WorkspaceController>,
+    workspace_service: LazyGuard<WorkspaceService>,
 ) -> Result<Json<Workspace>, Error> {
-    Ok(workspace_controller.inner?.get_workspace().await?.into())
+    Ok(workspace_service.inner?.get_workspace().await?.into())
 }

@@ -191,7 +191,7 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
         Some(
             json!({
                 "error": "workspace_not_initialized",
-                "message": "WorkspaceControllerError: Workspace not initialized.",
+                "message": "WorkspaceServiceError: Workspace not initialized.",
                 "recovery_suggestions": [
                     "Call `PUT /v1/workspace` to initialize it.",
                 ]

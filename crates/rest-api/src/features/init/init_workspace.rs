@@ -11,7 +11,7 @@ use service::{
     init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
     secrets::SecretsStore,
     server_config::ServerConfig,
-    workspace::WorkspaceControllerError,
+    workspace::WorkspaceServiceError,
     xmpp::XmppServiceInner,
     AppConfig,
 };
@@ -108,7 +108,7 @@ impl CustomErrorCode for InitWorkspaceError {
 }
 impl_into_error!(InitWorkspaceError);
 
-impl HttpApiError for WorkspaceControllerError {
+impl HttpApiError for WorkspaceServiceError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::WorkspaceNotInitialized => WorkspaceNotInitialized.code(),
@@ -117,7 +117,7 @@ impl HttpApiError for WorkspaceControllerError {
         }
     }
     fn message(&self) -> String {
-        format!("WorkspaceControllerError: {self}")
+        format!("WorkspaceServiceError: {self}")
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         match self {

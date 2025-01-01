@@ -44,7 +44,7 @@ use service::{
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore, SecretsStoreImpl},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
-    workspace::WorkspaceController,
+    workspace::WorkspaceService,
     xmpp::{ServerCtl, ServerCtlImpl as _, ServerManager, XmppServiceInner},
     AppConfig,
 };
@@ -243,8 +243,8 @@ impl TestWorld {
         }
     }
 
-    async fn workspace_controller(&self) -> WorkspaceController {
-        WorkspaceController::new(
+    async fn workspace_service(&self) -> WorkspaceService {
+        WorkspaceService::new(
             Arc::new(self.db().clone()),
             Arc::new(self.xmpp_service.clone()),
             Arc::new(self.app_config.clone()),
