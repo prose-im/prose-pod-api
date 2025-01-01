@@ -13,7 +13,6 @@ use rocket::{
     local::asynchronous::{Client, LocalResponse},
 };
 use secrecy::{ExposeSecret as _, SecretString};
-use service::errors::DbErr;
 use service::{
     members::{MemberCreateForm, MemberRepository},
     prose_xmpp::stanza::vcard4::Nickname,
@@ -21,13 +20,10 @@ use service::{
 };
 use urlencoding::encode;
 
+use crate::{cucumber_parameters::JID as JIDParam, TestWorld};
 use crate::{
     cucumber_parameters::{Array, Text},
     user_token,
-};
-use crate::{
-    cucumber_parameters::{MemberRole, JID as JIDParam},
-    TestWorld,
 };
 
 use super::name_to_jid;
@@ -188,16 +184,6 @@ async fn when_delete_member(world: &mut TestWorld, name: String, jid: JIDParam) 
 fn then_n_members(world: &mut TestWorld, n: usize) {
     let res: Vec<MemberDTO> = world.result().body_into();
     assert_eq!(res.len(), n)
-}
-
-#[then(expr = "<{jid}> should have the {member_role} role")]
-async fn then_role(world: &mut TestWorld, jid: JIDParam, role: MemberRole) -> Result<(), DbErr> {
-    let member = MemberRepository::get(world.db(), &jid)
-        .await?
-        .expect(&format!("Member {jid} not found"));
-    assert_eq!(member.role, role.0);
-
-    Ok(())
 }
 
 #[then(expr = "<{jid}> should have the nickname {string}")]

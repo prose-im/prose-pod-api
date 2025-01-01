@@ -64,7 +64,17 @@ impl MemberService {
 
         Ok(())
     }
+}
 
+#[derive(Debug, thiserror::Error)]
+pub enum UserDeleteError {
+    #[error("Database error: {0}")]
+    DbErr(#[from] DbErr),
+    #[error("XMPP server cannot delete user: {0}")]
+    XmppServerCannotDeleteUser(ServerCtlError),
+}
+
+impl MemberService {
     pub async fn get_members(
         &self,
         page_number: u64,
@@ -73,7 +83,37 @@ impl MemberService {
     ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
         MemberRepository::get_all(self.db.as_ref(), page_number, page_size, until).await
     }
+}
 
+impl MemberService {
+    pub async fn set_member_role(
+        &self,
+        jid: &BareJid,
+        role: MemberRole,
+    ) -> Result<Option<Member>, SetMemberRoleError> {
+        let member = MemberRepository::set_role(self.db.as_ref(), jid, role).await?;
+
+        // NOTE: We can't rollback changes made to the XMPP server so we do it
+        //   after "rollbackable" DB changes in case they fail. It's not perfect
+        //   but better than nothing.
+        // TODO: Find a way to rollback XMPP server changes.
+        let server_ctl = self.server_ctl.clone();
+
+        server_ctl.set_user_role(jid, &role).await?;
+
+        Ok(member)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SetMemberRoleError {
+    #[error("Database error: {0}")]
+    DbErr(#[from] DbErr),
+    #[error("XMPP server cannot set user role: {0}")]
+    XmppServerCannotSetUserRole(#[from] ServerCtlError),
+}
+
+impl MemberService {
     pub async fn enrich_member(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
         trace!("Enriching `{jid}`…");
 
@@ -155,12 +195,4 @@ pub struct EnrichedMember {
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub avatar: Option<String>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UserDeleteError {
-    #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
-    #[error("XMPP server cannot delete user: {0}")]
-    XmppServerCannotDeleteUser(ServerCtlError),
 }

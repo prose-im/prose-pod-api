@@ -4,7 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use sea_orm::{prelude::*, DeleteResult, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set};
+use sea_orm::{
+    prelude::*, DeleteResult, IntoActiveModel, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set,
+};
 
 use crate::{
     members::{
@@ -73,7 +75,7 @@ impl MemberRepository {
 
     pub async fn is_admin(db: &impl ConnectionTrait, jid: &BareJid) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
-        let member = Entity::find_by_jid(&jid.to_owned().into()).one(db).await?;
+        let member = Entity::find_by_jid(jid).one(db).await?;
 
         // If the member is not found, do not send an error but rather send `false` as it is not an admin anyway.
         let Some(member) = member else {
@@ -81,6 +83,29 @@ impl MemberRepository {
         };
 
         Ok(member.role == MemberRole::Admin)
+    }
+
+    pub async fn set_role(
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+        role: MemberRole,
+    ) -> Result<Option<Member>, DbErr> {
+        // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
+        let member = Entity::find_by_jid(jid).one(db).await?;
+
+        let Some(member) = member else {
+            return Err(DbErr::RecordNotFound(format!("No member with id '{jid}'.")));
+        };
+
+        // Abort if no change needed.
+        if member.role == role {
+            return Ok(None);
+        }
+
+        let mut member = member.into_active_model();
+        member.role = Set(role);
+
+        member.update(db).await.map(Option::Some)
     }
 }
 

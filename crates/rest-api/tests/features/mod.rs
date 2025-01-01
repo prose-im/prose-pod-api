@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod dns_setup;
@@ -9,8 +9,11 @@ pub mod invitations;
 pub mod members;
 pub mod network_checks;
 pub mod pod_config;
+pub mod roles;
 pub mod server_config;
 pub mod workspace_details;
+
+use std::str::FromStr;
 
 use base64::{engine::general_purpose::STANDARD as Base64, Engine};
 use cucumber::{given, then, when};
@@ -21,7 +24,6 @@ use rocket::{
 };
 use secrecy::{ExposeSecret, SecretString};
 use service::{
-    members::{MemberCreateForm, MemberRepository, MemberRole},
     models::xmpp::{AvatarData, BareJid},
     prosody_config::LuaValue,
 };
@@ -29,54 +31,24 @@ use service::{
 use crate::{cucumber_parameters::Duration, DbErr, TestWorld};
 
 async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
+    // Strip potential `<>` around the JID (if `name` is a JID).
+    let name = name
+        .strip_prefix("<")
+        .and_then(|name| name.strip_suffix(">"))
+        .unwrap_or(name);
+    // Use JID if it already is one.
+    if name.contains("@") {
+        if let Ok(jid) = BareJid::from_str(name) {
+            return Ok(jid);
+        }
+    }
+
     let domain = world.server_config().await?.domain;
     Ok(BareJid::new(&format!("{name}@{domain}")).map_err(|err| {
         error::InternalServerError(format!(
             "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
         ))
     })?)
-}
-
-#[given(expr = "{} is an admin")]
-async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let db = world.db();
-
-    let jid = name_to_jid(world, &name).await?;
-    let member = MemberCreateForm {
-        jid: jid.clone(),
-        role: Some(MemberRole::Admin),
-        joined_at: None,
-    };
-    let model = MemberRepository::create(db, member).await?;
-
-    let token = world.mock_auth_service.log_in_unchecked(&jid)?;
-
-    world.members.insert(name, (model, token));
-
-    Ok(())
-}
-
-#[given(regex = r"^(.+) is (not an admin|a regular member|a member)$")]
-async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let db = world.db();
-
-    let jid = name_to_jid(world, &name).await?;
-    let model = world
-        .member_service()
-        .create_user(
-            db,
-            &jid,
-            &SecretString::new("password".to_owned()),
-            &name,
-            &Some(MemberRole::Member),
-        )
-        .await?;
-
-    let token = world.mock_auth_service.log_in_unchecked(&jid)?;
-
-    world.members.insert(name, (model, token));
-
-    Ok(())
 }
 
 #[given(regex = "^(\\w+) is (online|offline)$")]
