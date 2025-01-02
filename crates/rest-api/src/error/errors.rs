@@ -3,6 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use axum::http::header::InvalidHeaderValue;
 use service::{
     members::{UserCreateError, UserDeleteError},
     notifications::notifier,
@@ -257,3 +258,5 @@ impl HttpApiError for service::errors::UnexpectedHttpResponse {
             .ok()
     }
 }
+
+impl_into_error!(InvalidHeaderValue, ErrorCode::INTERNAL_SERVER_ERROR);

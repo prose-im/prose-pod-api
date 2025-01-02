@@ -3,7 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{response::status, serde::json::Json};
+use axum::{http::HeaderValue, Json};
+use rocket::response::status;
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
@@ -18,7 +19,7 @@ use crate::{
     forms::JID as JIDUriParam,
     guards::LazyGuard,
     models::SerializableSecretString,
-    responders::Created,
+    responders::{Created, RocketCreated},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -33,8 +34,8 @@ pub async fn init_first_account_route(
     init_service: LazyGuard<InitService>,
     server_config: LazyGuard<ServerConfig>,
     member_service: LazyGuard<UnauthenticatedMemberService>,
-    req: Json<InitFirstAccountRequest>,
-) -> Created<Member> {
+    req: rocket::serde::json::Json<InitFirstAccountRequest>,
+) -> RocketCreated<Member> {
     let init_service = init_service.inner?;
     let server_config = &server_config.inner?;
     let member_service = &member_service.inner?;
@@ -49,8 +50,21 @@ pub async fn init_first_account_route(
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
-pub async fn init_first_account_route_axum() {
-    todo!()
+pub async fn init_first_account_route_axum(
+    init_service: InitService,
+    server_config: ServerConfig,
+    member_service: UnauthenticatedMemberService,
+    Json(req): Json<InitFirstAccountRequest>,
+) -> Result<Created<Member>, Error> {
+    let member = init_service
+        .init_first_account(&server_config, &member_service, req)
+        .await?;
+
+    let resource_uri = format!("/v1/members/{jid}", jid = member.jid());
+    Ok(Created {
+        location: HeaderValue::from_str(&resource_uri)?,
+        body: Member::from(member),
+    })
 }
 
 // ERRORS

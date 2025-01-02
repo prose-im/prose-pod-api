@@ -1,10 +1,29 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{response::status, serde::json::Json};
+use axum::{
+    http::{header::LOCATION, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
+};
+use rocket::response::status;
 
 use crate::error::Error;
 
-pub type Created<T> = Result<status::Created<Json<T>>, Error>;
+pub type RocketCreated<T> = Result<status::Created<rocket::serde::json::Json<T>>, Error>;
+
+pub struct Created<T> {
+    pub location: HeaderValue,
+    pub body: T,
+}
+
+impl<T: serde::Serialize> IntoResponse for Created<T> {
+    fn into_response(self) -> Response {
+        IntoResponse::into_response((
+            StatusCode::CREATED,
+            [(LOCATION, self.location)],
+            axum::Json(self.body),
+        ))
+    }
+}

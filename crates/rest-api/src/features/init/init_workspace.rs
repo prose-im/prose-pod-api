@@ -16,7 +16,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
+use crate::{error::prelude::*, guards::LazyGuard, responders::RocketCreated};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -42,7 +42,7 @@ pub async fn init_workspace_route<'r>(
     xmpp_service: &State<XmppServiceInner>,
     server_config: LazyGuard<ServerConfig>,
     req: Json<InitWorkspaceRequest>,
-) -> Created<InitWorkspaceResponse> {
+) -> RocketCreated<InitWorkspaceResponse> {
     let init_service = init_service.inner?;
     let server_config = server_config.inner?;
     let req = req.into_inner();

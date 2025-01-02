@@ -17,7 +17,7 @@ use service::{
 };
 
 #[cfg(not(debug_assertions))]
-use crate::responders::Created;
+use crate::responders::RocketCreated;
 use crate::{
     error::prelude::*,
     guards::{Db, LazyGuard},

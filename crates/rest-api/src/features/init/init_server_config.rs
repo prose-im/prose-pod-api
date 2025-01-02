@@ -15,7 +15,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
+use crate::{error::prelude::*, guards::LazyGuard, responders::RocketCreated};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
@@ -32,7 +32,7 @@ pub async fn init_server_config_route<'r>(
     auth_service: &State<AuthService>,
     secrets_store: &State<SecretsStore>,
     req: Json<InitServerConfigRequest>,
-) -> Created<ServerConfig> {
+) -> RocketCreated<ServerConfig> {
     let init_service = init_service.inner?;
     let form = req.into_inner();
 
