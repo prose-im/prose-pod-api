@@ -1,11 +1,15 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::ops::Deref as _;
 
-use rocket::serde::json::Json;
+use axum::{
+    extract::{Path, Query},
+    Json,
+};
+use serde::Deserialize;
 use service::invitations::{InvitationService, InvitationToken};
 
 use crate::{
@@ -21,7 +25,7 @@ use super::{forms::InvitationTokenType, model::*};
 pub async fn get_invitation_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     invitation_id: i32,
-) -> Result<Json<WorkspaceInvitation>, Error> {
+) -> Result<rocket::serde::json::Json<WorkspaceInvitation>, Error> {
     let invitation_service = invitation_service.inner?;
 
     let invitation = invitation_service.get(&invitation_id).await?;
@@ -35,8 +39,19 @@ pub async fn get_invitation_route<'r>(
     Ok(response.into())
 }
 
-pub async fn get_invitation_route_axum() {
-    todo!()
+pub async fn get_invitation_route_axum(
+    invitation_service: InvitationService,
+    Path(invitation_id): Path<i32>,
+) -> Result<Json<WorkspaceInvitation>, Error> {
+    let invitation = invitation_service.get(&invitation_id).await?;
+    let Some(invitation) = invitation else {
+        return Err(Error::from(error::NotFound {
+            reason: format!("No invitation with id '{invitation_id}'"),
+        }));
+    };
+
+    let response = WorkspaceInvitation::from(invitation);
+    Ok(response.into())
 }
 
 /// Get information about an invitation from an accept or reject token.
@@ -45,7 +60,7 @@ pub async fn get_invitation_token_details_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
     token_type: InvitationTokenType,
-) -> Result<Json<WorkspaceInvitationBasicDetails>, Error> {
+) -> Result<rocket::serde::json::Json<WorkspaceInvitationBasicDetails>, Error> {
     let invitation_service = invitation_service.inner?;
     let token = InvitationToken::from(*token.deref());
 
@@ -61,6 +76,24 @@ pub async fn get_invitation_token_details_route<'r>(
     Ok(response.into())
 }
 
-pub async fn get_invitation_by_token_route_axum() {
-    todo!()
+#[derive(Deserialize)]
+pub struct GetInvitationTokenDetailsQuery {
+    token_type: InvitationTokenType,
+}
+
+pub async fn get_invitation_by_token_route_axum(
+    invitation_service: InvitationService,
+    Path(token): Path<InvitationToken>,
+    Query(GetInvitationTokenDetailsQuery { token_type }): Query<GetInvitationTokenDetailsQuery>,
+) -> Result<Json<WorkspaceInvitationBasicDetails>, Error> {
+    let invitation = match token_type {
+        InvitationTokenType::Accept => invitation_service.get_by_accept_token(token).await,
+        InvitationTokenType::Reject => invitation_service.get_by_reject_token(token).await,
+    }?;
+    let Some(invitation) = invitation else {
+        return Err(error::Forbidden("No invitation found for provided token".to_string()).into());
+    };
+
+    let response = WorkspaceInvitationBasicDetails::from(invitation);
+    Ok(response.into())
 }

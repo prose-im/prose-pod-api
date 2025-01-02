@@ -3,7 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{response::status, serde::json::Json, State};
+use axum::{http::HeaderValue, Json};
+use rocket::{response::status, State};
 use serde::{Deserialize, Serialize};
 use service::{
     auth::AuthService,
@@ -15,7 +16,11 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::RocketCreated};
+use crate::{
+    error::prelude::*,
+    guards::LazyGuard,
+    responders::{Created, RocketCreated},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
@@ -31,7 +36,7 @@ pub async fn init_server_config_route<'r>(
     app_config: &State<AppConfig>,
     auth_service: &State<AuthService>,
     secrets_store: &State<SecretsStore>,
-    req: Json<InitServerConfigRequest>,
+    req: rocket::serde::json::Json<InitServerConfigRequest>,
 ) -> RocketCreated<ServerConfig> {
     let init_service = init_service.inner?;
     let form = req.into_inner();
@@ -45,8 +50,23 @@ pub async fn init_server_config_route<'r>(
     Ok(status::Created::new(resource_uri).body(server_config.into()))
 }
 
-pub async fn init_server_config_route_axum() {
-    todo!()
+pub async fn init_server_config_route_axum(
+    init_service: InitService,
+    server_ctl: ServerCtl,
+    app_config: AppConfig,
+    auth_service: AuthService,
+    secrets_store: SecretsStore,
+    Json(req): Json<InitServerConfigRequest>,
+) -> Result<Created<ServerConfig>, Error> {
+    let server_config = init_service
+        .init_server_config(&server_ctl, &app_config, &auth_service, &secrets_store, req)
+        .await?;
+
+    let resource_uri = "/v1/server/config";
+    Ok(Created {
+        location: HeaderValue::from_static(resource_uri),
+        body: server_config,
+    })
 }
 
 // ERRORS

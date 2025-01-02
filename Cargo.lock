@@ -241,6 +241,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "serde_urlencoded",
  "sync_wrapper",
  "tower",
  "tower-layer",
@@ -1906,6 +1907,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b43b2015ede53eeef1c023e27f540a39841d139044483641d038a975abd6603d"
 dependencies = [
  "generic-array 1.1.1",
+ "serde",
  "time",
 ]
 

@@ -3,10 +3,13 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod app_config;
 mod db;
 mod notifier;
 mod pod_network_config;
+mod secrets_store;
 mod server_config;
+mod server_ctl;
 mod server_manager;
 mod unauthenticated_server_manager;
 mod util;

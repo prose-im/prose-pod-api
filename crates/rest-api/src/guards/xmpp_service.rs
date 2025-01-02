@@ -46,3 +46,15 @@ impl FromRequestParts<AppState> for XmppService {
         Ok(XmppService::new(Arc::new(state.xmpp_service.clone()), ctx))
     }
 }
+
+#[axum::async_trait]
+impl FromRequestParts<AppState> for XmppServiceInner {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        _parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        Ok(state.xmpp_service.clone())
+    }
+}

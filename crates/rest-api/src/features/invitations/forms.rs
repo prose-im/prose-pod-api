@@ -1,36 +1,25 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt::Display, str::FromStr};
+use std::str::FromStr as _;
 
 use rocket::{
     form::{self, FromFormField, ValueField},
     http::uri::fmt::{FromUriParam, Query},
 };
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 // ========== TOKEN TYPES ==========
 
-const TOKEN_TYPE_ACCEPT: &'static str = "accept";
-const TOKEN_TYPE_REJECT: &'static str = "reject";
-
 #[derive(Debug, PartialEq, Eq)]
+#[derive(SerializeDisplay, DeserializeFromStr)]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "lowercase")]
 pub enum InvitationTokenType {
     Accept,
     Reject,
-}
-
-impl FromStr for InvitationTokenType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            TOKEN_TYPE_ACCEPT => Ok(Self::Accept),
-            TOKEN_TYPE_REJECT => Ok(Self::Reject),
-            s => Err(format!("Invalid workspace invitation token type: {s}")),
-        }
-    }
 }
 
 impl<'v> FromFormField<'v> for InvitationTokenType {
@@ -49,18 +38,5 @@ impl FromUriParam<Query, uuid::Uuid> for InvitationTokenType {
 
     fn from_uri_param(param: uuid::Uuid) -> Self::Target {
         param.to_string()
-    }
-}
-
-impl Display for InvitationTokenType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Accept => TOKEN_TYPE_ACCEPT,
-                Self::Reject => TOKEN_TYPE_REJECT,
-            }
-        )
     }
 }

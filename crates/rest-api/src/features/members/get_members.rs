@@ -1,12 +1,12 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
 use service::{auth::UserInfo, members::MemberService};
 
-use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::Paginated};
+use crate::{error::Error, forms::Timestamp, guards::LazyGuard, responders::PaginatedRocket};
 
 use super::model::*;
 
@@ -17,7 +17,7 @@ pub async fn get_members_route<'r>(
     page_number: Option<u64>,
     page_size: Option<u64>,
     until: Option<Timestamp>,
-) -> Result<Paginated<Member>, Error> {
+) -> Result<PaginatedRocket<Member>, Error> {
     // Make sure the user is logged in.
     let _ = user_info.inner?;
 
@@ -33,7 +33,7 @@ pub async fn get_members_route<'r>(
         .get_members(page_number, page_size, until)
         .await?;
 
-    Ok(Paginated::new(
+    Ok(PaginatedRocket::new(
         members.into_iter().map(Into::into).collect(),
         page_number,
         page_size,

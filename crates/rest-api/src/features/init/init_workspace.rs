@@ -5,7 +5,8 @@
 
 use std::sync::Arc;
 
-use rocket::{response::status, serde::json::Json, State};
+use axum::{http::HeaderValue, Json};
+use rocket::{response::status, State};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
@@ -16,7 +17,11 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::RocketCreated};
+use crate::{
+    error::prelude::*,
+    guards::LazyGuard,
+    responders::{Created, RocketCreated},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -41,7 +46,7 @@ pub async fn init_workspace_route<'r>(
     secrets_store: &State<SecretsStore>,
     xmpp_service: &State<XmppServiceInner>,
     server_config: LazyGuard<ServerConfig>,
-    req: Json<InitWorkspaceRequest>,
+    req: rocket::serde::json::Json<InitWorkspaceRequest>,
 ) -> RocketCreated<InitWorkspaceResponse> {
     let init_service = init_service.inner?;
     let server_config = server_config.inner?;
@@ -67,8 +72,34 @@ pub async fn init_workspace_route<'r>(
     Ok(status::Created::new(resource_uri).body(response.into()))
 }
 
-pub async fn init_workspace_route_axum() {
-    todo!()
+pub async fn init_workspace_route_axum(
+    init_service: InitService,
+    app_config: AppConfig,
+    secrets_store: SecretsStore,
+    xmpp_service: XmppServiceInner,
+    server_config: ServerConfig,
+    Json(req): Json<InitWorkspaceRequest>,
+) -> Result<Created<InitWorkspaceResponse>, Error> {
+    let workspace = init_service
+        .init_workspace(
+            Arc::new(app_config),
+            Arc::new(secrets_store),
+            Arc::new(xmpp_service),
+            &server_config,
+            req.clone(),
+        )
+        .await?;
+
+    let response = InitWorkspaceResponse {
+        name: req.name,
+        accent_color: workspace.accent_color,
+    };
+
+    let resource_uri = "/v1/workspace";
+    Ok(Created {
+        location: HeaderValue::from_static(resource_uri),
+        body: response,
+    })
 }
 
 // ERRORS
