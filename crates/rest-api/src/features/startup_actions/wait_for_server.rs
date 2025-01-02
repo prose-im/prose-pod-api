@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{Build, Rocket};
@@ -20,6 +20,11 @@ pub async fn wait_for_server(rocket: &Rocket<Build>) -> Result<(), String> {
         .map_err(|err| format!("Error while waiting for XMPP server to start: {err}"))
 }
 
-pub async fn wait_for_server_axum(_app_state: &AppState) -> Result<(), String> {
-    todo!()
+pub async fn wait_for_server_axum(AppState { server_ctl, .. }: &AppState) -> Result<(), String> {
+    debug!("Waiting for XMPP server to start…");
+
+    server_ctl
+        .wait_until_ready()
+        .await
+        .map_err(|err| format!("Error while waiting for XMPP server to start: {err}"))
 }

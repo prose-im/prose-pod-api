@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{Build, Rocket};
@@ -15,6 +15,7 @@ pub async fn run_migrations(rocket: &Rocket<Build>) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn run_migrations_axum(_app_state: &AppState) -> Result<(), String> {
-    todo!()
+pub async fn run_migrations_axum(AppState { db, .. }: &AppState) -> Result<(), String> {
+    let _ = service::Migrator::up(db, None).await;
+    Ok(())
 }

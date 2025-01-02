@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 /// Generates a route for setting a specific server config.
@@ -16,16 +16,21 @@ macro_rules! server_config_set_route {
         #[rocket::put($route, format = "json", data = "<req>")]
         pub async fn $route_fn(
             server_manager: LazyGuard<ServerManager>,
-            req: Json<$req_type>,
-        ) -> Result<Json<ServerConfig>, crate::error::Error> {
+            req: rocket::serde::json::Json<$req_type>,
+        ) -> Result<rocket::serde::json::Json<ServerConfig>, crate::error::Error> {
             let server_manager = server_manager.inner?;
             let new_state: $var_type = req.$var.to_owned();
             let new_config = server_manager.$fn(new_state).await?;
             Ok(new_config.into())
         }
 
-        pub async fn $route_fn_axum() {
-            todo!()
+        pub async fn $route_fn_axum(
+            server_manager: ServerManager,
+            axum::Json(req): axum::Json<$req_type>,
+        ) -> Result<axum::Json<ServerConfig>, crate::error::Error> {
+            let new_state: $var_type = req.$var.to_owned();
+            let new_config = server_manager.$fn(new_state).await?;
+            Ok(axum::Json(new_config))
         }
     };
 }
@@ -37,14 +42,17 @@ macro_rules! server_config_reset_route {
         #[rocket::put($route)]
         pub async fn $route_fn(
             server_manager: LazyGuard<ServerManager>,
-        ) -> Result<Json<ServerConfig>, crate::error::Error> {
+        ) -> Result<rocket::serde::json::Json<ServerConfig>, crate::error::Error> {
             let server_manager = server_manager.inner?;
             let new_config = server_manager.$fn().await?;
             Ok(new_config.into())
         }
 
-        pub async fn $route_fn_axum() {
-            todo!()
+        pub async fn $route_fn_axum(
+            server_manager: ServerManager,
+        ) -> Result<axum::Json<ServerConfig>, crate::error::Error> {
+            let new_config = server_manager.$fn().await?;
+            Ok(axum::Json(new_config))
         }
     };
 }

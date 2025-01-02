@@ -1,9 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
+use axum::Json;
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::ServerConfig,
@@ -34,12 +34,15 @@ server_config_set_route!(
 );
 
 #[rocket::put("/v1/server/config/file-storage-encryption-scheme")]
-pub fn set_file_storage_encryption_scheme_route() -> Result<Json<ServerConfig>, Error> {
+pub fn set_file_storage_encryption_scheme_route(
+) -> Result<rocket::serde::json::Json<ServerConfig>, Error> {
     Err(error::NotImplemented("File storage encryption scheme").into())
 }
 
-pub async fn set_file_storage_encryption_scheme_route_axum() {
-    todo!()
+pub async fn set_file_storage_encryption_scheme_route_axum() -> Result<Json<ServerConfig>, Error> {
+    Err(Error::from(error::NotImplemented(
+        "File storage encryption scheme",
+    )))
 }
 
 server_config_set_route!(

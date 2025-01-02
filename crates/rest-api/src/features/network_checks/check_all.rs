@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use futures::{stream::FuturesOrdered, StreamExt};
@@ -19,8 +19,8 @@ use super::{model::*, prelude::*, util::*};
 #[rocket::get("/v1/network/checks", format = "application/json")]
 pub async fn check_network_configuration_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
-) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    network_checker: &'r StateRocket<NetworkChecker>,
+) -> Result<JsonRocket<Vec<NetworkCheckResult>>, Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner().to_owned();
 
@@ -50,11 +50,40 @@ pub async fn check_network_configuration_route<'r>(
 
     let res: Vec<NetworkCheckResult> = tasks.filter_map(|res| async { res.ok() }).collect().await;
 
-    Ok(Json(res))
+    Ok(JsonRocket(res))
 }
 
-pub async fn check_network_configuration_route_axum() {
-    todo!()
+pub async fn check_network_configuration_route_axum(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let mut tasks: FuturesOrdered<tokio::task::JoinHandle<_>> = FuturesOrdered::default();
+
+    for check in pod_network_config.dns_record_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+    for check in pod_network_config.port_reachability_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+    for check in pod_network_config.ip_connectivity_checks() {
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(async move {
+            let result = check.run(&network_checker).await;
+            NetworkCheckResult::from((check, result))
+        }));
+    }
+
+    let res: Vec<NetworkCheckResult> = tasks.filter_map(|res| async { res.ok() }).collect().await;
+
+    Ok(Json(res))
 }
 
 #[rocket::get(
@@ -64,9 +93,9 @@ pub async fn check_network_configuration_route_axum() {
 )]
 pub fn check_network_configuration_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
+    network_checker: &'r StateRocket<NetworkChecker>,
     interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
+    app_config: &'r StateRocket<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();

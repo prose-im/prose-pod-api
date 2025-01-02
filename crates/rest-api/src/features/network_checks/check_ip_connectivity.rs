@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::{model::*, prelude::*, util::*};
@@ -8,8 +8,8 @@ use super::{model::*, prelude::*, util::*};
 #[rocket::get("/v1/network/checks/ip", format = "application/json")]
 pub async fn check_ip_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
-) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    network_checker: &'r StateRocket<NetworkChecker>,
+) -> Result<JsonRocket<Vec<NetworkCheckResult>>, Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
@@ -21,8 +21,16 @@ pub async fn check_ip_route<'r>(
     Ok(res.into())
 }
 
-pub async fn check_ip_route_axum() {
-    todo!()
+pub async fn check_ip_route_axum(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
+    let res = run_checks(
+        pod_network_config.ip_connectivity_checks().into_iter(),
+        &network_checker,
+    )
+    .await;
+    Ok(Json(res))
 }
 
 #[rocket::get(
@@ -32,9 +40,9 @@ pub async fn check_ip_route_axum() {
 )]
 pub async fn check_ip_stream_route<'r>(
     pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
+    network_checker: &'r StateRocket<NetworkChecker>,
     interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
+    app_config: &'r StateRocket<AppConfig>,
 ) -> Result<EventStream![Event + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();

@@ -1,14 +1,15 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
 
+use axum::{extract::Query, Json};
 use rocket::{
     form::Strict,
     response::stream::{Event, EventStream},
-    serde::json::Json,
+    serde::json::Json as JsonRocket,
     State,
 };
 use serde::{Deserialize, Serialize};
@@ -33,7 +34,7 @@ pub struct EnrichedMember {
     pub avatar: Option<String>,
 }
 
-#[derive(Debug, Clone, rocket::FromForm)]
+#[derive(Debug, Clone, rocket::FromForm, Deserialize)]
 pub struct JIDs {
     jids: Vec<JIDUriParam>,
 }
@@ -43,7 +44,7 @@ pub async fn enrich_members_route(
     member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
     app_config: &State<AppConfig>,
-) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
+) -> Result<JsonRocket<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_service = member_service.inner?;
     let jids = jids.into_inner().jids;
     let jids_count = jids.len();
@@ -66,8 +67,29 @@ pub async fn enrich_members_route(
     Ok(res.into())
 }
 
-pub async fn enrich_members_route_axum() {
-    todo!()
+pub async fn enrich_members_route_axum(
+    member_service: MemberService,
+    Query(JIDs { jids }): Query<JIDs>,
+    app_config: AppConfig,
+) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
+    let jids_count = jids.len();
+    let runner = ConcurrentTaskRunner::default(&app_config);
+
+    let cancellation_token = member_service.cancellation_token.clone();
+    let mut rx = runner.run(
+        jids,
+        move |jid| {
+            let member_service = member_service.clone();
+            Box::pin(async move { member_service.enrich_member(&jid).await })
+        },
+        move || cancellation_token.cancel(),
+    );
+
+    let mut res = HashMap::with_capacity(jids_count);
+    while let Some(Ok(Some(member))) = rx.recv().await {
+        res.insert(member.jid.clone(), EnrichedMember::from(member).into());
+    }
+    Ok(Json(res))
 }
 
 #[rocket::get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]

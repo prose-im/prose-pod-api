@@ -3,8 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
-use service::{auth::UserInfo, members::MemberService};
+use axum::{extract::Path, Json};
+use service::{auth::UserInfo, members::MemberService, xmpp::BareJid};
 
 use crate::{
     error::{self, Error},
@@ -19,7 +19,7 @@ pub async fn get_member_route<'r>(
     jid: JIDUriParam,
     member_service: LazyGuard<MemberService>,
     user_info: LazyGuard<UserInfo>,
-) -> Result<Json<EnrichedMember>, Error> {
+) -> Result<rocket::serde::json::Json<EnrichedMember>, Error> {
     // Make sure the user is logged in.
     let _ = user_info.inner?;
 
@@ -36,6 +36,17 @@ pub async fn get_member_route<'r>(
     Ok(response.into())
 }
 
-pub async fn get_member_route_axum() {
-    todo!()
+pub async fn get_member_route_axum(
+    Path(jid): Path<BareJid>,
+    member_service: MemberService,
+) -> Result<Json<EnrichedMember>, Error> {
+    let member = member_service.enrich_member(&jid).await?;
+    let Some(member) = member else {
+        return Err(Error::from(error::NotFound {
+            reason: format!("No member with id '{jid}'"),
+        }));
+    };
+
+    let response = EnrichedMember::from(member);
+    Ok(response.into())
 }

@@ -1,9 +1,10 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
+use axum::Json;
+use rocket::serde::json::Json as JsonRocket;
 use serde::{Deserialize, Serialize};
 use service::workspace::WorkspaceService;
 
@@ -17,7 +18,7 @@ pub struct GetWorkspaceNameResponse {
 #[rocket::get("/v1/workspace/name")]
 pub async fn get_workspace_name_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
-) -> Result<Json<GetWorkspaceNameResponse>, Error> {
+) -> Result<JsonRocket<GetWorkspaceNameResponse>, Error> {
     let workspace_service = workspace_service.inner?;
 
     let name = workspace_service.get_workspace_name().await?;
@@ -26,8 +27,11 @@ pub async fn get_workspace_name_route<'r>(
     Ok(response)
 }
 
-pub async fn get_workspace_name_route_axum() {
-    todo!()
+pub async fn get_workspace_name_route_axum(
+    workspace_service: WorkspaceService,
+) -> Result<Json<GetWorkspaceNameResponse>, Error> {
+    let name = workspace_service.get_workspace_name().await?;
+    Ok(Json(GetWorkspaceNameResponse { name }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -40,8 +44,8 @@ pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 #[rocket::put("/v1/workspace/name", format = "json", data = "<req>")]
 pub async fn set_workspace_name_route<'r>(
     workspace_service: LazyGuard<WorkspaceService>,
-    req: Json<SetWorkspaceNameRequest>,
-) -> Result<Json<SetWorkspaceNameResponse>, Error> {
+    req: JsonRocket<SetWorkspaceNameRequest>,
+) -> Result<JsonRocket<SetWorkspaceNameResponse>, Error> {
     let workspace_service = workspace_service.inner?;
     let req = req.into_inner();
 
@@ -51,6 +55,10 @@ pub async fn set_workspace_name_route<'r>(
     Ok(response)
 }
 
-pub async fn set_workspace_name_route_axum() {
-    todo!()
+pub async fn set_workspace_name_route_axum(
+    workspace_service: WorkspaceService,
+    Json(req): Json<SetWorkspaceNameRequest>,
+) -> Result<Json<SetWorkspaceNameResponse>, Error> {
+    let name = workspace_service.set_workspace_name(req.name).await?;
+    Ok(Json(SetWorkspaceNameResponse { name }))
 }

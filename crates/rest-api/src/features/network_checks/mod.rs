@@ -12,10 +12,11 @@ mod model;
 mod util;
 
 mod prelude {
+    pub use axum::Json;
     pub use rocket::{
         response::stream::{Event, EventStream},
-        serde::json::Json,
-        State,
+        serde::json::Json as JsonRocket,
+        State as StateRocket,
     };
     pub use serde::{Deserialize, Serialize};
     pub use serde_with::serde_as;

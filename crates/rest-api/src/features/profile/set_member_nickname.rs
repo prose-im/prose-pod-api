@@ -1,11 +1,12 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::ops::Deref as _;
 
-use rocket::serde::json::Json;
+use axum::{extract::Path, Json};
+use rocket::serde::json::Json as JsonRocket;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
@@ -35,8 +36,8 @@ pub async fn set_member_nickname_route<'r>(
     member_id: JIDUriParam,
     user_info: LazyGuard<UserInfo>,
     xmpp_service: LazyGuard<XmppService>,
-    req: Json<SetMemberNicknameRequest>,
-) -> Result<Json<SetMemberNicknameResponse>, Error> {
+    req: JsonRocket<SetMemberNicknameRequest>,
+) -> Result<JsonRocket<SetMemberNicknameResponse>, Error> {
     let jid = user_info.inner?.jid;
     let xmpp_service = xmpp_service.inner?;
 
@@ -55,6 +56,22 @@ pub async fn set_member_nickname_route<'r>(
     .into())
 }
 
-pub async fn set_member_nickname_route_axum() {
-    todo!()
+pub async fn set_member_nickname_route_axum(
+    Path(member_id): Path<BareJid>,
+    UserInfo { jid }: UserInfo,
+    xmpp_service: XmppService,
+    Json(req): Json<SetMemberNicknameRequest>,
+) -> Result<Json<SetMemberNicknameResponse>, Error> {
+    if jid.deref() != member_id.deref() {
+        Err(error::Forbidden(
+            "You can't change someone else's nickname.".to_string(),
+        ))?
+    }
+
+    xmpp_service.set_own_nickname(&req.nickname).await?;
+
+    Ok(Json(SetMemberNicknameResponse {
+        jid: jid.to_owned(),
+        nickname: req.nickname.to_owned(),
+    }))
 }

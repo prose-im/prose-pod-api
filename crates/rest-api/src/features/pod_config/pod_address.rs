@@ -1,12 +1,17 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use axum::{extract::State, http::HeaderValue, Json};
+use axum_extra::either::Either;
 use hickory_resolver::proto::rr::Name as DomainName;
-use rocket::{response::status::Created, serde::json::Json, Either};
+use rocket::{
+    response::status::Created as CreatedRocket, serde::json::Json as JsonRocket,
+    Either as EitherRocket,
+};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -19,6 +24,8 @@ use crate::{
     error::{self, Error},
     features::init::PodAddressNotInitialized,
     guards::{Db, LazyGuard},
+    responders::Created,
+    AppState,
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -42,8 +49,8 @@ impl Into<PodConfigCreateForm> for SetPodAddressRequest {
 pub async fn set_pod_address_route<'r>(
     conn: Connection<'r, Db>,
     user_info: LazyGuard<UserInfo>,
-    req: Json<SetPodAddressRequest>,
-) -> Result<Either<Created<Json<PodAddress>>, Json<PodAddress>>, Error> {
+    req: JsonRocket<SetPodAddressRequest>,
+) -> Result<EitherRocket<CreatedRocket<JsonRocket<PodAddress>>, JsonRocket<PodAddress>>, Error> {
     let db = conn.into_inner();
     let req = req.into_inner();
 
@@ -57,25 +64,44 @@ pub async fn set_pod_address_route<'r>(
         let model = PodConfigRepository::set(db, req).await?;
 
         let res = PodConfig::from(model).address.unwrap();
-        Ok(Either::Right(res.into()))
+        Ok(EitherRocket::Right(res.into()))
     } else {
         let model = PodConfigRepository::create(db, req).await?;
 
         let resource_uri = rocket::uri!(get_pod_address_route).to_string();
         let res = PodConfig::from(model).address.unwrap();
-        Ok(Either::Left(Created::new(resource_uri).body(res.into())))
+        Ok(EitherRocket::Left(
+            CreatedRocket::new(resource_uri).body(res.into()),
+        ))
     }
 }
 
-pub async fn set_pod_address_route_axum() {
-    todo!()
+pub async fn set_pod_address_route_axum(
+    State(AppState { db, .. }): State<AppState>,
+    Json(req): Json<SetPodAddressRequest>,
+) -> Result<Either<Created<PodAddress>, Json<PodAddress>>, Error> {
+    if PodConfigRepository::get(&db).await?.is_some() {
+        let model = PodConfigRepository::set(&db, req).await?;
+
+        let res = PodConfig::from(model).address.unwrap();
+        Ok(Either::E2(Json(res)))
+    } else {
+        let model = PodConfigRepository::create(&db, req).await?;
+
+        let resource_uri = HeaderValue::from_static("/v1/pod/config/address");
+        let res = PodConfig::from(model).address.unwrap();
+        Ok(Either::E1(Created {
+            location: resource_uri,
+            body: res,
+        }))
+    }
 }
 
 #[rocket::get("/v1/pod/config/address")]
 pub async fn get_pod_address_route<'r>(
     conn: Connection<'r, Db>,
     user_info: LazyGuard<UserInfo>,
-) -> Result<Json<PodAddress>, Error> {
+) -> Result<JsonRocket<PodAddress>, Error> {
     let db = conn.into_inner();
 
     let jid = user_info.inner?.jid;
@@ -94,6 +120,15 @@ pub async fn get_pod_address_route<'r>(
     Ok(address.into())
 }
 
-pub async fn get_pod_address_route_axum() {
-    todo!()
+pub async fn get_pod_address_route_axum(
+    State(AppState { db, .. }): State<AppState>,
+) -> Result<Json<PodAddress>, Error> {
+    let Some(address) = PodConfigRepository::get(&db)
+        .await?
+        .and_then(|model| PodConfig::from(model).address)
+    else {
+        return Err(PodAddressNotInitialized.into());
+    };
+
+    Ok(address.into())
 }
