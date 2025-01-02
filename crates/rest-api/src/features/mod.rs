@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod startup_actions;
@@ -34,4 +34,20 @@ pub(super) fn routes() -> Vec<rocket::Route> {
         workspace_details::routes(),
     ]
     .concat()
+}
+
+pub(super) fn router() -> axum::Router<crate::AppState> {
+    axum::Router::new()
+        .merge(api_docs::router())
+        .merge(auth::router())
+        .merge(dns_setup::router())
+        .merge(init::router())
+        .merge(invitations::router())
+        .merge(members::router())
+        .merge(network_checks::router())
+        .merge(pod_config::router())
+        .merge(profile::router())
+        .merge(roles::router())
+        .merge(server_config::router())
+        .merge(workspace_details::router())
 }

@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
@@ -19,7 +19,7 @@ use crate::{error::prelude::*, guards::prelude::*};
 impl<'r> LazyFromRequest<'r> for WorkspaceService {
     type Error = error::Error;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
         let xmpp_service = try_outcome!(request_state!(req, XmppServiceInner));
         let app_config = try_outcome!(request_state!(req, AppConfig));
@@ -36,6 +36,27 @@ impl<'r> LazyFromRequest<'r> for WorkspaceService {
             Ok(service) => Outcome::Success(service),
             Err(err) => Error::from(err).into(),
         }
+    }
+}
+
+#[axum::async_trait]
+impl FromRequestParts<AppState> for WorkspaceService {
+    type Rejection = error::Error;
+
+    async fn from_request_parts(
+        parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let server_config = ServerConfig::from_request_parts(parts, state).await?;
+
+        WorkspaceService::new(
+            Arc::new(state.db.clone()),
+            Arc::new(state.xmpp_service.clone()),
+            Arc::new(state.app_config.clone()),
+            &server_config,
+            Arc::new(state.secrets_store.clone()),
+        )
+        .map_err(Error::from)
     }
 }
 

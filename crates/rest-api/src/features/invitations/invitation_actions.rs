@@ -1,11 +1,12 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::ops::Deref as _;
 
-use rocket::{delete, post, response::status::NoContent, serde::json::Json, State};
+use axum::{extract::Path, Json};
+use rocket::{response::status::NoContent, State};
 use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -30,7 +31,7 @@ pub struct AcceptWorkspaceInvitationRequest {
 }
 
 /// Accept a workspace invitation.
-#[put(
+#[rocket::put(
     "/v1/invitation-tokens/<token>/accept",
     format = "json",
     data = "<req>"
@@ -38,7 +39,7 @@ pub struct AcceptWorkspaceInvitationRequest {
 pub async fn invitation_accept_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
-    req: Json<AcceptWorkspaceInvitationRequest>,
+    req: rocket::serde::json::Json<AcceptWorkspaceInvitationRequest>,
 ) -> Result<(), Error> {
     invitation_service
         .inner?
@@ -48,8 +49,17 @@ pub async fn invitation_accept_route<'r>(
     Ok(())
 }
 
+pub async fn invitation_accept_route_axum(
+    invitation_service: InvitationService,
+    Path(token): Path<InvitationToken>,
+    Json(req): Json<AcceptWorkspaceInvitationRequest>,
+) -> Result<(), Error> {
+    invitation_service.accept_by_token(token, req).await?;
+    Ok(())
+}
+
 /// Reject a workspace invitation.
-#[put("/v1/invitation-tokens/<token>/reject")]
+#[rocket::put("/v1/invitation-tokens/<token>/reject")]
 pub async fn invitation_reject_route<'r>(
     invitation_service: LazyGuard<InvitationService>,
     token: Uuid,
@@ -62,8 +72,16 @@ pub async fn invitation_reject_route<'r>(
     Ok(NoContent)
 }
 
+pub async fn invitation_reject_route_axum(
+    invitation_service: InvitationService,
+    Path(token): Path<InvitationToken>,
+) -> Result<StatusCode, Error> {
+    invitation_service.reject_by_token(token).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Resend a workspace invitation.
-#[post("/v1/invitations/<invitation_id>/resend")]
+#[rocket::post("/v1/invitations/<invitation_id>/resend")]
 pub async fn invitation_resend_route<'r>(
     conn: Connection<'r, Db>,
     invitation_service: LazyGuard<InvitationService>,
@@ -89,8 +107,20 @@ pub async fn invitation_resend_route<'r>(
     Ok(NoContent)
 }
 
+pub async fn invitation_resend_route_axum(
+    invitation_service: InvitationService,
+    app_config: AppConfig,
+    notifier: Notifier,
+    Path(invitation_id): Path<i32>,
+) -> Result<StatusCode, Error> {
+    invitation_service
+        .resend(&app_config, &notifier, invitation_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Cancel a workspace invitation.
-#[delete("/v1/invitations/<invitation_id>")]
+#[rocket::delete("/v1/invitations/<invitation_id>")]
 pub async fn invitation_cancel_route<'r>(
     conn: Connection<'r, Db>,
     invitation_service: LazyGuard<InvitationService>,
@@ -109,6 +139,14 @@ pub async fn invitation_cancel_route<'r>(
     invitation_service.cancel(invitation_id).await?;
 
     Ok(NoContent)
+}
+
+pub async fn invitation_cancel_route_axum(
+    invitation_service: InvitationService,
+    Path(invitation_id): Path<i32>,
+) -> Result<StatusCode, Error> {
+    invitation_service.cancel(invitation_id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // ERRORS

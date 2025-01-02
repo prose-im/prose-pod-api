@@ -1,9 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{put, serde::json::Json};
+use axum::Json;
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::ServerConfig,
@@ -19,7 +19,8 @@ use crate::{
 server_config_reset_route!(
     "/v1/server/config/files/reset",
     reset_files_config,
-    reset_files_config_route
+    reset_files_config_route,
+    reset_files_config_route_axum
 );
 
 server_config_set_route!(
@@ -28,12 +29,20 @@ server_config_set_route!(
     bool,
     file_upload_allowed,
     set_file_upload_allowed,
-    set_file_upload_allowed_route
+    set_file_upload_allowed_route,
+    set_file_upload_allowed_route_axum
 );
 
-#[put("/v1/server/config/file-storage-encryption-scheme")]
-pub fn set_file_storage_encryption_scheme_route() -> Result<Json<ServerConfig>, Error> {
+#[rocket::put("/v1/server/config/file-storage-encryption-scheme")]
+pub fn set_file_storage_encryption_scheme_route(
+) -> Result<rocket::serde::json::Json<ServerConfig>, Error> {
     Err(error::NotImplemented("File storage encryption scheme").into())
+}
+
+pub async fn set_file_storage_encryption_scheme_route_axum() -> Result<Json<ServerConfig>, Error> {
+    Err(Error::from(error::NotImplemented(
+        "File storage encryption scheme",
+    )))
 }
 
 server_config_set_route!(
@@ -42,5 +51,6 @@ server_config_set_route!(
     PossiblyInfinite<Duration<DateLike>>,
     file_storage_retention,
     set_file_storage_retention,
-    set_file_storage_retention_route
+    set_file_storage_retention_route,
+    set_file_storage_retention_route_axum
 );

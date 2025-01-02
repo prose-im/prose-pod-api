@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::str::FromStr;
@@ -12,9 +12,11 @@ use std::{
 use rocket::form::{self, FromFormField, ValueField};
 use rocket::http::uri::fmt::{FromUriParam, Path, Query};
 use rocket::request::FromParam;
+use serde::Deserialize;
 use service::models::BareJid;
 
-#[derive(Clone, Eq)]
+#[derive(Clone, Eq, Deserialize)]
+#[repr(transparent)]
 pub struct JID(pub(crate) BareJid);
 
 impl<'v> FromFormField<'v> for JID {

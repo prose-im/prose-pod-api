@@ -421,9 +421,9 @@ impl IntoProsody<DateLike> for db::DateLike {
 impl IntoProsody<TimeLike> for db::TimeLike {
     fn into_prosody(self) -> TimeLike {
         match self {
-            db::TimeLike::Seconds(_) => todo!(),
-            db::TimeLike::Minutes(_) => todo!(),
-            db::TimeLike::Hours(_) => todo!(),
+            Self::Seconds(n) => TimeLike::Seconds(n),
+            Self::Minutes(n) => TimeLike::Minutes(n),
+            Self::Hours(n) => TimeLike::Hours(n),
         }
     }
 }

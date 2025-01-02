@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
@@ -17,7 +17,7 @@ use super::prelude::*;
 impl<'r> LazyFromRequest<'r> for PodNetworkConfig {
     type Error = error::Error;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
         try_outcome!(check_caller_is_admin(req, None).await);
 
         let db = try_outcome!(database_connection(req).await);
@@ -34,6 +34,28 @@ impl<'r> LazyFromRequest<'r> for PodNetworkConfig {
         };
 
         Outcome::Success(PodNetworkConfig {
+            server_domain,
+            pod_address,
+        })
+    }
+}
+
+#[axum::async_trait]
+impl FromRequestParts<AppState> for PodNetworkConfig {
+    type Rejection = error::Error;
+
+    async fn from_request_parts(
+        parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let server_domain = ServerConfig::from_request_parts(parts, state).await?.domain;
+
+        let Some(pod_config) = PodConfigRepository::get(&state.db).await? else {
+            return Err(Error::from(PodAddressNotInitialized));
+        };
+        let pod_address = PodAddress::try_from(pod_config)?;
+
+        Ok(PodNetworkConfig {
             server_domain,
             pod_address,
         })

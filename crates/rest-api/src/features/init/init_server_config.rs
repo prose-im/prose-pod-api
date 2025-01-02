@@ -1,9 +1,10 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{response::status, serde::json::Json, State};
+use axum::{http::HeaderValue, Json};
+use rocket::{response::status, State};
 use serde::{Deserialize, Serialize};
 use service::{
     auth::AuthService,
@@ -15,7 +16,11 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
+use crate::{
+    error::prelude::*,
+    guards::LazyGuard,
+    responders::{Created, RocketCreated},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
@@ -24,15 +29,15 @@ pub struct InitServerConfigRequest {
     pub domain: JidDomain,
 }
 
-#[put("/v1/server/config", format = "json", data = "<req>")]
+#[rocket::put("/v1/server/config", format = "json", data = "<req>")]
 pub async fn init_server_config_route<'r>(
     init_service: LazyGuard<InitService>,
     server_ctl: &State<ServerCtl>,
     app_config: &State<AppConfig>,
     auth_service: &State<AuthService>,
     secrets_store: &State<SecretsStore>,
-    req: Json<InitServerConfigRequest>,
-) -> Created<ServerConfig> {
+    req: rocket::serde::json::Json<InitServerConfigRequest>,
+) -> RocketCreated<ServerConfig> {
     let init_service = init_service.inner?;
     let form = req.into_inner();
 
@@ -40,8 +45,28 @@ pub async fn init_server_config_route<'r>(
         .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
         .await?;
 
-    let resource_uri = uri!(crate::features::server_config::get_server_config_route).to_string();
+    let resource_uri =
+        rocket::uri!(crate::features::server_config::get_server_config_route).to_string();
     Ok(status::Created::new(resource_uri).body(server_config.into()))
+}
+
+pub async fn init_server_config_route_axum(
+    init_service: InitService,
+    server_ctl: ServerCtl,
+    app_config: AppConfig,
+    auth_service: AuthService,
+    secrets_store: SecretsStore,
+    Json(req): Json<InitServerConfigRequest>,
+) -> Result<Created<ServerConfig>, Error> {
+    let server_config = init_service
+        .init_server_config(&server_ctl, &app_config, &auth_service, &secrets_store, req)
+        .await?;
+
+    let resource_uri = "/v1/server/config";
+    Ok(Created {
+        location: HeaderValue::from_static(resource_uri),
+        body: server_config,
+    })
 }
 
 // ERRORS
@@ -49,17 +74,17 @@ pub async fn init_server_config_route<'r>(
 impl ErrorCode {
     pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
         value: "server_config_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
     pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
         value: "server_config_already_initialized",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
     pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
         value: "pod_address_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
 }
@@ -74,7 +99,7 @@ impl HttpApiError for ServerConfigNotInitialized {
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
             "Call `PUT {}` to initialize it.",
-            uri!(crate::features::init::init_server_config_route)
+            rocket::uri!(crate::features::init::init_server_config_route)
         )]
     }
 }
@@ -89,7 +114,7 @@ impl HttpApiError for PodAddressNotInitialized {
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
             "Call `PUT {}` to initialize it.",
-            uri!(crate::features::pod_config::set_pod_address_route)
+            rocket::uri!(crate::features::pod_config::set_pod_address_route)
         )]
     }
 }

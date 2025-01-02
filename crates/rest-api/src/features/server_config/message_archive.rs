@@ -1,9 +1,8 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::ServerConfig,
@@ -15,7 +14,8 @@ use crate::{guards::LazyGuard, server_config_reset_route, server_config_set_rout
 server_config_reset_route!(
     "/v1/server/config/messaging/reset",
     reset_messaging_config,
-    reset_messaging_config_route
+    reset_messaging_config_route,
+    reset_messaging_config_route_axum
 );
 
 server_config_set_route!(
@@ -24,7 +24,8 @@ server_config_set_route!(
     bool,
     message_archive_enabled,
     set_message_archive_enabled,
-    set_message_archive_enabled_route
+    set_message_archive_enabled_route,
+    set_message_archive_enabled_route_axum
 );
 
 server_config_set_route!(
@@ -33,10 +34,12 @@ server_config_set_route!(
     PossiblyInfinite<Duration<DateLike>>,
     message_archive_retention,
     set_message_archive_retention,
-    set_message_archive_retention_route
+    set_message_archive_retention_route,
+    set_message_archive_retention_route_axum
 );
 server_config_reset_route!(
     "/v1/server/config/message-archive-retention/reset",
     reset_message_archive_retention,
-    reset_message_archive_retention_route
+    reset_message_archive_retention_route,
+    reset_message_archive_retention_route_axum
 );

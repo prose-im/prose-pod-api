@@ -1,9 +1,7 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
-
-use std::sync::Arc;
 
 use service::{
     server_config::entities::server_config,
@@ -19,7 +17,7 @@ pub struct UnauthenticatedServerManager(pub(super) ServerManager);
 impl<'r> LazyFromRequest<'r> for UnauthenticatedServerManager {
     type Error = error::Error;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
         let db = try_outcome!(database_connection(req).await);
         let app_config = try_outcome!(request_state!(req, service::AppConfig));
         let server_ctl = try_outcome!(request_state!(req, ServerCtl));

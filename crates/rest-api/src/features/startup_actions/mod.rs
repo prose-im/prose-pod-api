@@ -12,6 +12,8 @@ mod wait_for_server;
 
 use rocket::{Build, Rocket};
 
+use crate::AppState;
+
 use self::create_service_accounts::*;
 use self::init_server_config::*;
 use self::register_oauth2_client::*;
@@ -26,5 +28,15 @@ pub async fn sequential_fairings(rocket: &Rocket<Build>) -> Result<(), String> {
     init_server_config(rocket).await?;
     register_oauth2_client(rocket).await?;
     create_service_accounts(rocket).await?;
+    Ok(())
+}
+
+pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
+    run_migrations_axum(app_state).await?;
+    wait_for_server_axum(app_state).await?;
+    rotate_api_xmpp_password_axum(app_state).await?;
+    init_server_config_axum(app_state).await?;
+    register_oauth2_client_axum(app_state).await?;
+    create_service_accounts_axum(app_state).await?;
     Ok(())
 }

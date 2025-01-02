@@ -18,7 +18,7 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
     type Error = error::Error;
 
     /// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
         let server_ctl = try_outcome!(request_state!(req, ServerCtl));
         let auth_service = try_outcome!(request_state!(req, AuthService));
         let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
@@ -36,6 +36,23 @@ impl<'r> LazyFromRequest<'r> for UnauthenticatedMemberService {
             Arc::new(server_ctl.clone()),
             Arc::new(auth_service.clone()),
             Arc::new(xmpp_service_inner.clone()),
+        ))
+    }
+}
+
+#[axum::async_trait]
+impl FromRequestParts<AppState> for UnauthenticatedMemberService {
+    type Rejection = Infallible;
+
+    /// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
+    async fn from_request_parts(
+        _parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        Ok(Self::new(
+            Arc::new(state.server_ctl.clone()),
+            Arc::new(state.auth_service.clone()),
+            Arc::new(state.xmpp_service.clone()),
         ))
     }
 }
