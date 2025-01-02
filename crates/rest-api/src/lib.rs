@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 extern crate rocket;
@@ -21,6 +21,7 @@ use service::{
     dependencies::Uuid,
     network_checks::NetworkChecker,
     notifications::dependencies::Notifier,
+    sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
@@ -75,24 +76,26 @@ pub fn custom_rocket(
 
 #[catch(default)]
 fn default_catcher(status: Status, _request: &Request) -> Error {
-    error::HTTPStatus(status).into()
+    error::HTTPStatus(StatusCode::from_u16(status.code).unwrap()).into()
 }
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    config: AppConfig,
+    db: DatabaseConnection,
+    app_config: AppConfig,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
     notifier: Notifier,
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
-    uuid: Uuid,
+    uuid_gen: Uuid,
 }
 
 impl AppState {
     pub fn new(
-        config: AppConfig,
+        db: DatabaseConnection,
+        app_config: AppConfig,
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
@@ -101,8 +104,9 @@ impl AppState {
         network_checker: NetworkChecker,
     ) -> Self {
         Self {
-            uuid: Uuid::from_config(&config),
-            config,
+            db,
+            uuid_gen: Uuid::from_config(&app_config),
+            app_config,
             server_ctl,
             xmpp_service,
             auth_service,

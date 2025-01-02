@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod delete_member;
@@ -28,7 +28,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
     ]
 }
 
-pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route("/v1/enrich-members", get(enrich_members_route_axum))
         .route("/v1/enrich-members", get(enrich_members_stream_route_axum))

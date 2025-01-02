@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{response::status, serde::json::Json};
@@ -58,7 +58,7 @@ pub async fn init_first_account_route_axum() {
 impl ErrorCode {
     pub const FIRST_ACCOUNT_ALREADY_CREATED: Self = Self {
         value: "first_account_already_created",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }

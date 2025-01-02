@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{response::status, serde::json::Json, State};
@@ -54,17 +54,17 @@ pub async fn init_server_config_route_axum() {
 impl ErrorCode {
     pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
         value: "server_config_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
     pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
         value: "server_config_already_initialized",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
     pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
         value: "pod_address_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
 }

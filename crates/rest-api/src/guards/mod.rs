@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod db;
@@ -19,14 +19,22 @@ pub use db::*;
 pub use unauthenticated_server_manager::*;
 
 use prelude::*;
-use rocket::http::Status;
 
 pub mod prelude {
-    pub use super::util::*;
-    pub use super::LazyFromRequest;
-    pub use crate::error::{self, Error};
-    pub use crate::request_state;
-    pub use rocket::{outcome::try_outcome, request::Outcome, Request};
+    pub use std::{convert::Infallible, sync::Arc};
+
+    pub use axum::{
+        extract::{FromRequestParts, Request},
+        http::request,
+    };
+    pub use rocket::{outcome::try_outcome, request::Outcome};
+
+    pub use crate::{
+        error::{self, Error},
+        request_state, AppState,
+    };
+
+    pub use super::{util::*, LazyFromRequest};
 }
 
 use crate::error::{self, Error};
@@ -57,7 +65,7 @@ impl<Inner> Deref for LazyGuard<Inner> {
 #[rocket::async_trait]
 pub trait LazyFromRequest<'r>: Sized {
     type Error;
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error>;
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error>;
 }
 
 #[rocket::async_trait]
@@ -68,7 +76,7 @@ where
 {
     type Error = error::Error;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
         match Inner::from_request(req).await {
             Outcome::Success(s) => Outcome::Success(Self { inner: Ok(s) }),
             Outcome::Forward(f) => Outcome::Forward(f),
@@ -79,9 +87,9 @@ where
     }
 }
 
-impl Into<(Status, Error)> for Error {
-    fn into(self) -> (Status, Error) {
-        (self.http_status, self)
+impl Into<(rocket::http::Status, Error)> for Error {
+    fn into(self) -> (rocket::http::Status, Error) {
+        (rocket::http::Status::new(self.http_status.as_u16()), self)
     }
 }
 

@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod guards;
@@ -22,7 +22,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
     ]
 }
 
-pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route("/v1/init/first-account", put(init_first_account_route_axum))
         .route("/v1/server/config", put(init_server_config_route_axum))

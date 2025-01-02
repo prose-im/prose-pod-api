@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod file_upload;
@@ -39,7 +39,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
     ]
 }
 
-pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         // Server config
         .route("/v1/server/config", get(get_server_config_route_axum))

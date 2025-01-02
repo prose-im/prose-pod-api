@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod pod_address;
@@ -19,7 +19,7 @@ pub(super) fn routes() -> Vec<rocket::Route> {
     ]
 }
 
-pub(super) fn router<S: crate::AxumState>() -> axum::Router<S> {
+pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route("/v1/pod/config", get(get_pod_config_route_axum))
         .route("/v1/pod/config/address", put(set_pod_address_route_axum))

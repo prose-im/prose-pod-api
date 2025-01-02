@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
@@ -76,12 +76,12 @@ pub async fn init_workspace_route_axum() {
 impl ErrorCode {
     pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
         value: "workspace_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
     pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
         value: "workspace_already_initialized",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }

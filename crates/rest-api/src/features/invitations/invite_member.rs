@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use rocket::{response::status, serde::json::Json, State};
@@ -113,14 +113,14 @@ pub async fn invite_member_route_axum() {
 impl ErrorCode {
     const INVITE_ALREADY_EXISTS: Self = Self {
         value: "invitation_already_exists",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }
 impl ErrorCode {
     pub(super) const MEMBER_ALREADY_EXISTS: Self = Self {
         value: "member_already_exists",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }
