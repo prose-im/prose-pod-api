@@ -3,14 +3,22 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, fmt::Display, ops::Deref, sync::Arc};
 
-use axum::{extract::Query, Json};
+use axum::{
+    extract::{Query, State},
+    response::{
+        sse::{Event, KeepAlive},
+        Sse,
+    },
+    Json,
+};
+use futures::Stream;
 use rocket::{
     form::Strict,
-    response::stream::{Event, EventStream},
+    response::stream::{Event as EventRocket, EventStream},
     serde::json::Json as JsonRocket,
-    State,
+    State as StateRocket,
 };
 use serde::{Deserialize, Serialize};
 use service::{
@@ -19,9 +27,11 @@ use service::{
     util::ConcurrentTaskRunner,
     AppConfig,
 };
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
+use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard, AppState};
 
 use super::Member;
 
@@ -43,7 +53,7 @@ pub struct JIDs {
 pub async fn enrich_members_route(
     member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
-    app_config: &State<AppConfig>,
+    app_config: &StateRocket<AppConfig>,
 ) -> Result<JsonRocket<HashMap<BareJid, EnrichedMember>>, Error> {
     let member_service = member_service.inner?;
     let jids = jids.into_inner().jids;
@@ -96,14 +106,14 @@ pub async fn enrich_members_route_axum(
 pub async fn enrich_members_stream_route<'r>(
     member_service: LazyGuard<MemberService>,
     jids: Strict<JIDs>,
-    app_config: &State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
+    app_config: &StateRocket<AppConfig>,
+) -> Result<EventStream![EventRocket + 'r], Error> {
     let member_service = Arc::new(member_service.inner?);
     let jids = jids.into_inner().jids;
     let runner = ConcurrentTaskRunner::default(&app_config);
 
     Ok(EventStream! {
-        fn logged(event: Event) -> Event {
+        fn logged(event: EventRocket) -> EventRocket {
             trace!("Sending {event:?}…");
             event
         }
@@ -120,15 +130,73 @@ pub async fn enrich_members_stream_route<'r>(
 
         while let Some(Ok(Some(member))) = rx.recv().await {
             let jid = member.jid.clone();
-            yield logged(Event::json(&EnrichedMember::from(member)).id(jid.to_string()).event("enriched-member"));
+            yield logged(EventRocket::json(&EnrichedMember::from(member)).id(jid.to_string()).event("enriched-member"));
         }
 
-        yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
+        yield logged(EventRocket::empty().event("end").id("end").with_comment("End of stream"));
     })
 }
 
-pub async fn enrich_members_stream_route_axum() {
-    todo!()
+pub async fn enrich_members_stream_route_axum(
+    member_service: MemberService,
+    Query(JIDs { jids }): Query<JIDs>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    let member_service = Arc::new(member_service);
+    let runner = ConcurrentTaskRunner::default(&app_config);
+    let cancellation_token = runner.cancellation_token.clone();
+
+    let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(jids.len());
+
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = async {
+                fn logged(event: Event) -> Event {
+                    trace!("Sending {event:?}…");
+                    event
+                }
+
+                let cancellation_token = member_service.cancellation_token.clone();
+                let mut rx = runner.run(
+                    jids,
+                    move |jid| {
+                        let member_service = member_service.clone();
+                        Box::pin(async move { member_service.enrich_member(&jid).await })
+                    },
+                    move || cancellation_token.cancel(),
+                );
+
+                while let Some(Ok(Some(member))) = rx.recv().await {
+                    let jid = member.jid.clone();
+                    sse_tx
+                        .send(Ok(logged(
+                            Event::default()
+                                .event("enriched-member")
+                                .id(jid.to_string())
+                                .json_data(EnrichedMember::from(member))
+                                .unwrap(),
+                        )))
+                        .await
+                        .unwrap();
+                }
+
+                sse_tx
+                    .send(Ok(logged(
+                        Event::default()
+                            .event("end")
+                            .id("end")
+                            .comment("End of stream"),
+                    )))
+                    .await
+                    .unwrap();
+            } => {}
+            _ = cancellation_token.cancelled() => {
+                trace!("Token cancelled.");
+            }
+        };
+    });
+
+    Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }
 
 // BOILERPLATE
