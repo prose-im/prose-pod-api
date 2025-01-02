@@ -43,21 +43,32 @@ pub async fn check_ip_stream_route<'r>(
     network_checker: &'r StateRocket<NetworkChecker>,
     interval: Option<forms::Duration>,
     app_config: &'r StateRocket<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
+) -> Result<EventStream![EventRocket + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    run_checks_stream(
+    run_checks_stream_rocket(
         pod_network_config.ip_connectivity_checks().into_iter(),
         &network_checker,
-        ip_connectivity_check_result,
+        ip_connectivity_check_result_rocket,
         interval,
         app_config,
     )
 }
 
-pub async fn check_ip_stream_route_axum() {
-    todo!()
+pub async fn check_ip_stream_route_axum(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    run_checks_stream(
+        pod_network_config.ip_connectivity_checks().into_iter(),
+        network_checker,
+        ip_connectivity_check_result,
+        interval.map(forms::Duration),
+        app_config,
+    )
 }
 
 // MODEL
@@ -104,14 +115,28 @@ impl From<IpConnectivityCheckResult> for IpConnectivityStatus {
     }
 }
 
-pub fn ip_connectivity_check_result(
+pub fn ip_connectivity_check_result_rocket(
     check: &IpConnectivityCheck,
     status: IpConnectivityStatus,
-) -> Event {
-    Event::json(&CheckResultData {
+) -> EventRocket {
+    EventRocket::json(&CheckResultData {
         description: check.description(),
         status,
     })
     .id(IpConnectivityCheckId::from(check).to_string())
     .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
+}
+
+pub fn ip_connectivity_check_result(
+    check: &IpConnectivityCheck,
+    status: IpConnectivityStatus,
+) -> Event {
+    Event::default()
+        .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
+        .id(IpConnectivityCheckId::from(check).to_string())
+        .json_data(&CheckResultData {
+            description: check.description(),
+            status,
+        })
+        .unwrap()
 }

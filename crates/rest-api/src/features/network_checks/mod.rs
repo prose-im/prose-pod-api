@@ -12,9 +12,16 @@ mod model;
 mod util;
 
 mod prelude {
-    pub use axum::Json;
+    pub use std::convert::Infallible;
+
+    pub use axum::{
+        extract::{Query, State},
+        response::{sse::Event, Sse},
+        Json,
+    };
+    pub use futures::Stream;
     pub use rocket::{
-        response::stream::{Event, EventStream},
+        response::stream::{Event as EventRocket, EventStream},
         serde::json::Json as JsonRocket,
         State as StateRocket,
     };
@@ -24,7 +31,7 @@ mod prelude {
 
     pub use crate::{
         error::Error, forms, guards::LazyGuard, impl_network_check_event_from,
-        impl_network_check_result_from,
+        impl_network_check_result_from, AppState,
     };
 }
 

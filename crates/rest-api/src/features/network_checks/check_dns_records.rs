@@ -35,21 +35,32 @@ pub fn check_dns_records_stream_route<'r>(
     network_checker: &'r StateRocket<NetworkChecker>,
     interval: Option<forms::Duration>,
     app_config: &'r StateRocket<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
+) -> Result<EventStream![EventRocket + 'r], Error> {
     let pod_network_config = pod_network_config.inner?;
     let network_checker = network_checker.inner();
 
-    run_checks_stream(
+    run_checks_stream_rocket(
         pod_network_config.dns_record_checks(),
         &network_checker,
-        dns_record_check_result,
+        dns_record_check_result_rocket,
         interval,
         app_config,
     )
 }
 
-pub async fn check_dns_records_stream_route_axum() {
-    todo!()
+pub async fn check_dns_records_stream_route_axum(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    run_checks_stream(
+        pod_network_config.dns_record_checks(),
+        network_checker,
+        dns_record_check_result,
+        interval.map(forms::Duration),
+        app_config,
+    )
 }
 
 // MODEL
@@ -96,11 +107,25 @@ impl From<DnsRecordCheckResult> for DnsRecordStatus {
     }
 }
 
-pub fn dns_record_check_result(check: &DnsRecordCheck, status: DnsRecordStatus) -> Event {
-    Event::json(&CheckResultData {
+pub fn dns_record_check_result_rocket(
+    check: &DnsRecordCheck,
+    status: DnsRecordStatus,
+) -> EventRocket {
+    EventRocket::json(&CheckResultData {
         description: check.description(),
         status,
     })
     .id(DnsRecordCheckId::from(check).to_string())
     .event(NetworkCheckEvent::DnsRecordCheckResult.to_string())
+}
+
+pub fn dns_record_check_result(check: &DnsRecordCheck, status: DnsRecordStatus) -> Event {
+    Event::default()
+        .event(NetworkCheckEvent::DnsRecordCheckResult.to_string())
+        .id(DnsRecordCheckId::from(check).to_string())
+        .json_data(CheckResultData {
+            description: check.description(),
+            status,
+        })
+        .unwrap()
 }

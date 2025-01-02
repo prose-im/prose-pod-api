@@ -1,17 +1,22 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Debug;
+use std::{convert::Infallible, fmt::Debug};
 
-use futures::{stream::FuturesOrdered, StreamExt};
+use axum::response::{
+    sse::{Event, KeepAlive},
+    Sse,
+};
+use futures::{stream::FuturesOrdered, Stream, StreamExt};
 use rocket::{
-    response::stream::{Event, EventStream},
-    State,
+    response::stream::{Event as EventRocket, EventStream},
+    State as StateRocket,
 };
 use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
 use tokio::{sync::mpsc, time::Duration};
+use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
 use crate::{
@@ -19,7 +24,7 @@ use crate::{
     forms,
 };
 
-use super::{end_event, NetworkCheckResult};
+use super::{end_event, end_event_rocket, NetworkCheckResult};
 
 pub async fn run_checks<'r, Check>(
     checks: impl Iterator<Item = Check> + 'r,
@@ -40,13 +45,13 @@ where
         .await
 }
 
-pub fn run_checks_stream<'r, Check, Status>(
+pub fn run_checks_stream_rocket<'r, Check, Status>(
     checks: impl Iterator<Item = Check> + Clone + 'r,
     network_checker: &'r NetworkChecker,
-    map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
+    map_to_event: impl Fn(&Check, Status) -> EventRocket + Copy + Send + 'static,
     retry_interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error>
+    app_config: &'r StateRocket<AppConfig>,
+) -> Result<EventStream![EventRocket + 'r], Error>
 where
     Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
@@ -58,7 +63,7 @@ where
     )?;
 
     Ok(EventStream! {
-        fn logged(event: Event) -> Event {
+        fn logged(event: EventRocket) -> EventRocket {
             trace!("Sending {event:?}…");
             event
         }
@@ -67,7 +72,7 @@ where
             .no_timeout()
             .with_retry_interval(retry_interval);
 
-        let (tx, mut rx) = mpsc::channel::<Event>(32);
+        let (tx, mut rx) = mpsc::channel::<EventRocket>(32);
         network_checker.run_checks(
             checks,
             map_to_event,
@@ -79,8 +84,58 @@ where
             yield logged(event);
         }
 
-        yield logged(end_event());
+        yield logged(end_event_rocket());
     })
+}
+
+pub fn run_checks_stream<Check, Status>(
+    checks: impl Iterator<Item = Check> + Clone + Send + 'static,
+    network_checker: NetworkChecker,
+    map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + Sync + 'static,
+    retry_interval: Option<forms::Duration>,
+    app_config: AppConfig,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>
+where
+    Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
+    Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
+    Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
+{
+    let retry_interval = retry_interval.map_or_else(
+        || Ok(app_config.default_retry_interval.into_std_duration()),
+        validate_retry_interval,
+    )?;
+
+    let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);
+
+    let runner = ConcurrentTaskRunner::default(&app_config)
+        .no_timeout()
+        .with_retry_interval(retry_interval);
+    let cancellation_token = runner.cancellation_token.clone();
+
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = async {
+                fn logged(event: Event) -> Event {
+                    trace!("Sending {event:?}…");
+                    event
+                }
+
+                let (tx, mut rx) = mpsc::channel::<Event>(32);
+                network_checker.run_checks(checks, map_to_event, tx, &runner);
+
+                while let Some(event) = rx.recv().await {
+                    sse_tx.send(Ok(logged(event))).await.unwrap();
+                }
+
+                sse_tx.send(Ok(logged(end_event()))).await.unwrap();
+            } => {}
+            _ = cancellation_token.cancelled() => {
+                trace!("Token cancelled.");
+            }
+        };
+    });
+
+    Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }
 
 /// Check that the retry interval is between 1 second and 1 minute (inclusive).
