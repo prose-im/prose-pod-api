@@ -10,7 +10,10 @@ mod get_members;
 mod guards;
 mod model;
 
-use axum::routing::{delete, get};
+use axum::routing::{get, MethodRouter};
+use axum_extra::handler::HandlerCallWithExtractors as _;
+
+use crate::util::content_type_or::*;
 
 pub use self::delete_member::*;
 pub use self::enrich_members::*;
@@ -30,9 +33,18 @@ pub(super) fn routes() -> Vec<rocket::Route> {
 
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
-        .route("/v1/enrich-members", get(enrich_members_route_axum))
-        .route("/v1/enrich-members", get(enrich_members_stream_route_axum))
-        .route("/v1/members/:jid", get(get_member_route_axum))
+        .route(
+            "/v1/enrich-members",
+            get(
+                with_content_type::<TextEventStream, _>(enrich_members_stream_route_axum)
+                    .or(enrich_members_route_axum),
+            ),
+        )
         .route("/v1/members", get(get_members_route_axum))
-        .route("/v1/members/:jid", delete(delete_member_route_axum))
+        .route(
+            "/v1/members/:jid",
+            MethodRouter::new()
+                .get(get_member_route_axum)
+                .delete(delete_member_route_axum),
+        )
 }

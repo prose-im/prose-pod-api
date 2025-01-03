@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -19,7 +19,7 @@ use crate::{
     user_token, TestWorld,
 };
 
-api_call_fn!(get_dns_instructions, get, "/v1/network/dns/records");
+api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
 
 async fn given_pod_config(
     world: &mut TestWorld,
@@ -62,13 +62,13 @@ async fn given_pod_has_hostname(world: &mut TestWorld) -> Result<(), Error> {
 #[when(expr = "{} requests DNS setup instructions")]
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = get_dns_instructions(world.client(), token).await;
+    let res = get_dns_instructions(world.api(), token).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "DNS setup instructions should contain {int} steps")]
 async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     assert_eq!(res.steps.len(), n);
 }
 
@@ -76,7 +76,7 @@ async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {
 #[then(expr = "step(s) {int} should contain a single {dns_record_type} record")]
 async fn then_step_n_single_record(world: &mut TestWorld, n: usize, record_type: DnsRecordType) {
     let n = n - 1;
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let step = res.steps.get(n).expect(&format!("No step {n}."));
     assert_eq!(step.records.len(), 1);
     let record_type = record_type.0;
@@ -87,7 +87,7 @@ async fn then_step_n_single_record(world: &mut TestWorld, n: usize, record_type:
 #[then(expr = "step(s) {int} should contain {array} records")]
 async fn then_step_n_records(world: &mut TestWorld, n: usize, record_types: Array<DnsRecordType>) {
     let n = n - 1;
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let step = res.steps.get(n).expect(&format!("No step {n}."));
     let record_types: Vec<DnsRecordDiscriminants> = record_types.iter().map(|r| r.0).collect();
     let expected: Vec<DnsRecordDiscriminants> =
@@ -97,7 +97,7 @@ async fn then_step_n_records(world: &mut TestWorld, n: usize, record_types: Arra
 
 #[then(expr = "DNS setup instructions should contain a SRV record for port(s) {int}")]
 async fn then_srv_record_for_port(world: &mut TestWorld, port_number: u16) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let srv_ports: Vec<u16> = res
         .steps
         .into_iter()
@@ -112,7 +112,7 @@ async fn then_srv_record_for_port(world: &mut TestWorld, port_number: u16) {
 
 #[then(expr = "A records hostnames should be {domain_name}")]
 async fn then_a_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let hostnames: Vec<_> = res
         .steps
         .into_iter()
@@ -130,7 +130,7 @@ async fn then_a_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
 
 #[then(expr = "AAAA records hostnames should be {domain_name}")]
 async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let hostnames: Vec<_> = res
         .steps
         .into_iter()
@@ -148,7 +148,7 @@ async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: DomainName
 
 #[then(expr = "SRV records hostnames should be {domain_name}")]
 async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let hostnames: Vec<_> = res
         .steps
         .into_iter()
@@ -166,7 +166,7 @@ async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName)
 
 #[then(expr = "SRV records targets should be {domain_name}")]
 async fn then_srv_records_targets(world: &mut TestWorld, target: DomainName) {
-    let res: GetDnsRecordsResponse = world.result().body_into();
+    let res: GetDnsRecordsResponse = world.result().json();
     let targets: Vec<_> = res
         .steps
         .into_iter()

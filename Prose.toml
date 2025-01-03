@@ -18,5 +18,9 @@ smtp_username = "user-access"
 smtp_password = "user-password"
 smtp_encrypt = false
 
+[databases.main]
+url = "sqlite://database.sqlite?mode=rwc"
+sqlx_logging = false
+
 [debug_only.dependency_modes]
 notifier = "logging"

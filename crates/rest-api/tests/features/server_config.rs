@@ -1,25 +1,18 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use cucumber::{given, then, when};
-use prose_pod_api::{error::Error, features::server_config::*};
+use prose_pod_api::features::server_config::*;
 use service::{
     prosody::IntoProsody as _,
     prosody_config::linked_hash_set::LinkedHashSet,
     prosody_config_from_db,
-    sea_orm::{ActiveModelTrait as _, DbErr, EntityTrait, IntoActiveModel as _, ModelTrait, Set},
+    sea_orm::{ActiveModelTrait as _, EntityTrait, IntoActiveModel as _, ModelTrait, Set},
     server_config::entities::server_config,
 };
 
-use crate::{
-    api_call_fn,
-    cucumber_parameters::{Duration, ToggleState},
-    user_token,
-    util::*,
-    TestWorld,
-};
+use super::prelude::*;
 
 async fn given_server_config(
     world: &mut TestWorld,
@@ -54,12 +47,12 @@ fn then_server_not_reconfigured(world: &mut TestWorld) {
 
 api_call_fn!(
     reset_messaging_configuration,
-    put,
+    PUT,
     "/v1/server/config/messaging/reset"
 );
 api_call_fn!(
     set_message_archiving,
-    put,
+    PUT,
     "/v1/server/config/message-archive-enabled",
     SetMessageArchiveEnabledRequest,
     message_archive_enabled,
@@ -67,20 +60,23 @@ api_call_fn!(
 );
 api_call_fn!(
     set_message_archive_retention,
-    put,
+    PUT,
     "/v1/server/config/message-archive-retention",
     SetMessageArchiveRetentionRequest,
     message_archive_retention,
-    Duration
+    parameters::Duration
 );
 api_call_fn!(
     reset_message_archive_retention,
-    put,
+    PUT,
     "/v1/server/config/message-archive-retention/reset"
 );
 
 #[given(expr = "message archiving is {toggle}")]
-async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> Result<(), Error> {
+async fn given_message_archiving(
+    world: &mut TestWorld,
+    state: parameters::ToggleState,
+) -> Result<(), Error> {
     given_server_config(world, |model| {
         model.message_archive_enabled = Set(Some(state.into()));
     })
@@ -90,7 +86,7 @@ async fn given_message_archiving(world: &mut TestWorld, state: ToggleState) -> R
 #[given(expr = "the message archive retention is set to {duration}")]
 async fn given_message_archive_retention(
     world: &mut TestWorld,
-    duration: Duration,
+    duration: parameters::Duration,
 ) -> Result<(), Error> {
     given_server_config(world, |model| {
         model.message_archive_retention = Set(Some(duration.into()));
@@ -99,9 +95,13 @@ async fn given_message_archive_retention(
 }
 
 #[when(expr = "{} turns message archiving {toggle}")]
-async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: ToggleState) {
+async fn when_set_message_archiving(
+    world: &mut TestWorld,
+    name: String,
+    state: parameters::ToggleState,
+) {
     let token = user_token!(world, name);
-    let res = set_message_archiving(world.client(), token, state.into()).await;
+    let res = set_message_archiving(world.api(), token, state.into()).await;
     world.result = Some(res.into());
 }
 
@@ -109,29 +109,32 @@ async fn when_set_message_archiving(world: &mut TestWorld, name: String, state: 
 async fn when_set_message_archive_retention(
     world: &mut TestWorld,
     name: String,
-    duration: Duration,
+    duration: parameters::Duration,
 ) {
     let token = user_token!(world, name);
-    let res = set_message_archive_retention(world.client(), token, duration.into()).await;
+    let res = set_message_archive_retention(world.api(), token, duration.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
 async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_messaging_configuration(world.client(), token).await;
+    let res = reset_messaging_configuration(world.api(), token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the message archive retention to its default value")]
 async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_message_archive_retention(world.client(), token).await;
+    let res = reset_message_archive_retention(world.api(), token).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "message archiving should be {toggle}")]
-async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
+async fn then_message_archiving(
+    world: &mut TestWorld,
+    enabled: parameters::ToggleState,
+) -> Result<(), Error> {
     let enabled = enabled.as_bool();
 
     // Check in database
@@ -159,7 +162,7 @@ async fn then_message_archiving(world: &mut TestWorld, enabled: ToggleState) -> 
 #[then(expr = "the message archive retention should be set to {duration}")]
 async fn then_message_archive_retention(
     world: &mut TestWorld,
-    duration: Duration,
+    duration: parameters::Duration,
 ) -> Result<(), DbErr> {
     let duration = duration.into();
 
@@ -182,12 +185,12 @@ async fn then_message_archive_retention(
 
 api_call_fn!(
     reset_files_configuration,
-    put,
+    PUT,
     "/v1/server/config/files/reset"
 );
 api_call_fn!(
     set_file_uploading,
-    put,
+    PUT,
     "/v1/server/config/file-upload-allowed",
     SetFileUploadAllowedRequest,
     file_upload_allowed,
@@ -195,15 +198,18 @@ api_call_fn!(
 );
 api_call_fn!(
     set_file_retention,
-    put,
+    PUT,
     "/v1/server/config/file-storage-retention",
     SetFileStorageRetentionRequest,
     file_storage_retention,
-    Duration
+    parameters::Duration
 );
 
 #[given(expr = "file uploading is {toggle}")]
-async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
+async fn given_file_uploading(
+    world: &mut TestWorld,
+    state: parameters::ToggleState,
+) -> Result<(), DbErr> {
     let mut server_config = world.server_config_model().await?.into_active_model();
     server_config.file_upload_allowed = Set(Some(state.into()));
     server_config.update(world.db()).await?;
@@ -211,7 +217,10 @@ async fn given_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resu
 }
 
 #[given(expr = "the file retention is set to {duration}")]
-async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
+async fn given_file_retention(
+    world: &mut TestWorld,
+    duration: parameters::Duration,
+) -> Result<(), DbErr> {
     let mut server_config = world.server_config_model().await?.into_active_model();
     server_config.file_storage_retention = Set(Some(duration.into()));
     server_config.update(world.db()).await?;
@@ -219,28 +228,39 @@ async fn given_file_retention(world: &mut TestWorld, duration: Duration) -> Resu
 }
 
 #[when(expr = "{} turns file uploading {toggle}")]
-async fn when_set_file_uploading(world: &mut TestWorld, name: String, state: ToggleState) {
+async fn when_set_file_uploading(
+    world: &mut TestWorld,
+    name: String,
+    state: parameters::ToggleState,
+) {
     let token = user_token!(world, name);
-    let res = set_file_uploading(world.client(), token, state.into()).await;
+    let res = set_file_uploading(world.api(), token, state.into()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} resets the Files configuration to its default value")]
 async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = reset_files_configuration(world.client(), token).await;
+    let res = reset_files_configuration(world.api(), token).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "{} sets the file retention to {duration}")]
-async fn when_set_file_retention(world: &mut TestWorld, name: String, duration: Duration) {
+async fn when_set_file_retention(
+    world: &mut TestWorld,
+    name: String,
+    duration: parameters::Duration,
+) {
     let token = user_token!(world, name);
-    let res = set_file_retention(world.client(), token, duration.into()).await;
+    let res = set_file_retention(world.api(), token, duration.into()).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "file uploading should be {toggle}")]
-async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Result<(), DbErr> {
+async fn then_file_uploading(
+    world: &mut TestWorld,
+    state: parameters::ToggleState,
+) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
 
     assert_eq!(server_config.file_upload_allowed, state.as_bool());
@@ -249,7 +269,10 @@ async fn then_file_uploading(world: &mut TestWorld, state: ToggleState) -> Resul
 }
 
 #[then(expr = "the file retention should be set to {duration}")]
-async fn then_file_retention(world: &mut TestWorld, duration: Duration) -> Result<(), DbErr> {
+async fn then_file_retention(
+    world: &mut TestWorld,
+    duration: parameters::Duration,
+) -> Result<(), DbErr> {
     let server_config = world.server_config().await?;
 
     assert_eq!(server_config.file_storage_retention, duration.into());

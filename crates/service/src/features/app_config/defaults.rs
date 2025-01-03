@@ -2,7 +2,7 @@
 //
 // Copyright:
 //   - 2018, Valerian Saliou <valerian@valeriansaliou.name> via valeriansaliou/vigil
-//   - 2024, Rémi Bardon <remi@remibardon.name>
+//   - 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{path::PathBuf, str::FromStr as _};
@@ -148,6 +148,16 @@ pub fn notify_email_smtp_port() -> u16 {
 
 pub fn notify_email_smtp_encrypt() -> bool {
     true
+}
+
+pub fn databases_max_connections() -> usize {
+    let workers: usize =
+        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    workers * 4
+}
+
+pub fn databases_connect_timeout() -> u64 {
+    5
 }
 
 /// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
