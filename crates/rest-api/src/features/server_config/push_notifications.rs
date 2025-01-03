@@ -5,13 +5,12 @@
 
 use service::{server_config::ServerConfig, xmpp::ServerManager};
 
-use crate::{guards::LazyGuard, server_config_reset_route, server_config_set_route};
+use crate::{server_config_reset_route, server_config_set_route};
 
 server_config_reset_route!(
     "/v1/server/config/push-notifications/reset",
     reset_push_notifications_config,
-    reset_push_notifications_config_route,
-    reset_push_notifications_config_route_axum
+    reset_push_notifications_config_route
 );
 
 server_config_set_route!(
@@ -20,14 +19,12 @@ server_config_set_route!(
     bool,
     push_notification_with_body,
     set_push_notification_with_body,
-    set_push_notification_with_body_route,
-    set_push_notification_with_body_route_axum
+    set_push_notification_with_body_route
 );
 server_config_reset_route!(
     "/v1/server/config/push-notification-with-body/reset",
     reset_push_notification_with_body,
-    reset_push_notification_with_body_route,
-    reset_push_notification_with_body_route_axum
+    reset_push_notification_with_body_route
 );
 
 server_config_set_route!(
@@ -36,12 +33,10 @@ server_config_set_route!(
     bool,
     push_notification_with_sender,
     set_push_notification_with_sender,
-    set_push_notification_with_sender_route,
-    set_push_notification_with_sender_route_axum
+    set_push_notification_with_sender_route
 );
 server_config_reset_route!(
     "/v1/server/config/push-notification-with-sender/reset",
     reset_push_notification_with_sender,
-    reset_push_notification_with_sender_route,
-    reset_push_notification_with_sender_route_axum
+    reset_push_notification_with_sender_route
 );

@@ -10,21 +10,14 @@ use axum::response::{
     Sse,
 };
 use futures::{stream::FuturesOrdered, Stream, StreamExt};
-use rocket::{
-    response::stream::{Event as EventRocket, EventStream},
-    State as StateRocket,
-};
 use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
 use tokio::{sync::mpsc, time::Duration};
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{
-    error::{self, Error},
-    forms,
-};
+use crate::error::{self, Error};
 
-use super::{end_event, end_event_rocket, NetworkCheckResult};
+use super::{end_event, NetworkCheckResult};
 
 pub async fn run_checks<'r, Check>(
     checks: impl Iterator<Item = Check> + 'r,
@@ -45,54 +38,11 @@ where
         .await
 }
 
-pub fn run_checks_stream_rocket<'r, Check, Status>(
-    checks: impl Iterator<Item = Check> + Clone + 'r,
-    network_checker: &'r NetworkChecker,
-    map_to_event: impl Fn(&Check, Status) -> EventRocket + Copy + Send + 'static,
-    retry_interval: Option<forms::Duration>,
-    app_config: &'r StateRocket<AppConfig>,
-) -> Result<EventStream![EventRocket + 'r], Error>
-where
-    Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
-    Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
-    Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
-{
-    let retry_interval = retry_interval.map_or_else(
-        || Ok(app_config.default_retry_interval.into_std_duration()),
-        validate_retry_interval,
-    )?;
-
-    Ok(EventStream! {
-        fn logged(event: EventRocket) -> EventRocket {
-            trace!("Sending {event:?}…");
-            event
-        }
-
-        let runner = ConcurrentTaskRunner::default(&app_config)
-            .no_timeout()
-            .with_retry_interval(retry_interval);
-
-        let (tx, mut rx) = mpsc::channel::<EventRocket>(32);
-        network_checker.run_checks(
-            checks,
-            map_to_event,
-            tx,
-            &runner,
-        );
-
-        while let Some(event) = rx.recv().await {
-            yield logged(event);
-        }
-
-        yield logged(end_event_rocket());
-    })
-}
-
 pub fn run_checks_stream<Check, Status>(
     checks: impl Iterator<Item = Check> + Clone + Send + 'static,
     network_checker: NetworkChecker,
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + Sync + 'static,
-    retry_interval: Option<forms::Duration>,
+    retry_interval: Option<iso8601_duration::Duration>,
     app_config: AppConfig,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>
 where
@@ -139,7 +89,7 @@ where
 }
 
 /// Check that the retry interval is between 1 second and 1 minute (inclusive).
-pub fn validate_retry_interval(interval: forms::Duration) -> Result<Duration, Error> {
+pub fn validate_retry_interval(interval: iso8601_duration::Duration) -> Result<Duration, Error> {
     let interval_is_max_1_minute = || interval.num_minutes().is_some_and(|m| m <= 1.);
     let interval_is_min_1_second = || interval.num_seconds().is_some_and(|s| s >= 1.);
 

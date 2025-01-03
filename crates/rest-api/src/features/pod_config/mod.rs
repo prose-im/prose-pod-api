@@ -6,22 +6,21 @@
 mod pod_address;
 mod pod_config;
 
-use axum::routing::{get, put};
+use axum::routing::get;
+use axum::routing::MethodRouter;
 
 pub use self::pod_address::*;
 pub use self::pod_config::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![
-        get_pod_config_route,
-        set_pod_address_route,
-        get_pod_address_route,
-    ]
-}
+pub const POD_ADDRESS_ROUTE: &'static str = "/v1/pod/config/address";
 
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
-        .route("/v1/pod/config", get(get_pod_config_route_axum))
-        .route("/v1/pod/config/address", put(set_pod_address_route_axum))
-        .route("/v1/pod/config/address", get(get_pod_address_route_axum))
+        .route("/v1/pod/config", get(get_pod_config_route))
+        .route(
+            POD_ADDRESS_ROUTE,
+            MethodRouter::new()
+                .put(set_pod_address_route)
+                .get(get_pod_address_route),
+        )
 }

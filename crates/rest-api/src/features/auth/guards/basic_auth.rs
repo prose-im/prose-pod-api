@@ -17,37 +17,6 @@ pub struct BasicAuth {
     pub password: SecretString,
 }
 
-#[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for BasicAuth {
-    type Error = error::Error;
-
-    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        // NOTE: We only read the first "Authorization" header.
-        let Some(auth) = req.headers().get("Authorization").next() else {
-            return Error::from(error::Unauthorized(format!(
-                "No '{AUTHORIZATION}' header found."
-            )))
-            .into();
-        };
-        match Credentials::from_header(auth.to_string()) {
-            Ok(creds) => match BareJid::from_str(&creds.user_id) {
-                Ok(jid) => Outcome::Success(Self {
-                    jid,
-                    password: creds.password.into(),
-                }),
-                Err(err) => {
-                    Error::from(error::Unauthorized(format!("The JID present in the '{AUTHORIZATION}' header could not be parsed to a valid JID: {err}"))).into()
-                }
-            },
-            Err(err) => {
-                Error::from(error::Unauthorized(format!(
-                    "The '{AUTHORIZATION}' header is not a valid Basic authentication string: {err}"
-                ))).into()
-            }
-        }
-    }
-}
-
 #[axum::async_trait]
 impl FromRequestParts<AppState> for BasicAuth {
     type Rejection = error::Error;

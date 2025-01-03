@@ -7,7 +7,6 @@ use std::ops::Deref;
 
 use chrono::{DateTime, Utc};
 use iso8601_timestamp::Timestamp as ISOTimestamp;
-use rocket::form::{self, FromFormField, ValueField};
 use serde::Deserialize;
 
 use crate::error::{self, Error};
@@ -15,14 +14,6 @@ use crate::error::{self, Error};
 #[derive(Deserialize)]
 #[repr(transparent)]
 pub struct Timestamp(ISOTimestamp);
-
-impl<'v> FromFormField<'v> for Timestamp {
-    fn from_value(field: ValueField<'v>) -> form::Result<'v, Self> {
-        ISOTimestamp::parse(field.value)
-            .map(Timestamp)
-            .ok_or(field.unexpected().into())
-    }
-}
 
 impl Timestamp {
     pub fn try_into_chrono_datetime(self) -> Result<DateTime<Utc>, Error> {

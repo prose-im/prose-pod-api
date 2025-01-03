@@ -5,37 +5,13 @@
 
 use axum::http::header::AUTHORIZATION;
 use secrecy::SecretString;
-use service::auth::auth_service::AuthToken;
 
 use crate::guards::prelude::*;
 
 const PREFIX: &'static str = "Bearer ";
 
-#[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for AuthToken {
-    type Error = error::Error;
-
-    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        // NOTE: We only read the first "Authorization" header.
-        let Some(auth) = req.headers().get("Authorization").next() else {
-            return Error::from(error::Unauthorized(
-                "No 'Authorization' header found.".to_string(),
-            ))
-            .into();
-        };
-        let Some(token) = auth.strip_prefix(PREFIX) else {
-            return Error::from(error::Unauthorized(format!(
-                "The 'Authorization' header does not start with '{PREFIX}'."
-            )))
-            .into();
-        };
-
-        Outcome::Success(AuthToken(SecretString::new(token.to_string())))
-    }
-}
-
 #[axum::async_trait]
-impl FromRequestParts<AppState> for AuthToken {
+impl FromRequestParts<AppState> for service::auth::auth_service::AuthToken {
     type Rejection = error::Error;
 
     async fn from_request_parts(
@@ -59,6 +35,6 @@ impl FromRequestParts<AppState> for AuthToken {
             ))));
         };
 
-        Ok(AuthToken(SecretString::new(token.to_string())))
+        Ok(Self(SecretString::new(token.to_string())))
     }
 }

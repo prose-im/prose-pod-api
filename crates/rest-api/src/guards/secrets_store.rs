@@ -3,12 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::secrets::SecretsStore;
-
-use crate::guards::prelude::*;
+use super::prelude::*;
 
 #[axum::async_trait]
-impl FromRequestParts<AppState> for SecretsStore {
+impl FromRequestParts<AppState> for service::secrets::SecretsStore {
     type Rejection = Infallible;
 
     async fn from_request_parts(

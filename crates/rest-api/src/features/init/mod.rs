@@ -14,17 +14,12 @@ pub use self::init_first_account::*;
 pub use self::init_server_config::*;
 pub use self::init_workspace::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![
-        init_first_account_route,
-        init_server_config_route,
-        init_workspace_route,
-    ]
-}
+pub const SERVER_CONFIG_ROUTE: &'static str = "/v1/server/config";
+pub const WORKSPACE_ROUTE: &'static str = "/v1/workspace";
 
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
-        .route("/v1/init/first-account", put(init_first_account_route_axum))
-        .route("/v1/server/config", put(init_server_config_route_axum))
-        .route("/v1/workspace", put(init_workspace_route_axum))
+        .route("/v1/init/first-account", put(init_first_account_route))
+        .route(SERVER_CONFIG_ROUTE, put(init_server_config_route))
+        .route(WORKSPACE_ROUTE, put(init_workspace_route))
 }

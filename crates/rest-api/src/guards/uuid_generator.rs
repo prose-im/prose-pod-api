@@ -5,15 +5,6 @@
 
 use super::prelude::*;
 
-#[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for service::dependencies::Uuid {
-    type Error = error::Error;
-
-    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        request_state!(req, service::dependencies::Uuid).map(ToOwned::to_owned)
-    }
-}
-
 #[axum::async_trait]
 impl FromRequestParts<AppState> for service::dependencies::Uuid {
     type Rejection = Infallible;

@@ -16,7 +16,6 @@ tasks:
         --with-serde both \
         --serde-skip-deserializing-primary-key \
         --serde-skip-hidden-column
-        # --model-extra-derives 'rocket::form::FromForm'
   format-all:
     desc: Formats all Rust files.
     cmds:

@@ -16,31 +16,21 @@ pub use self::workspace_accent_color::*;
 pub use self::workspace_icon::*;
 pub use self::workspace_name::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![
-        get_workspace_route,
-        get_workspace_accent_color_route,
-        set_workspace_accent_color_route,
-        get_workspace_icon_route,
-        set_workspace_icon_route,
-        get_workspace_name_route,
-        set_workspace_name_route,
-    ]
-}
+use super::init::WORKSPACE_ROUTE;
 
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
-        .route("/v1/workspace", get(get_workspace_route_axum))
+        .route(WORKSPACE_ROUTE, get(get_workspace_route))
         .route(
             "/v1/workspace/accent-color",
-            get(get_workspace_accent_color_route_axum),
+            get(get_workspace_accent_color_route),
         )
         .route(
             "/v1/workspace/accent-color",
-            put(set_workspace_accent_color_route_axum),
+            put(set_workspace_accent_color_route),
         )
-        .route("/v1/workspace/icon", get(get_workspace_icon_route_axum))
-        .route("/v1/workspace/icon", put(set_workspace_icon_route_axum))
-        .route("/v1/workspace/name", get(get_workspace_name_route_axum))
-        .route("/v1/workspace/name", put(set_workspace_name_route_axum))
+        .route("/v1/workspace/icon", get(get_workspace_icon_route))
+        .route("/v1/workspace/icon", put(set_workspace_icon_route))
+        .route("/v1/workspace/name", get(get_workspace_name_route))
+        .route("/v1/workspace/name", put(set_workspace_name_route))
 }

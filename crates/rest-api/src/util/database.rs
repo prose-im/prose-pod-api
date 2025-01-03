@@ -9,7 +9,13 @@ use service::{app_config::ConfigDatabase, sea_orm};
 
 pub async fn db_conn(
     config: &ConfigDatabase,
-    additional_options: Option<impl FnOnce(&mut sea_orm::ConnectOptions) -> ()>,
+) -> Result<sea_orm::DatabaseConnection, sea_orm::DbErr> {
+    db_conn_with(config, |_| {}).await
+}
+
+pub async fn db_conn_with(
+    config: &ConfigDatabase,
+    additional_options: impl FnOnce(&mut sea_orm::ConnectOptions) -> (),
 ) -> Result<sea_orm::DatabaseConnection, sea_orm::DbErr> {
     let mut options = sea_orm::ConnectOptions::new(config.url.clone());
     options
@@ -22,8 +28,6 @@ pub async fn db_conn(
     if let Some(idle_timeout) = config.idle_timeout {
         options.idle_timeout(Duration::from_secs(idle_timeout));
     }
-    if let Some(additional_options) = additional_options {
-        additional_options(&mut options);
-    }
+    additional_options(&mut options);
     sea_orm::Database::connect(options.to_owned()).await
 }

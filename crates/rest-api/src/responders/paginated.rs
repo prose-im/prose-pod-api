@@ -7,51 +7,8 @@ use axum::{
     http::{HeaderValue, StatusCode},
     response::IntoResponse,
 };
-use rocket::{http::Header as HeaderRocket, response::Responder};
 use serde::Serialize;
 use service::sea_orm::ItemsAndPagesNumber;
-
-#[derive(Responder)]
-#[response(content_type = "json")]
-pub enum PaginatedRocket<T> {
-    #[response(status = 206)]
-    Partial(InnerPaginationRocket<T>),
-    #[response(status = 200)]
-    End(InnerPaginationRocket<T>),
-}
-
-#[derive(Responder)]
-pub struct InnerPaginationRocket<T> {
-    inner: rocket::serde::json::Json<Vec<T>>,
-    current_page: HeaderRocket<'static>,
-    page_size: HeaderRocket<'static>,
-    page_count: HeaderRocket<'static>,
-    item_count: HeaderRocket<'static>,
-}
-
-impl<T> PaginatedRocket<T> {
-    pub fn new(data: Vec<T>, page: u64, page_size: u64, metadata: ItemsAndPagesNumber) -> Self {
-        let inner = InnerPaginationRocket {
-            inner: data.into(),
-            current_page: HeaderRocket::new("Pagination-Current-Page", format!("{page}")),
-            page_size: HeaderRocket::new("Pagination-Page-Size", format!("{page_size}")),
-            page_count: HeaderRocket::new(
-                "Pagination-Page-Count",
-                format!("{}", metadata.number_of_pages),
-            ),
-            item_count: HeaderRocket::new(
-                "Pagination-Item-Count",
-                format!("{}", metadata.number_of_items),
-            ),
-        };
-        // NOTE: Page number starts at `1` and `number_of_pages` can be `0` if there are `0` items.
-        if page >= metadata.number_of_pages {
-            Self::End(inner)
-        } else {
-            Self::Partial(inner)
-        }
-    }
-}
 
 pub struct Paginated<T> {
     data: Vec<T>,

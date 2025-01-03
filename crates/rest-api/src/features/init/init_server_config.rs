@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::{http::HeaderValue, Json};
-use rocket::{response::status, State};
 use serde::{Deserialize, Serialize};
 use service::{
     auth::AuthService,
@@ -18,8 +17,8 @@ use service::{
 
 use crate::{
     error::prelude::*,
-    guards::LazyGuard,
-    responders::{Created, RocketCreated},
+    features::{init::SERVER_CONFIG_ROUTE, pod_config::POD_ADDRESS_ROUTE},
+    responders::Created,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -29,28 +28,7 @@ pub struct InitServerConfigRequest {
     pub domain: JidDomain,
 }
 
-#[rocket::put("/v1/server/config", format = "json", data = "<req>")]
-pub async fn init_server_config_route<'r>(
-    init_service: LazyGuard<InitService>,
-    server_ctl: &State<ServerCtl>,
-    app_config: &State<AppConfig>,
-    auth_service: &State<AuthService>,
-    secrets_store: &State<SecretsStore>,
-    req: rocket::serde::json::Json<InitServerConfigRequest>,
-) -> RocketCreated<ServerConfig> {
-    let init_service = init_service.inner?;
-    let form = req.into_inner();
-
-    let server_config = init_service
-        .init_server_config(server_ctl, app_config, auth_service, secrets_store, form)
-        .await?;
-
-    let resource_uri =
-        rocket::uri!(crate::features::server_config::get_server_config_route).to_string();
-    Ok(status::Created::new(resource_uri).body(server_config.into()))
-}
-
-pub async fn init_server_config_route_axum(
+pub async fn init_server_config_route(
     init_service: InitService,
     server_ctl: ServerCtl,
     app_config: AppConfig,
@@ -62,7 +40,7 @@ pub async fn init_server_config_route_axum(
         .init_server_config(&server_ctl, &app_config, &auth_service, &secrets_store, req)
         .await?;
 
-    let resource_uri = "/v1/server/config";
+    let resource_uri = SERVER_CONFIG_ROUTE;
     Ok(Created {
         location: HeaderValue::from_static(resource_uri),
         body: server_config,
@@ -98,8 +76,7 @@ impl HttpApiError for ServerConfigNotInitialized {
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
-            "Call `PUT {}` to initialize it.",
-            rocket::uri!(crate::features::init::init_server_config_route)
+            "Call `PUT {SERVER_CONFIG_ROUTE}` to initialize it.",
         )]
     }
 }
@@ -113,8 +90,7 @@ impl HttpApiError for PodAddressNotInitialized {
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
-            "Call `PUT {}` to initialize it.",
-            rocket::uri!(crate::features::pod_config::set_pod_address_route)
+            "Call `PUT {POD_ADDRESS_ROUTE}` to initialize it.",
         )]
     }
 }

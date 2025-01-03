@@ -9,11 +9,7 @@ use axum::routing::get;
 
 pub use self::redoc::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![redoc_route]
-}
-
 pub(super) fn router<S: Clone + std::marker::Send + std::marker::Sync + 'static>() -> axum::Router<S>
 {
-    axum::Router::new().route("/api-docs/redoc", get(redoc_route_axum))
+    axum::Router::new().route("/api-docs/redoc", get(redoc_route))
 }

@@ -18,24 +18,6 @@ pub mod roles;
 pub mod server_config;
 pub mod workspace_details;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    vec![
-        api_docs::routes(),
-        auth::routes(),
-        dns_setup::routes(),
-        init::routes(),
-        invitations::routes(),
-        members::routes(),
-        network_checks::routes(),
-        pod_config::routes(),
-        profile::routes(),
-        roles::routes(),
-        server_config::routes(),
-        workspace_details::routes(),
-    ]
-    .concat()
-}
-
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .merge(api_docs::router())

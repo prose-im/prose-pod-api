@@ -153,8 +153,7 @@ impl ErrorCode {
         }
     }
 }
-/// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
-/// to change the output format).
+/// HTTP status (used to change the default output format).
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]
 pub struct HTTPStatus(pub StatusCode);

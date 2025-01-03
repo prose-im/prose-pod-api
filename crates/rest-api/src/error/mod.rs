@@ -6,8 +6,7 @@
 mod errors;
 
 use std::{
-    io::Cursor,
-    str::FromStr,
+    str::FromStr as _,
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -15,14 +14,9 @@ use axum::{
     http::{header::CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use rocket::{
-    http::{ContentType, Header},
-    response::Responder,
-    serde::json::json,
-    Request,
-};
 use serde::Serialize;
-use tracing::{debug, error, info, trace, warn};
+use serde_json::json;
+use tracing::*;
 
 pub use self::errors::*;
 
@@ -141,12 +135,6 @@ impl Error {
         self.logged.store(true, Ordering::Relaxed);
     }
 
-    fn add_headers_rocket(&self, response: &mut rocket::Response<'_>) {
-        for (name, value) in self.http_headers.iter() {
-            response.set_header(Header::new(name.clone(), value.clone()));
-        }
-    }
-
     fn add_headers(&self, headers: &mut HeaderMap) {
         for (name, value) in self.http_headers.iter() {
             // FIXME: Store typed values in `http_headers`.
@@ -174,20 +162,6 @@ impl Error {
     }
 
     /// Construct the HTTP response.
-    fn as_rocket_response(&self) -> rocket::response::Result<'static> {
-        let body = self.as_json().to_string();
-        let mut response = rocket::response::Response::build()
-            .status(rocket::http::Status::from_code(self.http_status.as_u16()).unwrap())
-            .header(ContentType::JSON)
-            .sized_body(body.len(), Cursor::new(body))
-            .ok()?;
-
-        self.add_headers_rocket(&mut response);
-
-        Ok(response)
-    }
-
-    /// Construct the HTTP response.
     fn as_response(&self) -> Response {
         let mut builder = Response::builder()
             .status(self.http_status)
@@ -197,14 +171,6 @@ impl Error {
 
         let body = axum::body::Body::from(self.as_json().to_string());
         builder.body(body).unwrap()
-    }
-}
-
-#[rocket::async_trait]
-impl<'r> Responder<'r, 'static> for Error {
-    fn respond_to(self, _: &'r Request<'_>) -> rocket::response::Result<'static> {
-        self.log();
-        self.as_rocket_response()
     }
 }
 
