@@ -81,10 +81,7 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
     let events = res
         .text()
         .split("\n\n")
-        // Fix random "\n:" inconsistently added by Rocket for no apparent reason
-        .map(|s| UNEXPECTED_SEMICOLON_REGEX.replace_all(s, "$1"))
-        // Fix random "\n" inconsistently added by Rocket for no apparent reason
-        .map(|s| UNEXPECTED_NEWLINE_REGEX.replace_all(&s, "").to_string())
+        .map(ToOwned::to_owned)
         .collect::<Vec<String>>();
     let expected = value
         // Unescape double quotes

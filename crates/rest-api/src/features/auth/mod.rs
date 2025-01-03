@@ -10,12 +10,8 @@ use axum::routing::post;
 
 pub use self::login::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![login_route]
-}
-
 pub(super) fn router() -> axum::Router<crate::AppState> {
-    axum::Router::new().route("/v1/login", post(login_route_axum))
+    axum::Router::new().route("/v1/login", post(login_route))
 }
 
 mod error {

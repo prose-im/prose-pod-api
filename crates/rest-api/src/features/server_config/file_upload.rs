@@ -12,15 +12,13 @@ use service::{
 
 use crate::{
     error::{self, Error},
-    guards::LazyGuard,
     server_config_reset_route, server_config_set_route,
 };
 
 server_config_reset_route!(
     "/v1/server/config/files/reset",
     reset_files_config,
-    reset_files_config_route,
-    reset_files_config_route_axum
+    reset_files_config_route
 );
 
 server_config_set_route!(
@@ -29,17 +27,10 @@ server_config_set_route!(
     bool,
     file_upload_allowed,
     set_file_upload_allowed,
-    set_file_upload_allowed_route,
-    set_file_upload_allowed_route_axum
+    set_file_upload_allowed_route
 );
 
-#[rocket::put("/v1/server/config/file-storage-encryption-scheme")]
-pub fn set_file_storage_encryption_scheme_route(
-) -> Result<rocket::serde::json::Json<ServerConfig>, Error> {
-    Err(error::NotImplemented("File storage encryption scheme").into())
-}
-
-pub async fn set_file_storage_encryption_scheme_route_axum() -> Result<Json<ServerConfig>, Error> {
+pub async fn set_file_storage_encryption_scheme_route() -> Result<Json<ServerConfig>, Error> {
     Err(Error::from(error::NotImplemented(
         "File storage encryption scheme",
     )))
@@ -51,6 +42,5 @@ server_config_set_route!(
     PossiblyInfinite<Duration<DateLike>>,
     file_storage_retention,
     set_file_storage_retention,
-    set_file_storage_retention_route,
-    set_file_storage_retention_route_axum
+    set_file_storage_retention_route
 );

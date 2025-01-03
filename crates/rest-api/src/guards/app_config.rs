@@ -3,12 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::AppConfig;
-
-use crate::guards::prelude::*;
+use super::prelude::*;
 
 #[axum::async_trait]
-impl FromRequestParts<AppState> for AppConfig {
+impl FromRequestParts<AppState> for service::AppConfig {
     type Rejection = Infallible;
 
     async fn from_request_parts(

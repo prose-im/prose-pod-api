@@ -21,30 +21,20 @@ pub use self::get_member::*;
 pub use self::get_members::*;
 pub use self::model::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![
-        enrich_members_route,
-        enrich_members_stream_route,
-        get_member_route,
-        get_members_route,
-        delete_member_route,
-    ]
-}
-
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route(
             "/v1/enrich-members",
             get(
-                with_content_type::<TextEventStream, _>(enrich_members_stream_route_axum)
-                    .or(enrich_members_route_axum),
+                with_content_type::<TextEventStream, _>(enrich_members_stream_route)
+                    .or(enrich_members_route),
             ),
         )
-        .route("/v1/members", get(get_members_route_axum))
+        .route("/v1/members", get(get_members_route))
         .route(
             "/v1/members/:jid",
             MethodRouter::new()
-                .get(get_member_route_axum)
-                .delete(delete_member_route_axum),
+                .get(get_member_route)
+                .delete(delete_member_route),
         )
 }

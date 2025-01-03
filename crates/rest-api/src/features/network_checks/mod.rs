@@ -20,18 +20,13 @@ mod prelude {
         Json,
     };
     pub use futures::Stream;
-    pub use rocket::{
-        response::stream::{Event as EventRocket, EventStream},
-        serde::json::Json as JsonRocket,
-        State as StateRocket,
-    };
     pub use serde::{Deserialize, Serialize};
     pub use serde_with::serde_as;
-    pub use service::{network_checks::*, AppConfig};
+    pub use service::network_checks::*;
 
     pub use crate::{
-        error::Error, forms, guards::LazyGuard, impl_network_check_event_from,
-        impl_network_check_result_from, AppState,
+        error::Error, forms, impl_network_check_event_from, impl_network_check_result_from,
+        AppState,
     };
 }
 
@@ -46,47 +41,34 @@ pub use self::check_ip_connectivity::*;
 pub use self::check_ports_reachability::*;
 pub use self::model::*;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    rocket::routes![
-        check_network_configuration_route,
-        check_network_configuration_stream_route,
-        check_dns_records_route,
-        check_dns_records_stream_route,
-        check_ip_route,
-        check_ip_stream_route,
-        check_ports_route,
-        check_ports_stream_route,
-    ]
-}
-
 pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route(
             "/v1/network/checks",
             get(with_content_type::<TextEventStream, _>(
-                check_network_configuration_stream_route_axum,
+                check_network_configuration_stream_route,
             )
-            .or(check_network_configuration_route_axum)),
+            .or(check_network_configuration_route)),
         )
         .route(
             "/v1/network/checks/dns",
             get(
-                with_content_type::<TextEventStream, _>(check_dns_records_stream_route_axum)
-                    .or(check_dns_records_route_axum),
+                with_content_type::<TextEventStream, _>(check_dns_records_stream_route)
+                    .or(check_dns_records_route),
             ),
         )
         .route(
             "/v1/network/checks/ip",
             get(
-                with_content_type::<TextEventStream, _>(check_ip_stream_route_axum)
-                    .or(check_ip_route_axum),
+                with_content_type::<TextEventStream, _>(check_ip_stream_route)
+                    .or(check_ip_route),
             ),
         )
         .route(
             "/v1/network/checks/ports",
             get(
-                with_content_type::<TextEventStream, _>(check_ports_stream_route_axum)
-                    .or(check_ports_route_axum),
+                with_content_type::<TextEventStream, _>(check_ports_stream_route)
+                    .or(check_ports_route),
             ),
         )
 }

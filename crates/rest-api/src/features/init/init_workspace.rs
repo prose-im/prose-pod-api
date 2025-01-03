@@ -6,7 +6,6 @@
 use std::sync::Arc;
 
 use axum::{http::HeaderValue, Json};
-use rocket::{response::status, State};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
@@ -17,11 +16,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{
-    error::prelude::*,
-    guards::LazyGuard,
-    responders::{Created, RocketCreated},
-};
+use crate::{error::prelude::*, features::init::WORKSPACE_ROUTE, responders::Created};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -39,40 +34,7 @@ pub struct InitWorkspaceResponse {
     pub accent_color: Option<String>,
 }
 
-#[rocket::put("/v1/workspace", format = "json", data = "<req>")]
-pub async fn init_workspace_route<'r>(
-    init_service: LazyGuard<InitService>,
-    app_config: &State<AppConfig>,
-    secrets_store: &State<SecretsStore>,
-    xmpp_service: &State<XmppServiceInner>,
-    server_config: LazyGuard<ServerConfig>,
-    req: rocket::serde::json::Json<InitWorkspaceRequest>,
-) -> RocketCreated<InitWorkspaceResponse> {
-    let init_service = init_service.inner?;
-    let server_config = server_config.inner?;
-    let req = req.into_inner();
-
-    let workspace = init_service
-        .init_workspace(
-            Arc::new(app_config.inner().clone()),
-            Arc::new(secrets_store.inner().clone()),
-            Arc::new(xmpp_service.inner().clone()),
-            &server_config,
-            req.clone(),
-        )
-        .await?;
-
-    let response = InitWorkspaceResponse {
-        name: req.name,
-        accent_color: workspace.accent_color,
-    };
-
-    let resource_uri =
-        rocket::uri!(crate::features::workspace_details::get_workspace_route).to_string();
-    Ok(status::Created::new(resource_uri).body(response.into()))
-}
-
-pub async fn init_workspace_route_axum(
+pub async fn init_workspace_route(
     init_service: InitService,
     app_config: AppConfig,
     secrets_store: SecretsStore,
@@ -95,7 +57,7 @@ pub async fn init_workspace_route_axum(
         accent_color: workspace.accent_color,
     };
 
-    let resource_uri = "/v1/workspace";
+    let resource_uri = WORKSPACE_ROUTE;
     Ok(Created {
         location: HeaderValue::from_static(resource_uri),
         body: response,
@@ -126,8 +88,7 @@ impl HttpApiError for WorkspaceNotInitialized {
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
-            "Call `PUT {}` to initialize it.",
-            rocket::uri!(crate::features::init::init_workspace_route)
+            "Call `PUT {WORKSPACE_ROUTE}` to initialize it.",
         )]
     }
 }

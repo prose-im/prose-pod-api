@@ -6,18 +6,13 @@
 use std::ops::Deref as _;
 
 use axum::{extract::Path, Json};
-use rocket::serde::json::Json as JsonRocket;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
     xmpp::{BareJid, XmppService},
 };
 
-use crate::{
-    error::{self, Error},
-    forms::JID as JIDUriParam,
-    guards::LazyGuard,
-};
+use crate::error::{self, Error};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetMemberNicknameRequest {
@@ -31,32 +26,7 @@ pub struct SetMemberNicknameResponse {
 }
 
 /// Change a member's nickname.
-#[rocket::put("/v1/members/<member_id>/nickname", format = "json", data = "<req>")]
-pub async fn set_member_nickname_route<'r>(
-    member_id: JIDUriParam,
-    user_info: LazyGuard<UserInfo>,
-    xmpp_service: LazyGuard<XmppService>,
-    req: JsonRocket<SetMemberNicknameRequest>,
-) -> Result<JsonRocket<SetMemberNicknameResponse>, Error> {
-    let jid = user_info.inner?.jid;
-    let xmpp_service = xmpp_service.inner?;
-
-    if jid.deref() != member_id.deref() {
-        Err(error::Forbidden(
-            "You can't change someone else's nickname.".to_string(),
-        ))?
-    }
-
-    xmpp_service.set_own_nickname(&req.nickname).await?;
-
-    Ok(SetMemberNicknameResponse {
-        jid: jid.to_owned(),
-        nickname: req.nickname.to_owned(),
-    }
-    .into())
-}
-
-pub async fn set_member_nickname_route_axum(
+pub async fn set_member_nickname_route(
     Path(member_id): Path<BareJid>,
     UserInfo { jid }: UserInfo,
     xmpp_service: XmppService,

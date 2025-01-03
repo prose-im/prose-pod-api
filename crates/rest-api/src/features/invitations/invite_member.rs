@@ -8,11 +8,8 @@ use axum::extract::State;
 use axum::{http::HeaderValue, Json};
 #[cfg(debug_assertions)]
 use axum_extra::either::Either;
-use rocket::{response::status, serde::json::Json as JsonRocket};
-use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
 use service::{
-    auth::UserInfo,
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
     members::{MemberRepository, MemberRole},
     models::JidNode,
@@ -21,29 +18,12 @@ use service::{
     AppConfig,
 };
 
-#[cfg(not(debug_assertions))]
-use crate::responders::RocketCreated;
-use crate::{
-    error::prelude::*,
-    guards::{Db, LazyGuard},
-    responders::Created,
-};
+use crate::{error::prelude::*, responders::Created};
 #[cfg(debug_assertions)]
-use crate::{
-    features::members::{rocket_uri_macro_get_member_route, Member},
-    forms::JID as JIDUriParam,
-    responders::Either as EitherRocket,
-    AppState,
-};
+use crate::{features::members::Member, AppState};
 
-use super::{model::*, rocket_uri_macro_get_invitation_route};
+use super::model::*;
 
-#[cfg(not(debug_assertions))]
-pub type InviteMemberResponseRocket = RocketCreated<WorkspaceInvitation>;
-#[cfg(not(debug_assertions))]
-fn ok_rocket(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponseRocket {
-    Ok(status::Created::new(resource_uri).body(invitation.into()))
-}
 #[cfg(not(debug_assertions))]
 pub type InviteMemberResponse = Result<Created<WorkspaceInvitation>, Error>;
 #[cfg(not(debug_assertions))]
@@ -52,20 +32,6 @@ fn ok(invitation: WorkspaceInvitation, resource_uri: HeaderValue) -> InviteMembe
         location: resource_uri,
         body: invitation,
     })
-}
-#[cfg(debug_assertions)]
-pub type InviteMemberResponseRocket = Result<
-    EitherRocket<
-        status::Created<JsonRocket<WorkspaceInvitation>>,
-        status::Created<JsonRocket<Member>>,
-    >,
-    Error,
->;
-#[cfg(debug_assertions)]
-fn ok_rocket(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponseRocket {
-    Ok(EitherRocket::left(
-        status::Created::new(resource_uri).body(invitation.into()),
-    ))
 }
 #[cfg(debug_assertions)]
 pub type InviteMemberResponse =
@@ -88,53 +54,7 @@ pub struct InviteMemberRequest {
 }
 
 /// Invite a new member and auto-accept the invitation if enabled.
-#[rocket::post("/v1/invitations", format = "json", data = "<req>")]
-pub async fn invite_member_route<'r>(
-    conn: Connection<'r, Db>,
-    app_config: &rocket::State<AppConfig>,
-    server_config: LazyGuard<ServerConfig>,
-    user_info: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier>,
-    invitation_service: LazyGuard<InvitationService>,
-    req: JsonRocket<InviteMemberRequest>,
-) -> InviteMemberResponseRocket {
-    let db = conn.into_inner();
-    let server_config = server_config.inner?;
-    let notifier = notifier.inner?;
-    let invitation_service = invitation_service.inner?;
-    let form = req.into_inner();
-
-    {
-        let jid = user_info.inner?.jid;
-        // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-        if !MemberRepository::is_admin(db, &jid).await? {
-            return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
-        }
-    }
-
-    let invitation = invitation_service
-        .invite_member(app_config, &server_config, &notifier, form)
-        .await?;
-
-    #[cfg(debug_assertions)]
-    {
-        if app_config.debug_only.automatically_accept_invitations {
-            let jid = invitation.jid;
-            let resource_uri = rocket::uri!(get_member_route(jid.clone().into())).to_string();
-            let member = MemberRepository::get(db, &jid).await?.unwrap();
-            let response: Member = member.into();
-            return Ok(EitherRocket::right(
-                status::Created::new(resource_uri).body(response.into()),
-            ));
-        }
-    }
-
-    let resource_uri = rocket::uri!(get_invitation_route(invitation.id)).to_string();
-    ok_rocket(invitation.into(), resource_uri)
-}
-
-/// Invite a new member and auto-accept the invitation if enabled.
-pub async fn invite_member_route_axum(
+pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { db, .. }): State<AppState>,
     app_config: AppConfig,
     server_config: ServerConfig,

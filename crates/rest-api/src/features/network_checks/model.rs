@@ -6,7 +6,6 @@
 use std::fmt::Display;
 
 use axum::response::sse::Event;
-use rocket::response::stream::Event as EventRocket;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use service::network_checks::*;
@@ -78,13 +77,6 @@ macro_rules! impl_network_check_event_from {
 pub struct CheckResultData<Status> {
     pub description: String,
     pub status: Status,
-}
-
-pub fn end_event_rocket() -> EventRocket {
-    EventRocket::empty()
-        .event("end")
-        .id("end")
-        .with_comment("End of stream")
 }
 
 pub fn end_event() -> Event {

@@ -6,16 +6,9 @@
 use axum::Json;
 use service::workspace::{Workspace, WorkspaceService};
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::error::Error;
 
-#[rocket::get("/v1/workspace")]
-pub async fn get_workspace_route<'r>(
-    workspace_service: LazyGuard<WorkspaceService>,
-) -> Result<rocket::serde::json::Json<Workspace>, Error> {
-    Ok(workspace_service.inner?.get_workspace().await?.into())
-}
-
-pub async fn get_workspace_route_axum(
+pub async fn get_workspace_route(
     workspace_service: WorkspaceService,
 ) -> Result<Json<Workspace>, Error> {
     let workspace = workspace_service.get_workspace().await?;

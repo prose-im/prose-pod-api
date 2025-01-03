@@ -3,8 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-extern crate rocket;
-
 pub mod error;
 pub mod features;
 pub mod forms;
@@ -14,9 +12,6 @@ pub mod responders;
 pub mod util;
 
 use axum::{http::StatusCode, routing::get_service, Router};
-use rocket::{
-    catch, catchers, fairing::AdHoc, fs::FileServer, http::Status, Build, Request, Rocket,
-};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
@@ -30,55 +25,7 @@ use service::{
 use tower_http::services::ServeDir;
 use tracing::error;
 
-use self::error::Error;
-use self::features::startup_actions::sequential_fairings;
-
 pub trait AxumState: Clone + Send + Sync + 'static {}
-
-/// A custom `Rocket` with a default configuration.
-pub fn custom_rocket(
-    rocket: Rocket<Build>,
-    config: AppConfig,
-    server_ctl: ServerCtl,
-    xmpp_service: XmppServiceInner,
-    auth_service: AuthService,
-    notifier: Notifier,
-    secrets_store: SecretsStore,
-    network_checker: NetworkChecker,
-) -> Rocket<Build> {
-    rocket
-        .attach(AdHoc::try_on_ignite(
-            // NOTE: Fairings run in parallel, which means order is not guaranteed
-            //   and race conditions could happen. This fairing runs all the fairings we need,
-            //   one after another (since they all depend on the previous one).
-            "Sequential fairings",
-            |rocket| async {
-                match sequential_fairings(&rocket).await {
-                    Ok(()) => Ok(rocket),
-                    Err(err) => {
-                        error!("{err}");
-                        Err(rocket)
-                    }
-                }
-            },
-        ))
-        .mount("/", features::routes())
-        .mount("/api-docs", FileServer::from("static/api-docs"))
-        .register("/", catchers![default_catcher])
-        .manage(Uuid::from_config(&config))
-        .manage(config)
-        .manage(server_ctl)
-        .manage(xmpp_service)
-        .manage(auth_service)
-        .manage(notifier)
-        .manage(secrets_store)
-        .manage(network_checker)
-}
-
-#[catch(default)]
-fn default_catcher(status: Status, _request: &Request) -> Error {
-    error::HTTPStatus(StatusCode::from_u16(status.code).unwrap()).into()
-}
 
 #[derive(Debug, Clone)]
 pub struct AppState {

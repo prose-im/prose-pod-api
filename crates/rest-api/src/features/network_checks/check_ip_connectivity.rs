@@ -5,23 +5,7 @@
 
 use super::{model::*, prelude::*, util::*};
 
-#[rocket::get("/v1/network/checks/ip", format = "application/json")]
-pub async fn check_ip_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r StateRocket<NetworkChecker>,
-) -> Result<JsonRocket<Vec<NetworkCheckResult>>, Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
-    let res = run_checks(
-        pod_network_config.ip_connectivity_checks().into_iter(),
-        &network_checker,
-    )
-    .await;
-    Ok(res.into())
-}
-
-pub async fn check_ip_route_axum(
+pub async fn check_ip_route(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
@@ -33,30 +17,7 @@ pub async fn check_ip_route_axum(
     Ok(Json(res))
 }
 
-#[rocket::get(
-    "/v1/network/checks/ip?<interval>",
-    format = "text/event-stream",
-    rank = 2
-)]
-pub async fn check_ip_stream_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r StateRocket<NetworkChecker>,
-    interval: Option<forms::Duration>,
-    app_config: &'r StateRocket<AppConfig>,
-) -> Result<EventStream![EventRocket + 'r], Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
-    run_checks_stream_rocket(
-        pod_network_config.ip_connectivity_checks().into_iter(),
-        &network_checker,
-        ip_connectivity_check_result_rocket,
-        interval,
-        app_config,
-    )
-}
-
-pub async fn check_ip_stream_route_axum(
+pub async fn check_ip_stream_route(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
     Query(forms::Interval { interval }): Query<forms::Interval>,
@@ -66,7 +27,7 @@ pub async fn check_ip_stream_route_axum(
         pod_network_config.ip_connectivity_checks().into_iter(),
         network_checker,
         ip_connectivity_check_result,
-        interval.map(forms::Duration),
+        interval,
         app_config,
     )
 }
@@ -113,18 +74,6 @@ impl From<IpConnectivityCheckResult> for IpConnectivityStatus {
             IpConnectivityCheckResult::Missing => Self::Missing,
         }
     }
-}
-
-pub fn ip_connectivity_check_result_rocket(
-    check: &IpConnectivityCheck,
-    status: IpConnectivityStatus,
-) -> EventRocket {
-    EventRocket::json(&CheckResultData {
-        description: check.description(),
-        status,
-    })
-    .id(IpConnectivityCheckId::from(check).to_string())
-    .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
 }
 
 pub fn ip_connectivity_check_result(

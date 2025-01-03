@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, convert::Infallible, fmt::Display, ops::Deref, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
 
 use axum::{
     extract::{Query, State},
@@ -14,12 +14,6 @@ use axum::{
     Json,
 };
 use futures::Stream;
-use rocket::{
-    form::Strict,
-    response::stream::{Event as EventRocket, EventStream},
-    serde::json::Json as JsonRocket,
-    State as StateRocket,
-};
 use serde::{Deserialize, Serialize};
 use service::{
     members::{member_service, MemberRole, MemberService},
@@ -31,7 +25,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard, AppState};
+use crate::{error::Error, AppState};
 
 use super::Member;
 
@@ -44,40 +38,12 @@ pub struct EnrichedMember {
     pub avatar: Option<String>,
 }
 
-#[derive(Debug, Clone, rocket::FromForm, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct JIDs {
-    jids: Vec<JIDUriParam>,
+    jids: Vec<BareJid>,
 }
 
-#[rocket::get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub async fn enrich_members_route(
-    member_service: LazyGuard<MemberService>,
-    jids: Strict<JIDs>,
-    app_config: &StateRocket<AppConfig>,
-) -> Result<JsonRocket<HashMap<BareJid, EnrichedMember>>, Error> {
-    let member_service = member_service.inner?;
-    let jids = jids.into_inner().jids;
-    let jids_count = jids.len();
-    let runner = ConcurrentTaskRunner::default(&app_config);
-
-    let cancellation_token = member_service.cancellation_token.clone();
-    let mut rx = runner.run(
-        jids,
-        move |jid| {
-            let member_service = member_service.clone();
-            Box::pin(async move { member_service.enrich_member(&jid).await })
-        },
-        move || cancellation_token.cancel(),
-    );
-
-    let mut res = HashMap::with_capacity(jids_count);
-    while let Some(Ok(Some(member))) = rx.recv().await {
-        res.insert(member.jid.clone(), EnrichedMember::from(member).into());
-    }
-    Ok(res.into())
-}
-
-pub async fn enrich_members_route_axum(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
     app_config: AppConfig,
@@ -102,42 +68,7 @@ pub async fn enrich_members_route_axum(
     Ok(Json(res))
 }
 
-#[rocket::get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub async fn enrich_members_stream_route<'r>(
-    member_service: LazyGuard<MemberService>,
-    jids: Strict<JIDs>,
-    app_config: &StateRocket<AppConfig>,
-) -> Result<EventStream![EventRocket + 'r], Error> {
-    let member_service = Arc::new(member_service.inner?);
-    let jids = jids.into_inner().jids;
-    let runner = ConcurrentTaskRunner::default(&app_config);
-
-    Ok(EventStream! {
-        fn logged(event: EventRocket) -> EventRocket {
-            trace!("Sending {event:?}…");
-            event
-        }
-
-        let cancellation_token = member_service.cancellation_token.clone();
-        let mut rx = runner.run(
-            jids,
-            move |jid| {
-                let member_service = member_service.clone();
-                Box::pin(async move { member_service .enrich_member(&jid).await })
-            },
-            move || cancellation_token.cancel(),
-        );
-
-        while let Some(Ok(Some(member))) = rx.recv().await {
-            let jid = member.jid.clone();
-            yield logged(EventRocket::json(&EnrichedMember::from(member)).id(jid.to_string()).event("enriched-member"));
-        }
-
-        yield logged(EventRocket::empty().event("end").id("end").with_comment("End of stream"));
-    })
-}
-
-pub async fn enrich_members_stream_route_axum(
+pub async fn enrich_members_stream_route(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
     State(AppState { app_config, .. }): State<AppState>,
@@ -220,14 +151,6 @@ impl From<EnrichedMember> for Member {
             jid: value.jid,
             role: value.role,
         }
-    }
-}
-
-impl Deref for JIDs {
-    type Target = Vec<JIDUriParam>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.jids
     }
 }
 

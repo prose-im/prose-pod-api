@@ -11,17 +11,17 @@ use service::{
 use tracing::*;
 
 pub async fn db_conn(config: &ConfigDatabase) -> DatabaseConnection {
-    prose_pod_api::util::database::db_conn(
+    prose_pod_api::util::database::db_conn_with(
         &config,
-        Some(|opts: &mut service::sea_orm::ConnectOptions| {
+        |opts: &mut service::sea_orm::ConnectOptions| {
             opts.sqlx_logging_level(FromStr::from_str("WARN").unwrap());
-        }),
+        },
     )
     .await
     .expect("Database connection failed")
 }
 
 pub async fn run_migrations(conn: &DatabaseConnection) -> Result<(), DbErr> {
-    debug!("Running database migrations before creating the Rocket…");
+    debug!("Running database migrations…");
     service::Migrator::up(conn, None).await
 }

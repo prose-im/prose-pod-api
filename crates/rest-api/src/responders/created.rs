@@ -7,11 +7,6 @@ use axum::{
     http::{header::LOCATION, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use rocket::response::status;
-
-use crate::error::Error;
-
-pub type RocketCreated<T> = Result<status::Created<rocket::serde::json::Json<T>>, Error>;
 
 pub struct Created<T> {
     pub location: HeaderValue,

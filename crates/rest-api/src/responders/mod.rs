@@ -4,9 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod created;
-mod either;
 mod paginated;
 
 pub use created::*;
-pub use either::*;
 pub use paginated::*;

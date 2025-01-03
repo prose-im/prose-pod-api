@@ -10,24 +10,6 @@ use service::{
 
 use super::prelude::*;
 
-#[rocket::async_trait]
-impl<'r> LazyFromRequest<'r> for XmppService {
-    type Error = error::Error;
-
-    async fn from_request(req: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        let xmpp_service_inner = try_outcome!(request_state!(req, XmppServiceInner));
-
-        let bare_jid = try_outcome!(UserInfo::from_request(req).await).jid;
-        let token = try_outcome!(AuthToken::from_request(req).await);
-
-        let ctx = XmppServiceContext {
-            bare_jid,
-            prosody_token: token.clone(),
-        };
-        Outcome::Success(XmppService::new(Arc::new(xmpp_service_inner.clone()), ctx))
-    }
-}
-
 #[axum::async_trait]
 impl FromRequestParts<AppState> for XmppService {
     type Rejection = error::Error;
