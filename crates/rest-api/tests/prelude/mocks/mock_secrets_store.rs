@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{
@@ -10,9 +10,10 @@ use std::{
 };
 
 use secrecy::SecretString;
+pub use service::secrets::SecretsStoreImpl;
 use service::{
     models::xmpp::BareJid,
-    secrets::{LiveSecretsStore, SecretsStoreImpl, ServiceAccountSecrets},
+    secrets::{LiveSecretsStore, ServiceAccountSecrets},
     AppConfig,
 };
 

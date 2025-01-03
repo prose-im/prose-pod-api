@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use secrecy::{ExposeSecret as _, SecretString};
@@ -11,7 +11,7 @@ use service::{
 
 use std::sync::{Arc, RwLock};
 
-use crate::mock_server_ctl::MockServerCtlState;
+use super::mock_server_ctl::MockServerCtlState;
 
 #[derive(Debug, Clone)]
 pub struct MockAuthService {

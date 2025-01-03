@@ -2,7 +2,7 @@
 //
 // Copyright:
 //   - 2018, Valerian Saliou <valerian@valeriansaliou.name> via valeriansaliou/vigil
-//   - 2024, Rémi Bardon <remi@remibardon.name>
+//   - 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod defaults;
@@ -31,14 +31,14 @@ use crate::{
 pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
 
-pub type AppConfig = Config;
+pub type Config = AppConfig;
 
 /// Prose Pod configuration.
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
 #[derive(Debug, Clone, Deserialize)]
-pub struct Config {
+pub struct AppConfig {
     #[serde(default)]
     pub service_accounts: ConfigServiceAccounts,
     #[serde(default)]
@@ -48,6 +48,7 @@ pub struct Config {
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
+    pub databases: ConfigDatabases,
     /// Some requests may take a long time to execute. Sometimes we support
     /// response timeouts, but don't want to hardcode a value.
     #[serde(default = "defaults::default_response_timeout")]
@@ -59,15 +60,21 @@ pub struct Config {
     pub debug_only: ConfigDebugOnly,
 }
 
-impl Config {
-    pub fn figment() -> Self {
+impl AppConfig {
+    pub fn figment() -> Figment {
         // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
         Figment::new()
             .merge(Toml::file("Prose.toml"))
             .merge(Env::prefixed("PROSE_").split("__"))
-            .extract()
-            .expect("Could not read config")
+    }
+
+    pub fn from_figment(figment: Figment) -> Self {
+        figment.extract().expect("Could not read config")
         // TODO: Check values intervals (e.g. `default_response_timeout`).
+    }
+
+    pub fn from_default_figment() -> Self {
+        Self::from_figment(Self::figment())
     }
 
     pub fn api_jid(&self) -> BareJid {
@@ -239,6 +246,27 @@ pub struct ConfigNotifyEmail {
 
     #[serde(default = "defaults::notify_email_smtp_encrypt")]
     pub smtp_encrypt: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigDatabases {
+    pub main: ConfigDatabase,
+}
+
+/// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigDatabase {
+    pub url: String,
+    #[serde(default)]
+    pub min_connections: Option<u32>,
+    #[serde(default = "defaults::databases_max_connections")]
+    pub max_connections: usize,
+    #[serde(default = "defaults::databases_connect_timeout")]
+    pub connect_timeout: u64,
+    #[serde(default)]
+    pub idle_timeout: Option<u64>,
+    #[serde(default)]
+    pub sqlx_logging: bool,
 }
 
 #[cfg(debug_assertions)]

@@ -1,21 +1,12 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use cucumber::{given, then, when};
-use prose_pod_api::{error::Error, features::roles::SetMemberRoleRequest};
-use rocket::{
-    http::{ContentType, Header},
-    local::asynchronous::{Client, LocalResponse},
-};
-use secrecy::{ExposeSecret as _, SecretString};
-use serde_json::json;
-use service::{members::MemberRepository, members::MemberRole, xmpp::BareJid};
+use prose_pod_api::{error::Error, features::roles::*};
+use service::members::*;
 
-use crate::{cucumber_parameters::MemberRole as MemberRoleParam, TestWorld};
-
-use super::name_to_jid;
+use super::prelude::*;
 
 // GIVEN
 
@@ -74,21 +65,16 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
 
 // WHEN
 
-async fn set_member_role<'a>(
-    client: &'a Client,
+async fn set_member_role(
+    api: &TestServer,
     token: &SecretString,
     jid: &BareJid,
     role: MemberRole,
-) -> LocalResponse<'a> {
-    client
-        .put(format!("/v1/members/{jid}/role"))
-        .header(ContentType::JSON)
-        .header(Header::new(
-            "Authorization",
-            format!("Bearer {}", token.expose_secret()),
-        ))
-        .body(json!(SetMemberRoleRequest { role }).to_string())
-        .dispatch()
+) -> TestResponse {
+    api.put(&format!("/v1/members/{jid}/role"))
+        .add_header(CONTENT_TYPE, "application/json")
+        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+        .json(&json!(SetMemberRoleRequest { role }))
         .await
 }
 
@@ -100,7 +86,7 @@ async fn when_set_role_admin(
 ) -> Result<(), Error> {
     let token = world.token(actor);
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_role(world.client(), &token, &jid, MemberRole::Admin).await;
+    let res = set_member_role(world.api(), &token, &jid, MemberRole::Admin).await;
     world.result = Some(res.into());
     Ok(())
 }
@@ -113,7 +99,7 @@ async fn when_set_role_member(
 ) -> Result<(), Error> {
     let token = world.token(actor);
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_role(world.client(), &token, &jid, MemberRole::Member).await;
+    let res = set_member_role(world.api(), &token, &jid, MemberRole::Member).await;
     world.result = Some(res.into());
     Ok(())
 }
@@ -124,7 +110,7 @@ async fn when_set_role_member(
 async fn then_role(
     world: &mut TestWorld,
     subject: String,
-    role: MemberRoleParam,
+    role: parameters::MemberRole,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &subject).await?;
     let member = MemberRepository::get(world.db(), &jid)

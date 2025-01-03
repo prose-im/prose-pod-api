@@ -1,22 +1,18 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr as _,
-};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
-use cucumber::when;
 use hickory_proto::rr::Name as DomainName;
-use prose_pod_api::features::pod_config::SetPodAddressRequest;
+use prose_pod_api::features::pod_config::*;
 
-use crate::{api_call_fn, user_token, TestWorld};
+use super::prelude::*;
 
 api_call_fn!(
     set_pod_address,
-    put,
+    PUT,
     "/v1/pod/config/address",
     payload: SetPodAddressRequest
 );
@@ -25,7 +21,7 @@ api_call_fn!(
 async fn when_set_pod_address_ipv4(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = set_pod_address(
-        world.client(),
+        world.api(),
         token,
         SetPodAddressRequest {
             ipv4: Some(Ipv4Addr::new(104, 18, 28, 104)),
@@ -40,7 +36,7 @@ async fn when_set_pod_address_ipv4(world: &mut TestWorld, name: String) {
 async fn when_set_pod_address_ipv6(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = set_pod_address(
-        world.client(),
+        world.api(),
         token,
         SetPodAddressRequest {
             ipv6: Some(Ipv6Addr::from_bits(0x2606470068121c68)),
@@ -55,7 +51,7 @@ async fn when_set_pod_address_ipv6(world: &mut TestWorld, name: String) {
 async fn when_set_pod_address_hostname(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = set_pod_address(
-        world.client(),
+        world.api(),
         token,
         SetPodAddressRequest {
             hostname: Some(DomainName::from_str("crisp.chat").unwrap()),

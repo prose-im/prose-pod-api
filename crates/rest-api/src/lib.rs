@@ -11,6 +11,7 @@ pub mod forms;
 pub mod guards;
 pub mod models;
 pub mod responders;
+pub mod util;
 
 use axum::{http::StatusCode, routing::get_service, Router};
 use rocket::{
@@ -120,9 +121,9 @@ impl AppState {
 impl AxumState for AppState {}
 
 /// A custom [`Router`] with a default configuration.
-pub fn custom_router(router: Router<AppState>, app_state: AppState) -> Router<AppState> {
+pub fn custom_router(app_state: AppState) -> Router {
     // on_startup(&app_state).await?;
-    router
+    Router::new()
         .merge(features::router())
         .nest_service(
             "/api-docs",

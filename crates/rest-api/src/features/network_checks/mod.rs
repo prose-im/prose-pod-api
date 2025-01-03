@@ -36,6 +36,9 @@ mod prelude {
 }
 
 use axum::routing::get;
+use axum_extra::handler::HandlerCallWithExtractors as _;
+
+use crate::util::content_type_or::*;
 
 pub use self::check_all::*;
 pub use self::check_dns_records::*;
@@ -60,22 +63,30 @@ pub(super) fn router() -> axum::Router<crate::AppState> {
     axum::Router::new()
         .route(
             "/v1/network/checks",
-            get(check_network_configuration_route_axum),
+            get(with_content_type::<TextEventStream, _>(
+                check_network_configuration_stream_route_axum,
+            )
+            .or(check_network_configuration_route_axum)),
         )
-        .route(
-            "/v1/network/checks",
-            get(check_network_configuration_stream_route_axum),
-        )
-        .route("/v1/network/checks/dns", get(check_dns_records_route_axum))
         .route(
             "/v1/network/checks/dns",
-            get(check_dns_records_stream_route_axum),
+            get(
+                with_content_type::<TextEventStream, _>(check_dns_records_stream_route_axum)
+                    .or(check_dns_records_route_axum),
+            ),
         )
-        .route("/v1/network/checks/ip", get(check_ip_route_axum))
-        .route("/v1/network/checks/ip", get(check_ip_stream_route_axum))
-        .route("/v1/network/checks/ports", get(check_ports_route_axum))
+        .route(
+            "/v1/network/checks/ip",
+            get(
+                with_content_type::<TextEventStream, _>(check_ip_stream_route_axum)
+                    .or(check_ip_route_axum),
+            ),
+        )
         .route(
             "/v1/network/checks/ports",
-            get(check_ports_stream_route_axum),
+            get(
+                with_content_type::<TextEventStream, _>(check_ports_stream_route_axum)
+                    .or(check_ports_route_axum),
+            ),
         )
 }

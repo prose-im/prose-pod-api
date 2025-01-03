@@ -1,9 +1,35 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Debug;
+use std::{fmt::Debug, str::FromStr as _};
+
+use prose_pod_api::error::{self, Error};
+use service::xmpp::BareJid;
+
+use crate::TestWorld;
+
+pub async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
+    // Strip potential `<>` around the JID (if `name` is a JID).
+    let name = name
+        .strip_prefix("<")
+        .and_then(|name| name.strip_suffix(">"))
+        .unwrap_or(name);
+    // Use JID if it already is one.
+    if name.contains("@") {
+        if let Ok(jid) = BareJid::from_str(name) {
+            return Ok(jid);
+        }
+    }
+
+    let domain = world.server_config().await?.domain;
+    Ok(BareJid::new(&format!("{name}@{domain}")).map_err(|err| {
+        error::InternalServerError(format!(
+            "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
+        ))
+    })?)
+}
 
 pub fn assert_contains_if<S: Debug, T: Debug + ?Sized>(
     condition: bool,
@@ -40,87 +66,78 @@ macro_rules! user_token {
 #[macro_export]
 macro_rules! api_call_fn {
     ($fn:ident, $method:ident, $route:expr) => {
-        async fn $fn<'a>(
-            client: &'a rocket::local::asynchronous::Client,
+        async fn $fn(
+            api: &axum_test::TestServer,
             token: secrecy::SecretString,
-        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+        ) -> axum_test::TestResponse {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
-                client
-                    .$method($route)
-                    .header(rocket::http::Header::new(
-                        "Authorization",
-                        format!("Bearer {}", token.expose_secret()),
-                    ))
-                    .dispatch(),
+                api.method(axum::http::Method::$method, $route).add_header(
+                    axum::http::header::AUTHORIZATION,
+                    format!("Bearer {}", token.expose_secret()),
+                ),
             )
             .await
             .unwrap()
         }
     };
-    ($fn:ident, $method:ident, $route:expr, accept: $accept:expr) => {
-        async fn $fn<'a>(
-            client: &'a rocket::local::asynchronous::Client,
+    ($fn:ident, $method:ident, $route:expr, accept: $accept:literal) => {
+        async fn $fn(
+            api: &axum_test::TestServer,
             token: secrecy::SecretString,
-        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+        ) -> axum_test::TestResponse {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
-                client
-                    .$method($route)
-                    .header($accept)
-                    .header(rocket::http::Header::new(
-                        "Authorization",
+                api.method(axum::http::Method::$method, $route)
+                    .add_header(axum::http::header::ACCEPT, $accept)
+                    .add_header(
+                        axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
-                    ))
-                    .dispatch(),
+                    ),
             )
             .await
             .unwrap()
         }
     };
     ($fn:ident, $method:ident, $route:expr, payload: $payload_type:ident) => {
-        async fn $fn<'a>(
-            client: &'a rocket::local::asynchronous::Client,
+        async fn $fn(
+            api: &axum_test::TestServer,
             token: secrecy::SecretString,
             payload: $payload_type,
-        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+        ) -> axum_test::TestResponse {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
-                client
-                    .$method($route)
-                    .header(rocket::http::Header::new(
-                        "Authorization",
+                api.method(axum::http::Method::$method, $route)
+                    .add_header(
+                        axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
-                    ))
-                    .header(rocket::http::ContentType::JSON)
-                    .body(serde_json::json!(payload).to_string())
-                    .dispatch(),
+                    )
+                    .add_header(axum::http::header::CONTENT_TYPE, "application/json")
+                    .json(&serde_json::json!(payload)),
             )
             .await
             .unwrap()
         }
     };
     ($fn:ident, $method:ident, $route:expr, $payload_type:ident, $var:ident, $var_type:ty) => {
-        async fn $fn<'a>(
-            client: &'a rocket::local::asynchronous::Client,
+        async fn $fn(
+            api: &axum_test::TestServer,
             token: secrecy::SecretString,
             state: $var_type,
-        ) -> rocket::local::asynchronous::LocalResponse<'a> {
+        ) -> axum_test::TestResponse {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
-                client
-                    .$method($route)
-                    .header(rocket::http::Header::new(
-                        "Authorization",
+                api.method(axum::http::Method::$method, $route)
+                    .add_header(
+                        axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
-                    ))
-                    .header(rocket::http::ContentType::JSON)
-                    .body(serde_json::json!($payload_type { $var: state.into() }).to_string())
-                    .dispatch(),
+                    )
+                    .add_header(axum::http::header::CONTENT_TYPE, "application/json")
+                    .json(&serde_json::json!($payload_type { $var: state.into() })),
             )
             .await
             .unwrap()

@@ -1,34 +1,24 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::TestWorld;
-use cucumber::{given, then, when};
-use prose_pod_api::error::Error;
 use prose_pod_api::features::workspace_details::*;
-use rocket::http::{Accept, ContentType};
-use rocket::local::asynchronous::{Client, LocalResponse};
-use serde_json::json;
-use service::models::xmpp::AvatarData;
+
+use super::prelude::*;
 
 // WORKSPACE NAME
 
-async fn get_workspace_name<'a>(client: &'a Client) -> LocalResponse<'a> {
-    client.get("/v1/workspace/name").dispatch().await
+async fn get_workspace_name(api: &TestServer) -> TestResponse {
+    api.get("/v1/workspace/name").await
 }
 
-async fn set_workspace_name<'a>(client: &'a Client, name: &str) -> LocalResponse<'a> {
-    client
-        .put("/v1/workspace/name")
-        .header(ContentType::JSON)
-        .body(
-            json!(SetWorkspaceNameRequest {
-                name: name.to_string(),
-            })
-            .to_string(),
-        )
-        .dispatch()
+async fn set_workspace_name(api: &TestServer, name: &str) -> TestResponse {
+    api.put("/v1/workspace/name")
+        .add_header(CONTENT_TYPE, "application/json")
+        .json(&json!(SetWorkspaceNameRequest {
+            name: name.to_string(),
+        }))
         .await
 }
 
@@ -44,19 +34,19 @@ async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(),
 
 #[when("a user gets the workspace name")]
 async fn when_user_gets_workspace_name(world: &mut TestWorld) {
-    let res = get_workspace_name(world.client()).await;
+    let res = get_workspace_name(world.api()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "a user sets the workspace name to {string}")]
 async fn when_set_workspace_name(world: &mut TestWorld, name: String) {
-    let res = set_workspace_name(world.client(), &name).await;
+    let res = set_workspace_name(world.api(), &name).await;
     world.result = Some(res.into());
 }
 
 #[then(expr = "the returned workspace name should be {string}")]
 async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
-    let res: GetWorkspaceNameResponse = world.result().body_into();
+    let res: GetWorkspaceNameResponse = world.result().json();
     assert_eq!(res.name, name);
 }
 
@@ -69,20 +59,16 @@ async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> R
 
 // WORKSPACE ICON
 
-async fn get_workspace_icon<'a>(client: &'a Client) -> LocalResponse<'a> {
-    client
-        .get("/v1/workspace/icon")
-        .header(Accept::JSON)
-        .dispatch()
+async fn get_workspace_icon(api: &TestServer) -> TestResponse {
+    api.get("/v1/workspace/icon")
+        .add_header(ACCEPT, "application/json")
         .await
 }
 
-async fn set_workspace_icon<'a>(client: &'a Client, png_data: String) -> LocalResponse<'a> {
-    client
-        .put("/v1/workspace/icon")
-        .header(Accept::JSON)
+async fn set_workspace_icon(api: &TestServer, png_data: String) -> TestResponse {
+    api.put("/v1/workspace/icon")
+        .add_header(ACCEPT, "application/json")
         .json(&json!(SetWorkspaceIconRequest { image: png_data }))
-        .dispatch()
         .await
 }
 
@@ -98,25 +84,25 @@ async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Re
 
 #[when("a user gets the workspace icon")]
 async fn when_user_gets_workspace_icon(world: &mut TestWorld) {
-    let res = get_workspace_icon(world.client()).await;
+    let res = get_workspace_icon(world.api()).await;
     world.result = Some(res.into());
 }
 
 #[when(expr = "a user sets the workspace icon to {string}")]
 async fn when_set_workspace_icon_url(world: &mut TestWorld, png_data: String) {
-    let res = set_workspace_icon(world.client(), png_data).await;
+    let res = set_workspace_icon(world.api(), png_data).await;
     world.result = Some(res.into());
 }
 
 #[then("the returned workspace icon should be undefined")]
 async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
-    let res: GetWorkspaceIconResponse = world.result().body_into();
+    let res: GetWorkspaceIconResponse = world.result().json();
     assert_eq!(res.icon, None);
 }
 
 #[then(expr = "the returned workspace icon should be {string}")]
 async fn then_response_workspace_icon_is(world: &mut TestWorld, png_data: String) {
-    let res: GetWorkspaceIconResponse = world.result().body_into();
+    let res: GetWorkspaceIconResponse = world.result().json();
     assert_eq!(res.icon, Some(png_data));
 }
 
@@ -134,46 +120,3 @@ async fn then_workspace_icon_url_should_be(
     assert_eq!(workspace_icon, Some(png_data));
     Ok(())
 }
-
-// // WORKSPACE ACCENT COLOR
-
-// #[tokio::test]
-// async fn test_get_workspace_accent_color_not_initialized() {
-//     test_workspace_must_be_initialized(rocket::uri!(super::get_workspace_accent_color));
-// }
-
-// #[tokio::test]
-// async fn test_get_workspace_accent_color() -> Result<(), Box<dyn ErrorError> {
-//     let client = rocket_test_client().await;
-//     init_workspace(&client).await?;
-//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
-
-//     assert_eq!(res.color, None);
-
-//     Ok(())
-// }
-
-// #[tokio::test]
-// async fn test_set_workspace_accent_color() -> Result<(), Box<dyn ErrorError> {
-//     let client = rocket_test_client().await;
-//     init_workspace(&client).await?;
-
-//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
-//     assert_eq!(res.color, None);
-
-//     let color = "#4233BE";
-//     let res: GetWorkspaceAccentColorResponse = put(
-//         &client,
-//         rocket::uri!(super::set_workspace_accent_color),
-//         ContentType::Plain,
-//         json!(SetWorkspaceAccentColorRequest {
-//             color: color.to_string(),
-//         }).to_string(),
-//     )?;
-//     assert_eq!(res.color, Some(color.to_string()));
-
-//     let res: GetWorkspaceAccentColorResponse = get(&client, rocket::uri!(super::get_workspace_accent_color))?;
-//     assert_eq!(res.color, Some(color.to_string()));
-
-//     Ok(())
-// }

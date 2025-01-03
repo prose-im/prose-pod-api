@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod prosody;
@@ -45,7 +45,7 @@ struct TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let mut app_config = AppConfig::figment();
+        let mut app_config = AppConfig::from_default_figment();
         app_config.server.oauth2_registration_key = SecretString::new("dummy-test-key".to_string());
 
         // Connecting SQLite

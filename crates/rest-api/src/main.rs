@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 #[macro_use]
@@ -25,7 +25,7 @@ use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter, FmtSubscriber};
 
 #[launch]
 fn rocket() -> _ {
-    let config = AppConfig::figment();
+    let config = AppConfig::from_default_figment();
     #[cfg(debug_assertions)]
     dbg!(&config);
     let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::from_config(&config)));

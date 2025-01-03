@@ -1,19 +1,19 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{ops::Deref, str::FromStr};
 
+use axum::http::StatusCode;
 use cucumber::Parameter;
-use rocket::http::Status;
 
 #[derive(Debug, Parameter)]
 #[param(name = "status", regex = r"\d{3}|.+")]
-pub struct HTTPStatus(Status);
+pub struct HTTPStatus(StatusCode);
 
 impl Deref for HTTPStatus {
-    type Target = Status;
+    type Target = StatusCode;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -25,21 +25,22 @@ impl FromStr for HTTPStatus {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HTTPStatus(match s {
-            "BadRequest" | "Bad Request" => Status::BadRequest,
-            "Unauthorized" => Status::Unauthorized,
-            "Forbidden" => Status::Forbidden,
-            "Ok" | "OK" => Status::Ok,
-            "Created" => Status::Created,
-            "PartialContent" | "Partial Content" => Status::PartialContent,
-            "NoContent" | "No Content" => Status::NoContent,
-            "NotFound" | "Not Found" => Status::NotFound,
-            "InternalServerError" | "Internal Server Error" => Status::InternalServerError,
+            "BadRequest" | "Bad Request" => StatusCode::BAD_REQUEST,
+            "Unauthorized" => StatusCode::UNAUTHORIZED,
+            "Forbidden" => StatusCode::FORBIDDEN,
+            "Ok" | "OK" => StatusCode::OK,
+            "Created" => StatusCode::CREATED,
+            "PartialContent" | "Partial Content" => StatusCode::PARTIAL_CONTENT,
+            "NoContent" | "No Content" => StatusCode::NO_CONTENT,
+            "NotFound" | "Not Found" => StatusCode::NOT_FOUND,
+            "InternalServerError" | "Internal Server Error" => StatusCode::INTERNAL_SERVER_ERROR,
             s => {
-                if let Some(status) = s.parse::<u16>().ok().and_then(Status::from_code) {
-                    status
-                } else {
-                    return Err(format!("Invalid `HTTPStatus`: {s}"));
-                }
+                let code = s.parse::<u16>().map_err(|_| {
+                    format!("Invalid `HTTPStatus` (use a number if unsupported): {s}")
+                })?;
+                let status = StatusCode::from_u16(code)
+                    .map_err(|_| format!("Invalid `HTTPStatus` (unknown status code): {s}"))?;
+                status
             }
         }))
     }
