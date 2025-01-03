@@ -66,7 +66,9 @@ fn then_response_is_sse_stream(world: &mut TestWorld) {
     let res = world.result();
     assert_eq!(
         res.maybe_content_type(),
-        Some("text/event-stream".to_owned())
+        Some("text/event-stream".to_owned()),
+        "Content type (body: {:#?})",
+        res.text()
     );
 }
 
