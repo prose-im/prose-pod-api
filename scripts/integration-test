@@ -40,6 +40,16 @@ for arg in "$@"; do
 		--server=*)
 			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
 			;;
+		--logs)
+			edo docker compose -f "${COMPOSE_FILE:?}" logs server api coredns
+			exit 0
+			;;
+		--logs=*)
+			SERVICES="${arg#'--logs='}"
+			SERVICES=(${SERVICES//,/ })
+			edo docker compose -f "${COMPOSE_FILE:?}" logs "${SERVICES[@]}"
+			exit 0
+			;;
 		# --help) help ;;
 		*) ARGS_+=("$arg") ;;
 	esac
