@@ -3,7 +3,7 @@ services:
   api:
     image: proseim/prose-pod-api:local
     ports:
-      - "8000:8000"
+      - "8080:8080"
     volumes:
       - "${DATABASE_PATH-./integration-tests.sqlite}:/database.sqlite"
       - "${PROSE_CONFIG_FILE-../Prose-test.toml}:/Prose.toml"

@@ -29,7 +29,7 @@ tests:
             status: 200
 
 env:
-  host: http://127.0.0.1:8000
+  host: http://127.0.0.1:8080
   mainAdminUsername: ${{ internet.userName | fake }}
   mainAdminPassword: ${{ internet.password | fake }}
   hostname: ${{ internet.domainName | fake }}

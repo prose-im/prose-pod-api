@@ -10,7 +10,7 @@ info:
     url: https://github.com/prose-im/prose-pod-api/blob/master/LICENSE.md
   version: 0.3.1
 servers:
-  - url: http://127.0.0.1:8000
+  - url: http://127.0.0.1:8080
     description: Localhost
 paths:
   "/v1/init/first-account":
