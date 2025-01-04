@@ -5,3 +5,6 @@
 
 pub mod content_type_or;
 pub mod database;
+mod error_catcher;
+
+pub use error_catcher::error_catcher;

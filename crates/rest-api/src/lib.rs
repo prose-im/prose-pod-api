@@ -23,8 +23,10 @@ use service::{
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
 };
+use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tracing::error;
+use util::error_catcher;
 
 pub trait AxumState: Clone + Send + Sync + 'static {}
 
@@ -86,8 +88,9 @@ pub async fn custom_router(app_state: AppState) -> Result<Router, StartupError> 
                     format!("Unhandled internal error: {error}"),
                 )
             }),
-        );
-    // .register("/", catchers![default_catcher])
+        )
+        // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
+        .layer(ServiceBuilder::new().map_response(error_catcher));
 
     // Before returning the router, run startup actions to ensure
     // everything works correctly when the API launches.

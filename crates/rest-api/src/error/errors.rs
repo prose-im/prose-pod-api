@@ -155,11 +155,17 @@ impl ErrorCode {
 }
 /// HTTP status (used to change the default output format).
 #[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct HTTPStatus(pub StatusCode);
+#[error("{status}")]
+pub struct HTTPStatus {
+    pub status: StatusCode,
+    pub body: String,
+}
 impl HttpApiError for HTTPStatus {
     fn code(&self) -> ErrorCode {
-        ErrorCode::unknown(self.0)
+        ErrorCode::unknown(self.status)
+    }
+    fn message(&self) -> String {
+        self.body.clone()
     }
 }
 
