@@ -69,8 +69,6 @@ paths:
       return results in a batch (as JSON) for straightforward processing.
 
       When requesting Server-Sent Events, the server will send one `enriched-member` event per JID to enrich, then one `end` event and close the stream. All enriched data fields are optional; if an error occurs (e.g. unknown JID), the server won't return an error but rather a regular `enriched-member` event with all fields being `null` except `jid`.
-
-      NOTE: There might be a `(\n|^):(\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.
     operationId: enrich_members
     security:
       - BearerAuth: []

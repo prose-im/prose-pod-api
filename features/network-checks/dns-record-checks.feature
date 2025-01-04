@@ -26,7 +26,7 @@ Feature: DNS record checks
         And one SSE event is "id:IPv6\nevent:dns-record-check-result\ndata:{\"description\":\"IPv6 record for xmpp.test.prose.org\",\"status\":\"VALID\"}"
         And one SSE event is "id:SRV-c2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"PARTIALLY_VALID\"}"
         And one SSE event is "id:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"PARTIALLY_VALID\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a hostname
@@ -39,4 +39,4 @@ Feature: DNS record checks
         And one SSE event is "id:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"CHECKING\"}"
         And one SSE event is "id:SRV-c2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for client-to-server connections\",\"status\":\"PARTIALLY_VALID\"}"
         And one SSE event is "id:SRV-s2s\nevent:dns-record-check-result\ndata:{\"description\":\"SRV record for server-to-server connections\",\"status\":\"PARTIALLY_VALID\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"

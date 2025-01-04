@@ -1,11 +1,12 @@
-// Copyright © davidpdrsn (https://gist.github.com/davidpdrsn/eb4e703e7e068ece3efd975b8f6bc340)
+// Copyright © davidpdrsn (https://gist.github.com/davidpdrsn/eb4e703e7e068ece3efd975b8f6bc340 via https://github.com/tokio-rs/axum/issues/1654#issuecomment-1454769195)
+// FIX: Use `ACCEPT` header instead of `CONTENT_TYPE`
 
 use std::marker::PhantomData;
 
 use axum::{
     async_trait,
     extract::FromRequestParts,
-    http::{header::CONTENT_TYPE, request::Parts, StatusCode},
+    http::{header::ACCEPT, request::Parts, StatusCode},
     response::{IntoResponse, Response},
 };
 use axum_extra::handler::HandlerCallWithExtractors;
@@ -86,7 +87,7 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let has_right_content_type = parts
             .headers
-            .get(CONTENT_TYPE)
+            .get(ACCEPT)
             .and_then(|value| value.to_str().ok())
             .map_or(false, |value| value.starts_with(C::NAME));
 

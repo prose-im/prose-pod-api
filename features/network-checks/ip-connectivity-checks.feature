@@ -24,7 +24,7 @@ Feature: IP connectivity checks
         And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a hostname
@@ -41,7 +41,7 @@ Feature: IP connectivity checks
         And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"
 
   Rule: Standard hosts are checked too
 
@@ -60,4 +60,4 @@ Feature: IP connectivity checks
         And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
         And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"

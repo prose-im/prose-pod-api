@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::collections::HashSet;
+
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -73,8 +75,7 @@ fn then_response_is_sse_stream(world: &mut TestWorld) {
 }
 
 lazy_static! {
-    static ref UNEXPECTED_SEMICOLON_REGEX: Regex = Regex::new(r"(\n|^):(\n|$)").unwrap();
-    static ref UNEXPECTED_NEWLINE_REGEX: Regex = Regex::new(r"\n$").unwrap();
+    static ref SEMICOLON_SPACE_REGEX: Regex = Regex::new(r"(?m)(^.*:)\s").unwrap();
 }
 
 #[then(expr = "one SSE event is {string}")]
@@ -83,16 +84,24 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
     let events = res
         .text()
         .split("\n\n")
-        .map(ToOwned::to_owned)
+        // Remove spaces after semicolons (`:`)
+        .map(|s| SEMICOLON_SPACE_REGEX.replace_all(&s, "$1").to_string())
         .collect::<Vec<String>>();
+    let events = events
+        .iter()
+        .map(|s| s.lines().collect::<HashSet<_>>())
+        .collect::<Vec<_>>();
+
     let expected = value
         // Unescape double quotes
         .replace(r#"\""#, r#"""#)
         // Unescape newlines
         .replace("\\n", "\n");
+    let expected = expected.lines().collect::<HashSet<_>>();
+
     assert!(
-        events.contains(&expected),
-        "events: {events:#?}\nexpected: {expected:?}"
+        events.iter().any(|set| set == &expected),
+        "events: {events:#?}\nexpected: {expected:#?}"
     );
 }
 
