@@ -3,9 +3,14 @@
 # Configuration file
 # Example: https://github.com/prose-im/prose-pod-api/blob/master/Prose.toml
 
+address = "0.0.0.0"
+
 [branding]
 page_url = "https://admin.prose.org.local/"
 company_name = "Prose Test"
+
+[databases.main]
+url = "sqlite::memory:"
 
 [debug_only]
 automatically_accept_invitations = true
