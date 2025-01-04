@@ -7,7 +7,7 @@
 
 pub mod defaults;
 
-use std::{path::PathBuf, str::FromStr as _};
+use std::{net::IpAddr, path::PathBuf, str::FromStr as _};
 
 use figment::{
     providers::{Env, Format, Toml},
@@ -49,6 +49,12 @@ pub struct AppConfig {
     #[serde(default)]
     pub notify: ConfigNotify,
     pub databases: ConfigDatabases,
+    /// IP address to serve on.
+    #[serde(default = "defaults::address")]
+    pub address: IpAddr,
+    /// Port to serve on.
+    #[serde(default = "defaults::port")]
+    pub port: u16,
     /// Some requests may take a long time to execute. Sometimes we support
     /// response timeouts, but don't want to hardcode a value.
     #[serde(default = "defaults::default_response_timeout")]

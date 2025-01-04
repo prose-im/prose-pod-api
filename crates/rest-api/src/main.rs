@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use prose_pod_api::{custom_router, util::database::db_conn, AppState};
 use service::{
@@ -59,6 +59,8 @@ async fn main() {
             .expect("Failed to set tracing subscriber.");
     }
 
+    let addr = SocketAddr::new(app_config.address, app_config.port);
+
     let app_state = AppState::new(
         db,
         app_config,
@@ -74,8 +76,6 @@ async fn main() {
         .map_err(|err| panic!("{err}"))
         .unwrap();
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

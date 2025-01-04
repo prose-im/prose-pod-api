@@ -5,7 +5,11 @@
 //   - 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr as _};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    path::PathBuf,
+    str::FromStr as _,
+};
 
 use rand::RngCore as _;
 use secrecy::SecretString;
@@ -158,6 +162,14 @@ pub fn databases_max_connections() -> usize {
 
 pub fn databases_connect_timeout() -> u64 {
     5
+}
+
+pub fn address() -> IpAddr {
+    IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+}
+
+pub fn port() -> u16 {
+    8080
 }
 
 /// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
