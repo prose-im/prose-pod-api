@@ -69,7 +69,10 @@ async fn main() {
         secrets_store,
         network_checker,
     );
-    let app = custom_router(app_state);
+    let app = custom_router(app_state)
+        .await
+        .map_err(|err| panic!("{err}"))
+        .unwrap();
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
         .await
