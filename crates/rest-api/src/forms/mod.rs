@@ -6,6 +6,7 @@
 mod interval;
 mod pagination;
 pub mod qs_query;
+mod strict_qs_query;
 mod timestamp;
 
 pub use interval::Interval;

@@ -3352,8 +3352,6 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd34f36fe4c5ba9654417139a9b3a20d2e1de6012ee678ad14d240c22c78d8d6"
 dependencies = [
- "axum",
- "futures",
  "percent-encoding 2.3.1",
  "serde",
  "thiserror 1.0.69",

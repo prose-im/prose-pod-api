@@ -8,9 +8,10 @@ use std::{borrow::Cow, collections::HashSet};
 use axum::{
     body::Body,
     extract::{FromRequestParts, Query as AxumQuery},
-    http::{uri, Request},
+    http::{request::Parts, uri, Request},
 };
-use serde_qs::axum::{QsQuery as StrictQsQuery, QsQueryRejection};
+
+use super::strict_qs_query::{QsQuery as StrictQsQuery, QsQueryRejection};
 
 /// Like [`serde_qs::axum::QsQuery`], but also supports non-bracketed parameters for arrays.
 pub struct QsQuery<T>(pub T);
@@ -81,10 +82,7 @@ where
 {
     type Rejection = QsQueryRejection;
 
-    async fn from_request_parts(
-        parts: &mut axum::http::request::Parts,
-        state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         match StrictQsQuery::<T>::from_request_parts(parts, state).await {
             Ok(StrictQsQuery(res)) => Ok(Self(res)),
             // NOTE: In most cases, `StrictQsQuery` will work because `rename_repeated_query_param_names`
@@ -108,6 +106,20 @@ where
         }
     }
 }
+
+// #[axum::async_trait]
+// impl<T, S> FromRequestParts<S> for StrictQsQuery<T>
+// where
+//     T: serde::de::DeserializeOwned,
+// {
+//     type Rejection = QsQueryRejection;
+
+//     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+//         // TODO: error handling
+//         let query = parts.uri.query().unwrap();
+//         Ok(Self(serde_qs::from_str(query).unwrap()))
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
