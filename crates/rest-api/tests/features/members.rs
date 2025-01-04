@@ -39,12 +39,7 @@ async fn list_members_paged(
 async fn enrich_members(api: &TestServer, token: SecretString, jids: Vec<BareJid>) -> TestResponse {
     api.get(&format!(
         "/v1/enrich-members?{}",
-        jids.iter()
-            .map(ToString::to_string)
-            .map(|s| encode(&s).to_string())
-            .map(|s| format!("jids={s}"))
-            .collect::<Vec<_>>()
-            .join("&")
+        serde_qs::to_string(&json!({ "jids": jids })).unwrap()
     ))
     .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
     .add_header(ACCEPT, "text/event-stream")

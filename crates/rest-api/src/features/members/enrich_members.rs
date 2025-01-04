@@ -6,7 +6,7 @@
 use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
 
 use axum::{
-    extract::{Query, State},
+    extract::State,
     response::{
         sse::{Event, KeepAlive},
         Sse,
@@ -15,6 +15,7 @@ use axum::{
 };
 use futures::Stream;
 use serde::{Deserialize, Serialize};
+use serde_qs::axum::QsQuery;
 use service::{
     members::{member_service, MemberRole, MemberService},
     models::BareJid,
@@ -45,7 +46,7 @@ pub struct JIDs {
 
 pub async fn enrich_members_route(
     member_service: MemberService,
-    Query(JIDs { jids }): Query<JIDs>,
+    QsQuery(JIDs { jids }): QsQuery<JIDs>,
     app_config: AppConfig,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let jids_count = jids.len();
@@ -70,7 +71,7 @@ pub async fn enrich_members_route(
 
 pub async fn enrich_members_stream_route(
     member_service: MemberService,
-    Query(JIDs { jids }): Query<JIDs>,
+    QsQuery(JIDs { jids }): QsQuery<JIDs>,
     State(AppState { app_config, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let member_service = Arc::new(member_service);

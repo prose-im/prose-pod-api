@@ -32,7 +32,6 @@ pub(crate) mod prelude {
         server_config::ServerConfigCreateForm,
         MutationError,
     };
-    pub(crate) use urlencoding::encode;
 
     pub(crate) use crate::{
         api_call_fn, cucumber_parameters as parameters, user_token, util::*, TestWorld,
