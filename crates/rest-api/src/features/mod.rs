@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::AppState;
+use crate::{forms::qs_query::rename_repeated_query_param_names, AppState};
 
 pub mod startup_actions;
 
@@ -36,4 +36,5 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(roles::router(app_state.clone()))
         .merge(server_config::router(app_state.clone()))
         .merge(workspace_details::router(app_state.clone()))
+        .layer(tower::ServiceBuilder::new().map_request(rename_repeated_query_param_names))
 }

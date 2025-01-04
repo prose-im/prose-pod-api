@@ -5,8 +5,10 @@
 
 mod interval;
 mod pagination;
+pub mod qs_query;
 mod timestamp;
 
 pub use interval::Interval;
 pub use pagination::Pagination;
+pub use qs_query::QsQuery;
 pub use timestamp::Timestamp;

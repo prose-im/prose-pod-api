@@ -15,7 +15,6 @@ use axum::{
 };
 use futures::Stream;
 use serde::{Deserialize, Serialize};
-use serde_qs::axum::QsQuery;
 use service::{
     members::{member_service, MemberRole, MemberService},
     models::BareJid,
@@ -26,7 +25,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{error::Error, AppState};
+use crate::{error::Error, forms::QsQuery, AppState};
 
 use super::Member;
 

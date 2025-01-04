@@ -25,6 +25,7 @@ axum = { workspace = true, features = [
 axum-extra = { workspace = true, features = ["cookie"] }
 base64 = { workspace = true }
 chrono = { workspace = true }
+form_urlencoded = { workspace = true }
 futures = { workspace = true }
 hickory-resolver = { workspace = true }
 http-auth-basic = { workspace = true }
