@@ -22,7 +22,7 @@ axum = { workspace = true, features = [
     "tokio",
     "http2",
 ] }
-axum-extra = { workspace = true, features = ["cookie"] }
+axum-extra = { workspace = true, features = ["cookie", "query"] }
 base64 = { workspace = true }
 chrono = { workspace = true }
 form_urlencoded = { workspace = true }
@@ -35,7 +35,6 @@ lazy_static = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_qs = { workspace = true }
 serde_with = { workspace = true }
 service = { workspace = true }
 strum = { workspace = true, features = ["derive"] }

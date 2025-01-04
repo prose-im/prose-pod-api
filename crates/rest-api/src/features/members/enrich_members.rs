@@ -13,6 +13,7 @@ use axum::{
     },
     Json,
 };
+use axum_extra::extract::Query;
 use futures::Stream;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -25,7 +26,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{error::Error, forms::QsQuery, AppState};
+use crate::{error::Error, AppState};
 
 use super::Member;
 
@@ -45,7 +46,7 @@ pub struct JIDs {
 
 pub async fn enrich_members_route(
     member_service: MemberService,
-    QsQuery(JIDs { jids }): QsQuery<JIDs>,
+    Query(JIDs { jids }): Query<JIDs>,
     app_config: AppConfig,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
     let jids_count = jids.len();
@@ -70,7 +71,7 @@ pub async fn enrich_members_route(
 
 pub async fn enrich_members_stream_route(
     member_service: MemberService,
-    QsQuery(JIDs { jids }): QsQuery<JIDs>,
+    Query(JIDs { jids }): Query<JIDs>,
     State(AppState { app_config, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let member_service = Arc::new(member_service);

@@ -5,6 +5,7 @@
 
 use prose_pod_api::features::members::Member as MemberDTO;
 use service::{members::*, prose_xmpp::stanza::vcard4::Nickname, xmpp::xmpp_service};
+use urlencoding::encode;
 
 use super::prelude::*;
 
@@ -39,7 +40,10 @@ async fn list_members_paged(
 async fn enrich_members(api: &TestServer, token: SecretString, jids: Vec<BareJid>) -> TestResponse {
     api.get(&format!(
         "/v1/enrich-members?{}",
-        serde_qs::to_string(&json!({ "jids": jids })).unwrap()
+        jids.iter()
+            .map(|s| format!("jids={}", encode(s.to_string().as_str())))
+            .collect::<Vec<_>>()
+            .join("&")
     ))
     .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
     .add_header(ACCEPT, "text/event-stream")
