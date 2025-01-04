@@ -36,9 +36,13 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                         .post(invite_member_route)
                         .get(get_invitations_route),
                 )
-                .route("/:invitation_id", get(get_invitation_route))
-                .route("/:invitation_id/resend", put(invitation_resend_route))
-                .route("/:invitation_id/cancel", put(invitation_cancel_route))
+                .route(
+                    "/:invitation_id",
+                    MethodRouter::new()
+                        .get(get_invitation_route)
+                        .delete(invitation_cancel_route),
+                )
+                .route("/:invitation_id/resend", post(invitation_resend_route))
                 .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
         )
         .nest(
