@@ -57,7 +57,7 @@ impl MockNetworkChecker {
     }
 }
 
-#[axum::async_trait]
+#[async_trait::async_trait]
 impl NetworkCheckerImpl for MockNetworkChecker {
     async fn ipv4_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
         self.lookup_(domain, DnsRecordDiscriminants::A)

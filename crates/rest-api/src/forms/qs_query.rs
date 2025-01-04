@@ -74,7 +74,7 @@ fn rename_repeated_query_param_names_(query: &str) -> String {
     new_query
 }
 
-#[axum::async_trait]
+#[async_trait::async_trait]
 impl<T, S> FromRequestParts<S> for QsQuery<T>
 where
     T: serde::de::DeserializeOwned + Send,
@@ -107,7 +107,7 @@ where
     }
 }
 
-// #[axum::async_trait]
+// #[async_trait::async_trait]
 // impl<T, S> FromRequestParts<S> for StrictQsQuery<T>
 // where
 //     T: serde::de::DeserializeOwned,

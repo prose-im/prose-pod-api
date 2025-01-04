@@ -5,7 +5,7 @@
 
 use super::prelude::*;
 
-#[axum::async_trait]
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::AppConfig {
     type Rejection = Infallible;
 

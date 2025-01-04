@@ -10,7 +10,7 @@ use crate::guards::prelude::*;
 
 const PREFIX: &'static str = "Bearer ";
 
-#[axum::async_trait]
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::auth::auth_service::AuthToken {
     type Rejection = error::Error;
 

@@ -5,7 +5,7 @@
 
 use crate::guards::prelude::*;
 
-#[axum::async_trait]
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::members::UnauthenticatedMemberService {
     type Rejection = Infallible;
 

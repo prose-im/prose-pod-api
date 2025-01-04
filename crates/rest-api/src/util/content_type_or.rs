@@ -4,7 +4,6 @@
 use std::marker::PhantomData;
 
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{header::ACCEPT, request::Parts, StatusCode},
     response::{IntoResponse, Response},
@@ -76,7 +75,7 @@ where
 
 pub struct WithContentType<C>(PhantomData<C>);
 
-#[async_trait]
+#[async_trait::async_trait]
 impl<S, C> FromRequestParts<S> for WithContentType<C>
 where
     C: ContentType,
