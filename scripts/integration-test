@@ -103,7 +103,7 @@ start() {
 	START_TIME=$(date +%s)
 	cleanup
 	trace 'Starting the Prose Pod…'
-	edo docker compose -f "${COMPOSE_FILE:?}" up --detach
+	edo docker compose -f "${COMPOSE_FILE:?}" up --detach --force-recreate
 }
 
 stop() {
