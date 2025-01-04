@@ -30,10 +30,12 @@ mod prelude {
     };
 }
 
+use axum::middleware::from_extractor_with_state;
 use axum::routing::get;
 use axum_extra::handler::HandlerCallWithExtractors as _;
 
 use crate::util::content_type_or::*;
+use crate::AppState;
 
 pub use self::check_all::*;
 pub use self::check_dns_records::*;
@@ -41,34 +43,43 @@ pub use self::check_ip_connectivity::*;
 pub use self::check_ports_reachability::*;
 pub use self::model::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
+use super::auth::guards::IsAdmin;
+use super::NETWORK_ROUTE;
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        .route(
-            "/v1/network/checks",
-            get(with_content_type::<TextEventStream, _>(
-                check_network_configuration_stream_route,
-            )
-            .or(check_network_configuration_route)),
+        .nest(
+            NETWORK_ROUTE,
+            axum::Router::new()
+                .route(
+                    "/checks",
+                    get(with_content_type::<TextEventStream, _>(
+                        check_network_configuration_stream_route,
+                    )
+                    .or(check_network_configuration_route)),
+                )
+                .route(
+                    "/checks/dns",
+                    get(
+                        with_content_type::<TextEventStream, _>(check_dns_records_stream_route)
+                            .or(check_dns_records_route),
+                    ),
+                )
+                .route(
+                    "/checks/ip",
+                    get(
+                        with_content_type::<TextEventStream, _>(check_ip_stream_route)
+                            .or(check_ip_route),
+                    ),
+                )
+                .route(
+                    "/checks/ports",
+                    get(
+                        with_content_type::<TextEventStream, _>(check_ports_stream_route)
+                            .or(check_ports_route),
+                    ),
+                ),
         )
-        .route(
-            "/v1/network/checks/dns",
-            get(
-                with_content_type::<TextEventStream, _>(check_dns_records_stream_route)
-                    .or(check_dns_records_route),
-            ),
-        )
-        .route(
-            "/v1/network/checks/ip",
-            get(
-                with_content_type::<TextEventStream, _>(check_ip_stream_route)
-                    .or(check_ip_route),
-            ),
-        )
-        .route(
-            "/v1/network/checks/ports",
-            get(
-                with_content_type::<TextEventStream, _>(check_ports_stream_route)
-                    .or(check_ports_route),
-            ),
-        )
+        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        .with_state(app_state)
 }

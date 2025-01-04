@@ -37,6 +37,13 @@ Feature: Members list
         And the "Pagination-Page-Size" header should contain "20"
         And the "Pagination-Page-Count" header should contain "3"
 
+  Rule: Regular members can list members
+
+    Scenario: Authenticated as regular member
+      Given Rémi is a regular member
+       When Rémi lists members
+       Then the call should succeed
+
   Rule: One needs to be authenticated in order to list members
 
     Scenario: Not authenticated

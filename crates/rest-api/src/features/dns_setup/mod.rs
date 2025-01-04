@@ -5,10 +5,20 @@
 
 mod get_dns_records;
 
-use axum::routing::get;
+use axum::{middleware::from_extractor_with_state, routing::get};
+
+use crate::AppState;
 
 pub use self::get_dns_records::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
-    axum::Router::new().route("/v1/network/dns/records", get(get_dns_records_route))
+use super::{auth::guards::IsAdmin, NETWORK_ROUTE};
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
+    axum::Router::new()
+        .nest(
+            NETWORK_ROUTE,
+            axum::Router::new().route("/dns/records", get(get_dns_records_route)),
+        )
+        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        .with_state(app_state)
 }

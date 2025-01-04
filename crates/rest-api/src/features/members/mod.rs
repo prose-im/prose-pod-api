@@ -10,10 +10,14 @@ mod get_members;
 mod guards;
 mod model;
 
-use axum::routing::{get, MethodRouter};
+use axum::middleware::from_extractor_with_state;
+use axum::routing::{delete, get};
 use axum_extra::handler::HandlerCallWithExtractors as _;
 
 use crate::util::content_type_or::*;
+use crate::AppState;
+
+use super::auth::guards::{Authenticated, IsAdmin};
 
 pub use self::delete_member::*;
 pub use self::enrich_members::*;
@@ -21,7 +25,10 @@ pub use self::get_member::*;
 pub use self::get_members::*;
 pub use self::model::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
+pub(crate) const MEMBERS_ROUTE: &'static str = "/v1/members";
+pub(crate) const MEMBER_ROUTE: &'static str = "/v1/members/:jid";
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
         .route(
             "/v1/enrich-members",
@@ -30,11 +37,19 @@ pub(super) fn router() -> axum::Router<crate::AppState> {
                     .or(enrich_members_route),
             ),
         )
-        .route("/v1/members", get(get_members_route))
-        .route(
-            "/v1/members/:jid",
-            MethodRouter::new()
-                .get(get_member_route)
-                .delete(delete_member_route),
+        .nest(
+            MEMBERS_ROUTE,
+            axum::Router::new()
+                .route("/", get(get_members_route))
+                .route("/:jid", get(get_member_route))
+                .route(
+                    "/:jid",
+                    delete(delete_member_route)
+                        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
+                ),
         )
+        .route_layer(from_extractor_with_state::<Authenticated, _>(
+            app_state.clone(),
+        ))
+        .with_state(app_state)
 }

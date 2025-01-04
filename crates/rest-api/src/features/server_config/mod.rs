@@ -9,72 +9,74 @@ mod message_archive;
 mod push_notifications;
 mod util;
 
-use axum::routing::{get, put};
+use axum::{
+    middleware::from_extractor_with_state,
+    routing::{get, put},
+};
 
 pub use file_upload::*;
 pub use get_server_config::*;
 pub use message_archive::*;
 pub use push_notifications::*;
 
-use super::init::SERVER_CONFIG_ROUTE;
+use crate::AppState;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
+use super::{auth::guards::IsAdmin, init::SERVER_CONFIG_ROUTE};
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        // Server config
-        .route(SERVER_CONFIG_ROUTE, get(get_server_config_route))
-        // File upload
-        .route(
-            "/v1/server/config/files/reset",
-            put(reset_files_config_route),
+        .nest(
+            SERVER_CONFIG_ROUTE,
+            axum::Router::new()
+                // Server config
+                .route("/", get(get_server_config_route))
+                // File upload
+                .route("/files/reset", put(reset_files_config_route))
+                .route("/file-upload-allowed", put(set_file_upload_allowed_route))
+                .route(
+                    "/file-storage-encryption-scheme",
+                    put(set_file_storage_encryption_scheme_route),
+                )
+                .route(
+                    "/file-storage-retention",
+                    put(set_file_storage_retention_route),
+                )
+                // Message archive
+                .route("/messaging/reset", put(reset_messaging_config_route))
+                .route(
+                    "/message-archive-enabled",
+                    put(set_message_archive_enabled_route),
+                )
+                .route(
+                    "/message-archive-retention",
+                    put(set_message_archive_retention_route),
+                )
+                .route(
+                    "/message-archive-retention/reset",
+                    put(reset_message_archive_retention_route),
+                )
+                // Push notifications
+                .route(
+                    "/push-notifications/reset",
+                    put(reset_push_notifications_config_route),
+                )
+                .route(
+                    "/push-notification-with-body",
+                    put(set_push_notification_with_body_route),
+                )
+                .route(
+                    "/push-notification-with-body/reset",
+                    put(reset_push_notification_with_body_route),
+                )
+                .route(
+                    "/push-notification-with-sender",
+                    put(set_push_notification_with_sender_route),
+                )
+                .route(
+                    "/push-notification-with-sender/reset",
+                    put(reset_push_notification_with_sender_route),
+                ),
         )
-        .route(
-            "/v1/server/config/file-upload-allowed",
-            put(set_file_upload_allowed_route),
-        )
-        .route(
-            "/v1/server/config/file-storage-encryption-scheme",
-            put(set_file_storage_encryption_scheme_route),
-        )
-        .route(
-            "/v1/server/config/file-storage-retention",
-            put(set_file_storage_retention_route),
-        )
-        // Message archive
-        .route(
-            "/v1/server/config/messaging/reset",
-            put(reset_messaging_config_route),
-        )
-        .route(
-            "/v1/server/config/message-archive-enabled",
-            put(set_message_archive_enabled_route),
-        )
-        .route(
-            "/v1/server/config/message-archive-retention",
-            put(set_message_archive_retention_route),
-        )
-        .route(
-            "/v1/server/config/message-archive-retention/reset",
-            put(reset_message_archive_retention_route),
-        )
-        // Push notifications
-        .route(
-            "/v1/server/config/push-notifications/reset",
-            put(reset_push_notifications_config_route),
-        )
-        .route(
-            "/v1/server/config/push-notification-with-body",
-            put(set_push_notification_with_body_route),
-        )
-        .route(
-            "/v1/server/config/push-notification-with-body/reset",
-            put(reset_push_notification_with_body_route),
-        )
-        .route(
-            "/v1/server/config/push-notification-with-sender",
-            put(set_push_notification_with_sender_route),
-        )
-        .route(
-            "/v1/server/config/push-notification-with-sender/reset",
-            put(reset_push_notification_with_sender_route),
-        )
+        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        .with_state(app_state)
 }

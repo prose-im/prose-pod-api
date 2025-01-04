@@ -8,10 +8,14 @@ mod login;
 
 use axum::routing::post;
 
+use crate::AppState;
+
 pub use self::login::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
-    axum::Router::new().route("/v1/login", post(login_route))
+pub(super) fn router(app_state: AppState) -> axum::Router {
+    axum::Router::new()
+        .route("/v1/login", post(login_route))
+        .with_state(app_state)
 }
 
 mod error {
