@@ -5,10 +5,17 @@
 
 mod set_member_role;
 
-use axum::routing::put;
+use axum::{middleware::from_extractor_with_state, routing::put};
+
+use crate::AppState;
 
 pub use self::set_member_role::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
-    axum::Router::new().route("/v1/members/:jid/role", put(set_member_role_route))
+use super::{auth::guards::IsAdmin, members::MEMBER_ROUTE};
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
+    axum::Router::new()
+        .route(&format!("{MEMBER_ROUTE}/role"), put(set_member_role_route))
+        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        .with_state(app_state)
 }

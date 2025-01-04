@@ -11,7 +11,10 @@ mod invitation_actions;
 mod invite_member;
 mod model;
 
+use axum::middleware::from_extractor_with_state;
 use axum::routing::*;
+
+use crate::AppState;
 
 pub use self::forms::*;
 pub use self::get_invitation::*;
@@ -20,36 +23,30 @@ pub use self::invitation_actions::*;
 pub use self::invite_member::*;
 pub use self::model::*;
 
-pub(super) fn router() -> axum::Router<crate::AppState> {
+use super::auth::guards::IsAdmin;
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        .route(
+        .nest(
             "/v1/invitations",
-            MethodRouter::new()
-                .post(invite_member_route)
-                .get(get_invitations_route),
+            axum::Router::new()
+                .route(
+                    "/",
+                    MethodRouter::new()
+                        .post(invite_member_route)
+                        .get(get_invitations_route),
+                )
+                .route("/:invitation_id", get(get_invitation_route))
+                .route("/:invitation_id/resend", put(invitation_resend_route))
+                .route("/:invitation_id/cancel", put(invitation_cancel_route))
+                .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
         )
-        .route(
-            "/v1/invitations/:invitation_id",
-            get(get_invitation_route),
+        .nest(
+            "/v1/invitation-tokens",
+            axum::Router::new()
+                .route("/:token/details", get(get_invitation_by_token_route))
+                .route("/:token/accept", put(invitation_accept_route))
+                .route("/:token/reject", put(invitation_reject_route)),
         )
-        .route(
-            "/v1/invitations/:invitation_id/resend",
-            put(invitation_resend_route),
-        )
-        .route(
-            "/v1/invitations/:invitation_id/cancel",
-            put(invitation_cancel_route),
-        )
-        .route(
-            "/v1/invitations-tokens/:token/details",
-            get(get_invitation_by_token_route),
-        )
-        .route(
-            "/v1/invitations-tokens/:token/accept",
-            put(invitation_accept_route),
-        )
-        .route(
-            "/v1/invitations-tokens/:token/reject",
-            put(invitation_reject_route),
-        )
+        .with_state(app_state)
 }

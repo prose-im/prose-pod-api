@@ -71,7 +71,7 @@ impl AxumState for AppState {}
 pub fn custom_router(app_state: AppState) -> Router {
     // on_startup(&app_state).await?;
     Router::new()
-        .merge(features::router())
+        .merge(features::router(app_state))
         .nest_service(
             "/api-docs",
             get_service(ServeDir::new("static/api-docs")).handle_error(|error| async move {
@@ -81,6 +81,5 @@ pub fn custom_router(app_state: AppState) -> Router {
                 )
             }),
         )
-        // .register("/", catchers![default_catcher])
-        .with_state(app_state)
+    // .register("/", catchers![default_catcher])
 }

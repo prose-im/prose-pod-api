@@ -5,7 +5,11 @@
 
 mod auth_service;
 mod auth_token;
+mod authenticated;
 mod basic_auth;
+mod is_admin;
 mod user_info;
 
+pub use authenticated::*;
 pub use basic_auth::*;
+pub use is_admin::*;
