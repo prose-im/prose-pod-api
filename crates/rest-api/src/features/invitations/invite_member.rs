@@ -9,9 +9,11 @@ use axum::{http::HeaderValue, Json};
 #[cfg(debug_assertions)]
 use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
+#[cfg(debug_assertions)]
+use service::members::MemberRepository;
 use service::{
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
-    members::{MemberRepository, MemberRole},
+    members::MemberRole,
     models::JidNode,
     notifications::Notifier,
     server_config::ServerConfig,
