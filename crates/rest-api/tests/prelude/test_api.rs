@@ -23,6 +23,9 @@ pub async fn test_server(world: &TestWorld) -> TestServer {
         world.network_checker.clone(),
     );
 
-    let router = prose_pod_api::custom_router(app_state);
+    let router = prose_pod_api::custom_router(app_state)
+        .await
+        .map_err(|err| panic!("{err}"))
+        .unwrap();
     TestServer::new(router).expect("Could not create test server.")
 }
