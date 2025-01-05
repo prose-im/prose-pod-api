@@ -7,6 +7,9 @@
     "Shell Script": {
       "hard_tabs": true,
       "format_on_save": "on"
+    },
+    "Markdown": {
+      "wrap_guides": [96]
     }
   },
   "language_overrides": {
