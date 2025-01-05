@@ -49,13 +49,15 @@ impl Notifier {
         .await?;
 
         // Try sending
-        self.notifier
-            .dispatch(&self.branding, notification)
-            .map_err(|e| Error::CouldNotDispatch(e))?;
+        if let Err(err) = self.notifier.dispatch(&self.branding, notification) {
+            // Store status if undelivered
+            todo!("Store status if undelivered");
 
-        // Store status if undelivered
+            return Err(Error::CouldNotDispatch(err));
+        };
 
         // Delete if delivered
+        todo!("Delete if delivered");
 
         Ok(())
     }
