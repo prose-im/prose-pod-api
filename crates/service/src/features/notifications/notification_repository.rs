@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{prelude::*, QueryOrder as _, Set};
 
 use super::{
-    dependencies::any_notifier::Notification,
+    dependencies::notifier::Notification,
     entities::notification::{ActiveModel, Column, Entity, Model},
 };
 

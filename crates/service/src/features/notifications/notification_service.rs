@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    dependencies::{any_notifier::Notification, Notifier},
+    dependencies::{notifier::Notification, Notifier},
     NotificationCreateForm, NotificationRepository,
 };
 

@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 
 use service::{
     app_config::ConfigBranding,
-    notifications::dependencies::any_notifier::{GenericNotifier, Notification},
+    notifications::dependencies::notifier::{GenericNotifier, Notification},
 };
 
 #[derive(Debug, Default, Clone)]

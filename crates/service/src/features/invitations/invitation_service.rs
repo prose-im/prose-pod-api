@@ -22,7 +22,7 @@ use crate::{
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
     notifications::{
-        dependencies::any_notifier::Notification, notification_service, NotificationService,
+        dependencies::notifier::Notification, notification_service, NotificationService,
     },
     server_config::ServerConfig,
     util::bare_jid_from_username,
