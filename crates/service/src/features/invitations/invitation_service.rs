@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
+use std::{path::PathBuf, str::FromStr as _, sync::Arc};
 
 use chrono::{DateTime, Utc};
 #[cfg(debug_assertions)]
@@ -17,10 +17,13 @@ use tracing::warn;
 use tracing::{debug, error};
 
 use crate::{
+    app_config::ConfigBranding,
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{notification_service, NotificationService},
+    notifications::{
+        dependencies::any_notifier::Notification, notification_service, NotificationService,
+    },
     server_config::ServerConfig,
     util::bare_jid_from_username,
     xmpp::{BareJid, JidNode},
@@ -166,6 +169,34 @@ impl InvitationService {
         }
 
         Ok(invitation)
+    }
+}
+
+impl NotificationService {
+    async fn send_workspace_invitation(
+        &self,
+        branding: &ConfigBranding,
+        accept_token: &InvitationToken,
+        reject_token: &InvitationToken,
+    ) -> Result<(), notification_service::Error> {
+        let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
+        self.send(&Notification::WorkspaceInvitation {
+            accept_link: admin_site_root
+                .join(format!(
+                    "invitations/accept/{}",
+                    accept_token.expose_secret()
+                ))
+                .display()
+                .to_string(),
+            reject_link: admin_site_root
+                .join(format!(
+                    "invitations/reject/{}",
+                    reject_token.expose_secret()
+                ))
+                .display()
+                .to_string(),
+        })
+        .await
     }
 }
 

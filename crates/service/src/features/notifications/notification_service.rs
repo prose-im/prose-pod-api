@@ -3,13 +3,10 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr as _, sync::Arc};
-
-use secrecy::ExposeSecret as _;
+use std::sync::Arc;
 
 use crate::{
     app_config::ConfigBranding,
-    invitations::InvitationToken,
     sea_orm::{prelude::*, DatabaseConnection},
 };
 
@@ -37,7 +34,7 @@ impl NotificationService {
         }
     }
 
-    async fn send(&self, notification: &Notification) -> Result<(), Error> {
+    pub async fn send(&self, notification: &Notification) -> Result<(), Error> {
         // Store in DB
         NotificationRepository::create(
             self.db.as_ref(),
@@ -60,32 +57,6 @@ impl NotificationService {
         todo!("Delete if delivered");
 
         Ok(())
-    }
-
-    pub async fn send_workspace_invitation(
-        &self,
-        branding: &ConfigBranding,
-        accept_token: &InvitationToken,
-        reject_token: &InvitationToken,
-    ) -> Result<(), Error> {
-        let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
-        self.send(&Notification::WorkspaceInvitation {
-            accept_link: admin_site_root
-                .join(format!(
-                    "invitations/accept/{}",
-                    accept_token.expose_secret()
-                ))
-                .display()
-                .to_string(),
-            reject_link: admin_site_root
-                .join(format!(
-                    "invitations/reject/{}",
-                    reject_token.expose_secret()
-                ))
-                .display()
-                .to_string(),
-        })
-        .await
     }
 }
 
