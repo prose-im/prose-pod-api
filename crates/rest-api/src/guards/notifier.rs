@@ -6,7 +6,7 @@
 use super::prelude::*;
 
 #[async_trait::async_trait]
-impl FromRequestParts<AppState> for service::notifications::Notifier {
+impl FromRequestParts<AppState> for service::notifications::NotificationService {
     type Rejection = Infallible;
 
     async fn from_request_parts(

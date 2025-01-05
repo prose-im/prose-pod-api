@@ -13,21 +13,21 @@ use crate::{
     sea_orm::{prelude::*, DatabaseConnection},
 };
 
-use crate::notifications::{
-    dependencies, dependencies::any_notifier::Notification, NotificationCreateForm,
-    NotificationRepository,
+use super::{
+    dependencies::{any_notifier::Notification, Notifier},
+    NotificationCreateForm, NotificationRepository,
 };
 
-pub struct Notifier {
+pub struct NotificationService {
     db: Arc<DatabaseConnection>,
-    notifier: Arc<dependencies::Notifier>,
+    notifier: Arc<Notifier>,
     branding: Arc<ConfigBranding>,
 }
 
-impl Notifier {
+impl NotificationService {
     pub fn new(
         db: Arc<DatabaseConnection>,
-        notifier: Arc<dependencies::Notifier>,
+        notifier: Arc<Notifier>,
         branding: Arc<ConfigBranding>,
     ) -> Self {
         Self {
@@ -89,10 +89,10 @@ impl Notifier {
     }
 }
 
-pub type Error = NotifierError;
+pub type Error = NotificationServiceError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum NotifierError {
+pub enum NotificationServiceError {
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
     #[error("Could not dispatch notification: {0}")]

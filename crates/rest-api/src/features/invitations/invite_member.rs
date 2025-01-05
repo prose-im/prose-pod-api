@@ -15,7 +15,7 @@ use service::{
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
     members::MemberRole,
     models::JidNode,
-    notifications::Notifier,
+    notifications::NotificationService,
     server_config::ServerConfig,
     AppConfig,
 };
@@ -60,12 +60,12 @@ pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { db, .. }): State<AppState>,
     app_config: AppConfig,
     server_config: ServerConfig,
-    notifier: Notifier,
+    notification_service: NotificationService,
     invitation_service: InvitationService,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
     let invitation = invitation_service
-        .invite_member(&app_config, &server_config, &notifier, req)
+        .invite_member(&app_config, &server_config, &notification_service, req)
         .await?;
 
     #[cfg(debug_assertions)]

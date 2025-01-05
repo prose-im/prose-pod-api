@@ -20,7 +20,7 @@ use crate::{
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{notifier, Notifier},
+    notifications::{notification_service, NotificationService},
     server_config::ServerConfig,
     util::bare_jid_from_username,
     xmpp::{BareJid, JidNode},
@@ -55,7 +55,7 @@ impl InvitationService {
         &self,
         app_config: &AppConfig,
         server_config: &ServerConfig,
-        notifier: &Notifier,
+        notification_service: &NotificationService,
         form: impl Into<InviteMemberForm>,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
@@ -88,7 +88,7 @@ impl InvitationService {
         )
         .await?;
 
-        if let Err(err) = notifier
+        if let Err(err) = notification_service
             .send_workspace_invitation(
                 &app_config.branding,
                 &invitation.accept_token.into(),
@@ -364,14 +364,14 @@ impl InvitationService {
     pub async fn resend(
         &self,
         config: &AppConfig,
-        notifier: &Notifier,
+        notification_service: &NotificationService,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
         let invitation = InvitationRepository::get_by_id(self.db.as_ref(), &invitation_id)
             .await?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
-        notifier
+        notification_service
             .send_workspace_invitation(
                 &config.branding,
                 &invitation.accept_token.into(),
@@ -389,7 +389,7 @@ pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
-    CouldNotSendInvitation(notifier::Error),
+    CouldNotSendInvitation(notification_service::Error),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }

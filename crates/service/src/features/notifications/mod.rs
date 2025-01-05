@@ -7,8 +7,8 @@ pub mod dependencies;
 pub mod entities;
 pub(crate) mod migrations;
 pub mod notification_repository;
-pub mod services;
+pub mod notification_service;
 
 pub use entities::*;
 pub use notification_repository::*;
-pub use services::*;
+pub use notification_service::*;
