@@ -81,6 +81,7 @@ paths:
     get: { $ref: "features/members.yaml#/paths/get_members" }
   "/v1/members/{memberId}":
     get: { $ref: "features/members.yaml#/paths/get_member" }
+    delete: { $ref: "features/members.yaml#/paths/delete_member" }
   "/v1/enrich-members":
     get: { $ref: "features/members.yaml#/paths/enrich_members" }
   "/v1/members/{memberId}/role":

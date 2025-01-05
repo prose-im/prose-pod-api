@@ -57,6 +57,19 @@ paths:
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "404": { $ref: "../shared.yaml#/components/responses/NotFound" }
+  delete_member:
+    tags: [Members]
+    summary: Remove a member
+    description: Remove the account of a member and all its data.
+    operationId: delete_member
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/MemberId"
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   enrich_members:
     tags: [Members]
     summary: Enrich members
