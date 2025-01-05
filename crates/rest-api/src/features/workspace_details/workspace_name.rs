@@ -1,29 +1,24 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{get, put, serde::json::Json};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use service::workspace::WorkspaceService;
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::error::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct GetWorkspaceNameResponse {
     pub name: String,
 }
 
-#[get("/v1/workspace/name")]
-pub async fn get_workspace_name_route<'r>(
-    workspace_service: LazyGuard<WorkspaceService>,
+pub async fn get_workspace_name_route(
+    workspace_service: WorkspaceService,
 ) -> Result<Json<GetWorkspaceNameResponse>, Error> {
-    let workspace_service = workspace_service.inner?;
-
     let name = workspace_service.get_workspace_name().await?;
-
-    let response = GetWorkspaceNameResponse { name }.into();
-    Ok(response)
+    Ok(Json(GetWorkspaceNameResponse { name }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,16 +28,10 @@ pub struct SetWorkspaceNameRequest {
 
 pub type SetWorkspaceNameResponse = GetWorkspaceNameResponse;
 
-#[put("/v1/workspace/name", format = "json", data = "<req>")]
-pub async fn set_workspace_name_route<'r>(
-    workspace_service: LazyGuard<WorkspaceService>,
-    req: Json<SetWorkspaceNameRequest>,
+pub async fn set_workspace_name_route(
+    workspace_service: WorkspaceService,
+    Json(req): Json<SetWorkspaceNameRequest>,
 ) -> Result<Json<SetWorkspaceNameResponse>, Error> {
-    let workspace_service = workspace_service.inner?;
-    let req = req.into_inner();
-
     let name = workspace_service.set_workspace_name(req.name).await?;
-
-    let response = SetWorkspaceNameResponse { name }.into();
-    Ok(response)
+    Ok(Json(SetWorkspaceNameResponse { name }))
 }

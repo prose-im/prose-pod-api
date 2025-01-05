@@ -1,13 +1,13 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{serde::json::Json, State};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use service::auth::{auth_service::AuthToken, AuthService};
 
-use crate::{error::Error, guards::LazyGuard, models::SerializableSecretString};
+use crate::{error::Error, models::SerializableSecretString};
 
 use super::guards::BasicAuth;
 
@@ -21,13 +21,10 @@ pub struct LoginResponse {
 }
 
 /// Log user in and return an authentication token.
-#[post("/v1/login")]
 pub async fn login_route(
-    basic_auth: LazyGuard<BasicAuth>,
-    auth_service: &State<AuthService>,
+    basic_auth: BasicAuth,
+    auth_service: AuthService,
 ) -> Result<Json<LoginResponse>, Error> {
-    let basic_auth = basic_auth.inner?;
-
     let token = auth_service
         .log_in(&basic_auth.jid, &basic_auth.password)
         .await?;

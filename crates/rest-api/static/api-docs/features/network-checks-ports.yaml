@@ -6,8 +6,6 @@ paths:
       Checks that all required ports are opened and reachable.
 
       This route regularly checks the domain's open ports to provide "live" information. It opens a stream of Server-Sent Events and sends `port-reachability-check-result` events every few seconds.
-
-      NOTE: There might be a `(\n|^):(\n|$)` lurking in one of the events. We don't know where it comes from and it should be ignored by SSE parsers but don't be suprised to see it.
     operationId: check_ports
     security:
       - BearerAuth: []

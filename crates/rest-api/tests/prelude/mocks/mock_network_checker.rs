@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{
@@ -12,7 +12,6 @@ use std::{
 
 use cucumber::given;
 use hickory_proto::rr::Name as HickoryDomainName;
-use rocket::async_trait;
 use service::network_checks::{
     DnsLookupError, DnsRecord, DnsRecordDiscriminants, NetworkCheckerImpl, SrvLookupResponse,
 };
@@ -58,7 +57,7 @@ impl MockNetworkChecker {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl NetworkCheckerImpl for MockNetworkChecker {
     async fn ipv4_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
         self.lookup_(domain, DnsRecordDiscriminants::A)

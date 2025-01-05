@@ -1,27 +1,24 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
 
-use rocket::{Build, Rocket};
-use sea_orm_rocket::Database as _;
-use service::{
-    server_config::ServerConfigRepository,
-    xmpp::{ServerCtl, ServerManager},
-    AppConfig,
-};
+use service::{server_config::ServerConfigRepository, xmpp::ServerManager};
 use tracing::{debug, info};
 
-use crate::{features::init::ServerConfigNotInitialized, guards::Db};
+use crate::{features::init::ServerConfigNotInitialized, AppState};
 
-pub async fn init_server_config(rocket: &Rocket<Build>) -> Result<(), String> {
+pub async fn init_server_config(
+    AppState {
+        db,
+        server_ctl,
+        app_config,
+        ..
+    }: &AppState,
+) -> Result<(), String> {
     debug!("Initializing the XMPP server configuration…");
-
-    let db = &Db::fetch(&rocket).unwrap().conn;
-    let server_ctl: &ServerCtl = rocket.state().unwrap();
-    let app_config: &AppConfig = rocket.state().unwrap();
 
     let server_config = match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => server_config,

@@ -1,25 +1,22 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{get, serde::json::Json};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use service::network_checks::{DnsRecordWithStringRepr, DnsSetupStep, PodNetworkConfig};
 
-use crate::{error::Error, guards::LazyGuard};
+use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetDnsRecordsResponse {
     pub steps: Vec<DnsSetupStep<DnsRecordWithStringRepr>>,
 }
 
-#[get("/v1/network/dns/records", format = "json")]
 pub async fn get_dns_records_route(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
+    pod_network_config: PodNetworkConfig,
 ) -> Result<Json<GetDnsRecordsResponse>, Error> {
-    let pod_network_config = pod_network_config.inner?;
-
     let steps: Vec<_> = pod_network_config.dns_setup_steps().collect();
 
     let res = GetDnsRecordsResponse { steps };

@@ -1,25 +1,21 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use axum::{extract::State, http::HeaderValue, Json};
+use axum_extra::either::Either;
 use hickory_resolver::proto::rr::Name as DomainName;
-use rocket::{response::status::Created, serde::json::Json, Either};
-use sea_orm_rocket::Connection;
 use serde::{Deserialize, Serialize};
-use service::{
-    auth::UserInfo,
-    members::MemberRepository,
-    pod_config::{PodAddress, PodConfig, PodConfigCreateForm, PodConfigRepository},
-};
+use service::pod_config::{PodAddress, PodConfig, PodConfigCreateForm, PodConfigRepository};
 
 use crate::{
-    error::{self, Error},
-    features::init::PodAddressNotInitialized,
-    guards::{Db, LazyGuard},
+    error::Error, features::init::PodAddressNotInitialized, responders::Created, AppState,
 };
+
+use super::POD_ADDRESS_ROUTE;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SetPodAddressRequest {
@@ -38,49 +34,31 @@ impl Into<PodConfigCreateForm> for SetPodAddressRequest {
     }
 }
 
-#[put("/v1/pod/config/address", format = "json", data = "<req>")]
-pub async fn set_pod_address_route<'r>(
-    conn: Connection<'r, Db>,
-    user_info: LazyGuard<UserInfo>,
-    req: Json<SetPodAddressRequest>,
-) -> Result<Either<Created<Json<PodAddress>>, Json<PodAddress>>, Error> {
-    let db = conn.into_inner();
-    let req = req.into_inner();
-
-    let jid = user_info.inner?.jid;
-    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
-    }
-
-    if PodConfigRepository::get(db).await?.is_some() {
-        let model = PodConfigRepository::set(db, req).await?;
+pub async fn set_pod_address_route(
+    State(AppState { db, .. }): State<AppState>,
+    Json(req): Json<SetPodAddressRequest>,
+) -> Result<Either<Created<PodAddress>, Json<PodAddress>>, Error> {
+    if PodConfigRepository::get(&db).await?.is_some() {
+        let model = PodConfigRepository::set(&db, req).await?;
 
         let res = PodConfig::from(model).address.unwrap();
-        Ok(Either::Right(res.into()))
+        Ok(Either::E2(Json(res)))
     } else {
-        let model = PodConfigRepository::create(db, req).await?;
+        let model = PodConfigRepository::create(&db, req).await?;
 
-        let resource_uri = uri!(get_pod_address_route).to_string();
+        let resource_uri = HeaderValue::from_static(POD_ADDRESS_ROUTE);
         let res = PodConfig::from(model).address.unwrap();
-        Ok(Either::Left(Created::new(resource_uri).body(res.into())))
+        Ok(Either::E1(Created {
+            location: resource_uri,
+            body: res,
+        }))
     }
 }
 
-#[get("/v1/pod/config/address")]
-pub async fn get_pod_address_route<'r>(
-    conn: Connection<'r, Db>,
-    user_info: LazyGuard<UserInfo>,
+pub async fn get_pod_address_route(
+    State(AppState { db, .. }): State<AppState>,
 ) -> Result<Json<PodAddress>, Error> {
-    let db = conn.into_inner();
-
-    let jid = user_info.inner?.jid;
-    // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-    if !MemberRepository::is_admin(db, &jid).await? {
-        return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
-    }
-
-    let Some(address) = PodConfigRepository::get(db)
+    let Some(address) = PodConfigRepository::get(&db)
         .await?
         .and_then(|model| PodConfig::from(model).address)
     else {

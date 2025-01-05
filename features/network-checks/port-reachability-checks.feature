@@ -23,7 +23,7 @@ Feature: Port reachability checks
         And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a hostname
@@ -39,7 +39,7 @@ Feature: Port reachability checks
         And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"
 
   Rule: Standard hosts are checked too
 
@@ -56,4 +56,4 @@ Feature: Port reachability checks
         And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
         And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end\ndata:"
+        And one SSE event is ":End of stream\nid:end\nevent:end"

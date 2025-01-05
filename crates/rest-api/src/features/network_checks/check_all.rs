@@ -1,11 +1,13 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use axum::response::sse::KeepAlive;
 use futures::{stream::FuturesOrdered, StreamExt};
-use service::{util::ConcurrentTaskRunner, AppConfig};
+use service::util::ConcurrentTaskRunner;
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
 use crate::features::network_checks::{
@@ -16,14 +18,10 @@ use crate::features::network_checks::{
 
 use super::{model::*, prelude::*, util::*};
 
-#[get("/v1/network/checks", format = "application/json")]
-pub async fn check_network_configuration_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
+pub async fn check_network_configuration_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner().to_owned();
-
     let mut tasks: FuturesOrdered<tokio::task::JoinHandle<_>> = FuturesOrdered::default();
 
     for check in pod_network_config.dns_record_checks() {
@@ -53,63 +51,66 @@ pub async fn check_network_configuration_route<'r>(
     Ok(Json(res))
 }
 
-#[get(
-    "/v1/network/checks?<interval>",
-    format = "text/event-stream",
-    rank = 2
-)]
-pub fn check_network_configuration_stream_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
-    interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
+pub async fn check_network_configuration_stream_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let retry_interval = interval.map_or_else(
         || Ok(app_config.default_retry_interval.into_std_duration()),
         validate_retry_interval,
     )?;
+    let runner = ConcurrentTaskRunner::default(&app_config)
+        .no_timeout()
+        .with_retry_interval(retry_interval);
+    let cancellation_token = runner.cancellation_token.clone();
 
-    Ok(EventStream! {
-        fn logged(event: Event) -> Event {
-            trace!("Sending {event:?}…");
-            event
-        }
+    let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);
+    tokio::spawn(async move {
+        tokio::select! {
+                _ = async {
+                    fn logged(event: Event) -> Event {
+                        trace!("Sending {event:?}…");
+                        event
+                    }
 
-        let runner = ConcurrentTaskRunner::default(&app_config)
-            .no_timeout()
-            .with_retry_interval(retry_interval);
-        let (tx, mut rx) = mpsc::channel::<Event>(32);
+                    let (tx, mut rx) = mpsc::channel::<Event>(32);
 
-        let dns_record_checks = pod_network_config.dns_record_checks();
-        let port_reachability_checks = pod_network_config.port_reachability_checks();
-        let ip_connectivity_checks = pod_network_config.ip_connectivity_checks();
+                    let dns_record_checks = pod_network_config.dns_record_checks();
+                    let port_reachability_checks = pod_network_config.port_reachability_checks();
+                    let ip_connectivity_checks = pod_network_config.ip_connectivity_checks();
 
-        network_checker.run_checks(
-            dns_record_checks,
-            dns_record_check_result,
-            tx.clone(),
-            &runner,
-        );
-        network_checker.run_checks(
-            port_reachability_checks.into_iter(),
-            port_reachability_check_result,
-            tx.clone(),
-            &runner,
-        );
-        network_checker.run_checks(
-            ip_connectivity_checks.into_iter(),
-            ip_connectivity_check_result,
-            tx.clone(),
-            &runner,
-        );
+                    network_checker.run_checks(
+                        dns_record_checks,
+                        dns_record_check_result,
+                        tx.clone(),
+                        &runner,
+                    );
+                    network_checker.run_checks(
+                        port_reachability_checks.into_iter(),
+                        port_reachability_check_result,
+                        tx.clone(),
+                        &runner,
+                    );
+                    network_checker.run_checks(
+                        ip_connectivity_checks.into_iter(),
+                        ip_connectivity_check_result,
+                        tx.clone(),
+                        &runner,
+                    );
 
-        while let Some(event) = rx.recv().await {
-            yield logged(event);
-        }
+                    while let Some(event) = rx.recv().await {
+                        sse_tx.send(Ok(logged(event))).await.unwrap();
+                    }
 
-        yield logged(end_event());
-    })
+                    sse_tx.send(Ok(logged(end_event()))).await.unwrap();
+                } => {}
+            _ = cancellation_token.cancelled() => {
+                trace!("Token cancelled.");
+            }
+        };
+    });
+
+    Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }

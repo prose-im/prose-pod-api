@@ -110,4 +110,4 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  host: http://127.0.0.1:8000
+  host: http://127.0.0.1:8080

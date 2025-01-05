@@ -1,8 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use axum::http::header::InvalidHeaderValue;
 use service::{
     members::{UserCreateError, UserDeleteError},
     notifications::notifier,
@@ -16,7 +17,7 @@ use super::prelude::*;
 impl ErrorCode {
     pub const NOT_IMPLEMENTED: Self = Self {
         value: "not_implemented",
-        http_status: Status::NotImplemented,
+        http_status: StatusCode::NOT_IMPLEMENTED,
         log_level: LogLevel::Error,
     };
 }
@@ -32,7 +33,7 @@ impl HttpApiError for NotImplemented {
 impl ErrorCode {
     pub const INTERNAL_SERVER_ERROR: Self = Self {
         value: "internal_server_error",
-        http_status: Status::InternalServerError,
+        http_status: StatusCode::INTERNAL_SERVER_ERROR,
         log_level: LogLevel::Error,
     };
 }
@@ -50,7 +51,7 @@ impl HttpApiError for InternalServerError {
 impl ErrorCode {
     pub const UNAUTHORIZED: Self = Self {
         value: "unauthorized",
-        http_status: Status::Unauthorized,
+        http_status: StatusCode::UNAUTHORIZED,
         log_level: LogLevel::Info,
     };
 }
@@ -72,7 +73,7 @@ impl HttpApiError for Unauthorized {
 impl ErrorCode {
     pub const FORBIDDEN: Self = Self {
         value: "forbidden",
-        http_status: Status::Forbidden,
+        http_status: StatusCode::FORBIDDEN,
         log_level: LogLevel::Warn,
     };
 }
@@ -88,7 +89,7 @@ impl HttpApiError for Forbidden {
 impl ErrorCode {
     pub const DATABASE_ERROR: Self = Self {
         value: "database_error",
-        http_status: Status::InternalServerError,
+        http_status: StatusCode::INTERNAL_SERVER_ERROR,
         log_level: LogLevel::Error,
     };
 }
@@ -104,7 +105,7 @@ impl HttpApiError for UnknownDbErr {
 impl ErrorCode {
     pub const BAD_REQUEST: Self = Self {
         value: "bad_request",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Info,
     };
 }
@@ -122,7 +123,7 @@ impl HttpApiError for BadRequest {
 impl ErrorCode {
     pub const NOT_FOUND: Self = Self {
         value: "not_found",
-        http_status: Status::NotFound,
+        http_status: StatusCode::NOT_FOUND,
         log_level: LogLevel::Info,
     };
 }
@@ -138,11 +139,11 @@ impl HttpApiError for NotFound {
 }
 
 impl ErrorCode {
-    pub fn unknown(status: Status) -> Self {
+    pub fn unknown(status: StatusCode) -> Self {
         Self {
             value: "unknown",
             http_status: status,
-            log_level: if (500..600).contains(&status.code) {
+            log_level: if (500..600).contains(&status.as_u16()) {
                 // Server error
                 LogLevel::Error
             } else {
@@ -152,14 +153,19 @@ impl ErrorCode {
         }
     }
 }
-/// HTTP status (used by the [default catcher](https://rocket.rs/guide/v0.5/requests/#default-catchers)
-/// to change the output format).
+/// HTTP status (used to change the default output format).
 #[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct HTTPStatus(pub Status);
+#[error("{status}")]
+pub struct HTTPStatus {
+    pub status: StatusCode,
+    pub body: String,
+}
 impl HttpApiError for HTTPStatus {
     fn code(&self) -> ErrorCode {
-        ErrorCode::unknown(self.0)
+        ErrorCode::unknown(self.status)
+    }
+    fn message(&self) -> String {
+        self.body.clone()
     }
 }
 
@@ -257,3 +263,5 @@ impl HttpApiError for service::errors::UnexpectedHttpResponse {
             .ok()
     }
 }
+
+impl_into_error!(InvalidHeaderValue, ErrorCode::INTERNAL_SERVER_ERROR);

@@ -122,9 +122,9 @@ impl ProsodyOAuth2 {
                 |client| {
                     client.post(self.url("register")).json(&json!({
                         "client_name": "Prose Pod API",
-                        "client_uri": "https://prose-pod-api:8000",
+                        "client_uri": "https://prose-pod-api:8080",
                         "redirect_uris": [
-                            "https://prose-pod-api:8000/redirect"
+                            "https://prose-pod-api:8080/redirect"
                         ],
                     }))
                 },
@@ -166,7 +166,7 @@ struct TokenResponse {
 ///     "application_type": "web",
 ///     "client_secret": "3e841d9de79645a1c4c3f82f5d59485531b7e03119d8622acc31dc243baff2a5",
 ///     "redirect_uris": [
-///         "https://prose-pod-api:8000/redirect"
+///         "https://prose-pod-api:8080/redirect"
 ///     ],
 ///     "iat": 1731265591,
 ///     "nonce": "Rxd4I7sqjsFq",
@@ -174,7 +174,7 @@ struct TokenResponse {
 ///         "code"
 ///     ],
 ///     "exp": 1731269191,
-///     "client_uri": "https://prose-pod-api:8000",
+///     "client_uri": "https://prose-pod-api:8080",
 ///     "client_name": "Prose Pod API",
 ///     "client_id_issued_at": 1731265591,
 ///     "client_id":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBsaWNhdGlvbl90eXBlIjoid2ViIiwiaWF0IjoxNzMxMjY1NTkxLCJjbGllbnRfbmFtZSI6IlByb3NlIFBvZCBBUEkiLCJyZXwb25zZV90eXBlcyI6WyJjb2RlIl0sImNsaWVudF91cmkiOiJodHRwczovL3Byb3NlLXBvZC1hcGk6ODA4MCIsImdyYW50X3R5cGVzIjpbImF1dGhvcml6YXRpb25fY29kZSJdLCJyZWRcmVjdF91cmlzIjpbImh0dHBzOi8vcHJvc2UtcG9kLWFwaTo4MDgwL3JlZGlyZWN0Il0sIm5vbmNlIjoiUnhkNEk3c3Fqc0ZxIiwidG9rZW5fZW5kcG9pbnRfYXV0aF9tZXRob2QiOiJjGllbnRfc2VjcmV0X2Jhc2ljIiwiZXhwIjoxNzMxMjY5MTkxfQ.-4b6hnqllAzH9TjzaRhQWbJ09cGuVs-8hXB05yLx1Qo",

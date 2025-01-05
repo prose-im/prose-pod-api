@@ -1,11 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
 
-use rocket::{response::status, serde::json::Json, State};
+use axum::{http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
@@ -16,7 +16,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, guards::LazyGuard, responders::Created};
+use crate::{error::prelude::*, features::init::WORKSPACE_ROUTE, responders::Created};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -34,24 +34,19 @@ pub struct InitWorkspaceResponse {
     pub accent_color: Option<String>,
 }
 
-#[put("/v1/workspace", format = "json", data = "<req>")]
-pub async fn init_workspace_route<'r>(
-    init_service: LazyGuard<InitService>,
-    app_config: &State<AppConfig>,
-    secrets_store: &State<SecretsStore>,
-    xmpp_service: &State<XmppServiceInner>,
-    server_config: LazyGuard<ServerConfig>,
-    req: Json<InitWorkspaceRequest>,
-) -> Created<InitWorkspaceResponse> {
-    let init_service = init_service.inner?;
-    let server_config = server_config.inner?;
-    let req = req.into_inner();
-
+pub async fn init_workspace_route(
+    init_service: InitService,
+    app_config: AppConfig,
+    secrets_store: SecretsStore,
+    xmpp_service: XmppServiceInner,
+    server_config: ServerConfig,
+    Json(req): Json<InitWorkspaceRequest>,
+) -> Result<Created<InitWorkspaceResponse>, Error> {
     let workspace = init_service
         .init_workspace(
-            Arc::new(app_config.inner().clone()),
-            Arc::new(secrets_store.inner().clone()),
-            Arc::new(xmpp_service.inner().clone()),
+            Arc::new(app_config),
+            Arc::new(secrets_store),
+            Arc::new(xmpp_service),
             &server_config,
             req.clone(),
         )
@@ -62,8 +57,11 @@ pub async fn init_workspace_route<'r>(
         accent_color: workspace.accent_color,
     };
 
-    let resource_uri = uri!(crate::features::workspace_details::get_workspace_route).to_string();
-    Ok(status::Created::new(resource_uri).body(response.into()))
+    let resource_uri = WORKSPACE_ROUTE;
+    Ok(Created {
+        location: HeaderValue::from_static(resource_uri),
+        body: response,
+    })
 }
 
 // ERRORS
@@ -71,12 +69,12 @@ pub async fn init_workspace_route<'r>(
 impl ErrorCode {
     pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
         value: "workspace_not_initialized",
-        http_status: Status::BadRequest,
+        http_status: StatusCode::BAD_REQUEST,
         log_level: LogLevel::Warn,
     };
     pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
         value: "workspace_already_initialized",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }
@@ -90,8 +88,7 @@ impl HttpApiError for WorkspaceNotInitialized {
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(
-            "Call `PUT {}` to initialize it.",
-            uri!(crate::features::init::init_workspace_route)
+            "Call `PUT {WORKSPACE_ROUTE}` to initialize it.",
         )]
     }
 }

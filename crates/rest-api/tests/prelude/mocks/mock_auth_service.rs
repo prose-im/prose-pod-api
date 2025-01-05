@@ -1,8 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use base64::engine::{general_purpose::STANDARD_NO_PAD as Base64, Engine as _};
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
     auth::{auth_service, AuthServiceImpl, AuthToken, UserInfo},
@@ -11,7 +12,7 @@ use service::{
 
 use std::sync::{Arc, RwLock};
 
-use crate::mock_server_ctl::MockServerCtlState;
+use super::mock_server_ctl::MockServerCtlState;
 
 #[derive(Debug, Clone)]
 pub struct MockAuthService {
@@ -44,8 +45,9 @@ impl MockAuthService {
     }
 
     pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<AuthToken, auth_service::Error> {
-        let token =
-            SecretString::new(serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap());
+        let json = serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap();
+        let base64 = Base64.encode(json);
+        let token = SecretString::new(base64);
 
         Ok(AuthToken(token))
     }
@@ -81,7 +83,14 @@ impl AuthServiceImpl for MockAuthService {
     }
 
     async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, auth_service::Error> {
-        serde_json::from_str(&token.expose_secret()).map_err(|err| {
+        let base64 = token.expose_secret();
+        let json = Base64.decode(base64).map_err(|err| {
+            auth_service::Error::Other(format!("Could Base64-decode test token: {err}"))
+        })?;
+        let json = String::from_utf8(json).map_err(|err| {
+            auth_service::Error::Other(format!("Test token is not valid UTF-8: {err}"))
+        })?;
+        serde_json::from_str(&json).map_err(|err| {
             auth_service::Error::Other(format!("Could not parse data from test token: {err}"))
         })
     }

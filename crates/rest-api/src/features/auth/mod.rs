@@ -1,15 +1,21 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod guards;
 mod login;
 
-pub use login::*;
+use axum::routing::post;
 
-pub(super) fn routes() -> Vec<rocket::Route> {
-    routes![login_route]
+use crate::AppState;
+
+pub use self::login::*;
+
+pub(super) fn router(app_state: AppState) -> axum::Router {
+    axum::Router::new()
+        .route("/v1/login", post(login_route))
+        .with_state(app_state)
 }
 
 mod error {

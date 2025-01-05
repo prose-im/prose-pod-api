@@ -1,28 +1,27 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod errors;
 
 use std::{
-    io::Cursor,
+    str::FromStr as _,
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use rocket::{
-    http::{ContentType, Header, Status},
-    response::{self, Responder},
-    serde::json::json,
-    Request, Response,
+use axum::{
+    http::{header::CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
 };
 use serde::Serialize;
-use tracing::{debug, error, info, trace, warn};
+use serde_json::json;
+use tracing::*;
 
 pub use self::errors::*;
 
 pub mod prelude {
-    pub use rocket::http::Status;
+    pub use axum::http::StatusCode;
 
     pub use crate::{error, impl_into_error};
 
@@ -34,7 +33,7 @@ pub struct ErrorCode {
     /// User-facing error code (a string for easier understanding).
     pub value: &'static str,
     /// HTTP status to return for this error.
-    pub http_status: Status,
+    pub http_status: StatusCode,
     pub log_level: LogLevel,
 }
 
@@ -69,7 +68,7 @@ pub struct Error {
 
     /// HTTP status to return for this error.
     #[serde(skip_serializing)]
-    pub http_status: Status,
+    pub http_status: StatusCode,
 
     #[serde(skip_serializing)]
     http_headers: Vec<(String, String)>,
@@ -136,48 +135,47 @@ impl Error {
         self.logged.store(true, Ordering::Relaxed);
     }
 
-    fn add_headers(&self, response: &mut Response<'_>) {
+    fn add_headers(&self, headers: &mut HeaderMap) {
         for (name, value) in self.http_headers.iter() {
-            response.set_header(Header::new(name.clone(), value.clone()));
+            // FIXME: Store typed values in `http_headers`.
+            headers.insert(
+                HeaderName::from_str(&name).unwrap(),
+                HeaderValue::from_str(&value).unwrap(),
+            );
         }
     }
 
-    fn as_json(&self) -> String {
+    fn as_json(&self) -> serde_json::Value {
         if cfg!(debug_assertions) {
-            serde_json::to_string(self).unwrap_or_else(|_| {
+            serde_json::to_value(self).unwrap_or_else(|_| {
                 json!({
                     "error": self.code,
                     "message": self.message,
                     "debug_info": self.debug_info,
                 })
-                .to_string()
             })
         } else {
             json!({
                 "error": self.code,
             })
-            .to_string()
         }
     }
 
     /// Construct the HTTP response.
-    fn as_response(&self) -> response::Result<'static> {
-        let body = self.as_json();
-        let mut response = Response::build()
+    fn as_response(&self) -> Response {
+        let mut builder = Response::builder()
             .status(self.http_status)
-            .header(ContentType::JSON)
-            .sized_body(body.len(), Cursor::new(body))
-            .ok()?;
+            .header(CONTENT_TYPE, "application/json");
 
-        self.add_headers(&mut response);
+        self.add_headers(builder.headers_mut().unwrap());
 
-        Ok(response)
+        let body = axum::body::Body::from(self.as_json().to_string());
+        builder.body(body).unwrap()
     }
 }
 
-#[rocket::async_trait]
-impl<'r> Responder<'r, 'static> for Error {
-    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'static> {
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
         self.log();
         self.as_response()
     }

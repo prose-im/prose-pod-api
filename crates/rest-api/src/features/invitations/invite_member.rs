@@ -1,52 +1,49 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{post, response::status, serde::json::Json, State};
-use sea_orm_rocket::Connection;
+#[cfg(debug_assertions)]
+use axum::extract::State;
+use axum::{http::HeaderValue, Json};
+#[cfg(debug_assertions)]
+use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
+#[cfg(debug_assertions)]
+use service::members::MemberRepository;
 use service::{
-    auth::UserInfo,
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
-    members::{MemberRepository, MemberRole},
+    members::MemberRole,
     models::JidNode,
     notifications::Notifier,
     server_config::ServerConfig,
     AppConfig,
 };
 
-#[cfg(not(debug_assertions))]
-use crate::responders::Created;
-use crate::{
-    error::prelude::*,
-    guards::{Db, LazyGuard},
-};
+use crate::{error::prelude::*, responders::Created};
 #[cfg(debug_assertions)]
-use crate::{
-    features::members::{rocket_uri_macro_get_member_route, Member},
-    forms::JID as JIDUriParam,
-    responders::Either,
-};
+use crate::{features::members::Member, AppState};
 
-use super::{model::*, rocket_uri_macro_get_invitation_route};
+use super::model::*;
 
 #[cfg(not(debug_assertions))]
-pub type InviteMemberResponse = Created<WorkspaceInvitation>;
+pub type InviteMemberResponse = Result<Created<WorkspaceInvitation>, Error>;
 #[cfg(not(debug_assertions))]
-fn ok(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponse {
-    Ok(status::Created::new(resource_uri).body(invitation.into()))
+fn ok(invitation: WorkspaceInvitation, resource_uri: HeaderValue) -> InviteMemberResponse {
+    Ok(Created {
+        location: resource_uri,
+        body: invitation,
+    })
 }
 #[cfg(debug_assertions)]
-pub type InviteMemberResponse = Result<
-    Either<status::Created<Json<WorkspaceInvitation>>, status::Created<Json<Member>>>,
-    Error,
->;
+pub type InviteMemberResponse =
+    Result<Either<Created<WorkspaceInvitation>, Created<Member>>, Error>;
 #[cfg(debug_assertions)]
-fn ok(invitation: WorkspaceInvitation, resource_uri: String) -> InviteMemberResponse {
-    Ok(Either::left(
-        status::Created::new(resource_uri).body(invitation.into()),
-    ))
+fn ok(invitation: WorkspaceInvitation, resource_uri: HeaderValue) -> InviteMemberResponse {
+    Ok(Either::E1(Created {
+        location: resource_uri,
+        body: invitation,
+    }))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -59,49 +56,34 @@ pub struct InviteMemberRequest {
 }
 
 /// Invite a new member and auto-accept the invitation if enabled.
-#[post("/v1/invitations", format = "json", data = "<req>")]
-pub async fn invite_member_route<'r>(
-    conn: Connection<'r, Db>,
-    app_config: &State<AppConfig>,
-    server_config: LazyGuard<ServerConfig>,
-    user_info: LazyGuard<UserInfo>,
-    notifier: LazyGuard<Notifier>,
-    invitation_service: LazyGuard<InvitationService>,
-    req: Json<InviteMemberRequest>,
+pub async fn invite_member_route(
+    #[cfg(debug_assertions)] State(AppState { db, .. }): State<AppState>,
+    app_config: AppConfig,
+    server_config: ServerConfig,
+    notifier: Notifier,
+    invitation_service: InvitationService,
+    Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
-    let db = conn.into_inner();
-    let server_config = server_config.inner?;
-    let notifier = notifier.inner?;
-    let invitation_service = invitation_service.inner?;
-    let form = req.into_inner();
-
-    {
-        let jid = user_info.inner?.jid;
-        // TODO: Use a request guard instead of checking in the route body if the user can invite members.
-        if !MemberRepository::is_admin(db, &jid).await? {
-            return Err(error::Forbidden(format!("<{jid}> is not an admin")).into());
-        }
-    }
-
     let invitation = invitation_service
-        .invite_member(app_config, &server_config, &notifier, form)
+        .invite_member(&app_config, &server_config, &notifier, req)
         .await?;
 
     #[cfg(debug_assertions)]
     {
         if app_config.debug_only.automatically_accept_invitations {
             let jid = invitation.jid;
-            let resource_uri = uri!(get_member_route(jid.clone().into())).to_string();
-            let member = MemberRepository::get(db, &jid).await?.unwrap();
+            let resource_uri = format!("/v1/members/{jid}");
+            let member = MemberRepository::get(&db, &jid).await?.unwrap();
             let response: Member = member.into();
-            return Ok(Either::right(
-                status::Created::new(resource_uri).body(response.into()),
-            ));
+            return Ok(Either::E2(Created {
+                location: HeaderValue::from_str(&resource_uri)?,
+                body: response,
+            }));
         }
     }
 
-    let resource_uri = uri!(get_invitation_route(invitation.id)).to_string();
-    ok(invitation.into(), resource_uri)
+    let resource_uri = format!("/v1/invitations/{}", invitation.id);
+    ok(invitation.into(), HeaderValue::from_str(&resource_uri)?)
 }
 
 // ERRORS
@@ -109,14 +91,14 @@ pub async fn invite_member_route<'r>(
 impl ErrorCode {
     const INVITE_ALREADY_EXISTS: Self = Self {
         value: "invitation_already_exists",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }
 impl ErrorCode {
     pub(super) const MEMBER_ALREADY_EXISTS: Self = Self {
         value: "member_already_exists",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }

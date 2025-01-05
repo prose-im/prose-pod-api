@@ -1,11 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::fmt::Display;
 
-use rocket::response::stream::Event;
+use axum::response::sse::Event;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use service::network_checks::*;
@@ -80,8 +80,8 @@ pub struct CheckResultData<Status> {
 }
 
 pub fn end_event() -> Event {
-    Event::empty()
+    Event::default()
         .event("end")
         .id("end")
-        .with_comment("End of stream")
+        .comment("End of stream")
 }

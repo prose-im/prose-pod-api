@@ -1,16 +1,17 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use linked_hash_map::LinkedHashMap;
 use secrecy::SecretString;
+pub use service::xmpp::ServerCtlImpl;
 use service::{
     members::MemberRole,
     prosody::{AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
     server_config::ServerConfig,
-    xmpp::{server_ctl::Error, BareJid, ServerCtlImpl},
+    xmpp::{server_ctl::Error, BareJid},
     AppConfig, ProsodyConfigSection,
 };
 

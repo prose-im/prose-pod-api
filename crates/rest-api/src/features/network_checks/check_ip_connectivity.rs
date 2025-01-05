@@ -1,43 +1,31 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::{model::*, prelude::*, util::*};
 
-#[get("/v1/network/checks/ip", format = "application/json")]
-pub async fn check_ip_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
+pub async fn check_ip_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
     let res = run_checks(
         pod_network_config.ip_connectivity_checks().into_iter(),
         &network_checker,
     )
     .await;
-    Ok(res.into())
+    Ok(Json(res))
 }
 
-#[get(
-    "/v1/network/checks/ip?<interval>",
-    format = "text/event-stream",
-    rank = 2
-)]
-pub async fn check_ip_stream_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
-    interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
+pub async fn check_ip_stream_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     run_checks_stream(
         pod_network_config.ip_connectivity_checks().into_iter(),
-        &network_checker,
+        network_checker,
         ip_connectivity_check_result,
         interval,
         app_config,
@@ -92,10 +80,12 @@ pub fn ip_connectivity_check_result(
     check: &IpConnectivityCheck,
     status: IpConnectivityStatus,
 ) -> Event {
-    Event::json(&CheckResultData {
-        description: check.description(),
-        status,
-    })
-    .id(IpConnectivityCheckId::from(check).to_string())
-    .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
+    Event::default()
+        .event(NetworkCheckEvent::IpConnectivityCheckResult.to_string())
+        .id(IpConnectivityCheckId::from(check).to_string())
+        .json_data(&CheckResultData {
+            description: check.description(),
+            status,
+        })
+        .unwrap()
 }

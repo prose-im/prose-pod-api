@@ -3,21 +3,23 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{put, response::status::NoContent, serde::json::Json};
-use sea_orm_rocket::Connection;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
+use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
     members::{MemberRepository, MemberRole, MemberService, SetMemberRoleError},
+    xmpp::BareJid,
 };
 
 use crate::{
     error::{self, CustomErrorCode, Error, ErrorCode, HttpApiError},
     features::members::Member,
-    forms::JID as JIDUriParam,
-    guards::{Db, LazyGuard},
-    impl_into_error,
-    responders::Either,
+    impl_into_error, AppState,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,25 +27,20 @@ pub struct SetMemberRoleRequest {
     pub role: MemberRole,
 }
 
-#[put("/v1/members/<jid>/role", format = "json", data = "<req>")]
-pub async fn set_member_role_route<'r>(
-    conn: Connection<'r, Db>,
-    jid: JIDUriParam,
-    req: Json<SetMemberRoleRequest>,
-    member_service: LazyGuard<MemberService>,
-    user_info: LazyGuard<UserInfo>,
-) -> Result<Either<Json<Member>, NoContent>, Error> {
-    let db = conn.into_inner();
-    let req = req.into_inner();
-    let member_service = member_service.inner?;
-
+pub async fn set_member_role_route(
+    State(AppState { db, .. }): State<AppState>,
+    Path(jid): Path<BareJid>,
+    member_service: MemberService,
+    user_info: UserInfo,
+    Json(req): Json<SetMemberRoleRequest>,
+) -> Result<Either<Json<Member>, StatusCode>, Error> {
     {
-        let Some(caller) = MemberRepository::get(db, &user_info.inner?.jid).await? else {
+        let Some(caller) = MemberRepository::get(&db, &user_info.jid).await? else {
             return Err(Error::from(error::Forbidden(format!(
                 "Cannot get role for '{jid}'."
             ))));
         };
-        if caller.jid() == jid.0 {
+        if caller.jid() == jid {
             return Err(Error::from(error::Forbidden(
                 "Cannot change your own role.".to_string(),
             )));
@@ -58,9 +55,9 @@ pub async fn set_member_role_route<'r>(
     match member_service.set_member_role(&jid, req.role).await? {
         Some(member) => {
             let response = Member::from(member);
-            Ok(Either::left(response.into()))
+            Ok(Either::E1(response.into()))
         }
-        None => Ok(Either::right(NoContent)),
+        None => Ok(Either::E2(StatusCode::NO_CONTENT)),
     }
 }
 

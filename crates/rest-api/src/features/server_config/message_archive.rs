@@ -1,16 +1,15 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::serde::json::Json;
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::ServerConfig,
     xmpp::ServerManager,
 };
 
-use crate::{guards::LazyGuard, server_config_reset_route, server_config_set_route};
+use crate::{server_config_reset_route, server_config_set_route};
 
 server_config_reset_route!(
     "/v1/server/config/messaging/reset",

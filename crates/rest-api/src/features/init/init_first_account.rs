@@ -1,9 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rocket::{response::status, serde::json::Json};
+use axum::{http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
@@ -13,11 +13,7 @@ use service::{
 };
 
 use crate::{
-    error::prelude::*,
-    features::members::{rocket_uri_macro_get_member_route, Member},
-    forms::JID as JIDUriParam,
-    guards::LazyGuard,
-    models::SerializableSecretString,
+    error::prelude::*, features::members::Member, models::SerializableSecretString,
     responders::Created,
 };
 
@@ -28,25 +24,21 @@ pub struct InitFirstAccountRequest {
     pub nickname: String,
 }
 
-#[put("/v1/init/first-account", format = "json", data = "<req>")]
 pub async fn init_first_account_route(
-    init_service: LazyGuard<InitService>,
-    server_config: LazyGuard<ServerConfig>,
-    member_service: LazyGuard<UnauthenticatedMemberService>,
-    req: Json<InitFirstAccountRequest>,
-) -> Created<Member> {
-    let init_service = init_service.inner?;
-    let server_config = &server_config.inner?;
-    let member_service = &member_service.inner?;
-    let form = req.into_inner();
-
+    init_service: InitService,
+    server_config: ServerConfig,
+    member_service: UnauthenticatedMemberService,
+    Json(req): Json<InitFirstAccountRequest>,
+) -> Result<Created<Member>, Error> {
     let member = init_service
-        .init_first_account(server_config, member_service, form)
+        .init_first_account(&server_config, &member_service, req)
         .await?;
 
-    let resource_uri = uri!(get_member_route(member.jid())).to_string();
-    let response = Member::from(member);
-    Ok(status::Created::new(resource_uri).body(response.into()))
+    let resource_uri = format!("/v1/members/{jid}", jid = member.jid());
+    Ok(Created {
+        location: HeaderValue::from_str(&resource_uri)?,
+        body: Member::from(member),
+    })
 }
 
 // ERRORS
@@ -54,7 +46,7 @@ pub async fn init_first_account_route(
 impl ErrorCode {
     pub const FIRST_ACCOUNT_ALREADY_CREATED: Self = Self {
         value: "first_account_already_created",
-        http_status: Status::Conflict,
+        http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
 }

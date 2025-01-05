@@ -1,43 +1,31 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use super::{model::*, prelude::*, util::*};
 
-#[get("/v1/network/checks/ports", format = "application/json")]
-pub async fn check_ports_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
+pub async fn check_ports_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
     let res = run_checks(
         pod_network_config.port_reachability_checks().into_iter(),
         &network_checker,
     )
     .await;
-    Ok(res.into())
+    Ok(Json(res))
 }
 
-#[get(
-    "/v1/network/checks/ports?<interval>",
-    format = "text/event-stream",
-    rank = 2
-)]
-pub fn check_ports_stream_route<'r>(
-    pod_network_config: LazyGuard<PodNetworkConfig>,
-    network_checker: &'r State<NetworkChecker>,
-    interval: Option<forms::Duration>,
-    app_config: &'r State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
-    let pod_network_config = pod_network_config.inner?;
-    let network_checker = network_checker.inner();
-
+pub async fn check_ports_stream_route(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     run_checks_stream(
         pod_network_config.port_reachability_checks().into_iter(),
-        &network_checker,
+        network_checker,
         port_reachability_check_result,
         interval,
         app_config,
@@ -90,10 +78,12 @@ pub fn port_reachability_check_result(
     check: &PortReachabilityCheck,
     status: PortReachabilityStatus,
 ) -> Event {
-    Event::json(&CheckResultData {
-        description: check.description(),
-        status,
-    })
-    .id(PortReachabilityCheckId::from(check).to_string())
-    .event(NetworkCheckEvent::PortReachabilityCheckResult.to_string())
+    Event::default()
+        .event(NetworkCheckEvent::PortReachabilityCheckResult.to_string())
+        .id(PortReachabilityCheckId::from(check).to_string())
+        .json_data(&CheckResultData {
+            description: check.description(),
+            status,
+        })
+        .unwrap()
 }

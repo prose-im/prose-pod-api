@@ -1,17 +1,20 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, fmt::Display, ops::Deref, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
 
-use rocket::{
-    form::Strict,
-    get,
-    response::stream::{Event, EventStream},
-    serde::json::Json,
-    State,
+use axum::{
+    extract::State,
+    response::{
+        sse::{Event, KeepAlive},
+        Sse,
+    },
+    Json,
 };
+use axum_extra::extract::Query;
+use futures::Stream;
 use serde::{Deserialize, Serialize};
 use service::{
     members::{member_service, MemberRole, MemberService},
@@ -19,9 +22,11 @@ use service::{
     util::ConcurrentTaskRunner,
     AppConfig,
 };
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tracing::trace;
 
-use crate::{error::Error, forms::JID as JIDUriParam, guards::LazyGuard};
+use crate::{error::Error, AppState};
 
 use super::Member;
 
@@ -34,19 +39,16 @@ pub struct EnrichedMember {
     pub avatar: Option<String>,
 }
 
-#[derive(Debug, Clone, FromForm)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct JIDs {
-    jids: Vec<JIDUriParam>,
+    jids: Vec<BareJid>,
 }
 
-#[get("/v1/enrich-members?<jids..>", format = "application/json")]
 pub async fn enrich_members_route(
-    member_service: LazyGuard<MemberService>,
-    jids: Strict<JIDs>,
-    app_config: &State<AppConfig>,
+    member_service: MemberService,
+    Query(JIDs { jids }): Query<JIDs>,
+    app_config: AppConfig,
 ) -> Result<Json<HashMap<BareJid, EnrichedMember>>, Error> {
-    let member_service = member_service.inner?;
-    let jids = jids.into_inner().jids;
     let jids_count = jids.len();
     let runner = ConcurrentTaskRunner::default(&app_config);
 
@@ -64,42 +66,69 @@ pub async fn enrich_members_route(
     while let Some(Ok(Some(member))) = rx.recv().await {
         res.insert(member.jid.clone(), EnrichedMember::from(member).into());
     }
-    Ok(res.into())
+    Ok(Json(res))
 }
 
-#[get("/v1/enrich-members?<jids..>", format = "text/event-stream", rank = 2)]
-pub async fn enrich_members_stream_route<'r>(
-    member_service: LazyGuard<MemberService>,
-    jids: Strict<JIDs>,
-    app_config: &State<AppConfig>,
-) -> Result<EventStream![Event + 'r], Error> {
-    let member_service = Arc::new(member_service.inner?);
-    let jids = jids.into_inner().jids;
+pub async fn enrich_members_stream_route(
+    member_service: MemberService,
+    Query(JIDs { jids }): Query<JIDs>,
+    State(AppState { app_config, .. }): State<AppState>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    let member_service = Arc::new(member_service);
     let runner = ConcurrentTaskRunner::default(&app_config);
+    let cancellation_token = runner.cancellation_token.clone();
 
-    Ok(EventStream! {
-        fn logged(event: Event) -> Event {
-            trace!("Sending {event:?}…");
-            event
-        }
+    let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(jids.len());
 
-        let cancellation_token = member_service.cancellation_token.clone();
-        let mut rx = runner.run(
-            jids,
-            move |jid| {
-                let member_service = member_service.clone();
-                Box::pin(async move { member_service .enrich_member(&jid).await })
-            },
-            move || cancellation_token.cancel(),
-        );
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = async {
+                fn logged(event: Event) -> Event {
+                    trace!("Sending {event:?}…");
+                    event
+                }
 
-        while let Some(Ok(Some(member))) = rx.recv().await {
-            let jid = member.jid.clone();
-            yield logged(Event::json(&EnrichedMember::from(member)).id(jid.to_string()).event("enriched-member"));
-        }
+                let cancellation_token = member_service.cancellation_token.clone();
+                let mut rx = runner.run(
+                    jids,
+                    move |jid| {
+                        let member_service = member_service.clone();
+                        Box::pin(async move { member_service.enrich_member(&jid).await })
+                    },
+                    move || cancellation_token.cancel(),
+                );
 
-        yield logged(Event::empty().event("end").id("end").with_comment("End of stream"));
-    })
+                while let Some(Ok(Some(member))) = rx.recv().await {
+                    let jid = member.jid.clone();
+                    sse_tx
+                        .send(Ok(logged(
+                            Event::default()
+                                .event("enriched-member")
+                                .id(jid.to_string())
+                                .json_data(EnrichedMember::from(member))
+                                .unwrap(),
+                        )))
+                        .await
+                        .unwrap();
+                }
+
+                sse_tx
+                    .send(Ok(logged(
+                        Event::default()
+                            .event("end")
+                            .id("end")
+                            .comment("End of stream"),
+                    )))
+                    .await
+                    .unwrap();
+            } => {}
+            _ = cancellation_token.cancelled() => {
+                trace!("Token cancelled.");
+            }
+        };
+    });
+
+    Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }
 
 // BOILERPLATE
@@ -123,14 +152,6 @@ impl From<EnrichedMember> for Member {
             jid: value.jid,
             role: value.role,
         }
-    }
-}
-
-impl Deref for JIDs {
-    type Target = Vec<JIDUriParam>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.jids
     }
 }
 
