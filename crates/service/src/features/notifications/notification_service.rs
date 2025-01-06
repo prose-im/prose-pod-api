@@ -5,6 +5,8 @@
 
 use std::sync::Arc;
 
+use tracing::instrument;
+
 use crate::{
     app_config::ConfigBranding,
     sea_orm::{prelude::*, DatabaseConnection},
@@ -16,14 +18,14 @@ use super::{
 };
 
 pub struct NotificationService {
-    db: Arc<DatabaseConnection>,
+    db: DatabaseConnection,
     notifier: Arc<Notifier>,
     branding: Arc<ConfigBranding>,
 }
 
 impl NotificationService {
     pub fn new(
-        db: Arc<DatabaseConnection>,
+        db: DatabaseConnection,
         notifier: Arc<Notifier>,
         branding: Arc<ConfigBranding>,
     ) -> Self {
@@ -34,10 +36,16 @@ impl NotificationService {
         }
     }
 
+    #[instrument(
+        level = "trace",
+        skip(self, notification),
+        fields(template = notification.template().to_string()),
+        err,
+    )]
     pub async fn send(&self, notification: &Notification) -> Result<(), Error> {
         // Store in DB
-        NotificationRepository::create(
-            self.db.as_ref(),
+        let model = NotificationRepository::create(
+            &self.db,
             NotificationCreateForm {
                 content: notification,
                 created_at: None,
@@ -47,14 +55,12 @@ impl NotificationService {
 
         // Try sending
         if let Err(err) = self.notifier.dispatch(&self.branding, notification) {
-            // Store status if undelivered
-            todo!("Store status if undelivered");
-
+            // TODO: Store status if undelivered
             return Err(Error::CouldNotDispatch(err));
         };
 
         // Delete if delivered
-        todo!("Delete if delivered");
+        NotificationRepository::delete(&self.db, model.id).await?;
 
         Ok(())
     }

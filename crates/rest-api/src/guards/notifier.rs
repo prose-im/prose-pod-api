@@ -14,7 +14,7 @@ impl FromRequestParts<AppState> for service::notifications::NotificationService 
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         Ok(Self::new(
-            Arc::new(state.db.clone()),
+            state.db.clone(),
             Arc::new(state.notifier.clone()),
             Arc::new(state.app_config.branding.clone()),
         ))
