@@ -2,7 +2,7 @@
 //
 // Copyright:
 //   - 2018, Valerian Saliou <valerian@valeriansaliou.name> via valeriansaliou/vigil
-//   - 2024, Rémi Bardon <remi@remibardon.name>
+//   - 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::fmt::Debug;
