@@ -17,7 +17,7 @@ use service::{
     auth::AuthService,
     dependencies::Uuid,
     network_checks::NetworkChecker,
-    notifications::dependencies::Notifier,
+    notifications::Notifier,
     sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},

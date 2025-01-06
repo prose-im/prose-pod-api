@@ -22,7 +22,7 @@ use service::{
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
     network_checks::NetworkChecker,
-    notifications::dependencies::Notifier,
+    notifications::Notifier,
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},

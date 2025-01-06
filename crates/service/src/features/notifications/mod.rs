@@ -9,6 +9,7 @@ pub(crate) mod migrations;
 pub mod notification_repository;
 pub mod notification_service;
 
+pub use dependencies::*;
 pub use entities::*;
 pub use notification_repository::*;
 pub use notification_service::*;

@@ -21,9 +21,7 @@ use crate::{
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{
-        dependencies::notifier::Notification, notification_service, NotificationService,
-    },
+    notifications::{notification_service, notifier::Notification, NotificationService},
     server_config::ServerConfig,
     util::bare_jid_from_username,
     xmpp::{BareJid, JidNode},

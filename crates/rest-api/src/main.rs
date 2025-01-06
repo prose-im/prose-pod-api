@@ -9,7 +9,7 @@ use prose_pod_api::{custom_router, util::database::db_conn, AppState};
 use service::{
     auth::{AuthService, LiveAuthService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
-    notifications::dependencies::Notifier,
+    notifications::Notifier,
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
     secrets::{LiveSecretsStore, SecretsStore},
