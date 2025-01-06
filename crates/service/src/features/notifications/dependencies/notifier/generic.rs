@@ -7,7 +7,7 @@
 
 use std::fmt::Debug;
 
-use tracing::{debug, info};
+use tracing::instrument;
 
 use crate::{app_config::ConfigBranding, notifications::NotificationPayload};
 
@@ -20,31 +20,22 @@ pub trait GenericNotifier: Debug + Sync + Send {
     fn attempt(&self, branding: &ConfigBranding, notification: &Notification)
         -> Result<(), String>;
 
+    #[instrument(
+        level = "trace",
+        skip(self, branding, notification),
+        fields(notifier = self.name()),
+        err,
+    )]
     fn dispatch(
         &self,
         branding: &ConfigBranding,
         notification: &Notification,
     ) -> Result<(), String> {
-        info!(
-            "Dispatching '{}' notification via '{}'…",
-            notification.template(),
-            self.name(),
-        );
-
         // Attempt notification dispatch
-        self.attempt(branding, notification).map_err(|e| {
-            format!(
-                "Failed dispatching '{}' notification via '{}': {e}",
-                notification.template(),
-                self.name(),
-            )
-        })?;
+        self.attempt(branding, notification)?;
 
-        debug!(
-            "Dispatched '{}' notification via '{}'",
-            notification.template(),
-            self.name(),
-        );
+        // TODO: Implement retries. See <https://github.com/valeriansaliou/vigil/blob/master/src/notifier/generic.rs>.
+
         Ok(())
     }
 }
