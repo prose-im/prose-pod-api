@@ -1,9 +1,7 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
-
-use std::{path::PathBuf, str::FromStr as _, sync::Arc};
 
 use chrono::{DateTime, Utc};
 #[cfg(debug_assertions)]
@@ -17,30 +15,36 @@ use tracing::warn;
 use tracing::{debug, error};
 
 use crate::{
-    app_config::ConfigBranding,
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{notification_service, notifier::Notification, NotificationService},
+    notifications::{
+        notification_service,
+        notifier::email::{EmailNotification, EmailNotificationCreateError},
+        NotificationService,
+    },
     server_config::ServerConfig,
     util::bare_jid_from_username,
     xmpp::{BareJid, JidNode},
     AppConfig, MutationError,
 };
 
-use super::{InvitationContact, InvitationCreateForm, InvitationStatus, InvitationToken};
+use super::{
+    InvitationContact, InvitationCreateForm, InvitationId, InvitationStatus, InvitationToken,
+    WorkspaceInvitationPayload,
+};
 
 #[derive(Debug, Clone)]
 pub struct InvitationService {
-    db: Arc<DatabaseConnection>,
-    uuid_gen: Arc<dependencies::Uuid>,
+    db: DatabaseConnection,
+    uuid_gen: dependencies::Uuid,
     member_service: UnauthenticatedMemberService,
 }
 
 impl InvitationService {
     pub fn new(
-        db: Arc<DatabaseConnection>,
-        uuid_gen: Arc<dependencies::Uuid>,
+        db: DatabaseConnection,
+        uuid_gen: dependencies::Uuid,
         member_service: UnauthenticatedMemberService,
     ) -> Self {
         Self {
@@ -62,14 +66,14 @@ impl InvitationService {
         let form = form.into();
         let jid = form.jid(&server_config)?;
 
-        if InvitationRepository::get_by_jid(self.db.as_ref(), &jid)
+        if InvitationRepository::get_by_jid(&self.db, &jid)
             .await
             .as_ref()
             .is_ok_and(Option::is_some)
         {
             return Err(InviteMemberError::InvitationConfict);
         }
-        if MemberRepository::get(self.db.as_ref(), &jid)
+        if MemberRepository::get(&self.db, &jid)
             .await
             .as_ref()
             .is_ok_and(Option::is_some)
@@ -78,7 +82,7 @@ impl InvitationService {
         }
 
         let invitation = InvitationRepository::create(
-            self.db.as_ref(),
+            &self.db,
             InvitationCreateForm {
                 jid,
                 pre_assigned_role: Some(form.pre_assigned_role.clone()),
@@ -91,15 +95,16 @@ impl InvitationService {
 
         if let Err(err) = notification_service
             .send_workspace_invitation(
-                &app_config.branding,
-                &invitation.accept_token.into(),
-                &invitation.reject_token.into(),
+                form.contact,
+                invitation.accept_token.into(),
+                invitation.reject_token.into(),
+                app_config,
             )
             .await
         {
             error!("Could not send workspace invitation: {err}");
             InvitationRepository::update_status(
-                self.db.as_ref(),
+                &self.db,
                 invitation.clone(),
                 InvitationStatus::SendFailed,
             )
@@ -122,17 +127,13 @@ impl InvitationService {
             );
         };
 
-        InvitationRepository::update_status(
-            self.db.as_ref(),
-            invitation.clone(),
-            InvitationStatus::Sent,
-        )
-        .await
-        .map_err(|err| InviteMemberError::CouldNotUpdateInvitationStatus {
-            id: invitation.id,
-            status: InvitationStatus::Sent,
-            err,
-        })?;
+        InvitationRepository::update_status(&self.db, invitation.clone(), InvitationStatus::Sent)
+            .await
+            .map_err(|err| InviteMemberError::CouldNotUpdateInvitationStatus {
+                id: invitation.id,
+                status: InvitationStatus::Sent,
+                err,
+            })?;
 
         #[cfg(debug_assertions)]
         if app_config.debug_only.automatically_accept_invitations {
@@ -173,29 +174,33 @@ impl InvitationService {
 impl NotificationService {
     async fn send_workspace_invitation(
         &self,
-        branding: &ConfigBranding,
-        accept_token: &InvitationToken,
-        reject_token: &InvitationToken,
-    ) -> Result<(), notification_service::Error> {
-        let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
-        self.send(&Notification::WorkspaceInvitation {
-            accept_link: admin_site_root
-                .join(format!(
-                    "invitations/accept/{}",
-                    accept_token.expose_secret()
-                ))
-                .display()
-                .to_string(),
-            reject_link: admin_site_root
-                .join(format!(
-                    "invitations/reject/{}",
-                    reject_token.expose_secret()
-                ))
-                .display()
-                .to_string(),
-        })
-        .await
+        contact: InvitationContact,
+        accept_token: InvitationToken,
+        reject_token: InvitationToken,
+        app_config: &AppConfig,
+    ) -> Result<(), SendWorkspaceInvitationError> {
+        match contact {
+            InvitationContact::Email { email_address } => {
+                self.send_email(EmailNotification::from(
+                    email_address.into(),
+                    WorkspaceInvitationPayload {
+                        accept_token,
+                        reject_token,
+                    },
+                    app_config,
+                )?)?;
+            }
+        }
+        Ok(())
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SendWorkspaceInvitationError {
+    #[error("Could not create e-mail: {0}")]
+    CouldNotCreateEmailNotification(#[from] EmailNotificationCreateError),
+    #[error("`NotificationService` error: {0}")]
+    NotificationService(#[from] notification_service::Error),
 }
 
 #[derive(Debug)]
@@ -219,9 +224,11 @@ pub enum InviteMemberError {
     InvitationConfict,
     #[error("Username already taken.")]
     UsernameConfict,
+    #[error("Could not send notification: {0}")]
+    CouldNotSendNotification(#[from] SendWorkspaceInvitationError),
     #[error("Could not mark workspace invitation `{id}` as `{status}`: {err}")]
     CouldNotUpdateInvitationStatus {
-        id: i32,
+        id: InvitationId,
         status: InvitationStatus,
         err: MutationError,
     },
@@ -234,7 +241,7 @@ pub enum InviteMemberError {
 
 impl InvitationService {
     pub async fn get(&self, id: &i32) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_id(self.db.as_ref(), id).await
+        InvitationRepository::get_by_id(&self.db, id).await
     }
     pub async fn get_invitations(
         &self,
@@ -242,7 +249,7 @@ impl InvitationService {
         page_size: u64,
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), DbErr> {
-        InvitationRepository::get_all(self.db.as_ref(), page_number, page_size, until).await
+        InvitationRepository::get_all(&self.db, page_number, page_size, until).await
     }
 }
 
@@ -292,13 +299,13 @@ impl InvitationService {
         &self,
         token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_accept_token(self.db.as_ref(), token).await
+        InvitationRepository::get_by_accept_token(&self.db, token).await
     }
     pub async fn get_by_reject_token(
         &self,
         token: InvitationToken,
     ) -> Result<Option<Invitation>, DbErr> {
-        InvitationRepository::get_by_reject_token(self.db.as_ref(), token).await
+        InvitationRepository::get_by_reject_token(&self.db, token).await
     }
 }
 
@@ -326,7 +333,7 @@ impl InvitationService {
         // Check if JID is already taken (in which case the member cannot be created).
         // NOTE: There should not be any invitation for an already-taken username,
         //   but let's keep this as a safeguard.
-        if MemberRepository::get(self.db.as_ref(), &invitation.jid)
+        if MemberRepository::get(&self.db, &invitation.jid)
             .await
             .as_ref()
             .is_ok_and(Option::is_some)
@@ -334,7 +341,7 @@ impl InvitationService {
             return Err(CannotAcceptInvitation::MemberAlreadyExists);
         }
 
-        self.accept(self.db.as_ref(), invitation, &form.password, &form.nickname)
+        self.accept(&self.db, invitation, &form.password, &form.nickname)
             .await?;
 
         Ok(())
@@ -375,7 +382,7 @@ impl InvitationService {
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.reject_token);
 
-        invitation.delete(self.db.as_ref()).await?;
+        invitation.delete(&self.db).await?;
 
         Ok(())
     }
@@ -396,18 +403,18 @@ impl InvitationService {
         notification_service: &NotificationService,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
-        let invitation = InvitationRepository::get_by_id(self.db.as_ref(), &invitation_id)
+        let invitation = InvitationRepository::get_by_id(&self.db, &invitation_id)
             .await?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
         notification_service
             .send_workspace_invitation(
-                &config.branding,
-                &invitation.accept_token.into(),
-                &invitation.reject_token.into(),
+                invitation.contact(),
+                invitation.accept_token.into(),
+                invitation.reject_token.into(),
+                config,
             )
-            .await
-            .map_err(InvitationResendError::CouldNotSendInvitation)?;
+            .await?;
 
         Ok(())
     }
@@ -418,14 +425,14 @@ pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
-    CouldNotSendInvitation(notification_service::Error),
+    CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
 
 impl InvitationService {
     pub async fn cancel(&self, invitation_id: i32) -> Result<(), InvitationCancelError> {
-        InvitationRepository::delete_by_id(self.db.as_ref(), invitation_id).await?;
+        InvitationRepository::delete_by_id(&self.db, invitation_id).await?;
 
         Ok(())
     }

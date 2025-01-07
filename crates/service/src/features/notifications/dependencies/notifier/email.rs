@@ -5,25 +5,30 @@
 //   - 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
-use lettre::message::{Mailbox, Message};
-use lettre::transport::smtp::authentication::Credentials;
-use lettre::transport::smtp::client::{Tls, TlsParameters};
-use lettre::transport::smtp::{Error as SmtpError, SmtpTransport};
-use lettre::{Address, Transport};
+use email_address::EmailAddress;
+use lettre::{
+    address::AddressError,
+    message::{Mailbox, Message},
+    transport::smtp::{
+        authentication::Credentials,
+        client::{Tls, TlsParameters},
+        Error as SmtpError, SmtpTransport,
+    },
+    Address, Transport,
+};
 use secrecy::{ExposeSecret as _, SecretString};
 
-use super::generic::{
-    notification_message, notification_subject, GenericNotifier, Notification,
-    DISPATCH_TIMEOUT_SECONDS,
+use crate::{
+    app_config::{ConfigBranding, MissingConfiguration},
+    AppConfig,
 };
-use crate::app_config::{Config, ConfigBranding};
 
-#[derive(Debug)]
+use super::{GenericNotifier, NotificationTrait, NotifierError, DISPATCH_TIMEOUT_SECONDS};
+
+#[derive(Debug, Clone)]
 pub struct EmailNotifier {
-    from: Mailbox,
-    to: Mailbox,
     smtp_host: String,
     smtp_port: u16,
     smtp_username: Option<String>,
@@ -31,27 +36,13 @@ pub struct EmailNotifier {
     smtp_encrypt: bool,
 }
 
-impl EmailNotifier {
-    pub fn new(config: &Config) -> Result<Self, String> {
-        let Some(ref email_config) = config.notify.email else {
-            return Err("No email config found".to_string());
-        };
+impl TryFrom<&AppConfig> for EmailNotifier {
+    type Error = MissingConfiguration;
+
+    fn try_from(app_config: &AppConfig) -> Result<Self, Self::Error> {
+        let email_config = app_config.notify.email()?;
 
         Ok(Self {
-            from: Mailbox::new(
-                Some(config.branding.page_title.to_owned()),
-                email_config
-                    .from
-                    .parse::<Address>()
-                    .map_err(|e| format!("Invalid 'from' value in email config: {e}"))?,
-            ),
-            to: Mailbox::new(
-                None,
-                email_config
-                    .to
-                    .parse::<Address>()
-                    .map_err(|e| format!("Invalid 'to' value in email config: {e}"))?,
-            ),
             smtp_host: email_config.smtp_host.to_owned(),
             smtp_port: email_config.smtp_port,
             smtp_username: email_config.smtp_username.to_owned(),
@@ -62,26 +53,20 @@ impl EmailNotifier {
 }
 
 impl GenericNotifier for EmailNotifier {
+    type Notification = EmailNotification;
+
     fn name(&self) -> &'static str {
         "email"
     }
 
-    fn attempt(
-        &self,
-        branding: &ConfigBranding,
-        notification: &Notification,
-    ) -> Result<(), String> {
-        // Build up the message text
-        let subject = notification_subject(branding, notification);
-        let message = notification_message(branding, notification);
-
+    fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError> {
         // Build up the email
         let email_message = Message::builder()
-            .to(self.to.to_owned())
-            .from(self.from.to_owned())
-            .subject(subject)
-            .body(message)
-            .map_err(|e| format!("Failed to build email: {e}"))?;
+            .to(notification.to.clone())
+            .from(notification.from.clone())
+            .subject(notification.subject.clone())
+            .body(notification.message.clone())
+            .map_err(SendError::BuildEmail)?;
 
         // Create the transport if not present
         let transport = acquire_transport(
@@ -91,12 +76,10 @@ impl GenericNotifier for EmailNotifier {
             self.smtp_password.to_owned(),
             self.smtp_encrypt,
         )
-        .map_err(|e| format!("Failed to build email transport: {e}"))?;
+        .map_err(SendError::BuildTransport)?;
 
         // Deliver the message
-        transport
-            .send(&email_message)
-            .map_err(|e| format!("Failed to send email: {e}"))?;
+        transport.send(&email_message).map_err(SendError::Send)?;
 
         Ok(())
     }
@@ -139,4 +122,92 @@ fn acquire_transport(
     }
 
     Ok(mailer.build())
+}
+
+#[derive(Debug, Clone)]
+pub struct EmailNotification {
+    pub from: Mailbox,
+    pub to: Mailbox,
+    pub subject: String,
+    pub message: String,
+}
+
+impl EmailNotification {
+    pub fn new(
+        to: EmailAddress,
+        subject: String,
+        message: String,
+        app_config: &AppConfig,
+    ) -> Result<Self, EmailNotificationCreateError> {
+        let email_config = app_config.notify.email()?;
+
+        Ok(Self {
+            from: email_config.pod_mailbox(&app_config.branding),
+            to: Mailbox::new(
+                None,
+                to.email()
+                    .parse::<Address>()
+                    .map_err(CreateError::ParseTo)?,
+            ),
+            subject,
+            message,
+        })
+    }
+}
+
+impl crate::app_config::ConfigNotifyEmail {
+    pub fn pod_address(&self) -> Address {
+        self.pod_address.email().parse().expect("`pod_address` was parsed to a valid `email_address::EmailAddress` but it's invalid according to `lettre`.")
+    }
+    pub fn pod_mailbox(&self, branding: &ConfigBranding) -> Mailbox {
+        Mailbox::new(Some(branding.page_title.clone()), self.pod_address())
+    }
+}
+
+impl Display for EmailNotification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "  From: {}", self.from)?;
+        write!(f, "  To: {}", self.to)?;
+        write!(f, "  Subject: {}", self.subject)?;
+        write!(
+            f,
+            "  Message: {}",
+            self.message
+                .lines()
+                .map(|l| format!("    {l}"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )?;
+        Ok(())
+    }
+}
+
+impl NotificationTrait for EmailNotification {}
+
+type CreateError = EmailNotificationCreateError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum EmailNotificationCreateError {
+    #[error("{0}")]
+    AppConfig(#[from] MissingConfiguration),
+    #[error("Invalid `to` address: {0}")]
+    ParseTo(AddressError),
+}
+
+type SendError = EmailNotificationSendError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum EmailNotificationSendError {
+    #[error("Failed to build email: {0}")]
+    BuildEmail(lettre::error::Error),
+    #[error("Failed to build email transport: {0}")]
+    BuildTransport(lettre::transport::smtp::Error),
+    #[error("Failed to send email: {0}")]
+    Send(lettre::transport::smtp::Error),
+}
+
+impl From<SendError> for NotifierError {
+    fn from(err: SendError) -> Self {
+        Self(err.to_string())
+    }
 }

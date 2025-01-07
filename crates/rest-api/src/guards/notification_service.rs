@@ -13,10 +13,6 @@ impl FromRequestParts<AppState> for service::notifications::NotificationService 
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        Ok(Self::new(
-            state.db.clone(),
-            Arc::new(state.notifier.clone()),
-            Arc::new(state.app_config.branding.clone()),
-        ))
+        Ok(Self::new(state.email_notifier.clone()))
     }
 }

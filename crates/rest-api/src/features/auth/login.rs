@@ -5,9 +5,12 @@
 
 use axum::Json;
 use serde::{Deserialize, Serialize};
-use service::auth::{auth_service::AuthToken, AuthService};
+use service::{
+    auth::{auth_service::AuthToken, AuthService},
+    models::SerializableSecretString,
+};
 
-use crate::{error::Error, models::SerializableSecretString};
+use crate::error::Error;
 
 use super::guards::BasicAuth;
 

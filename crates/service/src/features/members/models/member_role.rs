@@ -5,9 +5,8 @@
 
 use std::cmp::Ordering;
 
-use sea_orm::sea_query;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use strum::{EnumIter, EnumString, IntoEnumIterator as _};
+use strum::{EnumIter, EnumString};
 
 use crate::sea_orm_string_enum;
 

@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod app_config;
-mod notifier;
+mod notification_service;
 mod pod_network_config;
 mod secrets_store;
 mod server_config;

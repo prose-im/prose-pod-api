@@ -22,7 +22,7 @@ use service::{
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
     network_checks::NetworkChecker,
-    notifications::Notifier,
+    notifications::{notifier::email::EmailNotification, Notifier},
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
@@ -48,8 +48,8 @@ pub struct TestWorld {
     pub auth_service: AuthService,
     pub mock_xmpp_service: MockXmppService,
     pub xmpp_service: XmppServiceInner,
-    pub mock_notifier: MockNotifier,
-    pub notifier: Notifier,
+    pub mock_email_notifier: MockNotifier<EmailNotification>,
+    pub email_notifier: Notifier<EmailNotification>,
     pub mock_secrets_store: MockSecretsStore,
     pub secrets_store: SecretsStore,
     pub mock_network_checker: MockNetworkChecker,
@@ -155,8 +155,8 @@ impl TestWorld {
         self.mock_xmpp_service.state.write().unwrap()
     }
 
-    pub fn notifier_state(&self) -> MockNotifierState {
-        self.mock_notifier.state.read().unwrap().to_owned()
+    pub fn email_notifier_state(&self) -> MockNotifierState<EmailNotification> {
+        self.mock_email_notifier.state.read().unwrap().to_owned()
     }
 
     pub fn token(&self, user: String) -> SecretString {
@@ -205,7 +205,7 @@ impl TestWorld {
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
         let mock_xmpp_service = MockXmppService::default();
-        let mock_notifier = MockNotifier::default();
+        let mock_email_notifier = MockNotifier::<EmailNotification>::default();
         let mock_auth_service = MockAuthService::new(Default::default(), mock_server_ctl_state);
         let mock_secrets_store =
             MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
@@ -245,8 +245,8 @@ impl TestWorld {
             mock_xmpp_service,
             auth_service: AuthService::new(Arc::new(mock_auth_service.clone())),
             mock_auth_service,
-            notifier: Notifier::from(mock_notifier.clone()),
-            mock_notifier,
+            email_notifier: Notifier::from(mock_email_notifier.clone()),
+            mock_email_notifier,
             secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),
             mock_secrets_store,
             network_checker: NetworkChecker::new(Arc::new(mock_network_checker.clone())),

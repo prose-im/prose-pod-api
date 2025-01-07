@@ -8,7 +8,7 @@
 //! Inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
 //! [Notifiers](https://github.com/valeriansaliou/vigil/tree/master/src/notifier).
 
-mod email;
+pub mod email;
 mod generic;
 #[cfg(debug_assertions)]
 mod logging;
@@ -17,55 +17,63 @@ use std::{fmt::Debug, ops::Deref, sync::Arc};
 
 use crate::app_config::AppConfig;
 
-use self::email::EmailNotifier;
 pub use self::generic::*;
-
 #[cfg(debug_assertions)]
 use self::logging::LoggingNotifier;
 
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct Notifier {
-    implem: Arc<dyn GenericNotifier>,
+pub struct Notifier<N: NotificationTrait> {
+    implem: Arc<dyn GenericNotifier<Notification = N>>,
 }
 
-impl Notifier {
-    pub fn live(config: &AppConfig) -> Result<Self, String> {
-        Ok(Self::from(EmailNotifier::new(config)?))
-    }
-
+impl<N: NotificationTrait + 'static> Notifier<N> {
     #[cfg(not(debug_assertions))]
-    pub fn from_config(config: &AppConfig) -> Result<Self, String> {
-        Self::live(config)
+    pub fn from_config<Notifier>(app_config: &AppConfig) -> Result<Self, MissingConfiguration>
+    where
+        Notifier: GenericNotifier<Notification = N>
+            + for<'a> TryFrom<&'a AppConfig, Error = MissingConfiguration>
+            + 'static,
+    {
+        Ok(Self::from(Notifier::try_from(app_config)?))
     }
 
     #[cfg(debug_assertions)]
-    pub fn from_config(config: &AppConfig) -> Result<Self, String> {
+    pub fn from_config<Notifier>(app_config: &AppConfig) -> Result<Self, MissingConfiguration>
+    where
+        Notifier: GenericNotifier<Notification = N>
+            + for<'a> TryFrom<&'a AppConfig, Error = MissingConfiguration>
+            + 'static,
+    {
         use crate::app_config::NotifierDependencyMode;
 
-        match config.debug_only.dependency_modes.notifier {
-            NotifierDependencyMode::Live => Self::live(config),
-            NotifierDependencyMode::Logging => Ok(Self::from(LoggingNotifier)),
-        }
+        Ok(match app_config.debug_only.dependency_modes.notifier {
+            NotifierDependencyMode::Live => Self::from(Notifier::try_from(app_config)?),
+            NotifierDependencyMode::Logging => Self::from(LoggingNotifier::default()),
+        })
     }
 }
 
-impl From<Arc<dyn GenericNotifier>> for Notifier {
-    fn from(implem: Arc<dyn GenericNotifier>) -> Self {
+impl<N: NotificationTrait> From<Arc<dyn GenericNotifier<Notification = N>>> for Notifier<N> {
+    fn from(implem: Arc<dyn GenericNotifier<Notification = N>>) -> Self {
         Self { implem }
     }
 }
 
-impl<N: GenericNotifier + 'static> From<N> for Notifier {
-    fn from(implem: N) -> Self {
+impl<N, Generic> From<Generic> for Notifier<N>
+where
+    N: NotificationTrait,
+    Generic: GenericNotifier<Notification = N> + 'static,
+{
+    fn from(implem: Generic) -> Self {
         Self {
             implem: Arc::new(implem),
         }
     }
 }
 
-impl Deref for Notifier {
-    type Target = Arc<dyn GenericNotifier>;
+impl<N: NotificationTrait> Deref for Notifier<N> {
+    type Target = Arc<dyn GenericNotifier<Notification = N>>;
 
     fn deref(&self) -> &Self::Target {
         &self.implem

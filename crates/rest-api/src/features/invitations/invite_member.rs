@@ -110,6 +110,7 @@ impl CustomErrorCode for InviteMemberError {
             Self::InvitationConfict => ErrorCode::INVITE_ALREADY_EXISTS,
             Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
             Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
+            InviteMemberError::CouldNotSendNotification(err) => err.code(),
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::DbErr(err) => err.code(),

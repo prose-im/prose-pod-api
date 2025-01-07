@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
 use crate::features::{
-    invitations::migrations::*, members::migrations::*, notifications::migrations::*,
-    pod_config::migrations::*, server_config::migrations::*, workspace::migrations::*,
+    invitations::migrations::*, members::migrations::*, pod_config::migrations::*,
+    server_config::migrations::*, workspace::migrations::*,
 };
 
 pub struct Migrator;
@@ -20,7 +20,6 @@ impl MigratorTrait for Migrator {
             Box::new(m20231221_172027_create_server_config::Migration),
             Box::new(m20240220_171150_create_member::Migration),
             Box::new(m20240320_095326_create_workspace_invitation::Migration),
-            Box::new(m20240326_160834_create_notification::Migration),
             Box::new(m20240506_080027_create_workspace::Migration),
             Box::new(m20240830_080808_create_pod_config::Migration),
             Box::new(m20241214_134500_add_push_notif_config::Migration),

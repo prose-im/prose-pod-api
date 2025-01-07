@@ -10,7 +10,7 @@ use tracing::*;
 use super::test_world::TestWorld;
 
 pub async fn test_server(world: &TestWorld) -> TestServer {
-    debug!("Creating test router…");
+    info!("Creating test router…");
 
     let app_state = AppState::new(
         world.db.clone(),
@@ -18,14 +18,14 @@ pub async fn test_server(world: &TestWorld) -> TestServer {
         world.server_ctl.clone(),
         world.xmpp_service.clone(),
         world.auth_service.clone(),
-        world.notifier.clone(),
+        world.email_notifier.clone(),
         world.secrets_store.clone(),
         world.network_checker.clone(),
     );
 
-    let router = prose_pod_api::custom_router(app_state)
+    let app = prose_pod_api::custom_router(app_state)
         .await
         .map_err(|err| panic!("{err}"))
         .unwrap();
-    TestServer::new(router).expect("Could not create test server.")
+    TestServer::new(app).expect("Could not create test server.")
 }

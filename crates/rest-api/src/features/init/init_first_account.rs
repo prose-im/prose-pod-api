@@ -8,14 +8,11 @@ use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
     members::UnauthenticatedMemberService,
-    models::JidNode,
+    models::{JidNode, SerializableSecretString},
     server_config::ServerConfig,
 };
 
-use crate::{
-    error::prelude::*, features::members::Member, models::SerializableSecretString,
-    responders::Created,
-};
+use crate::{error::prelude::*, features::members::Member, responders::Created};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
