@@ -24,6 +24,10 @@ async fn main() {
     #[cfg(debug_assertions)]
     dbg!(&app_config);
 
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Could not install default crypto provider.");
+
     let db = db_conn(&app_config.databases.main)
         .await
         .expect("Could not connect to the database.");

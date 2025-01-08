@@ -60,6 +60,16 @@ url_serde = { version = "0.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 uuid = { version = "1", default-features = false }
 
+# `lettre` dependencies.
+# WARN: `lettre` depends on the massive `aws-lc-rs` which takes a big portion of our build time.
+#   The Prose Pod API doesn't need `rustls` directly, therefore to avoid having to compile
+#   this library twice, make sure `rustls` is at the same version in `lettre`.
+#   (See https://github.com/lettre/lettre/blob/master/Cargo.toml).
+# NOTE: `lettre` calls `CryptoProvider::get_default()`, which means we have to call
+#   `CryptoProvider::install_default()`.
+#   See [prose-pod-api#121](https://github.com/prose-im/prose-pod-api/issues/121).
+rustls = { version = "0.23", default-features = false }
+
 # `prose-xmpp` and its dependencies.
 # NOTE: See <https://github.com/prose-im/prose-core-client/blob/master/Cargo.toml>
 #   for up-to-date versions (make sure to switch to the appropriate tag).
