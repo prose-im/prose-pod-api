@@ -52,7 +52,7 @@ async fn main() {
     let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&app_config, http_client.clone()));
     let auth_service = AuthService::new(Arc::new(LiveAuthService::new(prosody_oauth2.clone())));
     let email_notifier =
-        Notifier::from_config::<EmailNotifier>(&app_config).unwrap_or_else(|e| panic!("{e}"));
+        Notifier::from_config::<EmailNotifier, _>(&app_config).unwrap_or_else(|e| panic!("{e}"));
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
     {

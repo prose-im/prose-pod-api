@@ -29,20 +29,20 @@ pub struct Notifier<N: NotificationTrait> {
 
 impl<N: NotificationTrait + 'static> Notifier<N> {
     #[cfg(not(debug_assertions))]
-    pub fn from_config<Notifier>(app_config: &AppConfig) -> Result<Self, MissingConfiguration>
+    pub fn from_config<Notifier, Error>(app_config: &AppConfig) -> Result<Self, Error>
     where
         Notifier: GenericNotifier<Notification = N>
-            + for<'a> TryFrom<&'a AppConfig, Error = MissingConfiguration>
+            + for<'a> TryFrom<&'a AppConfig, Error = Error>
             + 'static,
     {
         Ok(Self::from(Notifier::try_from(app_config)?))
     }
 
     #[cfg(debug_assertions)]
-    pub fn from_config<Notifier>(app_config: &AppConfig) -> Result<Self, MissingConfiguration>
+    pub fn from_config<Notifier, Error>(app_config: &AppConfig) -> Result<Self, Error>
     where
         Notifier: GenericNotifier<Notification = N>
-            + for<'a> TryFrom<&'a AppConfig, Error = MissingConfiguration>
+            + for<'a> TryFrom<&'a AppConfig, Error = Error>
             + 'static,
     {
         use crate::app_config::NotifierDependencyMode;

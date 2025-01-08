@@ -29,27 +29,33 @@ use super::{GenericNotifier, NotificationTrait, NotifierError, DISPATCH_TIMEOUT_
 
 #[derive(Debug, Clone)]
 pub struct EmailNotifier {
-    smtp_host: String,
-    smtp_port: u16,
-    smtp_username: Option<String>,
-    smtp_password: Option<SecretString>,
-    smtp_encrypt: bool,
+    smtp_transport: SmtpTransport,
 }
 
 impl TryFrom<&AppConfig> for EmailNotifier {
-    type Error = MissingConfiguration;
+    type Error = EmailNotifierCreateError;
 
     fn try_from(app_config: &AppConfig) -> Result<Self, Self::Error> {
         let email_config = app_config.notify.email()?;
 
-        Ok(Self {
-            smtp_host: email_config.smtp_host.to_owned(),
-            smtp_port: email_config.smtp_port,
-            smtp_username: email_config.smtp_username.to_owned(),
-            smtp_password: email_config.smtp_password.to_owned(),
-            smtp_encrypt: email_config.smtp_encrypt,
-        })
+        let smtp_transport = acquire_transport(
+            &email_config.smtp_host,
+            email_config.smtp_port,
+            email_config.smtp_username.to_owned(),
+            email_config.smtp_password.to_owned(),
+            email_config.smtp_encrypt,
+        )?;
+
+        Ok(Self { smtp_transport })
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum EmailNotifierCreateError {
+    #[error("{0}")]
+    AppConfig(#[from] MissingConfiguration),
+    #[error("Failed to build email transport: {0}")]
+    BuildTransport(#[from] lettre::transport::smtp::Error),
 }
 
 impl GenericNotifier for EmailNotifier {
@@ -68,18 +74,10 @@ impl GenericNotifier for EmailNotifier {
             .body(notification.message.clone())
             .map_err(SendError::BuildEmail)?;
 
-        // Create the transport if not present
-        let transport = acquire_transport(
-            &self.smtp_host,
-            self.smtp_port,
-            self.smtp_username.to_owned(),
-            self.smtp_password.to_owned(),
-            self.smtp_encrypt,
-        )
-        .map_err(SendError::BuildTransport)?;
-
         // Deliver the message
-        transport.send(&email_message).map_err(SendError::Send)?;
+        self.smtp_transport
+            .send(&email_message)
+            .map_err(SendError::Send)?;
 
         Ok(())
     }
@@ -200,8 +198,6 @@ type SendError = EmailNotificationSendError;
 pub enum EmailNotificationSendError {
     #[error("Failed to build email: {0}")]
     BuildEmail(lettre::error::Error),
-    #[error("Failed to build email transport: {0}")]
-    BuildTransport(lettre::transport::smtp::Error),
     #[error("Failed to send email: {0}")]
     Send(lettre::transport::smtp::Error),
 }
