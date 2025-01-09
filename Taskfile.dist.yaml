@@ -117,8 +117,10 @@ tasks:
     vars:
       RUST_VERSION:
         sh: rustc --version
+      PATTERN: 's/(Tested at Rust version: `).+(`)/\1{{.RUST_VERSION}}\2/'
+      README: README.md
     cmds:
-      - cmd: "sed -i -E 's/(Tested at Rust version: `).+(`)/\\1{{.RUST_VERSION}}\\2/' README.md"
+      - cmd: "sed -i -E '{{.PATTERN}}' '{{.README}}'"
         platforms: [linux]
-      - cmd: "sed -i '' -E 's/(Tested at Rust version: `).+(`)/\\1{{.RUST_VERSION}}\\2/' README.md"
+      - cmd: "sed -i '' -E '{{.PATTERN}}' '{{.README}}'"
         platforms: [darwin]
