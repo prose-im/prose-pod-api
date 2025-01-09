@@ -21,7 +21,7 @@ ${Bold}Updates the Prose Pod API and the repositories it depends on to get the
 
 This script pulls the latest changes from $(format_code prose-pod-api) and $(format_code prose-pod-system),
 plus $(format_code prose-pod-server) if you have the repository locally.
-Use $(format_code task local-build) to build the images locally.
+Use $(format_code task local:build) to build the images locally.
 EOF
 }
 

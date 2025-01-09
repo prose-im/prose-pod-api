@@ -26,7 +26,7 @@ brew install go-task
 To list all available commands, use:
 
 ```bash
-task -a
+task -a --sort none
 ```
 
 #### Docker
@@ -37,7 +37,7 @@ See [Install | Docker Docs](https://docs.docker.com/engine/install/).
 ### Initialize your environment
 
 To avoid you having to copy-paste tons of commands, we hid all of the logic behind helper scripts
-which you can invoke using `task`. The first task to run is `local-init`.
+which you can invoke using `task`. The first task to run is `local:init`.
 
 But before that, you must declare where you want the repositories to be
 (replace `???` by the desired location):
@@ -52,7 +52,7 @@ Then, run:
 ```sh
 git clone https://github.com/prose-im/prose-pod-api.git "${PROSE_POD_API_DIR:?}"
 git -C "${PROSE_POD_API_DIR:?}" submodule update --init
-task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml local-init
+task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml local:init
 ```
 
 > [!TIP]
@@ -76,18 +76,18 @@ task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml local-init
 At the root of the `prose-pod-api` repository, run:
 
 ```sh
-task local-run
+task local:run
 ```
 
 The above command runs the latest released versions, but you can change this behavior:
 
 ```sh
 # Run latest patches (latest commits, unreleased):
-task local-run -- --api=edge
+task local:run -- --api=edge
 # Run a specific version:
-task local-run -- --api=1.2.3
-task local-run -- --api=1.2
-task local-run -- --api=1
+task local:run -- --api=1.2.3
+task local:run -- --api=1.2
+task local:run -- --api=1
 ```
 
 ## When you want to start fresh with a Prose Pod API that has no data
@@ -95,7 +95,7 @@ task local-run -- --api=1
 At the root of the `prose-pod-api` repository, run:
 
 ```sh
-task local-reset
+task local:reset
 ```
 
 OR do the "Initialize your environment" phase again but with different directory paths.

@@ -21,7 +21,7 @@ brew install go-task
 To list all available commands, use:
 
 ```bash
-task -a
+task -a --sort none
 ```
 
 ## Updating dependencies
