@@ -68,18 +68,19 @@ for arg in "$@"; do
 	case $arg in
 		--api=*)
 			PROSE_POD_API_IMAGE_TAG="${arg#'--api='}"
+			# Regenerate image name.
+			unset PROSE_POD_API_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
 			;;
 		--server=*)
 			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
+			# Regenerate image name.
+			unset PROSE_POD_SERVER_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
 			;;
 		--help) help ;;
 		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 	esac
 done
 
-# Regenerate image names.
-unset PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
 export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
 
 info "Selected versions:"

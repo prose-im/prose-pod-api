@@ -9,10 +9,7 @@ set -e
 
 source "$(dirname $0)"/constants.sh
 PROSE_POD_API_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
-
-# Regenerate image name (so it's up-to-date in logs until arguments are passed).
-unset PROSE_POD_API_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
+source "$(dirname $0)"/image-names.sh
 
 # ===== HELPER FUNCTIONS =====
 
@@ -105,7 +102,7 @@ done
 
 # Regenerate image name.
 unset PROSE_POD_API_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
+source "${SCRIPTS_ROOT:?}"/image-names.sh
 
 if [ -z "${TARGET_PLATFORM}" ]; then
 	info "Will build $(format_code $PROSE_POD_API_IMAGE) for the local platform."
