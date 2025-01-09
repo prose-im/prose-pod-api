@@ -3,6 +3,7 @@
 version: "3"
 
 silent: true
+dotenv: [paths.env]
 env:
   SELF: task {{ .ALIAS | default .TASK }} --
 
@@ -92,28 +93,23 @@ tasks:
 
   local-init:
     desc: Initializes a local environment allowing one to run a Prose Pod API in one command (`task local-run`).
-    dotenv: ["paths.env"]
     cmd: "{{.ROOT_DIR}}/scripts/run-locally/init {{.CLI_ARGS}}"
 
   local-run:
     desc: Runs a Prose Pod API.
-    dotenv: ["paths.env"]
     cmd: "{{.ROOT_DIR}}/scripts/run-locally/run {{.CLI_ARGS}}"
 
   local-update:
     desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
-    dotenv: ["paths.env"]
     cmd: "{{.ROOT_DIR}}/scripts/run-locally/update {{.CLI_ARGS}}"
 
   local-build:
     desc: Builds the Prose Pod API and the repositories it depends on without updating the code.
-    dotenv: ["paths.env"]
     cmd: "{{.ROOT_DIR}}/scripts/run-locally/build-images {{.CLI_ARGS}}"
 
   local-reset:
     desc: Starts fresh with a Prose Pod API that has no data.
     prompt: This command will delete all your local Prose data, do you want to continue?
-    dotenv: ["paths.env"]
     cmd: "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"
 
   openapi-lint:
