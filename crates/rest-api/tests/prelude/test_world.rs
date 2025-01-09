@@ -6,7 +6,7 @@
 use std::{
     collections::HashMap,
     str::FromStr as _,
-    sync::{Arc, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use axum_test::{TestResponse, TestServer};
@@ -155,8 +155,14 @@ impl TestWorld {
         self.mock_xmpp_service.state.write().unwrap()
     }
 
-    pub fn email_notifier_state(&self) -> MockNotifierState<EmailNotification> {
-        self.mock_email_notifier.state.read().unwrap().to_owned()
+    pub fn email_notifier_state(&self) -> RwLockReadGuard<MockNotifierState<EmailNotification>> {
+        self.mock_email_notifier.state.read().unwrap()
+    }
+
+    pub fn email_notifier_state_mut(
+        &self,
+    ) -> RwLockWriteGuard<MockNotifierState<EmailNotification>> {
+        self.mock_email_notifier.state.write().unwrap()
     }
 
     pub fn token(&self, user: String) -> SecretString {
@@ -226,6 +232,7 @@ impl TestWorld {
         }
 
         let db = db_conn(&config.databases.main).await;
+        // NOTE: We need to run migrations here before they run in the API because we need to perform actions on the database before the API starts (it's not started by default, since we also test the behavior at startup)
         if let Err(err) = run_migrations(&db).await {
             panic!("Could not run migrations in tests: {err}");
         }

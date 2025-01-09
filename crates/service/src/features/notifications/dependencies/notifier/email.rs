@@ -58,11 +58,28 @@ pub enum EmailNotifierCreateError {
     BuildTransport(#[from] lettre::transport::smtp::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("Failed to test SMTP connection: {0}")]
+pub struct EmailNotifierTestConnectionError(lettre::transport::smtp::Error);
+
+impl From<EmailNotifierTestConnectionError> for NotifierError {
+    fn from(err: EmailNotifierTestConnectionError) -> Self {
+        Self(err.to_string())
+    }
+}
+
 impl GenericNotifier for EmailNotifier {
     type Notification = EmailNotification;
 
     fn name(&self) -> &'static str {
         "email"
+    }
+
+    fn test_connection(&self) -> Result<bool, NotifierError> {
+        self.smtp_transport
+            .test_connection()
+            .map_err(EmailNotifierTestConnectionError)
+            .map_err(NotifierError::from)
     }
 
     fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError> {

@@ -14,6 +14,7 @@ pub struct MockNotifier<N: NotificationTrait + Clone> {
 
 #[derive(Debug, Clone)]
 pub struct MockNotifierState<N: NotificationTrait> {
+    pub online: bool,
     pub send_count: usize,
     pub sent: Vec<N>,
 }
@@ -21,7 +22,7 @@ pub struct MockNotifierState<N: NotificationTrait> {
 impl<N: NotificationTrait + Clone> Default for MockNotifier<N> {
     fn default() -> Self {
         Self {
-            state: Arc::new(Default::default()),
+            state: Default::default(),
         }
     }
 }
@@ -29,8 +30,19 @@ impl<N: NotificationTrait + Clone> Default for MockNotifier<N> {
 impl<N: NotificationTrait + Clone> Default for MockNotifierState<N> {
     fn default() -> Self {
         Self {
+            online: true,
             send_count: Default::default(),
             sent: Default::default(),
+        }
+    }
+}
+
+impl<N: NotificationTrait + Clone> MockNotifier<N> {
+    fn check_online(&self) -> Result<(), NotifierError> {
+        if self.state.read().unwrap().online {
+            Ok(())
+        } else {
+            Err(NotifierError("XMPP server offline".to_owned()))?
         }
     }
 }
@@ -42,7 +54,13 @@ impl<N: NotificationTrait + Clone> GenericNotifier for MockNotifier<N> {
         "dummy_notifier"
     }
 
+    fn test_connection(&self) -> Result<bool, NotifierError> {
+        Ok(self.state.read().unwrap().online)
+    }
+
     fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError> {
+        self.check_online()?;
+
         let mut state = self.state.write().unwrap();
         state.send_count += 1;
         state.sent.push(notification.to_owned());

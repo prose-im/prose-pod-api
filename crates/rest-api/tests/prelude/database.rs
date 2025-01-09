@@ -6,9 +6,11 @@
 use std::str::FromStr;
 
 use service::{
-    app_config::ConfigDatabase, errors::DbErr, sea_orm::DatabaseConnection, MigratorTrait as _,
+    app_config::ConfigDatabase,
+    sea_orm::{DatabaseConnection, DbErr},
+    MigratorTrait as _,
 };
-use tracing::*;
+use tracing::debug;
 
 pub async fn db_conn(config: &ConfigDatabase) -> DatabaseConnection {
     prose_pod_api::util::database::db_conn_with(

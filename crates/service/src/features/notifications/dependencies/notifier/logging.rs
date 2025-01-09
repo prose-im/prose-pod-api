@@ -31,6 +31,10 @@ impl<N: NotificationTrait> GenericNotifier for LoggingNotifier<N> {
         "logging"
     }
 
+    fn test_connection(&self) -> Result<bool, NotifierError> {
+        Ok(true)
+    }
+
     fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError> {
         let str = notification.to_string();
         let len = str.len();

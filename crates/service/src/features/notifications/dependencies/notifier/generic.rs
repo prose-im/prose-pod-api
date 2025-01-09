@@ -17,6 +17,7 @@ pub trait GenericNotifier: Debug + Sync + Send {
     type Notification: NotificationTrait;
 
     fn name(&self) -> &'static str;
+    fn test_connection(&self) -> Result<bool, NotifierError>;
     fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError>;
 
     #[instrument(

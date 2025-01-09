@@ -21,7 +21,7 @@ pub(crate) mod prelude {
     pub(crate) use axum_test::{TestResponse, TestServer};
     pub(crate) use base64::{engine::general_purpose::URL_SAFE_NO_PAD as Base64, Engine as _};
     pub(crate) use chrono::{TimeDelta, Utc};
-    pub(crate) use cucumber::*;
+    pub(crate) use cucumber::{given, then, when};
     pub(crate) use prose_pod_api::error::Error;
     pub(crate) use secrecy::{ExposeSecret as _, SecretString};
     pub(crate) use serde_json::json;

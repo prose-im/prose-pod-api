@@ -4,12 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum_test::TestServer;
-use prose_pod_api::AppState;
+use prose_pod_api::{AppState, StartupError};
 use tracing::*;
 
 use super::test_world::TestWorld;
 
-pub async fn test_server(world: &TestWorld) -> TestServer {
+pub async fn test_server(world: &TestWorld) -> Result<TestServer, StartupError> {
     info!("Creating test router…");
 
     let app_state = AppState::new(
@@ -23,9 +23,6 @@ pub async fn test_server(world: &TestWorld) -> TestServer {
         world.network_checker.clone(),
     );
 
-    let app = prose_pod_api::custom_router(app_state)
-        .await
-        .map_err(|err| panic!("{err}"))
-        .unwrap();
-    TestServer::new(app).expect("Could not create test server.")
+    let app = prose_pod_api::custom_router(app_state).await?;
+    Ok(TestServer::new(app).expect("Could not create test server."))
 }
