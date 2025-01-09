@@ -52,7 +52,7 @@ Then, run:
 ```sh
 git clone https://github.com/prose-im/prose-pod-api.git "${PROSE_POD_API_DIR:?}"
 git -C "${PROSE_POD_API_DIR:?}" submodule update --init
-task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.yaml local-init
+task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml local-init
 ```
 
 > [!TIP]
@@ -69,7 +69,7 @@ task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.yaml local-init
 > To run the `task` commands, you will have to `cd` into the Prose Pod API repository,
 > or invoke `task` telling it where to find the Taskfile. If you prefer the latter scenario,
 > you can export `PROSE_POD_API_DIR` in your `~/.zprofile` (or equivalent) and call
-> `task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.yaml <task>` instead of `task <task>`.
+> `task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml <task>` instead of `task <task>`.
 
 ## Run the API
 
