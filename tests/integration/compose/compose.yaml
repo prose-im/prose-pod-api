@@ -8,23 +8,14 @@ services:
       - "${DATABASE_PATH-./integration-tests.sqlite}:/database.sqlite"
       - "${PROSE_CONFIG_FILE-../Prose-test.toml}:/Prose.toml"
       - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
-    networks:
-      prose-network:
-        aliases:
-          - prose-pod-api
+    networks: [prose-network]
     environment:
-      - RUST_LOG_STYLE=always
-    env_file:
-      - "${ENV_FILE-../in-memory.env}"
+      RUST_LOG_STYLE: always
+    env_file: "${ENV_FILE-../in-memory.env}"
     dns: 172.20.0.42
 
   server:
     image: "${PROSE_POD_SERVER_IMAGE:-proseim/prose-pod-server:${PROSE_POD_SERVER_IMAGE_TAG:-${DEFAULT_DOCKER_TAG:-latest}}}"
-    ports:
-      - "5222:5222" # Client-to-server connections (public)
-      - "5269:5269" # Server-to-server connections (public)
-      - "5280:5280" # HTTP (private)
-      - "5582:5582" # Telnet console (private)
     volumes:
       - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
       - "${SERVER_ROOT:-}/var/lib/prosody/:/var/lib/prosody/"
@@ -36,8 +27,7 @@ services:
           - prose.org.local
         ipv4_address: 172.20.0.40
         ipv6_address: 2001:db8::40
-    env_file:
-      - "${ENV_FILE-../in-memory.env}"
+    env_file: "${ENV_FILE-../in-memory.env}"
     entrypoint: >
       sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
 
