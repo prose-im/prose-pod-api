@@ -165,7 +165,7 @@ pub fn databases_connect_timeout() -> u64 {
 }
 
 pub fn address() -> IpAddr {
-    IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
 }
 
 pub fn port() -> u16 {
