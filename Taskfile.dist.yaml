@@ -9,40 +9,35 @@ env:
 tasks:
   reset-db:
     desc: Backs up the database and resets it using `sea-orm-cli`.
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/reset-db"
+    cmd: "{{.ROOT_DIR}}/scripts/reset-db"
   entity:
     desc: Generates database entities using `sea-orm-cli`.
     deps: [reset-db]
-    cmds:
-      - sea-orm-cli generate entity -o entity/src --lib \
-        --tables "$(TABLES)" \
-        --with-serde both \
-        --serde-skip-deserializing-primary-key \
-        --serde-skip-hidden-column
+    cmd: sea-orm-cli generate entity -o entity/src --lib \
+      --tables "$(TABLES)" \
+      --with-serde both \
+      --serde-skip-deserializing-primary-key \
+      --serde-skip-hidden-column
   format-all:
     desc: Formats all Rust files.
-    cmds:
-      - cargo fmt
+    cmd: cargo fmt
   format:
     desc: Formats modified Rust files.
-    cmds:
-      - ./.githooks/pre-commit
+    cmd: "{{.ROOT_DIR}}/.githooks/pre-commit"
   test:
     desc: Runs all tests and updates "Tested at Rust version" in the `README`.
     deps: [smoke-test, integration-test]
-    cmds:
-      # NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
-      - 'sed -i '''' -E ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
+    # NOTE: This is macOS `sed`, out of simplicity since all maintainers use macOS
+    cmd: 'sed -i '''' -E ''s/Tested at Rust version: `.+`/Tested at Rust version: `''"$(rustc --version)"''`/g'' README.md'
   smoke-test:
     desc: Runs smoke tests.
-    cmds:
-      - cargo test --test behavior -- {{.CLI_ARGS}}
+    cmd: cargo test --test behavior -- {{.CLI_ARGS}}
   integration-test:
     desc: Runs integration tests.
-    cmds:
+    env:
       # NOTE: Analytics are temporarily disabled because of [stepci/stepci#239](https://github.com/stepci/stepci/issues/239).
-      - "STEPCI_DISABLE_ANALYTICS=true {{.ROOT_DIR}}/scripts/integration-test {{.CLI_ARGS}}"
+      STEPCI_DISABLE_ANALYTICS: true
+    cmd: "{{.ROOT_DIR}}/scripts/integration-test {{.CLI_ARGS}}"
   update:
     desc: Updates all dependencies.
     deps: [update-redoc]
@@ -53,14 +48,12 @@ tasks:
       - cargo update
   check-for-outdated-dependencies:
     desc: Checks for outdated dependencies.
-    cmds:
-      # Check for outdated dependencies
-      - "if cargo install --list | grep -q '^cargo-edit v'; then \
-        echo '[INFO] Checking for outdated dependencies…'; \
-        cargo upgrade --dry-run --incompatible --pinned --verbose; \
-        else \
-        echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
-        fi"
+    cmd: if cargo install --list | grep -q '^cargo-edit v'; then \
+      echo '[INFO] Checking for outdated dependencies…'; \
+      cargo upgrade --dry-run --incompatible --pinned --verbose; \
+      else \
+      echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
+      fi
   update-redoc:
     desc: Updates Redoc.
     cmds:
@@ -73,45 +66,36 @@ tasks:
     desc: Creates a release (bumps version number, then adds and pushes a tag).
     env:
       REPOSITORY_ROOT: "{{.ROOT_DIR}}"
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/release {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/release {{.CLI_ARGS}}"
   build-image:
     desc: Builds the Prose Pod API Docker image. Run `task build-image -- --help` for more info.
     env:
       SCRIPTS_ROOT: "{{.ROOT_DIR}}/scripts"
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/build-image {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/build-image {{.CLI_ARGS}}"
   local-init:
     desc: Initializes a local environment allowing one to run a Prose Pod API in one command (`task local-run`).
     dotenv: ["paths.env"]
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/run-locally/init {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/run-locally/init {{.CLI_ARGS}}"
   local-run:
     desc: Runs a Prose Pod API.
     dotenv: ["paths.env"]
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/run-locally/run {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/run-locally/run {{.CLI_ARGS}}"
   local-update:
     desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
     dotenv: ["paths.env"]
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/run-locally/update {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/run-locally/update {{.CLI_ARGS}}"
   local-build:
     desc: Builds the Prose Pod API and the repositories it depends on without updating the code.
     dotenv: ["paths.env"]
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/run-locally/build-images {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/run-locally/build-images {{.CLI_ARGS}}"
   local-reset:
     desc: Starts fresh with a Prose Pod API that has no data.
     prompt: This command will delete all your local Prose data, do you want to continue?
     dotenv: ["paths.env"]
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/run-locally/reset {{.CLI_ARGS}}"
   openapi-lint:
     desc: Lint the OpenAPI specification file.
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"
   openapi-preview-docs:
     desc: Preview the OpenAPI specification file in a graphical interface.
-    cmds:
-      - "{{.ROOT_DIR}}/scripts/openapi-preview-docs {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/scripts/openapi-preview-docs {{.CLI_ARGS}}"
