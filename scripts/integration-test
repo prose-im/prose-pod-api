@@ -31,6 +31,9 @@ export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/in-memory.env
 export SERVER_ROOT="${INTEGRATION_TESTS_DIR:?}"/fs-root
 export DATABASE_PATH="${INTEGRATION_TESTS_DIR:?}"/integration-tests.sqlite
 COMPOSE_FILE="${INTEGRATION_TESTS_DIR:?}"/compose/compose.yaml
+# NOTE: We don't want things like [stepci/stepci#239](https://github.com/stepci/stepci/issues/239)
+#   to break the tests or the analytics server to slow down the tests execution.
+export STEPCI_DISABLE_ANALYTICS=true
 
 # ===== ARGUMENT PARSING =====
 
