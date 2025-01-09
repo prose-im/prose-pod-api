@@ -14,7 +14,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 : ${SELF:="$(basename $0)"}
 
 source "${SCRIPTS_ROOT:?}"/constants.sh
-PROSE_POD_API_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
+: ${PROSE_POD_API_IMAGE_TAG:="${LOCAL_DOCKER_TAG:?}"}
 
 # Regenerate image name (so it's up-to-date in logs until arguments are passed).
 unset PROSE_POD_API_IMAGE
@@ -37,6 +37,9 @@ COMPOSE_FILE="${INTEGRATION_TESTS_DIR:?}"/compose/compose.yaml
 ARGS_=()
 for arg in "$@"; do
 	case $arg in
+		--api=*)
+			PROSE_POD_API_IMAGE_TAG="${arg#'--api='}"
+			;;
 		--server=*)
 			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
 			;;
@@ -58,7 +61,7 @@ set -- "${ARGS_[@]}"
 unset ARGS_
 
 # Regenerate image names.
-unset PROSE_POD_SERVER_IMAGE
+unset PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
 source "${SCRIPTS_ROOT:?}"/constants.sh
 export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
 

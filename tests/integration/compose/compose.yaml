@@ -1,7 +1,7 @@
 name: prose-pod-api-tests
 services:
   api:
-    image: proseim/prose-pod-api:local
+    image: "${PROSE_POD_API_IMAGE:-proseim/prose-pod-api:${PROSE_POD_API_IMAGE_TAG:-${LOCAL_DOCKER_TAG:-local}}}"
     ports:
       - "8080:8080"
     volumes:
