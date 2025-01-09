@@ -10,26 +10,9 @@ env:
   REPOSITORY_ROOT: "{{.ROOT_DIR}}"
 
 tasks:
-  reset-db:
-    desc: Backs up the database and resets it using `sea-orm-cli`.
-    cmd: "{{.ROOT_DIR}}/scripts/reset-db"
-
-  entity:
-    desc: Generates database entities using `sea-orm-cli`.
-    deps: [reset-db]
-    cmd: sea-orm-cli generate entity -o entity/src --lib \
-      --tables "$(TABLES)" \
-      --with-serde both \
-      --serde-skip-deserializing-primary-key \
-      --serde-skip-hidden-column
-
-  format-all:
+  format:
     desc: Formats all Rust files.
     cmd: cargo fmt
-
-  format:
-    desc: Formats modified Rust files.
-    cmd: "{{.ROOT_DIR}}/.githooks/pre-commit"
 
   test:
     desc: Runs all tests and updates "Tested at Rust version" in the `README`.
