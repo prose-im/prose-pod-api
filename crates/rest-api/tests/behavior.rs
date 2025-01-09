@@ -22,19 +22,22 @@ async fn main() {
         // .init_tracing()
         .configure_and_init_tracing(
             format::DefaultFields::new(),
-            Format::default(),
+            Format::default()
+                .without_time()
+                .with_ansi(true)
+                .with_source_location(false),
             |fmt_layer| {
                 let targets = vec![
                     ("sea_orm_migration", LevelFilter::WARN),
+                    ("sea_orm", LevelFilter::INFO),
                     ("sqlx::query", LevelFilter::ERROR),
                     ("globset", LevelFilter::WARN),
                 ];
 
                 let args = std::env::args().collect::<Vec<_>>();
-                let running_few_scenarios = args.contains(&"@testing".to_owned());
-                let debug = args.contains(&"@debug".to_owned());
+                let debug = args.iter().any(|s| s.contains("@debug"));
 
-                let default_level = if running_few_scenarios || debug {
+                let default_level = if debug {
                     LevelFilter::TRACE
                 } else {
                     LevelFilter::WARN

@@ -21,15 +21,7 @@ brew install go-task
 To list all available commands, use:
 
 ```bash
-task -a
-```
-
-### `sea-orm-cli`
-
-If you work on database migrations, you will probably need `sea-orm-cli`:
-
-```bash
-cargo install sea-orm-cli
+task -a --sort none
 ```
 
 ## Updating dependencies

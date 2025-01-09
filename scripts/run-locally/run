@@ -88,4 +88,4 @@ info "- Server: $(format_code $PROSE_POD_SERVER_IMAGE)"
 
 # ===== MAIN LOGIC =====
 
-edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate
+edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans
