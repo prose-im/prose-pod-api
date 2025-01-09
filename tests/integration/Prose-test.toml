@@ -7,8 +7,8 @@
 page_url = "https://admin.prose.org.local/"
 company_name = "Prose Test"
 
-[databases.main]
-url = "sqlite::memory:"
+[notify.email]
+pod_address = "pod@prose.org.local"
 
-[debug_only.dependency_modes]
-notifier = "logging"
+smtp_host = "mailpit"
+smtp_encrypt = false
