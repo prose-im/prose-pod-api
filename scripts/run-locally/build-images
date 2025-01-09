@@ -8,10 +8,8 @@ export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 source "${SCRIPTS_ROOT:?}"/constants.sh
 
-# Regenerate image name.
 PROSE_POD_SERVER_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
-unset PROSE_POD_SERVER_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
+source "${SCRIPTS_ROOT:?}"/image-names.sh
 
 test-env-vars 'tutorials/run-locally.md' \
 	PROSE_POD_API_DIR

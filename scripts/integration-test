@@ -15,10 +15,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 
 source "${SCRIPTS_ROOT:?}"/constants.sh
 : ${PROSE_POD_API_IMAGE_TAG:="${LOCAL_DOCKER_TAG:?}"}
-
-# Regenerate image name (so it's up-to-date in logs until arguments are passed).
-unset PROSE_POD_API_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
+source "${SCRIPTS_ROOT:?}"/image-names.sh
 
 test-env-vars 'CONTRIBUTING.md' \
 	PROSE_POD_API_DIR \
@@ -65,7 +62,7 @@ unset ARGS_
 
 # Regenerate image names.
 unset PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
-source "${SCRIPTS_ROOT:?}"/constants.sh
+source "${SCRIPTS_ROOT:?}"/image-names.sh
 export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
 
 info "Selected versions:"
