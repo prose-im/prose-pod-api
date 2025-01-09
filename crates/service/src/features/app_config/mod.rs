@@ -27,6 +27,7 @@ use crate::{
     },
 };
 
+const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
 pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
@@ -71,12 +72,14 @@ impl AppConfig {
     pub fn figment() -> Figment {
         // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
         Figment::new()
-            .merge(Toml::file("Prose.toml"))
+            .merge(Toml::file(CONFIG_FILE_NAME))
             .merge(Env::prefixed("PROSE_").split("__"))
     }
 
     pub fn from_figment(figment: Figment) -> Self {
-        figment.extract().expect("Could not read config")
+        figment
+            .extract()
+            .unwrap_or_else(|e| panic!("Invalid '{CONFIG_FILE_NAME}' configuration file: {e}"))
         // TODO: Check values intervals (e.g. `default_response_timeout`).
     }
 
