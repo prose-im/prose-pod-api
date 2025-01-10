@@ -7,7 +7,6 @@ pub mod error;
 pub mod features;
 pub mod forms;
 pub mod guards;
-pub mod models;
 pub mod responders;
 pub mod util;
 
@@ -17,7 +16,7 @@ use service::{
     auth::AuthService,
     dependencies::Uuid,
     network_checks::NetworkChecker,
-    notifications::dependencies::Notifier,
+    notifications::{notifier::email::EmailNotification, Notifier},
     sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},
@@ -37,7 +36,7 @@ pub struct AppState {
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
-    notifier: Notifier,
+    email_notifier: Notifier<EmailNotification>,
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
@@ -50,7 +49,7 @@ impl AppState {
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
-        notifier: Notifier,
+        email_notifier: Notifier<EmailNotification>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
     ) -> Self {
@@ -61,7 +60,7 @@ impl AppState {
             server_ctl,
             xmpp_service,
             auth_service,
-            notifier,
+            email_notifier,
             secrets_store,
             network_checker,
         }

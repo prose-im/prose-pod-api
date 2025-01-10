@@ -44,7 +44,7 @@ for arg in "$@"; do
 			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
 			;;
 		--logs)
-			edo docker compose -f "${COMPOSE_FILE:?}" logs server api coredns
+			edo docker compose -f "${COMPOSE_FILE:?}" logs
 			exit 0
 			;;
 		--logs=*)
@@ -118,7 +118,7 @@ abort() {
 	stop
 	local current_time=$(date +%s)
 	local elapsed_time=$((current_time - ${START_TIME:?}))
-	edo docker compose -f "${COMPOSE_FILE:?}" logs --since "${elapsed_time}s" server api coredns
+	edo docker compose -f "${COMPOSE_FILE:?}" logs --since "${elapsed_time}s"
 	exit 1
 }
 

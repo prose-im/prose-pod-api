@@ -7,11 +7,12 @@ use axum::{extract::Path, Json};
 use serde::{Deserialize, Serialize};
 use service::{
     invitations::{invitation_service::*, InvitationAcceptError, InvitationToken},
-    notifications::Notifier,
+    models::SerializableSecretString,
+    notifications::NotificationService,
     AppConfig,
 };
 
-use crate::{error::prelude::*, models::SerializableSecretString};
+use crate::error::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct AcceptWorkspaceInvitationRequest {
@@ -42,11 +43,11 @@ pub async fn invitation_reject_route(
 pub async fn invitation_resend_route(
     invitation_service: InvitationService,
     app_config: AppConfig,
-    notifier: Notifier,
+    notification_service: NotificationService,
     Path(invitation_id): Path<i32>,
 ) -> Result<StatusCode, Error> {
     invitation_service
-        .resend(&app_config, &notifier, invitation_id)
+        .resend(&app_config, &notification_service, invitation_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -94,6 +95,16 @@ impl CustomErrorCode for InvitationRejectError {
     }
 }
 impl_into_error!(InvitationRejectError);
+
+impl CustomErrorCode for SendWorkspaceInvitationError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::CouldNotCreateEmailNotification(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::NotificationService(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(SendWorkspaceInvitationError);
 
 impl CustomErrorCode for InvitationResendError {
     fn error_code(&self) -> ErrorCode {

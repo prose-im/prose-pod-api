@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::Debug;
+
 use secrecy::{ExposeSecret as _, SecretString, SerializableSecret, Zeroize};
 use serde::{Deserialize, Serialize};
 
@@ -28,5 +30,10 @@ impl SerializableSecretString {
 impl Into<SecretString> for SerializableSecretString {
     fn into(self) -> SecretString {
         self.into_secret_string()
+    }
+}
+impl Debug for SerializableSecretString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<secret>")
     }
 }

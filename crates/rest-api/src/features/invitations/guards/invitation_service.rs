@@ -18,8 +18,8 @@ impl FromRequestParts<AppState> for service::invitations::InvitationService {
         let member_service = UnauthenticatedMemberService::from_request_parts(parts, state).await?;
 
         Ok(Self::new(
-            Arc::new(state.db.clone()),
-            Arc::new(state.uuid_gen.clone()),
+            state.db.clone(),
+            state.uuid_gen.clone(),
             member_service,
         ))
     }

@@ -9,8 +9,7 @@ page_url = "https://admin.prose.org/"
 company_name = "Prose"
 
 [notify.email]
-from = "pod@prose.org"
-to = "pod@prose.org"
+pod_address = "pod@prose.org"
 
 smtp_host = "localhost"
 smtp_port = 587

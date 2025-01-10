@@ -8,7 +8,10 @@ mod init_server_config;
 mod register_oauth2_client;
 mod rotate_api_xmpp_password;
 mod run_migrations;
+mod test_services_reachability;
 mod wait_for_server;
+
+use tracing::trace;
 
 use crate::AppState;
 
@@ -17,10 +20,14 @@ use self::init_server_config::*;
 use self::register_oauth2_client::*;
 use self::rotate_api_xmpp_password::*;
 use self::run_migrations::*;
+use self::test_services_reachability::*;
 use self::wait_for_server::*;
 
 pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
+    trace!("Running startup actions…");
+
     run_migrations(app_state).await?;
+    test_services_reachability(app_state).await?;
     wait_for_server(app_state).await?;
     rotate_api_xmpp_password(app_state).await?;
     init_server_config(app_state).await?;

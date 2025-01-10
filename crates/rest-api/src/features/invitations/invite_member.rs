@@ -15,7 +15,7 @@ use service::{
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
     members::MemberRole,
     models::JidNode,
-    notifications::Notifier,
+    notifications::NotificationService,
     server_config::ServerConfig,
     AppConfig,
 };
@@ -60,12 +60,12 @@ pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { db, .. }): State<AppState>,
     app_config: AppConfig,
     server_config: ServerConfig,
-    notifier: Notifier,
+    notification_service: NotificationService,
     invitation_service: InvitationService,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
     let invitation = invitation_service
-        .invite_member(&app_config, &server_config, &notifier, req)
+        .invite_member(&app_config, &server_config, &notification_service, req)
         .await?;
 
     #[cfg(debug_assertions)]
@@ -110,6 +110,7 @@ impl CustomErrorCode for InviteMemberError {
             Self::InvitationConfict => ErrorCode::INVITE_ALREADY_EXISTS,
             Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
             Self::CouldNotUpdateInvitationStatus { .. } => ErrorCode::INTERNAL_SERVER_ERROR,
+            InviteMemberError::CouldNotSendNotification(err) => err.code(),
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::DbErr(err) => err.code(),

@@ -9,6 +9,7 @@ pub mod defaults;
 
 use std::{net::IpAddr, path::PathBuf, str::FromStr as _};
 
+use email_address::EmailAddress;
 use figment::{
     providers::{Env, Format, Toml},
     Figment,
@@ -236,10 +237,18 @@ pub struct ConfigNotify {
     pub email: Option<ConfigNotifyEmail>,
 }
 
+impl ConfigNotify {
+    pub fn email<'a>(&'a self) -> Result<&'a ConfigNotifyEmail, MissingConfiguration> {
+        match self.email {
+            Some(ref conf) => Ok(conf),
+            None => Err(MissingConfiguration("notify.email")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigNotifyEmail {
-    pub to: String,
-    pub from: String,
+    pub pod_address: EmailAddress,
 
     #[serde(default = "defaults::notify_email_smtp_host")]
     pub smtp_host: String,
@@ -326,3 +335,9 @@ pub struct ConfigDependencyModes {
     #[serde(default)]
     pub notifier: NotifierDependencyMode,
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error(
+    "Missing key `{0}` the app configuration. Add it to `Prose.toml` or use environment variables."
+)]
+pub struct MissingConfiguration(&'static str);

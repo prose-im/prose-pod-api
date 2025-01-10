@@ -1,14 +1,10 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod dependencies;
-pub mod entities;
-pub(crate) mod migrations;
-pub mod notification_repository;
-pub mod services;
+pub mod notification_service;
 
-pub use entities::*;
-pub use notification_repository::*;
-pub use services::*;
+pub use dependencies::*;
+pub use notification_service::*;

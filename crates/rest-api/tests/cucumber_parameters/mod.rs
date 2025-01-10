@@ -16,6 +16,7 @@ mod invitations;
 mod jid;
 mod member_role;
 mod open_or_not;
+mod state_verb;
 mod text;
 mod toggle_state;
 
@@ -29,5 +30,6 @@ pub use invitations::*;
 pub use jid::*;
 pub use member_role::*;
 pub use open_or_not::*;
+pub use state_verb::*;
 pub use text::*;
 pub use toggle_state::*;

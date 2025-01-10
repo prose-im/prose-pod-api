@@ -5,35 +5,65 @@
 
 use std::sync::{Arc, RwLock};
 
-use service::{
-    app_config::ConfigBranding,
-    notifications::dependencies::any_notifier::{GenericNotifier, Notification},
-};
+use service::notifications::notifier::{GenericNotifier, NotificationTrait, NotifierError};
 
-#[derive(Debug, Default, Clone)]
-pub struct MockNotifier {
-    pub(crate) state: Arc<RwLock<MockNotifierState>>,
+#[derive(Debug, Clone)]
+pub struct MockNotifier<N: NotificationTrait + Clone> {
+    pub(crate) state: Arc<RwLock<MockNotifierState<N>>>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct MockNotifierState {
+#[derive(Debug, Clone)]
+pub struct MockNotifierState<N: NotificationTrait> {
+    pub online: bool,
     pub send_count: usize,
-    pub sent: Vec<Notification>,
+    pub sent: Vec<N>,
 }
 
-impl GenericNotifier for MockNotifier {
+impl<N: NotificationTrait + Clone> Default for MockNotifier<N> {
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+        }
+    }
+}
+
+impl<N: NotificationTrait + Clone> Default for MockNotifierState<N> {
+    fn default() -> Self {
+        Self {
+            online: true,
+            send_count: Default::default(),
+            sent: Default::default(),
+        }
+    }
+}
+
+impl<N: NotificationTrait + Clone> MockNotifier<N> {
+    fn check_online(&self) -> Result<(), NotifierError> {
+        if self.state.read().unwrap().online {
+            Ok(())
+        } else {
+            Err(NotifierError("XMPP server offline".to_owned()))?
+        }
+    }
+}
+
+impl<N: NotificationTrait + Clone> GenericNotifier for MockNotifier<N> {
+    type Notification = N;
+
     fn name(&self) -> &'static str {
         "dummy_notifier"
     }
 
-    fn attempt(
-        &self,
-        _branding: &ConfigBranding,
-        notification: &Notification,
-    ) -> Result<(), String> {
+    fn test_connection(&self) -> Result<bool, NotifierError> {
+        Ok(self.state.read().unwrap().online)
+    }
+
+    fn attempt(&self, notification: &Self::Notification) -> Result<(), NotifierError> {
+        self.check_online()?;
+
         let mut state = self.state.write().unwrap();
         state.send_count += 1;
-        state.sent.push(notification.clone());
+        state.sent.push(notification.to_owned());
         Ok(())
     }
 }

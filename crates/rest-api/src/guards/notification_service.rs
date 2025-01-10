@@ -6,17 +6,13 @@
 use super::prelude::*;
 
 #[async_trait::async_trait]
-impl FromRequestParts<AppState> for service::notifications::Notifier {
+impl FromRequestParts<AppState> for service::notifications::NotificationService {
     type Rejection = Infallible;
 
     async fn from_request_parts(
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        Ok(Self::new(
-            Arc::new(state.db.clone()),
-            Arc::new(state.notifier.clone()),
-            Arc::new(state.app_config.branding.clone()),
-        ))
+        Ok(Self::new(state.email_notifier.clone()))
     }
 }

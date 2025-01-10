@@ -9,7 +9,7 @@ use prose_pod_api::{custom_router, util::database::db_conn, AppState};
 use service::{
     auth::{AuthService, LiveAuthService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
-    notifications::dependencies::Notifier,
+    notifications::{notifier::email::EmailNotifier, Notifier},
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
     secrets::{LiveSecretsStore, SecretsStore},
@@ -51,7 +51,8 @@ async fn main() {
     )));
     let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&app_config, http_client.clone()));
     let auth_service = AuthService::new(Arc::new(LiveAuthService::new(prosody_oauth2.clone())));
-    let notifier = Notifier::from_config(&app_config).unwrap_or_else(|e| panic!("{e}"));
+    let email_notifier =
+        Notifier::from_config::<EmailNotifier, _>(&app_config).unwrap_or_else(|e| panic!("{e}"));
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
     {
@@ -71,7 +72,7 @@ async fn main() {
         server_ctl,
         xmpp_service,
         auth_service,
-        notifier,
+        email_notifier,
         secrets_store,
         network_checker,
     );

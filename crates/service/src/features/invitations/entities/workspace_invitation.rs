@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
@@ -16,7 +16,7 @@ use crate::{
 #[sea_orm(table_name = "workspace_invitation")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: InvitationId,
     pub created_at: DateTimeUtc,
     pub status: InvitationStatus,
     #[sea_orm(unique)]

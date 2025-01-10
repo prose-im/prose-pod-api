@@ -6,7 +6,6 @@
 use std::str::FromStr as _;
 
 pub use jid::*;
-use sea_orm::sea_query;
 
 use crate::{models::EmailAddress, sea_orm_string, wrapper_type};
 

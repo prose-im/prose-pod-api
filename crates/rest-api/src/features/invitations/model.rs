@@ -31,8 +31,8 @@ pub struct WorkspaceInvitationBasicDetails {
 
 // BOILERPLATE
 
-impl From<invitations::entities::Invitation> for WorkspaceInvitation {
-    fn from(value: invitations::entities::Invitation) -> Self {
+impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitation {
+    fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
         Self {
             invitation_id: value.id,
             created_at: value.created_at,
@@ -45,8 +45,8 @@ impl From<invitations::entities::Invitation> for WorkspaceInvitation {
     }
 }
 
-impl From<invitations::entities::Invitation> for WorkspaceInvitationBasicDetails {
-    fn from(value: invitations::entities::Invitation) -> Self {
+impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationBasicDetails {
+    fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
         Self {
             jid: to_bare_jid(&value.jid).unwrap(),
             pre_assigned_role: value.pre_assigned_role,
