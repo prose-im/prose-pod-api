@@ -103,30 +103,12 @@ jobs:
     if: github.event.pull_request.draft == false
     needs: smoke-test
     runs-on: ubuntu-latest
-    env:
-      PROSE_POD_SERVER_DIR: ${{ github.workspace }}/server
-      # For the API we don't use a subfolder just to make things easier.
-      PROSE_POD_API_DIR: ${{ github.workspace }}
-      PROSE_POD_SYSTEM_DIR: ${{ github.workspace }}/system
     steps:
-      # NOTE: We **must** checkout `prose-pod-api` first otherwise checking it out
-      #   silently deletes the other checked out repositories.
       - name: Checkout prose-pod-api
         uses: actions/checkout@v4
         with:
           path: ${{ env.PROSE_POD_API_DIR }}
           submodules: true
-      - name: Checkout prose-pod-server
-        uses: actions/checkout@v4
-        with:
-          repository: prose-im/prose-pod-server
-          path: ${{ env.PROSE_POD_SERVER_DIR }}
-          submodules: true
-      - name: Checkout prose-pod-system
-        uses: actions/checkout@v4
-        with:
-          repository: prose-im/prose-pod-system
-          path: ${{ env.PROSE_POD_SYSTEM_DIR }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable

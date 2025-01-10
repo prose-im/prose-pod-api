@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== CONSTANTS =====
+
+LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+source "${SELF_SCRIPTS:?}"/constants.sh
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Runs a Prose Pod API locally.${Bold_Off}
+
+By default, this script will use the latest released images$(format_secondary '[^1]') but you can override
+this behavior by using $(format_arg --api=DOCKER_TAG) and/or $(format_arg --server=DOCKER_TAG).
+
+$(format_secondary "[^1]: At the time the current commit was made (i.e. it won’t use $(format_code "${LATEST_DOCKER_TAG:?}"), for")
+$(format_secondary '      backwards compatibility reasons).')
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to run the latest released versions:
+    $(format_command "${SELF%' --'}")
+  You want to run with the latest patches (latest commits, unreleased):
+    $(format_command "${SELF:?}") $(format_arg '--api=edge')
+  You want to run the image you built locally (e.g. for integration tests):
+    $(format_command "${SELF:?}") $(format_arg "--api=${LOCAL_DOCKER_TAG:?}")
+
+$(format_title 'Options:')
+  $(format_subtitle 'Version options:')
+    $(format_flag --api=DOCKER_TAG)
+      Choose which version of the Prose Pod API to run (default: $(format_code "${PROSE_POD_API_IMAGE_TAG:?}")).
+    $(format_flag --server=DOCKER_TAG)
+      Choose which version of the Prose Pod Server to run (default: $(format_code "${PROSE_POD_SERVER_IMAGE_TAG:?}")).
+    $(format_flag --db=DATABASE_NAME)
+      Give a name to the database the Prose Pod API will use (default: $(format_code "${DATABASE_NAME:?}")).
+      $(format_secondary 'This can be used to create environments with pre-inserted data.')
+    $(format_flag --detach)
+      Run containers in the background. Check logs with $(format_code 'task local:logs').
+      $(format_secondary 'Same as $(docker compose up --detach).')
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+    $(format_flag --dry-run)
+      Do a dry run (i.e. print what would be executed instead of running it).
+    $(format_flag --debug)
+      Log debug messages when running the script.
+      $(format_secondary 'This won’t change the log levels of the API and server yet, but we’ll
+      implement that someday.')
+    $(format_flag --trace)
+      Log tracing messages when running the script.
+      $(format_secondary 'This won’t change the log levels of the API and server yet, but we’ll
+      implement that someday.')
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+# ===== ARGUMENT PARSING =====
+
+for arg in "$@"; do
+	case $arg in
+		--api=*)
+			PROSE_POD_API_IMAGE_TAG="${arg#'--api='}"
+			# Regenerate image name.
+			unset PROSE_POD_API_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
+			;;
+		--server=*)
+			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
+			# Regenerate image name.
+			unset PROSE_POD_SERVER_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
+			;;
+		--db=*)
+			DATABASE_NAME="${arg#'--db='}"
+			# Regenerate database path.
+			unset DATABASE_PATH && source "${SELF_SCRIPTS:?}"/constants.sh
+			;;
+		--detach) DETACH=1 ;;
+		--help) help ;;
+		--dry-run) DRY_RUN=1 ;;
+		--debug) LOG_DEBUG=1 ;;
+		--trace) LOG_TRACE=1 ;;
+		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+	esac
+done
+
+# Recompute log levels.
+source "${BASH_TOOLBOX:?}"/log.sh
+
+info "Selected versions:"
+info "- API: $(format_code $PROSE_POD_API_IMAGE)"
+info "- Server: $(format_code $PROSE_POD_SERVER_IMAGE)"
+
+# ===== MAIN LOGIC =====
+
+[ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
+
+export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
+export DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR
+
+edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}

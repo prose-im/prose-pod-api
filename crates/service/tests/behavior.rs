@@ -5,19 +5,18 @@
 
 mod prosody;
 
-use std::str::FromStr;
+use std::{path::Path, str::FromStr as _};
 
 use cucumber::World;
 use sea_orm::*;
-use secrecy::SecretString;
-use service::MigratorTrait as _;
 use service::{
+    app_config::{AppConfig, CONFIG_FILE_NAME},
     init::WorkspaceCreateForm,
     models::JidDomain,
     prosody::ProsodyConfig,
     server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
     workspace::WorkspaceRepository,
-    AppConfig,
+    MigratorTrait as _,
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
@@ -45,11 +44,11 @@ struct TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let mut app_config = AppConfig::from_default_figment();
-        app_config.server.oauth2_registration_key = SecretString::new("dummy-test-key".to_string());
+        let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let app_config = AppConfig::from_path(crate_root.join("tests").join(CONFIG_FILE_NAME));
 
         // Connecting SQLite
-        let db = match Database::connect("sqlite::memory:").await {
+        let db = match Database::connect(&app_config.databases.main.url).await {
             Ok(conn) => conn,
             Err(e) => panic!("Could not connect to test database: {e}"),
         };

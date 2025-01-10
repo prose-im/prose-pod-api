@@ -1,7 +1,7 @@
-name: prose-pod-api-tests
+name: prose-pod-api-local
 services:
   api:
-    image: "${PROSE_POD_API_IMAGE:-proseim/prose-pod-api:${PROSE_POD_API_IMAGE_TAG:-${LOCAL_DOCKER_TAG:-local}}}"
+    image: "${PROSE_POD_API_IMAGE:-proseim/prose-pod-api:${PROSE_POD_API_IMAGE_TAG:-unknown}}"
     depends_on:
       - server
       - coredns
@@ -9,21 +9,21 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - "${DATABASE_PATH-./integration-tests.sqlite}:/database.sqlite"
-      - "${PROSE_CONFIG_FILE-../Prose-test.toml}:/Prose.toml"
-      - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
+      - "${DATABASE_PATH:-./database.sqlite}:/database.sqlite"
+      - "${PROSE_CONFIG_FILE:-./Prose.toml}:/Prose.toml"
+      - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks: [prose-network]
     environment:
       RUST_LOG_STYLE: always
-    env_file: "${ENV_FILE-../in-memory.env}"
+    env_file: "${ENV_FILE:-./local-run.env}"
     dns: 172.20.0.42
 
   # https://github.com/prose-im/prose-pod-server
   server:
-    image: "${PROSE_POD_SERVER_IMAGE:-proseim/prose-pod-server:${PROSE_POD_SERVER_IMAGE_TAG:-${DEFAULT_DOCKER_TAG:-latest}}}"
+    image: "${PROSE_POD_SERVER_IMAGE:-proseim/prose-pod-server:${PROSE_POD_SERVER_IMAGE_TAG:-unknown}}"
     volumes:
-      - "${SERVER_ROOT:-}/etc/prosody/:/etc/prosody/"
-      - "${SERVER_ROOT:-}/var/lib/prosody/:/var/lib/prosody/"
+      - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
+      - "${VAR_LIB_PROSODY_DIR:?}:/var/lib/prosody/"
     networks:
       prose-network:
         aliases:
@@ -32,7 +32,7 @@ services:
           - prose.org.local
         ipv4_address: 172.20.0.40
         ipv6_address: 2001:db8::40
-    env_file: "${ENV_FILE-../in-memory.env}"
+    env_file: "${ENV_FILE:-./local-run.env}"
     entrypoint: >
       sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
 
@@ -40,8 +40,8 @@ services:
   coredns:
     image: coredns/coredns:latest
     volumes:
-      - ${COREDNS_COREFILE:-../coredns/Corefile}:/etc/coredns/Corefile
-      - ${DNS_ZONE_FILE:-../dns-zones/working-static.zone}:/etc/coredns/zones.db
+      - ${COREDNS_COREFILE:-./coredns/Corefile}:/etc/coredns/Corefile
+      - ${DNS_ZONE_FILE:-./dns-zones/default.zone}:/etc/coredns/zones.db
     command: ["-conf", "/etc/coredns/Corefile"]
     networks:
       prose-network:
@@ -50,6 +50,8 @@ services:
   # https://github.com/axllent/mailpit
   mailpit:
     image: axllent/mailpit:latest
+    ports:
+      - "8025:8025" # Web UI
     environment:
       MP_SMTP_AUTH_ALLOW_INSECURE: true
       MP_SMTP_BIND_ADDR: 0.0.0.0:587
@@ -60,7 +62,7 @@ services:
 
 networks:
   prose-network:
-    name: Prose Pod API integration tests network
+    name: Prose Pod API local run network
     driver: bridge
     enable_ipv6: true
     ipam:

@@ -5,15 +5,16 @@
 
 use std::{
     collections::HashMap,
+    path::Path,
     str::FromStr as _,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use axum_test::{TestResponse, TestServer};
 use cucumber::*;
-use figment::providers::Serialized;
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
+    app_config::{AppConfig, CONFIG_FILE_NAME},
     auth::{AuthService, AuthToken},
     dependencies,
     errors::DbErr,
@@ -28,7 +29,6 @@ use service::{
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
     workspace::WorkspaceService,
     xmpp::{ServerCtl, ServerManager, XmppServiceInner},
-    AppConfig,
 };
 use uuid::Uuid;
 
@@ -203,10 +203,8 @@ impl TestWorld {
             "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
             &api_xmpp_password.expose_secret(),
         );
-        let figment = AppConfig::figment()
-            .merge(Serialized::default("databases.main.url", "sqlite::memory:"))
-            .merge(Serialized::default("databases.main.sqlx_logging", true));
-        let config = AppConfig::from_figment(figment);
+        let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let config = AppConfig::from_path(crate_root.join("tests").join(CONFIG_FILE_NAME));
 
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
         let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());

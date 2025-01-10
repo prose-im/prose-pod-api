@@ -58,25 +58,6 @@ For integration tests, we use [Step CI]. To install it, follow instructions at [
 npm install -g stepci
 ```
 
-#### Setting up environment
-
-You also need to clone [prose-pod-server](https://github.com/prose-im/prose-pod-server) and [prose-pod-system](https://github.com/prose-im/prose-pod-system). Once that done, you will need to set environment variables so our testing script can pick up the locations:
-
-```bash
-export PROSE_POD_API_DIR=???
-export PROSE_POD_SYSTEM_DIR=???
-```
-
-Finally, since integration tests run on final containers, you have to build `prose-pod-server` and `prose-pod-api`:
-
-```bash
-# Build the Prose Pod API image.
-task build-image -- --debug
-# Build the Prose Pod Server image.
-PROSE_POD_SERVER_DIR=???
-docker build -t proseim/prose-pod-server:local "${PROSE_POD_SERVER_DIR:?}"
-```
-
 #### Running tests
 
 Then, run the tests using:

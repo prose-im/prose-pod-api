@@ -15,6 +15,8 @@ You probably have it installed already, but if you don't, have a look at
 
 #### `task`
 
+To avoid you having to copy-paste tons of commands, we hid all of the logic behind helper scripts.
+
 Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility.
 You can find installation instructions on [taskfile.dev/installation],
 or just run the following on macOS:
@@ -34,42 +36,17 @@ task -a --sort none
 We need to run Docker images so you must have Docker installed.
 See [Install | Docker Docs](https://docs.docker.com/engine/install/).
 
-### Initialize your environment
-
-To avoid you having to copy-paste tons of commands, we hid all of the logic behind helper scripts
-which you can invoke using `task`. The first task to run is `local:init`.
+### Clone the repository
 
 But before that, you must declare where you want the repositories to be
 (replace `???` by the desired location):
 
 ```sh
-export PROSE_POD_API_DIR=???
-export PROSE_POD_SYSTEM_DIR=???
-```
-
-Then, run:
-
-```sh
+PROSE_POD_API_DIR=???
 git clone https://github.com/prose-im/prose-pod-api.git "${PROSE_POD_API_DIR:?}"
 git -C "${PROSE_POD_API_DIR:?}" submodule update --init
-task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml local:init
+cd "${PROSE_POD_API_DIR:?}"
 ```
-
-> [!TIP]
-> To avoid having to export the environment variables every time, you can add them to a local `.env` file
-> which will be sourced automatically when you run the next commands:
->
-> ```sh
-> echo "export PROSE_POD_API_DIR='${PROSE_POD_API_DIR:?}'
-> export PROSE_POD_SYSTEM_DIR='${PROSE_POD_SYSTEM_DIR:?}'" \
-> >> "${PROSE_POD_API_DIR:?}"/paths.env
-> ```
-
-> [!TIP]
-> To run the `task` commands, you will have to `cd` into the Prose Pod API repository,
-> or invoke `task` telling it where to find the Taskfile. If you prefer the latter scenario,
-> you can export `PROSE_POD_API_DIR` in your `~/.zprofile` (or equivalent) and call
-> `task --taskfile "${PROSE_POD_API_DIR:?}"/Taskfile.dist.yaml <task>` instead of `task <task>`.
 
 ## Run the API
 
