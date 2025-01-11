@@ -54,6 +54,7 @@ pub struct AppConfig {
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
+    #[serde(default)]
     pub databases: ConfigDatabases,
     /// IP address to serve on.
     #[serde(default = "defaults::address")]
@@ -280,7 +281,16 @@ pub struct ConfigNotifyEmail {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigDatabases {
+    #[serde(default = "defaults::databases_main")]
     pub main: ConfigDatabase,
+}
+
+impl Default for ConfigDatabases {
+    fn default() -> Self {
+        Self {
+            main: defaults::databases_main(),
+        }
+    }
 }
 
 /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
@@ -289,9 +299,9 @@ pub struct ConfigDatabase {
     pub url: String,
     #[serde(default)]
     pub min_connections: Option<u32>,
-    #[serde(default = "defaults::databases_max_connections")]
+    #[serde(default = "defaults::database_max_connections")]
     pub max_connections: usize,
-    #[serde(default = "defaults::databases_connect_timeout")]
+    #[serde(default = "defaults::database_connect_timeout")]
     pub connect_timeout: u64,
     #[serde(default)]
     pub idle_timeout: Option<u64>,

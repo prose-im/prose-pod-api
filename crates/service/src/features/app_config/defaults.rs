@@ -19,7 +19,7 @@ use crate::{
     models::{DateLike, Duration, JidNode, PossiblyInfinite, TimeLike},
 };
 
-use super::ConfigServiceAccount;
+use super::{ConfigDatabase, ConfigServiceAccount};
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
@@ -154,13 +154,24 @@ pub fn notify_email_smtp_encrypt() -> bool {
     true
 }
 
-pub fn databases_max_connections() -> usize {
+pub fn databases_main() -> ConfigDatabase {
+    ConfigDatabase {
+        url: "sqlite://database.sqlite?mode=rwc".to_string(),
+        min_connections: Default::default(),
+        max_connections: database_max_connections(),
+        connect_timeout: database_connect_timeout(),
+        idle_timeout: Default::default(),
+        sqlx_logging: Default::default(),
+    }
+}
+
+pub fn database_max_connections() -> usize {
     let workers: usize =
         std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
     workers * 4
 }
 
-pub fn databases_connect_timeout() -> u64 {
+pub fn database_connect_timeout() -> u64 {
     5
 }
 
