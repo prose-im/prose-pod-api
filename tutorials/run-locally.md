@@ -5,12 +5,12 @@ This document explains how to do just this.
 
 ## First time setup
 
-### Intall the tools you will need
+### Install the tools you will need
 
 #### `git`
 
 We use Git as version control system so you will need to install it.
-You probably have it installed already, but if you don't, have a look at
+You probably have it installed already, but if you don’t, have a look at
 [Git - Installing Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 
 #### `task`
@@ -67,18 +67,88 @@ task local:run -- --api=1.2
 task local:run -- --api=1
 ```
 
-## When you want to start fresh with a Prose Pod API that has no data
+### Check the logs
 
-At the root of the `prose-pod-api` repository, run:
+To see the logs of your **last** local run, you can run:
 
 ```sh
-task local:reset
+# See the logs from all services:
+task local:logs
+# See only the logs from the API or XMPP server:
+task local:logs -- api server
 ```
 
-OR do the "Initialize your environment" phase again but with different directory paths.
-This way you can have multiple instances of the API with different states.
+> [!WARN]
+> Logs are not saved from one run to the next, so make sure to copy them
+> before starting a new instance.
+
+### Create pre-populated environments
+
+Having only one instance of the API is good to play around, but when developing software on top
+of the Prose Pod API (like the Prose Pod Dashboard), you might want to save a snaphot of the API
+and XMPP server data so you can start again from this point at a later time.
+
+For those situations, we created a concept of “scenarios” which you can interact from.
+This section will list use cases along with the commands you would use in that situation.
+
+> [!WARN]
+> Your scenarios won’t be committed, so make sure to back them up
+> before deleting the repository!
+
+#### Use case: “I’m in a state I’d like to reuse later”
+
+When you feel like you’re in a good state in some scenario and would like to “snapshot” it,
+you can run:
+
+```sh
+# Based on the default scenario, which is the one you run when doing `task local:run`:
+task local:scenarios:create -- foo
+# Based on an existing scenario:
+task local:scenarios:create -- bar --based-on=foo
+```
+
+#### Use case: “I’d like to start from a scenario I created previously”
+
+If you want to start from an existing scenario for a single run, use:
+
+```sh
+task local:run -- --scenario=foo --ephemeral
+```
+
+You can also derive a new environment from this scenario using:
+
+```sh
+task local:scenarios:create -- bar --based-on=foo
+task local:run -- --scenario=bar
+```
+
+#### Use case: “I’d like to start again from scratch”
+
+```sh
+# Reset the state of the default scenario:
+task local:reset
+# Reset the state of a single scenario (this won’t affect scenarios derived from it):
+task local:scenarios:reset -- foo
+# Reset the state of multiple scenarios at once (this won’t affect scenarios derived from it):
+task local:scenarios:reset -- foo bar
+```
+
+#### Use case: “I don’t remember the names of the scenarios I created”
+
+```sh
+task local:scenarios:list
+```
+
+#### Use case: “There is a scenario I don’t need anymore, I’d like to delete it”
+
+```sh
+# Delete a single scenario (this won’t delete scenarios derived from it):
+task local:scenarios:delete -- foo
+# Delete multiple scenarios at once (this won’t delete scenarios derived from it):
+task local:scenarios:delete -- foo bar
+```
 
 [Prose Pod Dashboard]: https://github.com/prose-im/prose-pod-dashboard "prose-im/prose-pod-dashboard: Prose Pod dashboard. Static Web application used to interact with the Prose Pod API."
-[Task]: https://stepci.com/ "Task"
+[Task]: https://taskfile.dev/ "Task homepage"
 [GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"
 [taskfile.dev/installation]: https://taskfile.dev/installation/ "Installation | Task"
