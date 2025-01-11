@@ -16,6 +16,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
+use tracing::info;
 use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter, FmtSubscriber};
 
 #[tokio::main]
@@ -82,6 +83,7 @@ async fn main() {
         .unwrap();
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    info!("Serving the Prose Pod API on {addr}…");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
