@@ -89,6 +89,27 @@ tasks:
     desc: Prints logs from a local run.
     cmd: "{{.ROOT_DIR}}/local-run/scripts/logs {{.CLI_ARGS}}"
 
+  local:scenarios:create:
+    desc: Creates a new environment with persistent storage so you can save API states between runs.
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenario-create {{.CLI_ARGS}}"
+
+  local:scenarios:list:
+    desc: Lists available scenarios.
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenarios-list {{.CLI_ARGS}}"
+
+  local:scenarios:reset:
+    desc: >
+      Reset the persistent storage of a run scenario.
+      Note: If the scenario was derived from another, this will **not** use the state of the original one.
+      If that's what you want, you will need to delete and re-create the scenario.
+    prompt: This command will delete all the local Prose data associated to this scenario, do you want to continue?
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenarios-reset {{.CLI_ARGS}}"
+
+  local:scenarios:delete:
+    desc: Deletes a scenario.
+    prompt: This command will delete your local Prose data for this scenario (not the ones derived from it), do you want to continue?
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenarios-delete {{.CLI_ARGS}}"
+
   local:update:
     desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
     cmd: "{{.ROOT_DIR}}/local-run/scripts/update {{.CLI_ARGS}}"
@@ -99,8 +120,8 @@ tasks:
 
   local:reset:
     desc: Starts fresh with a Prose Pod API that has no data.
-    prompt: This command will delete all your local Prose data, do you want to continue?
-    cmd: "{{.ROOT_DIR}}/local-run/scripts/reset {{.CLI_ARGS}}"
+    prompt: This command will delete all the local Prose data associated to the default scenario, do you want to continue?
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenario-reset default {{.CLI_ARGS}}"
 
   openapi:lint:
     desc: Lint the OpenAPI specification file.

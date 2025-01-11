@@ -12,7 +12,8 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 # ===== CONSTANTS =====
 
 : ${SELF:="$(basename $0)"}
-: ${PROSE_POD_API_DIR:="${REPOSITORY_ROOT}"}
+LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 
 # ===== HELPER FUNCTIONS =====
 
@@ -79,9 +80,9 @@ for arg in "$@"; do
 				info "Will use branch $(format_code $SYSTEM_BRANCH) for $(format_code prose-pod-system)."
 				;;
 			--help) help ;;
-			--dry-run) DRY_RUN=1 ;;
-			--debug) LOG_DEBUG=1 ;;
-			--trace) LOG_TRACE=1 ;;
+			--dry-run) export DRY_RUN=1 ;;
+			--debug) export LOG_DEBUG=1 ;;
+			--trace) export LOG_TRACE=1 ;;
 			*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 		esac
 done
@@ -91,20 +92,23 @@ source "${BASH_TOOLBOX:?}"/log.sh
 
 # ===== MAIN LOGIC =====
 
-info 'Updating $(format_code prose-pod-api)…'
+info "Updating $(format_code prose-pod-api)…"
 [ -n "${API_BRANCH}" ] && ( edo git -C "${PROSE_POD_API_DIR:?}" checkout "${API_BRANCH:?}" 2>/dev/null || edo git -C "${PROSE_POD_API_DIR:?}" checkout -t origin/"${API_BRANCH:?}" )
 edo git -C "${PROSE_POD_API_DIR:?}" pull || :
 edo git -C "${PROSE_POD_API_DIR:?}" submodule update --init --remote
 
 if [ -n "${PROSE_POD_SERVER_DIR}" ] && [ -d "${PROSE_POD_SERVER_DIR:?}" ]; then
-	info 'Updating $(format_code prose-pod-server)…'
+	info "Updating $(format_code prose-pod-server)…"
 	[ -n "${SERVER_BRANCH}" ] && edo git -C "${PROSE_POD_SERVER_DIR:?}" checkout "${SERVER_BRANCH:?}"
 	edo git -C "${PROSE_POD_SERVER_DIR:?}" pull || :
 	edo git -C "${PROSE_POD_SERVER_DIR:?}" submodule update
 fi
 
 if [ -n "${PROSE_POD_SYSTEM_DIR}" ] && [ -d "${PROSE_POD_SYSTEM_DIR:?}" ]; then
-	info 'Updating $(format_code prose-pod-system)…'
+	info "Updating $(format_code prose-pod-system)…"
 	[ -n "${SYSTEM_BRANCH}" ] && edo git -C "${PROSE_POD_SYSTEM_DIR:?}" checkout "${SYSTEM_BRANCH:?}"
 	edo git -C "${PROSE_POD_SYSTEM_DIR:?}" pull || :
 fi
+
+# Update scenarios
+. "${SELF_SCRIPTS:?}"/scenarios-update

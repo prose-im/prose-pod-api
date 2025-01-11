@@ -50,3 +50,11 @@ test-env-vars() {
 	[ -n "$var_unset" ] && exit 1
 	return 0
 }
+
+traced-export() {
+	local var_name
+	for var_name in "$@"; do
+		export ${var_name}
+		trace "${var_name}=${!var_name}"
+	done
+}

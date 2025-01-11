@@ -7,15 +7,12 @@ set -e
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 
+# ===== CONSTANTS =====
+
 LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 source "${SELF_SCRIPTS:?}"/constants.sh
 
-if (( $DRY_RUN )); then
-	dry_run "Reset database at '${DATABASE_PATH:?}'"
-else
-	trace "Reset database at '${DATABASE_PATH:?}'"
-	echo '' > "${DATABASE_PATH:?}"
-fi
-edo rm -rf "${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
-edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*%2e*
+# ===== MAIN LOGIC =====
+
+ls -1 "${SCENARIOS_DIR:?}"

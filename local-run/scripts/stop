@@ -11,7 +11,7 @@ LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 source "${SELF_SCRIPTS:?}"/constants.sh
 
-export PROSE_POD_API_IMAGE PROSE_POD_SERVER_IMAGE
-export DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR
+source "${SELF_SCRIPTS:?}"/scenario-files.sh
+source "${SELF_SCRIPTS:?}"/compose-exports.sh
 
 edo docker compose -f "${COMPOSE_FILE:?}" stop

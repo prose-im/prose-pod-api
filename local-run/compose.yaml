@@ -9,13 +9,13 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - "${DATABASE_PATH:-./database.sqlite}:/database.sqlite"
-      - "${PROSE_CONFIG_FILE:-./Prose.toml}:/Prose.toml"
+      - "${DATABASE_PATH:?}:/database.sqlite"
+      - "${PROSE_CONFIG_FILE:?}:/Prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks: [prose-network]
     environment:
       RUST_LOG_STYLE: always
-    env_file: "${ENV_FILE:-./local-run.env}"
+    env_file: "${ENV_FILE:?}"
     dns: 172.20.0.42
 
   # https://github.com/prose-im/prose-pod-server
@@ -32,7 +32,7 @@ services:
           - prose.org.local
         ipv4_address: 172.20.0.40
         ipv6_address: 2001:db8::40
-    env_file: "${ENV_FILE:-./local-run.env}"
+    env_file: "${ENV_FILE:?}"
     entrypoint: >
       sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
 
@@ -40,8 +40,8 @@ services:
   coredns:
     image: coredns/coredns:latest
     volumes:
-      - ${COREDNS_COREFILE:-./coredns/Corefile}:/etc/coredns/Corefile
-      - ${DNS_ZONE_FILE:-./dns-zones/default.zone}:/etc/coredns/zones.db
+      - ${COREDNS_COREFILE:?}:/etc/coredns/Corefile
+      - ${DNS_ZONE_FILE:?}:/etc/coredns/zones.db
     command: ["-conf", "/etc/coredns/Corefile"]
     networks:
       prose-network:
