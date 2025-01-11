@@ -8,9 +8,6 @@
 page_url = "http://admin.prose.org.local/"
 company_name = "Prose (local)"
 
-[databases.main]
-url = "sqlite://database.sqlite?mode=rwc"
-
 [notify.email]
 pod_address = "pod@prose.org.local"
 
