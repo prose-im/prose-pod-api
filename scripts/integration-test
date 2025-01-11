@@ -84,8 +84,8 @@ stepci_run() {
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \
-	(cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST:?}") \
-	&& stop || abort
+	{ (cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST:?}") \
+	&& { stop || die 'Could not stop properly.'; } || abort; }
 }
 
 if [ "$#" -eq 0 ]; then
