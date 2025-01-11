@@ -1,4 +1,8 @@
 : ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
+
+# Initialize submodules if someone didn't do it first.
+[ -f "${BASH_TOOLBOX:?}"/README.md ] || git -C "${SCRIPTS_ROOT:?}" submodule update --init
+
 # NOTE: `die` logs an error then exits.
 source "${BASH_TOOLBOX:?}"/die.sh
 # NOTE: `edo` supports dry mode via `DRY_MODE`. When not in dry mode,
@@ -45,4 +49,12 @@ test-env-vars() {
 	done
 	[ -n "$var_unset" ] && exit 1
 	return 0
+}
+
+traced-export() {
+	local var_name
+	for var_name in "$@"; do
+		export ${var_name}
+		trace "${var_name}=${!var_name}"
+	done
 }

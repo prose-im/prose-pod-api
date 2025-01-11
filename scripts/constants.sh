@@ -2,6 +2,7 @@
 #   It avoids resetting a variable when sourcing this file after the variable was overriden.
 
 : ${PROSE_DOCKER_ORG:=proseim}
-: ${DEFAULT_DOCKER_TAG:=latest}
+: ${LATEST_DOCKER_TAG:=latest}
 # Tag used to reference images built locally (e.g. uncommitted code).
 : ${LOCAL_DOCKER_TAG:=local}
+: ${DEFAULT_DOCKER_TAG:="${LATEST_DOCKER_TAG:?}"}

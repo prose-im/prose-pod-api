@@ -5,21 +5,21 @@
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/crates/service/src/features/app_config/mod.rs
 
 [branding]
-page_url = "https://admin.prose.org/"
-company_name = "Prose"
-
-[notify.email]
-pod_address = "pod@prose.org"
-
-smtp_host = "localhost"
-smtp_port = 587
-smtp_username = "user-access"
-smtp_password = "user-password"
-smtp_encrypt = false
+page_url = "http://admin.prose.org.local/"
+company_name = "Prose (local)"
 
 [databases.main]
 url = "sqlite://database.sqlite?mode=rwc"
-sqlx_logging = false
+
+[notify.email]
+pod_address = "pod@prose.org.local"
+
+smtp_host = "mailpit"
+smtp_encrypt = false
+
+[debug_only]
+automatically_accept_invitations = true
+insecure_password_on_auto_accept_invitation = true
 
 [debug_only.dependency_modes]
 notifier = "logging"

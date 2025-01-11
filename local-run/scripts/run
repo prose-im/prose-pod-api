@@ -1,0 +1,156 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+source "${BASH_TOOLBOX:?}"/yes-no.sh
+
+# ===== CONSTANTS =====
+
+: ${SELF:="$(basename $0)"}
+
+LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+source "${SELF_SCRIPTS:?}"/constants.sh
+: ${SCENARIO_NAME:="${DEFAULT_SCENARIO_NAME:?}"}
+
+# ===== HELPER FUNCTIONS =====
+
+description() {
+	cat <<EOF
+${Bold}Runs a Prose Pod API locally.${Bold_Off}
+
+By default, this script will use the latest released images$(format_secondary '[^1]') but you can override
+this behavior by using $(format_arg --api=DOCKER_TAG) and/or $(format_arg --server=DOCKER_TAG).
+
+$(format_secondary "[^1]: At the time the current commit was made (i.e. it won’t use $(format_code "${LATEST_DOCKER_TAG:?}"), for")
+$(format_secondary '      backwards compatibility reasons).')
+EOF
+}
+
+usage() {
+	cat <<EOF
+$(format_title 'Usage:')
+  You want to run the latest released versions:
+    $(format_command "${SELF%' --'}")
+  You want to run with the latest patches (latest commits, unreleased):
+    $(format_command "${SELF:?}") $(format_arg '--api=edge')
+  You want to run the image you built locally (e.g. for integration tests):
+    $(format_command "${SELF:?}") $(format_arg "--api=${LOCAL_DOCKER_TAG:?}")
+
+$(format_title 'Options:')
+  $(format_subtitle 'Version options:')
+    $(format_flag --api=DOCKER_TAG)
+      Choose which version of the Prose Pod API to run (default: $(format_code "${PROSE_POD_API_IMAGE_TAG:?}")).
+    $(format_flag --server=DOCKER_TAG)
+      Choose which version of the Prose Pod Server to run (default: $(format_code "${PROSE_POD_SERVER_IMAGE_TAG:?}")).
+    $(format_flag --scenario=SCENARIO_NAME)
+      Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
+      $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
+    $(format_flag --ephemeral)
+      Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
+      $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
+    $(format_flag --detach)
+      Run containers in the background. Check logs with $(format_code 'task local:logs').
+      $(format_secondary "Same as $(format_code docker compose up --detach).")
+
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+    $(format_flag --dry-run)
+      Do a dry run (i.e. print what would be executed instead of running it).
+    $(format_flag --debug)
+      Log debug messages when running the script.
+      $(format_secondary 'This won’t change the log levels of the API and server yet, but we’ll
+      implement that someday.')
+    $(format_flag --trace)
+      Log tracing messages when running the script.
+      $(format_secondary 'This won’t change the log levels of the API and server yet, but we’ll
+      implement that someday.')
+EOF
+}
+
+help() {
+	printf "$(description)\n"
+	echo ''
+	printf "$(usage)\n"
+	exit 0
+}
+
+scenario-does-not-exist() {
+	cat <<EOF
+The scenario $(format_code "${SCENARIO_NAME:?}") doesn’t exist.
+
+You can create it by running $(format_code "task local:scenarios:create -- '${SCENARIO_NAME:?}'"),
+but you could also derive it from an existing one using $(format_code '--based-on=') in addition.
+EOF
+}
+
+# ===== ARGUMENT PARSING =====
+
+for arg in "$@"; do
+	case $arg in
+		--api=*)
+			PROSE_POD_API_IMAGE_TAG="${arg#'--api='}"
+			# Regenerate image name.
+			unset PROSE_POD_API_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
+			;;
+		--server=*)
+			PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
+			# Regenerate image name.
+			unset PROSE_POD_SERVER_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
+			;;
+		--scenario=*)
+			SCENARIO_NAME="${arg#'--scenario='}"
+			;;
+		--ephemeral) EPHEMERAL=1 ;;
+		--detach) DETACH=1 ;;
+		--help) help ;;
+		--dry-run) export DRY_RUN=1 ;;
+		--debug) export LOG_DEBUG=1 ;;
+		--trace) export LOG_TRACE=1 ;;
+		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+	esac
+done
+
+# Recompute log levels.
+source "${BASH_TOOLBOX:?}"/log.sh
+
+if (( $EPHEMERAL )); then
+	BASE_SCENARIO_NAME="${SCENARIO_NAME:?}"
+	export SCENARIO_NAME="${SCENARIO_NAME:?}-$(date +%s)"
+fi
+
+# Compute dynamic variables.
+source "${SELF_SCRIPTS:?}"/scenario-files.sh
+
+# ===== MAIN LOGIC =====
+
+if (( $EPHEMERAL )); then
+	task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
+	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+fi
+
+if ! [ -d "${SCENARIO_DIR:?}" ]; then
+	log_as_warn_ scenario-does-not-exist
+	if-yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
+fi
+
+info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
+info 'Selected versions:'
+info "- API: $(format_code "${PROSE_POD_API_IMAGE:?}")"
+info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
+
+# NOTE: The database doesn't exist yet in integration tests.
+[ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
+
+source "${SELF_SCRIPTS:?}"/compose-exports.sh
+edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}
+
+if (( $EPHEMERAL )) && ! (( $DETACH )); then
+	log_as_trace_ task local:scenarios:delete -y -- "${SCENARIO_NAME:?}"
+	edo rm "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+fi

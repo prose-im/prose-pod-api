@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== CONSTANTS =====
+
+LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+source "${SELF_SCRIPTS:?}"/constants.sh
+
+# ===== ARGUMENT PARSING =====
+
+[ $# == 0 ] && die 'Expected at least one scenario name.'
+
+# ===== MAIN LOGIC =====
+
+delete-one() {
+	SCENARIO_NAME="${1:?}"
+	[ -f "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/.gitkeep ] && warn "Can’t delete scenario $(format_code "${SCENARIO_NAME:?}")."
+
+	# NOTE: When running in a GitHub Action, `scenarios-delete` fails because `prose-pod-server` creates files
+	#   as `systemd-network:systemd-journal` and the current user (`runner:docker`) can't delete it.
+	# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
+	#   Let's use `if [ … ]; then …; fi` instead for clarity.
+	if [ -n "$GITHUB_ACTIONS" ]; then
+		sudo chmod -R a+w "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/prosody
+	fi
+
+	warn "Deleting scenario $(format_code "${SCENARIO_NAME:?}")…"
+	edo rm -rf "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"
+}
+
+for name in "$@"; do
+	delete-one "$name"
+done

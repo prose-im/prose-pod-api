@@ -3,7 +3,7 @@
 # Configure the script to exit when a command fails.
 set -e
 
-: ${SCRIPTS_ROOT:="$(dirname $0)/.."}
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 source "${SCRIPTS_ROOT:?}"/constants.sh
@@ -17,7 +17,7 @@ test-env-vars 'tutorials/run-locally.md' \
 # Build the Prose Pod API image.
 edo task build-image -- --debug
 
-if [ -n "${PROSE_POD_SERVER_DIR}" ]; then
+if [ -n "${PROSE_POD_SERVER_DIR}" ] && [ -d "${PROSE_POD_SERVER_DIR:?}" ]; then
 	# Build the Prose Pod Server image.
 	edo docker build -t "${PROSE_POD_SERVER_IMAGE:?}" "${PROSE_POD_SERVER_DIR:?}"
 fi

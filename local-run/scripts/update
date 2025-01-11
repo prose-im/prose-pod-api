@@ -5,13 +5,15 @@ set -e
 
 # ===== SHARED CODE =====
 
-: ${SCRIPTS_ROOT:="$(dirname $0)"/..}
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
 export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 
 # ===== CONSTANTS =====
 
 : ${SELF:="$(basename $0)"}
+LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 
 # ===== HELPER FUNCTIONS =====
 
@@ -29,22 +31,28 @@ usage() {
 	cat <<EOF
 $(format_title 'Usage:')
   You want to update without changing the checked out branches:
-    $(format_command "${SELF:?}")
+    $(format_command "${SELF%' --'}")
   You want to test a hotfix made on a specific branch of the Prose Pod API:
     $(format_command "${SELF:?}") $(format_arg --api-branch=BRANCH)
 
 $(format_title 'Options:')
   $(format_subtitle 'Main options:')
-    $(format_flag --server-branch=BRANCH)
-      Choose the branch to checkout in $(format_code prose-pod-server).
     $(format_flag --api-branch=BRANCH)
       Choose the branch to checkout in $(format_code prose-pod-api).
+    $(format_flag --server-branch=BRANCH)
+      Choose the branch to checkout in $(format_code prose-pod-server).
     $(format_flag --system-branch=BRANCH)
       Choose the branch to checkout in $(format_code prose-pod-system).
 
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
       Explains what the command does and how to use it.
+    $(format_flag --dry-run)
+      Do a dry run (i.e. print what would be executed instead of running it).
+    $(format_flag --debug)
+      Log debug messages when running the script.
+    $(format_flag --trace)
+      Log tracing messages when running the script.
 EOF
 }
 
@@ -59,41 +67,48 @@ help() {
 
 for arg in "$@"; do
 		case $arg in
-			--server-branch=*)
-				SERVER_BRANCH="${arg#'--server-branch='}"
-				info "Will use branch $(format_code $SERVER_BRANCH) for prose-pod-server."
-				;;
 			--api-branch=*)
 				API_BRANCH="${arg#'--api-branch='}"
-				info "Will use branch $(format_code $API_BRANCH) for prose-pod-api."
+				info "Will use branch $(format_code $API_BRANCH) for $(format_code prose-pod-api)."
+				;;
+			--server-branch=*)
+				SERVER_BRANCH="${arg#'--server-branch='}"
+				info "Will use branch $(format_code $SERVER_BRANCH) for $(format_code prose-pod-server)."
 				;;
 			--system-branch=*)
 				SYSTEM_BRANCH="${arg#'--system-branch='}"
-				info "Will use branch $(format_code $SYSTEM_BRANCH) for prose-pod-system."
+				info "Will use branch $(format_code $SYSTEM_BRANCH) for $(format_code prose-pod-system)."
 				;;
 			--help) help ;;
+			--dry-run) export DRY_RUN=1 ;;
+			--debug) export LOG_DEBUG=1 ;;
+			--trace) export LOG_TRACE=1 ;;
 			*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 		esac
 done
 
+# Recompute log levels.
+source "${BASH_TOOLBOX:?}"/log.sh
+
 # ===== MAIN LOGIC =====
 
-test-env-vars 'tutorials/run-locally.md' \
-	PROSE_POD_API_DIR \
-	PROSE_POD_SYSTEM_DIR
+info "Updating $(format_code prose-pod-api)…"
+[ -n "${API_BRANCH}" ] && ( edo git -C "${PROSE_POD_API_DIR:?}" checkout "${API_BRANCH:?}" 2>/dev/null || edo git -C "${PROSE_POD_API_DIR:?}" checkout -t origin/"${API_BRANCH:?}" )
+edo git -C "${PROSE_POD_API_DIR:?}" pull || :
+edo git -C "${PROSE_POD_API_DIR:?}" submodule update --init --remote
 
-if [ -n "${PROSE_POD_SERVER_DIR}" ]; then
-	info 'Updating prose-pod-server…'
+if [ -n "${PROSE_POD_SERVER_DIR}" ] && [ -d "${PROSE_POD_SERVER_DIR:?}" ]; then
+	info "Updating $(format_code prose-pod-server)…"
 	[ -n "${SERVER_BRANCH}" ] && edo git -C "${PROSE_POD_SERVER_DIR:?}" checkout "${SERVER_BRANCH:?}"
 	edo git -C "${PROSE_POD_SERVER_DIR:?}" pull || :
 	edo git -C "${PROSE_POD_SERVER_DIR:?}" submodule update
 fi
 
-info 'Updating prose-pod-api…'
-[ -n "${API_BRANCH}" ] && ( edo git -C "${PROSE_POD_API_DIR:?}" checkout "${API_BRANCH:?}" 2>/dev/null || edo git -C "${PROSE_POD_API_DIR:?}" checkout -t origin/"${API_BRANCH:?}" )
-edo git -C "${PROSE_POD_API_DIR:?}" pull || :
-edo git -C "${PROSE_POD_API_DIR:?}" submodule update
+if [ -n "${PROSE_POD_SYSTEM_DIR}" ] && [ -d "${PROSE_POD_SYSTEM_DIR:?}" ]; then
+	info "Updating $(format_code prose-pod-system)…"
+	[ -n "${SYSTEM_BRANCH}" ] && edo git -C "${PROSE_POD_SYSTEM_DIR:?}" checkout "${SYSTEM_BRANCH:?}"
+	edo git -C "${PROSE_POD_SYSTEM_DIR:?}" pull || :
+fi
 
-info 'Updating prose-pod-system…'
-[ -n "${SYSTEM_BRANCH}" ] && edo git -C "${PROSE_POD_SYSTEM_DIR:?}" checkout "${SYSTEM_BRANCH:?}"
-edo git -C "${PROSE_POD_SYSTEM_DIR:?}" pull || :
+# Update scenarios
+. "${SELF_SCRIPTS:?}"/scenarios-update

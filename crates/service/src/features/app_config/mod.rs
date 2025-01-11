@@ -7,7 +7,11 @@
 
 pub mod defaults;
 
-use std::{net::IpAddr, path::PathBuf, str::FromStr as _};
+use std::{
+    net::IpAddr,
+    path::{Path, PathBuf},
+    str::FromStr as _,
+};
 
 use email_address::EmailAddress;
 use figment::{
@@ -27,6 +31,7 @@ use crate::{
     },
 };
 
+pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
 pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
@@ -69,15 +74,25 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn figment() -> Figment {
+        Self::figment_at_path(CONFIG_FILE_NAME)
+    }
+
+    pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {
         // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
         Figment::new()
-            .merge(Toml::file("Prose.toml"))
+            .merge(Toml::file(path))
             .merge(Env::prefixed("PROSE_").split("__"))
     }
 
     pub fn from_figment(figment: Figment) -> Self {
-        figment.extract().expect("Could not read config")
+        figment
+            .extract()
+            .unwrap_or_else(|e| panic!("Invalid '{CONFIG_FILE_NAME}' configuration file: {e}"))
         // TODO: Check values intervals (e.g. `default_response_timeout`).
+    }
+
+    pub fn from_path(path: impl AsRef<Path>) -> Self {
+        Self::from_figment(Self::figment_at_path(path))
     }
 
     pub fn from_default_figment() -> Self {
