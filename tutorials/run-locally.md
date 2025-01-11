@@ -67,6 +67,13 @@ task local:run -- --api=1.2
 task local:run -- --api=1
 ```
 
+### Check sent emails
+
+When inviting someone to a workspace, the invitation accept and reject links are only sent
+via email and there is no way to retrieve it from the API. The good news is `task local:run`
+also provides a mocked SMTP server which exposes a Web UI where you can access all emails.
+It is available at <http://localhost:8025/>.
+
 ### Check the logs
 
 To see the logs of your **last** local run, you can run:
