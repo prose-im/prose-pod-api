@@ -47,9 +47,22 @@ edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody/{config,data},co
 #   `task local:scenarios:update` which copies the files again.
 log_as_trace_ "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
 
-edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/Prose.toml
-edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/local-run.env
-edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/dns-zone.zone
-if [ -f "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/database.sqlite ]; then
-	edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/database.sqlite
+copy-if-exists() {
+	local file_path="${1:?}"
+	if [ -f "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/"${file_path:?}" ]; then
+		edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/"${file_path:?}"
+	fi
+}
+
+copy-if-exists Prose.toml
+copy-if-exists local-run.env
+copy-if-exists dns-zone.zone
+copy-if-exists database.sqlite
+
+# NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
+#   because `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/prosody` belongs to `runner:docker`.
+# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
+#   Let's use `if [ … ]; then …; fi` instead for clarity.
+if [ -n "$GITHUB_ACTIONS" ]; then
+	sudo chmod -R a+w "${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"/prosody
 fi

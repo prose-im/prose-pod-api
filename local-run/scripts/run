@@ -10,6 +10,8 @@ source "${BASH_TOOLBOX:?}"/yes-no.sh
 
 # ===== CONSTANTS =====
 
+: ${SELF:="$(basename $0)"}
+
 LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 source "${SELF_SCRIPTS:?}"/constants.sh
@@ -48,6 +50,9 @@ $(format_title 'Options:')
     $(format_flag --scenario=SCENARIO_NAME)
       Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
       $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
+    $(format_flag --ephemeral)
+      Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
+      $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
     $(format_flag --detach)
       Run containers in the background. Check logs with $(format_code 'task local:logs').
       $(format_secondary "Same as $(format_code docker compose up --detach).")
@@ -76,7 +81,7 @@ help() {
 }
 
 scenario-does-not-exist() {
-cat <<EOF
+	cat <<EOF
 The scenario $(format_code "${SCENARIO_NAME:?}") doesn’t exist.
 
 You can create it by running $(format_code "task local:scenarios:create -- '${SCENARIO_NAME:?}'"),
@@ -101,6 +106,7 @@ for arg in "$@"; do
 		--scenario=*)
 			SCENARIO_NAME="${arg#'--scenario='}"
 			;;
+		--ephemeral) EPHEMERAL=1 ;;
 		--detach) DETACH=1 ;;
 		--help) help ;;
 		--dry-run) export DRY_RUN=1 ;;
@@ -113,21 +119,38 @@ done
 # Recompute log levels.
 source "${BASH_TOOLBOX:?}"/log.sh
 
+if (( $EPHEMERAL )); then
+	BASE_SCENARIO_NAME="${SCENARIO_NAME:?}"
+	export SCENARIO_NAME="${SCENARIO_NAME:?}-$(date +%s)"
+fi
+
 # Compute dynamic variables.
 source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
-info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
-info 'Selected versions:'
-info "- API: $(format_code "${PROSE_POD_API_IMAGE:?}")"
-info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
-
 # ===== MAIN LOGIC =====
+
+if (( $EPHEMERAL )); then
+	task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
+	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+fi
 
 if ! [ -d "${SCENARIO_DIR:?}" ]; then
 	log_as_warn_ scenario-does-not-exist
 	if-yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
 fi
 
-source "${SELF_SCRIPTS:?}"/compose-exports.sh
+info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
+info 'Selected versions:'
+info "- API: $(format_code "${PROSE_POD_API_IMAGE:?}")"
+info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
 
+# NOTE: The database doesn't exist yet in integration tests.
+[ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
+
+source "${SELF_SCRIPTS:?}"/compose-exports.sh
 edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}
+
+if (( $EPHEMERAL )) && ! (( $DETACH )); then
+	log_as_trace_ task local:scenarios:delete -y -- "${SCENARIO_NAME:?}"
+	edo rm "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+fi

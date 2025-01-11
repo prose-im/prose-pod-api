@@ -31,7 +31,7 @@ export DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone
 # NOTE: We don't want things like [stepci/stepci#239](https://github.com/stepci/stepci/issues/239)
 #   to break the tests or the analytics server to slow down the tests execution.
 export STEPCI_DISABLE_ANALYTICS=true
-SCENARIO_NAME=integration-tests
+BASE_SCENARIO_NAME=integration-tests
 
 # ===== ARGUMENT PARSING =====
 
@@ -57,41 +57,9 @@ unset ARGS_
 
 # ===== MAIN LOGIC =====
 
-before-all() {
-	trace 'Running "Before all"…'
-
-	# NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
-	#   because `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/prosody` belongs to `runner:docker`.
-	# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
-	#   Let's use `if [ … ]; then …; fi` instead for clarity.
-	if [ -n "$GITHUB_ACTIONS" ]; then
-		sudo chmod -R a+w "${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"/prosody
-	fi
-}
-
-after-all() {
-	trace 'Running "After all"…'
-	cleanup
-}
-
-cleanup() {
-	trace 'Cleaning up the Prose Pod…'
-
-	# NOTE: When running in a GitHub Action, `cleanup` fails because `prose-pod-server` creates files
-	#   as `systemd-network:systemd-journal` and the current user (`runner:docker`) can't delete it.
-	# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
-	#   Let's use `if [ … ]; then …; fi` instead for clarity.
-	if [ -n "$GITHUB_ACTIONS" ]; then
-		sudo chmod -R a+w "${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"/prosody
-	fi
-
-	log_as_trace_ task local:scenarios:reset -y -- "${SCENARIO_NAME:?}"
-}
-
 start() {
-	cleanup
 	trace 'Starting the Prose Pod…'
-	task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}"
+	task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral
 }
 
 stop() {
@@ -128,8 +96,6 @@ fi
 
 info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
 
-before-all
-
 # NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`. Special cases are handled here.
 for arg in "$@"; do
 	test_file="${STEPCI_DIR:?}/${arg:?}.yaml"
@@ -148,5 +114,3 @@ for arg in "$@"; do
 			stepci_run "$test_file" ;;
 	esac
 done
-
-after-all
