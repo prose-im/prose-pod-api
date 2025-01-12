@@ -1,6 +1,6 @@
 // prosody-config
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod print;
@@ -110,6 +110,12 @@ impl From<i16> for LuaNumber {
     }
 }
 
+impl From<u8> for LuaNumber {
+    fn from(value: u8) -> Self {
+        i64::from(value).into()
+    }
+}
+
 impl From<u16> for LuaNumber {
     fn from(value: u16) -> Self {
         i64::from(value).into()
@@ -152,6 +158,12 @@ impl<T: Into<LuaNumber>> From<T> for LuaValue {
 impl From<String> for LuaValue {
     fn from(value: String) -> Self {
         Self::String(value)
+    }
+}
+
+impl From<&String> for LuaValue {
+    fn from(value: &String) -> Self {
+        Self::String(value.clone())
     }
 }
 

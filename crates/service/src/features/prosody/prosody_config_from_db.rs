@@ -195,9 +195,10 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     .map(ToString::to_string)
                     .collect(),
                 ),
-                ssl: Some(SSLConfig::Manual {
-                    key: "/etc/prosody/certs/prose.org.local.key".into(),
-                    certificate: "/etc/prosody/certs/prose.org.local.crt".into(),
+                ssl: Some(SSLConfig {
+                    key: Some("/etc/prosody/certs/prose.org.local.key".into()),
+                    certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
+                    ..Default::default()
                 }),
                 allow_registration: Some(false),
                 c2s_require_encryption: Some(true),
