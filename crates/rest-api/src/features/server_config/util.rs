@@ -7,7 +7,7 @@
 /// Also generates its associated request type.
 #[macro_export]
 macro_rules! server_config_set_route {
-    ($route:expr, $req_type:ident, $var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
+    ($req_type:ident, $var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
         #[derive(serde::Serialize, serde::Deserialize)]
         pub struct $req_type {
             pub $var: $var_type,
@@ -27,7 +27,7 @@ macro_rules! server_config_set_route {
 /// Generates a route for resetting a specific server config.
 #[macro_export]
 macro_rules! server_config_reset_route {
-    ($route:expr, $fn:ident, $route_fn:ident) => {
+    ($fn:ident, $route_fn:ident) => {
         pub async fn $route_fn(
             server_manager: ServerManager,
         ) -> Result<axum::Json<ServerConfig>, crate::error::Error> {
