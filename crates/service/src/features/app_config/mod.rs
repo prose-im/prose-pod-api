@@ -31,6 +31,8 @@ use crate::{
     },
 };
 
+use super::server_config::TlsProfile;
+
 pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
@@ -200,8 +202,7 @@ pub struct ConfigServerDefaults {
     pub file_storage_encryption_scheme: String,
     pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
     pub mfa_required: bool,
-    pub minimum_tls_version: String,
-    pub minimum_cipher_suite: String,
+    pub tls_profile: TlsProfile,
     pub federation_enabled: bool,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
@@ -219,8 +220,7 @@ impl Default for ConfigServerDefaults {
                 defaults::server_defaults_file_storage_encryption_scheme(),
             file_storage_retention: defaults::server_defaults_file_storage_retention(),
             mfa_required: defaults::server_defaults_mfa_required(),
-            minimum_tls_version: defaults::server_defaults_minimum_tls_version(),
-            minimum_cipher_suite: defaults::server_defaults_minimum_cipher_suite(),
+            tls_profile: defaults::server_defaults_tls_profile(),
             federation_enabled: defaults::server_defaults_federation_enabled(),
             settings_backup_interval: defaults::server_defaults_settings_backup_interval(),
             user_data_backup_interval: defaults::server_defaults_user_data_backup_interval(),

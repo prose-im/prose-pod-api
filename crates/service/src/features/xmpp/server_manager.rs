@@ -18,6 +18,7 @@ use crate::{
     secrets::{SecretsStore, ServiceAccountSecrets},
     server_config::{
         entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
+        TlsProfile,
     },
     AppConfig,
 };
@@ -210,6 +211,16 @@ impl ServerManager {
             .await?;
         Ok(model)
     }
+
+    pub async fn reset_network_encryption_config(&self) -> Result<ServerConfig, Error> {
+        trace!("Resetting network encryption configuration…");
+        let model = self
+            .update(|active| {
+                active.tls_profile = Set(None);
+            })
+            .await?;
+        Ok(model)
+    }
 }
 
 impl ServerManager {
@@ -330,6 +341,10 @@ impl ServerManager {
         reset_push_notification_with_sender,
         push_notification_with_sender
     );
+
+    // Network encryption
+    set!(TlsProfile, set_tls_profile, tls_profile);
+    reset!(reset_tls_profile, tls_profile);
 }
 
 pub type Error = ServerManagerError;

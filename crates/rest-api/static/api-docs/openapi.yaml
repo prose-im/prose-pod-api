@@ -46,6 +46,12 @@ paths:
     put: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_sender" }
   "/v1/server/config/push-notification-with-sender":
     put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_sender" }
+  "/v1/server/config/network-encryption/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_network_encryption_config" }
+  "/v1/server/config/tls-profile/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_tls_profile" }
+  "/v1/server/config/tls-profile":
+    put: { $ref: "features/server-config.yaml#/paths/set_tls_profile" }
   "/v1/pod/config":
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":
