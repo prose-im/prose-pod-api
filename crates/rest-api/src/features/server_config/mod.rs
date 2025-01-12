@@ -6,8 +6,8 @@
 mod file_upload;
 mod get_server_config;
 mod message_archive;
+mod network_encryption;
 mod push_notifications;
-mod tls_profile;
 mod util;
 
 use axum::{
@@ -18,8 +18,8 @@ use axum::{
 pub use file_upload::*;
 pub use get_server_config::*;
 pub use message_archive::*;
+pub use network_encryption::*;
 pub use push_notifications::*;
-pub use tls_profile::*;
 
 use crate::AppState;
 
@@ -78,7 +78,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     "/push-notification-with-sender/reset",
                     put(reset_push_notification_with_sender_route),
                 )
-                // Network Encryption
+                // Network encryption
                 .route(
                     "/network-encryption/reset",
                     put(reset_network_encryption_config_route),
