@@ -23,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240506_080027_create_workspace::Migration),
             Box::new(m20240830_080808_create_pod_config::Migration),
             Box::new(m20241214_134500_add_push_notif_config::Migration),
+            Box::new(m20250112_122600_create_tls_profile::Migration),
         ]
     }
 }

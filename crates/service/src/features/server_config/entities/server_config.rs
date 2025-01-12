@@ -8,7 +8,7 @@ use sea_orm::entity::prelude::*;
 use crate::{
     app_config::{AppConfig, ConfigServerDefaults},
     models::*,
-    server_config::ServerConfig,
+    server_config::{ServerConfig, TlsProfile},
 };
 
 /// XMPP server configuration, as stored in the database.
@@ -32,8 +32,7 @@ pub struct Model {
     pub file_storage_encryption_scheme: Option<String>,
     pub file_storage_retention: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub mfa_required: Option<bool>,
-    pub minimum_tls_version: Option<String>,
-    pub minimum_cipher_suite: Option<String>,
+    pub tls_profile: Option<TlsProfile>,
     pub federation_enabled: Option<bool>,
     pub settings_backup_interval: Option<String>,
     pub user_data_backup_interval: Option<String>,
@@ -53,8 +52,7 @@ impl Model {
                 .to_owned(),
             file_storage_retention: self.file_storage_retention(defaults),
             mfa_required: self.mfa_required(defaults),
-            minimum_tls_version: self.minimum_tls_version(defaults).to_owned(),
-            minimum_cipher_suite: self.minimum_cipher_suite(defaults).to_owned(),
+            tls_profile: self.tls_profile(defaults).to_owned(),
             federation_enabled: self.federation_enabled(defaults),
             settings_backup_interval: self.settings_backup_interval(defaults).to_owned(),
             user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
@@ -99,8 +97,7 @@ impl Model {
     get_or_default_string!(file_storage_encryption_scheme);
     get_or_default!(file_storage_retention, PossiblyInfinite<Duration<DateLike>>);
     get_or_default!(mfa_required, bool);
-    get_or_default_string!(minimum_tls_version);
-    get_or_default_string!(minimum_cipher_suite);
+    get_or_default!(tls_profile, TlsProfile);
     get_or_default!(federation_enabled, bool);
     get_or_default_string!(settings_backup_interval);
     get_or_default_string!(user_data_backup_interval);

@@ -65,9 +65,10 @@ fn test_prose_default_config() {
                 .map(ToString::to_string)
                 .collect(),
             ),
-            ssl: Some(SSLConfig::Manual {
-                certificate: "/etc/prosody/certs/prose.org.local.crt".into(),
-                key: "/etc/prosody/certs/prose.org.local.key".into(),
+            ssl: Some(SSLConfig {
+                certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
+                key: Some("/etc/prosody/certs/prose.org.local.key".into()),
+                ..Default::default()
             }),
             allow_registration: Some(false),
             c2s_require_encryption: Some(true),

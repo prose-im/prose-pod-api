@@ -16,11 +16,31 @@ pub struct ServerConfig {
     pub file_storage_encryption_scheme: String,
     pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
     pub mfa_required: bool,
-    pub minimum_tls_version: String,
-    pub minimum_cipher_suite: String,
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.
+    pub tls_profile: TlsProfile,
     pub federation_enabled: bool,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,
     pub push_notification_with_sender: bool,
+}
+
+/// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(strum::EnumIter, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "snake_case")]
+#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+pub enum TlsProfile {
+    /// Modern clients that support TLS 1.3, with no need for backwards compatibility.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility>.
+    Modern,
+    /// Recommended configuration for a general-purpose server.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_(recommended)>.
+    Intermediate,
+    /// Services accessed by very old clients or libraries, such as Internet Explorer 8 (Windows XP), Java 6, or OpenSSL 0.9.8.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility>.
+    Old,
 }

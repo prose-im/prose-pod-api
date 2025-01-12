@@ -17,6 +17,7 @@ use secrecy::SecretString;
 use crate::{
     invitations::InvitationChannel,
     models::{DateLike, Duration, JidNode, PossiblyInfinite, TimeLike},
+    server_config::TlsProfile,
 };
 
 use super::{ConfigDatabase, ConfigServiceAccount};
@@ -99,16 +100,10 @@ pub fn server_defaults_mfa_required() -> bool {
     true
 }
 
-// TODO: Make `MinimumTLSVersion` an enum
-/// Default minimum [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) version.
-pub fn server_defaults_minimum_tls_version() -> String {
-    "1.2".to_string()
-}
-
-// TODO: Make `MinimumCipherSuite` an enum
-/// High security by default.
-pub fn server_defaults_minimum_cipher_suite() -> String {
-    "HIGH_STRENGTH".to_string()
+/// Default minimum [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile
+/// (see <https://wiki.mozilla.org/Security/Server_Side_TLS>).
+pub fn server_defaults_tls_profile() -> TlsProfile {
+    TlsProfile::Modern
 }
 
 /// Enable federation by default.

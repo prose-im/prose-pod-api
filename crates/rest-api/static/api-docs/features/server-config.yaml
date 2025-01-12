@@ -268,6 +268,54 @@ paths:
       "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_network_encryption_config:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Network encryption' configuration
+    description: Reset the 'Network encryption' configuration to its default value.
+    operationId: reset_network_encryption_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_tls_profile:
+    tags: ["Server / Configuration"]
+    summary: Reset 'TLS profile'
+    description: Reset 'TLS profile' to its default value.
+    operationId: reset_tls_profile
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_tls_profile:
+    tags: ["Server / Configuration"]
+    summary: Change 'TLS profile'
+    description: Whether or not to send the real message sender to remote pubsub
+      node. Enabling this may expose your contacts to your client developers and
+      OS vendor. Not recommended.
+    operationId: set_tls_profile
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - tls_profile
+            properties:
+              tls_profile: { $ref: "#/components/schemas/TlsProfile" }
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
     ServerConfig:
@@ -280,8 +328,7 @@ components:
         - file_storage_encryption_scheme
         - file_storage_retention
         - mfa_required
-        - minimum_tls_version
-        - minimum_cipher_suite
+        - tls_profile
         - federation_enabled
         - settings_backup_interval
         - user_data_backup_interval
@@ -317,20 +364,7 @@ components:
             required for users to log into their account.
           type: boolean
           default: true
-        minimum_tls_version:
-          title: Minimum SSL/TLS version
-          description: The minimum
-            SSL/[TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security).
-          type: string
-          default: "1.2"
-        minimum_cipher_suite:
-          title: Minimum cipher suite (encryption strength)
-          description: Accepting lower-security encryption ciphers let older user devices
-            and servers connect to your server, but is also much less secure. A
-            minimum cipher suite of High strength is recommended.
-          type: string
-          enum: [HIGH_STRENGTH]
-          default: HIGH_STRENGTH
+        tls_profile: { $ref: "#/components/schemas/TlsProfile" }
         federation_enabled:
           description: Whether or not the XMPP server should support interdomain
             federation. For more information, see [RFC 6120, section
@@ -357,6 +391,15 @@ components:
             developers and OS vendor. Not recommended.
           type: boolean
           default: false
+    TlsProfile:
+      title: TLS profile
+      description: |
+        The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
+        (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
+        for more explanation).
+      type: string
+      enum: [modern, intermediate, old]
+      default: modern
   responses:
     ServerConfig:
       description: Success

@@ -1,5 +1,5 @@
 version: "1.1"
-name: Prose Pod initialization
+name: Prose Pod configuration
 config:
   http:
     baseURL: ${{ env.host }}

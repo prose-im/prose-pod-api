@@ -1,6 +1,6 @@
 // prosody-config
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod conversion;
@@ -118,6 +118,7 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub custom_settings: Vec<Group<LuaDefinition>>,
+    pub tls_profile: Option<TlsProfile>,
 }
 
 impl ProsodySettings {
@@ -216,20 +217,151 @@ pub enum LogLevel {
     Error,
 }
 
-/// See <https://prosody.im/doc/certificates#installing_the_certificate>.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum SSLConfig {
-    /// Automatic location.
+/// See <https://prosody.im/doc/certificates#installing_the_certificate>
+/// and <https://prosody.im/doc/advanced_ssl_config#ssl_options>.
+///
+/// Default source: `core_defaults` in <https://hg.prosody.im/trunk/file/tip/core/certmanager.lua>.
+///
+/// Example:
+///
+/// ```lua
+/// {
+///   certificate = "/etc/prosody/certs/example.com.crt";
+///   key = "/etc/prosody/certs/example.com.key";
+/// }
+/// ```
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
+pub struct SSLConfig {
+    /// Required. Path to your certificate file, relative to your primary config file.
     ///
-    /// > NOTE: If defined to `"/path/to/cert.crt"`, expects `/path/to/cert.key` to also exist.
-    Automatic(PathBuf),
-    /// Manual location (e.g. `{
-    ///   certificate = "/etc/prosody/certs/example.com.crt";
-    ///   key = "/etc/prosody/certs/example.com.key";
-    /// }`).
+    /// See <https://prosody.im/doc/advanced_ssl_config#certificate>.
+    pub certificate: Option<PathBuf>,
+    /// Required. Path to your private key file, relative to your primary config file.
     ///
-    /// See <https://prosody.im/doc/certificates#manual_location>.
-    Manual { certificate: PathBuf, key: PathBuf },
+    /// See <https://prosody.im/doc/advanced_ssl_config#key>.
+    pub key: Option<PathBuf>,
+    /// What handshake to use.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#protocol>.
+    pub protocol: Option<SslProtocol>,
+    /// Path to directory containing root certificates that you wish Prosody to trust when verifying the certificates of remote servers.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#capath>.
+    pub capath: Option<PathBuf>,
+    /// Path to a file containing root certificates that you wish Prosody to trust. Similar to `capath` but with all certificates concatenated together.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#cafile>.
+    pub cafile: Option<PathBuf>,
+    /// See <https://prosody.im/doc/advanced_ssl_config#verify>.
+    pub verify: Option<SslVerificationOption>,
+    /// See <https://prosody.im/doc/advanced_ssl_config#options>.
+    pub options: Option<LinkedHashSet<SslOption>>,
+    /// How long a chain of certificate authorities to check when looking for a trusted root certificate.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#depth>.
+    pub depth: Option<u8>,
+    /// An [OpenSSL cipher string]. This selects what ciphers Prosody will offer to clients, and in what order.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#ciphers>.
+    ///
+    /// [OpenSSL cipher string]: https://docs.openssl.org/master/man1/openssl-ciphers/#cipher-strings "openssl-ciphers - OpenSSL Documentation"
+    pub ciphers: Option<String>,
+    /// A path to a file containing parameters for [Diffie–Hellman key exchange].
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#dhparam>.
+    ///
+    /// [Diffie–Hellman key exchange]: https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange "Diffie–Hellman key exchange | Wikipedia"
+    pub dhparam: Option<PathBuf>,
+    /// Curve for Elliptic curve Diffie–Hellman.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#curve>.
+    pub curve: Option<String>,
+    /// A list of “extra” verification options.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#verifyext>.
+    pub verifyext: Option<LinkedHashSet<ExtraVerificationOption>>,
+    /// Password for encrypted private keys.
+    ///
+    /// See <https://prosody.im/doc/advanced_ssl_config#password>.
+    pub password: Option<SecretString>,
+}
+
+/// See <https://prosody.im/doc/advanced_ssl_config#protocol>.
+///
+/// Source: `protocols` in <https://hg.prosody.im/trunk/file/tip/util/sslconfig.lua>.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum SslProtocol {
+    /// `"sslv2"`.
+    Sslv2,
+    /// `"sslv2+"`.
+    Sslv2OrMore,
+    /// `"sslv3"`.
+    Sslv3,
+    /// `"sslv3+"`.
+    Sslv3OrMore,
+    /// `"tlsv1"`.
+    Tlsv1,
+    /// `"tlsv1+"`.
+    Tlsv1OrMore,
+    /// `"tlsv1_1"`.
+    Tlsv1_1,
+    /// `"tlsv1_1+"`.
+    Tlsv1_1OrMore,
+    /// `"tlsv1_2"`.
+    Tlsv1_2,
+    /// `"tlsv1_2+"`.
+    Tlsv1_2OrMore,
+    /// `"tlsv1_3"`.
+    Tlsv1_3,
+    /// `"tlsv1_3+"`.
+    Tlsv1_3OrMore,
+    /// A custom value, for future-proofing.
+    Other(&'static str),
+}
+
+/// See <https://prosody.im/doc/advanced_ssl_config#verify>.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum SslVerificationOption {
+    /// No verification.
+    None,
+    /// Verify the peer’s certificate.
+    Peer,
+    /// Do not request the client’s certificate during renegotiation.
+    ClientOnce,
+    /// Fail if the peer does not present a certificate.
+    FailIfNoPeerCert,
+    /// A custom value, for future-proofing.
+    Other(&'static str),
+}
+
+/// See <https://prosody.im/doc/advanced_ssl_config#options>
+/// and <https://docs.openssl.org/master/man3/SSL_CTX_set_options/#notes>.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[repr(transparent)]
+pub struct SslOption(pub &'static str);
+
+/// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.
+#[allow(non_upper_case_globals)]
+pub mod ssl_option {
+    use super::SslOption;
+
+    pub const SSL_OP_NO_SSLv2: SslOption = SslOption("no_sslv2");
+    pub const SSL_OP_NO_SSLv3: SslOption = SslOption("no_sslv3");
+    pub const SSL_OP_NO_TLSv1: SslOption = SslOption("no_tlsv1");
+    pub const SSL_OP_NO_TLSv1_1: SslOption = SslOption("no_tlsv1_1");
+    pub const SSL_OP_NO_TLSv1_2: SslOption = SslOption("no_tlsv1_2");
+    pub const SSL_OP_NO_TLSv1_3: SslOption = SslOption("no_tlsv1_3");
+}
+
+/// See <https://prosody.im/doc/advanced_ssl_config#verifyext>.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum ExtraVerificationOption {
+    /// Don’t fail the handshake when an untrusted/invalid certificate is encountered.
+    LsecContinue,
+    /// Ignore the certificate’s “purpose” flags.
+    LsecIgnorePurpose,
+    /// A custom value, for future-proofing.
+    Other(&'static str),
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
@@ -280,6 +412,25 @@ pub enum ArchivePolicy {
     OnlyIfEnabled,
     /// Only archive messages for contacts.
     ContactsOnly,
+}
+
+/// See <https://prosody.im/doc/configure#other_encryption_options> and <https://wiki.mozilla.org/Security/Server_Side_TLS>.
+///
+/// Source: `mozilla_ssl_configs` in <https://hg.prosody.im/trunk/file/tip/core/certmanager.lua>.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum TlsProfile {
+    /// Modern clients that support TLS 1.3, with no need for backwards compatibility.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility>.
+    Modern,
+    /// Recommended configuration for a general-purpose server.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_(recommended)>.
+    Intermediate,
+    /// Services accessed by very old clients or libraries, such as Internet Explorer 8 (Windows XP), Java 6, or OpenSSL 0.9.8.
+    ///
+    /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility>.
+    Old,
 }
 
 // ===== DEFAULT =====

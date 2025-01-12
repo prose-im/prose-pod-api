@@ -1,7 +1,9 @@
 // prosody-config
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
+
+use std::ops::Deref;
 
 use linked_hash_map::LinkedHashMap;
 
@@ -16,37 +18,82 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
     fn into(self) -> Vec<Group<LuaDefinition>> {
         let mut res: Vec<Group<LuaDefinition>> = vec![];
 
+        let Self {
+            pidfile,
+            admins,
+            authentication,
+            storage,
+            log,
+            interfaces,
+            c2s_ports,
+            s2s_ports,
+            http_ports,
+            http_interfaces,
+            https_ports,
+            https_interfaces,
+            plugin_paths,
+            modules_enabled,
+            modules_disabled,
+            ssl,
+            allow_registration,
+            c2s_require_encryption,
+            s2s_require_encryption,
+            s2s_secure_auth,
+            c2s_stanza_size_limit,
+            s2s_stanza_size_limit,
+            limits,
+            consider_websocket_secure,
+            cross_domain_websocket,
+            contact_info,
+            archive_expires_after,
+            default_archive_policy,
+            max_archive_query_results,
+            upgrade_legacy_vcards,
+            groups_file,
+            http_file_share_size_limit,
+            http_file_share_daily_quota,
+            http_file_share_expires_after,
+            http_host,
+            http_external_url,
+            restrict_room_creation,
+            muc_log_all_rooms,
+            muc_log_by_default,
+            muc_log_expires_after,
+            custom_settings,
+            tls_profile,
+        } = self;
+
         fn push_if_some<T: Into<U>, U>(vec: &mut Vec<U>, value: Option<T>) {
             if let Some(value) = value {
                 vec.push(value.into());
             }
         }
 
-        push_if_some(&mut res, option_def(None, "pidfile", self.pidfile));
-        push_if_some(&mut res, option_def(None, "admins", self.admins));
+        push_if_some(&mut res, option_def(None, "pidfile", pidfile));
+        push_if_some(&mut res, option_def(None, "admins", admins));
         push_if_some(
             &mut res,
             Group::flattened(
                 None,
                 vec![
-                    option_def(None, "authentication", self.authentication),
-                    option_def(None, "storage", self.storage),
+                    option_def(None, "authentication", authentication),
+                    option_def(None, "storage", storage),
                 ],
             ),
         );
-        push_if_some(&mut res, option_def(None, "log", self.log));
+        push_if_some(&mut res, option_def(None, "log", log));
         push_if_some(
             &mut res,
             Group::flattened(
                 Some("Network interfaces/ports"),
                 vec![
-                    option_def(None, "interfaces", self.interfaces),
-                    option_def(None, "c2s_ports", self.c2s_ports),
-                    option_def(None, "s2s_ports", self.s2s_ports),
-                    option_def(None, "http_ports", self.http_ports),
-                    option_def(None, "http_interfaces", self.http_interfaces),
-                    option_def(None, "https_ports", self.https_ports),
-                    option_def(None, "https_interfaces", self.https_interfaces),
+                    option_def(None, "interfaces", interfaces),
+                    option_def(None, "c2s_ports", c2s_ports),
+                    option_def(None, "s2s_ports", s2s_ports),
+                    option_def(None, "http_ports", http_ports),
+                    option_def(None, "http_interfaces", http_interfaces),
+                    option_def(None, "https_ports", https_ports),
+                    option_def(None, "https_interfaces", https_interfaces),
                 ],
             ),
         );
@@ -55,9 +102,9 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             Group::flattened(
                 Some("Modules"),
                 vec![
-                    option_def(None, "plugin_paths", self.plugin_paths),
-                    option_def(None, "modules_enabled", self.modules_enabled),
-                    option_def(None, "modules_disabled", self.modules_disabled),
+                    option_def(None, "plugin_paths", plugin_paths),
+                    option_def(None, "modules_enabled", modules_enabled),
+                    option_def(None, "modules_disabled", modules_disabled),
                 ],
             ),
         );
@@ -66,15 +113,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             option_def(
                 Some("Path to SSL key and certificate for all server domains"),
                 "ssl",
-                self.ssl,
+                ssl,
             ),
         );
+        push_if_some(&mut res, option_def(None, "tls_profile", tls_profile));
         push_if_some(
             &mut res,
             option_def(
                 Some("Disable in-band registrations (done through the Prose Pod Dashboard/API)"),
                 "allow_registration",
-                self.allow_registration,
+                allow_registration,
             ),
         );
         push_if_some(
@@ -82,9 +130,9 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             Group::flattened(
                 Some("Mandate highest security levels"),
                 vec![
-                    option_def(None, "c2s_require_encryption", self.c2s_require_encryption),
-                    option_def(None, "s2s_require_encryption", self.s2s_require_encryption),
-                    option_def(None, "s2s_secure_auth", self.s2s_secure_auth),
+                    option_def(None, "c2s_require_encryption", c2s_require_encryption),
+                    option_def(None, "s2s_require_encryption", s2s_require_encryption),
+                    option_def(None, "s2s_secure_auth", s2s_secure_auth),
                 ],
             ),
         );
@@ -93,23 +141,19 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             Group::flattened(
                 Some("Enforce safety C2S/S2S limits"),
                 vec![
-                    option_def(None, "c2s_stanza_size_limit", self.c2s_stanza_size_limit),
-                    option_def(None, "s2s_stanza_size_limit", self.s2s_stanza_size_limit),
+                    option_def(None, "c2s_stanza_size_limit", c2s_stanza_size_limit),
+                    option_def(None, "s2s_stanza_size_limit", s2s_stanza_size_limit),
                 ],
             ),
         );
-        push_if_some(&mut res, option_def(None, "limits", self.limits));
+        push_if_some(&mut res, option_def(None, "limits", limits));
         push_if_some(
             &mut res,
             Group::flattened(
                 Some("Allow reverse-proxying to WebSocket service over insecure local HTTP"),
                 vec![
-                    option_def(
-                        None,
-                        "consider_websocket_secure",
-                        self.consider_websocket_secure,
-                    ),
-                    option_def(None, "cross_domain_websocket", self.cross_domain_websocket),
+                    option_def(None, "consider_websocket_secure", consider_websocket_secure),
+                    option_def(None, "cross_domain_websocket", cross_domain_websocket),
                 ],
             ),
         );
@@ -118,7 +162,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             option_def(
                 Some("Specify server administrator"),
                 "contact_info",
-                self.contact_info,
+                contact_info,
             ),
         );
         push_if_some(
@@ -126,13 +170,9 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             Group::flattened(
                 Some("MAM settings"),
                 vec![
-                    option_def(None, "archive_expires_after", self.archive_expires_after),
-                    option_def(None, "default_archive_policy", self.default_archive_policy),
-                    option_def(
-                        None,
-                        "max_archive_query_results",
-                        self.max_archive_query_results,
-                    ),
+                    option_def(None, "archive_expires_after", archive_expires_after),
+                    option_def(None, "default_archive_policy", default_archive_policy),
+                    option_def(None, "max_archive_query_results", max_archive_query_results),
                 ],
             ),
         );
@@ -141,7 +181,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             option_def(
                 Some("Enable vCard legacy compatibility layer"),
                 "upgrade_legacy_vcards",
-                self.upgrade_legacy_vcards,
+                upgrade_legacy_vcards,
             ),
         );
         push_if_some(
@@ -149,7 +189,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             option_def(
                 Some("Define server members groups file"),
                 "groups_file",
-                self.groups_file,
+                groups_file,
             ),
         );
         push_if_some(
@@ -160,44 +200,44 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(
                         None,
                         "http_file_share_size_limit",
-                        self.http_file_share_size_limit,
+                        http_file_share_size_limit,
                     ),
                     option_def(
                         None,
                         "http_file_share_daily_quota",
-                        self.http_file_share_daily_quota,
+                        http_file_share_daily_quota,
                     ),
                     option_def(
                         None,
                         "http_file_share_expires_after",
-                        self.http_file_share_expires_after
+                        http_file_share_expires_after
                             // `http_file_share_expires_after` is defined as a number of seconds.
                             // See <https://prosody.im/doc/modules/mod_http_file_share#retention>.
                             .map(|d| d.seconds_as_lua_number()),
                     ),
-                    option_def(None, "http_host", self.http_host),
-                    option_def(None, "http_external_url", self.http_external_url),
+                    option_def(None, "http_host", http_host),
+                    option_def(None, "http_external_url", http_external_url),
                 ],
             ),
         );
 
         push_if_some(
             &mut res,
-            option_def(None, "restrict_room_creation", self.restrict_room_creation),
+            option_def(None, "restrict_room_creation", restrict_room_creation),
         );
         push_if_some(
             &mut res,
             Group::flattened(
                 "MUC settings".into(),
                 vec![
-                    option_def(None, "muc_log_all_rooms", self.muc_log_all_rooms),
-                    option_def(None, "muc_log_by_default", self.muc_log_by_default),
-                    option_def(None, "muc_log_expires_after", self.muc_log_expires_after),
+                    option_def(None, "muc_log_all_rooms", muc_log_all_rooms),
+                    option_def(None, "muc_log_by_default", muc_log_by_default),
+                    option_def(None, "muc_log_expires_after", muc_log_expires_after),
                 ],
             ),
         );
 
-        res.append(self.custom_settings.clone().as_mut());
+        res.append(custom_settings.clone().as_mut());
 
         res
     }
@@ -252,6 +292,12 @@ impl ProsodyConfig {
 impl Into<LuaValue> for JID {
     fn into(self) -> LuaValue {
         self.to_string().into()
+    }
+}
+
+impl Into<LuaValue> for SecretString {
+    fn into(self) -> LuaValue {
+        secrecy::ExposeSecret::expose_secret(self.deref()).into()
     }
 }
 
@@ -333,13 +379,109 @@ impl Into<LuaValue> for Interface {
 
 impl Into<LuaValue> for SSLConfig {
     fn into(self) -> LuaValue {
+        let Self {
+            certificate,
+            key,
+            protocol,
+            capath,
+            cafile,
+            verify,
+            options,
+            depth,
+            ciphers,
+            dhparam,
+            curve,
+            verifyext,
+            password,
+        } = self;
+        let mut map: LinkedHashMap<String, LuaValue> = LinkedHashMap::new();
+        if let Some(certificate) = certificate {
+            map.insert("certificate".to_string(), certificate.into());
+        }
+        if let Some(key) = key {
+            map.insert("key".to_string(), key.into());
+        }
+        if let Some(protocol) = protocol {
+            map.insert("protocol".to_string(), protocol.into());
+        }
+        if let Some(capath) = capath {
+            map.insert("capath".to_string(), capath.into());
+        }
+        if let Some(cafile) = cafile {
+            map.insert("cafile".to_string(), cafile.into());
+        }
+        if let Some(verify) = verify {
+            map.insert("verify".to_string(), verify.into());
+        }
+        if let Some(options) = options {
+            map.insert("options".to_string(), options.into());
+        }
+        if let Some(depth) = depth {
+            map.insert("depth".to_string(), depth.into());
+        }
+        if let Some(ciphers) = ciphers {
+            map.insert("ciphers".to_string(), ciphers.into());
+        }
+        if let Some(dhparam) = dhparam {
+            map.insert("dhparam".to_string(), dhparam.into());
+        }
+        if let Some(curve) = curve {
+            map.insert("curve".to_string(), curve.into());
+        }
+        if let Some(verifyext) = verifyext {
+            map.insert("verifyext".to_string(), verifyext.into());
+        }
+        if let Some(password) = password {
+            map.insert("password".to_string(), password.into());
+        }
+        map.into()
+    }
+}
+
+impl Into<LuaValue> for SslProtocol {
+    fn into(self) -> LuaValue {
         match self {
-            SSLConfig::Automatic(path) => path.into(),
-            SSLConfig::Manual { certificate, key } => vec![
-                ("certificate", certificate),
-                ("key", key),
-            ]
-            .into(),
+            Self::Sslv2 => "sslv2".into(),
+            Self::Sslv2OrMore => "sslv2+".into(),
+            Self::Sslv3 => "sslv3".into(),
+            Self::Sslv3OrMore => "sslv3+".into(),
+            Self::Tlsv1 => "tlsv1".into(),
+            Self::Tlsv1OrMore => "tlsv1+".into(),
+            Self::Tlsv1_1 => "tlsv1_1".into(),
+            Self::Tlsv1_1OrMore => "tlsv1_1+".into(),
+            Self::Tlsv1_2 => "tlsv1_2".into(),
+            Self::Tlsv1_2OrMore => "tlsv1_2+".into(),
+            Self::Tlsv1_3 => "tlsv1_3".into(),
+            Self::Tlsv1_3OrMore => "tlsv1_3+".into(),
+            Self::Other(s) => s.into(),
+        }
+    }
+}
+
+impl Into<LuaValue> for SslVerificationOption {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::None => "none".into(),
+            Self::Peer => "peer".into(),
+            Self::ClientOnce => "client_once".into(),
+            Self::FailIfNoPeerCert => "fail_if_no_peer_cert".into(),
+            Self::Other(s) => s.into(),
+        }
+    }
+}
+
+impl Into<LuaValue> for SslOption {
+    fn into(self) -> LuaValue {
+        self.0.into()
+    }
+}
+
+impl Into<LuaValue> for ExtraVerificationOption {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::LsecContinue => "lsec_continue".into(),
+            Self::LsecIgnorePurpose => "lsec_ignore_purpose".into(),
+            Self::Other(s) => s.into(),
         }
     }
 }
@@ -465,6 +607,16 @@ impl Into<LuaValue> for ArchivePolicy {
             Self::Always => true.into(),
             Self::OnlyIfEnabled => false.into(),
             Self::ContactsOnly => "roster".into(),
+        }
+    }
+}
+
+impl Into<LuaValue> for TlsProfile {
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Modern => "modern".into(),
+            Self::Intermediate => "intermediate".into(),
+            Self::Old => "old".into(),
         }
     }
 }
