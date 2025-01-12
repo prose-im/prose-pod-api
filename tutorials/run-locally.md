@@ -85,7 +85,7 @@ task local:logs
 task local:logs -- api server
 ```
 
-> [!WARN]
+> [!WARNING]
 > Logs are not saved from one run to the next, so make sure to copy them
 > before starting a new instance.
 
@@ -98,7 +98,7 @@ and XMPP server data so you can start again from this point at a later time.
 For those situations, we created a concept of “scenarios” which you can interact from.
 This section will list use cases along with the commands you would use in that situation.
 
-> [!WARN]
+> [!WARNING]
 > Your scenarios won’t be committed, so make sure to back them up
 > before deleting the repository!
 
