@@ -87,6 +87,8 @@ pub struct ProsodySettings {
     pub s2s_secure_auth: Option<bool>,
     pub c2s_stanza_size_limit: Option<Bytes>,
     pub s2s_stanza_size_limit: Option<Bytes>,
+    /// See <https://modules.prosody.im/mod_s2s_whitelist>.
+    pub s2s_whitelist: Option<LinkedHashSet<String>>,
     pub limits: Option<LinkedHashMap<ConnectionType, ConnectionLimits>>,
     pub consider_websocket_secure: Option<bool>,
     pub cross_domain_websocket: Option<bool>,
@@ -128,6 +130,36 @@ impl ProsodySettings {
             .flat_map(|c| c.elements.clone())
             .find(|c| c.key == name)
             .map(|d| d.value)
+    }
+
+    pub fn enable_module(&mut self, module_name: String) {
+        self.unmark_disabled(&module_name);
+        self.modules_enabled
+            .get_or_insert_default()
+            .insert_if_absent(module_name);
+    }
+
+    pub fn disable_module(&mut self, module_name: String) {
+        self.unmark_enabled(&module_name);
+        self.modules_disabled
+            .get_or_insert_default()
+            .insert_if_absent(module_name);
+    }
+
+    pub fn unmark_enabled(&mut self, module_name: &str) {
+        if let Some(ref mut modules_enabled) = self.modules_enabled {
+            if modules_enabled.remove(module_name) && modules_enabled.is_empty() {
+                self.modules_enabled = None;
+            }
+        }
+    }
+
+    pub fn unmark_disabled(&mut self, module_name: &str) {
+        if let Some(ref mut modules_disabled) = self.modules_disabled {
+            if modules_disabled.remove(module_name) && modules_disabled.is_empty() {
+                self.modules_disabled = None;
+            }
+        }
     }
 }
 

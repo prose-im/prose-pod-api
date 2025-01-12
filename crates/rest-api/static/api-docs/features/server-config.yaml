@@ -316,6 +316,134 @@ paths:
       "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_server_federation_config:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Server federation' configuration
+    description: Reset the 'Server federation' configuration to its default value.
+    operationId: reset_server_federation_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_enabled:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Federation enabled'
+    description: Reset 'Federation enabled' to its default value.
+    operationId: reset_federation_enabled
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_federation_enabled:
+    tags: ["Server / Configuration"]
+    summary: Change 'Federation enabled'
+    description: |
+      Allowing other servers to connect will enable federation.
+      This lets users from other Prose workspaces connect with users in this workspace.
+      For more safety, whitelist friendly servers.
+    operationId: set_federation_enabled
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - federation_enabled
+            properties:
+              federation_enabled:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_whitelist_enabled:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Federation whitelist enabled'
+    description: Reset 'Federation whitelist enabled' to its default value.
+    operationId: reset_federation_whitelist_enabled
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_federation_whitelist_enabled:
+    tags: ["Server / Configuration"]
+    summary: Change 'Federation whitelist enabled'
+    description: |
+      Whether or not to enable server whitelisting. Caution: If a whitelist is set but disabled,
+      your server will still federate with the entire XMPP network.
+    operationId: set_federation_whitelist_enabled
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - federation_whitelist_enabled
+            properties:
+              federation_whitelist_enabled:
+                type: boolean
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_friendly_servers:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Friendly servers'
+    description: Reset 'Friendly servers' to its default value.
+    operationId: reset_federation_friendly_servers
+    security:
+      - BearerAuth: []
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_federation_friendly_servers:
+    tags: ["Server / Configuration"]
+    summary: Change 'Friendly servers'
+    description: |
+      If a whitelist is defined, then other servers will not be allowed to connect to this server,
+      except whitelisted ones. It is recommended to whitelist servers you typically work with,
+      ie. other teams.
+    operationId: set_federation_friendly_servers
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - federation_friendly_servers
+            properties:
+              federation_friendly_servers:
+                type: array
+                items:
+                  type: string
+                  format: domain-name
+    responses:
+      "200": { $ref: "#/components/responses/ServerConfig" }
+      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
     ServerConfig:
@@ -330,6 +458,8 @@ components:
         - mfa_required
         - tls_profile
         - federation_enabled
+        - federation_whitelist_enabled
+        - federation_friendly_servers
         - settings_backup_interval
         - user_data_backup_interval
         - push_notification_with_body
@@ -366,11 +496,21 @@ components:
           default: true
         tls_profile: { $ref: "#/components/schemas/TlsProfile" }
         federation_enabled:
-          description: Whether or not the XMPP server should support interdomain
-            federation. For more information, see [RFC 6120, section
-            13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).
+          description: |
+            Whether or not the XMPP server should support interdomain federation.
+            For more information, see [RFC 6120, section 13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).
           type: boolean
-          default: true
+          default: false
+        federation_whitelist_enabled:
+          description: Turn on to federate with only a selected list of other XMPP servers.
+          type: boolean
+          default: false
+        federation_friendly_servers:
+          description: List of XMPP servers authorized for server-to-server communications (federation).
+          type: array
+          items:
+            type: string
+            format: domain-name
         settings_backup_interval:
           type: string
           format: duration

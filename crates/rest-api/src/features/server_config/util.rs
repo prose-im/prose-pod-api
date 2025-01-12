@@ -14,9 +14,9 @@ macro_rules! server_config_set_route {
         }
 
         pub async fn $route_fn(
-            server_manager: ServerManager,
+            server_manager: service::xmpp::ServerManager,
             axum::Json(req): axum::Json<$req_type>,
-        ) -> Result<axum::Json<ServerConfig>, crate::error::Error> {
+        ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
             let new_state: $var_type = req.$var.to_owned();
             let new_config = server_manager.$fn(new_state).await?;
             Ok(axum::Json(new_config))
@@ -29,8 +29,8 @@ macro_rules! server_config_set_route {
 macro_rules! server_config_reset_route {
     ($fn:ident, $route_fn:ident) => {
         pub async fn $route_fn(
-            server_manager: ServerManager,
-        ) -> Result<axum::Json<ServerConfig>, crate::error::Error> {
+            server_manager: service::xmpp::ServerManager,
+        ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
             let new_config = server_manager.$fn().await?;
             Ok(axum::Json(new_config))
         }

@@ -3,10 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    server_config::{ServerConfig, TlsProfile},
-    xmpp::ServerManager,
-};
+use service::server_config::TlsProfile;
 
 use crate::{server_config_reset_route, server_config_set_route};
 

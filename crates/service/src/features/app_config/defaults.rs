@@ -11,6 +11,7 @@ use std::{
     str::FromStr as _,
 };
 
+use linked_hash_set::LinkedHashSet;
 use rand::RngCore as _;
 use secrecy::SecretString;
 
@@ -106,9 +107,19 @@ pub fn server_defaults_tls_profile() -> TlsProfile {
     TlsProfile::Modern
 }
 
-/// Enable federation by default.
+/// Disable federation by default.
 pub fn server_defaults_federation_enabled() -> bool {
-    true
+    false
+}
+
+/// Federate with the whole XMPP network by default.
+pub fn server_defaults_federation_whitelist_enabled() -> bool {
+    false
+}
+
+/// Do not trust any other server by default.
+pub fn server_defaults_federation_friendly_servers() -> LinkedHashSet<String> {
+    LinkedHashSet::default()
 }
 
 /// 1 day in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601#Durations).

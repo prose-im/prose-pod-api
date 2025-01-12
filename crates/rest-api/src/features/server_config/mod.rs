@@ -8,6 +8,7 @@ mod get_server_config;
 mod message_archive;
 mod network_encryption;
 mod push_notifications;
+mod server_federation;
 mod util;
 
 use axum::{
@@ -20,6 +21,7 @@ pub use get_server_config::*;
 pub use message_archive::*;
 pub use network_encryption::*;
 pub use push_notifications::*;
+pub use server_federation::*;
 
 use crate::AppState;
 
@@ -84,7 +86,33 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     put(reset_network_encryption_config_route),
                 )
                 .route("/tls-profile", put(set_tls_profile_route))
-                .route("/tls-profile/reset", put(reset_tls_profile_route)),
+                .route("/tls-profile/reset", put(reset_tls_profile_route))
+                // Server federation
+                .route(
+                    "/server-federation/reset",
+                    put(reset_server_federation_config_route),
+                )
+                .route(
+                    "/federation-enabled/reset",
+                    put(reset_federation_enabled_route),
+                )
+                .route("/federation-enabled", put(set_federation_enabled_route))
+                .route(
+                    "/federation-whitelist-enabled/reset",
+                    put(reset_federation_whitelist_enabled_route),
+                )
+                .route(
+                    "/federation-whitelist-enabled",
+                    put(set_federation_whitelist_enabled_route),
+                )
+                .route(
+                    "/federation-friendly-servers/reset",
+                    put(reset_federation_friendly_servers_route),
+                )
+                .route(
+                    "/federation-friendly-servers",
+                    put(set_federation_friendly_servers_route),
+                ),
         )
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .with_state(app_state)

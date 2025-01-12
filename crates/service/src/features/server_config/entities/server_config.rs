@@ -3,11 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use linked_hash_set::LinkedHashSet;
 use sea_orm::entity::prelude::*;
 
 use crate::{
     app_config::{AppConfig, ConfigServerDefaults},
-    models::*,
+    models::{durations::*, sea_orm::LinkedStringSet, xmpp::*},
     server_config::{ServerConfig, TlsProfile},
 };
 
@@ -34,6 +35,8 @@ pub struct Model {
     pub mfa_required: Option<bool>,
     pub tls_profile: Option<TlsProfile>,
     pub federation_enabled: Option<bool>,
+    pub federation_whitelist_enabled: Option<bool>,
+    pub federation_friendly_servers: Option<LinkedStringSet>,
     pub settings_backup_interval: Option<String>,
     pub user_data_backup_interval: Option<String>,
     pub push_notification_with_body: Option<bool>,
@@ -54,6 +57,8 @@ impl Model {
             mfa_required: self.mfa_required(defaults),
             tls_profile: self.tls_profile(defaults).to_owned(),
             federation_enabled: self.federation_enabled(defaults),
+            federation_whitelist_enabled: self.federation_whitelist_enabled(defaults),
+            federation_friendly_servers: self.federation_friendly_servers(defaults).to_owned(),
             settings_backup_interval: self.settings_backup_interval(defaults).to_owned(),
             user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
             push_notification_with_body: self.push_notification_with_body(defaults).to_owned(),
@@ -73,9 +78,9 @@ macro_rules! get_or_default {
         }
     };
 }
-macro_rules! get_or_default_string {
-    ($var:ident) => {
-        pub fn $var<'a, 'b>(&'a self, defaults: &'b ConfigServerDefaults) -> &'a str
+macro_rules! get_or_default_deref {
+    ($var:ident, $t:ty) => {
+        pub fn $var<'a, 'b>(&'a self, defaults: &'b ConfigServerDefaults) -> &'a $t
         where
             'b: 'a,
         {
@@ -94,13 +99,15 @@ impl Model {
         PossiblyInfinite<Duration<DateLike>>
     );
     get_or_default!(file_upload_allowed, bool);
-    get_or_default_string!(file_storage_encryption_scheme);
+    get_or_default_deref!(file_storage_encryption_scheme, str);
     get_or_default!(file_storage_retention, PossiblyInfinite<Duration<DateLike>>);
     get_or_default!(mfa_required, bool);
     get_or_default!(tls_profile, TlsProfile);
     get_or_default!(federation_enabled, bool);
-    get_or_default_string!(settings_backup_interval);
-    get_or_default_string!(user_data_backup_interval);
+    get_or_default!(federation_whitelist_enabled, bool);
+    get_or_default_deref!(federation_friendly_servers, LinkedHashSet<String>);
+    get_or_default_deref!(settings_backup_interval, str);
+    get_or_default_deref!(user_data_backup_interval, str);
     get_or_default!(push_notification_with_body, bool);
     get_or_default!(push_notification_with_sender, bool);
 }

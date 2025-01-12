@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use linked_hash_set::LinkedHashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::models::{durations::*, JidDomain};
@@ -19,6 +20,8 @@ pub struct ServerConfig {
     /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.
     pub tls_profile: TlsProfile,
     pub federation_enabled: bool,
+    pub federation_whitelist_enabled: bool,
+    pub federation_friendly_servers: LinkedHashSet<String>,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,

@@ -6,6 +6,7 @@
 mod data;
 pub mod durations;
 mod email_address;
+pub mod sea_orm;
 mod serializable_secret_string;
 pub mod xmpp;
 

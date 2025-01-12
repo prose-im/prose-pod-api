@@ -126,6 +126,26 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
             })
     }
 
+    if model.federation_enabled {
+        global_settings.unmark_disabled("s2s");
+        global_settings.enable_module("s2s_bidi".to_owned());
+        global_settings.s2s_ports = Some(vec![5269]);
+        global_settings.s2s_require_encryption = Some(true);
+        global_settings.s2s_secure_auth = Some(false);
+        global_settings.limits.get_or_insert_default().insert(
+            ConnectionType::ServerToServerInbounds,
+            ConnectionLimits {
+                rate: Some(DataRate::KiloBytesPerSec(250)),
+                burst: Some(Duration(TimeLike::Seconds(4))),
+            },
+        );
+
+        if model.federation_whitelist_enabled {
+            global_settings.enable_module("s2s_whitelist".to_owned());
+            global_settings.s2s_whitelist = Some(model.federation_friendly_servers);
+        }
+    }
+
     ProsodyConfig(config)
 }
 
@@ -151,7 +171,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 )),
                 interfaces: Some(vec![Interface::AllIPv4]),
                 c2s_ports: Some(vec![5222]),
-                s2s_ports: Some(vec![5269]),
                 http_ports: Some(vec![app_config.server.http_port]),
                 http_interfaces: Some(vec![Interface::AllIPv4]),
                 https_ports: Some(vec![]),
@@ -188,13 +207,13 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         "csi",
                         "server_contact_info",
                         "websocket",
-                        "s2s_bidi",
                         "cloud_notify",
                     ]
                     .into_iter()
                     .map(ToString::to_string)
                     .collect(),
                 ),
+                modules_disabled: Some(vec!["s2s"].into_iter().map(ToString::to_string).collect()),
                 ssl: Some(SSLConfig {
                     key: Some("/etc/prosody/certs/prose.org.local.key".into()),
                     certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
@@ -202,27 +221,15 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 }),
                 allow_registration: Some(false),
                 c2s_require_encryption: Some(true),
-                s2s_require_encryption: Some(true),
-                s2s_secure_auth: Some(false),
                 c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
-                s2s_stanza_size_limit: Some(Bytes::KibiBytes(512)),
                 limits: Some(
-                    vec![
-                        (
-                            ConnectionType::ClientToServer,
-                            ConnectionLimits {
-                                rate: Some(DataRate::KiloBytesPerSec(50)),
-                                burst: Some(Duration(TimeLike::Seconds(2))),
-                            },
-                        ),
-                        (
-                            ConnectionType::ServerToServerInbounds,
-                            ConnectionLimits {
-                                rate: Some(DataRate::KiloBytesPerSec(250)),
-                                burst: Some(Duration(TimeLike::Seconds(4))),
-                            },
-                        ),
-                    ]
+                    vec![(
+                        ConnectionType::ClientToServer,
+                        ConnectionLimits {
+                            rate: Some(DataRate::KiloBytesPerSec(50)),
+                            burst: Some(Duration(TimeLike::Seconds(2))),
+                        },
+                    )]
                     .into_iter()
                     .collect(),
                 ),

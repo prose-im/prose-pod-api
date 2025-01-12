@@ -7,7 +7,6 @@ use axum::Json;
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::ServerConfig,
-    xmpp::ServerManager,
 };
 
 use crate::{

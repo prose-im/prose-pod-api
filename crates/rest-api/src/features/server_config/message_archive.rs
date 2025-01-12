@@ -3,11 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    models::durations::{DateLike, Duration, PossiblyInfinite},
-    server_config::ServerConfig,
-    xmpp::ServerManager,
-};
+use service::models::durations::{DateLike, Duration, PossiblyInfinite};
 
 use crate::{server_config_reset_route, server_config_set_route};
 
