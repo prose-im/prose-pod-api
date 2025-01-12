@@ -6,6 +6,7 @@
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use jid::BareJid;
+use linked_hash_set::LinkedHashSet;
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use sea_orm::IntoActiveModel as _;
 use secrecy::SecretString;
@@ -13,7 +14,7 @@ use tracing::{debug, trace};
 
 use crate::{
     auth::{auth_service, AuthService},
-    models::{DateLike, Duration, JidDomain, PossiblyInfinite},
+    models::{sea_orm::LinkedStringSet, DateLike, Duration, JidDomain, PossiblyInfinite},
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     secrets::{SecretsStore, ServiceAccountSecrets},
     server_config::{
@@ -177,50 +178,54 @@ impl ServerManager {
         })
         .await
     }
+}
 
-    pub async fn reset_messaging_config(&self) -> Result<ServerConfig, Error> {
-        trace!("Resetting messaging configuration…");
-        let model = self
-            .update(|active| {
-                active.message_archive_enabled = Set(None);
-                active.message_archive_retention = Set(None);
-            })
-            .await?;
-        Ok(model)
-    }
+macro_rules! reset_fn {
+    ($fn:ident, $display:literal, $($field:ident),*,) => {
+        pub async fn $fn(&self) -> Result<ServerConfig, Error> {
+            trace!(concat!("Resetting ", $display, "…"));
+            let model = self
+                .update(|active| {
+                    $( active.$field = Set(None); )*
+                })
+                .await?;
+            Ok(model)
+        }
+    };
+}
 
-    pub async fn reset_files_config(&self) -> Result<ServerConfig, Error> {
-        trace!("Resetting files configuration…");
-        let model = self
-            .update(|active| {
-                active.file_upload_allowed = Set(None);
-                active.file_storage_encryption_scheme = Set(None);
-                active.file_storage_retention = Set(None);
-            })
-            .await?;
-        Ok(model)
-    }
-
-    pub async fn reset_push_notifications_config(&self) -> Result<ServerConfig, Error> {
-        trace!("Resetting push notifications configuration…");
-        let model = self
-            .update(|active| {
-                active.push_notification_with_body = Set(None);
-                active.push_notification_with_sender = Set(None);
-            })
-            .await?;
-        Ok(model)
-    }
-
-    pub async fn reset_network_encryption_config(&self) -> Result<ServerConfig, Error> {
-        trace!("Resetting network encryption configuration…");
-        let model = self
-            .update(|active| {
-                active.tls_profile = Set(None);
-            })
-            .await?;
-        Ok(model)
-    }
+impl ServerManager {
+    reset_fn!(
+        reset_messaging_config,
+        "messaging configuration",
+        message_archive_enabled,
+        message_archive_retention,
+    );
+    reset_fn!(
+        reset_files_config,
+        "files configuration",
+        file_upload_allowed,
+        file_storage_encryption_scheme,
+        file_storage_retention,
+    );
+    reset_fn!(
+        reset_push_notifications_config,
+        "notifications configuration",
+        push_notification_with_body,
+        push_notification_with_sender,
+    );
+    reset_fn!(
+        reset_network_encryption_config,
+        "network encryption configuration",
+        tls_profile,
+    );
+    reset_fn!(
+        reset_server_federation_config,
+        "server federation configuration",
+        federation_enabled,
+        federation_whitelist_enabled,
+        federation_friendly_servers,
+    );
 }
 
 impl ServerManager {
@@ -300,6 +305,14 @@ macro_rules! set {
                 .await
         }
     };
+    ($t1:ty, $t2:ty, $fn:ident, $var:ident) => {
+        pub async fn $fn(&self, new_state: $t1) -> Result<ServerConfig, Error> {
+            let new_state = <$t2>::from(new_state);
+            trace!("Setting {} to {new_state}…", stringify!($var));
+            self.update(|active| active.$var = Set(Some(new_state)))
+                .await
+        }
+    };
 }
 macro_rules! reset {
     ($fn:ident, $var:ident) => {
@@ -345,6 +358,28 @@ impl ServerManager {
     // Network encryption
     set!(TlsProfile, set_tls_profile, tls_profile);
     reset!(reset_tls_profile, tls_profile);
+
+    // Server federation
+    set_bool!(set_federation_enabled, federation_enabled);
+    reset!(reset_federation_enabled, federation_enabled);
+    set_bool!(
+        set_federation_whitelist_enabled,
+        federation_whitelist_enabled
+    );
+    reset!(
+        reset_federation_whitelist_enabled,
+        federation_whitelist_enabled
+    );
+    set!(
+        LinkedHashSet<String>,
+        LinkedStringSet,
+        set_federation_friendly_servers,
+        federation_friendly_servers
+    );
+    reset!(
+        reset_federation_friendly_servers,
+        federation_friendly_servers
+    );
 }
 
 pub type Error = ServerManagerError;

@@ -52,6 +52,20 @@ paths:
     put: { $ref: "features/server-config.yaml#/paths/reset_tls_profile" }
   "/v1/server/config/tls-profile":
     put: { $ref: "features/server-config.yaml#/paths/set_tls_profile" }
+  "/v1/server/config/server-federation/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_server_federation_config" }
+  "/v1/server/config/federation-enabled/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_federation_enabled" }
+  "/v1/server/config/federation-enabled":
+    put: { $ref: "features/server-config.yaml#/paths/set_federation_enabled" }
+  "/v1/server/config/federation-whitelist-enabled/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_federation_whitelist_enabled" }
+  "/v1/server/config/federation-whitelist-enabled":
+    put: { $ref: "features/server-config.yaml#/paths/set_federation_whitelist_enabled" }
+  "/v1/server/config/federation-friendly-servers/reset":
+    put: { $ref: "features/server-config.yaml#/paths/reset_federation_friendly_servers" }
+  "/v1/server/config/federation-friendly-servers":
+    put: { $ref: "features/server-config.yaml#/paths/set_federation_friendly_servers" }
   "/v1/pod/config":
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":

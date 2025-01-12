@@ -18,6 +18,7 @@ use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use linked_hash_set::LinkedHashSet;
 use secrecy::SecretString;
 use serde::Deserialize;
 use url_serde::SerdeUrl;
@@ -204,6 +205,8 @@ pub struct ConfigServerDefaults {
     pub mfa_required: bool,
     pub tls_profile: TlsProfile,
     pub federation_enabled: bool,
+    pub federation_whitelist_enabled: bool,
+    pub federation_friendly_servers: LinkedHashSet<String>,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,
@@ -222,6 +225,8 @@ impl Default for ConfigServerDefaults {
             mfa_required: defaults::server_defaults_mfa_required(),
             tls_profile: defaults::server_defaults_tls_profile(),
             federation_enabled: defaults::server_defaults_federation_enabled(),
+            federation_whitelist_enabled: defaults::server_defaults_federation_whitelist_enabled(),
+            federation_friendly_servers: defaults::server_defaults_federation_friendly_servers(),
             settings_backup_interval: defaults::server_defaults_settings_backup_interval(),
             user_data_backup_interval: defaults::server_defaults_user_data_backup_interval(),
             push_notification_with_body: defaults::server_defaults_push_notification_with_body(),

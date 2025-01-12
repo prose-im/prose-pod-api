@@ -15,7 +15,7 @@ email_address = { workspace = true, features = ["serde_support"] }
 figment = { workspace = true, features = ["env", "toml"] }
 form_urlencoded = { workspace = true }
 futures = { workspace = true }
-linked_hash_set = { workspace = true }
+linked_hash_set = { workspace = true, features = ["serde"] }
 hickory-proto = { workspace = true, features = [
     "tokio-runtime",
     "serde-config",

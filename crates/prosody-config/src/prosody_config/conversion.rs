@@ -41,6 +41,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             s2s_secure_auth,
             c2s_stanza_size_limit,
             s2s_stanza_size_limit,
+            s2s_whitelist,
             limits,
             consider_websocket_secure,
             cross_domain_websocket,
@@ -143,6 +144,11 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "c2s_stanza_size_limit", c2s_stanza_size_limit),
                     option_def(None, "s2s_stanza_size_limit", s2s_stanza_size_limit),
+                    option_def(
+                        Some("Avoid federating with the whole XMPP network and only federate with specific servers"),
+                        "s2s_whitelist",
+                        s2s_whitelist,
+                    ),
                 ],
             ),
         );
