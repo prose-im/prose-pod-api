@@ -13,10 +13,10 @@ services:
       - "${PROSE_CONFIG_FILE:?}:/Prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks: [prose-network]
-    environment:
-      RUST_LOG_STYLE: always
     env_file: "${ENV_FILE:?}"
     dns: 172.20.0.42
+    # Make sure logs are colored.
+    tty: true
 
   # https://github.com/prose-im/prose-pod-server
   server:
@@ -35,6 +35,8 @@ services:
     env_file: "${ENV_FILE:?}"
     entrypoint: >
       sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
+    # Make sure logs are colored.
+    tty: true
 
   # https://github.com/coredns/coredns
   coredns:
@@ -46,6 +48,8 @@ services:
     networks:
       prose-network:
         ipv4_address: 172.20.0.42
+    # Make sure logs are colored.
+    tty: true
 
   # https://github.com/axllent/mailpit
   mailpit:
@@ -59,6 +63,8 @@ services:
       prose-network:
         aliases:
           - mailpit
+    # Make sure logs are colored.
+    tty: true
 
 networks:
   prose-network:
