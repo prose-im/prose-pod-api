@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7-labs
 
-FROM lukemathwalker/cargo-chef:latest-rust-alpine AS chef
+FROM lukemathwalker/cargo-chef:0.1.68-rust-alpine AS chef
 WORKDIR /usr/src/prose-pod-api
 
 
