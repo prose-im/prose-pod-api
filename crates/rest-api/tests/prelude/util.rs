@@ -65,6 +65,16 @@ macro_rules! user_token {
 
 #[macro_export]
 macro_rules! api_call_fn {
+    ($fn:ident, unauthenticated: $method:ident, $route:expr) => {
+        async fn $fn(api: &axum_test::TestServer) -> axum_test::TestResponse {
+            tokio::time::timeout(
+                tokio::time::Duration::from_secs(2),
+                api.method(axum::http::Method::$method, $route),
+            )
+            .await
+            .unwrap()
+        }
+    };
     ($fn:ident, $method:ident, $route:expr) => {
         async fn $fn(
             api: &axum_test::TestServer,

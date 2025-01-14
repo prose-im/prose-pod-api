@@ -9,18 +9,19 @@ use super::prelude::*;
 
 // WORKSPACE NAME
 
-async fn get_workspace_name(api: &TestServer) -> TestResponse {
-    api.get("/v1/workspace/name").await
-}
-
-async fn set_workspace_name(api: &TestServer, name: &str) -> TestResponse {
-    api.put("/v1/workspace/name")
-        .add_header(CONTENT_TYPE, "application/json")
-        .json(&json!(SetWorkspaceNameRequest {
-            name: name.to_string(),
-        }))
-        .await
-}
+api_call_fn!(
+    get_workspace_name_unauthenticated,
+    unauthenticated: GET,
+    "/v1/workspace/name"
+);
+api_call_fn!(
+    set_workspace_name,
+    PUT,
+    "/v1/workspace/name",
+    SetWorkspaceNameRequest,
+    name,
+    String
+);
 
 #[given(expr = "the workspace is named {string}")]
 async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
@@ -32,15 +33,16 @@ async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(),
     Ok(())
 }
 
-#[when("a user gets the workspace name")]
+#[when("an unauthenticated user gets the workspace name")]
 async fn when_user_gets_workspace_name(world: &mut TestWorld) {
-    let res = get_workspace_name(world.api()).await;
+    let res = get_workspace_name_unauthenticated(world.api()).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "a user sets the workspace name to {string}")]
-async fn when_set_workspace_name(world: &mut TestWorld, name: String) {
-    let res = set_workspace_name(world.api(), &name).await;
+#[when(expr = "{} sets the workspace name to {string}")]
+async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_name: String) {
+    let token = user_token!(world, name);
+    let res = set_workspace_name(world.api(), token, workspace_name).await;
     world.result = Some(res.into());
 }
 
@@ -59,18 +61,19 @@ async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> R
 
 // WORKSPACE ICON
 
-async fn get_workspace_icon(api: &TestServer) -> TestResponse {
-    api.get("/v1/workspace/icon")
-        .add_header(ACCEPT, "application/json")
-        .await
-}
-
-async fn set_workspace_icon(api: &TestServer, png_data: String) -> TestResponse {
-    api.put("/v1/workspace/icon")
-        .add_header(ACCEPT, "application/json")
-        .json(&json!(SetWorkspaceIconRequest { image: png_data }))
-        .await
-}
+api_call_fn!(
+    get_workspace_icon_unauthenticated,
+    unauthenticated: GET,
+    "/v1/workspace/icon"
+);
+api_call_fn!(
+    set_workspace_icon,
+    PUT,
+    "/v1/workspace/icon",
+    SetWorkspaceIconRequest,
+    image,
+    String
+);
 
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
@@ -82,15 +85,16 @@ async fn given_workspace_icon_url(world: &mut TestWorld, png_data: String) -> Re
     Ok(())
 }
 
-#[when("a user gets the workspace icon")]
+#[when("an unauthenticated user gets the workspace icon")]
 async fn when_user_gets_workspace_icon(world: &mut TestWorld) {
-    let res = get_workspace_icon(world.api()).await;
+    let res = get_workspace_icon_unauthenticated(world.api()).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "a user sets the workspace icon to {string}")]
-async fn when_set_workspace_icon_url(world: &mut TestWorld, png_data: String) {
-    let res = set_workspace_icon(world.api(), png_data).await;
+#[when(expr = "{} sets the workspace icon to {string}")]
+async fn when_set_workspace_icon_url(world: &mut TestWorld, name: String, png_data: String) {
+    let token = user_token!(world, name);
+    let res = set_workspace_icon(world.api(), token, png_data).await;
     world.result = Some(res.into());
 }
 
