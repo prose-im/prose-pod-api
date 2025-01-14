@@ -24,6 +24,7 @@ components:
             - unknown
             - invitation_already_exists
             - member_already_exists
+            - invalid_vcard
           example: bad_request
     DurationDateLike:
       description: A duration in [ISO 8601

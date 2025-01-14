@@ -73,7 +73,7 @@ paths:
     put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
   "/v1/workspace":
     get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
-    put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
+    put: { $ref: "features/workspace.yaml#/paths/set_workspace" }
   "/v1/workspace/name":
     get: { $ref: "features/workspace.yaml#/paths/get_workspace_name" }
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_name" }

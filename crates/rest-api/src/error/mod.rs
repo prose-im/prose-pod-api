@@ -216,7 +216,7 @@ pub trait CustomErrorCode {
 #[macro_export]
 macro_rules! impl_into_error {
     ($t:ty) => {
-        impl HttpApiError for $t {
+        impl crate::error::HttpApiError for $t {
             fn code(&self) -> ErrorCode {
                 CustomErrorCode::error_code(self)
             }
@@ -226,7 +226,7 @@ macro_rules! impl_into_error {
         }
     };
     ($t:ty, $code:expr) => {
-        impl HttpApiError for $t {
+        impl crate::error::HttpApiError for $t {
             fn code(&self) -> ErrorCode {
                 $code
             }
@@ -236,7 +236,7 @@ macro_rules! impl_into_error {
         }
     };
     ($t:ty, $code:expr, $headers:expr) => {
-        impl HttpApiError for $t {
+        impl crate::error::HttpApiError for $t {
             fn code(&self) -> ErrorCode {
                 $code
             }

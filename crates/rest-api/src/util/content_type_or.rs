@@ -26,6 +26,7 @@ macro_rules! impl_content_type {
 impl_content_type!(ApplictionJson, "application/json");
 impl_content_type!(TextPlain, "text/plain");
 impl_content_type!(TextEventStream, "text/event-stream");
+impl_content_type!(TextVCard, "text/vcard");
 
 // --- implementation details ---
 

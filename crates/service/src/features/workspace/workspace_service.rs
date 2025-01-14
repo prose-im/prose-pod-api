@@ -1,10 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
 
+use prose_xmpp::stanza::VCard4;
 use sea_orm::{DatabaseConnection, DbErr, IntoActiveModel as _};
 
 use crate::{
@@ -70,17 +71,15 @@ impl WorkspaceService {
     }
 
     pub async fn get_workspace_name(&self) -> Result<String, Error> {
-        // FIXME: Get `FN` instead of `NICK`
         let nickname = self
             .xmpp_service
-            .get_own_nickname()
+            .get_own_formatted_name()
             .await?
             .ok_or(Error::WorkspaceNotInitialized)?;
         Ok(nickname)
     }
     pub async fn set_workspace_name(&self, name: String) -> Result<String, Error> {
-        // FIXME: Set `FN` instead of `NICK`
-        self.xmpp_service.set_own_nickname(&name).await?;
+        self.xmpp_service.set_own_formatted_name(&name).await?;
         Ok(name)
     }
 
@@ -94,6 +93,19 @@ impl WorkspaceService {
     }
     pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {
         self.xmpp_service.set_own_avatar(png_data).await?;
+        Ok(())
+    }
+
+    pub async fn get_workspace_vcard(&self) -> Result<VCard4, Error> {
+        let vcard = self
+            .xmpp_service
+            .get_own_vcard()
+            .await?
+            .ok_or(Error::WorkspaceNotInitialized)?;
+        Ok(vcard)
+    }
+    pub async fn set_workspace_vcard(&self, vcard: &VCard4) -> Result<(), Error> {
+        self.xmpp_service.set_own_vcard(vcard).await?;
         Ok(())
     }
 }
