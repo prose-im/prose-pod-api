@@ -79,20 +79,34 @@ jid = { version = "0.11", default-features = false }
 minidom = { version = "0.16", default-features = false }
 xmpp-parsers = { version = "0.21", default-features = false }
 
+# See defaults at <https://doc.rust-lang.org/cargo/reference/profiles.html#dev>.
+# NOTE: We made some values explicit, even if they're already the default.
 [profile.dev]
 opt-level = 0
-debug = true
+# NOTE: In most cases, we won't need debug information in the binary (which adds a LOT of bloat).
+#   If needed, use the `dev-debug` profile.
+debug = false
 debug-assertions = true
-strip = "debuginfo"
+
+[profile.dev-debug]
+inherits = "dev"
+debug = true
 
 [profile.staging]
 inherits = "dev"
-opt-level = 1
 lto = "thin"
-
-[profile.release]
-opt-level = "s"
-lto = true
 debug = false
 debug-assertions = false
+panic = "abort"
+incremental = true
+
+# See defaults at <https://doc.rust-lang.org/cargo/reference/profiles.html#release>.
+# NOTE: We made some values explicit, even if they're already the default.
+[profile.release]
+opt-level = "s"
+lto = "thin"
+debug = false
+debug-assertions = false
+# NOTE: No need to `strip = "debuginfo"` since debug info won't be generated in the first place.
+strip = "symbols"
 panic = "abort"

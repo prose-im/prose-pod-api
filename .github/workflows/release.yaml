@@ -99,3 +99,5 @@ jobs:
             linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            CARGO_PROFILE=${{ startsWith(github.ref, 'refs/tags/') && 'release' || 'staging' }}

@@ -77,15 +77,15 @@ If a test fails, Step CI will automatically print some additional information to
 To build the Docker image, you can use the helper script (which builds the image as `proseim/prose-pod-api:local`):
 
 ```bash
-task build-image [-- [--platform=TARGET_PLATFORM] [--debug] [--help]]
+task build-image [-- [--platform=TARGET_PLATFORM] [--profile=CARGO_PROFILE] [--help]]
 ```
 
 If you don't set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:local` for your local platform. If you set `TARGET_PLATFORM`, `build-image` will build `proseim/prose-pod-api:local` for the desired platform. You can set `PROSE_POD_API_IMAGE` to override the final name of the image.
 
-To build the API in debug mode (e.g. to use predictable data generators), you can use the `--debug` argument:
+To build the API in debug mode (e.g. to use predictable data generators), you can use the `--profile=dev` argument:
 
 ```bash
-task build-image -- [--platform=TARGET_PLATFORM] --debug
+task build-image -- [--platform=TARGET_PLATFORM] --profile=dev
 ```
 
 [Step CI]: https://stepci.com/ "Step CI homepage"
