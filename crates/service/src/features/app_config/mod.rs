@@ -34,6 +34,7 @@ use crate::{
 
 use super::server_config::TlsProfile;
 
+pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
