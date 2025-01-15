@@ -162,7 +162,7 @@ pub fn notify_email_smtp_encrypt() -> bool {
 
 pub fn databases_main() -> ConfigDatabase {
     ConfigDatabase {
-        url: "sqlite://database.sqlite?mode=rwc".to_string(),
+        url: "sqlite://database.sqlite".to_string(),
         min_connections: Default::default(),
         max_connections: database_max_connections(),
         connect_timeout: database_connect_timeout(),
