@@ -146,6 +146,7 @@ info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
 
 # NOTE: The database doesn't exist yet in integration tests.
 [ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
+[ -f "${MAILPIT_DATABASE_PATH:?}" ] || echo '' > "${MAILPIT_DATABASE_PATH:?}"
 
 source "${SELF_SCRIPTS:?}"/compose-exports.sh
 edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}

@@ -9,3 +9,4 @@
 
 # Except API data
 *.sqlite
+*.db
