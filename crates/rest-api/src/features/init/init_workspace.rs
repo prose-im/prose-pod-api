@@ -16,7 +16,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, features::init::WORKSPACE_ROUTE, responders::Created};
+use crate::{error::prelude::*, features::workspace_details::WORKSPACE_ROUTE, responders::Created};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {

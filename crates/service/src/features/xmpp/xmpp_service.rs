@@ -1,12 +1,14 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
 use prose_xmpp::{
-    mods::AvatarData, stanza::vcard4::Nickname, BareJid, ConnectionError, RequestError,
+    mods::AvatarData,
+    stanza::vcard4::{Fn_, Nickname},
+    BareJid, ConnectionError, RequestError,
 };
 use secrecy::SecretString;
 use tracing::debug;
@@ -69,6 +71,18 @@ impl XmppService {
     }
     pub async fn set_own_nickname(&self, nickname: &str) -> Result<(), XmppServiceError> {
         self.deref().set_own_nickname(&self.ctx, nickname).await
+    }
+
+    pub async fn get_own_formatted_name(&self) -> Result<Option<String>, XmppServiceError> {
+        self.deref().get_own_formatted_name(&self.ctx).await
+    }
+    pub async fn set_own_formatted_name(
+        &self,
+        formatted_name: &str,
+    ) -> Result<(), XmppServiceError> {
+        self.deref()
+            .set_own_formatted_name(&self.ctx, formatted_name)
+            .await
     }
 
     pub async fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, XmppServiceError> {
@@ -134,6 +148,29 @@ pub trait XmppServiceImpl: Debug + Send + Sync {
         let mut vcard = self.get_own_vcard(ctx).await?.unwrap_or_default();
         vcard.nickname = vec![Nickname {
             value: nickname.to_owned(),
+        }];
+        self.set_own_vcard(ctx, &vcard).await
+    }
+
+    async fn get_own_formatted_name(
+        &self,
+        ctx: &XmppServiceContext,
+    ) -> Result<Option<String>, XmppServiceError> {
+        let vcard = self.get_own_vcard(ctx).await?.unwrap_or_default();
+        Ok(vcard.fn_.first().map(|v| v.value.to_owned()))
+    }
+    async fn set_own_formatted_name(
+        &self,
+        ctx: &XmppServiceContext,
+        formatted_name: &str,
+    ) -> Result<(), XmppServiceError> {
+        debug!(
+            "Setting {}'s formatted name to {formatted_name}…",
+            ctx.bare_jid
+        );
+        let mut vcard = self.get_own_vcard(ctx).await?.unwrap_or_default();
+        vcard.fn_ = vec![Fn_ {
+            value: formatted_name.to_owned(),
         }];
         self.set_own_vcard(ctx, &vcard).await
     }

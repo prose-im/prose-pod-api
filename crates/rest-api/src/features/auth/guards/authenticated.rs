@@ -35,12 +35,18 @@ use crate::guards::prelude::*;
 ///
 /// ```rust,no_run
 /// use axum::middleware::from_extractor_with_state;
+/// use axum::routing::{delete, get};
 /// use prose_pod_api::AppState;
 /// use prose_pod_api::features::auth::guards::Authenticated;
 ///
 /// pub fn router(app_state: AppState) -> axum::Router {
 ///     axum::Router::new()
-///         .route_layer(from_extractor_with_state::<Authenticated, _>(app_state.clone()))
+///         .route("/example", get(unimplemented!()))
+///         .route(
+///             "/example",
+///             delete(unimplemented!())
+///                 .route_layer(from_extractor_with_state::<Authenticated, _>(app_state.clone()))
+///         )
 ///         .with_state(app_state)
 /// }
 /// ```

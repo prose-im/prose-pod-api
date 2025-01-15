@@ -66,12 +66,18 @@ fn then_response_failure(world: &mut TestWorld) {
 }
 
 #[then("the response content type should be JSON")]
-fn then_response_json(world: &mut TestWorld) {
+fn then_content_type_json(world: &mut TestWorld) {
     let res = world.result();
     assert_eq!(
         res.maybe_content_type(),
         Some("application/json".to_owned())
     );
+}
+
+#[then(expr = "the response content type should be {string}")]
+fn then_content_type(world: &mut TestWorld, content_type: String) {
+    let res = world.result();
+    assert_eq!(res.maybe_content_type(), Some(content_type));
 }
 
 #[then(expr = "the HTTP status code should be {status}")]

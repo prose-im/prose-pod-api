@@ -8,31 +8,48 @@ Feature: Workspace name
 
     Scenario: XMPP server and workspace not initialized
       Given the server config has not been initialized
-       When a user gets the workspace name
+       When an unauthenticated user gets the workspace name
        Then the user should receive 'Server config not initialized'
 
     Scenario: XMPP server initialized but not the workspace
       Given the server config has been initialized
         And the workspace has not been initialized
-       When a user gets the workspace name
+       When an unauthenticated user gets the workspace name
        Then the user should receive 'Workspace not initialized'
 
-  Rule: A user can request the workspace name
+  """
+  When logging into a workspace, we want to show the name of the workspace the person
+  is logging into, which means an unauthenticated user must be able to query this information.
+  It's a data leak but we'll find a workaround only if it becomes a real issue.
+  """
+  Rule: Anyone can request the workspace name
 
     Scenario: Get workspace name after initializing
       Given the Prose Pod has been initialized
-       When a user gets the workspace name
+        And the workspace is named "Prose"
+       When an unauthenticated user gets the workspace name
        Then the call should succeed
         And the response content type should be JSON
         And the returned workspace name should be "Prose"
 
-  Rule: An admin user can change the workspace name
+  Rule: Admins can change the workspace name
 
-    Scenario: Change workspace name
+    Scenario: Valerian changes the workspace name
       Given the Prose Pod has been initialized
         And the workspace is named "Prose"
-       When a user sets the workspace name to "Prose IM"
+        And Valerian is an admin
+       When Valerian sets the workspace name to "Prose IM"
        Then the call should succeed
         And the response content type should be JSON
         And the returned workspace name should be "Prose IM"
         And the workspace should be named "Prose IM"
+
+  Rule: Regular members can't change the workspace name
+
+    Scenario: Rémi tries to change the workspace name
+      Given the Prose Pod has been initialized
+        And the workspace is named "Prose"
+        And Rémi is a regular member
+       When Rémi sets the workspace name to "Prose IM"
+       Then the HTTP status code should be Forbidden
+        And the workspace should be named "Prose"

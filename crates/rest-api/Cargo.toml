@@ -22,7 +22,11 @@ axum = { workspace = true, features = [
     "tokio",
     "http2",
 ] }
-axum-extra = { workspace = true, features = ["cookie", "query"] }
+axum-extra = { workspace = true, features = [
+    "cookie",
+    "query",
+    "typed-header",
+] }
 base64 = { workspace = true }
 chrono = { workspace = true }
 form_urlencoded = { workspace = true }
@@ -32,6 +36,7 @@ http-auth-basic = { workspace = true }
 iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde"] }
 lazy_static = { workspace = true }
+mime = { workspace = true }
 rustls = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -47,6 +52,7 @@ tower-http = { workspace = true, features = ["fs", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi"] }
 uuid = { workspace = true }
+vcard4 = { workspace = true, features = ["zeroize"] }
 
 [dev-dependencies]
 axum-test = { workspace = true, features = ["pretty-assertions"] }

@@ -12,22 +12,66 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/Workspace" }
+          text/vcard:
+            schema:
+              type: string
+            examples:
+              base:
+                value: |
+                  BEGIN:VCARD
+                  VERSION:4.0
+                  FN:Prose IM
+                  END:VCARD
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  init_workspace:
-    tags: [Init]
-    summary: Initialize the workspace
-    description: Initializes the workspace and returns its default configuration.
-    operationId: init_workspace
-    security: []
+  set_workspace:
+    tags: [Init, Workspace]
+    summary: Edit / initialize the workspace
+    description: |
+      Updates the workspace details and returns it.
+
+      This route is used to initialize the workspace, when using `application/json`.
+      In this case, no authentication is necessary.
+
+      When using `text/vcard`, the route can return error `invalid_vcard` if the data is malformed.
+      Also, beware that only keys present in [`VCard4` of `prose-xmpp`] will be interpreted.
+      The rest will be dismissed. You can check the returned value to see which keys have been saved.
+
+      [`VCard4` of `prose-xmpp`]: https://github.com/prose-im/prose-core-client/blob/master/crates/prose-xmpp/src/stanza/vcard4.rs
+    operationId: set_workspace
+    security:
+      - BearerAuth: []
     requestBody:
       required: true
       content:
         application/json:
           schema: { $ref: "#/components/schemas/InitWorkspaceRequest" }
+        text/vcard:
+          schema:
+            type: string
+          examples:
+            base:
+              value: |
+                BEGIN:VCARD
+                VERSION:4.0
+                FN:Prose IM
+                END:VCARD
     responses:
+      "200":
+        description: Update success
+        content:
+          text/vcard:
+            schema:
+              type: string
+            examples:
+              base:
+                value: |
+                  BEGIN:VCARD
+                  VERSION:4.0
+                  FN:Prose IM
+                  END:VCARD
       "201":
-        description: Success
+        description: Initialization success
         content:
           application/json:
             schema: { $ref: "#/components/schemas/Workspace" }
