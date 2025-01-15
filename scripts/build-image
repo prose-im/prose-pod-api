@@ -29,11 +29,11 @@ usage() {
 	cat <<EOF
 $(format_title 'Usage:')
   You want to build the Prose Pod API for a local usage:
-    $(format_command "${SELF:?}") $(format_opt_arg --debug)
+    $(format_command "${SELF:?}") $(format_opt_arg --profile=dev)
   You want to build $(format_code "${PROSE_POD_API_IMAGE_NAME:?}:latest"):
-    $(format_command "${SELF:?}") $(format_arg --tag=latest) $(format_opt_arg --debug)
+    $(format_command "${SELF:?}") $(format_arg --tag=latest)
   You want to build the Prose Pod API for a different platform:
-    $(format_command "${SELF:?}") $(format_arg --platform=TARGET_PLATFORM) $(format_opt_arg --debug)
+    $(format_command "${SELF:?}") $(format_arg --platform=TARGET_PLATFORM)
 
 $(format_title 'Options:')
   $(format_subtitle 'Build phase options:')
@@ -42,8 +42,9 @@ $(format_title 'Options:')
       $(format_secondary "See the list of supported targets via $(format_code 'docker buildx ls').")
     $(format_flag --tag=DOCKER_TAG)
       Choose which version of the Prose Pod API to build (default: "${PROSE_POD_API_IMAGE_TAG:?}").
-    $(format_flag --debug)
-      Builds the Prose Pod API in debug mode.
+    $(format_flag --profile=CARGO_PROFILE)
+      Choose which Cargo profile to use when building the Prose Pod API.
+      $(format_secondary "Note: $(format_code '--profile=dev') enables $(format_code 'debug_only') configuration.")
     $(format_flag --no-pull)
       Do not pull referenced Docker images.
       $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
@@ -51,6 +52,12 @@ $(format_title 'Options:')
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
       Explains what the command does and how to use it.
+    $(format_flag --dry-run)
+      Do a dry run (i.e. print what would be executed instead of running it).
+    $(format_flag --debug)
+      Log debug messages when running the script.
+    $(format_flag --trace)
+      Log tracing messages when running the script.
 EOF
 	# NOTE: Outdated documentation, kept for when we'll reintroduce this flag.
 	# $(format_flag --offline)
@@ -69,7 +76,8 @@ help() {
 
 CARGO_CHEF_EXTRA_ARGS=()
 CARGO_INSTALL_EXTRA_ARGS=()
-unset NO_PULL CARGO_PROFILE
+CARGO_PROFILE=release
+unset NO_PULL
 
 for arg in "$@"; do
 	case $arg in
@@ -79,9 +87,8 @@ for arg in "$@"; do
 		--tag=*)
 			PROSE_POD_API_IMAGE_TAG="${arg#'--tag='}"
 			;;
-		--debug)
-			info 'Will build in debug mode.'
-			CARGO_PROFILE='dev'
+		--profile=*)
+			CARGO_PROFILE="${arg#'--profile='}"
 			;;
 		--offline)
 			die "Offline builds are not supported anymore, because we build the Rust project in a Dockerfile and we have a git dependency ($(format_code prose-core-client)). If you need this feature, consider adding $(format_code prose-core-client) as a $(format_hyperlink 'git submodule' 'https://git-scm.com/book/en/v2/Git-Tools-Submodules') instead."
@@ -96,9 +103,17 @@ for arg in "$@"; do
 			NO_PULL=1
 			;;
 		--help) help ;;
+		--dry-run) export DRY_RUN=1 ;;
+		--debug) export LOG_DEBUG=1 ;;
+		--trace) export LOG_TRACE=1 ;;
 		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
 	esac
 done
+
+# Recompute log levels.
+source "${BASH_TOOLBOX:?}"/log.sh
+
+info "Will build with profile $(format_code "${CARGO_PROFILE:?}")."
 
 # Regenerate image name.
 unset PROSE_POD_API_IMAGE
