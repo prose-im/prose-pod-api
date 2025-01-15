@@ -73,6 +73,8 @@ pub struct AppConfig {
     pub default_response_timeout: Duration<TimeLike>,
     #[serde(default = "defaults::default_retry_interval")]
     pub default_retry_interval: Duration<TimeLike>,
+    #[serde(default, rename = "debug_use_at_your_own_risk")]
+    pub debug: ConfigDebug,
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub debug_only: ConfigDebugOnly,
@@ -314,6 +316,23 @@ pub struct ConfigDatabase {
     pub idle_timeout: Option<u64>,
     #[serde(default)]
     pub sqlx_logging: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigDebug {
+    #[serde(default = "defaults::true_in_debug")]
+    pub log_config_at_startup: bool,
+    #[serde(default = "defaults::true_in_debug")]
+    pub detailed_error_responses: bool,
+}
+
+impl Default for ConfigDebug {
+    fn default() -> Self {
+        Self {
+            log_config_at_startup: defaults::true_in_debug(),
+            detailed_error_responses: defaults::true_in_debug(),
+        }
+    }
 }
 
 #[cfg(debug_assertions)]

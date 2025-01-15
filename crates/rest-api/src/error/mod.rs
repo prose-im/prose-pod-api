@@ -28,6 +28,8 @@ pub mod prelude {
     pub use super::{CustomErrorCode, Error, ErrorCode, HttpApiError, LogLevel};
 }
 
+pub(crate) static DETAILED_ERROR_REPONSES: AtomicBool = AtomicBool::new(false);
+
 #[derive(Debug)]
 pub struct ErrorCode {
     /// User-facing error code (a string for easier understanding).
@@ -146,7 +148,7 @@ impl Error {
     }
 
     fn as_json(&self) -> serde_json::Value {
-        if cfg!(debug_assertions) {
+        if DETAILED_ERROR_REPONSES.load(Ordering::Relaxed) {
             serde_json::to_value(self).unwrap_or_else(|_| {
                 json!({
                     "error": self.code,
