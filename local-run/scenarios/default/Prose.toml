@@ -18,4 +18,4 @@ smtp_encrypt = false
 insecure_password_on_auto_accept_invitation = true
 
 [debug_only.dependency_modes]
-notifier = "logging"
+# notifier = "logging"
