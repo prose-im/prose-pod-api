@@ -4,6 +4,7 @@
 : ${SCENARIO_NAME:="${DEFAULT_SCENARIO_NAME:?}"}
 : ${SCENARIO_DIR:="${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"}
 : ${DATABASE_PATH:="${SCENARIO_DIR:?}"/database.sqlite}
+: ${MAILPIT_DATABASE_PATH:="${SCENARIO_DIR:?}"/mailpit-database.db}
 : ${PROSE_CONFIG_FILE:="${SCENARIO_DIR:?}"/Prose.toml}
 : ${ENV_FILE:="${SCENARIO_DIR:?}"/local-run.env}
 : ${ETC_PROSODY_DIR:="${SCENARIO_DIR:?}"/prosody/config}

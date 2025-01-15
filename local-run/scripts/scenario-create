@@ -38,6 +38,8 @@ done
 
 info "Will create a new scenario named $(format_code "${SCENARIO_NAME:?}") based on $(format_code "${BASE_SCENARIO_NAME:?}")."
 
+source "${SELF_SCRIPTS:?}"/scenario-files.sh
+
 edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody/{config,data},coredns}
 
 # NOTE: While it'd be easier to use symbolic links instead of copying files
@@ -54,10 +56,11 @@ copy-if-exists() {
 	fi
 }
 
-copy-if-exists Prose.toml
-copy-if-exists local-run.env
-copy-if-exists dns-zone.zone
-copy-if-exists database.sqlite
+copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
+copy-if-exists "$(basename "${ENV_FILE:?}")"
+copy-if-exists "$(basename "${DNS_ZONE_FILE:?}")"
+copy-if-exists "$(basename "${DATABASE_PATH:?}")"
+copy-if-exists "$(basename "${MAILPIT_DATABASE_PATH:?}")"
 
 # NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
 #   because `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/prosody` belongs to `runner:docker`.

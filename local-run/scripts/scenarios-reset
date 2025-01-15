@@ -24,14 +24,20 @@ reset-one() {
 
 	warn "Resetting scenario $(format_code "${SCENARIO_NAME:?}")…"
 
-	unset DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR
+	unset DATABASE_PATH MAILPIT_DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR
 	source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 	if (( $DRY_RUN )); then
-		dry_run "Reset database at '${DATABASE_PATH:?}'"
+		dry_run "Reset API database at '${DATABASE_PATH:?}'"
 	else
-		trace "Reset database at '${DATABASE_PATH:?}'"
+		trace "Reset API database at '${DATABASE_PATH:?}'"
 		echo '' > "${DATABASE_PATH:?}"
+	fi
+	if (( $DRY_RUN )); then
+		dry_run "Reset Mailpit database at '${MAILPIT_DATABASE_PATH:?}'"
+	else
+		trace "Reset Mailpit database at '${MAILPIT_DATABASE_PATH:?}'"
+		echo '' > "${MAILPIT_DATABASE_PATH:?}"
 	fi
 	edo rm -rf "${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
 	edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*%2e*
