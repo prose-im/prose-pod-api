@@ -13,7 +13,7 @@ mod wait_for_server;
 
 use tracing::trace;
 
-use crate::AppState;
+use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
 use self::create_service_accounts::*;
 use self::init_server_config::*;
@@ -26,6 +26,11 @@ use self::wait_for_server::*;
 pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 
+    DETAILED_ERROR_REPONSES.store(
+        app_state.app_config.debug.detailed_error_responses,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+
     run_migrations(app_state).await?;
     test_services_reachability(app_state).await?;
     wait_for_server(app_state).await?;
@@ -33,5 +38,6 @@ pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
     init_server_config(app_state).await?;
     register_oauth2_client(app_state).await?;
     create_service_accounts(app_state).await?;
+
     Ok(())
 }

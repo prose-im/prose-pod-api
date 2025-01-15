@@ -23,6 +23,19 @@ use crate::{
 
 use super::{ConfigDatabase, ConfigServiceAccount, API_DATA_DIR};
 
+// GENERAL
+
+#[cfg(debug_assertions)]
+pub fn true_in_debug() -> bool {
+    true
+}
+#[cfg(not(debug_assertions))]
+pub fn true_in_debug() -> bool {
+    false
+}
+
+// SPECIFIC
+
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
         xmpp_node: JidNode::from_str("prose-pod-api").unwrap(),

@@ -22,8 +22,9 @@ use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter, FmtSubscriber};
 #[tokio::main]
 async fn main() {
     let app_config = AppConfig::from_default_figment();
-    #[cfg(debug_assertions)]
-    dbg!(&app_config);
+    if app_config.debug.log_config_at_startup {
+        dbg!(&app_config);
+    }
 
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
