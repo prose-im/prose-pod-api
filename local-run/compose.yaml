@@ -9,8 +9,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - "${DATABASE_PATH:?}:/database.sqlite"
-      - "${PROSE_CONFIG_FILE:?}:/Prose.toml"
+      - "${DATABASE_PATH:?}:/var/lib/prose-pod-api/database.sqlite"
+      - "${PROSE_CONFIG_FILE:?}:/etc/prose-pod-api/Prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks: [prose-network]
     env_file: "${ENV_FILE:?}"

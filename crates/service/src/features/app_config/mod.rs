@@ -34,6 +34,8 @@ use crate::{
 
 use super::server_config::TlsProfile;
 
+pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
+pub const API_CONFIG_DIR: &'static str = "/etc/prose-pod-api";
 pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
@@ -78,7 +80,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn figment() -> Figment {
-        Self::figment_at_path(CONFIG_FILE_NAME)
+        Self::figment_at_path(Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME))
     }
 
     pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {

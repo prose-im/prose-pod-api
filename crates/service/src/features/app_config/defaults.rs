@@ -21,7 +21,7 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{ConfigDatabase, ConfigServiceAccount};
+use super::{ConfigDatabase, ConfigServiceAccount, API_DATA_DIR};
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
@@ -162,7 +162,7 @@ pub fn notify_email_smtp_encrypt() -> bool {
 
 pub fn databases_main() -> ConfigDatabase {
     ConfigDatabase {
-        url: "sqlite://database.sqlite?mode=rwc".to_string(),
+        url: format!("sqlite://{API_DATA_DIR}/database.sqlite"),
         min_connections: Default::default(),
         max_connections: database_max_connections(),
         connect_timeout: database_connect_timeout(),
