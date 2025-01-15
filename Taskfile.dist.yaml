@@ -121,7 +121,7 @@ tasks:
   local:reset:
     desc: Starts fresh with a Prose Pod API that has no data.
     prompt: This command will delete all the local Prose data associated to the default scenario, do you want to continue?
-    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenario-reset default {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/scenarios-reset default {{.CLI_ARGS}}"
 
   openapi:lint:
     desc: Lint the OpenAPI specification file.
