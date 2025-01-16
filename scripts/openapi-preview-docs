@@ -14,4 +14,4 @@ if ! command -v redocly &>/dev/null; then
     die "$(format_hyperlink "Install $(format_code redocly)" "https://redocly.com/docs/cli/installation") first ($(format_code 'npm i -g @redocly/cli@latest') / $(format_code 'volta install @redocly/cli'))."
 fi
 
-edo redocly preview-docs --port=8081 "${OPENAPI_SPEC:?}" "$@"
+edo redocly preview-docs "${OPENAPI_SPEC:?}" --port=8081 --config=crates/rest-api/static/api-docs/redocly.cfg.yaml "$@"

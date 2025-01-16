@@ -1,6 +1,15 @@
 extends:
   - recommended
 
+theme:
+  openapi:
+    schemaExpansionLevel: 5
+    jsonSampleExpandLevel: 4
+    expandResponses: "200,201,206"
+    expandSingleSchemaField: true
+    # showObjectSchemaExamples: true
+    hideSingleRequestSampleTab: true
+
 rules:
   no-invalid-media-type-examples:
     # NOTE: We want to add unstructured examples to `text/event-stream` responses,
