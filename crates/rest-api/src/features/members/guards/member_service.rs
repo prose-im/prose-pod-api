@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::xmpp::XmppService;
+use service::{auth::UserInfo, members::MemberServiceContext, xmpp::XmppService};
 
 use crate::guards::prelude::*;
 
@@ -16,11 +16,16 @@ impl FromRequestParts<AppState> for service::members::MemberService {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let xmpp_service = XmppService::from_request_parts(parts, state).await?;
+        let user_info = UserInfo::from_request_parts(parts, state).await?;
+        let ctx = MemberServiceContext {
+            bare_jid: user_info.jid,
+        };
 
         Ok(Self::new(
             Arc::new(state.db.clone()),
             Arc::new(state.server_ctl.clone()),
             Arc::new(xmpp_service),
+            ctx,
         ))
     }
 }

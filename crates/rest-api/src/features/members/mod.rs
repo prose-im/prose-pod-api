@@ -13,9 +13,11 @@ mod model;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{delete, get};
 use axum_extra::handler::HandlerCallWithExtractors as _;
+use service::members::{UserCreateError, UserDeleteError};
 
+use crate::error::{CustomErrorCode, ErrorCode, HttpApiError as _};
 use crate::util::content_type_or::*;
-use crate::AppState;
+use crate::{impl_into_error, AppState};
 
 use super::auth::guards::{Authenticated, IsAdmin};
 
@@ -53,3 +55,24 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         ))
         .with_state(app_state)
 }
+
+impl CustomErrorCode for UserCreateError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::DbErr(err) => err.code(),
+            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+impl_into_error!(UserCreateError);
+
+impl CustomErrorCode for UserDeleteError {
+    fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::CannotSelfRemove => ErrorCode::FORBIDDEN,
+            Self::DbErr(err) => err.code(),
+            Self::XmppServerCannotDeleteUser(err) => err.code(),
+        }
+    }
+}
+impl_into_error!(UserDeleteError);

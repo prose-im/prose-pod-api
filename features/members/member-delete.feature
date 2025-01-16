@@ -20,3 +20,16 @@ Feature: Deleting a member
        When Rémi deletes marc@prose.org’s account
        Then the HTTP status code should be Forbidden
         And the response content type should be JSON
+
+  """
+  1. It doesn't make sense
+  2. If the only admin removes themselves, the workspace is locked
+
+  See <https://github.com/prose-im/prose-pod-api/issues/140>.
+  """
+  Rule: Members cannot delete their own account
+
+    Scenario: Valerian (admin) deletes Rémi’s account
+      Given Valerian is an admin
+       When Valerian deletes Valerian’s account
+       Then the HTTP status code should be Forbidden
