@@ -5,7 +5,6 @@
 
 use axum::http::header::InvalidHeaderValue;
 use service::{
-    members::{UserCreateError, UserDeleteError},
     notifications::notification_service,
     sea_orm,
     xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
@@ -209,26 +208,6 @@ impl CustomErrorCode for MutationError {
     }
 }
 impl_into_error!(MutationError);
-
-impl CustomErrorCode for UserCreateError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(UserCreateError);
-
-impl CustomErrorCode for UserDeleteError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(UserDeleteError);
 
 impl CustomErrorCode for server_manager::Error {
     fn error_code(&self) -> ErrorCode {

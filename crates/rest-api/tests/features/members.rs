@@ -148,11 +148,17 @@ async fn when_getting_members_details(
     world.result = Some(res.into());
 }
 
-#[when(expr = "{} deletes {jid}’s account")]
-async fn when_delete_member(world: &mut TestWorld, name: String, jid: parameters::JID) {
-    let token = user_token!(world, name);
+#[when(expr = "{} deletes {}’s account")]
+async fn when_delete_member(
+    world: &mut TestWorld,
+    actor: String,
+    target: String,
+) -> Result<(), Error> {
+    let token = user_token!(world, actor);
+    let jid = name_to_jid(world, &target).await?;
     let res = delete_member(world.api(), token, &jid).await;
     world.result = Some(res.into());
+    Ok(())
 }
 
 #[then(expr = "they should see {int} member(s)")]

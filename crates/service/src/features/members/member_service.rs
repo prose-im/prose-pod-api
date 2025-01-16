@@ -20,6 +20,12 @@ pub struct MemberService {
     server_ctl: Arc<ServerCtl>,
     xmpp_service: Arc<XmppService>,
     pub cancellation_token: CancellationToken,
+    ctx: MemberServiceContext,
+}
+
+#[derive(Debug, Clone)]
+pub struct MemberServiceContext {
+    pub bare_jid: BareJid,
 }
 
 impl MemberService {
@@ -27,12 +33,14 @@ impl MemberService {
         db: Arc<DatabaseConnection>,
         server_ctl: Arc<ServerCtl>,
         xmpp_service: Arc<XmppService>,
+        ctx: MemberServiceContext,
     ) -> Self {
         Self {
             db,
             server_ctl,
             xmpp_service,
             cancellation_token: CancellationToken::new(),
+            ctx,
         }
     }
 
@@ -47,6 +55,10 @@ impl MemberService {
         db: &impl ConnectionTrait,
         jid: &BareJid,
     ) -> Result<(), UserDeleteError> {
+        if *jid == self.ctx.bare_jid {
+            return Err(UserDeleteError::CannotSelfRemove);
+        }
+
         // Delete the user from database.
         MemberRepository::delete(db, jid).await?;
 
@@ -68,6 +80,8 @@ impl MemberService {
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserDeleteError {
+    #[error("Cannot self-remove.")]
+    CannotSelfRemove,
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
     #[error("XMPP server cannot delete user: {0}")]
