@@ -18,6 +18,7 @@ pub mod pod_config;
 pub mod profile;
 pub mod roles;
 pub mod server_config;
+pub mod version;
 pub mod workspace_details;
 
 const NETWORK_ROUTE: &'static str = "/v1/network";
@@ -36,5 +37,6 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(roles::router(app_state.clone()))
         .merge(server_config::router(app_state.clone()))
         .merge(workspace_details::router(app_state.clone()))
+        .merge(version::router())
         .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names))
 }
