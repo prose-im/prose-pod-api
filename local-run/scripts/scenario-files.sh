@@ -3,6 +3,9 @@
 
 : ${SCENARIO_NAME:="${DEFAULT_SCENARIO_NAME:?}"}
 : ${SCENARIO_DIR:="${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"}
+
+[ -f "${SCENARIO_DIR:?}"/constants.sh ] && edo source "${SCENARIO_DIR:?}"/constants.sh
+
 : ${DATABASE_PATH:="${SCENARIO_DIR:?}"/database.sqlite}
 : ${MAILPIT_DATABASE_PATH:="${SCENARIO_DIR:?}"/mailpit-database.db}
 : ${PROSE_CONFIG_FILE:="${SCENARIO_DIR:?}"/Prose.toml}

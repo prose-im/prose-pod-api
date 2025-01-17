@@ -1,0 +1,5 @@
+. linguist-vendored
+
+*/prosody/data linguist-generated
+*.sqlite linguist-generated
+*.db linguist-generated

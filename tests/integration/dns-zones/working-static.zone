@@ -1,11 +1,11 @@
-@ IN SOA ns.prose.org.local. admin.prose.org.local. (
+@ IN SOA ns.prose-demo.org.local. admin.prose-demo.org.local. (
   2024101701 ; serial
   3600       ; refresh (1 hour)
   600        ; retry (10 minutes)
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-xmpp.prose.org.local 600 IN A 172.20.0.40
-xmpp.prose.org.local 600 IN AAAA 2001:db8::40
-prose.org.local 3600 IN SRV 0 5 5222 xmpp.prose.org.local.
-prose.org.local 3600 IN SRV 0 5 5269 xmpp.prose.org.local.
+xmpp.prose-demo.org.local 600 IN A 172.20.0.40
+xmpp.prose-demo.org.local 600 IN AAAA 2001:db8::40
+prose-demo.org.local 3600 IN SRV 0 5 5222 xmpp.prose-demo.org.local.
+prose-demo.org.local 3600 IN SRV 0 5 5269 xmpp.prose-demo.org.local.

@@ -1,0 +1,48 @@
+return {
+	["8yd_N5zPw6lV"] = {
+		["owner"] = "ella.white@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["jid"] = "ella.white@prose-demo.org.local";
+		["created"] = 1737316506;
+		["id"] = "8yd_N5zPw6lV";
+		["tokens"] = {
+			["sha256:1c032e2209a55d5161cac3cb3ca8970f2d6471869fe8c02ebfae005494e1d289"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737316506;
+				["role"] = "prosody:member";
+				["expires"] = 1737327306;
+			};
+			["sha256:780f589e524f311a75301b83beb85e0b49617d02abce2d64292c540e9a2a0807"] = {
+				["purpose"] = "oauth2-refresh";
+				["expires"] = 1737316506;
+				["created"] = 1737316506;
+			};
+		};
+		["accessed"] = 1737316506;
+	};
+	["wK2d8qyaelvj"] = {
+		["owner"] = "ella.white@prose-demo.org.local";
+		["jid"] = "ella.white@prose-demo.org.local";
+		["accessed"] = 1737316506;
+		["created"] = 1737316506;
+		["id"] = "wK2d8qyaelvj";
+		["tokens"] = {
+			["sha256:82fbb058890be5e2ec2aa8644add8b07d49c5c1fd5e5ff3bad086e47eb0966aa"] = {
+				["purpose"] = "oauth2";
+				["expires"] = 1737327306;
+				["role"] = "prosody:member";
+				["created"] = 1737316506;
+			};
+			["sha256:a921acedc64d94ab1bdffbf3e9003d3f1250c3cfe411547bd59654812d1a5b52"] = {
+				["purpose"] = "oauth2-refresh";
+				["created"] = 1737316506;
+				["expires"] = 1737316506;
+			};
+		};
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+};

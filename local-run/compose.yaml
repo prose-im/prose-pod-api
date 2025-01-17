@@ -29,7 +29,7 @@ services:
         aliases:
           - prose-pod-server
           - prose-pod-server-admin
-          - prose.org.local
+          - "${SERVER_DOMAIN:?}"
         ipv4_address: 172.20.0.40
         ipv6_address: 2001:db8::40
     env_file: "${ENV_FILE:?}"

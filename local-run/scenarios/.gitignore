@@ -1,12 +1,16 @@
 *
-!.gitignore
+!.git*
 
 # Do not ignore default scenario files
 !default/
 !default/**
-!integration-tests/
-!integration-tests/**
+!fresh/
+!fresh/**
 
 # Except API data
 *.sqlite
 *.db
+
+# Include everything from demo scenarios
+!demo/
+!demo/**

@@ -4,10 +4,7 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  host: http://127.0.0.1:8080
-  mainAdminUsername: ${{ internet.userName | fake }}
-  mainAdminPassword: ${{ internet.password | fake }}
-  hostname: ${{ internet.domainName | fake }}
+  $ref: "env.yaml#/env"
 
 tests:
   initialize:
@@ -28,7 +25,7 @@ components:
         headers:
           Content-Type: application/json
         json:
-          name: ${{ company.name | fake }}
+          name: ${{ env.WORKSPACE_NAME }}
         check:
           status: 201
           headers:
@@ -44,7 +41,7 @@ components:
         headers:
           Content-Type: application/json
         json:
-          domain: ${{ env.hostname }}
+          domain: ${{ env.DOMAIN }}
         check:
           status: 201
           headers:
@@ -60,9 +57,9 @@ components:
         headers:
           Content-Type: application/json
         json:
-          username: ${{ env.mainAdminUsername }}
-          password: ${{ env.mainAdminPassword }}
-          nickname: ${{ name.fullName | fake }}
+          username: ${{ env.MEMBER_USERNAMES.0 }}
+          password: ${{ env.MEMBER_PASSWORDS.0 }}
+          nickname: ${{ env.MEMBER_NICKNAMES.0 }}
         check:
           status: 201
           headers:
@@ -77,8 +74,8 @@ components:
         url: /v1/login
         auth:
           basic:
-            username: ${{ env.mainAdminUsername }}@${{ env.hostname }}
-            password: ${{ env.mainAdminPassword }}
+            username: ${{ env.MEMBER_JIDS.0 }}
+            password: ${{ env.MEMBER_PASSWORDS.0 }}
         captures:
           token:
             jsonpath: $.token

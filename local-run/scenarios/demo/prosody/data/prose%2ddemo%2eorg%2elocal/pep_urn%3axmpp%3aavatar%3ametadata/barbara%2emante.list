@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "5814";
+			["id"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:13Z";
+	};
+	["when"] = 1737316513;
+	["with"] = "barbara.mante@prose-demo.org.local";
+});

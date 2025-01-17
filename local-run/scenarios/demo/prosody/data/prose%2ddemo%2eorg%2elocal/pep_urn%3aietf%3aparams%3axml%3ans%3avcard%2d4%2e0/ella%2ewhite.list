@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Ella W.";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+			["name"] = "text";
+		};
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+		["name"] = "nickname";
+	};
+	["name"] = "vcard";
+	["key"] = "ella.white@prose-demo.org.local";
+	["attr"] = {
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		["stamp"] = "2025-01-19T19:55:06Z";
+	};
+	["when"] = 1737316506;
+	["with"] = "ella.white@prose-demo.org.local";
+});

@@ -1,0 +1,15 @@
+return {
+	["sheri.nienow"] = {};
+	["pauline.collins"] = {};
+	["ella.white"] = {};
+	["jake.lang"] = {};
+	["meghan.donnelly"] = {};
+	["todd.schultz"] = {};
+	["evan.turner"] = {};
+	["dianna.hermann"] = {};
+	["drew.howell"] = {};
+	["taylor.cartwright"] = {};
+	["pablo.bartoletti"] = {};
+	["barbara.mante"] = {};
+	["charlie.schmitt"] = {};
+};

@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "5130";
+			["id"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:12Z";
+	};
+	["when"] = 1737316512;
+	["with"] = "pablo.bartoletti@prose-demo.org.local";
+});

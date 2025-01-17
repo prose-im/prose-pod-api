@@ -3,23 +3,19 @@ name: Authentication
 config:
   http:
     baseURL: ${{ env.host }}
+env:
+  $ref: "env.yaml#/env"
 
 # NOTE: Paths are relative to the directory from which `stepci` is ran.
-before:
-  name: "Before all (not a test)"
-  steps:
-    - $ref: "init.yaml#/components/steps/init_server"
-    - $ref: "init.yaml#/components/steps/create_first_admin"
-    - $ref: "init.yaml#/components/steps/log_admin_in"
-
 tests:
   basicCheck:
     name: Test changing nickname to see if token works
     steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
       - name: Set own nickname (tests authentication)
         http:
           method: PUT
-          url: /v1/members/${{ env.mainAdminUsername }}@${{ env.hostname }}/nickname
+          url: /v1/members/${{ env.MEMBER_JIDS.0 }}/nickname
           json:
             nickname: ${{ internet.userName | fake }}
           auth:
@@ -27,9 +23,3 @@ tests:
               token: ${{ captures.token }}
           check:
             status: 200
-
-env:
-  host: http://127.0.0.1:8080
-  mainAdminUsername: ${{ internet.userName | fake }}
-  mainAdminPassword: ${{ internet.password | fake }}
-  hostname: ${{ internet.domainName | fake }}

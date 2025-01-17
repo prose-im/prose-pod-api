@@ -1,0 +1,66 @@
+return {
+	["5p5KWBSPYIRW"] = {
+		["accessed"] = 1737316527;
+		["id"] = "5p5KWBSPYIRW";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:2abf87e1fe16f62de25d716db91c6f25dd63461bed7d3e51b6ae18fb7765acd0"] = {
+				["role"] = "prosody:registered";
+				["created"] = 1737316527;
+				["expires"] = 1737327327;
+				["purpose"] = "oauth2";
+			};
+			["sha256:db1c6afc8803e12d68998cf834610edc4216b69b5686d86afca77484fd36138d"] = {
+				["created"] = 1737316527;
+				["expires"] = 1737316527;
+				["purpose"] = "oauth2-refresh";
+			};
+		};
+		["created"] = 1737316527;
+		["owner"] = "prose-workspace@prose-demo.org.local";
+		["jid"] = "prose-workspace@prose-demo.org.local";
+	};
+	["qH7EmMdYoce3"] = {
+		["accessed"] = 1737383189;
+		["id"] = "qH7EmMdYoce3";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:45b1780443ce3ff4fb21cec7dc77c929d3ab903daeb92d0c44066530b4361820"] = {
+				["created"] = 1737383189;
+				["expires"] = 1737383189;
+				["purpose"] = "oauth2-refresh";
+			};
+			["sha256:db38bd0b79cf8cb33618dbb0199542151d42297e5f71c8e0f1fbf83cf4990e7d"] = {
+				["role"] = "prosody:registered";
+				["expires"] = 1737393989;
+				["purpose"] = "oauth2";
+				["created"] = 1737383189;
+			};
+		};
+		["jid"] = "prose-workspace@prose-demo.org.local";
+		["owner"] = "prose-workspace@prose-demo.org.local";
+		["created"] = 1737383189;
+	};
+	["webRbmow0EXX"] = {
+		["accessed"] = 1737316497;
+		["id"] = "webRbmow0EXX";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:4f5dd1e85beb354ceec39296ce15efd568f0821a7309bda7f3a21e8dbc129865"] = {
+				["role"] = "prosody:registered";
+				["created"] = 1737316497;
+				["expires"] = 1737327297;
+				["purpose"] = "oauth2";
+			};
+		};
+		["created"] = 1737316497;
+		["owner"] = "prose-workspace@prose-demo.org.local";
+		["jid"] = "prose-workspace@prose-demo.org.local";
+	};
+};

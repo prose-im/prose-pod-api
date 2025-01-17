@@ -38,9 +38,19 @@ done
 
 info "Will create a new scenario named $(format_code "${SCENARIO_NAME:?}") based on $(format_code "${BASE_SCENARIO_NAME:?}")."
 
-source "${SELF_SCRIPTS:?}"/scenario-files.sh
+edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
-edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody/{config,data},coredns}
+edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody,coredns}
+
+copy-if-exists() {
+	local file_path="${1:?}"
+	if [ -e "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/"${file_path:?}" ]; then
+		edo cp -Rf "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/"${file_path:?}"
+	fi
+}
+
+copy-if-exists 'prosody/'
+copy-if-exists 'coredns/'
 
 # NOTE: While it'd be easier to use symbolic links instead of copying files
 #   from the `default` scenario, it wouldn't work because Docker wouldn't be
@@ -49,13 +59,7 @@ edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody/{config,data},co
 #   `task local:scenarios:update` which copies the files again.
 log_as_trace_ "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
 
-copy-if-exists() {
-	local file_path="${1:?}"
-	if [ -f "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/"${file_path:?}" ]; then
-		edo cp "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/"${file_path:?}"
-	fi
-}
-
+copy-if-exists constants.sh
 copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
 copy-if-exists "$(basename "${ENV_FILE:?}")"
 copy-if-exists "$(basename "${DNS_ZONE_FILE:?}")"
