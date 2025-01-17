@@ -7,7 +7,6 @@ use service::server_config::entities::server_config;
 
 use super::prelude::*;
 
-#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::xmpp::ServerManager {
     type Rejection = error::Error;
 

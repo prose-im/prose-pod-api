@@ -17,7 +17,6 @@ pub struct BasicAuth {
     pub password: SecretString,
 }
 
-#[async_trait::async_trait]
 impl FromRequestParts<AppState> for BasicAuth {
     type Rejection = error::Error;
 
