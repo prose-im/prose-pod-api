@@ -79,6 +79,8 @@ tasks:
 
   local:run:
     desc: Runs a Prose Pod API.
+    # Update if needed. See <https://github.com/prose-im/prose-pod-api/issues/114>.
+    deps: [local:update]
     cmd: "{{.ROOT_DIR}}/local-run/scripts/run {{.CLI_ARGS}}"
 
   local:stop:
@@ -113,6 +115,8 @@ tasks:
   local:update:
     desc: Updates the Prose Pod API and the repositories it depends on to get the latest updates.
     cmd: "{{.ROOT_DIR}}/local-run/scripts/update {{.CLI_ARGS}}"
+    status:
+      - '[ -n "$(git diff origin/"$(git rev-parse --abbrev-ref HEAD)")" ]'
 
   local:build:
     desc: Builds the Prose Pod API and the repositories it depends on without updating the code.
