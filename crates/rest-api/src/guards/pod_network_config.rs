@@ -12,7 +12,6 @@ use crate::features::init::PodAddressNotInitialized;
 
 use super::prelude::*;
 
-#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     type Rejection = error::Error;
 
