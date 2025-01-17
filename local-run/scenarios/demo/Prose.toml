@@ -1,0 +1,22 @@
+# Prose Pod API
+# REST API for administrating a Prose Pod
+# Configuration file
+# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# All keys: https://github.com/prose-im/prose-pod-api/blob/master/crates/service/src/features/app_config/mod.rs
+
+[branding]
+page_url = "http://admin.prose-demo.org.local/"
+company_name = "Prose"
+
+[notify.email]
+pod_address = "pod@prose-demo.org.local"
+
+smtp_host = "mailpit"
+smtp_encrypt = false
+
+[debug_use_at_your_own_risk]
+log_config_at_startup = true
+detailed_error_responses = true
+
+[debug_only]
+insecure_password_on_auto_accept_invitation = true

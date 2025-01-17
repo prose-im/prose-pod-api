@@ -1,0 +1,5 @@
+.:53 {
+  file /etc/coredns/zones.db
+  errors         # show errors
+  log            # enable query logs
+}

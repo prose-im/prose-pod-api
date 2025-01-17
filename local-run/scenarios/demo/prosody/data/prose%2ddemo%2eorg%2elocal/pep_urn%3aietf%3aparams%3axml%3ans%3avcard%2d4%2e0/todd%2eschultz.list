@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"todd.schultz";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1737156305;
+	["attr"] = {
+		["stamp"] = "2025-01-17T23:25:05Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "todd.schultz@prose-demo.org.local";
+	["name"] = "vcard";
+	["key"] = "todd.schultz@prose-demo.org.local";
+});

@@ -1,0 +1,3 @@
+return {
+	["_default"] = "prosody:member";
+};

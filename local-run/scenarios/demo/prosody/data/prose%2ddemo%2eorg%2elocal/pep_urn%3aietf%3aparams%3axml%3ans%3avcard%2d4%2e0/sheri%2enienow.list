@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"sheri.nienow";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1737156306;
+	["attr"] = {
+		["stamp"] = "2025-01-17T23:25:06Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "sheri.nienow@prose-demo.org.local";
+	["name"] = "vcard";
+	["key"] = "sheri.nienow@prose-demo.org.local";
+});

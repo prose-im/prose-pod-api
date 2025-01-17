@@ -1,0 +1,25 @@
+return {
+	["QSMxU1LvlWZt"] = {
+		["id"] = "QSMxU1LvlWZt";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["accessed"] = 1737156306;
+		["tokens"] = {
+			["sha256:8507c0c7ca6fc69d6c4a36dbc339153d51a0a712c8260182adceae9ace449eab"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737156306;
+				["expires"] = 1737167106;
+				["role"] = "prosody:member";
+			};
+			["sha256:40b35543817cd1a1259ce3fc4ee36f9362c5fb842b3adb84b862f0f413da6509"] = {
+				["created"] = 1737156306;
+				["expires"] = 1737156306;
+				["purpose"] = "oauth2-refresh";
+			};
+		};
+		["created"] = 1737156306;
+		["jid"] = "evan.turner@prose-demo.org.local";
+		["owner"] = "evan.turner@prose-demo.org.local";
+	};
+};

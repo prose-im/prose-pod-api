@@ -1,0 +1,25 @@
+return {
+	["nSx4VMLd_MCa"] = {
+		["id"] = "nSx4VMLd_MCa";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["accessed"] = 1737156304;
+		["tokens"] = {
+			["sha256:783012d32747579bff2d39c75a15f72e9431dc94b108df7c01b2fc5f5f75c8dc"] = {
+				["created"] = 1737156304;
+				["expires"] = 1737156304;
+				["purpose"] = "oauth2-refresh";
+			};
+			["sha256:5131311f34756e80e6c628c4e4f80e5a646db00c82792cdaec7259aa4bdf22e2"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737156304;
+				["expires"] = 1737167104;
+				["role"] = "prosody:registered";
+			};
+		};
+		["created"] = 1737156304;
+		["jid"] = "prose-workspace@prose-demo.org.local";
+		["owner"] = "prose-workspace@prose-demo.org.local";
+	};
+};
