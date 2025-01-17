@@ -159,6 +159,9 @@ info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
 [ -f "${MAILPIT_DATABASE_PATH:?}" ] || echo '' > "${MAILPIT_DATABASE_PATH:?}"
 
 source "${SELF_SCRIPTS:?}"/compose-exports.sh
+if [[ "${PROSE_POD_API_IMAGE_TAG:?}" =~ ^(edge|latest)$ ]]; then
+	edo docker compose -f "${COMPOSE_FILE:?}" pull
+fi
 edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}
 
 if (( $EPHEMERAL )) && ! (( $DETACH )); then
