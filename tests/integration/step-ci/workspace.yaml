@@ -9,7 +9,7 @@ before:
     - $ref: "init.yaml#/components/steps/create_first_admin"
     - $ref: "init.yaml#/components/steps/init_workspace"
     - $ref: "init.yaml#/components/steps/log_admin_in"
-    - $ref: "#/components/steps/add_member"
+    - $ref: "members.yaml#/components/steps/add_member"
 
 tests:
   getWorkspaceDetailsAsAdmin:
@@ -79,30 +79,6 @@ components:
           status: 200
           schema:
             $ref: openapi.json#/components/schemas/GetWorkspaceAccentColorResponse
-
-    add_member:
-      name: Add member (via auto-accepted invitation)
-      http:
-        method: POST
-        url: /v1/invitations
-        auth:
-          bearer:
-            token: ${{ captures.token }}
-        json:
-          username: ${{ internet.userName | fake }}
-          pre_assigned_role: MEMBER
-          channel: email
-          email_address: ${{ internet.email | fake }}
-        captures:
-          lastInvitationJid:
-            jsonpath: $.jid
-        check:
-          status: 201
-          headers:
-            Content-Type: application/json
-            Location: /.+/
-          schema:
-            $ref: openapi.json#/components/schemas/Member
     log_member_in:
       $ref: "invitations.yaml#/components/steps/log_last_invited_member_in"
 

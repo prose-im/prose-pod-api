@@ -236,6 +236,8 @@ components:
       http:
         method: POST
         url: /v1/invitations
+        params:
+          auto_accept: true
         auth:
           bearer:
             token: ${{ captures.token }}

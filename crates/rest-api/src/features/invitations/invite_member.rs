@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 #[cfg(debug_assertions)]
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::{http::HeaderValue, Json};
 #[cfg(debug_assertions)]
 use axum_extra::either::Either;
@@ -55,6 +55,13 @@ pub struct InviteMemberRequest {
     pub contact: InvitationContact,
 }
 
+#[cfg(debug_assertions)]
+#[derive(Deserialize)]
+pub struct InviteMemberQuery {
+    #[serde(default)]
+    pub auto_accept: bool,
+}
+
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { db, .. }): State<AppState>,
@@ -62,15 +69,27 @@ pub async fn invite_member_route(
     server_config: ServerConfig,
     notification_service: NotificationService,
     invitation_service: InvitationService,
+    #[cfg(debug_assertions)] Query(InviteMemberQuery { auto_accept }): Query<InviteMemberQuery>,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
+    #[cfg(not(debug_assertions))]
     let invitation = invitation_service
         .invite_member(&app_config, &server_config, &notification_service, req)
+        .await?;
+    #[cfg(debug_assertions)]
+    let invitation = invitation_service
+        .invite_member(
+            &app_config,
+            &server_config,
+            &notification_service,
+            req,
+            auto_accept,
+        )
         .await?;
 
     #[cfg(debug_assertions)]
     {
-        if app_config.debug_only.automatically_accept_invitations {
+        if auto_accept {
             let jid = invitation.jid;
             let resource_uri = format!("/v1/members/{jid}");
             let member = MemberRepository::get(&db, &jid).await?.unwrap();
