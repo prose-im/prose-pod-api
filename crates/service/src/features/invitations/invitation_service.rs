@@ -62,6 +62,7 @@ impl InvitationService {
         server_config: &ServerConfig,
         notification_service: &NotificationService,
         form: impl Into<InviteMemberForm>,
+        #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
         let jid = form.jid(&server_config)?;
@@ -136,11 +137,8 @@ impl InvitationService {
             })?;
 
         #[cfg(debug_assertions)]
-        if app_config.debug_only.automatically_accept_invitations {
-            warn!(
-                "Config `{}` is turned on. The created invitation will be automatically accepted.",
-                stringify!(debug_only.automatically_accept_invitations),
-            );
+        if auto_accept {
+            warn!("As requested, the created invitation will be automatically accepted.");
 
             let password: SecretString = if app_config
                 .debug_only

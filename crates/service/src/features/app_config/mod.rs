@@ -338,8 +338,6 @@ impl Default for ConfigDebug {
 #[cfg(debug_assertions)]
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ConfigDebugOnly {
-    #[serde(default)]
-    pub automatically_accept_invitations: bool,
     /// When automatically accepting invitations during testing, one might want to authenticate
     /// the created member. With this flag turned on, the member's password will be their JID.
     #[serde(default)]
