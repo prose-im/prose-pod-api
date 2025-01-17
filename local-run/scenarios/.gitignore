@@ -10,3 +10,7 @@
 # Except API data
 *.sqlite
 *.db
+
+# Include everything from demo scenarios
+!demo/
+!demo/**

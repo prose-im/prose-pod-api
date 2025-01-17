@@ -1,0 +1,22 @@
+return {
+	[false] = {
+		["pending"] = {};
+		["version"] = 12;
+	};
+	["evan.turner@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["pauline.collins@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["todd.schultz@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+};

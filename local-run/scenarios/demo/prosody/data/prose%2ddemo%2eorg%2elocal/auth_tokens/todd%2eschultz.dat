@@ -1,0 +1,25 @@
+return {
+	["IG_XDkeygvG6"] = {
+		["id"] = "IG_XDkeygvG6";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["accessed"] = 1737156305;
+		["tokens"] = {
+			["sha256:d83d29c44066bf506c765a688f4ccb43966f06cdb80a3eaecad8636e0992a9ad"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737156305;
+				["expires"] = 1737167105;
+				["role"] = "prosody:member";
+			};
+			["sha256:6111134c0ad9324bcea1a032589736ec7724a6c843e126054048a238deb5f672"] = {
+				["created"] = 1737156305;
+				["expires"] = 1737156305;
+				["purpose"] = "oauth2-refresh";
+			};
+		};
+		["created"] = 1737156305;
+		["jid"] = "todd.schultz@prose-demo.org.local";
+		["owner"] = "todd.schultz@prose-demo.org.local";
+	};
+};

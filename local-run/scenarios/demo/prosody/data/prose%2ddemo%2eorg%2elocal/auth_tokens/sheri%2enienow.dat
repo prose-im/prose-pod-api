@@ -1,0 +1,25 @@
+return {
+	["S546Rk73vXxs"] = {
+		["id"] = "S546Rk73vXxs";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["accessed"] = 1737156306;
+		["tokens"] = {
+			["sha256:675fce6dc397acc4bd85b9adb711e0924face52b5d6e750df90e5b84aa02779d"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737156306;
+				["expires"] = 1737167106;
+				["role"] = "prosody:member";
+			};
+			["sha256:97bd6fcc29fd16f1c265268324073e5b66dbfb283024804cfee4f404e16ac3fa"] = {
+				["created"] = 1737156306;
+				["expires"] = 1737156306;
+				["purpose"] = "oauth2-refresh";
+			};
+		};
+		["created"] = 1737156306;
+		["jid"] = "sheri.nienow@prose-demo.org.local";
+		["owner"] = "sheri.nienow@prose-demo.org.local";
+	};
+};
