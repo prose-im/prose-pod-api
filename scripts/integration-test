@@ -59,7 +59,7 @@ unset ARGS_
 
 start() {
 	trace 'Starting the Prose Pod…'
-	task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral
+	task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --no-update
 }
 
 stop() {

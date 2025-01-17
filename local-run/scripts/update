@@ -80,6 +80,16 @@ source "${BASH_TOOLBOX:?}"/log.sh
 
 # ===== MAIN LOGIC =====
 
+# Prevent running if unnecessary.
+if ! git ls-remote --exit-code --heads origin "$(git rev-parse --abbrev-ref HEAD)"; then
+	info 'Branch doesn’t exist on remote, not updating.'
+	exit 0
+fi
+if [ -z "$(git diff origin/"$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null)" ]; then
+	info 'Remote doesn’t have new commits, not updating.'
+	exit 0
+fi
+
 info "Updating $(format_code prose-pod-api)…"
 if [ -n "${API_BRANCH}" ]; then
 	edo git -C "${PROSE_POD_API_DIR:?}" checkout "${API_BRANCH:?}" 2>/dev/null \
