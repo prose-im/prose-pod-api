@@ -268,4 +268,4 @@ Feature: Inviting members
         And the XMPP server domain is prose.org
        When <remi@prose.org> accepts their invitation using the nickname "Rémi B."
        Then the call should succeed
-        And <remi@prose.org> should have the nickname "Rémi B."
+        And remi@prose.org’s nickname should be "Rémi B."

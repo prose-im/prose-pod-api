@@ -255,7 +255,7 @@ async fn when_inviting(
     email_address: parameters::EmailAddress,
     pre_assigned_role: parameters::MemberRole,
 ) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let email_address = email_address.0;
     let res = invite_member(
         world.api(),
@@ -270,7 +270,7 @@ async fn when_inviting(
 
 #[when(expr = "{} lists pending invitations")]
 async fn when_listing_workspace_invitations(world: &mut TestWorld, name: String) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_workspace_invitations(world.api(), token).await;
     world.result = Some(res.into());
 }
@@ -281,7 +281,7 @@ async fn when_listing_workspace_invitations_paged(
     name: String,
     page_size: u64,
 ) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_workspace_invitations_paged(world.api(), token, 1, page_size).await;
     world.result = Some(res.into());
 }
@@ -293,7 +293,7 @@ async fn when_getting_workspace_invitations_page(
     page_number: u64,
     page_size: u64,
 ) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_workspace_invitations_paged(world.api(), token, page_number, page_size).await;
     world.result = Some(res.into());
 }
@@ -397,7 +397,7 @@ async fn when_invited_rejects_invitation(
 
 #[when(expr = "{} resends the invitation")]
 async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: String) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let invitation = world.scenario_workspace_invitation().1;
     let res = workspace_invitation_admin_action(world.api(), token, invitation.id, "resend").await;
     world.result = Some(res.into());
@@ -405,7 +405,7 @@ async fn when_user_resends_workspace_invitation(world: &mut TestWorld, name: Str
 
 #[when(expr = "{} cancels the invitation")]
 async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: String) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let invitation = world.scenario_workspace_invitation().1;
     let res = cancel_workspace_invitation(world.api(), token, invitation.id).await;
     world.result = Some(res.into());

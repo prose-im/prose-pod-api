@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::features::members::Member as MemberDTO;
-use service::{members::*, prose_xmpp::stanza::vcard4::Nickname, xmpp::xmpp_service};
+use service::members::*;
 use urlencoding::encode;
 
 use super::prelude::*;
@@ -97,7 +97,7 @@ async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Erro
 
 #[when(expr = "{word} lists members")]
 async fn when_listing_members(world: &mut TestWorld, name: String) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_members(world.api(), token).await;
     world.result = Some(res.into());
 }
@@ -116,7 +116,7 @@ async fn when_listing_members_custom_token(world: &mut TestWorld, token: String)
 
 #[when(expr = "{word} lists members by pages of {int}")]
 async fn when_listing_members_paged(world: &mut TestWorld, name: String, page_size: u64) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_members_paged(world.api(), token, 1, page_size).await;
     world.result = Some(res.into());
 }
@@ -128,7 +128,7 @@ async fn when_getting_members_page(
     page_number: u64,
     page_size: u64,
 ) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let res = list_members_paged(world.api(), token, page_number, page_size).await;
     world.result = Some(res.into());
 }
@@ -139,7 +139,7 @@ async fn when_getting_members_details(
     name: String,
     names: parameters::Array<parameters::Text>,
 ) {
-    let token = world.token(name);
+    let token = world.token(&name);
     let mut jids = Vec::with_capacity(names.len());
     for name in names.iter() {
         jids.push(name_to_jid(world, name).await.unwrap());
@@ -165,20 +165,4 @@ async fn when_delete_member(
 fn then_n_members(world: &mut TestWorld, n: usize) {
     let res: Vec<MemberDTO> = world.result().json();
     assert_eq!(res.len(), n)
-}
-
-#[then(expr = "<{jid}> should have the nickname {string}")]
-async fn then_nickname(
-    world: &mut TestWorld,
-    jid: parameters::JID,
-    nickname: String,
-) -> Result<(), xmpp_service::Error> {
-    let vcard = world
-        .mock_xmpp_service
-        .get_vcard(&jid)?
-        .expect("vCard not found");
-
-    assert_eq!(vcard.nickname, vec![Nickname { value: nickname }]);
-
-    Ok(())
 }

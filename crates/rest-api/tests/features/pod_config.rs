@@ -14,7 +14,7 @@ api_call_fn!(
     set_pod_address,
     PUT,
     "/v1/pod/config/address",
-    payload: SetPodAddressRequest
+    payload: SetPodAddressRequest,
 );
 
 #[when(expr = "{} sets the Prose Pod address to an IPv4")]
