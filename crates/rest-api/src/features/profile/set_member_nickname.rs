@@ -16,13 +16,13 @@ use crate::error::{self, Error};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetMemberNicknameRequest {
-    nickname: String,
+    pub nickname: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SetMemberNicknameResponse {
-    jid: BareJid,
-    nickname: String,
+    pub jid: BareJid,
+    pub nickname: String,
 }
 
 /// Change a member's nickname.

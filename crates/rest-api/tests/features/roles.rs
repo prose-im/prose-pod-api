@@ -84,7 +84,7 @@ async fn when_set_role_admin(
     actor: String,
     subject: String,
 ) -> Result<(), Error> {
-    let token = world.token(actor);
+    let token = world.token(&actor);
     let jid = name_to_jid(world, &subject).await?;
     let res = set_member_role(world.api(), &token, &jid, MemberRole::Admin).await;
     world.result = Some(res.into());
@@ -97,7 +97,7 @@ async fn when_set_role_member(
     actor: String,
     subject: String,
 ) -> Result<(), Error> {
-    let token = world.token(actor);
+    let token = world.token(&actor);
     let jid = name_to_jid(world, &subject).await?;
     let res = set_member_role(world.api(), &token, &jid, MemberRole::Member).await;
     world.result = Some(res.into());

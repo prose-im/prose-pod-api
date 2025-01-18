@@ -165,9 +165,9 @@ impl TestWorld {
         self.mock_email_notifier.state.write().unwrap()
     }
 
-    pub fn token(&self, user: String) -> SecretString {
+    pub fn token(&self, user: &str) -> SecretString {
         self.members
-            .get(&user)
+            .get(user)
             .expect("User must be created first")
             .1
             .clone()
