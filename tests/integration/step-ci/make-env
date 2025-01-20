@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR}"}
+DEMO_DATA_DIR="${REPOSITORY_ROOT:?}/local-run/demo-data"
+source "${DEMO_DATA_DIR:?}/constants.sh"
+
+STEPCI_DIR="${REPOSITORY_ROOT:?}/tests/integration/step-ci"
+STEPCI_ENV_FILE="${STEPCI_DIR:?}/env.yaml"
+
+write_ln() {
+	echo "${1:?}" >> "${STEPCI_ENV_FILE:?}"
+}
+
+add_str() {
+	local var_name="${1:?}"
+	write_ln "  ${var_name:?}: '${!var_name}'"
+}
+add_array() {
+	local var_name="${1:?}"
+	write_ln "  ${var_name:?}:"
+	shift 1
+	for val in "$@"; do
+		write_ln "    - '${val}'"
+	done
+}
+
+echo 'env:' > "${STEPCI_ENV_FILE:?}"
+write_ln '  host: http://127.0.0.1:8080'
+add_str DOMAIN
+add_str WORKSPACE_NAME
+add_str PASSWORD
+write_ln "  MEMBER_COUNT: ${#MEMBER_JIDS[@]}"
+add_array MEMBER_ROLES "${MEMBER_ROLES[@]}"
+add_array MEMBER_SEXTYPES "${MEMBER_SEXTYPES[@]}"
+add_array MEMBER_FIRSTNAMES "${MEMBER_FIRSTNAMES[@]}"
+add_array MEMBER_LASTNAMES "${MEMBER_LASTNAMES[@]}"
+add_array MEMBER_NICKNAMES "${MEMBER_NICKNAMES[@]}"
+add_array MEMBER_USERNAMES "${MEMBER_USERNAMES[@]}"
+add_array MEMBER_JIDS "${MEMBER_JIDS[@]}"
+add_array MEMBER_EMAILS "${MEMBER_EMAILS[@]}"
+add_array MEMBER_PASSWORDS "${MEMBER_PASSWORDS[@]}"
+# NOTE: Keep avatars at the end since it’s very long values.
+add_array MEMBER_AVATARS "${MEMBER_AVATARS[@]}"

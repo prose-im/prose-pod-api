@@ -25,13 +25,13 @@ INTEGRATION_TESTS_DIR="${PROSE_POD_API_DIR:?}"/tests/integration
 LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 STEPCI_DIR="${INTEGRATION_TESTS_DIR:?}"/step-ci
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
-export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/in-memory.env
+export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/test.env
 DNS_ZONES_DIR="${INTEGRATION_TESTS_DIR:?}"/dns-zones
 export DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone
 # NOTE: We don't want things like [stepci/stepci#239](https://github.com/stepci/stepci/issues/239)
 #   to break the tests or the analytics server to slow down the tests execution.
 export STEPCI_DISABLE_ANALYTICS=true
-BASE_SCENARIO_NAME=integration-tests
+SCENARIO_NAME=demo
 
 # ===== ARGUMENT PARSING =====
 
@@ -59,7 +59,7 @@ unset ARGS_
 
 start() {
 	trace 'Starting the Prose Pod…'
-	task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --no-update
+	task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral --no-update
 }
 
 stop() {
@@ -91,7 +91,7 @@ stepci_run() {
 if [ "$#" -eq 0 ]; then
 	info "No test file provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
 	# WARN: Spaces in `*.yaml` files will break.
-	set -- $(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/")
+	set -- $(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' ! -name 'env.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/")
 fi
 
 info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
@@ -108,6 +108,10 @@ for arg in "$@"; do
 	case $arg in
 		*dns-configured-correctly-dynamic)
 			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-dynamic.zone stepci_run "$test_file" ;;
+		*dns-configured-correctly-static)
+			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone stepci_run "$test_file" ;;
+		init)
+			SCENARIO_NAME=fresh stepci_run "$test_file" ;;
 		*)
 			stepci_run "$test_file" ;;
 	esac

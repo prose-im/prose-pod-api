@@ -34,6 +34,9 @@ if [ $# == 0 ]; then
 	for name in $(task local:scenarios:list); do
 		update-one "$name"
 	done
+elif [ $# == 1 ]; then
+	info "Updating scenario ${1?}"
+	update-one "${1:?}"
 else
 	SCENARIOS=("$@")
 	info "Updating scenarios ${SCENARIOS[*]}"

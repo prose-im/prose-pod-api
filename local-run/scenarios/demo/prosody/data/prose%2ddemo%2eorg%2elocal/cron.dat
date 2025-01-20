@@ -1,0 +1,4 @@
+return {
+	["http_oauth2/clear_expired_authorization_codes"] = 1737316497;
+	["tokenauth/clear_expired_grants"] = 1737316497;
+};

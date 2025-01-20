@@ -1,0 +1,64 @@
+return {
+	[false] = {
+		["pending"] = {};
+		["version"] = 48;
+	};
+	["todd.schultz@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["sheri.nienow@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["charlie.schmitt@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["pauline.collins@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["evan.turner@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["drew.howell@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["barbara.mante@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["pablo.bartoletti@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["jake.lang@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["dianna.hermann@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["meghan.donnelly@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {};
+	};
+	["taylor.cartwright@prose-demo.org.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+};

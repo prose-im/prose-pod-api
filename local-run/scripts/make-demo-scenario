@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== CONSTANTS =====
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR}"}
+DEMO_DATA_DIR="${REPOSITORY_ROOT:?}/local-run/demo-data"
+
+SCENARIO_NAME='demo'
+
+source "${DEMO_DATA_DIR:?}/constants.sh"
+
+# ===== MAIN LOGIC =====
+
+# Create demo scenario.
+if [ -d "${PROSE_POD_API_DIR:?}"/local-run/scenarios/"${SCENARIO_NAME:?}" ]; then
+	edo task local:scenarios:reset -y -- "${SCENARIO_NAME:?}"
+else
+	edo task local:scenarios:create -- "${SCENARIO_NAME:?}"
+fi
+
+# Run the API.
+# NOTE: We need to run `local` so we can auto-accept invitations.
+edo task local:run -- --api=local --scenario=demo --detach --no-update
+while ! xh :8080/version --check-status -q; do
+  sleep 1
+done
+
+info 'Initialize XMPP server'
+xh PUT :8080/v1/server/config \
+	domain="${DOMAIN:?}" \
+	--check-status -q
+
+info 'Create first admin account'
+xh PUT :8080/v1/init/first-account \
+	username="${MEMBER_USERNAMES[0]}" \
+	password="${MEMBER_PASSWORDS[0]}" \
+	nickname="${MEMBER_NICKNAMES[0]}" \
+	--check-status -q
+
+info 'Initialize workspace'
+xh PUT :8080/v1/workspace \
+	name="${WORKSPACE_NAME:?}" \
+	--check-status -q
+
+log-in-member-n() {
+	local n="${1:?}"
+	local res="$(xh POST :8080/v1/login -a "${MEMBER_JIDS[n]}:${MEMBER_PASSWORDS[n]}" --check-status -b)"
+	if [ $? -eq 0 ]; then
+		jq -r '.token' <<< "${res:?}"
+	else
+		debug 'Retrying…'
+		log_as_debug_ xh POST :8080/v1/login -a "${MEMBER_JIDS[n]}:${MEMBER_PASSWORDS[n]}" --check-status -b
+		return 1
+	fi
+}
+
+info 'Log first admin in'
+MEMBER_TOKENS[0]="$(log-in-member-n 0)"
+ADMIN_TOKEN="${MEMBER_TOKENS[0]}"
+
+info 'Initialize Pod address (static address)'
+xh PUT :8080/v1/pod/config/address \
+	ipv4=172.20.0.40 \
+	ipv6=2001:db8::40 \
+	-A bearer -a "${ADMIN_TOKEN:?}" \
+	--check-status -q
+
+info 'Initialize Pod address (dynamic address)'
+xh PUT :8080/v1/pod/config/address \
+	hostname="${DOMAIN:?}" \
+	-A bearer -a "${ADMIN_TOKEN:?}" \
+	--check-status -q
+
+add-member-n() {
+	local n="${1:?}"
+	info "Add member ${MEMBER_JIDS[n]} (via auto-accepted invitation)"
+	xh POST :8080/v1/invitations \
+		auto_accept==true \
+		username="${MEMBER_USERNAMES[n]}" \
+		pre_assigned_role="${MEMBER_ROLES[n]}" \
+		channel=email \
+		email_address="${MEMBER_EMAILS[n]}" \
+		-A bearer -a "${ADMIN_TOKEN:?}" \
+		--check-status -q
+
+	info "Log ${MEMBER_JIDS[n]} in"
+	MEMBER_TOKENS[n]="$(log-in-member-n "${n:?}")"
+
+	local nickname="${MEMBER_NICKNAMES[n]}"
+	if [ -n "${nickname?}" ]; then
+		info "Set ${MEMBER_JIDS[n]}’s nickname"
+		xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/nickname \
+			nickname="${nickname:?}" \
+			-A bearer -a "${MEMBER_TOKENS[n]}" \
+			--check-status -q
+	else
+		warn "Member ${n:?} (${MEMBER_JIDS[n]}) has no nickname"
+	fi
+
+	local avatar="${MEMBER_AVATARS[n]}"
+	if [ -n "${avatar?}" ]; then
+		info "Set ${MEMBER_JIDS[n]}’s avatar"
+		xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/avatar \
+			image="${avatar:?}" \
+			-A bearer -a "${MEMBER_TOKENS[n]}" \
+			--check-status -q
+	else
+		warn "Member ${n:?} (${MEMBER_JIDS[n]}) has no avatar"
+	fi
+}
+
+for n in $(seq 1 $(( ${#MEMBER_USERNAMES[@]} - 1 ))); do
+	add-member-n "${n:?}"
+done
+
+success 'Done'
+
+edo task local:stop

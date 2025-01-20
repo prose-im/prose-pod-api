@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "6085";
+			["id"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:00Z";
+	};
+	["when"] = 1737316500;
+	["with"] = "todd.schultz@prose-demo.org.local";
+});

@@ -1,0 +1,43 @@
+return {
+	["_mvl9DAhaGQ6"] = {
+		["owner"] = "sheri.nienow@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["jid"] = "sheri.nienow@prose-demo.org.local";
+		["created"] = 1737316500;
+		["id"] = "_mvl9DAhaGQ6";
+		["tokens"] = {
+			["sha256:3d1e107dff6c2eb39473964cc84570eb6d9c29afad4963a3691958ca1a22d808"] = {
+				["purpose"] = "oauth2-refresh";
+				["expires"] = 1737316500;
+				["created"] = 1737316500;
+			};
+			["sha256:fde699e8e767b181af3e0b4bc15672cd03024ba6309c1485bb730738532e421a"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737316500;
+				["role"] = "prosody:member";
+				["expires"] = 1737327300;
+			};
+		};
+		["accessed"] = 1737316500;
+	};
+	["RTJIVP3UxRwL"] = {
+		["owner"] = "sheri.nienow@prose-demo.org.local";
+		["accessed"] = 1737316500;
+		["jid"] = "sheri.nienow@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["id"] = "RTJIVP3UxRwL";
+		["tokens"] = {
+			["sha256:3227b6dae5ec6ce3143c09d8a9910e1ae05f4763c978ea18fe384be990acb95f"] = {
+				["purpose"] = "oauth2";
+				["expires"] = 1737327300;
+				["role"] = "prosody:member";
+				["created"] = 1737316500;
+			};
+		};
+		["created"] = 1737316500;
+	};
+};

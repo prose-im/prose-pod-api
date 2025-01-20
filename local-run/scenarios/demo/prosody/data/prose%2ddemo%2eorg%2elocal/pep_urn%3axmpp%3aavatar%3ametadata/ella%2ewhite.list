@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "5121";
+			["id"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:06Z";
+	};
+	["when"] = 1737316506;
+	["with"] = "ella.white@prose-demo.org.local";
+});

@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "5024";
+			["id"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:08Z";
+	};
+	["when"] = 1737316508;
+	["with"] = "taylor.cartwright@prose-demo.org.local";
+});

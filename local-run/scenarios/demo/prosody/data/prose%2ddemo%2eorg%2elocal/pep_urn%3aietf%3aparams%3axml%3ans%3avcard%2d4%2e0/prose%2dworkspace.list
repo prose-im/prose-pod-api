@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Prose (demo)";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+			["name"] = "text";
+		};
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+		["name"] = "fn";
+	};
+	["name"] = "vcard";
+	["key"] = "prose-workspace@prose-demo.org.local";
+	["attr"] = {
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		["stamp"] = "2025-01-19T19:54:58Z";
+	};
+	["when"] = 1737316498;
+	["with"] = "prose-workspace@prose-demo.org.local";
+});

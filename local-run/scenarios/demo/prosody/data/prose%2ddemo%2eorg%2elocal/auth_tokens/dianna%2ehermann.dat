@@ -1,0 +1,43 @@
+return {
+	["iX77if53SDYJ"] = {
+		["owner"] = "dianna.hermann@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["jid"] = "dianna.hermann@prose-demo.org.local";
+		["created"] = 1737316508;
+		["id"] = "iX77if53SDYJ";
+		["tokens"] = {
+			["sha256:8ea7287e48c97c8d51b37fd52b6f05a1e5d252a65f0da6fe61c03599b49903f0"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737316509;
+				["role"] = "prosody:member";
+				["expires"] = 1737327309;
+			};
+		};
+		["accessed"] = 1737316508;
+	};
+	["KjAtU9_pH--N"] = {
+		["owner"] = "dianna.hermann@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["jid"] = "dianna.hermann@prose-demo.org.local";
+		["created"] = 1737316509;
+		["id"] = "KjAtU9_pH--N";
+		["tokens"] = {
+			["sha256:de5ae16c321bf79ef8e4fbf881bed9ec07f1b5e866a4503d1b3428f30eec9524"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1737316509;
+				["role"] = "prosody:member";
+				["expires"] = 1737327309;
+			};
+			["sha256:194641dcf0b7935af28daeb7a86f2968ecd334e7724f25daf9aea11533b4ee74"] = {
+				["purpose"] = "oauth2-refresh";
+				["expires"] = 1737316509;
+				["created"] = 1737316509;
+			};
+		};
+		["accessed"] = 1737316509;
+	};
+};

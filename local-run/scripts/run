@@ -129,19 +129,22 @@ if (( $EPHEMERAL )); then
 fi
 
 # Compute dynamic variables.
-source "${SELF_SCRIPTS:?}"/scenario-files.sh
+edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 # ===== MAIN LOGIC =====
+
+if (( $EPHEMERAL )); then
+	edo task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
+	edo source "${SCENARIO_DIR:?}"/constants.sh
+	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ]; then
+	die "Cannot run the $(format_code "${SCENARIO_NAME:?}") scenario. You must copy it ($(format_code "task local:scenarios:create -- NEW_NAME --based-on='${SCENARIO_NAME:?}'")) or run it with $(format_code --ephemeral)."
+fi
 
 if ! (( $NO_UPDATE )); then
 	# Update if needed. See <https://github.com/prose-im/prose-pod-api/issues/114>.
 	info "Updating the repository… (disable with $(format_code '--no-update'))"
 	log_as_trace_ task local:update
-fi
-
-if (( $EPHEMERAL )); then
-	task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
-	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
 fi
 
 if ! [ -d "${SCENARIO_DIR:?}" ]; then

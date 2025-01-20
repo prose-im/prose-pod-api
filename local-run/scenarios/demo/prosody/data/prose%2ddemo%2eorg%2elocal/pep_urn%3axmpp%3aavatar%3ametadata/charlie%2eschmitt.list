@@ -1,0 +1,19 @@
+item({
+	{
+		["attr"] = {
+			["bytes"] = "8045";
+			["id"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+		["name"] = "info";
+	};
+	["name"] = "metadata";
+	["key"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+	["attr"] = {
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+		["stamp"] = "2025-01-19T19:55:04Z";
+	};
+	["when"] = 1737316504;
+	["with"] = "charlie.schmitt@prose-demo.org.local";
+});

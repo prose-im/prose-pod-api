@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Jake L.";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+			["name"] = "text";
+		};
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+		["name"] = "nickname";
+	};
+	["name"] = "vcard";
+	["key"] = "jake.lang@prose-demo.org.local";
+	["attr"] = {
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		["stamp"] = "2025-01-19T19:55:10Z";
+	};
+	["when"] = 1737316510;
+	["with"] = "jake.lang@prose-demo.org.local";
+});

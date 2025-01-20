@@ -4,19 +4,12 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  host: http://127.0.0.1:8080
-  mainAdminUsername: ${{ internet.userName | fake }}
-  mainAdminPassword: ${{ internet.password | fake }}
-  hostname: prose.org.local
+  $ref: "env.yaml#/env"
 
 # NOTE: Paths are relative to the directory from which `stepci` is ran.
-# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
 before:
   name: "Before all (not a test)"
   steps:
-    - $ref: "init.yaml#/components/steps/init_server"
-    - $ref: "init.yaml#/components/steps/create_first_admin"
     - $ref: "init.yaml#/components/steps/log_admin_in"
 
 tests:
@@ -83,15 +76,18 @@ components:
         headers:
           Content-Type: application/json
         json:
-          hostname: ${{ env.hostname }}
+          hostname: ${{ env.DOMAIN }}
         check:
           # NOTE: This test file initializes the pod address multiple times and we can't predict the order.
-          # status: 201
+          status: /200|201/
           headers:
             Content-Type: application/json
             Location: /.+/
           schema:
             $ref: openapi.json#/components/schemas/PodAddress
+          jsonpath:
+            $.type: Dynamic
+            $.hostname: ${{ env.DOMAIN }}
     init_pod_address_static:
       name: Initialize Pod address (static address)
       http:
@@ -107,12 +103,16 @@ components:
           ipv6: 2001:db8::40
         check:
           # NOTE: This test file initializes the pod address multiple times and we can't predict the order.
-          # status: 201
+          status: /200|201/
           headers:
             Content-Type: application/json
             Location: /.+/
           schema:
             $ref: openapi.json#/components/schemas/PodAddress
+          jsonpath:
+            $.type: Static
+            $.ipv4: 172.20.0.40
+            $.ipv6: 2001:db8::40
     get_pod_address:
       name: Get Pod address
       http:

@@ -21,7 +21,7 @@ source "${SELF_SCRIPTS:?}"/constants.sh
 
 delete-one() {
 	SCENARIO_NAME="${1:?}"
-	[ -f "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/.gitkeep ] && warn "Can’t delete scenario $(format_code "${SCENARIO_NAME:?}")."
+	[ -f "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/NO_DELETE ] && warn "Can’t delete scenario $(format_code "${SCENARIO_NAME:?}")."
 
 	# NOTE: When running in a GitHub Action, `scenarios-delete` fails because `prose-pod-server` creates files
 	#   as `systemd-network:systemd-journal` and the current user (`runner:docker`) can't delete it.

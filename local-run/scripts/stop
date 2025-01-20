@@ -9,10 +9,10 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 
 LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
-source "${SELF_SCRIPTS:?}"/constants.sh
+edo source "${SELF_SCRIPTS:?}"/constants.sh
 
-source "${SELF_SCRIPTS:?}"/scenario-files.sh
-source "${SELF_SCRIPTS:?}"/compose-exports.sh
+edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
+edo source "${SELF_SCRIPTS:?}"/compose-exports.sh
 
 edo docker compose -f "${COMPOSE_FILE:?}" stop
 

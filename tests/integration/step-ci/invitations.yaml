@@ -4,19 +4,12 @@ config:
   http:
     baseURL: ${{ env.host }}
 env:
-  host: http://127.0.0.1:8080
-  mainAdminUsername: ${{ internet.userName | fake }}
-  mainAdminPassword: ${{ internet.password | fake }}
-  hostname: ${{ internet.domainName | fake }}
+  $ref: "env.yaml#/env"
 
 # NOTE: Paths are relative to the directory from which `stepci` is ran.
-# TODO: Once [stepci/stepci#220](https://github.com/stepci/stepci/issues/220)
-#   is resolved, replace all `./tests/integration/step-ci` by `${{ env.STEPCI_DIR }}`.
 before:
   name: "Before all (not a test)"
   steps:
-    - $ref: "init.yaml#/components/steps/init_server"
-    - $ref: "init.yaml#/components/steps/create_first_admin"
     - $ref: "init.yaml#/components/steps/log_admin_in"
     - $ref: "#/components/steps/invite_member"
     - $ref: "#/components/steps/invite_member"
@@ -82,7 +75,7 @@ tests:
             username: paloma
             pre_assigned_role: MEMBER
             channel: email
-            email_address: paloma@crisp.chat
+            email_address: someone@example.org
           check:
             status: 201
             headers:
@@ -101,7 +94,7 @@ tests:
             username: paloma
             pre_assigned_role: MEMBER
             channel: email
-            email_address: paloma@crisp.chat
+            email_address: someone@example.org
           check:
             status: 409
             schema:
@@ -117,7 +110,7 @@ tests:
             bearer:
               token: ${{ captures.token }}
           json:
-            username: ${{ env.mainAdminUsername }}
+            username: ${{ env.MEMBER_USERNAMES.0 }}
             pre_assigned_role: MEMBER
             channel: email
             email_address: ${{ internet.email | fake }}
