@@ -34,30 +34,34 @@ done
 
 # ===== MAIN LOGIC =====
 
-[ -d "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}" ] && die "The scenario $(format_code "${SCENARIO_NAME:?}") already exists. Would you like to derive a new one from it? If so, run $(format_code "task local:scenarios:create -- '${SCENARIO_NAME:?}-2' --based-on='${SCENARIO_NAME:?}'")"
+edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
+
+[ -d "${SCENARIO_DIR:?}" ] && die "The scenario $(format_code "${SCENARIO_NAME:?}") already exists. Would you like to derive a new one from it? If so, run $(format_code "task local:scenarios:create -- '${SCENARIO_NAME:?}-2' --based-on='${SCENARIO_NAME:?}'")"
 
 info "Will create a new scenario named $(format_code "${SCENARIO_NAME:?}") based on $(format_code "${BASE_SCENARIO_NAME:?}")."
 
-edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
-
-edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/{prosody,coredns}
+edo mkdir -p "${SCENARIO_DIR:?}"
 
 copy-if-exists() {
 	local file_path="${1:?}"
 	if [ -e "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/"${file_path:?}" ]; then
 		edo cp -Rf "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/"${file_path:?}"
+	else
+		trace "Cannot $(format_code cp) $(format_code "${file_path:?}"): Not found."
 	fi
 }
 
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
+# Create directories in case they haven’t been created.
+edo mkdir -p "${SCENARIO_DIR:?}"/{prosody,coredns}
 
 # NOTE: While it'd be easier to use symbolic links instead of copying files
 #   from the `default` scenario, it wouldn't work because Docker wouldn't be
 #   able to access the source files because they aren't mounted.
 #   To make sure non-overridable files stay up-to-date, we created a task called
 #   `task local:scenarios:update` which copies the files again.
-log_as_trace_ "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
+log_as_trace_ edo "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
 
 copy-if-exists constants.sh
 copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
@@ -71,5 +75,5 @@ copy-if-exists "$(basename "${MAILPIT_DATABASE_PATH:?}")"
 # NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
 #   Let's use `if [ … ]; then …; fi` instead for clarity.
 if [ -n "$GITHUB_ACTIONS" ]; then
-	sudo chmod -R a+w "${LOCAL_RUN_DIR:?}"/scenarios/"${SCENARIO_NAME:?}"/prosody
+	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/prosody
 fi

@@ -1,43 +1,48 @@
 return {
-	["FwdwBOb0IJva"] = {
-		["owner"] = "pablo.bartoletti@prose-demo.org.local";
+	["aPB3yaktkIH6"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
+		["id"] = "aPB3yaktkIH6";
+		["created"] = 1737408599;
+		["owner"] = "pablo.bartoletti@prose-demo.org.local";
+		["accessed"] = 1737408599;
 		["jid"] = "pablo.bartoletti@prose-demo.org.local";
-		["created"] = 1737316511;
-		["id"] = "FwdwBOb0IJva";
 		["tokens"] = {
-			["sha256:093cbcea0e78120a414d8a078d5a99fbc3b33d61c3205f24527d6b4e2fce1fc1"] = {
+			["sha256:44658c0df38bbaf40e027f57b6dd8bda0d89da7e3bd17be6acbd61a9efec3788"] = {
+				["expires"] = 1737408599;
 				["purpose"] = "oauth2-refresh";
-				["expires"] = 1737316511;
-				["created"] = 1737316511;
+				["created"] = 1737408599;
 			};
-			["sha256:fc2ab53b109234eb1450c3d4604a87400524e042b13931accf7c11d6c2e7b71d"] = {
-				["purpose"] = "oauth2";
-				["created"] = 1737316511;
+			["sha256:be04bac1f7f6825f32e0c211b55d7f8df71e1aef12062d7ea9abc86792ada4d0"] = {
 				["role"] = "prosody:member";
-				["expires"] = 1737327311;
+				["created"] = 1737408599;
+				["purpose"] = "oauth2";
+				["expires"] = 1737419399;
 			};
 		};
-		["accessed"] = 1737316511;
 	};
-	["vt5rF5DLGVAF"] = {
-		["owner"] = "pablo.bartoletti@prose-demo.org.local";
-		["accessed"] = 1737316511;
-		["jid"] = "pablo.bartoletti@prose-demo.org.local";
+	["1251k0PNapW8"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
-		["id"] = "vt5rF5DLGVAF";
+		["id"] = "1251k0PNapW8";
+		["created"] = 1737408598;
+		["owner"] = "pablo.bartoletti@prose-demo.org.local";
+		["accessed"] = 1737408598;
+		["jid"] = "pablo.bartoletti@prose-demo.org.local";
 		["tokens"] = {
-			["sha256:be5310bb8068241acee23cfe739b9047a91714eb5f25df35d77f7ff0a92eae46"] = {
-				["purpose"] = "oauth2";
-				["expires"] = 1737327311;
+			["sha256:f24a6a927ef5a3607eb6ef7bfcb806d223f5ea8017f9b97d1409929280068016"] = {
+				["created"] = 1737408598;
+				["purpose"] = "oauth2-refresh";
+				["expires"] = 1737408598;
+			};
+			["sha256:ed86b37823fa14b979db5f0a71753c7b16d5087fd9a16fee645f8df96f39aaaf"] = {
+				["expires"] = 1737419398;
 				["role"] = "prosody:member";
-				["created"] = 1737316511;
+				["purpose"] = "oauth2";
+				["created"] = 1737408598;
 			};
 		};
-		["created"] = 1737316511;
 	};
 };

@@ -1,19 +1,19 @@
 item({
 	{
+		["name"] = "info";
 		["attr"] = {
 			["bytes"] = "5229";
 			["id"] = "c89150f7702bf303602e0e20db0854623ee4d9b3";
 			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
-		["name"] = "info";
 	};
 	["name"] = "metadata";
 	["key"] = "c89150f7702bf303602e0e20db0854623ee4d9b3";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:30:03Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
-		["stamp"] = "2025-01-19T19:55:15Z";
 	};
-	["when"] = 1737316515;
 	["with"] = "drew.howell@prose-demo.org.local";
+	["when"] = 1737408603;
 });

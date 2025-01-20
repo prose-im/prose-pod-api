@@ -1,43 +1,43 @@
 return {
-	["mS2Hn_Y4OfZ7"] = {
-		["owner"] = "todd.schultz@prose-demo.org.local";
+	["iT3Xf4OHsS03"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
+		["id"] = "iT3Xf4OHsS03";
+		["created"] = 1737408585;
+		["owner"] = "todd.schultz@prose-demo.org.local";
+		["accessed"] = 1737408585;
 		["jid"] = "todd.schultz@prose-demo.org.local";
-		["created"] = 1737316499;
-		["id"] = "mS2Hn_Y4OfZ7";
 		["tokens"] = {
-			["sha256:d4e4ef30280bb48d92c59f92f695c4c47b7067fd9cfeb93f4de16c33a077332a"] = {
-				["purpose"] = "oauth2-refresh";
-				["expires"] = 1737316499;
-				["created"] = 1737316499;
-			};
-			["sha256:e1771f8f29c0cad16530265b78bf4a7f8819084733029e2350556bdf1831679d"] = {
-				["purpose"] = "oauth2";
-				["created"] = 1737316499;
+			["sha256:20d6483744d1e85ef899f8cf6f3482e0216e703a24a24f32a414e243387d37a8"] = {
+				["expires"] = 1737419385;
 				["role"] = "prosody:member";
-				["expires"] = 1737327299;
+				["purpose"] = "oauth2";
+				["created"] = 1737408585;
 			};
 		};
-		["accessed"] = 1737316499;
 	};
-	["2vpEDvfTssSZ"] = {
-		["owner"] = "todd.schultz@prose-demo.org.local";
-		["accessed"] = 1737316499;
-		["jid"] = "todd.schultz@prose-demo.org.local";
+	["sqnxfdm_sf0M"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
-		["id"] = "2vpEDvfTssSZ";
+		["id"] = "sqnxfdm_sf0M";
+		["created"] = 1737408585;
+		["owner"] = "todd.schultz@prose-demo.org.local";
+		["accessed"] = 1737408585;
+		["jid"] = "todd.schultz@prose-demo.org.local";
 		["tokens"] = {
-			["sha256:b6484dccbe1dd368bbbc506037f5567a4d9d11538788b1b940011ae442207f9b"] = {
-				["purpose"] = "oauth2";
-				["expires"] = 1737327299;
+			["sha256:63d510bdb925881e141b5740f0012a63679bcfde61d05798bc9a5d8a6bab1955"] = {
+				["created"] = 1737408585;
 				["role"] = "prosody:member";
-				["created"] = 1737316499;
+				["purpose"] = "oauth2";
+				["expires"] = 1737419385;
+			};
+			["sha256:7874c90a8c4d64a6c0198c062f8a646feb784b95d493a556b0f2e77bdeb9b275"] = {
+				["expires"] = 1737408585;
+				["purpose"] = "oauth2-refresh";
+				["created"] = 1737408585;
 			};
 		};
-		["created"] = 1737316499;
 	};
 };

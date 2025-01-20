@@ -3,9 +3,9 @@ item({
 	["name"] = "data";
 	["key"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:29:59Z";
 		["xmlns"] = "urn:xmpp:avatar:data";
-		["stamp"] = "2025-01-19T19:55:12Z";
 	};
-	["when"] = 1737316512;
 	["with"] = "pablo.bartoletti@prose-demo.org.local";
+	["when"] = 1737408599;
 });

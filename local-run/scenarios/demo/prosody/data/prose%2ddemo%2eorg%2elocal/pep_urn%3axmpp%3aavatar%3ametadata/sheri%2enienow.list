@@ -1,19 +1,19 @@
 item({
 	{
+		["name"] = "info";
 		["attr"] = {
 			["bytes"] = "5424";
 			["id"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
 			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
-		["name"] = "info";
 	};
 	["name"] = "metadata";
 	["key"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:29:47Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
-		["stamp"] = "2025-01-19T19:55:01Z";
 	};
-	["when"] = 1737316501;
 	["with"] = "sheri.nienow@prose-demo.org.local";
+	["when"] = 1737408587;
 });
