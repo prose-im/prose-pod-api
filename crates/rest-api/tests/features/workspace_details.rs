@@ -13,7 +13,7 @@ use super::prelude::*;
 api_call_fn!(
     get_workspace_name_unauthenticated,
     unauthenticated: GET,
-    "/v1/workspace/name"
+    "/v1/workspace/name",
 );
 api_call_fn!(
     set_workspace_name,
@@ -65,7 +65,7 @@ async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> R
 api_call_fn!(
     get_workspace_icon_unauthenticated,
     unauthenticated: GET,
-    "/v1/workspace/icon"
+    "/v1/workspace/icon",
 );
 api_call_fn!(
     set_workspace_icon,
