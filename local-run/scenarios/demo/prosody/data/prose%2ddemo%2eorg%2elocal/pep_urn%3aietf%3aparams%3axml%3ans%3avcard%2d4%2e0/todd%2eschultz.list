@@ -2,22 +2,22 @@ item({
 	{
 		{
 			"Todd S.";
+			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
-			["name"] = "text";
 		};
+		["name"] = "nickname";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
-		["name"] = "nickname";
 	};
 	["name"] = "vcard";
 	["key"] = "todd.schultz@prose-demo.org.local";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:29:45Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
-		["stamp"] = "2025-01-19T19:54:59Z";
 	};
-	["when"] = 1737316499;
 	["with"] = "todd.schultz@prose-demo.org.local";
+	["when"] = 1737408585;
 });

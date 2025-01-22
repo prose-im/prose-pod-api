@@ -137,7 +137,7 @@ if (( $EPHEMERAL )); then
 	edo task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
 	edo source "${SCENARIO_DIR:?}"/constants.sh
 	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
-elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ]; then
+elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ] && ! (( $FORCE_RUN )); then
 	die "Cannot run the $(format_code "${SCENARIO_NAME:?}") scenario. You must copy it ($(format_code "task local:scenarios:create -- NEW_NAME --based-on='${SCENARIO_NAME:?}'")) or run it with $(format_code --ephemeral)."
 fi
 

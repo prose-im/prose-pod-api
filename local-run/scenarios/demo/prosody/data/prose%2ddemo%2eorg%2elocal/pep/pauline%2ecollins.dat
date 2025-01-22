@@ -1,8 +1,8 @@
 return {
 	["urn:ietf:params:xml:ns:vcard-4.0"] = {
+		["affiliations"] = {};
 		["subscribers"] = {};
 		["name"] = "urn:ietf:params:xml:ns:vcard-4.0";
-		["affiliations"] = {};
 		["config"] = {};
 	};
 };

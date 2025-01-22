@@ -1,48 +1,43 @@
 return {
-	["spBSaO8KiHMb"] = {
-		["owner"] = "evan.turner@prose-demo.org.local";
-		["jid"] = "evan.turner@prose-demo.org.local";
-		["accessed"] = 1737316501;
-		["created"] = 1737316501;
-		["id"] = "spBSaO8KiHMb";
-		["tokens"] = {
-			["sha256:690e5198fff0ac47fa55026642dbddcca3f26f139065520f2d655930c4f1312e"] = {
-				["purpose"] = "oauth2-refresh";
-				["created"] = 1737316501;
-				["expires"] = 1737316501;
-			};
-			["sha256:b2bb3ce48a81c713e2d858dbf4b9e172ac27f9ebe6dd62e41a428aa6892fbf5b"] = {
-				["purpose"] = "oauth2";
-				["expires"] = 1737327301;
-				["role"] = "prosody:admin";
-				["created"] = 1737316501;
-			};
-		};
+	["JgXwcsyNv-k0"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
+		};
+		["id"] = "JgXwcsyNv-k0";
+		["created"] = 1737408588;
+		["owner"] = "evan.turner@prose-demo.org.local";
+		["accessed"] = 1737408588;
+		["jid"] = "evan.turner@prose-demo.org.local";
+		["tokens"] = {
+			["sha256:60ff7d801245d6389bf7ddb44c027fa01164f4252dcd8bc155d7d07cad3ba1d4"] = {
+				["created"] = 1737408588;
+				["role"] = "prosody:admin";
+				["purpose"] = "oauth2";
+				["expires"] = 1737419388;
+			};
+			["sha256:76500eff5e5f8c856903a39f62f32eb40817d388a7680c730ee8d722b2cc00d0"] = {
+				["expires"] = 1737408588;
+				["purpose"] = "oauth2-refresh";
+				["created"] = 1737408588;
+			};
 		};
 	};
-	["UG6GtnJ-gaIv"] = {
-		["owner"] = "evan.turner@prose-demo.org.local";
+	["H9GmJnycHiCA"] = {
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
+		["id"] = "H9GmJnycHiCA";
+		["created"] = 1737408588;
+		["owner"] = "evan.turner@prose-demo.org.local";
+		["accessed"] = 1737408588;
 		["jid"] = "evan.turner@prose-demo.org.local";
-		["created"] = 1737316502;
-		["id"] = "UG6GtnJ-gaIv";
 		["tokens"] = {
-			["sha256:e46cd280e830a3de09cc3eb4b05188f4c34f23163b3657c9a8b59d07f6cf4c5b"] = {
-				["purpose"] = "oauth2-refresh";
-				["expires"] = 1737316502;
-				["created"] = 1737316502;
-			};
-			["sha256:1ddecc277362d0ca8ce1fc3a3af7ff1227cc6c2f237ac32d54c5b4200a4024ef"] = {
-				["purpose"] = "oauth2";
-				["created"] = 1737316502;
+			["sha256:084ea67182ea64431428c0ee4a00cd4f19e1473e96da45ebf1d2423a562ead06"] = {
+				["expires"] = 1737419388;
 				["role"] = "prosody:admin";
-				["expires"] = 1737327302;
+				["purpose"] = "oauth2";
+				["created"] = 1737408588;
 			};
 		};
-		["accessed"] = 1737316502;
 	};
 };

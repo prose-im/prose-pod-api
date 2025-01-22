@@ -3,9 +3,9 @@ item({
 	["name"] = "data";
 	["key"] = "439e22855d7283bf6157d308736a79ff27411822";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:29:52Z";
 		["xmlns"] = "urn:xmpp:avatar:data";
-		["stamp"] = "2025-01-19T19:55:05Z";
 	};
-	["when"] = 1737316505;
 	["with"] = "meghan.donnelly@prose-demo.org.local";
+	["when"] = 1737408592;
 });

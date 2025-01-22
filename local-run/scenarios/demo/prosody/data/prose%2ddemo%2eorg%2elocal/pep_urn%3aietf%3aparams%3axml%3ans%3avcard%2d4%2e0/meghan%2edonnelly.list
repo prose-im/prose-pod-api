@@ -2,22 +2,22 @@ item({
 	{
 		{
 			"Meghan D.";
+			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
-			["name"] = "text";
 		};
+		["name"] = "nickname";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
-		["name"] = "nickname";
 	};
 	["name"] = "vcard";
 	["key"] = "meghan.donnelly@prose-demo.org.local";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:29:51Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
-		["stamp"] = "2025-01-19T19:55:05Z";
 	};
-	["when"] = 1737316505;
 	["with"] = "meghan.donnelly@prose-demo.org.local";
+	["when"] = 1737408591;
 });

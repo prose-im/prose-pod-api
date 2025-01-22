@@ -3,9 +3,9 @@ item({
 	["name"] = "data";
 	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
 	["attr"] = {
+		["stamp"] = "2025-01-20T21:30:01Z";
 		["xmlns"] = "urn:xmpp:avatar:data";
-		["stamp"] = "2025-01-19T19:55:13Z";
 	};
-	["when"] = 1737316513;
 	["with"] = "barbara.mante@prose-demo.org.local";
+	["when"] = 1737408601;
 });
