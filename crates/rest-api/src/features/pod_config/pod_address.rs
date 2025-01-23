@@ -5,14 +5,21 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use axum::{extract::State, http::HeaderValue, Json};
+use axum::{
+    extract::State,
+    http::{HeaderValue, StatusCode},
+    Json,
+};
 use axum_extra::either::Either;
 use hickory_resolver::proto::rr::Name as DomainName;
 use serde::{Deserialize, Serialize};
 use service::pod_config::{PodAddress, PodConfig, PodConfigCreateForm, PodConfigRepository};
 
 use crate::{
-    error::Error, features::init::PodAddressNotInitialized, responders::Created, AppState,
+    error::{self, Error},
+    features::init::PodAddressNotInitialized,
+    responders::Created,
+    AppState,
 };
 
 use super::POD_ADDRESS_ROUTE;
@@ -38,6 +45,13 @@ pub async fn set_pod_address_route(
     State(AppState { db, .. }): State<AppState>,
     Json(req): Json<SetPodAddressRequest>,
 ) -> Result<Either<Created<PodAddress>, Json<PodAddress>>, Error> {
+    if req.ipv4.is_none() && req.ipv6.is_none() && req.hostname.is_none() {
+        return Err(Error::from(error::HTTPStatus {
+            status: StatusCode::UNPROCESSABLE_ENTITY,
+            body: "You must pass either an IPv4, an IPv6 or a hostname.".to_string(),
+        }));
+    }
+
     if PodConfigRepository::get(&db).await?.is_some() {
         let model = PodConfigRepository::set(&db, req).await?;
 

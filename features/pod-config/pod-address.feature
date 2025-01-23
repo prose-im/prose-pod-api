@@ -59,3 +59,17 @@ Feature: Setting the Prose Pod address
       | address    |
       | an IPv4    |
       | an IPv6    |
+
+  Rule: Request body can’t be empty
+
+    """
+    See [prose-pod-api#151](https://github.com/prose-im/prose-pod-api/issues/151).
+
+    NOTE: We can’t put this doc string on the `Rule` because it conflicts with
+      the above `Examples:` and Cucumber fails to parse the file.
+      See [cucumber-rs/gherkin#45](https://github.com/cucumber-rs/gherkin/issues/45).
+    """
+    Scenario: User passed an empty JSON
+       When Valerian sets the Prose Pod address to an empty value
+       Then the call should not succeed
+        And the HTTP status code should be Unprocessable Entity
