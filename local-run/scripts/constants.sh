@@ -2,7 +2,7 @@
 #   It avoids resetting a variable when sourcing this file after the variable was overriden.
 
 : ${PROSE_POD_API_IMAGE_TAG:=0.6.0}
-: ${PROSE_POD_SERVER_IMAGE_TAG:=0.3.4}
+: ${PROSE_POD_SERVER_IMAGE_TAG:=0.3.5}
 LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
 : ${COMPOSE_FILE:="${LOCAL_RUN_DIR:?}"/compose.yaml}
 DEFAULT_SCENARIO_NAME=default
