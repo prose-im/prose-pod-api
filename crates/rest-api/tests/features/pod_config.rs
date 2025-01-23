@@ -61,3 +61,10 @@ async fn when_set_pod_address_hostname(world: &mut TestWorld, name: String) {
     .await;
     world.result = Some(res.into());
 }
+
+#[when(expr = "{} sets the Prose Pod address to an empty value")]
+async fn when_set_pod_address_empty(world: &mut TestWorld, name: String) {
+    let token = user_token!(world, name);
+    let res = set_pod_address(world.api(), token, SetPodAddressRequest::default()).await;
+    world.result = Some(res.into());
+}
