@@ -74,7 +74,6 @@ help() {
 
 # ===== ARGUMENT PARSING =====
 
-CARGO_CHEF_EXTRA_ARGS=()
 CARGO_INSTALL_EXTRA_ARGS=()
 CARGO_PROFILE=release
 unset NO_PULL
@@ -93,7 +92,6 @@ for arg in "$@"; do
 		--offline)
 			die "Offline builds are not supported anymore, because we build the Rust project in a Dockerfile and we have a git dependency ($(format_code prose-core-client)). If you need this feature, consider adding $(format_code prose-core-client) as a $(format_hyperlink 'git submodule' 'https://git-scm.com/book/en/v2/Git-Tools-Submodules') instead."
 			info 'Will build without accesing the network.'
-			CARGO_CHEF_EXTRA_ARGS+=('--offline')
 			CARGO_INSTALL_EXTRA_ARGS+=('--offline')
 			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
@@ -137,7 +135,6 @@ edo docker buildx build \
 	${DOCKER_TARGET_PLATFORM:+--platform "${DOCKER_TARGET_PLATFORM:?}"} \
 	-t "${PROSE_POD_API_IMAGE:?}" \
 	${CARGO_PROFILE:+--build-arg CARGO_PROFILE="${CARGO_PROFILE}"} \
-	${CARGO_CHEF_EXTRA_ARGS:+--build-arg CARGO_CHEF_EXTRA_ARGS="${CARGO_CHEF_EXTRA_ARGS[*]}"} \
 	${CARGO_INSTALL_EXTRA_ARGS:+--build-arg CARGO_INSTALL_EXTRA_ARGS="${CARGO_INSTALL_EXTRA_ARGS[*]}"} \
 	--build-arg VERSION="${PROSE_POD_API_IMAGE_TAG:?}" \
 	--build-arg COMMIT="${COMMIT:-}" \
