@@ -23,3 +23,46 @@ tests:
               token: ${{ captures.token }}
           check:
             status: 200
+  # See [prose-pod-api#150](https://github.com/prose-im/prose-pod-api/issues/150).
+  badJidYieldsUnauthorized:
+    name: Logging in with a bad JID yields 401 Unauthorized
+    steps:
+      - http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: ""
+            password: password
+        check:
+          status: 401
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: openapi.json#/components/schemas/Error
+      - http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: null
+            password: password
+        check:
+          status: 401
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: openapi.json#/components/schemas/Error
+      - http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            username: undefined
+            password: password
+        check:
+          status: 401
+          headers:
+            Content-Type: application/json
+          schema:
+            $ref: openapi.json#/components/schemas/Error

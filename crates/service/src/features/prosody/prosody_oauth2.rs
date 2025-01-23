@@ -57,6 +57,11 @@ impl ProsodyOAuth2 {
             Err(match response.status {
                 StatusCode::UNAUTHORIZED => Error::Unauthorized(response.text()),
                 StatusCode::FORBIDDEN => Error::Forbidden(response.text()),
+                StatusCode::BAD_REQUEST
+                    if response.text().to_lowercase().contains("invalid jid") =>
+                {
+                    Error::Unauthorized("Invalid JID".to_string())
+                }
                 _ => Error::UnexpectedResponse(
                     UnexpectedHttpResponse::new(request_data, response, error_description).await,
                 ),
