@@ -15,7 +15,7 @@ test-env-vars 'tutorials/run-locally.md' \
 	PROSE_POD_API_DIR
 
 # Build the Prose Pod API image.
-edo task build-image -- --profile=dev
+edo task build-image -- --profile=dev --locked
 
 if [ -n "${PROSE_POD_SERVER_DIR}" ] && [ -d "${PROSE_POD_SERVER_DIR:?}" ]; then
 	# Build the Prose Pod Server image.

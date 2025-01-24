@@ -104,3 +104,4 @@ jobs:
             VERSION=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.version'] || 'unknown' }}
             COMMIT=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.revision'] }}
             BUILD_TIMESTAMP=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.created'] }}
+            CARGO_INSTALL_EXTRA_ARGS=--locked
