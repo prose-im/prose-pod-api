@@ -13,7 +13,6 @@ use crate::guards::prelude::*;
 /// but it'll do for now.
 pub struct IsAdmin;
 
-#[async_trait::async_trait]
 impl FromRequestParts<AppState> for IsAdmin {
     type Rejection = error::Error;
 

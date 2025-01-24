@@ -5,7 +5,6 @@
 
 use crate::guards::prelude::*;
 
-#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::auth::AuthService {
     type Rejection = Infallible;
 
