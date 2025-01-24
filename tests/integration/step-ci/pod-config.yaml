@@ -3,6 +3,11 @@ name: Prose Pod configuration
 config:
   http:
     baseURL: ${{ env.host }}
+  # NOTE: Some tests set the pod address then check that the result of `GET`
+  #   yields the expected result. However, when multiple tests are executed
+  #   concurrently (which is the default), race conditions can happen and
+  #   make the test fail.
+  concurrency: 1
 env:
   $ref: "env.yaml#/env"
 
