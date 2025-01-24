@@ -45,9 +45,14 @@ $(format_title 'Options:')
     $(format_flag --profile=CARGO_PROFILE)
       Choose which Cargo profile to use when building the Prose Pod API.
       $(format_secondary "Note: $(format_code '--profile=dev') enables $(format_code 'debug_only') configuration.")
+    $(format_flag --locked)
+      Build with locked versions (specified in $(format_code 'Cargo.lock')).
+      $(format_secondary "Ensures no dependency gets silently updated and breaks builds.")
     $(format_flag --no-pull)
       Do not pull referenced Docker images.
       $(format_secondary "Speeds up the builds and does not use the network, but does not update base images.")
+    $(format_flag --offline)
+      Build without accessing the network (implies $(format_flag --no-pull)).
 
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
@@ -95,6 +100,10 @@ for arg in "$@"; do
 			CARGO_INSTALL_EXTRA_ARGS+=('--offline')
 			info 'Will not pull referenced Docker images.'
 			NO_PULL=1
+			;;
+		--locked)
+			info 'Will build with locked versions.'
+			CARGO_INSTALL_EXTRA_ARGS+=('--locked')
 			;;
 		--no-pull)
 			info 'Will not pull referenced Docker images.'
