@@ -57,6 +57,7 @@ use crate::guards::prelude::*;
 /// [`MemberService`]: service::members::MemberService
 pub struct Authenticated;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for Authenticated {
     type Rejection = error::Error;
 

@@ -76,6 +76,7 @@ where
 
 pub struct WithContentType<C>(PhantomData<C>);
 
+#[async_trait::async_trait]
 impl<S, C> FromRequestParts<S> for WithContentType<C>
 where
     C: ContentType,

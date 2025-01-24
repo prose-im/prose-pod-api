@@ -10,6 +10,7 @@ use service::{
 
 use super::prelude::*;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for XmppService {
     type Rejection = error::Error;
 
@@ -28,6 +29,7 @@ impl FromRequestParts<AppState> for XmppService {
     }
 }
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for XmppServiceInner {
     type Rejection = Infallible;
 

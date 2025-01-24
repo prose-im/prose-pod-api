@@ -7,6 +7,7 @@ use service::members::UnauthenticatedMemberService;
 
 use crate::guards::prelude::*;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::invitations::InvitationService {
     type Rejection = Infallible;
 

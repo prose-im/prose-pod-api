@@ -10,6 +10,7 @@ use service::{
 
 use crate::{error::prelude::*, guards::prelude::*};
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;
 

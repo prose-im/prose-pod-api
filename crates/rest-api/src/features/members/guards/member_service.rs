@@ -7,6 +7,7 @@ use service::{auth::UserInfo, members::MemberServiceContext, xmpp::XmppService};
 
 use crate::guards::prelude::*;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::members::MemberService {
     type Rejection = error::Error;
 
