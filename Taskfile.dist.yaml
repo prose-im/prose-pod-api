@@ -12,6 +12,7 @@ env:
 
 tasks:
   lint:
+    desc: Lint the whole project (Rust code, OpenAPI description…)
     deps: [rust:lint, openapi:lint]
 
   rust:lint:
