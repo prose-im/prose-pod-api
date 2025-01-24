@@ -5,6 +5,7 @@ on:
       - "v*.*.*"
     branches:
       - master
+      - investigate-broken-release-builds
     # Do not run the workflow if the project hasn't changed.
     # NOTE: It will run on every tag push, but only if the `paths` filter is satisfied on the chosen `branches`
     #   (source: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore).
@@ -43,11 +44,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   ship-docker-image:
-    environment: build-ship
+    # environment: build-ship
     runs-on: ubuntu-latest
 
-    permissions:
-      packages: write
+    # permissions:
+    #   packages: write
 
     steps:
       - name: Checkout code
@@ -69,18 +70,18 @@ jobs:
             type=semver,pattern={{major}}
             type=edge
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Log in to the container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Log in to the container registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -93,14 +94,13 @@ jobs:
         with:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' }}
           platforms: |
-            linux/amd64
             linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
             CARGO_PROFILE=${{ startsWith(github.ref, 'refs/tags/') && 'release' || 'staging' }}
-            VERSION=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.version'] }}
+            VERSION=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.version'] || 'unknown' }}
             COMMIT=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.revision'] }}
             BUILD_TIMESTAMP=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.created'] }}
