@@ -9,6 +9,7 @@ use crate::features::init::ServerConfigNotInitialized;
 
 use super::prelude::*;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for server_config::Model {
     type Rejection = error::Error;
 
@@ -23,6 +24,7 @@ impl FromRequestParts<AppState> for server_config::Model {
     }
 }
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::server_config::ServerConfig {
     type Rejection = error::Error;
 

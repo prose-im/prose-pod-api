@@ -7,6 +7,7 @@ use service::auth::auth_service::AuthToken;
 
 use crate::guards::prelude::*;
 
+#[async_trait::async_trait]
 impl FromRequestParts<AppState> for service::auth::UserInfo {
     type Rejection = error::Error;
 
