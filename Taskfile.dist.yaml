@@ -44,11 +44,12 @@ tasks:
 
   rust:outdated:
     desc: Checks for outdated dependencies.
-    cmd: if cargo install --list | grep -q '^cargo-edit v'; then \
-      echo '[INFO] Checking for outdated dependencies…'; \
-      cargo upgrade --dry-run --incompatible --pinned --verbose; \
-      else \
-      echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies'; \
+    cmd: |
+      if cargo install --list | grep -q '^cargo-edit v'; then
+        echo '[INFO] Checking for outdated dependencies…';
+        cargo upgrade --dry-run --incompatible --pinned --verbose;
+      else
+        echo '[WARN] Install `cargo upgrade` with `cargo install cargo-edit` for this script to check for outdated dependencies';
       fi
 
   build-image:
