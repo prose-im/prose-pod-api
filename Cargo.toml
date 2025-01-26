@@ -18,7 +18,7 @@ axum-extra = { version = "0.10", default-features = false }
 axum-test = { version = "17", default-features = false }
 base64 = { version = "0.22", default-features = false }
 chrono = { version = "0.4", default-features = false }
-cucumber = { version = "0.21", default-features = false }
+cucumber = { branch = "353-fmt-layer-tweaking", git = "https://github.com/cucumber-rs/cucumber", default-features = false }
 email_address = { version = "0.2", default-features = false }
 figment = { version = "0.10", default-features = false }
 form_urlencoded = { version = "1", default-features = false }
