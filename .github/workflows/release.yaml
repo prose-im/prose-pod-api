@@ -25,7 +25,7 @@ on:
 jobs:
   create-github-release:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
 
   ship-docker-image:
     environment: build-ship
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-arm
 
     permissions:
       packages: write
