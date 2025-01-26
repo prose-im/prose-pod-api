@@ -44,7 +44,7 @@ on:
 
 jobs:
   lint-rust:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
         run: cargo fmt -- --check
 
   lint-openapi:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,7 +77,7 @@ jobs:
   smoke-test:
     if: github.event.pull_request.draft == false
     needs: [lint-rust, lint-openapi]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -110,7 +110,7 @@ jobs:
   integration-test:
     if: github.event.pull_request.draft == false
     needs: smoke-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout prose-pod-api
         uses: actions/checkout@v4
