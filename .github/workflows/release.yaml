@@ -45,7 +45,7 @@ jobs:
 
   ship-docker-image:
     # environment: build-ship
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
 
     # permissions:
     #   packages: write
