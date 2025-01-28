@@ -16,6 +16,7 @@ VERSION_FILE="${REPOSITORY_ROOT:?}"/VERSION
 OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/crates/rest-api/static/api-docs/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
+LOCAL_RUN_CONSTANTS_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/constants.sh
 
 VERSION="$(cat "${VERSION_FILE:?}")"
 
@@ -128,7 +129,7 @@ replace '^(\t\t"version": ").+(")' "${OPENAPI_SPEC_FILE:?}"
 info "Changing version number in $(format_code Cargo.toml)…"
 replace '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
 info "Changing version number in local run config…"
-replace '(PROSE_POD_API_IMAGE_TAG:=).+(\})' "${CARGO_TOML_FILE:?}"
+replace '(PROSE_POD_API_IMAGE_TAG:=).+(\})' "${LOCAL_RUN_CONSTANTS_FILE:?}"
 info "Updating $(format_code Cargo.lock)…"
 edo cargo check
 
@@ -137,7 +138,7 @@ GIT_BRANCH="$(git branch --show-current)"
 info "Pulling $(format_code origin)…"
 edo git pull origin "${GIT_BRANCH:?}"
 info "Committing changes…"
-edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${CARGO_LOCK_FILE:?}"
+edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${LOCAL_RUN_CONSTANTS_FILE:?}" "${CARGO_LOCK_FILE:?}"
 edo git commit -m "$(to-tag "${NEW_VERSION:?}")"
 info "Creating tag…"
 edo git tag "$(to-tag "${NEW_VERSION:?}")"
