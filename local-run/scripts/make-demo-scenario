@@ -28,7 +28,7 @@ fi
 # Run the API.
 # NOTE: We need to run `local` so we can auto-accept invitations.
 edo FORCE_RUN=1 task local:run -- --api=local --scenario=demo --detach --no-update
-while ! xh :8080/version --check-status -q; do
+while ! xh :8080/v1/version --check-status -q; do
   sleep 1
 done
 

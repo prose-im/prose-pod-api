@@ -20,7 +20,9 @@ lazy_static! {
 }
 
 pub(super) fn router() -> axum::Router {
-    axum::Router::new().route("/version", get(version_route))
+    axum::Router::new()
+        .route("/version", get(version_route))
+        .route("/v1/version", get(version_route))
 }
 
 async fn version_route() -> Json<Versions> {
