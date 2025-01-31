@@ -21,7 +21,7 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
             .get_user_info(token)
             .await
             .map_err(|err| {
-                Error::from(error::Forbidden(format!(
+                Error::from(error::Unauthorized(format!(
                     "Could not get user info from token: {err}"
                 )))
             })

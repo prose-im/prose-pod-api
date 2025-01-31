@@ -160,13 +160,13 @@ impl ConnectionTrait for Connection {
                 trace!("response_body: {response_body:?}");
                 let xml = format!(r#"<wrapper xmlns="jabber:client">{response_body}</wrapper>"#);
                 let wrapper = xml.parse::<Element>()?;
-                let stanza = wrapper
-                    .get_child("iq", "jabber:client")
-                    .expect(&format!(
-                        "Prosody response is not an `iq` stanza (`{response_body}`).",
-                    ))
-                    .to_owned();
-                self.receive_stanza(stanza).await;
+                let Some(stanza) = wrapper.get_child("iq", "jabber:client") else {
+                    // TODO: Handle "not-authorized".
+                    return Err(anyhow!(
+                        "Prosody response is not an `iq` stanza (`{response_body}`)."
+                    ));
+                };
+                self.receive_stanza(stanza.to_owned()).await;
                 Result::<_, anyhow::Error>::Ok(())
             })
         })?;

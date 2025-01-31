@@ -68,7 +68,8 @@ stop() {
 }
 
 abort() {
-	stop
+	# Do not stop the API after a failure to allow investigation.
+	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
 	task integration-test:logs
 	exit 1
 }
@@ -82,6 +83,7 @@ stepci_run() {
 	info "${Blue}$(for _ in $(seq 72); do printf "="; done)${Color_Off}"
 
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
+	[ -f "${PROSE_CONFIG_FILE:?}" ] || die "File $(format_url "${PROSE_CONFIG_FILE:?}") doesn't exist."
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \
 	{ (cd "${STEPCI_DIR:?}" && edo stepci run "${test_file#"${STEPCI_DIR:?}/"}" --env host="${INTEGRATION_TEST_HOST:?}") \
@@ -110,6 +112,8 @@ for arg in "$@"; do
 			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-dynamic.zone stepci_run "$test_file" ;;
 		*dns-configured-correctly-static)
 			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone stepci_run "$test_file" ;;
+		auth-expired)
+			stepci_run "$test_file" 'tokens-expired' ;;
 		init)
 			SCENARIO_NAME=fresh stepci_run "$test_file" ;;
 		*)

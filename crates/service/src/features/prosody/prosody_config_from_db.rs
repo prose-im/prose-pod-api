@@ -272,7 +272,10 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                             "password",
                                         ],
                                     ),
-                                    def("oauth2_access_token_ttl", 10800),
+                                    def(
+                                        "oauth2_access_token_ttl",
+                                        app_config.server.oauth2_access_token_ttl,
+                                    ),
                                     // We don't want tokens to be refreshed
                                     def("oauth2_refresh_token_ttl", 0),
                                     def(
