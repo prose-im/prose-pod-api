@@ -161,6 +161,8 @@ pub struct ConfigServer {
     pub prosody_config_file_path: PathBuf,
     #[serde(default = "defaults::server_oauth2_registration_key")]
     pub oauth2_registration_key: SecretString,
+    #[serde(default = "defaults::server_oauth2_access_token_ttl")]
+    pub oauth2_access_token_ttl: u32,
     #[serde(default)]
     pub defaults: ConfigServerDefaults,
 }
@@ -194,6 +196,7 @@ impl Default for ConfigServer {
             http_port: defaults::server_http_port(),
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
             oauth2_registration_key: defaults::server_oauth2_registration_key(),
+            oauth2_access_token_ttl: defaults::server_oauth2_access_token_ttl(),
             defaults: Default::default(),
         }
     }

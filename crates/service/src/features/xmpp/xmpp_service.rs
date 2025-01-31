@@ -207,7 +207,7 @@ pub type Error = XmppServiceError;
 pub enum XmppServiceError {
     #[error("Connection error: {0}")]
     ConnectionError(#[from] ConnectionError),
-    #[error("Request error: {0}")]
+    #[error("{0}")]
     RequestError(#[from] RequestError),
     #[error("{0}")]
     Other(String),

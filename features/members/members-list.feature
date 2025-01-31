@@ -52,7 +52,7 @@ Feature: Members list
 
     Scenario Outline: Bad token
       When someone lists members using <token> as Bearer token
-      Then the HTTP status code should be Forbidden
+      Then the HTTP status code should be Unauthorized
 
     Examples:
       | token |

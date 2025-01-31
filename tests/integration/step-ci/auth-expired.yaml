@@ -1,0 +1,27 @@
+version: "1.1"
+name: Authentication (tokens expiring after 1 second)
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  $ref: "env.yaml#/env"
+
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+tests:
+  # See [When a token expires, routes return `403` instead of `401` · Issue #171 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/171).
+  expiredTokenYieldsUnauthenticated:
+    name: Using an expired token yields 401 Unauthorized
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - http:
+          method: GET
+          url: /v1/members
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 401
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/Error

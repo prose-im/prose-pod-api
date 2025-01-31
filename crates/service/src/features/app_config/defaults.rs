@@ -83,6 +83,10 @@ pub fn server_oauth2_registration_key() -> SecretString {
     SecretString::new(bytes_to_base64(&key))
 }
 
+pub fn server_oauth2_access_token_ttl() -> u32 {
+    10800
+}
+
 /// Enable message archiving by default.
 pub fn server_defaults_message_archive_enabled() -> bool {
     true
