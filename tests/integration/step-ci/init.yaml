@@ -10,10 +10,32 @@ tests:
   initialize:
     name: Initialize Prose Pod
     steps:
+      - name: Query the REST API to see that the server is not initialized (missing precondition)
+        http:
+          method: HEAD
+          url: /v1/server/config
+          check:
+            status: 428
+      - name: Query the REST API to see that the server is not initialized
+        http:
+          method: HEAD
+          url: /v1/server/config
+          headers:
+            If-None-Match: "*"
+          check:
+            status: 412
       - $ref: "#/components/steps/init_server"
       - $ref: "#/components/steps/init_workspace"
       - $ref: "#/components/steps/create_first_admin"
       - $ref: "#/components/steps/log_admin_in"
+      - name: Query the REST API to see that the server is initialized
+        http:
+          method: HEAD
+          url: /v1/server/config
+          headers:
+            If-None-Match: "*"
+          check:
+            status: 204
 
 components:
   steps:

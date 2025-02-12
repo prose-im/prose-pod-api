@@ -13,7 +13,7 @@ mod util;
 
 use axum::{
     middleware::from_extractor_with_state,
-    routing::{get, put},
+    routing::{get, head, put},
 };
 
 pub use file_upload::*;
@@ -112,8 +112,11 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route(
                     "/federation-friendly-servers",
                     put(set_federation_friendly_servers_route),
-                ),
+                )
+                // Require authentication
+                .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
         )
-        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        // NOTE: `HEAD /v1/server/config` doesn’t require authentication.
+        .route(SERVER_CONFIG_ROUTE, head(is_server_initialized_route))
         .with_state(app_state)
 }

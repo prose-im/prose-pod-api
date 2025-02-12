@@ -120,6 +120,24 @@ impl HttpApiError for BadRequest {
 }
 
 impl ErrorCode {
+    pub const PRECONDITION_REQUIRED: Self = Self {
+        value: "precondition_required",
+        http_status: StatusCode::PRECONDITION_REQUIRED,
+        log_level: LogLevel::Info,
+    };
+}
+#[derive(Debug, thiserror::Error)]
+#[error("Precondition required: {comment}")]
+pub struct PreconditionRequired {
+    pub comment: String,
+}
+impl HttpApiError for PreconditionRequired {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::PRECONDITION_REQUIRED
+    }
+}
+
+impl ErrorCode {
     pub const NOT_FOUND: Self = Self {
         value: "not_found",
         http_status: StatusCode::NOT_FOUND,

@@ -27,6 +27,7 @@ impl FromStr for HTTPStatus {
         Ok(HTTPStatus(match s {
             "BadRequest" | "Bad Request" => StatusCode::BAD_REQUEST,
             "PreconditionFailed" | "Precondition Failed" => StatusCode::PRECONDITION_FAILED,
+            "PreconditionRequired" | "Precondition Required" => StatusCode::PRECONDITION_REQUIRED,
             "Unauthorized" => StatusCode::UNAUTHORIZED,
             "Forbidden" => StatusCode::FORBIDDEN,
             "Ok" | "OK" => StatusCode::OK,
