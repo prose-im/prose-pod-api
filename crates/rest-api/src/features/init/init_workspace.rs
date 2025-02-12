@@ -69,7 +69,7 @@ pub async fn init_workspace_route(
 impl ErrorCode {
     pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
         value: "workspace_not_initialized",
-        http_status: StatusCode::BAD_REQUEST,
+        http_status: StatusCode::PRECONDITION_FAILED,
         log_level: LogLevel::Warn,
     };
     pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {

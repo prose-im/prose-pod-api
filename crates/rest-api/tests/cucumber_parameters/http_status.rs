@@ -26,6 +26,7 @@ impl FromStr for HTTPStatus {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(HTTPStatus(match s {
             "BadRequest" | "Bad Request" => StatusCode::BAD_REQUEST,
+            "PreconditionFailed" | "Precondition Failed" => StatusCode::PRECONDITION_FAILED,
             "Unauthorized" => StatusCode::UNAUTHORIZED,
             "Forbidden" => StatusCode::FORBIDDEN,
             "Ok" | "OK" => StatusCode::OK,

@@ -52,7 +52,7 @@ pub async fn init_server_config_route(
 impl ErrorCode {
     pub const SERVER_CONFIG_NOT_INITIALIZED: Self = Self {
         value: "server_config_not_initialized",
-        http_status: StatusCode::BAD_REQUEST,
+        http_status: StatusCode::PRECONDITION_FAILED,
         log_level: LogLevel::Warn,
     };
     pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
@@ -62,7 +62,7 @@ impl ErrorCode {
     };
     pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
         value: "pod_address_not_initialized",
-        http_status: StatusCode::BAD_REQUEST,
+        http_status: StatusCode::PRECONDITION_FAILED,
         log_level: LogLevel::Warn,
     };
 }

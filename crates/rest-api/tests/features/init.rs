@@ -154,7 +154,7 @@ async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), 
 #[then("the user should receive 'Workspace not initialized'")]
 async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     let res = world.result();
-    res.assert_status(StatusCode::BAD_REQUEST);
+    res.assert_status(StatusCode::PRECONDITION_FAILED);
     assert_eq!(
         res.header(CONTENT_TYPE),
         "application/json",
@@ -184,7 +184,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
 #[then("the user should receive 'Server config not initialized'")]
 async fn then_error_server_config_not_initialized(world: &mut TestWorld) {
     let res = world.result();
-    res.assert_status(StatusCode::BAD_REQUEST);
+    res.assert_status(StatusCode::PRECONDITION_FAILED);
     assert_eq!(
         res.header(CONTENT_TYPE),
         "application/json",

@@ -144,5 +144,5 @@ Feature: DNS setup instructions
     Scenario: Prose Pod address not initialized
       Given the Prose Pod address has not been initialized
        When Valerian requests DNS setup instructions
-       Then the HTTP status code should be Bad Request
+       Then the HTTP status code should be Precondition Failed
         And the error code should be "pod_address_not_initialized"
