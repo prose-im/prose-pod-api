@@ -1,4 +1,22 @@
 paths:
+  is_server_initialized:
+    tags: [Init]
+    summary: Is the XMPP server initialized?
+    description: Query whether or not the XMPP server has already been initialized.
+    operationId: is_server_initialized
+    security: []
+    parameters:
+      - in: header
+        name: If-None-Match
+        schema:
+          type: string
+          const: "*"
+        required: true
+    responses:
+      "204":
+        description: XMPP server initialized
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "428": { $ref: "../shared.yaml#/components/responses/PreconditionRequired" }
   init_server_config:
     tags: [Init]
     summary: Initialize the XMPP server

@@ -13,6 +13,10 @@ use crate::{
 pub enum ServerConfigRepository {}
 
 impl ServerConfigRepository {
+    pub async fn is_initialized(db: &impl ConnectionTrait) -> Result<bool, DbErr> {
+        Ok(Entity::find().count(db).await? > 0)
+    }
+
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<ServerConfigCreateForm>,

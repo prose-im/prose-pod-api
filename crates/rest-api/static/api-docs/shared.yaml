@@ -173,6 +173,18 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           example:
             error: unknown
+    PreconditionRequired:
+      description: Precondition required (check the docs to see which precondition)
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: string
+                const: precondition_required
   parameters:
     JidArray:
       description: A list of JIDs (as defined by [RFC 6120, section

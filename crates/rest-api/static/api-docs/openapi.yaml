@@ -18,6 +18,7 @@ paths:
   "/v1/login":
     post: { $ref: "features/auth.yaml#/paths/login" }
   "/v1/server/config":
+    head: { $ref: "features/server-config.yaml#/paths/is_server_initialized" }
     get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
     put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
   "/v1/server/config/file-upload-allowed":
