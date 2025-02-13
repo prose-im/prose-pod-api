@@ -31,7 +31,7 @@ paths:
             schema: { $ref: "members.yaml#/components/schemas/Member" }
         headers:
           Location: { $ref: "../shared.yaml#/components/headers/Location" }
-      "400": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "409":
         description: First account already created
         content:

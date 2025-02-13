@@ -14,7 +14,7 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/GetDnsRecordsResponse" }
-      "400": { $ref: "pod-config.yaml#/components/responses/PodAddressNotInitialized" }
+      "412": { $ref: "pod-config.yaml#/components/responses/PodAddressNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:

@@ -68,7 +68,7 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/PodAddress" }
-      "400": { $ref: "#/components/responses/PodAddressNotInitialized" }
+      "412": { $ref: "#/components/responses/PodAddressNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:

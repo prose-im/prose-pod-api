@@ -35,7 +35,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_file_upload_allowed:
@@ -58,7 +58,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_file_storage_retention:
@@ -83,7 +83,7 @@ paths:
                   - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_file_storage_encryption_scheme:
@@ -95,7 +95,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_messaging_config:
@@ -107,7 +107,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_message_archive_retention:
@@ -132,7 +132,7 @@ paths:
                   - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_message_archive_retention:
@@ -144,7 +144,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_files_config:
@@ -156,7 +156,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_message_archive_enabled:
@@ -179,7 +179,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_push_notifications_config:
@@ -191,7 +191,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_push_notification_with_body:
@@ -203,7 +203,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_push_notification_with_body:
@@ -228,7 +228,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_push_notification_with_sender:
@@ -240,7 +240,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_push_notification_with_sender:
@@ -265,7 +265,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_network_encryption_config:
@@ -277,7 +277,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_tls_profile:
@@ -289,7 +289,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_tls_profile:
@@ -313,7 +313,7 @@ paths:
               tls_profile: { $ref: "#/components/schemas/TlsProfile" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_server_federation_config:
@@ -325,7 +325,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_federation_enabled:
@@ -337,7 +337,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_federation_enabled:
@@ -363,7 +363,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_federation_whitelist_enabled:
@@ -375,7 +375,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_federation_whitelist_enabled:
@@ -400,7 +400,7 @@ paths:
                 type: boolean
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_federation_friendly_servers:
@@ -412,7 +412,7 @@ paths:
       - BearerAuth: []
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_federation_friendly_servers:
@@ -441,7 +441,7 @@ paths:
                   format: domain-name
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
-      "400": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
@@ -540,6 +540,14 @@ components:
       type: string
       enum: [modern, intermediate, old]
       default: modern
+    ServerConfigNotInitialized:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          const: server_config_not_initialized
   responses:
     ServerConfig:
       description: Success
@@ -557,6 +565,4 @@ components:
       description: XMPP server not initialized
       content:
         application/json:
-          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
-          example:
-            error: server_config_not_initialized
+          schema: { $ref: "#/components/schemas/ServerConfigNotInitialized" }
