@@ -125,6 +125,14 @@ tasks:
     prompt: This command will delete all the local Prose data associated to the default scenario, do you want to continue?
     cmd: "{{.ROOT_DIR}}/local-run/scripts/scenarios-reset default {{.CLI_ARGS}}"
 
+  telemetry:start:
+    desc: Start one or more collector(s) for telemetry logs collection.
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/otlp start {{.CLI_ARGS}}"
+
+  telemetry:stop:
+    desc: Stop one or more collector(s) for telemetry logs collection.
+    cmd: "{{.ROOT_DIR}}/local-run/scripts/otlp stop {{.CLI_ARGS}}"
+
   openapi:lint:
     desc: Lint the OpenAPI specification file.
     cmd: "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"

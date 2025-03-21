@@ -4,10 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::server_config::ServerConfigRepository;
-use tracing::{debug, info};
+use tracing::{debug, info, instrument};
 
 use crate::{features::init::ServerConfigNotInitialized, AppState};
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn register_oauth2_client(
     AppState {
         db, auth_service, ..

@@ -4,10 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::xmpp::ServerManager;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::AppState;
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn rotate_api_xmpp_password(
     AppState {
         server_ctl,

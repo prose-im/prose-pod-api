@@ -11,7 +11,7 @@ mod run_migrations;
 mod test_services_reachability;
 mod wait_for_server;
 
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
@@ -23,6 +23,7 @@ use self::run_migrations::*;
 use self::test_services_reachability::*;
 use self::wait_for_server::*;
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 

@@ -9,7 +9,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::{
     models::XmppConnectionType,
@@ -99,6 +99,7 @@ impl NetworkCheck for DnsRecordCheck {
     fn id(&self) -> Self::CheckId {
         <Self as NetworkCheck>::CheckId::from(self)
     }
+    #[instrument(name = "DnsRecordCheck::run", level = "trace", skip_all, fields(check = format!("{self:?}")), ret)]
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         network_checker
             .check_dns_entry(self.dns_entry.clone())
@@ -107,6 +108,7 @@ impl NetworkCheck for DnsRecordCheck {
 }
 
 impl NetworkChecker {
+    #[instrument(level = "trace", skip(self), ret)]
     async fn check_dns_entry(&self, dns_entry: DnsEntry) -> DnsRecordCheckResult {
         let check = |dns_lookup_result: Result<Vec<DnsRecord>, DnsLookupError>,
                      expected: &DnsRecord|

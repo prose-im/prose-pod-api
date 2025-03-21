@@ -4,9 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::MigratorTrait as _;
+use tracing::instrument;
 
 use crate::AppState;
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn run_migrations(AppState { db, .. }: &AppState) -> Result<(), String> {
     let _ = service::Migrator::up(db, None).await;
     Ok(())

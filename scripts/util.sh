@@ -3,6 +3,8 @@
 # Initialize submodules if someone didn't do it first.
 [ -f "${BASH_TOOLBOX:?}"/README.md ] || git -C "${SCRIPTS_ROOT:?}" submodule update --init
 
+# NOTE: `colors.sh` provides helpers to color text.
+source "${BASH_TOOLBOX:?}"/colors.sh
 # NOTE: `die` logs an error then exits.
 source "${BASH_TOOLBOX:?}"/die.sh
 # NOTE: `edo` supports dry mode via `DRY_MODE`. When not in dry mode,

@@ -8,6 +8,7 @@ use std::{fmt::Debug, ops::Deref, sync::Arc};
 use secrecy::SecretString;
 #[cfg(debug_assertions)]
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 use crate::{models::BareJid, prosody::ProsodyOAuth2Error};
 
@@ -22,11 +23,23 @@ impl AuthService {
     }
 }
 
-impl Deref for AuthService {
-    type Target = Arc<dyn AuthServiceImpl>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.implem
+impl AuthService {
+    /// Generates a token from a username and password.
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
+    pub async fn log_in(
+        &self,
+        jid: &BareJid,
+        password: &SecretString,
+    ) -> Result<AuthToken, AuthError> {
+        self.implem.log_in(jid, password).await
+    }
+    #[instrument(level = "trace", skip_all, ret, err)]
+    pub async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError> {
+        self.implem.get_user_info(token).await
+    }
+    #[instrument(level = "trace", skip_all, err)]
+    pub async fn register_oauth2_client(&self) -> Result<(), AuthError> {
+        self.implem.register_oauth2_client().await
     }
 }
 
@@ -50,7 +63,6 @@ pub struct UserInfo {
 
 #[async_trait::async_trait]
 pub trait AuthServiceImpl: Debug + Sync + Send {
-    /// Generates a token from a username and password.
     async fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<AuthToken, AuthError>;
     async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError>;
     async fn register_oauth2_client(&self) -> Result<(), AuthError>;

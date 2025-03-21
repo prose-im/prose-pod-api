@@ -11,7 +11,7 @@ use prose_xmpp::{
     BareJid, ConnectionError, RequestError,
 };
 use secrecy::SecretString;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 pub use super::live_xmpp_service::LiveXmppService;
 
@@ -53,29 +53,37 @@ impl XmppServiceInner {
 pub type VCard = prose_xmpp::stanza::VCard4;
 
 impl XmppService {
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
     pub async fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, XmppServiceError> {
         self.deref().get_vcard(&self.ctx, jid).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn get_own_vcard(&self) -> Result<Option<VCard>, XmppServiceError> {
         self.deref().get_own_vcard(&self.ctx).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn set_own_vcard(&self, vcard: &VCard) -> Result<(), XmppServiceError> {
         self.deref().set_own_vcard(&self.ctx, vcard).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string(), name), err)]
     pub async fn create_own_vcard(&self, name: &str) -> Result<(), XmppServiceError> {
         self.deref().create_own_vcard(&self.ctx, name).await
     }
 
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn get_own_nickname(&self) -> Result<Option<String>, XmppServiceError> {
         self.deref().get_own_nickname(&self.ctx).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string(), nickname), err)]
     pub async fn set_own_nickname(&self, nickname: &str) -> Result<(), XmppServiceError> {
         self.deref().set_own_nickname(&self.ctx, nickname).await
     }
 
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn get_own_formatted_name(&self) -> Result<Option<String>, XmppServiceError> {
         self.deref().get_own_formatted_name(&self.ctx).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string(), formatted_name), err)]
     pub async fn set_own_formatted_name(
         &self,
         formatted_name: &str,
@@ -85,16 +93,20 @@ impl XmppService {
             .await
     }
 
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
     pub async fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, XmppServiceError> {
         self.deref().get_avatar(&self.ctx, jid).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn get_own_avatar(&self) -> Result<Option<AvatarData>, XmppServiceError> {
         self.deref().get_own_avatar(&self.ctx).await
     }
+    #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
     pub async fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
         self.deref().set_own_avatar(&self.ctx, png_data).await
     }
 
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), ret, err)]
     pub async fn is_connected(&self, jid: &BareJid) -> Result<bool, XmppServiceError> {
         self.deref().is_connected(&self.ctx, jid).await
     }

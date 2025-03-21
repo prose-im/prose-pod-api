@@ -7,10 +7,11 @@ use std::fmt::{Debug, Display};
 
 use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
+use tracing::instrument;
 
 use crate::{
     models::xmpp::XmppConnectionType,
-    network_checks::{util::flattened_run, IpVersion, NetworkChecker},
+    network_checks::{util::flattened_srv_lookup, IpVersion, NetworkChecker},
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
@@ -142,10 +143,11 @@ impl NetworkCheck for IpConnectivityCheck {
     fn id(&self) -> Self::CheckId {
         <Self as NetworkCheck>::CheckId::from(self)
     }
+    #[instrument(name = "IpConnectivityCheck::run", level = "trace", skip_all, fields(check = format!("{self:?}")), ret)]
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = IpConnectivityCheckResult::Failure;
         for hostname in self.hostnames().iter() {
-            if flattened_run(
+            if flattened_srv_lookup(
                 &hostname.to_string(),
                 |host| network_checker.is_ip_available(host.to_string(), self.ip_version()),
                 network_checker,

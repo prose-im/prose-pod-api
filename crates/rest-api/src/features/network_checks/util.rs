@@ -13,12 +13,13 @@ use futures::{stream::FuturesOrdered, Stream, StreamExt};
 use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
 use tokio::{sync::mpsc, time::Duration};
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use crate::error::{self, Error};
 
 use super::{end_event, NetworkCheckResult};
 
+#[instrument(level = "trace", skip_all)]
 pub async fn run_checks<'r, Check>(
     checks: impl Iterator<Item = Check> + 'r,
     network_checker: &'r NetworkChecker,
@@ -38,6 +39,7 @@ where
         .await
 }
 
+#[instrument(level = "trace", skip_all, err)]
 pub fn run_checks_stream<Check, Status>(
     checks: impl Iterator<Item = Check> + Clone + Send + 'static,
     network_checker: NetworkChecker,

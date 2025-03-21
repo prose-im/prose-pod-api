@@ -16,6 +16,7 @@ async-trait = { version = "0.1", default-features = false }
 axum = { version = "0.8", default-features = false }
 axum-extra = { version = "0.10", default-features = false }
 axum-test = { version = "17", default-features = false }
+axum-tracing-opentelemetry = { version = "0.25", default-features = false }
 base64 = { version = "0.22", default-features = false }
 chrono = { version = "0.4", default-features = false }
 cucumber = { version = "0.21", default-features = false }
@@ -27,6 +28,7 @@ hickory-proto = { version = "0.24", default-features = false }
 hickory-resolver = { version = "0.24", default-features = false }
 hmac = { version = "0.12", default-features = false }
 http-auth-basic = { version = "0.3", default-features = false }
+init-tracing-opentelemetry = { version = "0.25", default-features = false }
 insta = { version = "1", default-features = false }
 iso8601-duration = { version = "0.2", default-features = false }
 iso8601-timestamp = { version = "0.3", default-features = false }
