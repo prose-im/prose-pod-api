@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
 use secrecy::SecretString;
+use tracing::instrument;
 
 use crate::{
     auth::{auth_service, AuthService},
@@ -30,6 +31,7 @@ pub struct InitService {
 }
 
 impl InitService {
+    #[instrument(level = "trace", skip_all, err)]
     pub async fn init_server_config(
         &self,
         server_ctl: &ServerCtl,
@@ -90,6 +92,7 @@ impl Into<workspace::ActiveModel> for WorkspaceCreateForm {
 }
 
 impl InitService {
+    #[instrument(level = "trace", skip_all, err)]
     pub async fn init_workspace(
         &self,
         app_config: Arc<AppConfig>,
@@ -146,6 +149,7 @@ impl From<WorkspaceServiceInitError> for InitWorkspaceError {
 }
 
 impl InitService {
+    #[instrument(level = "trace", skip_all, err)]
     pub async fn init_first_account(
         &self,
         server_config: &ServerConfig,

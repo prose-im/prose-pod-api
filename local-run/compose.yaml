@@ -6,11 +6,12 @@ services:
       - server
       - coredns
       - mailpit
+      - otel-collector
     ports:
       - "8080:8080"
     volumes:
       - "${DATABASE_PATH:?}:/var/lib/prose-pod-api/database.sqlite"
-      - "${PROSE_CONFIG_FILE:?}:/etc/prose-pod-api/Prose.toml"
+      - "${PROSE_CONFIG_FILE:?}:/etc/prose-pod-api/Prose.toml:ro"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks: [prose-network]
     env_file: "${ENV_FILE:?}"
@@ -42,8 +43,8 @@ services:
   coredns:
     image: coredns/coredns:latest
     volumes:
-      - ${COREDNS_COREFILE:?}:/etc/coredns/Corefile
-      - ${DNS_ZONE_FILE:?}:/etc/coredns/zones.db
+      - ${COREDNS_COREFILE:?}:/etc/coredns/Corefile:ro
+      - ${DNS_ZONE_FILE:?}:/etc/coredns/zones.db:ro
     command: ["-conf", "/etc/coredns/Corefile"]
     networks:
       prose-network:
@@ -69,9 +70,17 @@ services:
     # Make sure logs are colored.
     tty: true
 
+  # https://github.com/open-telemetry/opentelemetry-collector
+  otel-collector:
+    image: otel/opentelemetry-collector:0.122.1
+    volumes:
+      - ${OTEL_CONFIG_FILE:?}:/etc/otelcol/config.yaml:ro
+    networks:
+      prose-network: {}
+
 networks:
   prose-network:
-    name: Prose Pod API local run network
+    name: prose-pod-net-local
     driver: bridge
     enable_ipv6: true
     ipam:

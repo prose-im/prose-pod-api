@@ -8,6 +8,7 @@ use std::{
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
+use tracing::instrument;
 
 use crate::{
     network_checks::{
@@ -28,6 +29,7 @@ fn domain_name_unchecked(str: &str) -> DomainName {
 }
 
 impl PodNetworkConfig {
+    #[instrument(level = "trace", skip_all)]
     fn dns_entries(&self) -> Vec<DnsSetupStep<DnsEntry>> {
         let Self {
             server_domain,
@@ -92,6 +94,7 @@ impl PodNetworkConfig {
     /// Configuration steps shown in the "DNS setup instructions" of the Prose Pod Dashboard.
     ///
     /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
+    #[instrument(level = "trace", skip_all)]
     pub fn dns_setup_steps(&self) -> impl Iterator<Item = DnsSetupStep<DnsRecordWithStringRepr>> {
         self.dns_entries().into_iter().map(|step| DnsSetupStep {
             purpose: step.purpose,
@@ -107,6 +110,7 @@ impl PodNetworkConfig {
     /// "DNS records" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     ///
     /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
+    #[instrument(level = "trace", skip_all)]
     pub fn dns_record_checks(&self) -> impl Iterator<Item = DnsRecordCheck> + Clone {
         self.dns_entries()
             .into_iter()
@@ -115,6 +119,7 @@ impl PodNetworkConfig {
     }
 
     /// "Ports reachability" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
+    #[instrument(level = "trace", skip_all)]
     pub fn port_reachability_checks(&self) -> Vec<PortReachabilityCheck> {
         let Self { server_domain, .. } = self;
         // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
@@ -137,6 +142,7 @@ impl PodNetworkConfig {
     }
 
     /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
+    #[instrument(level = "trace", skip_all)]
     pub fn ip_connectivity_checks(&self) -> Vec<IpConnectivityCheck> {
         let Self {
             server_domain,

@@ -6,7 +6,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
-    net::{IpAddr, SocketAddr, TcpStream},
+    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs as _},
     str::FromStr as _,
     sync::Arc,
     time::{Duration, Instant},
@@ -133,6 +133,13 @@ impl LiveNetworkChecker {
 
         resolver
     }
+
+    fn is_reachable(&self, addr: SocketAddr) -> bool {
+        trace!("Checking if {addr} is reachable…");
+        let reachable = TcpStream::connect_timeout(&addr, Duration::from_secs(3)).is_ok();
+        trace!("{addr} reachable: {reachable}");
+        reachable
+    }
 }
 
 #[async_trait]
@@ -188,11 +195,10 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
         })
     }
 
-    fn is_reachable(&self, addr: SocketAddr) -> bool {
-        trace!("Checking if {addr} is reachable…");
-        let reachable = TcpStream::connect_timeout(&addr, Duration::from_secs(3)).is_ok();
-        trace!("{addr} reachable: {reachable}");
-        reachable
+    fn is_port_open(&self, host: &str, port: u16) -> bool {
+        (host, port)
+            .to_socket_addrs()
+            .is_ok_and(|mut addrs| addrs.any(|a| self.is_reachable(a)))
     }
 
     async fn is_ipv4_available(&self, host: &str) -> bool {

@@ -11,6 +11,7 @@ pub mod responders;
 pub mod util;
 
 use axum::{http::StatusCode, routing::get_service, Router};
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use features::startup_actions::on_startup;
 use service::{
     auth::AuthService,
@@ -88,6 +89,10 @@ pub async fn custom_router(app_state: AppState) -> Result<Router, StartupError> 
                 )
             }),
         )
+        // Include trace context as header into the response.
+        .layer(OtelInResponseLayer::default())
+        // Start OpenTelemetry trace on incoming request.
+        .layer(OtelAxumLayer::default())
         // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
         .layer(ServiceBuilder::new().map_response(error_catcher));
 

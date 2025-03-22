@@ -14,3 +14,4 @@
 : ${VAR_LIB_PROSODY_DIR:="${SCENARIO_DIR:?}"/prosody/data}
 : ${COREDNS_COREFILE:="${SCENARIO_DIR:?}"/coredns/Corefile}
 : ${DNS_ZONE_FILE:="${SCENARIO_DIR:?}"/dns-zone.zone}
+: ${OTEL_CONFIG_FILE:="${LOCAL_RUN_DIR:?}"/otel-collector-config.yaml}

@@ -3,12 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    fmt::Debug,
-    net::{IpAddr, SocketAddr, ToSocketAddrs as _},
-    ops::Deref,
-    sync::Arc,
-};
+use std::{fmt::Debug, net::IpAddr, ops::Deref, sync::Arc};
 
 use async_trait::async_trait;
 use hickory_proto::rr::Name as DomainName;
@@ -38,27 +33,51 @@ impl Deref for NetworkChecker {
     }
 }
 
+impl NetworkChecker {
+    #[instrument(level = "trace", skip(self), ret)]
+    pub async fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+        self.deref().ipv4_lookup(host).await
+    }
+    #[instrument(level = "trace", skip(self), ret)]
+    pub async fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+        self.deref().ipv6_lookup(host).await
+    }
+    #[instrument(level = "trace", skip(self), ret)]
+    pub async fn srv_lookup(&self, host: &str) -> Result<SrvLookupResponse, DnsLookupError> {
+        self.deref().srv_lookup(host).await
+    }
+
+    #[instrument(level = "trace", skip(self), ret)]
+    pub fn is_port_open(&self, host: &str, port: u16) -> bool {
+        self.deref().is_port_open(host, port)
+    }
+
+    #[instrument(level = "trace", skip(self), ret)]
+    pub async fn is_ipv4_available(&self, host: &str) -> bool {
+        self.deref().is_ipv4_available(host).await
+    }
+    #[instrument(level = "trace", skip(self), ret)]
+    pub async fn is_ipv6_available(&self, host: &str) -> bool {
+        self.deref().is_ipv6_available(host).await
+    }
+    pub async fn is_ip_available(&self, host: String, ip_version: IpVersion) -> bool {
+        match ip_version {
+            IpVersion::V4 => self.is_ipv4_available(&host).await,
+            IpVersion::V6 => self.is_ipv6_available(&host).await,
+        }
+    }
+}
+
 #[async_trait]
 pub trait NetworkCheckerImpl: Debug + Sync + Send {
     async fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn srv_lookup(&self, host: &str) -> Result<SrvLookupResponse, DnsLookupError>;
 
-    fn is_reachable(&self, addr: SocketAddr) -> bool;
-    fn is_port_open(&self, host: &str, port: u16) -> bool {
-        (host, port)
-            .to_socket_addrs()
-            .is_ok_and(|mut addrs| addrs.any(|a| self.is_reachable(a)))
-    }
+    fn is_port_open(&self, host: &str, port: u16) -> bool;
 
     async fn is_ipv4_available(&self, host: &str) -> bool;
     async fn is_ipv6_available(&self, host: &str) -> bool;
-    async fn is_ip_available(&self, host: String, ip_version: IpVersion) -> bool {
-        match ip_version {
-            IpVersion::V4 => self.is_ipv4_available(&host).await,
-            IpVersion::V6 => self.is_ipv6_available(&host).await,
-        }
-    }
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
@@ -86,7 +105,7 @@ pub trait WithChecking {
 }
 
 impl NetworkChecker {
-    #[instrument(level = "trace", skip(self, checks, map_to_event, sender, runner), fields(r#type = Check::check_type()))]
+    #[instrument(level = "trace", skip_all, fields(r#type = Check::check_type()))]
     pub fn run_checks<'a, Check, Status, Event>(
         &self,
         checks: impl Iterator<Item = Check>,

@@ -5,7 +5,11 @@
 
 use std::{net::SocketAddr, sync::Arc};
 
-use prose_pod_api::{custom_router, util::database::db_conn, AppState};
+use prose_pod_api::{
+    custom_router,
+    util::{database::db_conn, tracing_subscriber_ext},
+    AppState,
+};
 use service::{
     auth::{AuthService, LiveAuthService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
@@ -17,7 +21,6 @@ use service::{
     AppConfig, HttpClient,
 };
 use tracing::info;
-use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter, FmtSubscriber};
 
 #[tokio::main]
 async fn main() {
@@ -25,6 +28,10 @@ async fn main() {
     if app_config.debug.log_config_at_startup {
         dbg!(&app_config);
     }
+
+    let _tracing_guard = tracing_subscriber_ext::init_subscribers()
+        .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
+        .unwrap();
 
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
@@ -56,15 +63,6 @@ async fn main() {
     let email_notifier =
         Notifier::from_config::<EmailNotifier, _>(&app_config).unwrap_or_else(|e| panic!("{e}"));
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
-
-    {
-        let subscriber = FmtSubscriber::builder()
-            .with_env_filter(EnvFilter::from_default_env())
-            .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-            .finish();
-        tracing::subscriber::set_global_default(subscriber)
-            .expect("Failed to set tracing subscriber.");
-    }
 
     let addr = SocketAddr::new(app_config.address, app_config.port);
 

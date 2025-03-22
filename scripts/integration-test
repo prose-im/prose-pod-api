@@ -78,9 +78,9 @@ stepci_run() {
 	local test_file=${1:?}
 	local config_options=${2-test}
 
-	info "${Blue}$(for _ in $(seq 72); do printf "="; done)${Color_Off}"
-	info "${Blue}Running '$(sed "s#${STEPCI_DIR:?}/##" <<< "${test_file}")' with config '${config_options}'…${Color_Off}"
-	info "${Blue}$(for _ in $(seq 72); do printf "="; done)${Color_Off}"
+	info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+	info "$(fg-blue "Running '$(sed "s#${STEPCI_DIR:?}/##" <<< "${test_file}")' with config '${config_options}'…")"
+	info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
 
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
 	[ -f "${PROSE_CONFIG_FILE:?}" ] || die "File $(format_url "${PROSE_CONFIG_FILE:?}") doesn't exist."

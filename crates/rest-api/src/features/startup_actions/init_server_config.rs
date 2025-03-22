@@ -6,10 +6,11 @@
 use std::sync::Arc;
 
 use service::{server_config::ServerConfigRepository, xmpp::ServerManager};
-use tracing::{debug, info};
+use tracing::{debug, info, instrument};
 
 use crate::{features::init::ServerConfigNotInitialized, AppState};
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn init_server_config(
     AppState {
         db,

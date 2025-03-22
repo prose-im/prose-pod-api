@@ -19,7 +19,7 @@ use prose_xmpp::{
 use reqwest::Client as HttpClient;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::runtime::Handle;
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 
 use crate::models::FullJid;
 
@@ -109,6 +109,13 @@ impl Connection {
 }
 
 impl ConnectionTrait for Connection {
+    #[instrument(
+        level = "trace",
+        skip(self, stanza), fields(
+            jid = self.jid.read().as_ref().map(FullJid::to_string),
+            stanza = String::from(&stanza))
+        )
+    ]
     fn send_stanza(&self, stanza: Element) -> anyhow::Result<()> {
         let Some(token) = (*self.prosody_token.read()).clone() else {
             Err(anyhow!("Logic error: Cannot authenticate Prosody REST API call. Call `ProsodyRest.connect` before `Connection.send_stanza`."))?

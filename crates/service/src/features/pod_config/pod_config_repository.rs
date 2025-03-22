@@ -7,12 +7,14 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 
 use hickory_proto::rr::Name as DomainName;
 use sea_orm::{prelude::*, QueryOrder as _, Set, Unchanged};
+use tracing::instrument;
 
 use super::entities::pod_config::{self, ActiveModel, Column, Entity};
 
 pub enum PodConfigRepository {}
 
 impl PodConfigRepository {
+    #[instrument(name = "db::pod_config::create", level = "trace", skip_all, err)]
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<PodConfigCreateForm>,
@@ -20,10 +22,12 @@ impl PodConfigRepository {
         form.into().into_active_model().insert(db).await
     }
 
+    #[instrument(name = "db::pod_config::get", level = "trace", skip_all, err)]
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<pod_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
     }
 
+    #[instrument(name = "db::pod_config::set", level = "trace", skip_all, err)]
     pub async fn set(
         db: &impl ConnectionTrait,
         form: impl Into<PodConfigCreateForm>,

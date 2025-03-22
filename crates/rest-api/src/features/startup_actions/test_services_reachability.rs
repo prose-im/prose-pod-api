@@ -3,10 +3,11 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use tracing::debug;
+use tracing::{debug, instrument};
 
 use crate::AppState;
 
+#[instrument(level = "trace", skip_all, err)]
 pub async fn test_services_reachability(
     AppState { email_notifier, .. }: &AppState,
 ) -> Result<(), String> {

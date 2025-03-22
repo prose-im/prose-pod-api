@@ -1,0 +1,394 @@
+#!/usr/bin/env bash
+
+# This script is used to start and stop OpenTelemetry collectors.
+#
+# To add support for a new collector:
+#
+# - Add it to the 'SERVICE DEFINITIONS' section (taking inspiration from other definitions)
+# - Add it to the 'MAIN LOGIC' section
+# - Add an `exporter` in <../otel-collector-config.yaml>
+# - Add the exporter to the desired `pipeline`s in <../otel-collector-config.yaml>
+
+# ===== INIT =====
+
+# Configure the script to exit when a command fails.
+set -e
+
+: ${SELF:="$(basename $0)"}
+
+: ${SCRIPTS_ROOT:="$(dirname $0)"/../../scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== DOCS =====
+
+description() {
+	if [ -n "${ACTION-}" ]; then
+		description-"${ACTION:?}"
+	else
+		printf "$(SELF="${SELF:?} start" description-start)\n"
+		echo ''
+		printf "$(SELF="${SELF:?} stop" description-stop)\n"
+	fi
+}
+description-start() {
+	cat <<EOF
+${Bold}Start one or more OpenTelemetry collector(s).${Bold_Off}
+EOF
+}
+description-stop() {
+	cat <<EOF
+${Bold}Stop one or more OpenTelemetry collector(s).${Bold_Off}
+EOF
+}
+
+usage() {
+	if [ -n "${ACTION-}" ]; then
+		usage-"${ACTION:?}"
+	else
+		printf "$(SELF="${SELF:?} start" usage-start)\n"
+		echo ''
+		printf "$(SELF="${SELF:?} stop" usage-stop)\n"
+	fi
+}
+usage-start() {
+	cat <<EOF
+$(format_title 'Syntax:')
+  $(format_command "${SELF}") $(format_arg SERVICE...) $(format_opt_arg --new)
+    Where $(format_arg SERVICE) is one of: ${SERVICES[@]}.
+
+$(format_title 'Usage:')
+  You want to start $(service-name jaeger):
+    $(format_command "${SELF:?}") $(format_arg jaeger)
+  You want to (re)start $(service-name jaeger) and delete existing data:
+    $(format_command "${SELF:?}") $(format_arg jaeger) $(format_arg --new)
+  You want to start both $(service-name jaeger) and $(service-name zipkin):
+    $(format_command "${SELF:?}") $(format_arg jaeger) $(format_arg zipkin)
+
+$(format_title 'Options:')
+  $(format_subtitle 'Behavior options:')
+    $(format_flag --new)
+      Use brand new containers (i.e. do not reuse existing containers).
+
+$(usage-misc-options)
+EOF
+}
+usage-stop() {
+	cat <<EOF
+$(format_title 'Syntax:')
+  $(format_command "${SELF}") $(format_opt_arg SERVICE...) $(format_opt_arg --rm)
+    Where $(format_arg SERVICE) is one of: ${SERVICES[@]}.
+
+$(format_title 'Usage:')
+  You want to stop all running telemetry collectors:
+    $(format_command "${SELF%' --'}")
+  You want to stop $(service-name jaeger):
+    $(format_command "${SELF:?}") $(format_arg jaeger)
+  You want to stop $(service-name jaeger) and delete the container:
+    $(format_command "${SELF:?}") $(format_arg jaeger) $(format_arg --rm)
+  You want to stop both $(service-name jaeger) and $(service-name zipkin):
+    $(format_command "${SELF:?}") $(format_arg jaeger) $(format_arg zipkin)
+
+$(format_title 'Options:')
+  $(format_subtitle 'Behavior options:')
+    $(format_flag --rm)
+      Delete containers after stopping them.
+
+$(usage-misc-options)
+EOF
+}
+usage-misc-options() {
+	cat <<EOF
+  $(format_subtitle 'Miscellaneous options:')
+    $(format_flag --help)
+      Explains what the command does and how to use it.
+    $(format_flag --dry-run)
+      Do a dry run (i.e. print what would be executed instead of running it).
+    $(format_flag --debug)
+      Log debug messages when running the script.
+    $(format_flag --trace)
+      Log tracing messages when running the script.
+EOF
+}
+
+help() {
+	if [ -n "${ACTION-}" ]; then
+		printf "$(description)\n"
+		echo ''
+		printf "$(usage)\n"
+	else
+		help-start
+		echo ''
+		help-stop
+	fi
+	exit 0
+}
+help-start() {
+	( ACTION=start SELF="${SELF:?} start"; help )
+}
+help-stop() {
+	( ACTION=stop SELF="${SELF:?} stop"; help )
+}
+
+# ===== CONSTANTS =====
+
+PROSE_OTEL_DOCKER_NETWORK=prose-pod-net-local
+declare -a SERVICES=()
+declare -A SERVICE_NAMES=() CONTAINER_NAMES=() UI_PORTS=()
+
+# ===== HELPER FUNCTIONS =====
+
+service-name() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	echo "${SERVICE_NAMES[${service_id}]:-"$(format_code "${service_id}")"}"
+}
+container-name() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	echo "${CONTAINER_NAMES[${service_id}]:-"${service_id}"}"
+}
+ui-port() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	echo "${UI_PORTS[${service_id}]:?"Missing value for key $(format_code "${service_id}") in $(format_code UI_PORTS)."}"
+}
+ui-hyperlink() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	local ui_port="$(ui-port "${service_id}")"
+	format_hyperlink http://localhost:"${ui_port}" http://localhost:"${ui_port}"
+}
+
+container-id() {
+	docker ps -a -q -f name="${1:?}"
+}
+container-running() {
+	docker ps -q -f name="${1:?}" | grep -q .
+}
+
+start-container() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	local service_name="$(service-name "${service_id}")"
+	local container_name="$(container-name "${service_id}")"
+	local ui_port="$(ui-port "${service_id}")"
+	local image_name="${2:?"Expecting the Docker image name to use for ${service_name}."}"
+	shift 2
+
+	if (( ${DELETE_EXISTING:-0} )); then
+		( DOCKER_RM=1 WARN_DELETE=1; stop-container "${service_id}" )
+	fi
+
+	if container-running "${container_name}"; then
+		# CASE: Container already running.
+		trace "${service_name} is already running."
+	elif local container_id="$(container-id "${container_name}")"; [ -n "${container_id:-}" ]; then
+		# CASE: Container already exists.
+		trace "${service_name} already exists."
+		edo log_as_trace_ docker start "${container_id}"
+	else
+		edo log_as_trace_ docker run -d \
+			--name "${container_name}" \
+			-p "${ui_port}:${ui_port}" \
+			--network "${PROSE_OTEL_DOCKER_NETWORK:?}" \
+			--network-alias "${service_id}" \
+			"$@" \
+			"${image_name}"
+	fi
+}
+stop-container() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	local service_name="$(service-name "${service_id}")"
+
+	local container_id="$(container-id "${service_id}")"
+
+	if container-running "${service_id}"; then
+		edo log_as_trace_ docker stop "${container_id}"
+		success "${service_name} stopped successfully."
+	else
+		success "${service_name} already stopped."
+	fi
+
+	if (( ${DOCKER_RM:-0} )); then
+		if [ -n "${container_id:-}" ]; then
+			if (( ${WARN_DELETE:-0} )); then
+				warn "${service_name} container already exists, deleting it…"
+			fi
+			edo log_as_trace_ docker rm "${container_id}"
+			success "${service_name} container deleted successfully."
+		else
+			success "${service_name} container already deleted."
+		fi
+	fi
+}
+
+start-container-group() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	local service_name="$(service-name "${service_id}")"
+	local container_name="$(container-name "${service_id}")"
+	local compose_file="${2:?"Expecting a path to the Compose configuration file to use for ${service_name}."}"
+	shift 2
+
+	if (( ${DELETE_EXISTING:-0} )); then
+		( DOCKER_RM=1 WARN_DELETE=1; stop-container-group "${service_id}" "${compose_file}" )
+	fi
+
+	if container-running "${service_id}"; then
+		# CASE: Container already running.
+		trace "${service_name} is already running."
+	elif local container_id="$(container-id "${container_name}")"; [ -n "${container_id:-}" ]; then
+		# CASE: Container already exists.
+		trace "${service_name} already exists."
+		edo log_as_trace_ docker compose -f "$compose_file" start
+	else
+		edo log_as_trace_ docker compose -f "$compose_file" up -d ${DELETE_EXISTING+--force-recreate --remove-orphans}
+		edo docker network connect "${PROSE_OTEL_DOCKER_NETWORK:?}" "${container_name}" --alias "${service_id}"
+	fi
+}
+stop-container-group() {
+	local service_id="${1:?"Expecting a service ID (container name)."}"
+	local service_name="$(service-name "${service_id}")"
+	local compose_file="${2:?"Expecting a path to the Compose configuration file to use for ${service_name}."}"
+
+	if container-running "${service_id}"; then
+		edo log_as_trace_ docker compose -f "$compose_file" stop
+		success "${service_name} stopped successfully."
+	else
+		success "${service_name} already stopped."
+	fi
+
+	if (( ${DOCKER_RM:-0} )); then
+		if [ -n "$(container-id "${service_id}")" ]; then
+			if (( ${WARN_DELETE:-0} )); then
+				warn "${service_name} container group already exists, deleting it…"
+			fi
+			edo log_as_trace_ docker compose -f "$compose_file" down
+			success "${service_name} container group deleted successfully."
+		else
+			success "${service_name} container group already deleted."
+		fi
+	fi
+}
+
+# ===== SERVICE DEFINITIONS =====
+
+# https://github.com/jaegertracing/jaeger
+SERVICES+=(jaeger)
+SERVICE_NAMES[jaeger]=Jaeger
+UI_PORTS[jaeger]=16686
+start-jaeger() {
+	start-container jaeger jaegertracing/all-in-one:1.67.0
+
+	success "The $(service-name jaeger) web UI is available at $(ui-hyperlink jaeger)."
+}
+stop-jaeger() {
+	stop-container jaeger
+}
+
+# https://github.com/openzipkin/zipkin
+# See also [zipkin/docker/examples/docker-compose.yml at master · openzipkin/zipkin](https://github.com/openzipkin/zipkin/blob/master/docker/examples/docker-compose.yml).
+SERVICES+=(zipkin)
+SERVICE_NAMES[zipkin]=Zipkin
+# Both Zipkin UI and HTTP API.
+UI_PORTS[zipkin]=9411
+start-zipkin() {
+	# NOTE: Environment settings are documented here:
+	#   https://github.com/openzipkin/zipkin/blob/master/zipkin-server/README.md#environment-variables
+	# NOTE: `JAVA_OPTS`: see https://github.com/openzipkin/zipkin/issues/3786.
+	start-container zipkin openzipkin/zipkin-slim:3.5.0 \
+		--env STORAGE_TYPE=mem \
+		--env JAVA_OPTS=-XX:UseSVE=0
+
+	success "The $(service-name zipkin) web UI is available at $(ui-hyperlink zipkin)."
+}
+stop-zipkin() {
+	stop-container zipkin
+}
+
+# https://github.com/SigNoz/signoz
+SERVICES+=(signoz)
+SERVICE_NAMES[signoz]=SigNoz
+CONTAINER_NAMES[signoz]=signoz-otel-collector
+UI_PORTS[signoz]=3301
+start-signoz() {
+	info "Starting $(service-name signoz). It might take a while, so stay around!"
+	start-container-group signoz "${SIGNOZ_COMPOSE_FILE:?}"
+
+	success "The $(service-name signoz) web UI is available at $(ui-hyperlink signoz)."
+}
+stop-signoz() {
+	stop-container-group signoz "${SIGNOZ_COMPOSE_FILE:?}"
+}
+
+# https://github.com/grafana/docker-otel-lgtm
+# See also [An OpenTelemetry backend in a Docker image: Introducing grafana/otel-lgtm | Grafana Labs](https://grafana.com/blog/2024/03/13/an-opentelemetry-backend-in-a-docker-image-introducing-grafana/otel-lgtm/).
+SERVICES+=(otel-lgtm)
+UI_PORTS[otel-lgtm]=3000
+start-otel-lgtm() {
+	# NOTE: `OTEL_METRIC_EXPORT_INTERVAL`: see [An OpenTelemetry backend in a Docker image: Introducing grafana/otel-lgtm | Grafana Labs](https://grafana.com/blog/2024/03/13/an-opentelemetry-backend-in-a-docker-image-introducing-grafana/otel-lgtm/#send-opentelemetry-signals).
+	start-container otel-lgtm grafana/otel-lgtm:0.9.1 \
+		--env OTEL_METRIC_EXPORT_INTERVAL=500
+
+	success "The $(service-name otel-lgtm) web UI (Grafana) is available at $(ui-hyperlink otel-lgtm)."
+	info "Username: $(format_code admin), password: $(format_code admin)."
+	warn "It might take about a minute for $(service-name otel-lgtm) to start. Check its logs or wait a bit before making requests."
+}
+stop-otel-lgtm() {
+	stop-container otel-lgtm
+}
+
+# ===== ARGUMENT PARSING =====
+
+unset ACTION
+
+ARGS_=()
+for arg in "$@"; do
+	case $arg in
+		--rm) DOCKER_RM=1 ;;
+		--new) DELETE_EXISTING=1 ;;
+		--help) help ;;
+		--dry-run) export DRY_RUN=1 ;;
+		--debug) export LOG_DEBUG=1 ;;
+		--trace) export LOG_TRACE=1 ;;
+		*)
+			if ! [ -v ACTION ]; then
+				ACTION="$arg"
+				# Add action suffix to `SELF` if invoked directly (i.e. not through `task`).
+				if ! [[ "$SELF" =~ ^task ]]; then
+					SELF="${SELF:?} ${ACTION:?}"
+				fi
+			else
+				ARGS_+=("$arg")
+			fi
+			;;
+	esac
+done
+# Update command args so we can then list test names.
+set -- "${ARGS_[@]}"
+unset ARGS_
+
+# Recompute log levels.
+source "${BASH_TOOLBOX:?}"/log.sh
+
+if [ "$#" == 0 ]; then
+	case "${ACTION}" in
+		start) die "You must pass at least one service name (supported: ${SERVICES[@]})." ;;
+		stop)
+			info 'No service name passed, stopping all services.'
+			set -- "${SERVICES[@]}"
+			;;
+	esac
+fi
+
+# ===== MAIN LOGIC =====
+
+for arg in "$@"; do
+	case $arg in
+		jaeger) "${ACTION}"-jaeger ;;
+		zipkin) "${ACTION}"-zipkin ;;
+		signoz)
+			# NOTE: This isn’t top-level so the script only crashes if
+			#   the user wants to use SigNoz but `SIGNOZ_DIR` is undefined.
+			SIGNOZ_COMPOSE_FILE="${SIGNOZ_DIR:?}/deploy/docker/docker-compose.yaml"
+			"${ACTION}"-signoz
+			;;
+		otel-lgtm|lgtm) "${ACTION}"-otel-lgtm ;;
+		*) die "Unknown service: $(format_code $arg). Supported: ${SERVICES[@]}." ;;
+	esac
+done

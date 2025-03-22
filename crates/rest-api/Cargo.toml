@@ -27,12 +27,16 @@ axum-extra = { workspace = true, features = [
     "query",
     "typed-header",
 ] }
+axum-tracing-opentelemetry = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
 form_urlencoded = { workspace = true }
 futures = { workspace = true }
 hickory-resolver = { workspace = true }
 http-auth-basic = { workspace = true }
+init-tracing-opentelemetry = { workspace = true, features = [
+    "tracing_subscriber_ext",
+] }
 iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde"] }
 lazy_static = { workspace = true }

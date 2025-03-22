@@ -5,7 +5,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    net::{Ipv4Addr, Ipv6Addr, SocketAddr},
+    net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
     sync::{Arc, RwLock},
 };
@@ -80,11 +80,6 @@ impl NetworkCheckerImpl for MockNetworkChecker {
             })
     }
 
-    fn is_reachable(&self, _addr: SocketAddr) -> bool {
-        // NOTE: We don't care about this since we have our own `is_port_open` override
-        //   and we don't cover cases where `is_reachable` is called directly.
-        false
-    }
     fn is_port_open(&self, host: &str, port_number: u16) -> bool {
         trace!("Checking if port {port_number} is open for {host}…");
         let mut host =

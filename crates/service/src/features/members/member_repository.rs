@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{
     prelude::*, DeleteResult, IntoActiveModel, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set,
 };
+use tracing::instrument;
 
 use crate::{
     members::{
@@ -23,16 +24,26 @@ impl MemberRepository {
     /// Create the user in database but NOT on the XMPP server.
     /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to create users in both places at the same time.
+    #[instrument(name = "db::member::create", level = "trace", skip_all, err)]
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<MemberCreateForm>,
     ) -> Result<Member, DbErr> {
-        form.into().into_active_model().insert(db).await
+        let form: MemberCreateForm = form.into();
+        tracing::Span::current()
+            .record("jid", form.jid.to_string())
+            .record("role", form.role.map(|role| role.to_string()));
+        form.into_active_model().insert(db).await
     }
 
     /// Delete the user from database but NOT from the XMPP server.
     /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to delete users from both places at the same time.
+    #[instrument(
+        name = "db::member::delete", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     pub async fn delete(
         db: &impl ConnectionTrait,
         jid: &BareJid,
@@ -43,10 +54,22 @@ impl MemberRepository {
         }
     }
 
+    #[instrument(
+        name = "db::member::get", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Member>, DbErr> {
         Entity::find_by_jid(&jid.to_owned().into()).one(db).await
     }
 
+    #[instrument(
+        name = "db::member::get_all",
+        level = "trace",
+        skip_all,
+        fields(page_number, page_size, until),
+        err
+    )]
     pub async fn get_all(
         db: &impl ConnectionTrait,
         page_number: u64,
@@ -69,10 +92,16 @@ impl MemberRepository {
         Ok((num_items_and_pages, models))
     }
 
+    #[instrument(name = "db::member::get_count", level = "trace", skip_all, err)]
     pub async fn count(db: &impl ConnectionTrait) -> Result<u64, DbErr> {
         Entity::find().count(db).await
     }
 
+    #[instrument(
+        name = "db::member::is_admin", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     pub async fn is_admin(db: &impl ConnectionTrait, jid: &BareJid) -> Result<bool, DbErr> {
         // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
         let member = Entity::find_by_jid(jid).one(db).await?;
@@ -85,6 +114,14 @@ impl MemberRepository {
         Ok(member.role == MemberRole::Admin)
     }
 
+    #[instrument(
+        name = "db::member::set_role", level = "trace",
+        skip_all, fields(
+            jid = jid.to_string(),
+            role = role.to_string()
+        ),
+        err
+    )]
     pub async fn set_role(
         db: &impl ConnectionTrait,
         jid: &BareJid,

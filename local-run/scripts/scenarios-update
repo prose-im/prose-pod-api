@@ -26,6 +26,7 @@ update-one() {
 	trace "Updating scenario $(format_code "${SCENARIO_NAME:?}")…"
 	edo cp "${SCENARIOS_DIR:?}"/{"${DEFAULT_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/prosody/config/prosody.initial.cfg.lua
 	edo cp -Rf "${SCENARIOS_DIR:?}"/{"${DEFAULT_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/prosody/config/certs/
+	edo mkdir -p "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/coredns
 	edo cp "${SCENARIOS_DIR:?}"/{"${DEFAULT_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/coredns/Corefile
 }
 

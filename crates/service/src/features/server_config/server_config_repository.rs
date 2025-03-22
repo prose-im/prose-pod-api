@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm::{prelude::*, QueryOrder as _, Set};
+use tracing::instrument;
 
 use crate::{
     models::JidDomain,
@@ -17,6 +18,7 @@ impl ServerConfigRepository {
         Ok(Entity::find().count(db).await? > 0)
     }
 
+    #[instrument(name = "db::server_config::create", level = "trace", skip_all, err)]
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<ServerConfigCreateForm>,
@@ -24,6 +26,7 @@ impl ServerConfigRepository {
         form.into().into_active_model().insert(db).await
     }
 
+    #[instrument(name = "db::server_config::get", level = "trace", skip_all, err)]
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<server_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
     }

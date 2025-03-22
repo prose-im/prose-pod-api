@@ -10,10 +10,11 @@ use std::{
 
 use async_trait::async_trait;
 use hickory_proto::rr::domain::Name as DomainName;
+use tracing::instrument;
 
 use crate::{
     models::XmppConnectionType,
-    network_checks::{util::flattened_run, NetworkChecker},
+    network_checks::{util::flattened_srv_lookup, NetworkChecker},
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
@@ -123,10 +124,11 @@ impl NetworkCheck for PortReachabilityCheck {
     fn id(&self) -> Self::CheckId {
         <Self as NetworkCheck>::CheckId::from(self)
     }
+    #[instrument(name = "PortReachabilityCheck::run", level = "trace", skip_all, fields(check = format!("{self:?}")), ret)]
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = PortReachabilityCheckResult::Closed;
         for hostname in self.hostnames().iter() {
-            if flattened_run(
+            if flattened_srv_lookup(
                 &hostname.to_string(),
                 |host| future::ready(network_checker.is_port_open(host, self.port())),
                 network_checker,
