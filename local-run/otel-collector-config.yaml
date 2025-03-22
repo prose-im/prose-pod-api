@@ -37,16 +37,24 @@ exporters:
     endpoint: jaeger:4317
     tls:
       insecure: true
+    retry_on_failure:
+      enabled: false
   zipkin:
     endpoint: http://zipkin:9411/api/v2/spans
     format: proto
     tls:
       insecure: true
+    retry_on_failure:
+      enabled: false
   otlp/signoz:
     endpoint: signoz-otel-collector:4317
     tls:
       insecure: true
+    retry_on_failure:
+      enabled: false
   otlp/lgtm:
     endpoint: otel-lgtm:4317
     tls:
       insecure: true
+    retry_on_failure:
+      enabled: false
