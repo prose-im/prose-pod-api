@@ -70,6 +70,16 @@ impl NetworkChecker {
 
 #[async_trait]
 pub trait NetworkCheckerImpl: Debug + Sync + Send {
+    async fn ip_lookup(
+        &self,
+        domain: &str,
+        version: IpVersion,
+    ) -> Result<Vec<DnsRecord>, DnsLookupError> {
+        match version {
+            IpVersion::V4 => self.ipv4_lookup(domain).await,
+            IpVersion::V6 => self.ipv6_lookup(domain).await,
+        }
+    }
     async fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn srv_lookup(&self, host: &str) -> Result<SrvLookupResponse, DnsLookupError>;
@@ -154,7 +164,8 @@ impl NetworkChecker {
                     }
                 }
             }
-            .instrument(trace_span!("task")),
+            .instrument(trace_span!("task"))
+            .in_current_span(),
         );
     }
 }

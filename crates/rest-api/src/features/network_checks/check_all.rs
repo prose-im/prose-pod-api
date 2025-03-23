@@ -8,7 +8,7 @@ use futures::{stream::FuturesOrdered, StreamExt};
 use service::util::ConcurrentTaskRunner;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::trace;
+use tracing::{trace, Instrument as _};
 
 use crate::features::network_checks::{
     check_dns_records::dns_record_check_result,
@@ -26,24 +26,33 @@ pub async fn check_network_configuration_route(
 
     for check in pod_network_config.dns_record_checks() {
         let network_checker = network_checker.clone();
-        tasks.push_back(tokio::spawn(async move {
-            let result = check.run(&network_checker).await;
-            NetworkCheckResult::from((check, result))
-        }));
+        tasks.push_back(tokio::spawn(
+            async move {
+                let result = check.run(&network_checker).await;
+                NetworkCheckResult::from((check, result))
+            }
+            .in_current_span(),
+        ));
     }
     for check in pod_network_config.port_reachability_checks() {
         let network_checker = network_checker.clone();
-        tasks.push_back(tokio::spawn(async move {
-            let result = check.run(&network_checker).await;
-            NetworkCheckResult::from((check, result))
-        }));
+        tasks.push_back(tokio::spawn(
+            async move {
+                let result = check.run(&network_checker).await;
+                NetworkCheckResult::from((check, result))
+            }
+            .in_current_span(),
+        ));
     }
     for check in pod_network_config.ip_connectivity_checks() {
         let network_checker = network_checker.clone();
-        tasks.push_back(tokio::spawn(async move {
-            let result = check.run(&network_checker).await;
-            NetworkCheckResult::from((check, result))
-        }));
+        tasks.push_back(tokio::spawn(
+            async move {
+                let result = check.run(&network_checker).await;
+                NetworkCheckResult::from((check, result))
+            }
+            .in_current_span(),
+        ));
     }
 
     let res: Vec<NetworkCheckResult> = tasks.filter_map(|res| async { res.ok() }).collect().await;
@@ -110,7 +119,8 @@ pub async fn check_network_configuration_stream_route(
                 trace!("Token cancelled.");
             }
         };
-    });
+    }
+    .in_current_span());
 
     Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }

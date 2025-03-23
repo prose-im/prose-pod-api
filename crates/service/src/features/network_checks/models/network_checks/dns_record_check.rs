@@ -13,7 +13,7 @@ use tracing::{debug, instrument};
 
 use crate::{
     models::XmppConnectionType,
-    network_checks::{DnsEntry, DnsLookupError, DnsRecord, NetworkChecker},
+    network_checks::{DnsEntry, DnsLookupError, DnsRecord, IpVersion, NetworkChecker},
 };
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
@@ -110,74 +110,75 @@ impl NetworkCheck for DnsRecordCheck {
 impl NetworkChecker {
     #[instrument(level = "trace", skip(self), ret)]
     async fn check_dns_entry(&self, dns_entry: DnsEntry) -> DnsRecordCheckResult {
-        let check = |dns_lookup_result: Result<Vec<DnsRecord>, DnsLookupError>,
-                     expected: &DnsRecord|
-         -> DnsRecordCheckResult {
-            // Check the given domain but also its standard equivalent (e.g. `_xmpp-client._tcp.{domain}`).
-            // If we the DNS lookup fails, consider that the DNS record is `Invalid`.
-            let records = match dns_lookup_result {
-                Ok(records) => records,
-                Err(err) => {
-                    debug!("DNS lookup failed: {err}");
-                    return DnsRecordCheckResult::Error(err);
-                }
-            };
-
-            // If we find the exact DNS record (not taking the TTL into account), return `Valid`.
-            // If we find a DNS record that's close enough, we consider it `PartiallyValid`.
-            // Otherwise, it's `Invalid`.
-            for record in records {
-                if record.eq(expected) {
-                    return DnsRecordCheckResult::Valid;
-                } else if record.equiv(expected) {
-                    return DnsRecordCheckResult::PartiallyValid {
-                        expected: expected.clone(),
-                        found: record,
-                    };
-                }
-            }
-
-            return DnsRecordCheckResult::Invalid;
-        };
-
-        macro_rules! check_ipv4 {
-            ($expected:expr) => {{
-                let expected = $expected;
-                let host = expected.hostname().to_string();
-                check(self.ipv4_lookup(&host).await, expected)
-            }};
-        }
-        macro_rules! check_ipv6 {
-            ($expected:expr) => {{
-                let expected = $expected;
-                let host = expected.hostname().to_string();
-                check(self.ipv6_lookup(&host).await, expected)
-            }};
-        }
-        macro_rules! check_srv {
-            ($expected:expr, $conn_type:expr) => {{
-                let expected = $expected;
-                let host = expected.hostname();
-                let result = match self
-                    .srv_lookup(&$conn_type.standard_domain(host.clone()).to_string())
-                    .await
-                {
-                    Ok(res) => Ok(res),
-                    Err(_) => self.srv_lookup(&host.to_string()).await,
-                };
-                check(result.map(|res| res.records), expected)
-            }};
-        }
-
         match dns_entry {
-            DnsEntry::Ipv4 { .. } => check_ipv4!(&dns_entry.into_dns_record()),
-            DnsEntry::Ipv6 { .. } => check_ipv6!(&dns_entry.into_dns_record()),
+            DnsEntry::Ipv4 { .. } => {
+                self.check_ip(&dns_entry.into_dns_record(), IpVersion::V4)
+                    .await
+            }
+            DnsEntry::Ipv6 { .. } => {
+                self.check_ip(&dns_entry.into_dns_record(), IpVersion::V6)
+                    .await
+            }
             DnsEntry::SrvC2S { .. } => {
-                check_srv!(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
+                self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
+                    .await
             }
             DnsEntry::SrvS2S { .. } => {
-                check_srv!(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
+                self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
+                    .await
             }
         }
+    }
+
+    fn to_check_result(
+        dns_lookup_result: Result<Vec<DnsRecord>, DnsLookupError>,
+        expected: &DnsRecord,
+    ) -> DnsRecordCheckResult {
+        // Check the given domain but also its standard equivalent (e.g. `_xmpp-client._tcp.{domain}`).
+        // If we the DNS lookup fails, consider that the DNS record is `Invalid`.
+        let records = match dns_lookup_result {
+            Ok(records) => records,
+            Err(err) => {
+                debug!("DNS lookup failed: {err}");
+                return DnsRecordCheckResult::Error(err);
+            }
+        };
+
+        // If we find the exact DNS record (not taking the TTL into account), return `Valid`.
+        // If we find a DNS record that's close enough, we consider it `PartiallyValid`.
+        // Otherwise, it's `Invalid`.
+        for record in records {
+            if record.eq(expected) {
+                return DnsRecordCheckResult::Valid;
+            } else if record.equiv(expected) {
+                return DnsRecordCheckResult::PartiallyValid {
+                    expected: expected.clone(),
+                    found: record,
+                };
+            }
+        }
+
+        return DnsRecordCheckResult::Invalid;
+    }
+
+    async fn check_ip(&self, expected: &DnsRecord, version: IpVersion) -> DnsRecordCheckResult {
+        let host = expected.hostname().to_string();
+        Self::to_check_result(self.ip_lookup(&host, version).await, expected)
+    }
+
+    async fn check_srv(
+        &self,
+        expected: &DnsRecord,
+        conn_type: XmppConnectionType,
+    ) -> DnsRecordCheckResult {
+        let host = expected.hostname();
+        let result = match self
+            .srv_lookup(&conn_type.standard_domain(host.clone()).to_string())
+            .await
+        {
+            Ok(res) => Ok(res),
+            Err(_) => self.srv_lookup(&host.to_string()).await,
+        };
+        Self::to_check_result(result.map(|res| res.records), expected)
     }
 }

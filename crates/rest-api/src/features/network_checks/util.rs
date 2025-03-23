@@ -13,7 +13,7 @@ use futures::{stream::FuturesOrdered, Stream, StreamExt};
 use service::{network_checks::*, util::ConcurrentTaskRunner, AppConfig};
 use tokio::{sync::mpsc, time::Duration};
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::{instrument, trace};
+use tracing::{instrument, trace, Instrument as _};
 
 use crate::error::{self, Error};
 
@@ -64,28 +64,31 @@ where
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();
 
-    tokio::spawn(async move {
-        tokio::select! {
-            _ = async {
-                fn logged(event: Event) -> Event {
-                    trace!("Sending {event:?}…");
-                    event
+    tokio::spawn(
+        async move {
+            tokio::select! {
+                _ = async {
+                    fn logged(event: Event) -> Event {
+                        trace!("Sending {event:?}…");
+                        event
+                    }
+
+                    let (tx, mut rx) = mpsc::channel::<Event>(32);
+                    network_checker.run_checks(checks, map_to_event, tx, &runner);
+
+                    while let Some(event) = rx.recv().await {
+                        sse_tx.send(Ok(logged(event))).await.unwrap();
+                    }
+
+                    sse_tx.send(Ok(logged(end_event()))).await.unwrap();
+                } => {}
+                _ = cancellation_token.cancelled() => {
+                    trace!("Token cancelled.");
                 }
-
-                let (tx, mut rx) = mpsc::channel::<Event>(32);
-                network_checker.run_checks(checks, map_to_event, tx, &runner);
-
-                while let Some(event) = rx.recv().await {
-                    sse_tx.send(Ok(logged(event))).await.unwrap();
-                }
-
-                sse_tx.send(Ok(logged(end_event()))).await.unwrap();
-            } => {}
-            _ = cancellation_token.cancelled() => {
-                trace!("Token cancelled.");
-            }
-        };
-    });
+            };
+        }
+        .in_current_span(),
+    );
 
     Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }
