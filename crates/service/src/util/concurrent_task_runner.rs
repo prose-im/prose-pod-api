@@ -112,7 +112,8 @@ impl ConcurrentTaskRunner {
                             _ = cancellation_token.cancelled() => { None },
                         }
                     }
-                    .instrument(span),
+                    .instrument(span)
+                    .in_current_span(),
                 )
             }),
             ordered,
@@ -135,7 +136,8 @@ impl ConcurrentTaskRunner {
                     }
                 };
             }
-            .instrument(trace_span!("send_results")),
+            .instrument(trace_span!("send_results"))
+            .in_current_span(),
         );
 
         rx
@@ -239,7 +241,8 @@ impl ConcurrentTaskRunner {
                             }
                         }
                     }
-                    .instrument(span),
+                    .instrument(span)
+                    .in_current_span(),
                 )
             })
             .collect();
@@ -274,7 +277,8 @@ impl ConcurrentTaskRunner {
                     }
                 };
             }
-            .instrument(trace_span!("send_results")),
+            .instrument(trace_span!("send_results"))
+            .in_current_span(),
         );
 
         rx
