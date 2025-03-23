@@ -20,6 +20,8 @@ where
     if cfg!(debug_assertions) {
         Box::new(
             tracing_subscriber::fmt::layer()
+                .compact()
+                .with_target(false)
                 .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
                 .without_time()
                 .with_timer(tracing_subscriber::fmt::time::uptime()),
