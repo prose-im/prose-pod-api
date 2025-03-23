@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # TODO: Count error and warning logs. Exit with 1 if at least one error encountered. Exit with 0 if a warning was encountered, and add a flag to consider it an error.
 

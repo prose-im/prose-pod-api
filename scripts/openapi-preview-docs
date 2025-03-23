@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 : ${SCRIPTS_ROOT:="$(dirname $0)"}
 : ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
