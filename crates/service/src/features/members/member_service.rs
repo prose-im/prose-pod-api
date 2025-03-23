@@ -8,7 +8,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 use crate::xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService};
 
@@ -128,6 +128,7 @@ pub enum SetMemberRoleError {
 }
 
 impl MemberService {
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
     pub async fn enrich_member(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
         trace!("Enriching `{jid}`…");
 

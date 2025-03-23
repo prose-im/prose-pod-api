@@ -24,7 +24,7 @@ use service::{
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::trace;
+use tracing::{trace, Instrument as _};
 
 use crate::{error::Error, AppState};
 
@@ -80,53 +80,56 @@ pub async fn enrich_members_stream_route(
 
     let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(jids.len());
 
-    tokio::spawn(async move {
-        tokio::select! {
-            _ = async {
-                fn logged(event: Event) -> Event {
-                    trace!("Sending {event:?}…");
-                    event
-                }
+    tokio::spawn(
+        async move {
+            tokio::select! {
+                _ = async {
+                    fn logged(event: Event) -> Event {
+                        trace!("Sending {event:?}…");
+                        event
+                    }
 
-                let cancellation_token = member_service.cancellation_token.clone();
-                let mut rx = runner.run(
-                    jids,
-                    move |jid| {
-                        let member_service = member_service.clone();
-                        Box::pin(async move { member_service.enrich_member(&jid).await })
-                    },
-                    move || cancellation_token.cancel(),
-                );
+                    let cancellation_token = member_service.cancellation_token.clone();
+                    let mut rx = runner.run(
+                        jids,
+                        move |jid| {
+                            let member_service = member_service.clone();
+                            Box::pin(async move { member_service.enrich_member(&jid).await })
+                        },
+                        move || cancellation_token.cancel(),
+                    );
 
-                while let Some(Ok(Some(member))) = rx.recv().await {
-                    let jid = member.jid.clone();
+                    while let Some(Ok(Some(member))) = rx.recv().await {
+                        let jid = member.jid.clone();
+                        sse_tx
+                            .send(Ok(logged(
+                                Event::default()
+                                    .event("enriched-member")
+                                    .id(jid.to_string())
+                                    .json_data(EnrichedMember::from(member))
+                                    .unwrap(),
+                            )))
+                            .await
+                            .unwrap();
+                    }
+
                     sse_tx
                         .send(Ok(logged(
                             Event::default()
-                                .event("enriched-member")
-                                .id(jid.to_string())
-                                .json_data(EnrichedMember::from(member))
-                                .unwrap(),
+                                .event("end")
+                                .id("end")
+                                .comment("End of stream"),
                         )))
                         .await
                         .unwrap();
+                } => {}
+                _ = cancellation_token.cancelled() => {
+                    trace!("Token cancelled.");
                 }
-
-                sse_tx
-                    .send(Ok(logged(
-                        Event::default()
-                            .event("end")
-                            .id("end")
-                            .comment("End of stream"),
-                    )))
-                    .await
-                    .unwrap();
-            } => {}
-            _ = cancellation_token.cancelled() => {
-                trace!("Token cancelled.");
-            }
-        };
-    });
+            };
+        }
+        .in_current_span(),
+    );
 
     Ok(Sse::new(ReceiverStream::new(sse_rx)).keep_alive(KeepAlive::default()))
 }
