@@ -8,7 +8,7 @@ use sea_orm::{
     prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,
     Set,
 };
-use secrecy::{ExposeSecret, SecretString, SerializableSecret, Zeroize};
+use secrecy::{zeroize::Zeroize, ExposeSecret, SecretString, SerializableSecret};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -238,7 +238,7 @@ impl From<Uuid> for InvitationToken {
 }
 impl InvitationToken {
     pub fn into_secret_string(self) -> SecretString {
-        SecretString::new(self.0.to_string())
+        SecretString::from(self.0.to_string())
     }
 }
 impl Into<SecretString> for InvitationToken {

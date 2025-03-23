@@ -40,6 +40,6 @@ impl FromRequestParts<AppState> for service::auth::auth_service::AuthToken {
             ))));
         };
 
-        Ok(Self(SecretString::new(token.to_string())))
+        Ok(Self(SecretString::from(token.to_string())))
     }
 }
