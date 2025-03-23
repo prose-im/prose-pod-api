@@ -12,7 +12,7 @@ pub mod util;
 
 use axum::{http::StatusCode, routing::get_service, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
-use features::startup_actions::on_startup;
+use features::startup_actions;
 use service::{
     auth::AuthService,
     dependencies::Uuid,
@@ -25,7 +25,7 @@ use service::{
 };
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
-use tracing::error;
+use tracing::{error, instrument};
 use util::error_catcher;
 
 pub trait AxumState: Clone + Send + Sync + 'static {}
@@ -70,14 +70,16 @@ impl AppState {
 
 impl AxumState for AppState {}
 
-#[derive(Debug, thiserror::Error)]
-#[error("Startup error: {0}")]
-pub struct StartupError(String);
+pub struct PreStartupRouter(Router);
 
 /// A custom [`Router`] with a default configuration.
-pub async fn custom_router(app_state: AppState) -> Result<Router, StartupError> {
-    // Create the router first, because it's a cheap operation and
-    // Axum validates that there are no overlapping routes.
+///
+/// This route returns a [`PreStartupRouter`], forcing one to invoke this route first
+/// then [`run_startup_actions`] to get the [`Router`]. We do it in this order because
+/// creating the router is a cheap operation and Axum validates that there are no
+/// overlapping routes (failing fast if something’s wrong).
+#[instrument(level = "trace", skip_all)]
+pub fn make_router(app_state: &AppState) -> PreStartupRouter {
     let router = Router::new()
         .merge(features::router(app_state.clone()))
         .nest_service(
@@ -96,16 +98,23 @@ pub async fn custom_router(app_state: AppState) -> Result<Router, StartupError> 
         // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
         .layer(ServiceBuilder::new().map_response(error_catcher));
 
-    // Before returning the router, run startup actions to ensure
-    // everything works correctly when the API launches.
-    //
-    // If we did that in `main`, we'd have to add it in both the tests' `main`
-    // function and in the API's `main` function.
-    //
-    // Instead of relying on integration tests to detect that we forgot to
-    // run startup actions in the API's `main` function, we can do it
-    // in this shared code.
-    on_startup(&app_state).await.map_err(StartupError)?;
+    PreStartupRouter(router)
+}
 
-    Ok(router)
+#[derive(Debug, thiserror::Error)]
+#[error("Startup error: {0}")]
+pub struct StartupError(String);
+
+/// Run startup actions to ensure everything works correctly when the API launches.
+///
+/// This function acts as a state machine transition.
+pub async fn run_startup_actions(
+    router: PreStartupRouter,
+    app_state: AppState,
+) -> Result<Router, StartupError> {
+    startup_actions::run_startup_actions(&app_state)
+        .await
+        .map_err(StartupError)?;
+
+    Ok(router.0)
 }

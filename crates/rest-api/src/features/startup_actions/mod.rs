@@ -24,7 +24,7 @@ use self::test_services_reachability::*;
 use self::wait_for_server::*;
 
 #[instrument(level = "trace", skip_all, err)]
-pub async fn on_startup(app_state: &AppState) -> Result<(), String> {
+pub async fn run_startup_actions(app_state: &AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 
     DETAILED_ERROR_REPONSES.store(

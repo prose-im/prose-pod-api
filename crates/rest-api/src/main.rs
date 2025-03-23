@@ -6,7 +6,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use prose_pod_api::{
-    custom_router,
+    make_router, run_startup_actions,
     util::{database::db_conn, tracing_subscriber_ext},
     AppState,
 };
@@ -20,7 +20,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing::info;
+use tracing::{info, trace_span};
 
 #[tokio::main]
 async fn main() {
@@ -32,6 +32,10 @@ async fn main() {
     let _tracing_guard = tracing_subscriber_ext::init_subscribers()
         .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
         .unwrap();
+
+    let startup_span = trace_span!("startup").entered();
+
+    let init_dependencies_span = trace_span!("init_dependencies").entered();
 
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
@@ -64,6 +68,8 @@ async fn main() {
         Notifier::from_config::<EmailNotifier, _>(&app_config).unwrap_or_else(|e| panic!("{e}"));
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
+    drop(init_dependencies_span);
+
     let addr = SocketAddr::new(app_config.address, app_config.port);
 
     let app_state = AppState::new(
@@ -76,10 +82,12 @@ async fn main() {
         secrets_store,
         network_checker,
     );
-    let app = custom_router(app_state)
+    let app = run_startup_actions(make_router(&app_state), app_state)
         .await
         .map_err(|err| panic!("{err}"))
         .unwrap();
+
+    drop(startup_span);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     info!("Serving the Prose Pod API on {addr}…");
