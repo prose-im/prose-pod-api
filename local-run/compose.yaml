@@ -77,6 +77,8 @@ services:
       - ${OTEL_CONFIG_FILE:?}:/etc/otelcol/config.yaml:ro
     networks:
       prose-network: {}
+    # Do not show logs in the console.
+    attach: false
 
 networks:
   prose-network:
