@@ -16,19 +16,24 @@ BASE_SCENARIO_NAME="${DEFAULT_SCENARIO_NAME:?}"
 
 # ===== ARGUMENT PARSING =====
 
-SCENARIO_NAME="${1:?}"
-shift 1
+unset SCENARIO_NAME
 
 for arg in "$@"; do
 	case $arg in
 		--based-on=*)
 			BASE_SCENARIO_NAME="${arg#'--based-on='}"
 			;;
-		--help) help ;;
+		--help) die Unsupported ;;
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;
 		--trace) export LOG_TRACE=1 ;;
-		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+		*)
+			if ! [ -v SCENARIO_NAME ]; then
+				SCENARIO_NAME="$arg"
+			else
+				die "Unknown argument: $(format_code "$arg").\n$(usage)"
+			fi
+			;;
 	esac
 done
 
