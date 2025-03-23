@@ -2926,7 +2926,7 @@ dependencies = [
 [[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.101#f9d062474c40bca333cf03c6bf6d3bea542e1213"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
 dependencies = [
  "convert_case",
  "quote",
@@ -2936,12 +2936,12 @@ dependencies = [
 [[package]]
 name = "prose-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.101#f9d062474c40bca333cf03c6bf6d3bea542e1213"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
 
 [[package]]
 name = "prose-wasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.101#f9d062474c40bca333cf03c6bf6d3bea542e1213"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
 dependencies = [
  "futures",
  "gloo-timers",
@@ -2954,7 +2954,7 @@ dependencies = [
 [[package]]
 name = "prose-xmpp"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?tag=0.1.101#f9d062474c40bca333cf03c6bf6d3bea542e1213"
+source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3008,7 +3008,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn",

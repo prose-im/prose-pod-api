@@ -126,6 +126,21 @@ async fn then_workspace_icon_should_be(
     Ok(())
 }
 
+// WORKSPACE ACCENT COLOR
+
+#[given(expr = "the workspace accent color is {string}")]
+async fn given_workspace_accent_color(
+    world: &mut TestWorld,
+    accent_color: String,
+) -> Result<(), Error> {
+    world
+        .workspace_service()
+        .await
+        .set_workspace_accent_color(accent_color)
+        .await?;
+    Ok(())
+}
+
 // WORKSPACE VCARD
 
 api_call_fn!(
@@ -137,9 +152,10 @@ api_call_fn!(get_workspace_vcard, GET, "/v1/workspace", accept: "text/vcard");
 api_call_fn!(set_workspace_vcard, PUT, "/v1/workspace", content_type: "text/vcard");
 
 #[given(expr = "the workspace vCard is {string}")]
-async fn given_workspace_vcard(world: &mut TestWorld, vcard_data: String) -> Result<(), Error> {
+async fn given_workspace_vcard(world: &mut TestWorld, mut vcard_data: String) -> Result<(), Error> {
     let server_config = world.server_config().await?;
 
+    vcard_data = vcard_data.replace("\\n", "\n");
     let vcards = vcard4::parse(vcard_data).unwrap();
     let vcard = vcards.first().unwrap();
     let prose_xmpp_vcard4 = vcard4_vcard_to_prose_xmpp_vcard4(vcard).unwrap();
@@ -194,5 +210,20 @@ async fn then_workspace_vcard_should_be(
         .await?;
     let vcard = prose_xmpp_vcard4_to_vcard4_vcard(prose_xmpp_vcard4).unwrap();
     assert_eq!(vcard.to_string(), vcard_data);
+    Ok(())
+}
+
+#[then(expr = "the workspace vCard should contain {string}")]
+async fn then_workspace_vcard_should_contain(
+    world: &mut TestWorld,
+    pattern: String,
+) -> Result<(), Error> {
+    let prose_xmpp_vcard4 = world
+        .workspace_service()
+        .await
+        .get_workspace_vcard()
+        .await?;
+    let vcard = prose_xmpp_vcard4_to_vcard4_vcard(prose_xmpp_vcard4).unwrap();
+    assert!(vcard.to_string().contains(&pattern), "vcard={vcard}");
     Ok(())
 }

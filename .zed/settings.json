@@ -10,6 +10,9 @@
     },
     "Markdown": {
       "wrap_guides": [96]
+    },
+    "Gherkin": {
+      "format_on_save": "off"
     }
   },
   "language_overrides": {

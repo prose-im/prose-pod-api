@@ -8,10 +8,10 @@ use std::sync::Arc;
 use axum::{http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    init::{InitService, InitWorkspaceError, WorkspaceCreateForm},
+    init::{InitService, InitWorkspaceError},
     secrets::SecretsStore,
     server_config::ServerConfig,
-    workspace::WorkspaceServiceError,
+    workspace::{Workspace, WorkspaceServiceError},
     xmpp::XmppServiceInner,
     AppConfig,
 };
@@ -98,8 +98,7 @@ impl CustomErrorCode for InitWorkspaceError {
         match self {
             Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
             Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-            Self::CouldNotSetWorkspaceName(err) => err.code(),
-            Self::DbErr(err) => err.code(),
+            Self::CouldNotSetWorkspaceVCard(err) => err.code(),
         }
     }
 }
@@ -110,7 +109,6 @@ impl HttpApiError for WorkspaceServiceError {
         match self {
             Self::WorkspaceNotInitialized => WorkspaceNotInitialized.code(),
             Self::XmppServiceError(err) => err.code(),
-            Self::DbErr(err) => err.code(),
         }
     }
     fn message(&self) -> String {
@@ -126,11 +124,12 @@ impl HttpApiError for WorkspaceServiceError {
 
 // BOILERPLATE
 
-impl Into<WorkspaceCreateForm> for InitWorkspaceRequest {
-    fn into(self) -> WorkspaceCreateForm {
-        WorkspaceCreateForm {
+impl Into<Workspace> for InitWorkspaceRequest {
+    fn into(self) -> Workspace {
+        Workspace {
             name: self.name,
-            accent_color: Some(self.accent_color),
+            accent_color: self.accent_color,
+            icon: None,
         }
     }
 }

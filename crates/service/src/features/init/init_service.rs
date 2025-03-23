@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use sea_orm::{DatabaseConnection, DbErr, NotSet, Set, TransactionTrait as _};
+use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 use tracing::instrument;
 
@@ -18,10 +18,7 @@ use crate::{
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
-    workspace::{
-        entities::workspace, workspace_service, WorkspaceRepository, WorkspaceService,
-        WorkspaceServiceInitError,
-    },
+    workspace::{workspace_service, Workspace, WorkspaceService, WorkspaceServiceInitError},
     xmpp::{server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner},
     AppConfig,
 };
@@ -76,21 +73,6 @@ pub enum InitServerConfigError {
     CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
 }
 
-#[derive(Debug, Clone)]
-pub struct WorkspaceCreateForm {
-    pub name: String,
-    pub accent_color: Option<Option<String>>,
-}
-
-impl Into<workspace::ActiveModel> for WorkspaceCreateForm {
-    fn into(self) -> workspace::ActiveModel {
-        workspace::ActiveModel {
-            accent_color: self.accent_color.map(Set).unwrap_or(NotSet),
-            ..Default::default()
-        }
-    }
-}
-
 impl InitService {
     #[instrument(level = "trace", skip_all, err)]
     pub async fn init_workspace(
@@ -99,28 +81,22 @@ impl InitService {
         secrets_store: Arc<SecretsStore>,
         xmpp_service: Arc<XmppServiceInner>,
         server_config: &ServerConfig,
-        form: impl Into<WorkspaceCreateForm>,
-    ) -> Result<workspace::Model, InitWorkspaceError> {
+        form: impl Into<Workspace>,
+    ) -> Result<Workspace, InitWorkspaceError> {
+        let workspace = form.into();
+
+        let workspace_service =
+            WorkspaceService::new(xmpp_service, app_config, server_config, secrets_store)?;
+
         // Check that the workspace isn't already initialized.
-        let None = WorkspaceRepository::get(self.db.as_ref()).await? else {
+        let None = workspace_service.get_workspace_name().await.ok() else {
             return Err(InitWorkspaceError::WorkspaceAlreadyInitialized);
         };
 
-        let form = form.into();
-
-        let workspace = WorkspaceRepository::create(self.db.as_ref(), form.clone()).await?;
-
-        let workspace_service = WorkspaceService::new(
-            self.db.clone(),
-            xmpp_service,
-            app_config,
-            server_config,
-            secrets_store,
-        )?;
         workspace_service
-            .set_workspace_name(form.name)
+            .set_workspace_vcard(&workspace.clone().into())
             .await
-            .map_err(InitWorkspaceError::CouldNotSetWorkspaceName)?;
+            .map_err(InitWorkspaceError::CouldNotSetWorkspaceVCard)?;
 
         Ok(workspace)
     }
@@ -132,10 +108,8 @@ pub enum InitWorkspaceError {
     WorkspaceAlreadyInitialized,
     #[error("Workspace XMPP account not initialized.")]
     XmppAccountNotInitialized,
-    #[error("Could not set workspace name: {0}")]
-    CouldNotSetWorkspaceName(workspace_service::Error),
-    #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
+    #[error("Could not set workspace vCard: {0}")]
+    CouldNotSetWorkspaceVCard(workspace_service::Error),
 }
 
 impl From<WorkspaceServiceInitError> for InitWorkspaceError {

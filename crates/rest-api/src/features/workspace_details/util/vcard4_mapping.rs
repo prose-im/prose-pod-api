@@ -6,7 +6,7 @@
 use std::str::FromStr as _;
 
 use service::prose_xmpp::stanza::{vcard4 as prose_xmpp_properties, VCard4};
-use vcard4::property as vcard4_properties;
+use vcard4::property::{self as vcard4_properties, ExtensionProperty};
 
 pub fn prose_xmpp_vcard4_to_vcard4_vcard(
     VCard4 {
@@ -22,6 +22,7 @@ pub fn prose_xmpp_vcard4_to_vcard4_vcard(
         tel,
         title,
         url,
+        extensions,
     }: VCard4,
 ) -> Result<vcard4::Vcard, vcard4::Error> {
     let mut formatted_names = fn_.into_iter();
@@ -67,7 +68,17 @@ pub fn prose_xmpp_vcard4_to_vcard4_vcard(
         builder = builder.url(vcard4::Uri::from_str(&url.value)?);
     }
 
-    Ok(builder.finish())
+    let mut vcard = builder.finish();
+    for (name, value) in extensions.into_iter() {
+        vcard.extensions.push(ExtensionProperty {
+            name: name.to_ascii_uppercase(),
+            value: vcard4_properties::AnyProperty::Text(value),
+            group: Default::default(),
+            parameters: Default::default(),
+        });
+    }
+
+    Ok(vcard)
 }
 
 pub fn vcard4_vcard_to_prose_xmpp_vcard4(
@@ -84,6 +95,7 @@ pub fn vcard4_vcard_to_prose_xmpp_vcard4(
         role,
         org,
         note,
+        extensions,
         ..
     }: &vcard4::Vcard,
 ) -> Result<VCard4, vcard4::Error> {
@@ -156,6 +168,10 @@ pub fn vcard4_vcard_to_prose_xmpp_vcard4(
             .map(|s| prose_xmpp_properties::URL {
                 value: s.to_string(),
             })
+            .collect(),
+        extensions: extensions
+            .iter()
+            .map(|p| (p.name.to_ascii_lowercase(), p.value.to_string()))
             .collect(),
     })
 }

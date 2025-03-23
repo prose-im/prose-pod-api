@@ -33,5 +33,5 @@ pub async fn set_workspace_accent_color_route(
     let color = workspace_service
         .set_workspace_accent_color(req.color)
         .await?;
-    Ok(Json(GetWorkspaceAccentColorResponse { color }))
+    Ok(Json(GetWorkspaceAccentColorResponse { color: Some(color) }))
 }

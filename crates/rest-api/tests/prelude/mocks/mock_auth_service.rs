@@ -47,7 +47,7 @@ impl MockAuthService {
     pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<AuthToken, auth_service::Error> {
         let json = serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap();
         let base64 = Base64.encode(json);
-        let token = SecretString::new(base64);
+        let token = SecretString::from(base64);
 
         Ok(AuthToken(token))
     }
