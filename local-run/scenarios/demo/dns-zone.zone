@@ -5,5 +5,7 @@
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-prose-demo.org.local 3600 IN SRV 0 5 5222 prose-demo.org.local.
-prose-demo.org.local 3600 IN SRV 0 5 5269 prose-demo.org.local.
+xmpp.prose-demo.org.local 600 IN A 172.20.0.40
+xmpp.prose-demo.org.local 600 IN AAAA 2001:db8::40
+prose-demo.org.local 3600 IN SRV 0 5 5222 xmpp.prose-demo.org.local.
+prose-demo.org.local 3600 IN SRV 0 5 5269 xmpp.prose-demo.org.local.
