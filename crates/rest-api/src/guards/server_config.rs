@@ -12,6 +12,12 @@ use super::prelude::*;
 impl FromRequestParts<AppState> for server_config::Model {
     type Rejection = error::Error;
 
+    #[tracing::instrument(
+        name = "req::extract::server_config_model",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn from_request_parts(
         _parts: &mut request::Parts,
         state: &AppState,
@@ -26,6 +32,7 @@ impl FromRequestParts<AppState> for server_config::Model {
 impl FromRequestParts<AppState> for service::server_config::ServerConfig {
     type Rejection = error::Error;
 
+    #[tracing::instrument(name = "req::extract::server_config", level = "trace", skip_all, err)]
     async fn from_request_parts(
         parts: &mut request::Parts,
         state: &AppState,

@@ -8,6 +8,7 @@ use super::prelude::*;
 impl FromRequestParts<AppState> for service::dependencies::Uuid {
     type Rejection = Infallible;
 
+    #[tracing::instrument(name = "req::extract::uuid_generator", level = "trace", skip_all, err)]
     async fn from_request_parts(
         _parts: &mut request::Parts,
         state: &AppState,

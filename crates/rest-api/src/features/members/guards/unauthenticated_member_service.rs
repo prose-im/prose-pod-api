@@ -9,6 +9,12 @@ impl FromRequestParts<AppState> for service::members::UnauthenticatedMemberServi
     type Rejection = Infallible;
 
     /// WARN: Use only in initialization routes! Otherwise use `MemberService` directly.
+    #[tracing::instrument(
+        name = "req::extract::unauthenticated_member_service",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn from_request_parts(
         _parts: &mut request::Parts,
         state: &AppState,

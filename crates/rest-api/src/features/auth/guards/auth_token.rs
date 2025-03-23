@@ -13,6 +13,12 @@ const PREFIX: &'static str = "Bearer ";
 impl FromRequestParts<AppState> for service::auth::auth_service::AuthToken {
     type Rejection = error::Error;
 
+    #[tracing::instrument(
+        name = "req::auth::authenticate::bearer",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn from_request_parts(
         parts: &mut request::Parts,
         _state: &AppState,

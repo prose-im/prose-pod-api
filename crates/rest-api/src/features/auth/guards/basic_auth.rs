@@ -20,6 +20,12 @@ pub struct BasicAuth {
 impl FromRequestParts<AppState> for BasicAuth {
     type Rejection = error::Error;
 
+    #[tracing::instrument(
+        name = "req::auth::authenticate::basic",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn from_request_parts(
         parts: &mut request::Parts,
         _state: &AppState,

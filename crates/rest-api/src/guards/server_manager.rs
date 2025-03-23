@@ -10,6 +10,7 @@ use super::prelude::*;
 impl FromRequestParts<AppState> for service::xmpp::ServerManager {
     type Rejection = error::Error;
 
+    #[tracing::instrument(name = "req::extract::server_manager", level = "trace", skip_all, err)]
     async fn from_request_parts(
         parts: &mut request::Parts,
         state: &AppState,

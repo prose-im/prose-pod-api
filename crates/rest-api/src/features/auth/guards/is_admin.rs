@@ -16,6 +16,7 @@ pub struct IsAdmin;
 impl FromRequestParts<AppState> for IsAdmin {
     type Rejection = error::Error;
 
+    #[tracing::instrument(name = "req::auth::is_admin", level = "trace", skip_all, err)]
     async fn from_request_parts(
         parts: &mut request::Parts,
         state: &AppState,
