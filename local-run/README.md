@@ -1,1 +1,1 @@
-See <../tutorials/run-locally.md>.
+See <../docs/tutorials/run-locally.md>.
