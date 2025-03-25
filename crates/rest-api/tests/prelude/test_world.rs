@@ -6,7 +6,6 @@
 use std::{
     collections::HashMap,
     path::Path,
-    str::FromStr as _,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -119,7 +118,6 @@ impl TestWorld {
 
     pub async fn workspace_service(&self) -> WorkspaceService {
         WorkspaceService::new(
-            Arc::new(self.db().clone()),
             Arc::new(self.xmpp_service.clone()),
             Arc::new(self.app_config.clone()),
             &self
@@ -198,7 +196,7 @@ impl TestWorld {
 impl TestWorld {
     async fn new() -> Self {
         // NOTE: Behavior tests don't need to read the environment, therefore we have to set the required variables.
-        let api_xmpp_password = SecretString::from_str("anything").unwrap();
+        let api_xmpp_password = SecretString::from("anything");
         std::env::set_var(
             "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
             &api_xmpp_password.expose_secret(),

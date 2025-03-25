@@ -66,3 +66,21 @@ tests:
             Content-Type: application/json
           schema:
             $ref: openapi.json#/components/schemas/Error
+
+components:
+  steps:
+    log_member_in:
+      name: Log member in
+      http:
+        method: POST
+        url: /v1/login
+        auth:
+          basic:
+            # NOTE: Member 8 is a regular member
+            username: ${{ env.MEMBER_JIDS.8 }}
+            password: ${{ env.MEMBER_PASSWORDS.8 }}
+        captures:
+          token:
+            jsonpath: $.token
+        check:
+          status: 200

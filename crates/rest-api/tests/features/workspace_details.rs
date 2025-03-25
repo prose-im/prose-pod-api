@@ -3,8 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::workspace_details::{util::vcard4_vcard_to_prose_xmpp_vcard4, *};
-use util::prose_xmpp_vcard4_to_vcard4_vcard;
+use prose_pod_api::features::workspace_details::*;
 
 use super::prelude::*;
 
@@ -48,13 +47,13 @@ async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_
 }
 
 #[then(expr = "the returned workspace name should be {string}")]
-async fn then_response_workspace_name_is(world: &mut TestWorld, name: String) {
+async fn then_response_workspace_name(world: &mut TestWorld, name: String) {
     let res: GetWorkspaceNameResponse = world.result().json();
     assert_eq!(res.name, name);
 }
 
 #[then(expr = "the workspace should be named {string}")]
-async fn then_workspace_name_should_be(world: &mut TestWorld, name: String) -> Result<(), Error> {
+async fn then_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let workspace_name = world.workspace_service().await.get_workspace_name().await?;
     assert_eq!(workspace_name, name);
     Ok(())
@@ -106,16 +105,13 @@ async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
 }
 
 #[then(expr = "the returned workspace icon should be {string}")]
-async fn then_response_workspace_icon_is(world: &mut TestWorld, png_data: String) {
+async fn then_response_workspace_icon(world: &mut TestWorld, png_data: String) {
     let res: GetWorkspaceIconResponse = world.result().json();
     assert_eq!(res.icon, Some(png_data));
 }
 
 #[then(expr = "the workspace icon should be {string}")]
-async fn then_workspace_icon_should_be(
-    world: &mut TestWorld,
-    png_data: String,
-) -> Result<(), Error> {
+async fn then_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
     let workspace_icon = world
         .workspace_service()
         .await
@@ -126,73 +122,65 @@ async fn then_workspace_icon_should_be(
     Ok(())
 }
 
-// WORKSPACE VCARD
+// WORKSPACE ACCENT COLOR
 
 api_call_fn!(
-    get_workspace_vcard_unauthenticated,
+    get_workspace_accent_color_unauthenticated,
     unauthenticated: GET,
-    "/v1/workspace", accept: "text/vcard"
+    "/v1/workspace/accent-color",
 );
-api_call_fn!(get_workspace_vcard, GET, "/v1/workspace", accept: "text/vcard");
-api_call_fn!(set_workspace_vcard, PUT, "/v1/workspace", content_type: "text/vcard");
+api_call_fn!(
+    set_workspace_accent_color,
+    PUT,
+    "/v1/workspace/accent-color",
+    SetWorkspaceAccentColorRequest,
+    accent_color,
+    String
+);
 
-#[given(expr = "the workspace vCard is {string}")]
-async fn given_workspace_vcard(world: &mut TestWorld, vcard_data: String) -> Result<(), Error> {
-    let server_config = world.server_config().await?;
-
-    let vcards = vcard4::parse(vcard_data).unwrap();
-    let vcard = vcards.first().unwrap();
-    let prose_xmpp_vcard4 = vcard4_vcard_to_prose_xmpp_vcard4(vcard).unwrap();
-    world.mock_xmpp_service.set_vcard(
-        &world.app_config.workspace_jid(&server_config.domain),
-        &prose_xmpp_vcard4,
-    )?;
+#[given(expr = "the workspace accent color is {string}")]
+async fn given_workspace_accent_color(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    world
+        .workspace_service()
+        .await
+        .set_workspace_accent_color(name)
+        .await?;
     Ok(())
 }
 
-#[when("an unauthenticated user gets the workspace vCard")]
-async fn when_anyone_gets_workspace_vcard(world: &mut TestWorld) {
-    let res = get_workspace_vcard_unauthenticated(world.api()).await;
+#[when("an unauthenticated user gets the workspace accent color")]
+async fn when_anyone_gets_workspace_accent_color(world: &mut TestWorld) {
+    let res = get_workspace_accent_color_unauthenticated(world.api()).await;
     world.result = Some(res.into());
 }
 
-#[when(expr = "{word} gets the workspace vCard")]
-async fn when_user_gets_workspace_vcard(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = get_workspace_vcard(world.api(), token).await;
-    world.result = Some(res.into());
-}
-
-#[when(expr = "{} sets the workspace vCard to {string}")]
-async fn when_set_workspace_vcard(world: &mut TestWorld, name: String, mut vcard_data: String) {
-    vcard_data = vcard_data.replace("\\n", "\n");
-    let token = user_token!(world, name);
-    let res = set_workspace_vcard(
-        world.api(),
-        token,
-        axum::body::Bytes::copy_from_slice(vcard_data.as_bytes()),
-    )
-    .await;
-    world.result = Some(res.into());
-}
-
-#[then(expr = "the returned workspace vCard should be {string}")]
-async fn then_response_workspace_vcard_is(world: &mut TestWorld, vcard_data: String) {
-    let res: String = world.result().text();
-    assert_eq!(res, vcard_data);
-}
-
-#[then(expr = "the workspace vCard should be {string}")]
-async fn then_workspace_vcard_should_be(
+#[when(expr = "{} sets the workspace accent color to {string}")]
+async fn when_set_workspace_accent_color(
     world: &mut TestWorld,
-    vcard_data: String,
+    name: String,
+    workspace_name: String,
+) {
+    let token = user_token!(world, name);
+    let res = set_workspace_accent_color(world.api(), token, workspace_name).await;
+    world.result = Some(res.into());
+}
+
+#[then(expr = "the returned workspace accent color should be {string}")]
+async fn then_response_workspace_accent_color(world: &mut TestWorld, accent_color: String) {
+    let res: GetWorkspaceAccentColorResponse = world.result().json();
+    assert_eq!(res.accent_color, Some(accent_color));
+}
+
+#[then(expr = "the workspace accent color should be {string}")]
+async fn then_workspace_accent_color(
+    world: &mut TestWorld,
+    accent_color: String,
 ) -> Result<(), Error> {
-    let prose_xmpp_vcard4 = world
+    let workspace_accent_color = world
         .workspace_service()
         .await
-        .get_workspace_vcard()
+        .get_workspace_accent_color()
         .await?;
-    let vcard = prose_xmpp_vcard4_to_vcard4_vcard(prose_xmpp_vcard4).unwrap();
-    assert_eq!(vcard.to_string(), vcard_data);
+    assert_eq!(workspace_accent_color, Some(accent_color));
     Ok(())
 }

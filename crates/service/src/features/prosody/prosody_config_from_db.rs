@@ -280,11 +280,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                     def("oauth2_refresh_token_ttl", 0),
                                     def(
                                         "oauth2_registration_key",
-                                        app_config
-                                            .server
-                                            .oauth2_registration_key
-                                            .expose_secret()
-                                            .clone(),
+                                        app_config.server.oauth2_registration_key.expose_secret(),
                                     ),
                                 ],
                             ),

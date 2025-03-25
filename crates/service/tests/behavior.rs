@@ -11,11 +11,9 @@ use cucumber::World;
 use sea_orm::*;
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
-    init::WorkspaceCreateForm,
     models::JidDomain,
     prosody::ProsodyConfig,
     server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
-    workspace::WorkspaceRepository,
     MigratorTrait as _,
 };
 
@@ -58,6 +56,7 @@ impl TestWorld {
             panic!("Could not setup test database schema: {e}");
         }
 
+        // Init server config
         let server_config = ServerConfigCreateForm {
             domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
         };
@@ -65,14 +64,6 @@ impl TestWorld {
             Ok(conf) => conf,
             Err(e) => panic!("Could not create server config: {e}"),
         };
-
-        let workspace = WorkspaceCreateForm {
-            name: DEFAULT_WORKSPACE_NAME.to_string(),
-            accent_color: None,
-        };
-        if let Err(err) = WorkspaceRepository::create(&db, workspace).await {
-            panic!("Could not create workspace: {err}")
-        }
 
         Self {
             db,

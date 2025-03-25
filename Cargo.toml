@@ -44,7 +44,7 @@ regex = { version = "1", default-features = false }
 reqwest = { version = "0.12", default-features = false }
 sea-orm = { version = "1", default-features = false }
 sea-orm-migration = { version = "1", default-features = false }
-secrecy = { version = "0.8", default-features = false }
+secrecy = { version = "0.10", default-features = false }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
 serde_with = { version = "3", default-features = false }
@@ -61,7 +61,6 @@ tracing-subscriber = { version = "0.3", default-features = false }
 url_serde = { version = "0.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 uuid = { version = "1", default-features = false }
-vcard4 = { version = "0.7.1", default-features = false }
 
 # `lettre` dependencies.
 # WARN: `lettre` depends on the massive `aws-lc-rs` which takes a big portion of our build time.
@@ -76,7 +75,7 @@ rustls = { version = "0.23", default-features = false }
 # `prose-xmpp` and its dependencies.
 # NOTE: See <https://github.com/prose-im/prose-core-client/blob/master/Cargo.toml>
 #   for up-to-date versions (make sure to switch to the appropriate tag).
-prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", tag = "0.1.99", default-features = false }
+prose-xmpp = { git = "https://github.com/prose-im/prose-core-client.git", rev = "113c2a478598038a8e5beef4f6a7e7f47cb086c2", default-features = false }
 jid = { version = "0.11", default-features = false }
 minidom = { version = "0.16", default-features = false }
 xmpp-parsers = { version = "0.21", default-features = false }

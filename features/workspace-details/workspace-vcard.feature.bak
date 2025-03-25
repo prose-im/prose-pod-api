@@ -50,3 +50,34 @@ Feature: Workspace vCard
        When Rémi sets the workspace vCard to "BEGIN:VCARD\nVERSION:4.0\nFN:Prose IM\nEND:VCARD"
        Then the HTTP status code should be Forbidden
         And the workspace should be named "Prose"
+
+  """
+  The workspace accent color should be accessible via standard XMPP because the app
+  has no knowledge of the Prose Pod API. The best way to do it is to include the color
+  as a non-standard property in the workspace vCard.
+  """
+  Rule: The workspace vCard should contain its accent color
+
+    Scenario: Someone gets the workspace vCard
+      Given the Prose Pod has been initialized
+        And the workspace accent color is "#2d8deb"
+       When an unauthenticated user gets the workspace vCard
+       Then the call should succeed
+        And the workspace vCard should contain "X-ACCENT-COLOR:#2d8deb"
+
+  Rule: One should be able to set custom workspace vCard properties
+
+    Scenario: One XMPP client reads a property the Prose Pod API doesn’t define, and an admin wants to add it manually
+      Given the Prose Pod has been initialized
+        And Valerian is an admin
+       When Valerian sets the workspace vCard to "BEGIN:VCARD\nVERSION:4.0\nFN:Prose\nLANG:en\nEND:VCARD"
+       Then the call should succeed
+        And the workspace vCard should contain "LANG:en"
+
+    Scenario: An admin added a custom property, then edits a known property
+      Given the Prose Pod has been initialized
+        And Valerian is an admin
+        And the workspace vCard is "BEGIN:VCARD\nVERSION:4.0\nFN:Prose\nLANG:en\nEND:VCARD"
+       When Valerian sets the workspace name to "Prose IM"
+       Then the call should succeed
+        And the workspace vCard should contain "LANG:en"

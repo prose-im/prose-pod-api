@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::features::init::*;
-use service::init::*;
+use service::workspace::Workspace;
 
 use super::prelude::*;
 
@@ -31,9 +31,10 @@ fn given_workspace_not_initialized(_world: &mut TestWorld) {
 
 #[given("the workspace has been initialized")]
 async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let form = WorkspaceCreateForm {
+    let workspace = Workspace {
         name: DEFAULT_WORKSPACE_NAME.to_string(),
         accent_color: None,
+        icon: None,
     };
 
     world
@@ -43,7 +44,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
             Arc::new(world.secrets_store.clone()),
             Arc::new(world.xmpp_service.clone()),
             &world.server_config().await?,
-            form,
+            workspace,
         )
         .await?;
 
@@ -118,7 +119,7 @@ async fn init_first_account(api: &TestServer, node: &JidNode, nickname: &String)
         .add_header(CONTENT_TYPE, "application/json")
         .json(&json!(InitFirstAccountRequest {
             username: node.to_owned(),
-            password: SecretString::new("test.password".to_string()).into(),
+            password: SecretString::from("test.password").into(),
             nickname: nickname.to_owned(),
         }))
         .await

@@ -80,7 +80,7 @@ pub fn server_oauth2_registration_key() -> SecretString {
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
     }
 
-    SecretString::new(bytes_to_base64(&key))
+    SecretString::from(bytes_to_base64(&key))
 }
 
 pub fn server_oauth2_access_token_ttl() -> u32 {

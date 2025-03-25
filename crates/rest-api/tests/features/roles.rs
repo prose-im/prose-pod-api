@@ -25,7 +25,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
                 .create_user(
                     db,
                     &jid,
-                    &SecretString::new("password".to_owned()),
+                    &"password".into(),
                     &name,
                     &Some(MemberRole::Admin),
                 )
@@ -50,7 +50,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
         .create_user(
             db,
             &jid,
-            &SecretString::new("password".to_owned()),
+            &"password".into(),
             &name,
             &Some(MemberRole::Member),
         )

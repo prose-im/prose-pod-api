@@ -20,7 +20,6 @@ impl FromRequestParts<AppState> for WorkspaceService {
         let server_config = ServerConfig::from_request_parts(parts, state).await?;
 
         WorkspaceService::new(
-            Arc::new(state.db.clone()),
             Arc::new(state.xmpp_service.clone()),
             Arc::new(state.app_config.clone()),
             &server_config,

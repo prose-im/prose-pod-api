@@ -1,7 +1,7 @@
 paths:
   get_workspace:
     tags: [Workspace]
-    summary: Get workspace details.
+    summary: Get workspace details
     description: Get the details of your workspace.
     operationId: get_workspace
     security:
@@ -12,64 +12,20 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/Workspace" }
-          text/vcard:
-            schema:
-              type: string
-            examples:
-              base:
-                value: |
-                  BEGIN:VCARD
-                  VERSION:4.0
-                  FN:Prose IM
-                  END:VCARD
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  set_workspace:
+  init_workspace:
     tags: [Init, Workspace]
-    summary: Edit / initialize the workspace
-    description: |
-      Updates the workspace details and returns it.
-
-      This route is used to initialize the workspace, when using `application/json`.
-      In this case, no authentication is necessary.
-
-      When using `text/vcard`, the route can return error `invalid_vcard` if the data is malformed.
-      Also, beware that only keys present in [`VCard4` of `prose-xmpp`] will be interpreted.
-      The rest will be dismissed. You can check the returned value to see which keys have been saved.
-
-      [`VCard4` of `prose-xmpp`]: https://github.com/prose-im/prose-core-client/blob/master/crates/prose-xmpp/src/stanza/vcard4.rs
-    operationId: set_workspace
-    security:
-      - BearerAuth: []
+    summary: Initialize the workspace
+    description: Initializes the workspace and returns its details.
+    operationId: init_workspace
+    security: []
     requestBody:
       required: true
       content:
         application/json:
           schema: { $ref: "#/components/schemas/InitWorkspaceRequest" }
-        text/vcard:
-          schema:
-            type: string
-          examples:
-            base:
-              value: |
-                BEGIN:VCARD
-                VERSION:4.0
-                FN:Prose IM
-                END:VCARD
     responses:
-      "200":
-        description: Update success
-        content:
-          text/vcard:
-            schema:
-              type: string
-            examples:
-              base:
-                value: |
-                  BEGIN:VCARD
-                  VERSION:4.0
-                  FN:Prose IM
-                  END:VCARD
       "201":
         description: Initialization success
         content:
@@ -78,6 +34,27 @@ paths:
         headers:
           Location: { $ref: "../shared.yaml#/components/headers/Location" }
       "409": { $ref: "#/components/responses/WorkspaceAlreadyInitialized" }
+  patch_workspace:
+    tags: [Workspace]
+    summary: Update workspace details
+    description: Updates the workspace details and returns it.
+    operationId: patch_workspace
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PatchWorkspaceDetailsRequest" }
+    responses:
+      "200":
+        description: Update success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Workspace" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_name:
     tags: [Workspace]
     summary: Get workspace name
@@ -93,6 +70,7 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_name:
     tags: [Workspace]
     summary: Set workspace name
@@ -113,9 +91,10 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_accent_color:
     tags: [Workspace]
-    summary: Get the accent color of your workspace.
+    summary: Get workspace accent color
     description: Get the accent color of your workspace.
     operationId: get_workspace_accent_color
     security:
@@ -128,9 +107,10 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_accent_color:
     tags: [Workspace]
-    summary: Set the accent color of your workspace.
+    summary: Set workspace accent color
     description: Set the accent color of your workspace.
     operationId: set_workspace_accent_color
     security:
@@ -148,6 +128,7 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_icon:
     tags: [Workspace]
     summary: Get workspace icon
@@ -163,6 +144,7 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_icon:
     tags: [Workspace]
     summary: Set workspace icon
@@ -186,6 +168,7 @@ paths:
             schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
 components:
   schemas:
     Workspace:
@@ -194,14 +177,19 @@ components:
         - name
       properties:
         name: { $ref: "#/components/schemas/WorkspaceName" }
-        icon: { $ref: "members.yaml#/components/schemas/NullableAvatar" }
-        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+        icon:
+          $ref: "members.yaml#/components/schemas/Avatar"
+          type: [string, "null"]
+        accent_color:
+          $ref: "#/components/schemas/WorkspaceAccentColor"
+          type: [string, "null"]
     WorkspaceName:
       type: string
       description: The name of a Prose workspace.
       example: Crisp
     WorkspaceAccentColor:
-      type: ["null", string]
+      type: string
+      description: A color, in CSS format.
       example: "#4233BE"
     InitWorkspaceRequest:
       type: object
@@ -209,6 +197,16 @@ components:
         - name
       properties:
         name: { $ref: "#/components/schemas/WorkspaceName" }
+        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+    PatchWorkspaceDetailsRequest:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/WorkspaceName"
+          type: [string, "null"]
+        accent_color:
+          $ref: "#/components/schemas/WorkspaceAccentColor"
+          type: [string, "null"]
     GetWorkspaceNameResponse:
       type: object
       required:
@@ -224,7 +222,10 @@ components:
     GetWorkspaceIconResponse:
       type: object
       properties:
-        icon: { $ref: "members.yaml#/components/schemas/NullableAvatar" }
+        icon:
+          oneOf:
+            - { $ref: "members.yaml#/components/schemas/Avatar" }
+            - type: "null"
     SetWorkspaceIconRequest:
       type: object
       required:
@@ -234,25 +235,38 @@ components:
     GetWorkspaceAccentColorResponse:
       type: object
       properties:
-        color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+        accent_color:
+          oneOf:
+            - { $ref: "#/components/schemas/WorkspaceAccentColor" }
+            - type: "null"
     SetWorkspaceAccentColorRequest:
       type: object
       required:
-        - color
+        - accent_color
       properties:
-        color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
   responses:
     WorkspaceNotInitialized:
       description: Workspace not initialized
       content:
         application/json:
-          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                enum: null
+                const: workspace_not_initialized
           example:
             error: workspace_not_initialized
     WorkspaceAlreadyInitialized:
       description: Workspace already initialized
       content:
         application/json:
-          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                enum: null
+                const: workspace_already_initialized
           example:
             error: workspace_already_initialized
