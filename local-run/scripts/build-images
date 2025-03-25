@@ -11,9 +11,6 @@ source "${SCRIPTS_ROOT:?}"/constants.sh
 PROSE_POD_SERVER_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
 source "${SCRIPTS_ROOT:?}"/image-names.sh
 
-test-env-vars 'tutorials/run-locally.md' \
-	PROSE_POD_API_DIR
-
 # Build the Prose Pod API image.
 edo task build-image -- --profile=dev --locked
 

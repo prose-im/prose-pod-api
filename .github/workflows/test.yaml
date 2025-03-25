@@ -115,7 +115,6 @@ jobs:
       - name: Checkout prose-pod-api
         uses: actions/checkout@v4
         with:
-          path: ${{ env.PROSE_POD_API_DIR }}
           submodules: true
 
       - name: Install Rust toolchain
