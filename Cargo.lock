@@ -2903,6 +2903,7 @@ dependencies = [
  "lazy_static",
  "linked-hash-map",
  "mime",
+ "minidom",
  "regex",
  "rustls",
  "secrecy",
@@ -2926,7 +2927,7 @@ dependencies = [
 [[package]]
 name = "prose-proc-macros"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
+source = "git+https://github.com/prose-im/prose-core-client.git?rev=113c2a478598038a8e5beef4f6a7e7f47cb086c2#113c2a478598038a8e5beef4f6a7e7f47cb086c2"
 dependencies = [
  "convert_case",
  "quote",
@@ -2936,12 +2937,12 @@ dependencies = [
 [[package]]
 name = "prose-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
+source = "git+https://github.com/prose-im/prose-core-client.git?rev=113c2a478598038a8e5beef4f6a7e7f47cb086c2#113c2a478598038a8e5beef4f6a7e7f47cb086c2"
 
 [[package]]
 name = "prose-wasm-utils"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
+source = "git+https://github.com/prose-im/prose-core-client.git?rev=113c2a478598038a8e5beef4f6a7e7f47cb086c2#113c2a478598038a8e5beef4f6a7e7f47cb086c2"
 dependencies = [
  "futures",
  "gloo-timers",
@@ -2954,7 +2955,7 @@ dependencies = [
 [[package]]
 name = "prose-xmpp"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-core-client.git?branch=vcard4-private-properties#817d230be087b299f5d4769f73a6996bcb4b79ff"
+source = "git+https://github.com/prose-im/prose-core-client.git?rev=113c2a478598038a8e5beef4f6a7e7f47cb086c2#113c2a478598038a8e5beef4f6a7e7f47cb086c2"
 dependencies = [
  "anyhow",
  "async-trait",

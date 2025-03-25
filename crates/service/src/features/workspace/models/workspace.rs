@@ -3,7 +3,11 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_xmpp::stanza::{vcard4::Fn_, VCard4};
+use minidom::Element;
+use prose_xmpp::{
+    ns,
+    stanza::{vcard4::Fn_, VCard4},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,9 +35,10 @@ impl TryFrom<VCard4> for Workspace {
             // Avatars are not stored in vCards.
             icon: None,
             accent_color: vcard
-                .extensions
-                .get(&ACCENT_COLOR_EXTENSION_KEY.to_string())
-                .cloned(),
+                .unknown_properties
+                .get(ACCENT_COLOR_EXTENSION_KEY)
+                .first()
+                .map(|v| v.text()),
         })
     }
 }
@@ -42,10 +47,14 @@ impl Into<VCard4> for Workspace {
     fn into(self) -> VCard4 {
         VCard4 {
             fn_: vec![Fn_ { value: self.name }],
-            extensions: vec![self.accent_color.map(|c| (ACCENT_COLOR_EXTENSION_KEY, c))]
+            unknown_properties: vec![self.accent_color.map(|c| (ACCENT_COLOR_EXTENSION_KEY, c))]
                 .into_iter()
                 .flatten()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .map(|(k, v)| {
+                    Element::builder(k, ns::VCARD4)
+                        .append(Element::builder("text", ns::VCARD4).append(v))
+                        .build()
+                })
                 .collect(),
             ..Default::default()
         }

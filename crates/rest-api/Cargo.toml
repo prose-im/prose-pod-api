@@ -41,6 +41,7 @@ iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde"] }
 lazy_static = { workspace = true }
 mime = { workspace = true }
+minidom = { workspace = true }
 rustls = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

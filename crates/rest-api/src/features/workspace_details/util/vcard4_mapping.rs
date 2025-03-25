@@ -5,7 +5,11 @@
 
 use std::str::FromStr as _;
 
-use service::prose_xmpp::stanza::{vcard4 as prose_xmpp_properties, VCard4};
+use minidom::Element;
+use service::prose_xmpp::{
+    ns,
+    stanza::{vcard4 as prose_xmpp_properties, VCard4},
+};
 use vcard4::property::{self as vcard4_properties, ExtensionProperty};
 
 pub fn prose_xmpp_vcard4_to_vcard4_vcard(
@@ -22,7 +26,7 @@ pub fn prose_xmpp_vcard4_to_vcard4_vcard(
         tel,
         title,
         url,
-        extensions,
+        unknown_properties,
     }: VCard4,
 ) -> Result<vcard4::Vcard, vcard4::Error> {
     let mut formatted_names = fn_.into_iter();
@@ -69,11 +73,17 @@ pub fn prose_xmpp_vcard4_to_vcard4_vcard(
     }
 
     let mut vcard = builder.finish();
-    for (name, value) in extensions.into_iter() {
+    for element in unknown_properties.into_iter() {
+        if !element.name().to_ascii_lowercase().starts_with("x-") {
+            continue;
+        }
         vcard.extensions.push(ExtensionProperty {
-            name: name.to_ascii_uppercase(),
-            value: vcard4_properties::AnyProperty::Text(value),
+            name: element.name().to_ascii_uppercase(),
+            // NOTE: This is opinionated.
+            value: vcard4_properties::AnyProperty::Text(element.text()),
+            // NOTE: This too.
             group: Default::default(),
+            // NOTE: And this too.
             parameters: Default::default(),
         });
     }
@@ -169,9 +179,14 @@ pub fn vcard4_vcard_to_prose_xmpp_vcard4(
                 value: s.to_string(),
             })
             .collect(),
-        extensions: extensions
+        unknown_properties: extensions
             .iter()
-            .map(|p| (p.name.to_ascii_lowercase(), p.value.to_string()))
+            .map(|p| {
+                Element::builder(p.name.to_ascii_lowercase(), ns::VCARD4)
+                    // NOTE: This is opinionated.
+                    .append(p.value.to_string())
+                    .build()
+            })
             .collect(),
     })
 }
