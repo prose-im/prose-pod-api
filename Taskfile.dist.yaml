@@ -145,7 +145,7 @@ tasks:
     desc: Updates Redoc.
     vars:
       SRC: https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js
-      DEST: crates/rest-api/static/api-docs/redoc.standalone.js
+      DEST: src/rest-api/static/api-docs/redoc.standalone.js
     cmd: wget -q '{{.SRC}}' -O '{{.DEST}}'
 
   util:update-tested-at-version:

@@ -6,8 +6,8 @@ on:
     # Do not run the workflow if the project hasn't changed.
     paths:
       # We changed the code:
-      - "crates/*/src/**"
-      - "crates/*/src/Cargo.toml"
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
       # We changed how the image is built:
@@ -17,9 +17,9 @@ on:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
       - "docs/openapi/**"
-      - "crates/*/static/**"
+      - "src/*/static/**"
       # We changed how tests are ran:
-      - "crates/*/tests/**"
+      - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
       - "tests/**"
   pull_request:
@@ -27,8 +27,8 @@ on:
     # Do not run the workflow if the project hasn't changed.
     paths:
       # We changed the code:
-      - "crates/*/src/**"
-      - "crates/*/src/Cargo.toml"
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
       # We changed how the image is built:
@@ -38,9 +38,9 @@ on:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
       - "docs/openapi/**"
-      - "crates/*/static/**"
+      - "src/*/static/**"
       # We changed how tests are ran:
-      - "crates/*/tests/**"
+      - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
       - "tests/**"
 

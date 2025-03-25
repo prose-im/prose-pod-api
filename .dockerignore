@@ -1,7 +1,7 @@
 *
 !Cargo.*
-!crates/**/*.rs
-!crates/*/Cargo.*
-!crates/*/static/
+!src/**/*.rs
+!src/*/Cargo.*
+!src/*/static/
 !docs/
 docs/tutorials/
