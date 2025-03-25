@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+source "${BASH_TOOLBOX:?}"/format.sh
+
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+BASE_SCENARIO_NAME=fresh
+
+# Check that the base scenario doesn’t have data (put there by mistake).
+(
+	SCENARIO_NAME="${BASE_SCENARIO_NAME:?}"
+	source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
+	if [ -n "$(ls -A "${VAR_LIB_PROSODY_DIR:?}" | grep -v '^.gitignore$')" ]; then
+		die "Prosody initially contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
+	fi
+)
+
+SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+# Compute dynamic variables.
+source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
+
+# Start a fresh API with no data.
+edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
+
+info Initializing the Prose Pod…
+# Run the `init` integration test, which will initialize the Pod
+# (saving us a bunch of `curl` commands).
+( export SKIP_POD_START=1 SKIP_POD_STOP=1; edo log_as_trace_ task integration-test -- init )
+
+info Logging an admin in…
+TOKEN="$(edo curl -s -X POST http://localhost:8080/v1/login -u 'pauline.collins@prose-demo.org.local:demo' \| jq -r '.token')"
+info Performing a factory reset…
+edo curl -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}"
+
+info Checking if factory reset deleted everything…
+if [ -n "$(ls -A "${VAR_LIB_PROSODY_DIR:?}")" ]; then
+	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
+fi
+PROSODY_CONFIG_FILE="${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
+if ! [[ head -n 1 "${PROSODY_CONFIG_FILE:?}" | grep -q '^-- Prose Pod Server initial configuration$' ]]; then
+	die "Prosody config ($(format_url "${PROSODY_CONFIG_FILE:?}")) hasn’t been reset to its initial state."
+fi
+
+# Everything worked, no need to investigate.
+# Delete the ephemeral scenario.
+edo task local:stop

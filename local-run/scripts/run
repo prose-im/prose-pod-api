@@ -53,6 +53,10 @@ $(format_title 'Options:')
     $(format_flag --ephemeral)
       Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
       $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
+    $(format_flag --ephemeral-name=EPHEMERAL_SCENARIO_NAME)
+      Choose a custom name for the ephemeral scenario (default: scenario name with an
+      auto-generated incrementing suffix).
+      $(format_secondary 'This can be used when you need a predictable name.')
     $(format_flag --detach)
       Run containers in the background. Check logs with $(format_code 'task local:logs').
       $(format_secondary "Same as $(format_code docker compose up --detach).")
@@ -106,10 +110,9 @@ for arg in "$@"; do
 			# Regenerate image name.
 			unset PROSE_POD_SERVER_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
 			;;
-		--scenario=*)
-			SCENARIO_NAME="${arg#'--scenario='}"
-			;;
+		--scenario=*) SCENARIO_NAME="${arg#'--scenario='}" ;;
 		--ephemeral) EPHEMERAL=1 ;;
+		--ephemeral-name=*) EPHEMERAL_SCENARIO_NAME="${arg#'--ephemeral-name='}" ;;
 		--detach) DETACH=1 ;;
 		--no-update) NO_UPDATE=1 ;;
 		--help) help ;;
@@ -125,7 +128,7 @@ source "${BASH_TOOLBOX:?}"/log.sh
 
 if (( $EPHEMERAL )); then
 	BASE_SCENARIO_NAME="${SCENARIO_NAME:?}"
-	export SCENARIO_NAME="${SCENARIO_NAME:?}-$(date +%s)"
+	export SCENARIO_NAME="${EPHEMERAL_SCENARIO_NAME:-"${SCENARIO_NAME:?}-$(date +%s)"}"
 fi
 
 # Compute dynamic variables.
