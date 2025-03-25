@@ -1,0 +1,169 @@
+paths:
+  factory_reset:
+    tags: ["Administration"]
+    summary: Factory reset
+    description: |
+      This will erase all data on your Pod (all settings and all user data).
+      Your Pod will then restart and show the initial setup process, as if it was never used before.
+    operationId: factory_reset
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GetDnsRecordsResponse" }
+      "412": { $ref: "pod-config.yaml#/components/responses/PodAddressNotInitialized" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    DnsRecordType:
+      type: string
+      enum: [A, AAAA, SRV]
+    DnsRecord:
+      Any:
+        oneOf:
+          - $ref: "#/components/schemas/DnsRecord/A"
+          - $ref: "#/components/schemas/DnsRecord/AAAA"
+          - $ref: "#/components/schemas/DnsRecord/SRV"
+        discriminator:
+          propertyName: type
+      A:
+        type: object
+        required:
+          - hostname
+          - type
+          - ttl
+          - value
+        properties:
+          hostname:
+            type: string
+          type:
+            type: string
+            const: A
+          ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          value:
+            type: string
+        example:
+          hostname: xmpp.crisp.chat
+          type: A
+          ttl: 600
+          value: 90.105.205.180
+      AAAA:
+        type: object
+        required:
+          - hostname
+          - type
+          - ttl
+          - value
+        properties:
+          hostname:
+            type: string
+          type:
+            type: string
+            const: AAAA
+          ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          value:
+            type: string
+        example:
+          hostname: xmpp.crisp.chat
+          type: AAAA
+          ttl: 600
+          value: 2a01:cb05:899c:c200::1
+      SRV:
+        type: object
+        required:
+          - hostname
+          - type
+          - ttl
+          - priority
+          - weight
+          - port
+          - target
+        properties:
+          hostname:
+            type: string
+          type:
+            type: string
+            const: SRV
+          ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          priority: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          weight: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          port: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          target:
+            type: string
+        example:
+          hostname: crisp.chat
+          type: SRV
+          ttl: 3600
+          priority: 0
+          weight: 5
+          port: 5222
+          target: xmpp.crisp.chat.
+    GetDnsRecordsResponse:
+      type: object
+      required:
+        - steps
+      properties:
+        steps:
+          type: array
+          items: { $ref: "#/components/schemas/DnsSetupStep" }
+      example:
+        steps:
+          - purpose: specify your server IP address
+            records:
+              - hostname: xmpp.crisp.chat
+                type: A
+                ttl: 600
+                value: 90.105.205.180
+                string_repr: xmpp.crisp.chat 600 IN A 90.105.205.180
+              - hostname: xmpp.crisp.chat
+                type: AAAA
+                ttl: 600
+                value: 2a01:cb05:899c:c200::1
+                string_repr: xmpp.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
+          - purpose: let clients connect to your server
+            records:
+              - hostname: crisp.chat
+                type: SRV
+                ttl: 3600
+                priority: 0
+                weight: 5
+                port: 5222
+                target: xmpp.crisp.chat.
+                string_repr: crisp.chat 3600 IN SRV 0 5 5222 xmpp.crisp.chat.
+          - purpose: let servers connect to your server
+            records:
+              - hostname: crisp.chat
+                type: SRV
+                ttl: 3600
+                priority: 0
+                weight: 5
+                port: 5269
+                target: xmpp.crisp.chat.
+                string_repr: crisp.chat 3600 IN SRV 0 5 5269 xmpp.crisp.chat.
+    DnsSetupStep:
+      type: object
+      required:
+        - purpose
+        - records
+      properties:
+        purpose:
+          description: The purpose of this step. Note that it always starts with a
+            lowercase letter.
+          type: string
+          example: let clients connect to your server
+        records:
+          type: array
+          items: { $ref: "#/components/schemas/DnsRecordWithStringRepr" }
+    DnsRecordWithStringRepr:
+      allOf:
+        - type: object
+          required:
+            - string_repr
+          properties:
+            string_repr:
+              type: string
+        - $ref: "#/components/schemas/DnsRecord/Any"

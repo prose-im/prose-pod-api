@@ -117,3 +117,5 @@ for arg in "$@"; do
 			stepci_run "$test_file" ;;
 	esac
 done
+
+"${INTEGRATION_TESTS_DIR:?}"/test-factory-reset

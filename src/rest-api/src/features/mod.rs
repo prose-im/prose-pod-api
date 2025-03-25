@@ -10,6 +10,7 @@ pub mod startup_actions;
 pub mod api_docs;
 pub mod auth;
 pub mod dns_setup;
+pub mod factory_reset;
 pub mod init;
 pub mod invitations;
 pub mod members;
@@ -28,6 +29,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(api_docs::router())
         .merge(auth::router(app_state.clone()))
         .merge(dns_setup::router(app_state.clone()))
+        .merge(factory_reset::router(app_state.clone()))
         .merge(init::router(app_state.clone()))
         .merge(invitations::router(app_state.clone()))
         .merge(members::router(app_state.clone()))
@@ -36,7 +38,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(profile::router(app_state.clone()))
         .merge(roles::router(app_state.clone()))
         .merge(server_config::router(app_state.clone()))
-        .merge(workspace_details::router(app_state.clone()))
         .merge(version::router())
+        .merge(workspace_details::router(app_state.clone()))
         .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names))
 }
