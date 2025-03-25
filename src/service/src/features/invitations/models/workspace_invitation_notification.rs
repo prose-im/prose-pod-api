@@ -12,6 +12,7 @@ use crate::{
     app_config::ConfigBranding,
     invitations::InvitationToken,
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
+    workspace::Workspace,
     AppConfig,
 };
 
@@ -26,25 +27,31 @@ impl EmailNotification {
         email_recipient: EmailAddress,
         invitation_payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
+        workspace: &Workspace,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             email_recipient,
-            notification_subject(&app_config.branding),
-            notification_message(&app_config.branding, invitation_payload),
+            notification_subject(&app_config.branding, workspace),
+            notification_message(&app_config.branding, workspace, invitation_payload),
             app_config,
         )
     }
 }
 
-pub fn notification_subject(branding: &ConfigBranding) -> String {
-    format!(
-        "You have been invited to {company}'s Prose server!",
-        company = branding.company_name,
-    )
+pub fn notification_subject(branding: &ConfigBranding, workspace: &Workspace) -> String {
+    if let Some(ref company) = branding.company_name {
+        format!("You have been invited to {company}’s Prose server!")
+    } else {
+        format!(
+            "You have been invited to {workspace_name}!",
+            workspace_name = workspace.name
+        )
+    }
 }
 
 pub fn notification_message(
     branding: &ConfigBranding,
+    workspace: &Workspace,
     WorkspaceInvitationPayload {
         accept_token,
         reject_token,
@@ -68,10 +75,14 @@ pub fn notification_message(
         .to_string();
 
     vec![
-        format!(
-            "You have been invited to {company}'s Prose server!",
-            company = branding.company_name,
-        )
+        if let Some(ref company) = branding.company_name {
+            format!("You have been invited to {company}’s Prose server!")
+        } else {
+            format!(
+                "You have been invited to {workspace_name}!",
+                workspace_name = workspace.name
+            )
+        }
         .as_str(),
         format!(
             "To join, open the following link in a web browser: {accept_link}. You will be guided to create an account.",
@@ -81,10 +92,18 @@ pub fn notification_message(
         // "This link is valid for three days. After that time passes, you will have to ask a workspace anministrator to invite you again.",
         "See you soon 👋",
         format!(
-            "If you have been invited by mistake, you can reject the invitation using the following link: {reject_link}. Your email address will be erased from {company}'s {app} database.",
-            company = branding.company_name,
-            app = branding.page_title,
-        ).as_str(),
+            "If you have been invited by mistake, you can reject the invitation using the following link: {reject_link}. Your email address will be erased from {database}.",
+            database = if let Some(ref company) = branding.company_name {
+                format!(
+                    "{company}’s {app} database", app=branding.page_title,
+                )
+            } else {
+                format!(
+                    "the server’s database",
+                )
+            }
+        )
+        .as_str(),
     ]
     .join("\n\n")
 }
