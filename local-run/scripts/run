@@ -12,7 +12,7 @@ source "${BASH_TOOLBOX:?}"/yes-no.sh
 
 : ${SELF:="$(basename $0)"}
 
-LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 source "${SELF_SCRIPTS:?}"/constants.sh
 : ${SCENARIO_NAME:="${DEFAULT_SCENARIO_NAME:?}"}

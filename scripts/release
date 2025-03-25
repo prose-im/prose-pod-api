@@ -13,7 +13,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 
 : ${REPOSITORY_ROOT:="${SCRIPTS_ROOT:?}"/..}
 VERSION_FILE="${REPOSITORY_ROOT:?}"/VERSION
-OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/crates/rest-api/static/api-docs/openapi.yaml
+OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/docs/openapi/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
 LOCAL_RUN_CONSTANTS_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/constants.sh

@@ -6,8 +6,8 @@ on:
     # Do not run the workflow if the project hasn't changed.
     paths:
       # We changed the code:
-      - "crates/*/src/**"
-      - "crates/*/src/Cargo.toml"
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
       # We changed how the image is built:
@@ -16,9 +16,10 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
-      - "crates/*/static/**"
+      - "docs/openapi/**"
+      - "src/*/static/**"
       # We changed how tests are ran:
-      - "crates/*/tests/**"
+      - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
       - "tests/**"
   pull_request:
@@ -26,8 +27,8 @@ on:
     # Do not run the workflow if the project hasn't changed.
     paths:
       # We changed the code:
-      - "crates/*/src/**"
-      - "crates/*/src/Cargo.toml"
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
       # We changed how the image is built:
@@ -36,9 +37,10 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
-      - "crates/*/static/**"
+      - "docs/openapi/**"
+      - "src/*/static/**"
       # We changed how tests are ran:
-      - "crates/*/tests/**"
+      - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
       - "tests/**"
 
@@ -72,7 +74,7 @@ jobs:
         run: npm install -g @redocly/cli@latest
 
       - name: Lint OpenAPI specification file
-        run: scripts/openapi-lint
+        run: docs/openapi/openapi-lint
 
   smoke-test:
     if: github.event.pull_request.draft == false
@@ -115,7 +117,6 @@ jobs:
       - name: Checkout prose-pod-api
         uses: actions/checkout@v4
         with:
-          path: ${{ env.PROSE_POD_API_DIR }}
           submodules: true
 
       - name: Install Rust toolchain

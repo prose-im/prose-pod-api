@@ -3,7 +3,7 @@
 # Configure the script to exit when a command fails.
 set -e
 
-: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR}"}
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
 DEMO_DATA_DIR="${REPOSITORY_ROOT:?}/local-run/demo-data"
 source "${DEMO_DATA_DIR:?}/constants.sh"
 

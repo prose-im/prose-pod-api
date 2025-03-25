@@ -10,8 +10,8 @@ on:
     #   (source: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore).
     paths:
       # We changed the code:
-      - "crates/*/src/**"
-      - "crates/*/src/Cargo.toml"
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
       # We changed how the image is built:
@@ -20,7 +20,8 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/release.yaml"
       # We changed some packaged documentation:
-      - "crates/*/static/**"
+      - "docs/openapi/**"
+      - "src/*/static/**"
 
 jobs:
   create-github-release:

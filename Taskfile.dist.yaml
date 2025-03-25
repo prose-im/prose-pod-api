@@ -69,7 +69,7 @@ tasks:
 
   integration-test:
     desc: Runs integration tests.
-    cmd: "{{.ROOT_DIR}}/scripts/integration-test {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/tests/integration/run-integration-tests {{.CLI_ARGS}}"
 
   integration-test:logs:
     desc: Prints logs from last integration test run.
@@ -135,17 +135,17 @@ tasks:
 
   openapi:lint:
     desc: Lint the OpenAPI specification file.
-    cmd: "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/docs/openapi/openapi-lint {{.CLI_ARGS}}"
 
   openapi:preview-docs:
     desc: Preview the OpenAPI specification file in a graphical interface.
-    cmd: "{{.ROOT_DIR}}/scripts/openapi-preview-docs {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/dosc/openapi/openapi-preview-docs {{.CLI_ARGS}}"
 
   openapi:update-redoc:
     desc: Updates Redoc.
     vars:
       SRC: https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js
-      DEST: crates/rest-api/static/api-docs/redoc.standalone.js
+      DEST: src/rest-api/static/api-docs/redoc.standalone.js
     cmd: wget -q '{{.SRC}}' -O '{{.DEST}}'
 
   util:update-tested-at-version:

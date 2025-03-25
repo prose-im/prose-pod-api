@@ -12,7 +12,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 # ===== CONSTANTS =====
 
 : ${SELF:="$(basename $0)"}
-LOCAL_RUN_DIR="${PROSE_POD_API_DIR:?}"/local-run
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 
 # ===== HELPER FUNCTIONS =====

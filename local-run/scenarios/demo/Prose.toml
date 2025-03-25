@@ -2,7 +2,7 @@
 # REST API for administrating a Prose Pod
 # Configuration file
 # Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
-# All keys: https://github.com/prose-im/prose-pod-api/blob/master/crates/service/src/features/app_config/mod.rs
+# All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
 page_url = "http://admin.prose-demo.org.local/"
