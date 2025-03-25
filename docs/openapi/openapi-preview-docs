@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-: ${SCRIPTS_ROOT:="$(dirname $0)"}
+: ${REPOSITORY_ROOT:="$(dirname $0)"/../..}
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
 : ${BASH_TOOLBOX:="${SCRIPTS_ROOT:?}/bash-toolbox"}
 # NOTE: `die` logs an error then exits.
 source "${BASH_TOOLBOX:?}"/die.sh
@@ -8,15 +9,12 @@ source "${BASH_TOOLBOX:?}"/die.sh
 #   logs the command as a `TRACE` and executes it.
 source "${BASH_TOOLBOX:?}"/edo.sh
 
-OPENAPI_SPEC_FILE=crates/rest-api/static/api-docs/openapi.yaml
+OPENAPI_DOCS_DIR="${REPOSITORY_ROOT:?}"/docs/openapi
+OPENAPI_SPEC_FILE="${OPENAPI_DOCS_DIR:?}"/openapi.yaml
+REDOCLY_CONFIG_FILE="${OPENAPI_DOCS_DIR:?}"/redocly.cfg.yaml
 
 if ! command -v redocly &>/dev/null; then
     die "$(format_hyperlink "Install $(format_code redocly)" "https://redocly.com/docs/cli/installation") first ($(format_code 'npm i -g @redocly/cli@latest') / $(format_code 'volta install @redocly/cli'))."
 fi
 
-: ${FORMAT:=stylish}
-[ -n "$GITHUB_ACTIONS" ] && FORMAT='github-actions'
-
-edo redocly lint "${OPENAPI_SPEC_FILE:?}" --format "${FORMAT:?}" --config=crates/rest-api/static/api-docs/redocly.cfg.yaml "$@"
-
-# TODO: Check that all routes from children files are included in `openapi.json`.
+edo redocly preview-docs "${OPENAPI_SPEC_FILE:?}" --port=8081 --config="${REDOCLY_CONFIG_FILE:?}" "$@"

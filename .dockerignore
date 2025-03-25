@@ -3,3 +3,5 @@
 !crates/**/*.rs
 !crates/*/Cargo.*
 !crates/*/static/
+!docs/
+docs/tutorials/

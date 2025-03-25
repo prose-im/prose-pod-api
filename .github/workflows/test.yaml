@@ -16,6 +16,7 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
+      - "docs/openapi/**"
       - "crates/*/static/**"
       # We changed how tests are ran:
       - "crates/*/tests/**"
@@ -36,6 +37,7 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
       # We changed some packaged documentation:
+      - "docs/openapi/**"
       - "crates/*/static/**"
       # We changed how tests are ran:
       - "crates/*/tests/**"
@@ -72,7 +74,7 @@ jobs:
         run: npm install -g @redocly/cli@latest
 
       - name: Lint OpenAPI specification file
-        run: scripts/openapi-lint
+        run: docs/openapi/openapi-lint
 
   smoke-test:
     if: github.event.pull_request.draft == false

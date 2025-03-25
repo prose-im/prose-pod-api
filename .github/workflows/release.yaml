@@ -20,6 +20,7 @@ on:
       # We changed how the workflow is ran:
       - ".github/workflows/release.yaml"
       # We changed some packaged documentation:
+      - "docs/openapi/**"
       - "crates/*/static/**"
 
 jobs:

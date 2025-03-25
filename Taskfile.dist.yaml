@@ -135,11 +135,11 @@ tasks:
 
   openapi:lint:
     desc: Lint the OpenAPI specification file.
-    cmd: "{{.ROOT_DIR}}/scripts/openapi-lint {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/docs/openapi/openapi-lint {{.CLI_ARGS}}"
 
   openapi:preview-docs:
     desc: Preview the OpenAPI specification file in a graphical interface.
-    cmd: "{{.ROOT_DIR}}/scripts/openapi-preview-docs {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/dosc/openapi/openapi-preview-docs {{.CLI_ARGS}}"
 
   openapi:update-redoc:
     desc: Updates Redoc.
