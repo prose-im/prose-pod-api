@@ -43,11 +43,15 @@ impl TryFrom<VCard4> for Workspace {
     }
 }
 
-impl Into<VCard4> for Workspace {
-    fn into(self) -> VCard4 {
-        VCard4 {
-            fn_: vec![Fn_ { value: self.name }],
-            unknown_properties: vec![self.accent_color.map(|c| (ACCENT_COLOR_EXTENSION_KEY, c))]
+impl From<Workspace> for VCard4 {
+    fn from(
+        Workspace {
+            name, accent_color, ..
+        }: Workspace,
+    ) -> Self {
+        Self {
+            fn_: vec![Fn_ { value: name }],
+            unknown_properties: vec![accent_color.map(|c| (ACCENT_COLOR_EXTENSION_KEY, c))]
                 .into_iter()
                 .flatten()
                 .map(|(k, v)| {

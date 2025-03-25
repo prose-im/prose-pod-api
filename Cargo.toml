@@ -61,7 +61,6 @@ tracing-subscriber = { version = "0.3", default-features = false }
 url_serde = { version = "0.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 uuid = { version = "1", default-features = false }
-vcard4 = { version = "0.7.1", default-features = false }
 
 # `lettre` dependencies.
 # WARN: `lettre` depends on the massive `aws-lc-rs` which takes a big portion of our build time.
