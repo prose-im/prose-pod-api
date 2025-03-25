@@ -6,7 +6,7 @@
 use minidom::Element;
 use prose_xmpp::{
     ns,
-    stanza::{vcard4::Fn_, VCard4},
+    stanza::{vcard4, VCard4},
 };
 use serde::{Deserialize, Serialize};
 
@@ -50,16 +50,22 @@ impl From<Workspace> for VCard4 {
         }: Workspace,
     ) -> Self {
         Self {
-            fn_: vec![Fn_ { value: name }],
-            unknown_properties: vec![accent_color.map(|c| (ACCENT_COLOR_EXTENSION_KEY, c))]
-                .into_iter()
-                .flatten()
-                .map(|(k, v)| {
-                    Element::builder(k, ns::VCARD4)
-                        .append(Element::builder("text", ns::VCARD4).append(v))
-                        .build()
-                })
-                .collect(),
+            fn_: vec![vcard4::Fn_ { value: name }],
+            unknown_properties: vec![accent_color
+                .as_ref()
+                .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.as_str()))]
+            .into_iter()
+            .flatten()
+            .chain(vec![
+                // See [RFC 6350 - vCard Format Specification, section 6.1.4](https://datatracker.ietf.org/doc/html/rfc6350#section-6.1.4).
+                ("kind", "org"),
+            ])
+            .map(|(k, v)| {
+                Element::builder(k, ns::VCARD4)
+                    .append(Element::builder("text", ns::VCARD4).append(v))
+                    .build()
+            })
+            .collect(),
             ..Default::default()
         }
     }
