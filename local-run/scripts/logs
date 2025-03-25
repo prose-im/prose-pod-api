@@ -20,6 +20,8 @@ source "${SELF_SCRIPTS:?}"/constants.sh
 # ===== MAIN LOGIC =====
 
 source "${SELF_SCRIPTS:?}"/scenario-files.sh
+source "${SELF_SCRIPTS:?}"/scenario-files-fallback.sh
+source "${SCENARIO_CONSTANTS_FILE:?}"
 source "${SELF_SCRIPTS:?}"/compose-exports.sh
 
 if [ $# == 0 ]; then

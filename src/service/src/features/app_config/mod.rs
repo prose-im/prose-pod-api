@@ -247,8 +247,9 @@ impl Default for ConfigServerDefaults {
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
-    pub page_url: SerdeUrl,
-    pub company_name: String,
+    pub page_url: Option<SerdeUrl>,
+    #[serde(default)]
+    pub company_name: Option<String>,
 }
 
 impl Default for InvitationChannel {

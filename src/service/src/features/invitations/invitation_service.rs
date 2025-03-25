@@ -25,6 +25,7 @@ use crate::{
     },
     server_config::ServerConfig,
     util::bare_jid_from_username,
+    workspace::{Workspace, WorkspaceService, WorkspaceServiceError},
     xmpp::{BareJid, JidNode},
     AppConfig, MutationError,
 };
@@ -61,6 +62,7 @@ impl InvitationService {
         app_config: &AppConfig,
         server_config: &ServerConfig,
         notification_service: &NotificationService,
+        workspace_service: &WorkspaceService,
         form: impl Into<InviteMemberForm>,
         #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
@@ -94,12 +96,18 @@ impl InvitationService {
         )
         .await?;
 
+        let workspace = workspace_service
+            .get_workspace()
+            .await
+            .map_err(InviteMemberError::CouldNotGetWorkspaceDetails)?;
+
         if let Err(err) = notification_service
             .send_workspace_invitation(
                 form.contact,
                 invitation.accept_token.into(),
                 invitation.reject_token.into(),
                 app_config,
+                &workspace,
             )
             .await
         {
@@ -176,6 +184,7 @@ impl NotificationService {
         accept_token: InvitationToken,
         reject_token: InvitationToken,
         app_config: &AppConfig,
+        workspace: &Workspace,
     ) -> Result<(), SendWorkspaceInvitationError> {
         match contact {
             InvitationContact::Email { email_address } => {
@@ -186,6 +195,7 @@ impl NotificationService {
                         reject_token,
                     },
                     app_config,
+                    workspace,
                 )?)?;
             }
         }
@@ -233,6 +243,8 @@ pub enum InviteMemberError {
     #[cfg(debug_assertions)]
     #[error("Could not auto-accept the invitation: {0}")]
     CouldNotAutoAcceptInvitation(#[from] CannotAcceptInvitation),
+    #[error("Could not get workspace details (to build the notification): {0}")]
+    CouldNotGetWorkspaceDetails(WorkspaceServiceError),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
@@ -399,11 +411,17 @@ impl InvitationService {
         &self,
         config: &AppConfig,
         notification_service: &NotificationService,
+        workspace_service: &WorkspaceService,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
         let invitation = InvitationRepository::get_by_id(&self.db, &invitation_id)
             .await?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
+
+        let workspace = workspace_service
+            .get_workspace()
+            .await
+            .map_err(InvitationResendError::CouldNotGetWorkspaceDetails)?;
 
         notification_service
             .send_workspace_invitation(
@@ -411,6 +429,7 @@ impl InvitationService {
                 invitation.accept_token.into(),
                 invitation.reject_token.into(),
                 config,
+                &workspace,
             )
             .await?;
 
@@ -424,6 +443,8 @@ pub enum InvitationResendError {
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
     CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
+    #[error("Could not get workspace details (to build the notification): {0}")]
+    CouldNotGetWorkspaceDetails(WorkspaceServiceError),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }

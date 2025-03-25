@@ -129,13 +129,12 @@ if (( $EPHEMERAL )); then
 fi
 
 # Compute dynamic variables.
-edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
+source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 # ===== MAIN LOGIC =====
 
 if (( $EPHEMERAL )); then
 	edo task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
-	edo source "${SCENARIO_DIR:?}"/constants.sh
 	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
 elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ] && ! (( $FORCE_RUN )); then
 	die "Cannot run the $(format_code "${SCENARIO_NAME:?}") scenario. You must copy it ($(format_code "task local:scenarios:create -- NEW_NAME --based-on='${SCENARIO_NAME:?}'")) or run it with $(format_code --ephemeral)."
@@ -148,9 +147,14 @@ if ! (( $NO_UPDATE )); then
 fi
 
 if ! [ -d "${SCENARIO_DIR:?}" ]; then
-	log_as_warn_ scenario-does-not-exist
-	if-yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
+	edo log_as_warn_ scenario-does-not-exist
+	edo if-yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
 fi
+
+# Recompute dynamic variables and fallback to using files
+# from the `default` scenario if they don’t exist.
+source "${SELF_SCRIPTS:?}"/scenario-files-fallback.sh
+source "${SCENARIO_CONSTANTS_FILE:?}"
 
 info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
 info 'Selected versions:'
