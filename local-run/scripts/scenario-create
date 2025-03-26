@@ -58,12 +58,10 @@ copy-if-exists() {
 
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
-# Create directories in case they haven’t been created.
-edo mkdir -p "${SCENARIO_DIR:?}"/{prosody,coredns}
 
-# NOTE: While it'd be easier to use symbolic links instead of copying files
-#   from the `default` scenario, it wouldn't work because Docker wouldn't be
-#   able to access the source files because they aren't mounted.
+# NOTE: While it’d be easier to use symbolic links instead of copying files
+#   from the `default` scenario, it wouldn’t work because Docker wouldn’t be
+#   able to access the source files because they aren’t mounted.
 #   To make sure non-overridable files stay up-to-date, we created a task called
 #   `task local:scenarios:update` which copies the files again.
 log_as_trace_ edo "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
@@ -77,8 +75,8 @@ copy-if-exists "$(basename "${MAILPIT_DATABASE_PATH:?}")"
 
 # NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
 #   because `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/prosody` belongs to `runner:docker`.
-# NOTE: Because of `set -e`, we'd have to use `[ … ] && … || :`.
-#   Let's use `if [ … ]; then …; fi` instead for clarity.
+# NOTE: Because of `set -e`, we’d have to use `[ … ] && … || :`.
+#   Let’s use `if [ … ]; then …; fi` instead for clarity.
 if [ -n "$GITHUB_ACTIONS" ]; then
 	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/prosody
 fi

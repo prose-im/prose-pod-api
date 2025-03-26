@@ -17,12 +17,14 @@ use crate::pod_config::entities::pod_config;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PodConfig {
     pub address: Option<PodAddress>,
+    pub dashboard_url: Option<String>,
 }
 
 impl From<pod_config::Model> for PodConfig {
     fn from(model: pod_config::Model) -> Self {
         Self {
-            address: PodAddress::try_from(model).ok(),
+            address: PodAddress::try_from(&model).ok(),
+            dashboard_url: model.dashboard_url,
         }
     }
 }
@@ -39,11 +41,11 @@ pub enum PodAddress {
     },
 }
 
-impl TryFrom<pod_config::Model> for PodAddress {
+impl TryFrom<&pod_config::Model> for PodAddress {
     type Error = PodAddressError;
 
-    fn try_from(pod_config: pod_config::Model) -> Result<Self, Self::Error> {
-        match (pod_config.hostname, pod_config.ipv4, pod_config.ipv6) {
+    fn try_from(pod_config: &pod_config::Model) -> Result<Self, Self::Error> {
+        match (&pod_config.hostname, &pod_config.ipv4, &pod_config.ipv6) {
             (Some(hostname), _, _) => {
                 let hostname = DomainName::from_str(&hostname).map_err(|err| {
                     PodAddressError::InvalidData(format!("Invalid hostname: {err}"))
@@ -53,9 +55,11 @@ impl TryFrom<pod_config::Model> for PodAddress {
             (None, None, None) => Err(PodAddressError::PodAddressNotInitialized),
             (None, ipv4, ipv6) => {
                 let ipv4 = ipv4
+                    .as_ref()
                     .map_or(Ok(None), |s| Ipv4Addr::from_str(&s).map(Some))
                     .map_err(|err| PodAddressError::InvalidData(format!("Invalid IPv4: {err}")))?;
                 let ipv6 = ipv6
+                    .as_ref()
                     .map_or(Ok(None), |s| Ipv6Addr::from_str(&s).map(Some))
                     .map_err(|err| PodAddressError::InvalidData(format!("Invalid IPv6: {err}")))?;
                 Ok(Self::Static { ipv4, ipv6 })

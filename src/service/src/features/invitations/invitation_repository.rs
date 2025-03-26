@@ -237,7 +237,7 @@ impl From<Uuid> for InvitationToken {
     }
 }
 impl InvitationToken {
-    pub fn into_secret_string(self) -> SecretString {
+    pub fn into_secret_string(&self) -> SecretString {
         SecretString::from(self.0.to_string())
     }
 }

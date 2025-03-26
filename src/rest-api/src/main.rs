@@ -20,7 +20,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing::{info, trace_span};
+use tracing::{info, trace_span, warn};
 
 #[tokio::main]
 async fn main() {
@@ -64,8 +64,9 @@ async fn main() {
     )));
     let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&app_config, http_client.clone()));
     let auth_service = AuthService::new(Arc::new(LiveAuthService::new(prosody_oauth2.clone())));
-    let email_notifier =
-        Notifier::from_config::<EmailNotifier, _>(&app_config).unwrap_or_else(|e| panic!("{e}"));
+    let email_notifier = Notifier::from_config::<EmailNotifier, _>(&app_config)
+        .inspect_err(|err| warn!("Could not create email notifier: {err}"))
+        .ok();
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
     drop(init_dependencies_span);
