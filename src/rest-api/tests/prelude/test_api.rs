@@ -18,7 +18,7 @@ pub async fn test_server(world: &TestWorld) -> Result<TestServer, StartupError> 
         world.server_ctl.clone(),
         world.xmpp_service.clone(),
         world.auth_service.clone(),
-        world.email_notifier.clone(),
+        Some(world.email_notifier.clone()),
         world.secrets_store.clone(),
         world.network_checker.clone(),
     );
