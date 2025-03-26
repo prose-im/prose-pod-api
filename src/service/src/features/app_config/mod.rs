@@ -21,7 +21,6 @@ use figment::{
 use linked_hash_set::LinkedHashSet;
 use secrecy::SecretString;
 use serde::Deserialize;
-use url_serde::SerdeUrl;
 
 use crate::{
     invitations::InvitationChannel,
@@ -56,6 +55,7 @@ pub struct AppConfig {
     pub bootstrap: ConfigBootstrap,
     #[serde(default)]
     pub server: ConfigServer,
+    #[serde(default)]
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
@@ -247,9 +247,17 @@ impl Default for ConfigServerDefaults {
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
-    pub page_url: Option<SerdeUrl>,
     #[serde(default)]
     pub company_name: Option<String>,
+}
+
+impl Default for ConfigBranding {
+    fn default() -> Self {
+        Self {
+            page_title: defaults::branding_page_title(),
+            company_name: None,
+        }
+    }
 }
 
 impl Default for InvitationChannel {

@@ -142,6 +142,8 @@ impl CustomErrorCode for InviteMemberError {
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            // TODO: Use a dedicated error code for missing configuration keys.
+            Self::PodConfigMissing(_) => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
             Self::DbErr(err) => err.code(),
         }
     }

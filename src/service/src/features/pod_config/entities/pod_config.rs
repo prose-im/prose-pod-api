@@ -14,6 +14,7 @@ pub struct Model {
     pub ipv4: Option<String>,
     pub ipv6: Option<String>,
     pub hostname: Option<String>,
+    pub dashboard_url: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

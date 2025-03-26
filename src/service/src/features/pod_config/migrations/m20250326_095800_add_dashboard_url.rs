@@ -5,6 +5,8 @@
 
 use sea_orm_migration::{prelude::*, schema::*};
 
+use super::m20240830_080808_create_pod_config::PodConfig;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -12,14 +14,10 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
-                Table::create()
+            .alter_table(
+                Table::alter()
                     .table(PodConfig::Table)
-                    .if_not_exists()
-                    .col(pk_auto(PodConfig::Id))
-                    .col(string_null(PodConfig::Ipv4))
-                    .col(string_null(PodConfig::Ipv6))
-                    .col(string_null(PodConfig::Hostname))
+                    .add_column(string_null(NewFields::DashboardUrl))
                     .to_owned(),
             )
             .await
@@ -27,16 +25,17 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(PodConfig::Table).to_owned())
+            .alter_table(
+                Table::alter()
+                    .table(PodConfig::Table)
+                    .drop_column(NewFields::DashboardUrl)
+                    .to_owned(),
+            )
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub(super) enum PodConfig {
-    Table,
-    Id,
-    Ipv4,
-    Ipv6,
-    Hostname,
+enum NewFields {
+    DashboardUrl,
 }

@@ -6,7 +6,7 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use hickory_proto::rr::Name as DomainName;
-use sea_orm::{prelude::*, QueryOrder as _, Set, Unchanged};
+use sea_orm::{prelude::*, QueryOrder as _, QuerySelect, Set, Unchanged};
 use tracing::instrument;
 
 use super::entities::pod_config::{self, ActiveModel, Column, Entity};
@@ -25,6 +25,24 @@ impl PodConfigRepository {
     #[instrument(name = "db::pod_config::get", level = "trace", skip_all, err)]
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<pod_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
+    }
+
+    #[instrument(
+        name = "db::pod_config::get_dashboard_url",
+        level = "trace",
+        skip_all,
+        err
+    )]
+    pub async fn get_dashboard_url(
+        db: &impl ConnectionTrait,
+    ) -> Result<Option<Option<String>>, DbErr> {
+        Entity::find()
+            .order_by_asc(Column::Id)
+            .select_only()
+            .column(Column::DashboardUrl)
+            .into_tuple()
+            .one(db)
+            .await
     }
 
     #[instrument(name = "db::pod_config::set", level = "trace", skip_all, err)]
