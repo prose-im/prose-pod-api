@@ -13,9 +13,13 @@ pub async fn test_services_reachability(
 ) -> Result<(), String> {
     debug!("Testing services reachability…");
 
-    match email_notifier.test_connection() {
-        Ok(true) => Ok(()),
-        Ok(false) => Err("SMTP server unreachable.".to_string()),
-        Err(err) => Err(err.to_string()),
+    if let Some(email_notifier) = email_notifier {
+        match email_notifier.test_connection() {
+            Ok(true) => Ok(()),
+            Ok(false) => Err("SMTP server unreachable.".to_string()),
+            Err(err) => Err(err.to_string()),
+        }?;
     }
+
+    Ok(())
 }

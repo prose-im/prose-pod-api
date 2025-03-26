@@ -37,7 +37,7 @@ pub struct AppState {
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
-    email_notifier: Notifier<EmailNotification>,
+    email_notifier: Option<Notifier<EmailNotification>>,
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
@@ -50,7 +50,7 @@ impl AppState {
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
-        email_notifier: Notifier<EmailNotification>,
+        email_notifier: Option<Notifier<EmailNotification>>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
     ) -> Self {
