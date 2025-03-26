@@ -139,7 +139,7 @@ tasks:
 
   openapi:preview-docs:
     desc: Preview the OpenAPI specification file in a graphical interface.
-    cmd: "{{.ROOT_DIR}}/dosc/openapi/openapi-preview-docs {{.CLI_ARGS}}"
+    cmd: "{{.ROOT_DIR}}/docs/openapi/openapi-preview-docs {{.CLI_ARGS}}"
 
   openapi:update-redoc:
     desc: Updates Redoc.
