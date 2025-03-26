@@ -119,6 +119,8 @@ impl CustomErrorCode for InvitationResendError {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
             Self::CouldNotSendInvitation(err) => err.code(),
             Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            // TODO: Use a dedicated error code for missing configuration keys.
+            Self::PodConfigMissing(_) => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
             Self::DbErr(err) => err.code(),
         }
     }

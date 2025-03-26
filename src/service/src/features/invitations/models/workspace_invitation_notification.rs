@@ -9,17 +9,20 @@ use email_address::EmailAddress;
 use secrecy::ExposeSecret as _;
 
 use crate::{
-    app_config::ConfigBranding,
     invitations::InvitationToken,
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
-    workspace::Workspace,
     AppConfig,
 };
 
+/// All the data needed to generate the content of a workspace invitation.
 #[derive(Clone)]
 pub struct WorkspaceInvitationPayload {
     pub accept_token: InvitationToken,
     pub reject_token: InvitationToken,
+    pub workspace_name: String,
+    pub dashboard_url: String,
+    pub api_app_name: String,
+    pub organization_name: Option<String>,
 }
 
 impl EmailNotification {
@@ -27,38 +30,42 @@ impl EmailNotification {
         email_recipient: EmailAddress,
         invitation_payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
-        workspace: &Workspace,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             email_recipient,
-            notification_subject(&app_config.branding, workspace),
-            notification_message(&app_config.branding, workspace, invitation_payload),
+            notification_subject(&invitation_payload),
+            notification_message(&invitation_payload),
             app_config,
         )
     }
 }
 
-pub fn notification_subject(branding: &ConfigBranding, workspace: &Workspace) -> String {
-    if let Some(ref company) = branding.company_name {
+pub fn notification_subject(
+    WorkspaceInvitationPayload {
+        workspace_name,
+        organization_name,
+        ..
+    }: &WorkspaceInvitationPayload,
+) -> String {
+    if let Some(ref company) = organization_name {
         format!("You have been invited to {company}’s Prose server!")
     } else {
-        format!(
-            "You have been invited to {workspace_name}!",
-            workspace_name = workspace.name
-        )
+        format!("You have been invited to {workspace_name}!")
     }
 }
 
 pub fn notification_message(
-    branding: &ConfigBranding,
-    workspace: &Workspace,
     WorkspaceInvitationPayload {
         accept_token,
         reject_token,
+        workspace_name,
+        dashboard_url,
+        api_app_name,
+        organization_name,
         ..
-    }: WorkspaceInvitationPayload,
+    }: &WorkspaceInvitationPayload,
 ) -> String {
-    let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
+    let admin_site_root = PathBuf::from_str(&dashboard_url).unwrap();
     let accept_link = admin_site_root
         .join(format!(
             "invitations/accept/{token}",
@@ -75,13 +82,10 @@ pub fn notification_message(
         .to_string();
 
     vec![
-        if let Some(ref company) = branding.company_name {
+        if let Some(ref company) = organization_name {
             format!("You have been invited to {company}’s Prose server!")
         } else {
-            format!(
-                "You have been invited to {workspace_name}!",
-                workspace_name = workspace.name
-            )
+            format!("You have been invited to {workspace_name}!")
         }
         .as_str(),
         format!(
@@ -93,14 +97,10 @@ pub fn notification_message(
         "See you soon 👋",
         format!(
             "If you have been invited by mistake, you can reject the invitation using the following link: {reject_link}. Your email address will be erased from {database}.",
-            database = if let Some(ref company) = branding.company_name {
-                format!(
-                    "{company}’s {app} database", app=branding.page_title,
-                )
+            database = if let Some(ref company) = organization_name {
+                format!("{company}’s {api_app_name} database")
             } else {
-                format!(
-                    "the server’s database",
-                )
+                format!("the server’s database")
             }
         )
         .as_str(),

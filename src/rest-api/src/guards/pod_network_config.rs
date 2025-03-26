@@ -30,7 +30,7 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
         let Some(pod_config) = PodConfigRepository::get(&state.db).await? else {
             return Err(Error::from(PodAddressNotInitialized));
         };
-        let pod_address = PodAddress::try_from(pod_config)?;
+        let pod_address = PodAddress::try_from(&pod_config)?;
 
         Ok(Self {
             server_domain,

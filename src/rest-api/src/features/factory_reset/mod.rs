@@ -3,7 +3,6 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::extract::State;
 use axum::middleware::from_extractor_with_state;
 use axum::response::Redirect;
 use axum::routing::*;
@@ -19,9 +18,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
-async fn factory_reset_route(
-    State(AppState { app_config, .. }): State<AppState>,
-) -> Result<Redirect, ()> {
+async fn factory_reset_route() -> Result<Redirect, ()> {
     tracing::debug!("Doing factory reset…");
 
     tracing::debug!("Erasing user data from the server…");
@@ -35,6 +32,5 @@ async fn factory_reset_route(
         tracing::debug!("Restarting the API…");
     });
 
-    let dashboard_root_url = app_config.branding.page_url;
-    Ok(Redirect::to(dashboard_root_url.as_str()))
+    Ok(Redirect::to("/"))
 }
