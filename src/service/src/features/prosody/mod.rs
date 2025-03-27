@@ -4,13 +4,17 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod prosody_admin_rest;
+mod prosody_bootstrap_config;
+pub mod prosody_config;
 mod prosody_config_from_db;
 mod prosody_oauth2;
 mod prosody_rest;
 
 use crate::members::MemberRole;
 pub use prosody_admin_rest::ProsodyAdminRest;
-pub use prosody_config_from_db::{prosody_config_from_db, IntoProsody, ProsodyConfig};
+pub use prosody_bootstrap_config::prosody_bootstrap_config;
+pub use prosody_config::ProsodyConfig;
+pub use prosody_config_from_db::{prosody_config_from_db, IntoProsody};
 pub use prosody_oauth2::{ProsodyOAuth2, ProsodyOAuth2Error};
 pub use prosody_rest::ProsodyRest;
 

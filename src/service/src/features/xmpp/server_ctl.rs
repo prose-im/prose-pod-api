@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{
@@ -50,6 +50,7 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
         server_config: &ServerConfig,
         app_config: &AppConfig,
     ) -> Result<(), Error>;
+    async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error>;
     async fn reload(&self) -> Result<(), Error>;
 
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
@@ -62,6 +63,8 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
     /// Remove a user from everyone's roster.
     async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+
+    async fn delete_all_data(&self) -> Result<(), Error>;
 }
 
 pub type Error = ServerCtlError;

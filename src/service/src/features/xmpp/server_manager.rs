@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
@@ -155,6 +155,23 @@ impl ServerManager {
         txn.commit().await?;
 
         Ok(server_config)
+    }
+
+    pub async fn reset_server_config(
+        db: &DatabaseConnection,
+        server_ctl: &ServerCtl,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), Error> {
+        ServerConfigRepository::reset(db).await?;
+
+        let password = Self::strong_random_password();
+        server_ctl
+            .reset_config(&password)
+            .await
+            .map_err(Error::from)?;
+        secrets_store.set_prose_pod_api_xmpp_password(password);
+
+        Ok(())
     }
 
     pub async fn rotate_api_xmpp_password(

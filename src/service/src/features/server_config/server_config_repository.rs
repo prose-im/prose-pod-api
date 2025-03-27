@@ -1,9 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use sea_orm::{prelude::*, QueryOrder as _, Set};
+use sea_orm::{prelude::*, IntoActiveModel, QueryOrder as _, Set};
 use tracing::instrument;
 
 use crate::{
@@ -29,6 +29,15 @@ impl ServerConfigRepository {
     #[instrument(name = "db::server_config::get", level = "trace", skip_all, err)]
     pub async fn get(db: &impl ConnectionTrait) -> Result<Option<server_config::Model>, DbErr> {
         Entity::find().order_by_asc(Column::Id).one(db).await
+    }
+
+    #[instrument(name = "db::server_config::reset", level = "trace", skip_all, err)]
+    pub async fn reset(db: &impl ConnectionTrait) -> Result<(), DbErr> {
+        let Some(model) = Self::get(db).await? else {
+            return Ok(());
+        };
+        model.into_active_model().reset_all().update(db).await?;
+        Ok(())
     }
 }
 
