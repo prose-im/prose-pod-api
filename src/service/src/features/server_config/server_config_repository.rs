@@ -14,6 +14,12 @@ use crate::{
 pub enum ServerConfigRepository {}
 
 impl ServerConfigRepository {
+    #[instrument(
+        name = "db::server_config::is_initialized",
+        level = "trace",
+        skip_all,
+        err
+    )]
     pub async fn is_initialized(db: &impl ConnectionTrait) -> Result<bool, DbErr> {
         Ok(Entity::find().count(db).await? > 0)
     }

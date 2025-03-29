@@ -6,6 +6,7 @@
 use std::{
     collections::HashMap,
     path::Path,
+    str::FromStr,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -27,7 +28,7 @@ use service::{
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
     workspace::WorkspaceService,
-    xmpp::{ServerCtl, ServerManager, XmppServiceInner},
+    xmpp::{JidDomain, ServerCtl, ServerManager, XmppServiceInner},
 };
 use uuid::Uuid;
 
@@ -35,6 +36,8 @@ use super::{
     database::{db_conn, run_migrations},
     mocks::*,
 };
+
+pub const DEFAULT_DOMAIN: &'static str = "prose.test.org";
 
 #[derive(Debug, World)]
 #[world(init = Self::new)]
@@ -62,6 +65,7 @@ pub struct TestWorld {
     pub workspace_invitations: HashMap<EmailAddress, Invitation>,
     pub scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
     pub previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
+    pub initial_server_domain: JidDomain,
 }
 
 impl TestWorld {
@@ -91,14 +95,16 @@ impl TestWorld {
         self.server_ctl_state_mut().conf_reload_count = 0;
     }
 
-    pub async fn server_manager(&self) -> Result<ServerManager, DbErr> {
-        let server_config = self.server_config_model().await?;
-        Ok(ServerManager::new(
+    pub async fn server_manager(&self) -> Result<Option<ServerManager>, DbErr> {
+        let Some(server_config) = self.opt_server_config_model().await? else {
+            return Ok(None);
+        };
+        Ok(Some(ServerManager::new(
             Arc::new(self.db().clone()),
             Arc::new(self.app_config.clone()),
             Arc::new(self.server_ctl.clone()),
             server_config,
-        ))
+        )))
     }
 
     pub fn member_service(&self) -> UnauthenticatedMemberService {
@@ -123,22 +129,32 @@ impl TestWorld {
             &self
                 .server_config()
                 .await
-                .expect("Server config not initialized"),
+                .expect("Error getting server config"),
             Arc::new(self.secrets_store.clone()),
         )
         .expect("Workspace not initialized")
     }
 
-    pub async fn server_config_model(&self) -> Result<server_config::Model, DbErr> {
+    pub async fn opt_server_config_model(&self) -> Result<Option<server_config::Model>, DbErr> {
         let db = self.db();
-        Ok(ServerConfigRepository::get(db)
-            .await?
-            .expect("Server config not initialized"))
+        Ok(ServerConfigRepository::get(db).await?)
+    }
+
+    pub async fn server_config_model(&self) -> Result<server_config::Model, DbErr> {
+        self.opt_server_config_model()
+            .await
+            .map(|opt| opt.expect("Server config not initialized."))
+    }
+
+    pub async fn opt_server_config(&self) -> Result<Option<ServerConfig>, DbErr> {
+        let config = self.opt_server_config_model().await?;
+        Ok(config.map(|model| model.with_default_values_from(&self.app_config)))
     }
 
     pub async fn server_config(&self) -> Result<ServerConfig, DbErr> {
-        let model = self.server_config_model().await?;
-        Ok(model.with_default_values_from(&self.app_config))
+        self.opt_server_config()
+            .await
+            .map(|opt| opt.expect("Server config not initialized."))
     }
 
     pub fn server_ctl_state(&self) -> MockServerCtlState {
@@ -255,6 +271,7 @@ impl TestWorld {
             network_checker: NetworkChecker::new(Arc::new(mock_network_checker.clone())),
             mock_network_checker,
             uuid_gen,
+            initial_server_domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
         }
     }
 }

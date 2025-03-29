@@ -254,7 +254,6 @@ components:
             $ref: "../shared.yaml#/components/schemas/Error"
             properties:
               error:
-                enum: null
                 const: workspace_not_initialized
           example:
             error: workspace_not_initialized
@@ -266,7 +265,6 @@ components:
             $ref: "../shared.yaml#/components/schemas/Error"
             properties:
               error:
-                enum: null
                 const: workspace_already_initialized
           example:
             error: workspace_already_initialized

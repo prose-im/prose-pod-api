@@ -23,7 +23,7 @@ use crate::{
         notifier::email::{EmailNotification, EmailNotificationCreateError},
         NotificationService,
     },
-    pod_config::{pod_config, PodConfigRepository},
+    pod_config::{PodConfigField, PodConfigRepository},
     server_config::ServerConfig,
     util::bare_jid_from_username,
     workspace::{WorkspaceService, WorkspaceServiceError},
@@ -107,7 +107,7 @@ impl InvitationService {
             .map_err(InviteMemberError::DbErr)?
             .flatten()
             .ok_or(InviteMemberError::PodConfigMissing(
-                pod_config::Column::DashboardUrl,
+                PodConfigField::DashboardAddress,
             ))?;
 
         if let Err(err) = notification_service
@@ -253,8 +253,8 @@ pub enum InviteMemberError {
     CouldNotAutoAcceptInvitation(#[from] CannotAcceptInvitation),
     #[error("Could not get workspace details (to build the notification): {0}")]
     CouldNotGetWorkspaceDetails(WorkspaceServiceError),
-    #[error("Pod configuration missing: {config_key}", config_key = 0.to_string())]
-    PodConfigMissing(pod_config::Column),
+    #[error("Pod configuration missing: {0}")]
+    PodConfigMissing(PodConfigField),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
@@ -438,7 +438,7 @@ impl InvitationService {
             .map_err(InvitationResendError::DbErr)?
             .flatten()
             .ok_or(InvitationResendError::PodConfigMissing(
-                pod_config::Column::DashboardUrl,
+                PodConfigField::DashboardAddress,
             ))?;
 
         notification_service
@@ -468,8 +468,8 @@ pub enum InvitationResendError {
     CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
     #[error("Could not get workspace details (to build the notification): {0}")]
     CouldNotGetWorkspaceDetails(WorkspaceServiceError),
-    #[error("Pod configuration missing: {config_key}", config_key = 0.to_string())]
-    PodConfigMissing(pod_config::Column),
+    #[error("Pod configuration missing: {0}")]
+    PodConfigMissing(PodConfigField),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }

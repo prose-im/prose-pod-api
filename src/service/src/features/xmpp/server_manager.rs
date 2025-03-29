@@ -188,6 +188,8 @@ impl ServerManager {
         Ok(())
     }
 
+    /// NOTE: Used only in tests.
+    #[cfg(debug_assertions)]
     pub async fn set_domain(&self, domain: &JidDomain) -> Result<ServerConfig, Error> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {

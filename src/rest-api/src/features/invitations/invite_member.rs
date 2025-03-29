@@ -16,6 +16,7 @@ use service::{
     members::MemberRole,
     models::JidNode,
     notifications::NotificationService,
+    pod_config::PodConfigField,
     server_config::ServerConfig,
     workspace::WorkspaceService,
     AppConfig,
@@ -143,7 +144,12 @@ impl CustomErrorCode for InviteMemberError {
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
             // TODO: Use a dedicated error code for missing configuration keys.
-            Self::PodConfigMissing(_) => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
+            Self::PodConfigMissing(PodConfigField::PodAddress) => {
+                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+            }
+            Self::PodConfigMissing(PodConfigField::DashboardAddress) => {
+                ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
+            }
             Self::DbErr(err) => err.code(),
         }
     }

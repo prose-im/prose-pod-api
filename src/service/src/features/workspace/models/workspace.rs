@@ -18,17 +18,17 @@ pub struct Workspace {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Workspace not initialized.")]
-pub struct WorkspaceNotInitialized;
+#[error("Workspace name not initialized.")]
+pub struct WorkspaceNameNotInitialized;
 
 const ACCENT_COLOR_EXTENSION_KEY: &'static str = "x-accent-color";
 
 impl TryFrom<VCard4> for Workspace {
-    type Error = WorkspaceNotInitialized;
+    type Error = WorkspaceNameNotInitialized;
 
     fn try_from(vcard: VCard4) -> Result<Self, Self::Error> {
         let Some(name) = vcard.fn_.first() else {
-            return Err(WorkspaceNotInitialized);
+            return Err(WorkspaceNameNotInitialized);
         };
         Ok(Self {
             name: name.value.to_owned(),

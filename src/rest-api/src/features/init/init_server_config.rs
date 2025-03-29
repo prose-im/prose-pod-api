@@ -8,18 +8,13 @@ use serde::{Deserialize, Serialize};
 use service::{
     auth::AuthService,
     init::{InitServerConfigError, InitService},
-    pod_config::PodAddressError,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
     xmpp::{JidDomain, ServerCtl},
     AppConfig,
 };
 
-use crate::{
-    error::prelude::*,
-    features::{init::SERVER_CONFIG_ROUTE, pod_config::POD_ADDRESS_ROUTE},
-    responders::Created,
-};
+use crate::{error::prelude::*, features::init::SERVER_CONFIG_ROUTE, responders::Created};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitServerConfigRequest {
@@ -60,11 +55,6 @@ impl ErrorCode {
         http_status: StatusCode::CONFLICT,
         log_level: LogLevel::Info,
     };
-    pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
-        value: "pod_address_not_initialized",
-        http_status: StatusCode::PRECONDITION_FAILED,
-        log_level: LogLevel::Warn,
-    };
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -81,20 +71,6 @@ impl HttpApiError for ServerConfigNotInitialized {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("Prose Pod address not initialized.")]
-pub struct PodAddressNotInitialized;
-impl HttpApiError for PodAddressNotInitialized {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::POD_ADDRESS_NOT_INITIALIZED
-    }
-    fn recovery_suggestions(&self) -> Vec<String> {
-        vec![format!(
-            "Call `PUT {POD_ADDRESS_ROUTE}` to initialize it.",
-        )]
-    }
-}
-
 impl CustomErrorCode for InitServerConfigError {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -105,16 +81,6 @@ impl CustomErrorCode for InitServerConfigError {
     }
 }
 impl_into_error!(InitServerConfigError);
-
-impl CustomErrorCode for PodAddressError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::PodAddressNotInitialized => ErrorCode::POD_ADDRESS_NOT_INITIALIZED,
-            Self::InvalidData(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(PodAddressError);
 
 // BOILERPLATE
 

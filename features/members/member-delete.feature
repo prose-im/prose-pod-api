@@ -2,8 +2,7 @@
 Feature: Deleting a member
 
   Background:
-    Given the Prose Pod has been initialized
-      And the XMPP server domain is prose.org
+    Given the Prose Pod has been initialized for prose.org
       And the Prose Pod API has started
 
   Rule: Member accounts can be deleted

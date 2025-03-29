@@ -107,7 +107,7 @@ impl_into_error!(InitWorkspaceError);
 impl HttpApiError for WorkspaceServiceError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceNotInitialized => WorkspaceNotInitialized.code(),
+            Self::WorkspaceNotInitialized(_) => WorkspaceNotInitialized.code(),
             Self::XmppServiceError(err) => err.code(),
         }
     }
@@ -116,7 +116,7 @@ impl HttpApiError for WorkspaceServiceError {
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         match self {
-            Self::WorkspaceNotInitialized => WorkspaceNotInitialized.recovery_suggestions(),
+            Self::WorkspaceNotInitialized(_) => WorkspaceNotInitialized.recovery_suggestions(),
             _ => vec![],
         }
     }

@@ -1,4 +1,27 @@
 paths:
+  init_pod_config:
+    tags: [Init, "Pod / Configuration"]
+    summary: Init Pod config
+    description: Initialize the configuration of the Prose Pod.
+    operationId: init_pod_config
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/InitPodConfigRequest" }
+    responses:
+      "201":
+        description: Created
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PodConfig" }
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "409": { $ref: "#/components/responses/PodConfigAlreadyInitialized" }
+      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
   get_pod_config:
     tags: ["Pod / Configuration"]
     summary: Get Pod config
@@ -15,7 +38,7 @@ paths:
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_pod_address:
-    tags: [Init, "Pod / Configuration"]
+    tags: ["Pod / Configuration"]
     summary: Set Pod address
     description: Tells the API how the Pod is publicly accessible.
     operationId: set_pod_address
@@ -24,34 +47,13 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required: []
-            properties:
-              ipv4:
-                type: string
-                example: 104.18.28.104
-              ipv6:
-                type: string
-                example: 2606:4700::6812:1c68
-              hostname:
-                type: string
-                example: crisp.chat
-            example:
-              hostname: crisp.chat
+          schema: { $ref: "#/components/schemas/SetPodAddressRequest" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PodAddress" }
-      "201":
-        description: Created
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PodAddress" }
-        headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+            schema: { $ref: "#/components/schemas/NetworkAddress" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
@@ -64,21 +66,93 @@ paths:
       - BearerAuth: []
     responses:
       "200":
+        description: Pod address has a value
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NetworkAddress" }
+      "204":
+        description: Pod address has no value
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_dashboard_address:
+    tags: ["Pod / Configuration"]
+    summary: Set Dashboard address
+    description: Tells the API how the Dashboard is publicly accessible.
+    operationId: set_dashboard_address
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SetDashboardAddressRequest" }
+    responses:
+      "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PodAddress" }
-      "412": { $ref: "#/components/responses/PodAddressNotInitialized" }
+            schema: { $ref: "#/components/schemas/NetworkAddress" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
+  get_dashboard_address:
+    tags: ["Pod / Configuration"]
+    summary: Get Dashboard address
+    description: Get the current address of the Prose Pod Dashboard.
+    operationId: get_dashboard_address
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Dashboard address has a value
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NetworkAddress" }
+      "204":
+        description: Dashboard address has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
+    InitPodConfigRequest:
+      type: object
+      required:
+        - address
+        - dashboard_address
+      properties:
+        address: { $ref: "#/components/schemas/SetPodAddressRequest" }
+        dashboard_address: { $ref: "#/components/schemas/SetDashboardAddressRequest" }
+    SetNetworkAddressRequest:
+      type: object
+      required: []
+      properties:
+        ipv4:
+          type: string
+          example: 104.18.28.104
+        ipv6:
+          type: string
+          example: 2606:4700::6812:1c68
+        hostname:
+          type: string
+          example: crisp.chat
+    SetPodAddressRequest:
+      $ref: "#/components/schemas/SetNetworkAddressRequest"
+      example:
+        hostname: crisp.chat
+    SetDashboardAddressRequest:
+      $ref: "#/components/schemas/SetNetworkAddressRequest"
+      example:
+        hostname: admin.prose.crisp.chat
     PodConfig:
       type: object
       required: []
       properties:
-        address: { $ref: "#/components/schemas/PodAddress" }
-    PodAddress:
+        address:
+          $ref: "#/components/schemas/NetworkAddress"
+          type: [object, "null"]
+        dashboard_address:
+          $ref: "#/components/schemas/NetworkAddress"
+          type: [object, "null"]
+    NetworkAddress:
       type: object
       required:
         - type
@@ -99,10 +173,47 @@ components:
         type: Dynamic
         hostname: crisp.chat
   responses:
+    PodConfigNotInitialized:
+      description: Pod config not initialized
+      content:
+        application/json:
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: pod_config_not_initialized
+          example:
+            error: pod_config_not_initialized
+    PodConfigAlreadyInitialized:
+      description: Pod config already initialized
+      content:
+        application/json:
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: pod_config_already_initialized
+          example:
+            error: pod_config_already_initialized
     PodAddressNotInitialized:
       description: Pod address not initialized
       content:
         application/json:
-          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: pod_address_not_initialized
           example:
             error: pod_address_not_initialized
+    DashboardAddressNotInitialized:
+      description: Dashboard address not initialized
+      content:
+        application/json:
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: dashboard_address_not_initialized
+          example:
+            error: dashboard_address_not_initialized

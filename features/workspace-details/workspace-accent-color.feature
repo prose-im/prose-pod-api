@@ -15,7 +15,7 @@ Feature: Workspace accent color
       Given the server config has been initialized
         And the workspace has not been initialized
        When an unauthenticated user gets the workspace accent color
-       Then the user should receive 'Workspace not initialized'
+       Then the user should receive 'Workspace not initialized: No vCard'
 
   """
   When logging into a workspace, we want to show the accent color of the workspace the person

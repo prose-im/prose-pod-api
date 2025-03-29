@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::{extract::State, http::StatusCode, Json};
@@ -18,7 +18,7 @@ use super::{
     POD_CONFIG_ROUTE,
 };
 
-pub async fn set_pod_address_route(
+pub async fn set_dashboard_address_route(
     State(AppState { db, .. }): State<AppState>,
     Json(req): Json<SetNetworkAddressRequest>,
 ) -> Result<Json<NetworkAddress>, Error> {
@@ -31,7 +31,7 @@ pub async fn set_pod_address_route(
     let model = PodConfigRepository::set(
         &db,
         PodConfigUpdateForm {
-            address: Some(NetworkAddressCreateForm {
+            dashboard_address: Some(NetworkAddressCreateForm {
                 ipv4: req.ipv4,
                 ipv6: req.ipv6,
                 hostname: req.hostname,
@@ -41,36 +41,36 @@ pub async fn set_pod_address_route(
     )
     .await?;
 
-    let res = PodConfig::from(model).address.unwrap();
+    let res = PodConfig::from(model).dashboard_address.unwrap();
     Ok(Json(res))
 }
 
-pub async fn get_pod_address_route(
+pub async fn get_dashboard_address_route(
     State(AppState { db, .. }): State<AppState>,
 ) -> Result<Json<NetworkAddress>, Error> {
     let Some(address) = PodConfigRepository::get(&db)
         .await?
         .and_then(|model| PodConfig::from(model).address)
     else {
-        return Err(PodAddressNotInitialized.into());
+        return Err(DashboardAddressNotInitialized.into());
     };
 
     Ok(address.into())
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("Prose Pod address not initialized.")]
-pub struct PodAddressNotInitialized;
+#[error("Prose Pod Dashboard address not initialized.")]
+pub struct DashboardAddressNotInitialized;
 impl ErrorCode {
-    pub const POD_ADDRESS_NOT_INITIALIZED: Self = Self {
-        value: "pod_address_not_initialized",
+    pub const DASHBOARD_ADDRESS_NOT_INITIALIZED: Self = Self {
+        value: "dashboard_address_not_initialized",
         http_status: StatusCode::PRECONDITION_FAILED,
         log_level: LogLevel::Warn,
     };
 }
-impl HttpApiError for PodAddressNotInitialized {
+impl HttpApiError for DashboardAddressNotInitialized {
     fn code(&self) -> ErrorCode {
-        ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+        ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         vec![format!(

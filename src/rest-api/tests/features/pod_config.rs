@@ -14,7 +14,7 @@ api_call_fn!(
     set_pod_address,
     PUT,
     "/v1/pod/config/address",
-    payload: SetPodAddressRequest,
+    payload: SetNetworkAddressRequest,
 );
 
 #[when(expr = "{} sets the Prose Pod address to an IPv4")]
@@ -23,7 +23,7 @@ async fn when_set_pod_address_ipv4(world: &mut TestWorld, name: String) {
     let res = set_pod_address(
         world.api(),
         token,
-        SetPodAddressRequest {
+        SetNetworkAddressRequest {
             ipv4: Some(Ipv4Addr::new(104, 18, 28, 104)),
             ..Default::default()
         },
@@ -38,7 +38,7 @@ async fn when_set_pod_address_ipv6(world: &mut TestWorld, name: String) {
     let res = set_pod_address(
         world.api(),
         token,
-        SetPodAddressRequest {
+        SetNetworkAddressRequest {
             ipv6: Some(Ipv6Addr::from_bits(0x2606470068121c68)),
             ..Default::default()
         },
@@ -53,7 +53,7 @@ async fn when_set_pod_address_hostname(world: &mut TestWorld, name: String) {
     let res = set_pod_address(
         world.api(),
         token,
-        SetPodAddressRequest {
+        SetNetworkAddressRequest {
             hostname: Some(DomainName::from_str("crisp.chat").unwrap()),
             ..Default::default()
         },
@@ -65,6 +65,6 @@ async fn when_set_pod_address_hostname(world: &mut TestWorld, name: String) {
 #[when(expr = "{} sets the Prose Pod address to an empty value")]
 async fn when_set_pod_address_empty(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = set_pod_address(world.api(), token, SetPodAddressRequest::default()).await;
+    let res = set_pod_address(world.api(), token, SetNetworkAddressRequest::default()).await;
     world.result = Some(res.into());
 }

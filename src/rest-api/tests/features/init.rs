@@ -3,13 +3,18 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use hickory_resolver::Name as DomainName;
 use prose_pod_api::features::init::*;
-use service::workspace::Workspace;
+use service::{
+    pod_config::{
+        NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
+    },
+    workspace::Workspace,
+};
 
 use super::prelude::*;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
-pub const DEFAULT_DOMAIN: &'static str = "prose.test.org";
 
 #[given("the Prose Pod has not been initialized")]
 fn given_pod_not_initialized(world: &mut TestWorld) {
@@ -21,6 +26,17 @@ fn given_pod_not_initialized(world: &mut TestWorld) {
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
     given_server_config_initialized(world).await?;
     given_workspace_initialized(world).await?;
+    given_pod_config_initialized(world).await?;
+    Ok(())
+}
+
+#[given(expr = "the Prose Pod has been initialized for {domain_name}")]
+async fn given_pod_initialized_for_domain(
+    world: &mut TestWorld,
+    domain: parameters::DomainName,
+) -> Result<(), Error> {
+    given_server_domain(world, domain).await?;
+    given_pod_initialized(world).await?;
     Ok(())
 }
 
@@ -59,7 +75,7 @@ fn given_server_config_not_initialized(_world: &mut TestWorld) {
 #[given("the server config has been initialized")]
 async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
     let form = ServerConfigCreateForm {
-        domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
+        domain: JidDomain::from_str(&world.initial_server_domain).unwrap(),
     };
 
     world
@@ -77,14 +93,62 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     Ok(())
 }
 
+#[given("the Pod config has been initialized")]
+async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
+    let base_domain: DomainName = world.initial_server_domain.parse().unwrap();
+    PodConfigRepository::create(
+        world.db(),
+        PodConfigCreateForm {
+            dashboard_address: NetworkAddressCreateForm {
+                hostname: Some(
+                    DomainName::from_str("admin")
+                        .unwrap()
+                        .append_domain(&base_domain)
+                        .unwrap(),
+                ),
+                ..Default::default()
+            },
+            address: NetworkAddressCreateForm {
+                hostname: Some(base_domain),
+                ..Default::default()
+            },
+        },
+    )
+    .await?;
+
+    Ok(())
+}
+
 #[given(expr = "the XMPP server domain is {domain_name}")]
 async fn given_server_domain(
     world: &mut TestWorld,
     domain: parameters::DomainName,
 ) -> Result<(), Error> {
-    let server_manager = world.server_manager().await?;
     let domain = JidDomain::from_str(&domain.to_string()).expect("Invalid domain");
-    server_manager.set_domain(&domain).await?;
+    if let Some(server_manager) = world.server_manager().await? {
+        server_manager.set_domain(&domain).await?;
+    }
+    world.initial_server_domain = domain;
+
+    Ok(())
+}
+
+#[given(expr = "the dashboard domain is {domain_name}")]
+async fn given_dashboard_domain(
+    world: &mut TestWorld,
+    domain: parameters::DomainName,
+) -> Result<(), Error> {
+    PodConfigRepository::set(
+        world.db(),
+        PodConfigUpdateForm {
+            dashboard_address: Some(NetworkAddressCreateForm {
+                hostname: Some(domain.0),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+    )
+    .await?;
     Ok(())
 }
 
@@ -152,7 +216,7 @@ async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), 
     Ok(())
 }
 
-#[then("the user should receive 'Workspace not initialized'")]
+#[then("the user should receive 'Workspace not initialized: No vCard'")]
 async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     let res = world.result();
     res.assert_status(StatusCode::PRECONDITION_FAILED);
@@ -164,7 +228,7 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     );
     res.assert_json(&json!({
         "error": "workspace_not_initialized",
-        "message": "WorkspaceServiceError: Workspace not initialized.",
+        "message": "WorkspaceServiceError: Workspace not initialized: No vCard.",
         "recovery_suggestions": [
             "Call `PUT /v1/workspace` to initialize it.",
         ]

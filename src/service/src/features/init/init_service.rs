@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
-use tracing::instrument;
+use tracing::{info, instrument};
 
 use crate::{
     auth::{auth_service, AuthService},
@@ -28,7 +28,7 @@ pub struct InitService {
 }
 
 impl InitService {
-    #[instrument(level = "trace", skip_all, err)]
+    #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn init_server_config(
         &self,
         server_ctl: &ServerCtl,
@@ -74,7 +74,7 @@ pub enum InitServerConfigError {
 }
 
 impl InitService {
-    #[instrument(level = "trace", skip_all, err)]
+    #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn init_workspace(
         &self,
         app_config: Arc<AppConfig>,
@@ -97,6 +97,8 @@ impl InitService {
             .set_workspace_vcard(&workspace.clone().into())
             .await
             .map_err(InitWorkspaceError::CouldNotSetWorkspaceVCard)?;
+
+        info!("Workspace initialized successfully.");
 
         Ok(workspace)
     }
@@ -123,7 +125,7 @@ impl From<WorkspaceServiceInitError> for InitWorkspaceError {
 }
 
 impl InitService {
-    #[instrument(level = "trace", skip_all, err)]
+    #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn init_first_account(
         &self,
         server_config: &ServerConfig,

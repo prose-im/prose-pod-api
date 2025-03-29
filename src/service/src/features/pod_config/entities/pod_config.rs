@@ -1,9 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm::entity::prelude::*;
+
+use crate::pod_config::{NetworkAddress, NetworkAddressError};
 
 /// Prose Pod configuration, as stored in the database.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -14,7 +16,26 @@ pub struct Model {
     pub ipv4: Option<String>,
     pub ipv6: Option<String>,
     pub hostname: Option<String>,
-    pub dashboard_url: Option<String>,
+    pub dashboard_ipv4: Option<String>,
+    pub dashboard_ipv6: Option<String>,
+    pub dashboard_hostname: Option<String>,
+}
+
+impl Model {
+    pub fn pod_address(&self) -> Result<NetworkAddress, NetworkAddressError> {
+        NetworkAddress::try_from(
+            self.hostname.as_ref(),
+            self.ipv4.as_ref(),
+            self.ipv6.as_ref(),
+        )
+    }
+    pub fn dashboard_address(&self) -> Result<NetworkAddress, NetworkAddressError> {
+        NetworkAddress::try_from(
+            self.dashboard_hostname.as_ref(),
+            self.dashboard_ipv4.as_ref(),
+            self.dashboard_ipv6.as_ref(),
+        )
+    }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -9,6 +9,7 @@ use service::{
     invitations::{invitation_service::*, InvitationAcceptError, InvitationToken},
     models::SerializableSecretString,
     notifications::NotificationService,
+    pod_config::PodConfigField,
     workspace::WorkspaceService,
     AppConfig,
 };
@@ -119,8 +120,12 @@ impl CustomErrorCode for InvitationResendError {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
             Self::CouldNotSendInvitation(err) => err.code(),
             Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-            // TODO: Use a dedicated error code for missing configuration keys.
-            Self::PodConfigMissing(_) => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
+            Self::PodConfigMissing(PodConfigField::PodAddress) => {
+                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+            }
+            Self::PodConfigMissing(PodConfigField::DashboardAddress) => {
+                ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
+            }
             Self::DbErr(err) => err.code(),
         }
     }

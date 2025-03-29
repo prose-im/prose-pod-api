@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use hickory_proto::rr::domain::Name as DomainName;
@@ -14,13 +14,13 @@ use crate::{
     network_checks::{
         models::network_checks::*, DnsEntry, DnsRecordWithStringRepr, DnsSetupStep, IpVersion,
     },
-    pod_config::PodAddress,
+    pod_config::NetworkAddress,
     xmpp::{JidDomain, XmppConnectionType},
 };
 
 pub struct PodNetworkConfig {
     pub server_domain: JidDomain,
-    pub pod_address: PodAddress,
+    pub pod_address: NetworkAddress,
 }
 
 // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
@@ -79,12 +79,12 @@ impl PodNetworkConfig {
         // === Main logic ===
 
         match pod_address {
-            PodAddress::Static { ipv4, ipv6 } => vec![
+            NetworkAddress::Static { ipv4, ipv6 } => vec![
                 step_static_ip(ipv4, ipv6),
                 step_c2s(format!("xmpp.{server_domain}.")),
                 step_s2s(format!("xmpp.{server_domain}.")),
             ],
-            PodAddress::Dynamic { hostname } => vec![
+            NetworkAddress::Dynamic { hostname } => vec![
                 step_c2s(format!("{hostname}.")),
                 step_s2s(format!("{hostname}.")),
             ],
@@ -153,8 +153,8 @@ impl PodNetworkConfig {
             .expect(&format!("Invalid domain name: {server_domain}"));
 
         let hostname = match pod_address {
-            PodAddress::Static { .. } => server_domain,
-            PodAddress::Dynamic { hostname } => hostname,
+            NetworkAddress::Static { .. } => server_domain,
+            NetworkAddress::Dynamic { hostname } => hostname,
         };
 
         vec![
