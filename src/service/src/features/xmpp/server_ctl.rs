@@ -76,10 +76,10 @@ pub enum ServerCtlError {
     #[error("Cannot write Prosody config file at path `{path}`: {1}", path = ._0.display())]
     CannotWriteConfigFile(PathBuf, io::Error),
     #[error(
-        "Command failed ({}):\nstdout: {}\nstderr: {}",
-        ._0.status,
-        str::from_utf8(&._0.stdout).unwrap(),
-        str::from_utf8(&._0.stderr).unwrap(),
+        "Command failed ({status}):\nstdout: {stdout}\nstderr: {stderr}",
+        status = ._0.status,
+        stdout = str::from_utf8(&._0.stdout).unwrap(),
+        stderr = str::from_utf8(&._0.stderr).unwrap(),
     )]
     CommandFailed(Output),
     #[error("UTF-8 error: {0}")]
@@ -95,7 +95,7 @@ pub enum ServerCtlError {
 }
 
 impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
-        Self::Other(value.to_string())
+    fn from(error: reqwest::Error) -> Self {
+        Self::Other(format!("reqwest::Error: {error:?}"))
     }
 }

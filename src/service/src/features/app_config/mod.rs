@@ -18,6 +18,7 @@ use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 use secrecy::SecretString;
 use serde::Deserialize;
@@ -40,6 +41,11 @@ pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 //   and cannot be changed via configuration.
 pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
+
+lazy_static! {
+    pub static ref CONFIG_FILE_PATH: PathBuf =
+        (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
+}
 
 pub type Config = AppConfig;
 
@@ -82,7 +88,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn figment() -> Figment {
-        Self::figment_at_path(Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME))
+        Self::figment_at_path(CONFIG_FILE_PATH.as_path())
     }
 
     pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {

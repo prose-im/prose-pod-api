@@ -8,6 +8,7 @@ export SCRIPTS_ROOT
 source "${SCRIPTS_ROOT:?}"/util.sh
 source "${BASH_TOOLBOX:?}"/format.sh
 
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
 LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 BASE_SCENARIO_NAME=fresh
@@ -36,16 +37,38 @@ info Initializing the Prose Pod…
 info Logging an admin in…
 TOKEN="$(edo curl -s -X POST http://localhost:8080/v1/login -u 'pauline.collins@prose-demo.org.local:demo' \| jq -r '.token')"
 info Performing a factory reset…
-edo curl -s -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}"
+edo curl -sS -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}"
 
 info Checking if factory reset deleted everything…
+
 if [ -n "$(ls -A "${VAR_LIB_PROSODY_DIR:?}")" ]; then
 	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
 fi
+success Prosody data deleted
+
 PROSODY_CONFIG_FILE="${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
-if ! [[ head -n 1 "${PROSODY_CONFIG_FILE:?}" | grep -q '^-- Prose Pod Server initial configuration$' ]]; then
+if ! head -n 1 "${PROSODY_CONFIG_FILE:?}" | grep -q '^-- Prose Pod Server bootstrap configuration$'; then
 	die "Prosody config ($(format_url "${PROSODY_CONFIG_FILE:?}")) hasn’t been reset to its initial state."
 fi
+success Prosody config reset
+
+PROSODY_CERTS_DIR="${ETC_PROSODY_DIR:?}"/certs
+if [ -d "${PROSODY_CERTS_DIR:?}" ] && [ -n "$(ls -A "${PROSODY_CERTS_DIR:?}")" ]; then
+	die "Prosody still contains certificates ($(format_url "${PROSODY_CERTS_DIR:?}") isn’t empty)."
+fi
+success Prosody certs directory is empty
+
+# NOTE: We cannot use `[ ! -s "${DATABASE_PATH:?}" ]` because the file may contain
+#   non-zero logical content even though the actual disk usage is zero.
+if [ $(du "${DATABASE_PATH:?}" | cut -f1) -ne 0 ]; then
+	die "API database still contains data ($(format_url "${DATABASE_PATH:?}") isn’t empty)."
+fi
+success API database reset
+
+if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/Prose-empty.toml)" ]; then
+	die "API config file wasn’t reset ($(format_url "${PROSE_CONFIG_FILE:?}") isn’t empty)."
+fi
+success API config file reset
 
 # Everything worked, no need to investigate.
 # Delete the ephemeral scenario.

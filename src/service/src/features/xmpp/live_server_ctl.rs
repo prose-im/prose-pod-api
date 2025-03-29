@@ -83,10 +83,13 @@ impl ServerCtlImpl for LiveServerCtl {
 
         let prosody_config = prosody_bootstrap_config(init_admin_password);
         let prosody_config_file = prosody_config;
-        file.write_all(prosody_config_file.to_string().as_bytes())
-            .map_err(|e| {
-                server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e)
-            })?;
+        file.write_all(
+            prosody_config_file
+                .print_with_bootstrap_header()
+                .to_string()
+                .as_bytes(),
+        )
+        .map_err(|e| server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
 
         Ok(())
     }
@@ -182,8 +185,12 @@ impl ServerCtlImpl for LiveServerCtl {
 
     async fn delete_all_data(&self) -> Result<(), server_ctl::Error> {
         self.admin_rest
-            .call(|client| client.delete("data"))
-            .await
-            .map(|_| ())
+            .call(|client| client.delete(self.admin_rest.url("certs")))
+            .await?;
+        // NOTE: Delete data last otherwise API calls fail because of authentication.
+        self.admin_rest
+            .call(|client| client.delete(self.admin_rest.url("data")))
+            .await?;
+        Ok(())
     }
 }
