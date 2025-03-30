@@ -22,8 +22,15 @@ edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" 
 
 info Logging an admin in…
 TOKEN="$(edo curl -s -X POST http://localhost:8080/v1/login -u 'pauline.collins@prose-demo.org.local:demo' \| jq -r '.token')"
-info Performing a factory reset…
-edo curl -sS -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}"
+
+info Getting the factory reset token…
+CONFIRMATION="$(edo curl -s -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}" \| jq -r '.confirmation')"
+
+info Performing the factory reset…
+edo curl -s -X DELETE http://localhost:8080 \
+	-H "Authorization: Bearer ${TOKEN:?}" \
+	-H "Content-Type: application/json" \
+	-d '{"confirmation": "'"${CONFIRMATION:?}"'"}'
 
 info Checking if factory reset deleted everything…
 

@@ -122,6 +122,8 @@ paths:
     get: { $ref: "features/network-checks-ip.yaml#/paths/check_ip" }
   "/v1/network/checks/ports":
     get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
+  "/":
+    delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
 components:
   securitySchemes:
     BasicAuth:

@@ -10,23 +10,37 @@ use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
-use axum::routing::*;
 use axum::{extract::State, middleware::from_extractor_with_state};
+use axum::{routing::*, Json};
+use axum_extra::either::Either;
+use lazy_static::lazy_static;
+use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
+use serde::{Deserialize, Serialize};
 use service::app_config::CONFIG_FILE_PATH;
 use service::secrets::SecretsStore;
 use service::xmpp::{ServerCtl, ServerManager};
+use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
-use crate::error::Error;
+use crate::error::{Error, ErrorCode};
 use crate::AppState;
 
 use super::auth::guards::IsAdmin;
+
+lazy_static! {
+    static ref FACTORY_RESET_CONFIRMATION_CODE: RwLock<Option<String>> = RwLock::default();
+}
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
         .route("/", delete(factory_reset_route))
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .with_state(app_state)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct FactoryResetConfirmation {
+    pub confirmation: String,
 }
 
 async fn factory_reset_route(
@@ -38,7 +52,42 @@ async fn factory_reset_route(
     }): State<AppState>,
     server_ctl: ServerCtl,
     secrets_store: SecretsStore,
-) -> Result<StatusCode, Error> {
+    req: Option<Json<FactoryResetConfirmation>>,
+) -> Result<Either<(StatusCode, Json<FactoryResetConfirmation>), StatusCode>, Error> {
+    match req {
+        None => {
+            // Generate a new 16-characters long string.
+            let confirmation = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(16)
+                .map(char::from)
+                .collect::<String>();
+            // Store the code for later confirmation.
+            // WARN: This means two people can’t ask for a factory reset concurrently… but who cares?
+            *FACTORY_RESET_CONFIRMATION_CODE.write().await = Some(confirmation.clone());
+            // Return the code to the user.
+            return Ok(Either::E1((
+                StatusCode::ACCEPTED,
+                Json(FactoryResetConfirmation { confirmation }),
+            )));
+        }
+        Some(Json(FactoryResetConfirmation {
+            confirmation: validation,
+        })) => {
+            if Some(validation) != *FACTORY_RESET_CONFIRMATION_CODE.read().await {
+                return Err(Error::new(
+                    ErrorCode::BAD_REQUEST,
+                    "Invalid confirmation code".to_owned(),
+                    None,
+                    vec![format!(
+                        "Call `DELETE /` to get a new confirmation code."
+                    )],
+                    vec![],
+                ));
+            }
+        }
+    }
+
     warn!("Doing factory reset…");
 
     debug!("Resetting the server…");
@@ -83,7 +132,7 @@ async fn factory_reset_route(
     info!("Restarting the API…");
     lifecycle_manager.set_restarting();
 
-    Ok(StatusCode::RESET_CONTENT)
+    Ok(Either::E2(StatusCode::RESET_CONTENT))
 }
 
 pub async fn restart_guard(

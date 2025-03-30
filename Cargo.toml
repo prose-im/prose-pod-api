@@ -13,7 +13,7 @@ repository = "https://github.com/prose-im/prose-pod-api.git"
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false }
 async-trait = { version = "0.1", default-features = false }
-axum = { version = "0.8", default-features = false }
+axum = { version = "0.8.3", default-features = false }
 axum-extra = { version = "0.10", default-features = false }
 axum-test = { version = "17", default-features = false }
 axum-tracing-opentelemetry = { version = "0.25", default-features = false }

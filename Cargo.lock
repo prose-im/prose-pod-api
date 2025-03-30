@@ -263,11 +263,11 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.8.1"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d6fd624c75e18b3b4c6b9caf42b1afe24437daaee904069137d8bab077be8b8"
+checksum = "de45108900e1f9b9242f7f2e254aa3e2c029c921c258fe9e6b4217eeebd54288"
 dependencies = [
- "axum-core 0.5.0",
+ "axum-core 0.5.2",
  "axum-macros",
  "bytes",
  "form_urlencoded",
@@ -318,12 +318,12 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df1362f362fd16024ae199c1970ce98f9661bf5ef94b9808fee734bc3698b733"
+checksum = "68464cd0412f486726fb3373129ef5d2993f90c34bc2bc1c1e9943b2f4fc7ca6"
 dependencies = [
  "bytes",
- "futures-util",
+ "futures-core",
  "http 1.2.0",
  "http-body",
  "http-body-util",
@@ -342,8 +342,8 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "460fc6f625a1f7705c6cf62d0d070794e94668988b1c38111baeec177c715f7b"
 dependencies = [
- "axum 0.8.1",
- "axum-core 0.5.0",
+ "axum 0.8.3",
+ "axum-core 0.5.2",
  "bytes",
  "cookie",
  "form_urlencoded",
@@ -382,7 +382,7 @@ dependencies = [
  "anyhow",
  "assert-json-diff",
  "auto-future",
- "axum 0.8.1",
+ "axum 0.8.3",
  "bytes",
  "bytesize",
  "cookie",
@@ -409,7 +409,7 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "537b722ea45bf47f9fe55c9aac9ca7122e0fea5edb85dced4f6ec411c42fbec5"
 dependencies = [
- "axum 0.8.1",
+ "axum 0.8.3",
  "futures-core",
  "futures-util",
  "http 1.2.0",
@@ -2844,7 +2844,7 @@ name = "prose-pod-api"
 version = "0.10.0"
 dependencies = [
  "async-trait",
- "axum 0.8.1",
+ "axum 0.8.3",
  "axum-extra",
  "axum-test",
  "axum-tracing-opentelemetry",
@@ -2864,6 +2864,7 @@ dependencies = [
  "linked-hash-map",
  "mime",
  "minidom",
+ "rand",
  "regex",
  "rustls",
  "secrecy",
