@@ -12,25 +12,35 @@ INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
 LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 BASE_SCENARIO_NAME=demo
+: ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
 
 SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
 # Compute dynamic variables.
 source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
+abort() {
+	# Do not stop the API after a failure to allow investigation.
+	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
+	task integration-test:logs
+	die "$@"
+}
+
 info 'Starting the demo API (already populated with data)…'
 edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
 
+# Wait a bit to make sure the API is ready (e.g. has run migrations).
+sleep 1
+
 info Logging an admin in…
-TOKEN="$(edo curl -s -X POST http://localhost:8080/v1/login -u 'pauline.collins@prose-demo.org.local:demo' \| jq -r '.token')"
+TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login -a 'pauline.collins@prose-demo.org.local:demo' content-type: | jq -r '.token')"
+[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
 
 info Getting the factory reset token…
-CONFIRMATION="$(edo curl -s -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?}" \| jq -r '.confirmation')"
+CONFIRMATION="$(xh DELETE -I "${INTEGRATION_TEST_HOST:?}" -A bearer -a "${TOKEN:?}" | jq -r '.confirmation')"
+[ -n "${CONFIRMATION-}" ] && [ "${CONFIRMATION:?}" != null ] || abort
 
 info Performing the factory reset…
-edo curl -s -X DELETE http://localhost:8080 \
-	-H "Authorization: Bearer ${TOKEN:?}" \
-	-H "Content-Type: application/json" \
-	-d '{"confirmation": "'"${CONFIRMATION:?}"'"}'
+edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" -A bearer -a "${TOKEN:?}" confirmation="${CONFIRMATION:?}" || abort
 
 info Checking if factory reset deleted everything…
 
@@ -82,11 +92,11 @@ fi
 success API config file reset
 
 info Waiting for the API to restart…
-edo curl http://localhost:8080/api-docs/openapi.json --retry 3 --fail -s --output /dev/null || die API stuck restarting.
+edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/api-docs/openapi.json --timeout 3 -p=HBhm || abort API stuck restarting.
 
 info Checking if the API still works…
 # Run the `init` integration test, which will initialize the Pod
-# (saving us a bunch of `curl` commands).
+# (saving us a bunch of `curl`/`xh` commands).
 ( export SKIP_POD_START=1 SKIP_POD_STOP=1; edo log_as_trace_ task integration-test -- init )
 success The API still works!
 
