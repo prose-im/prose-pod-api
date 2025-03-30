@@ -11,28 +11,14 @@ source "${BASH_TOOLBOX:?}"/format.sh
 INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
 LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
-BASE_SCENARIO_NAME=fresh
-
-# Check that the base scenario doesn’t have data (put there by mistake).
-(
-	SCENARIO_NAME="${BASE_SCENARIO_NAME:?}"
-	source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
-	if [ -n "$(ls -A "${VAR_LIB_PROSODY_DIR:?}" | grep -v '^.gitignore$')" ]; then
-		die "Prosody initially contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
-	fi
-)
+BASE_SCENARIO_NAME=demo
 
 SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
 # Compute dynamic variables.
 source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
-# Start a fresh API with no data.
+info 'Starting the demo API (already populated with data)…'
 edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
-
-info Initializing the Prose Pod…
-# Run the `init` integration test, which will initialize the Pod
-# (saving us a bunch of `curl` commands).
-( export SKIP_POD_START=1 SKIP_POD_STOP=1; edo log_as_trace_ task integration-test -- init )
 
 info Logging an admin in…
 TOKEN="$(edo curl -s -X POST http://localhost:8080/v1/login -u 'pauline.collins@prose-demo.org.local:demo' \| jq -r '.token')"
