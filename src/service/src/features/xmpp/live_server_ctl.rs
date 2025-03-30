@@ -8,7 +8,6 @@ use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 use reqwest::Method;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
-use tracing::error;
 
 use crate::{
     members::MemberRole,
@@ -51,7 +50,7 @@ impl ServerCtlImpl for LiveServerCtl {
         }
 
         if start.elapsed() >= timeout {
-            error!("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.");
+            return Err(server_ctl::Error::Other("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.".to_string()));
         }
 
         Ok(())

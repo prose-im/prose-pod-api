@@ -6,7 +6,10 @@
 use std::fs::{self, File};
 use std::io::Write;
 
-use axum::response::Redirect;
+use axum::extract::Request;
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::Response;
 use axum::routing::*;
 use axum::{extract::State, middleware::from_extractor_with_state};
 use service::app_config::CONFIG_FILE_PATH;
@@ -27,17 +30,22 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 async fn factory_reset_route(
-    State(AppState { db, app_config, .. }): State<AppState>,
+    State(AppState {
+        db,
+        app_config,
+        restart_tx,
+        ..
+    }): State<AppState>,
     server_ctl: ServerCtl,
     secrets_store: SecretsStore,
-) -> Result<Redirect, Error> {
+) -> Result<StatusCode, Error> {
     warn!("Doing factory reset…");
+
+    debug!("Resetting the server…");
+    ServerManager::reset_server_config(&db, &server_ctl, &app_config, &secrets_store).await?;
 
     debug!("Erasing user data from the server…");
     server_ctl.delete_all_data().await?;
-
-    debug!("Resetting the server…");
-    ServerManager::reset_server_config(&db, &server_ctl, &secrets_store).await?;
 
     debug!("Resetting the API’s database…");
     // Close the database connection to make sure SeaORM
@@ -72,9 +80,24 @@ async fn factory_reset_route(
 
     info!("Factory reset done.");
 
-    tokio::task::spawn(async {
-        warn!("Restarting the API…");
-    });
+    warn!("Restarting the API…");
+    restart_tx.send_modify(|restarting| *restarting = true);
 
-    Ok(Redirect::to("/"))
+    Ok(StatusCode::RESET_CONTENT)
+}
+
+pub async fn restart_guard(
+    State(AppState { restart_rx, .. }): State<AppState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if *restart_rx.borrow() {
+        return Response::builder()
+            .status(StatusCode::SERVICE_UNAVAILABLE)
+            // NOTE: A second should be enough, the API usually takes around 60ms to start.
+            .header("Retry-After", 1)
+            .body("The API is restarting.".into())
+            .unwrap();
+    }
+    next.run(request).await
 }

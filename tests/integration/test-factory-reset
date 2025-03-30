@@ -41,7 +41,8 @@ edo curl -sS -X DELETE http://localhost:8080 -H "Authorization: Bearer ${TOKEN:?
 
 info Checking if factory reset deleted everything…
 
-if [ -n "$(ls -A "${VAR_LIB_PROSODY_DIR:?}")" ]; then
+PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2eorg%2elocal'
+if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v "^${PROSODY_ADMIN_DATA_DIR_NAME:?}$")" ]; then
 	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
 fi
 success Prosody data deleted
@@ -69,6 +70,15 @@ if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/Pr
 	die "API config file wasn’t reset ($(format_url "${PROSE_CONFIG_FILE:?}") isn’t empty)."
 fi
 success API config file reset
+
+info Waiting for the API to restart…
+edo curl http://localhost:8080/api-docs/openapi.json --retry 3 --fail -s --output /dev/null || die API stuck restarting.
+
+info Checking if the API still works…
+# Run the `init` integration test, which will initialize the Pod
+# (saving us a bunch of `curl` commands).
+( export SKIP_POD_START=1 SKIP_POD_STOP=1; edo log_as_trace_ task integration-test -- init )
+success The API still works!
 
 # Everything worked, no need to investigate.
 # Delete the ephemeral scenario.

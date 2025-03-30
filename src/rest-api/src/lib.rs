@@ -10,9 +10,9 @@ pub mod guards;
 pub mod responders;
 pub mod util;
 
-use axum::{http::StatusCode, routing::get_service, Router};
+use axum::{http::StatusCode, middleware, routing::get_service, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
-use features::startup_actions;
+use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
@@ -23,6 +23,7 @@ use service::{
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
 };
+use tokio::sync::watch;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tracing::{error, instrument};
@@ -41,6 +42,8 @@ pub struct AppState {
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
+    restart_tx: watch::Sender<bool>,
+    restart_rx: watch::Receiver<bool>,
 }
 
 impl AppState {
@@ -53,6 +56,7 @@ impl AppState {
         email_notifier: Option<Notifier<EmailNotification>>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
+        restart_channel: (watch::Sender<bool>, watch::Receiver<bool>),
     ) -> Self {
         Self {
             db,
@@ -64,6 +68,8 @@ impl AppState {
             email_notifier,
             secrets_store,
             network_checker,
+            restart_tx: restart_channel.0,
+            restart_rx: restart_channel.1,
         }
     }
 }
@@ -96,7 +102,11 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
         // Start OpenTelemetry trace on incoming request.
         .layer(OtelAxumLayer::default())
         // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
-        .layer(ServiceBuilder::new().map_response(error_catcher));
+        .layer(ServiceBuilder::new().map_response(error_catcher))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            restart_guard,
+        ));
 
     PreStartupRouter(router)
 }

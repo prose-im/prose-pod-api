@@ -5,6 +5,7 @@
 
 use axum_test::TestServer;
 use prose_pod_api::{AppState, StartupError};
+use tokio::sync::watch;
 use tracing::*;
 
 use super::test_world::TestWorld;
@@ -21,6 +22,7 @@ pub async fn test_server(world: &TestWorld) -> Result<TestServer, StartupError> 
         Some(world.email_notifier.clone()),
         world.secrets_store.clone(),
         world.network_checker.clone(),
+        watch::channel(false),
     );
 
     let router = prose_pod_api::make_router(&app_state);
