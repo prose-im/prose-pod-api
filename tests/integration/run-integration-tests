@@ -108,6 +108,7 @@ info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
 # NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`. Special cases are handled here.
 for arg in "$@"; do
 	if [ "$arg" == factory-reset ]; then
+		unset PROSE_CONFIG_FILE
 		"${INTEGRATION_TESTS_DIR:?}"/test-factory-reset
 		continue
 	fi
