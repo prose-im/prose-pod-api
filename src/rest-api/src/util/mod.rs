@@ -6,6 +6,8 @@
 pub mod content_type_or;
 pub mod database;
 mod error_catcher;
+mod lifecycle_manager;
 pub mod tracing_subscriber_ext;
 
 pub use error_catcher::error_catcher;
+pub use lifecycle_manager::LifecycleManager;

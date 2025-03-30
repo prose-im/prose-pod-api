@@ -23,11 +23,10 @@ use service::{
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
 };
-use tokio::sync::watch;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tracing::{error, instrument};
-use util::error_catcher;
+use util::{error_catcher, LifecycleManager};
 
 pub trait AxumState: Clone + Send + Sync + 'static {}
 
@@ -42,8 +41,7 @@ pub struct AppState {
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
-    restart_tx: watch::Sender<bool>,
-    restart_rx: watch::Receiver<bool>,
+    lifecycle_manager: LifecycleManager,
 }
 
 impl AppState {
@@ -56,7 +54,7 @@ impl AppState {
         email_notifier: Option<Notifier<EmailNotification>>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
-        restart_channel: (watch::Sender<bool>, watch::Receiver<bool>),
+        lifecycle_manager: LifecycleManager,
     ) -> Self {
         Self {
             db,
@@ -68,8 +66,7 @@ impl AppState {
             email_notifier,
             secrets_store,
             network_checker,
-            restart_tx: restart_channel.0,
-            restart_rx: restart_channel.1,
+            lifecycle_manager,
         }
     }
 }

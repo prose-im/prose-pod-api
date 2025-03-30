@@ -33,7 +33,7 @@ async fn factory_reset_route(
     State(AppState {
         db,
         app_config,
-        restart_tx,
+        lifecycle_manager,
         ..
     }): State<AppState>,
     server_ctl: ServerCtl,
@@ -81,17 +81,19 @@ async fn factory_reset_route(
     info!("Factory reset done.");
 
     warn!("Restarting the API…");
-    restart_tx.send_modify(|restarting| *restarting = true);
+    lifecycle_manager.set_restarting();
 
     Ok(StatusCode::RESET_CONTENT)
 }
 
 pub async fn restart_guard(
-    State(AppState { restart_rx, .. }): State<AppState>,
+    State(AppState {
+        lifecycle_manager, ..
+    }): State<AppState>,
     request: Request,
     next: Next,
 ) -> Response {
-    if *restart_rx.borrow() {
+    if lifecycle_manager.is_restarting() {
         return Response::builder()
             .status(StatusCode::SERVICE_UNAVAILABLE)
             // NOTE: A second should be enough, the API usually takes around 60ms to start.

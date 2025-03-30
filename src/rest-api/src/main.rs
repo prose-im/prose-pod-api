@@ -14,7 +14,7 @@ use std::{
 use axum::Router;
 use prose_pod_api::{
     make_router, run_startup_actions,
-    util::{database::db_conn, tracing_subscriber_ext},
+    util::{database::db_conn, tracing_subscriber_ext, LifecycleManager},
     AppState,
 };
 use service::{
@@ -27,7 +27,6 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tokio::sync::{watch, Barrier};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, instrument, trace, warn};
 
@@ -42,54 +41,45 @@ async fn main() {
         .unwrap();
 
     let starting = AtomicBool::new(true);
-    let (restart_tx, mut restart_rx) = watch::channel(false);
+    let mut lifecycle_manager = LifecycleManager::new();
 
-    let mut instance = (CancellationToken::new(), Arc::new(Barrier::new(2)));
-    let mut previous_instance: Option<(CancellationToken, Arc<Barrier>)> = None;
-
-    restart_rx.mark_changed();
-    while restart_rx.changed().await.is_ok() {
+    lifecycle_manager.restart_rx_mut().mark_changed();
+    while lifecycle_manager.restart_rx_mut().changed().await.is_ok() {
         let (starting, restarting) = (
             starting.swap(false, Ordering::Relaxed),
-            *restart_rx.borrow(),
+            lifecycle_manager.is_restarting(),
         );
         if restarting {
             warn!("Restarting…");
         }
         if starting || restarting {
             {
-                let instance = instance.clone();
-                let restart_channel = (restart_tx.clone(), restart_rx.clone());
+                let lifecycle_manager = lifecycle_manager.clone();
                 tokio::task::spawn(async move {
                     trace!("Starting an instance…");
-                    run(instance, restart_channel, previous_instance).await;
+                    run(&lifecycle_manager).await;
                     trace!("Instance stopped.");
                 });
             }
 
-            previous_instance = Some(instance);
-            instance = (CancellationToken::new(), Arc::new(Barrier::new(2)));
+            lifecycle_manager = lifecycle_manager.rotate_instance();
         }
     }
     warn!("Nothing else to do, exiting.");
 }
 
-async fn run(
-    (cancellation_token, stopped): (CancellationToken, Arc<Barrier>),
-    restart_channel: (watch::Sender<bool>, watch::Receiver<bool>),
-    previous_instance: Option<(CancellationToken, Arc<Barrier>)>,
-) {
+async fn run(lifecycle_manager: &LifecycleManager) {
     let app_config = AppConfig::from_default_figment();
     if app_config.debug.log_config_at_startup {
         dbg!(&app_config);
     }
     let addr = SocketAddr::new(app_config.address, app_config.port);
 
-    let restart_tx = restart_channel.0.clone();
-    let app = startup(app_config, restart_channel, previous_instance).await;
-    restart_tx.send_modify(|restarting| *restarting = false);
+    let app = startup(app_config, lifecycle_manager).await;
+    lifecycle_manager.set_restart_finished();
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let (cancellation_token, stopped) = lifecycle_manager.current_instance();
     info!("Serving the Prose Pod API on {addr}…");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal(cancellation_token))
@@ -101,30 +91,18 @@ async fn run(
 }
 
 #[instrument(level = "trace", skip_all)]
-async fn startup(
-    app_config: AppConfig,
-    restart_channel: (watch::Sender<bool>, watch::Receiver<bool>),
-    previous_instance: Option<(CancellationToken, Arc<Barrier>)>,
-) -> Router {
-    let app_state = init_dependencies(app_config, restart_channel).await;
+async fn startup(app_config: AppConfig, lifecycle_manager: &LifecycleManager) -> Router {
+    let app_state = init_dependencies(app_config, lifecycle_manager).await;
 
     let app = run_startup_actions(make_router(&app_state), app_state)
         .await
         .map_err(|err| panic!("{err}"))
         .unwrap();
 
-    // Stop previous instance, if applicable.
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
     //   doesn’t keep caches which would leak data.
-    if let Some((running, stopped)) = previous_instance {
-        // Stop the previous instance.
-        trace!("Stopping the previous instance…");
-        running.cancel();
-        // Wait for previous instance to be stopped (for port to be available).
-        trace!("Waiting for previous instance to be stopped…");
-        stopped.wait().await;
-    }
+    lifecycle_manager.stop_previous_instance().await;
 
     app
 }
@@ -132,7 +110,7 @@ async fn startup(
 #[instrument(level = "trace", skip_all)]
 async fn init_dependencies(
     app_config: AppConfig,
-    restart_channel: (watch::Sender<bool>, watch::Receiver<bool>),
+    lifecycle_manager: &LifecycleManager,
 ) -> AppState {
     let db = db_conn(&app_config.databases.main)
         .await
@@ -171,7 +149,7 @@ async fn init_dependencies(
         email_notifier,
         secrets_store,
         network_checker,
-        restart_channel,
+        lifecycle_manager.clone(),
     )
 }
 
