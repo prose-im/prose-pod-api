@@ -52,11 +52,28 @@ if [ -d "${PROSODY_CERTS_DIR:?}" ] && [ -n "$(ls -A "${PROSODY_CERTS_DIR:?}")" ]
 fi
 success Prosody certs directory is empty
 
-# NOTE: We cannot use `[ ! -s "${DATABASE_PATH:?}" ]` because the file may contain
-#   non-zero logical content even though the actual disk usage is zero.
-if [ $(du "${DATABASE_PATH:?}" | cut -f1) -ne 0 ]; then
-	die "API database still contains data ($(format_url "${DATABASE_PATH:?}") isn’t empty)."
-fi
+# Wait for the API to flush data to SQLite.
+sleep 1
+
+# NOTE: We can’t just check if the file is empty as the API runs migrations when it restarts.
+#   By checking that important tables are empty, we ensure a cleanup process took place
+#   (since the demo scenario comes with data). We know migrations are not just reverted,
+#   the whole file is rather emptied. Therefor, we don’t need to test **all** tables.
+table-empty() {
+	local table_name="${1:?}"
+	local row_count="$(sqlite3 "${DATABASE_PATH:?}" "SELECT CASE
+  WHEN EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='${table_name}')
+  THEN (SELECT COUNT(*) FROM ${table_name})
+  ELSE 0
+END;")"
+	if [ ${row_count:-1} -ne 0 ]; then
+		die "API database table $(format_code "${table_name}") isn’t empty. It contains ${row_count:-NaN} row(s). Database path: $(format_url "${DATABASE_PATH:?}")."
+	fi
+}
+table-empty member
+table-empty pod_config
+table-empty server_config
+table-empty workspace_invitation
 success API database reset
 
 if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/Prose-empty.toml)" ]; then
