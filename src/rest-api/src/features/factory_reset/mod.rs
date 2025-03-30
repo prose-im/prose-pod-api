@@ -80,7 +80,7 @@ async fn factory_reset_route(
 
     info!("Factory reset done.");
 
-    warn!("Restarting the API…");
+    info!("Restarting the API…");
     lifecycle_manager.set_restarting();
 
     Ok(StatusCode::RESET_CONTENT)

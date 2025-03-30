@@ -3,13 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    net::SocketAddr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::Router;
 use prose_pod_api::{
@@ -27,7 +21,6 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tokio_util::sync::CancellationToken;
 use tracing::{info, instrument, trace, warn};
 
 #[tokio::main]
@@ -40,32 +33,44 @@ async fn main() {
         .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
         .unwrap();
 
-    let starting = AtomicBool::new(true);
     let mut lifecycle_manager = LifecycleManager::new();
 
-    lifecycle_manager.restart_rx_mut().mark_changed();
-    while lifecycle_manager.restart_rx_mut().changed().await.is_ok() {
-        let (starting, restarting) = (
-            starting.swap(false, Ordering::Relaxed),
-            lifecycle_manager.is_restarting(),
-        );
-        if restarting {
+    {
+        let mut lifecycle_manager = lifecycle_manager.clone();
+        tokio::task::spawn(async move { lifecycle_manager.listen_for_graceful_shutdown().await });
+    }
+
+    let mut starting = true;
+    fn should_start(starting: &mut bool) -> bool {
+        let should_start = *starting;
+        *starting = false;
+        should_start
+    }
+
+    while should_start(&mut starting) || lifecycle_manager.should_restart().await {
+        if !starting {
             warn!("Restarting…");
         }
-        if starting || restarting {
-            {
-                let lifecycle_manager = lifecycle_manager.clone();
-                tokio::task::spawn(async move {
-                    trace!("Starting an instance…");
-                    run(&lifecycle_manager).await;
-                    trace!("Instance stopped.");
-                });
-            }
 
-            lifecycle_manager = lifecycle_manager.rotate_instance();
+        {
+            let lifecycle_manager = lifecycle_manager.clone();
+            tokio::task::spawn(async move {
+                trace!("Starting an instance…");
+                run(&lifecycle_manager).await;
+                trace!("Run finished.");
+            });
+        }
+
+        lifecycle_manager = lifecycle_manager.rotate_instance();
+
+        if lifecycle_manager.will_restart() {
+            trace!("Waiting for next `restart_rx` signal…");
+        } else {
+            trace!("Not waiting for next `restart_rx` signal.");
         }
     }
-    warn!("Nothing else to do, exiting.");
+
+    info!("Nothing else to do, exiting.");
 }
 
 async fn run(lifecycle_manager: &LifecycleManager) {
@@ -82,12 +87,15 @@ async fn run(lifecycle_manager: &LifecycleManager) {
     let (cancellation_token, stopped) = lifecycle_manager.current_instance();
     info!("Serving the Prose Pod API on {addr}…");
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal(cancellation_token))
+        .with_graceful_shutdown(async move { cancellation_token.cancelled().await })
         .await
         .unwrap();
 
-    trace!("API instance stopped. Waiting for next one to start…");
-    stopped.wait().await;
+    trace!("API instance stopped.");
+    if lifecycle_manager.is_restarting() {
+        trace!("Waiting for next instance to start…");
+        stopped.wait().await;
+    }
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -151,43 +159,4 @@ async fn init_dependencies(
         network_checker,
         lifecycle_manager.clone(),
     )
-}
-
-/// Source: [`axum/examples/graceful-shutdown/src/main.rs#L55-L77`](https://github.com/tokio-rs/axum/blob/ef0b99b6a01e083101fe2e78e6a9c17e3708bc3c/examples/graceful-shutdown/src/main.rs#L55-L77)
-///
-/// NOTE: Graceful shutdown will wait for outstanding requests to complete.
-///   We have SSE routes so we can't add a timeout like suggested in
-///   [`axum/examples/graceful-shutdown/src/main.rs#L40-L42`](https://github.com/tokio-rs/axum/blob/ef0b99b6a01e083101fe2e78e6a9c17e3708bc3c/examples/graceful-shutdown/src/main.rs#L40-L42).
-///   We'll find a solution if it ever becomes a problem.
-async fn shutdown_signal(cancellation_token: CancellationToken) {
-    use tokio::signal;
-
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {
-            warn!("Received Ctrl+C.")
-        },
-        _ = terminate => {
-            warn!("Process terminated.")
-        },
-        _ = cancellation_token.cancelled() => {
-            warn!("API run cancelled.")
-        },
-    }
 }
