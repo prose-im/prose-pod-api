@@ -54,10 +54,13 @@ usage() {
 usage-start() {
 	cat <<EOF
 $(format_title 'Syntax:')
-  $(format_command "${SELF}") $(format_arg SERVICE...) $(format_opt_arg --new)
+  $(format_command "${SELF}") $(format_opt_arg SERVICE...) $(format_opt_arg --new)
     Where $(format_arg SERVICE) is one of: ${SERVICES[@]}.
+    Default: $(format_arg "${SERVICES[0]}")
 
 $(format_title 'Usage:')
+  You want to start any collector (default: $(service-name "${SERVICES[0]}")):
+    $(format_command "${SELF%' --'}")
   You want to start $(service-name jaeger):
     $(format_command "${SELF:?}") $(format_arg jaeger)
   You want to (re)start $(service-name jaeger) and delete existing data:
@@ -368,7 +371,10 @@ source "${BASH_TOOLBOX:?}"/log.sh
 
 if [ "$#" == 0 ]; then
 	case "${ACTION}" in
-		start) die "You must pass at least one service name (supported: ${SERVICES[@]})." ;;
+		start)
+			info "No service name passed, using $(service-name "${SERVICES[0]}") as a default."
+			set -- "${SERVICES[0]}"
+			;;
 		stop)
 			info 'No service name passed, stopping all services.'
 			set -- "${SERVICES[@]}"
