@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- WARN: Do not move the next line and add changelog entries **under** it.
+       It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.10.0...HEAD
 
 ### Removed
@@ -32,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - feat!: Implement factory reset (`DELETE /`) (@RemiBardon in #188).
 - feat: Add `PUT /v1/pod/config/dashboard-address` (@RemiBardon in #188).
+- feat(tasks): Update changelog in `task release` (@RemiBardon).
 
 ## [0.10.0] - 2025-03-25
 

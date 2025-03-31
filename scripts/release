@@ -13,6 +13,7 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 
 : ${REPOSITORY_ROOT:="${SCRIPTS_ROOT:?}"/..}
 VERSION_FILE="${REPOSITORY_ROOT:?}"/VERSION
+CHANGELOG_FILE="${REPOSITORY_ROOT:?}"/CHANGELOG.md
 OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/docs/openapi/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
@@ -57,13 +58,19 @@ to-tag() {
 
 # A simplified `sed` command that works on both macOS and Linux.
 replace() {
-	local pattern="s/${1:?}/\1${NEW_VERSION:?}\2/" file="${2:?}"
+	local find="${1:?}"
+	local replace="${2:?}"
+	# NOTE: `//$'\n'/\\n` allows escaping newlines.
+	local pattern="s@${find}@${replace//$'\n'/\\n}@" file="${3:?}"
 
 	if [[ "$(uname)" == "Darwin" ]]; then
 		edo sed -i '' -E "$pattern" "$file"
 	else
 		edo sed -i "$pattern" "$file"
 	fi
+}
+replace-version() {
+	replace "${1:?}" "\1${NEW_VERSION:?}\2" "${2:?}"
 }
 
 # ===== ARGUMENT PARSING =====
@@ -85,7 +92,7 @@ case "$1" in
 		;;
 	--help) help ;;
 	'') die "Expected at least one argument.\n$(usage)" ;;
-	*) die "Unknown argument: $(format_code $1).\n$(usage)" ;;
+	*) error "Unknown argument: $(format_code $1)."; info "$(usage)"; die ;;
 esac
 # Skip first argument now that it's processed.
 shift 1
@@ -94,7 +101,7 @@ for arg in "$@"; do
 	case $arg in
 		--force) FORCE=1 ;;
 		--help) help ;;
-		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+		*) error "Unknown argument: $(format_code $arg)."; info "$(usage)"; die ;;
 	esac
 done
 
@@ -118,20 +125,24 @@ log_as_info_ git --no-pager log --reverse --no-merges \
 
 # Update version numbers in files.
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
-if (( $DRY_RUN )); then
-	dry_run 'echo '"${NEW_VERSION:?}"' > '"${VERSION_FILE:?}"
-else
-	trace 'echo '"${NEW_VERSION:?}"' > '"${VERSION_FILE:?}"
-	echo "${NEW_VERSION:?}" > "${VERSION_FILE:?}"
-fi
+edo echo "${NEW_VERSION:?}" \> "${VERSION_FILE:?}"
 info "Changing version number in $(format_code "$(basename "${OPENAPI_SPEC_FILE:?}")")…"
-replace '^(\t\t"version": ").+(")' "${OPENAPI_SPEC_FILE:?}"
+replace-version '^(\t\t"version": ").+(")' "${OPENAPI_SPEC_FILE:?}"
 info "Changing version number in $(format_code Cargo.toml)…"
-replace '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
+replace-version '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
 info "Changing version number in local run config…"
-replace '(PROSE_POD_API_IMAGE_TAG:=).+(\})' "${LOCAL_RUN_CONSTANTS_FILE:?}"
+replace-version '(PROSE_POD_API_IMAGE_TAG:=).+(\})' "${LOCAL_RUN_CONSTANTS_FILE:?}"
 info "Updating $(format_code Cargo.lock)…"
 edo cargo check
+info "Updating $(format_code CHANGELOG.md)…"
+replace "compare/$(to-tag "${VERSION:?}")...HEAD" "$(cat <<EOF
+compare/$(to-tag "${NEW_VERSION:?}")...HEAD
+
+## [${NEW_VERSION:?}] - $(date -I)
+
+[${NEW_VERSION:?}]: https://github.com/prose-im/prose-pod-api/compare/$(to-tag "${VERSION:?}")...$(to-tag "${NEW_VERSION:?}")
+EOF
+)" "${CHANGELOG_FILE:?}"
 
 # Create & push a new git tag.
 GIT_BRANCH="$(git branch --show-current)"
