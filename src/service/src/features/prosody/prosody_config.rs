@@ -140,6 +140,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         "server_contact_info",
                         "websocket",
                         "cloud_notify",
+                        "register",
                     ]
                     .into_iter()
                     .map(ToString::to_string)
