@@ -12,8 +12,9 @@ use axum::{
 };
 use hickory_resolver::Name as DomainName;
 use serde::{Deserialize, Serialize};
-use service::pod_config::{
-    NetworkAddressCreateForm, PodConfig, PodConfigCreateForm, PodConfigRepository,
+use service::{
+    models::Url,
+    pod_config::{NetworkAddressCreateForm, PodConfig, PodConfigCreateForm, PodConfigRepository},
 };
 
 use crate::{
@@ -27,14 +28,14 @@ use super::POD_CONFIG_ROUTE;
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct InitPodConfigRequest {
     pub address: SetNetworkAddressRequest,
-    pub dashboard_address: SetNetworkAddressRequest,
+    pub dashboard_url: Option<Url>,
 }
 
 impl Into<PodConfigCreateForm> for InitPodConfigRequest {
     fn into(self) -> PodConfigCreateForm {
         PodConfigCreateForm {
             address: self.address.into(),
-            dashboard_address: self.dashboard_address.into(),
+            dashboard_url: self.dashboard_url,
         }
     }
 }
@@ -67,13 +68,26 @@ pub(super) fn check_processable_network_address(
         _ => Ok(()),
     }
 }
+pub(super) fn check_url_has_no_path(url: &Option<Url>) -> Result<(), Error> {
+    if let Some(url) = url {
+        // NOTE: `make_relative` when called on the same URL returns only the fragment and query.
+        let relative_part = url.make_relative(&url);
+        if relative_part.is_none_or(|s| !s.is_empty()) {
+            return Err(Error::from(error::HTTPStatus {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                body: "The URL you passed contains a fragment or query.".to_string(),
+            }));
+        }
+    }
+    Ok(())
+}
 
 pub async fn init_pod_config_route(
     State(AppState { db, .. }): State<AppState>,
     Json(req): Json<InitPodConfigRequest>,
 ) -> Result<Created<PodConfig>, Error> {
     check_processable_network_address(&req.address)?;
-    check_processable_network_address(&req.dashboard_address)?;
+    check_url_has_no_path(&req.dashboard_url)?;
 
     if PodConfigRepository::get(&db).await?.is_some() {
         Err(Error::from(PodConfigAlreadyInitialized))

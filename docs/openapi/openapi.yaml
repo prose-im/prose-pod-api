@@ -73,9 +73,9 @@ paths:
   "/v1/pod/config/address":
     put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
-  "/v1/pod/config/dashboard-address":
-    put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_address" }
-    get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_address" }
+  "/v1/pod/config/dashboard-url":
+    put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_url" }
+    get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }
   "/v1/workspace":
     put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
     get: { $ref: "features/workspace.yaml#/paths/get_workspace" }

@@ -115,7 +115,7 @@ VirtualHost "prose-demo.org.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "hs3W8InJLICq7Sx1NfBbB1za_56HaBPBj1yJOFOB79rqVSdnGSwCpcTe-sgW--cbCK9mIIVE1ks_gnlu7VT84faHULdPdae6ppC_XvX155n-55eGF2vZi-iB4yfeLsVA0q4sc_222XpKWeplJCHK_sahx--_bzqB2kP2l-cdK9DZShYxtbjeV-EyS0pGBCU5AQSccDTu4EeEkdET03Pd4VEX-ld6qd6VU13awDgcHPS4tTPSJJE32czF37hT6QbEMnXU_kovloh2swCykueHqZP9zX4TMXlAaDtW7moHFUbnMSqrz9-WORRCtqqYqRvwhm3dJurLMekwyOL3ffwA9g"
+  oauth2_registration_key = "Q8UB3ua8o6ZtNsPLliIY3Komfjz18eOJTpOF-hrEUXaG9hWWLTmZkep0ZRDKCItHKORMFHuBLAoFTqM-L9w7gvM3ptnH5sinpYLQjm_Hs3b6aAHDm9NOQ89X0vGg_fjidNXwQ1w2F2uYJeXpnqtwVmX8E1peMLSTSzpJWE1NNpiariwBirnW0zEj1bgLr1ys-Bk7WCAK7GF661t607C3xcG8B5lMjgpCXqcdBJ9BUNroAYumnYmtReX8q47jsN4nU5GrRMerVAmMOMfC4laF9Zaty2n7dyvhzpyDqCXfTyUwD7Fgi04grJh0JdMcWpxPC5kUxyEzbEpOyytR1iHqhg"
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }

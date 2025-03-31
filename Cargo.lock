@@ -3771,6 +3771,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "url 2.5.4",
  "url_serde",
  "urlencoding",
  "uuid",

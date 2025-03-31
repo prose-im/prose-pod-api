@@ -5,3 +5,4 @@
 
 pub(crate) mod m20240830_080808_create_pod_config;
 pub(crate) mod m20250326_095800_add_dashboard_address;
+pub(crate) mod m20250331_222300_dashboard_address_to_url;

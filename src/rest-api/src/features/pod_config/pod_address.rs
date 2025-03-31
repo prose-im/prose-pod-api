@@ -3,7 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, response::NoContent, Json};
+use axum_extra::either::Either;
 use service::pod_config::{
     NetworkAddress, NetworkAddressCreateForm, PodConfig, PodConfigRepository, PodConfigUpdateForm,
 };
@@ -47,15 +48,11 @@ pub async fn set_pod_address_route(
 
 pub async fn get_pod_address_route(
     State(AppState { db, .. }): State<AppState>,
-) -> Result<Json<NetworkAddress>, Error> {
-    let Some(address) = PodConfigRepository::get(&db)
-        .await?
-        .and_then(|model| PodConfig::from(model).address)
-    else {
-        return Err(PodAddressNotInitialized.into());
-    };
-
-    Ok(address.into())
+) -> Result<Either<Json<NetworkAddress>, NoContent>, Error> {
+    Ok(match PodConfigRepository::get_pod_address(&db).await? {
+        Some(address) => Either::E1(Json(address)),
+        None => Either::E2(NoContent),
+    })
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -6,6 +6,7 @@
 use hickory_resolver::Name as DomainName;
 use prose_pod_api::features::init::*;
 use service::{
+    models::Url,
     pod_config::{
         NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
     },
@@ -95,19 +96,16 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
 
 #[given("the Pod config has been initialized")]
 async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let base_domain: DomainName = world.initial_server_domain.parse().unwrap();
+    let base_domain: DomainName = world
+        .initial_server_domain
+        .parse()
+        .expect("Invalid server domain");
     PodConfigRepository::create(
         world.db(),
         PodConfigCreateForm {
-            dashboard_address: NetworkAddressCreateForm {
-                hostname: Some(
-                    DomainName::from_str("admin")
-                        .unwrap()
-                        .append_domain(&base_domain)
-                        .unwrap(),
-                ),
-                ..Default::default()
-            },
+            dashboard_url: Some(
+                Url::parse(&format!("https://admin.{base_domain}")).expect("Invalid dashboard URL"),
+            ),
             address: NetworkAddressCreateForm {
                 hostname: Some(base_domain),
                 ..Default::default()
@@ -133,18 +131,17 @@ async fn given_server_domain(
     Ok(())
 }
 
-#[given(expr = "the dashboard domain is {domain_name}")]
-async fn given_dashboard_domain(
+#[given(expr = "the dashboard URL is {domain_name}")]
+async fn given_dashboard_url(
     world: &mut TestWorld,
     domain: parameters::DomainName,
 ) -> Result<(), Error> {
     PodConfigRepository::set(
         world.db(),
         PodConfigUpdateForm {
-            dashboard_address: Some(NetworkAddressCreateForm {
-                hostname: Some(domain.0),
-                ..Default::default()
-            }),
+            dashboard_url: Some(Some(
+                Url::parse(&domain.to_string()).expect("Invalid dashboard URL"),
+            )),
             ..Default::default()
         },
     )

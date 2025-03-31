@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - feat!: Implement factory reset (`DELETE /`) (@RemiBardon in #188).
-- feat: Add `PUT /v1/pod/config/dashboard-address` (@RemiBardon in #188).
+- feat: Add `PUT /v1/pod/config/dashboard-url` (@RemiBardon in #188 and #197).
 - feat(tasks): Update changelog in `task release` (@RemiBardon).
 - feat: Enable the `register` module in Prosody (@RemiBardon in #196).
 

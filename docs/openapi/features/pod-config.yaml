@@ -74,41 +74,41 @@ paths:
         description: Pod address has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  set_dashboard_address:
+  set_dashboard_url:
     tags: ["Pod / Configuration"]
-    summary: Set Dashboard address
+    summary: Set Dashboard URL
     description: Tells the API how the Dashboard is publicly accessible.
-    operationId: set_dashboard_address
+    operationId: set_dashboard_url
     security: []
     requestBody:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetDashboardAddressRequest" }
+          schema: { $ref: "#/components/schemas/SetDashboardUrlRequest" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
-  get_dashboard_address:
+  get_dashboard_url:
     tags: ["Pod / Configuration"]
-    summary: Get Dashboard address
+    summary: Get Dashboard URL
     description: Get the current address of the Prose Pod Dashboard.
-    operationId: get_dashboard_address
+    operationId: get_dashboard_url
     security:
       - BearerAuth: []
     responses:
       "200":
-        description: Dashboard address has a value
+        description: Dashboard URL has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
       "204":
-        description: Dashboard address has no value
+        description: Dashboard URL has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
@@ -117,11 +117,20 @@ components:
       type: object
       required:
         - address
-        - dashboard_address
+        - dashboard_url
       properties:
         address: { $ref: "#/components/schemas/SetPodAddressRequest" }
-        dashboard_address: { $ref: "#/components/schemas/SetDashboardAddressRequest" }
-    SetNetworkAddressRequest:
+        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
+    PodConfig:
+      type: object
+      required: []
+      properties:
+        address:
+          $ref: "#/components/schemas/NetworkAddress"
+          type: [object, "null"]
+        dashboard_url:
+          $ref: "#/components/schemas/DashboardUrl"
+    SetPodAddressRequest:
       type: object
       required: []
       properties:
@@ -134,24 +143,22 @@ components:
         hostname:
           type: string
           example: crisp.chat
-    SetPodAddressRequest:
-      $ref: "#/components/schemas/SetNetworkAddressRequest"
-      example:
-        hostname: crisp.chat
-    SetDashboardAddressRequest:
-      $ref: "#/components/schemas/SetNetworkAddressRequest"
-      example:
-        hostname: admin.prose.crisp.chat
-    PodConfig:
+    DashboardUrl:
+      type: [string, "null"]
+      format: uri
+      example: https://admin.prose.crisp.chat/
+    SetDashboardUrlRequest:
       type: object
-      required: []
+      required: [dashboard_url]
       properties:
-        address:
-          $ref: "#/components/schemas/NetworkAddress"
-          type: [object, "null"]
-        dashboard_address:
-          $ref: "#/components/schemas/NetworkAddress"
-          type: [object, "null"]
+        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
+    GetDashboardUrlResponse:
+      type: object
+      required: [dashboard_url]
+      properties:
+        dashboard_url:
+          $ref: "#/components/schemas/DashboardUrl"
+          type: string
     NetworkAddress:
       type: object
       required:
@@ -206,14 +213,14 @@ components:
                 const: pod_address_not_initialized
           example:
             error: pod_address_not_initialized
-    DashboardAddressNotInitialized:
-      description: Dashboard address not initialized
+    DashboardUrlNotInitialized:
+      description: Dashboard URL not initialized
       content:
         application/json:
           schema:
             $ref: "../shared.yaml#/components/schemas/Error"
             properties:
               error:
-                const: dashboard_address_not_initialized
+                const: dashboard_url_not_initialized
           example:
-            error: dashboard_address_not_initialized
+            error: dashboard_url_not_initialized

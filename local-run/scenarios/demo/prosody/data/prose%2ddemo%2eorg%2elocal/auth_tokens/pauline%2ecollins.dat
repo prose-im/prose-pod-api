@@ -1,43 +1,38 @@
 return {
-	["bEb_UR1wqhlm"] = {
+	["IGy_vQy45xgy"] = {
+		["accessed"] = 1743446235;
+		["id"] = "IGy_vQy45xgy";
+		["jid"] = "pauline.collins@prose-demo.org.local";
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
-		["id"] = "bEb_UR1wqhlm";
-		["created"] = 1737408583;
-		["owner"] = "pauline.collins@prose-demo.org.local";
-		["accessed"] = 1737408583;
-		["jid"] = "pauline.collins@prose-demo.org.local";
 		["tokens"] = {
-			["sha256:b5ff4044266b537f08a6f684c64cee97b5a67e34f79b9953bd0aaa5027703b7f"] = {
-				["created"] = 1737408583;
+			["sha256:529fc37fbb0fca7bb55e12bf0f9ff861012d85ee75f24540b238cac3812e7b1c"] = {
 				["role"] = "prosody:admin";
+				["created"] = 1743446235;
 				["purpose"] = "oauth2";
-				["expires"] = 1737419383;
-			};
-			["sha256:6d9841abe8cb4df3abc5e402c82ed033e7a352803092289e97df48534f085a68"] = {
-				["expires"] = 1737408583;
-				["purpose"] = "oauth2-refresh";
-				["created"] = 1737408583;
+				["expires"] = 1743457035;
 			};
 		};
+		["created"] = 1743446235;
+		["owner"] = "pauline.collins@prose-demo.org.local";
 	};
-	["S-kTuFvQGTms"] = {
+	["x8OalCMYf0xn"] = {
+		["accessed"] = 1743457712;
+		["id"] = "x8OalCMYf0xn";
+		["jid"] = "pauline.collins@prose-demo.org.local";
+		["created"] = 1743457712;
+		["tokens"] = {
+			["sha256:b36f2136a0e31fe55b80dec4aca789fcf0bdda4099dbd8d000ba8b905de3215e"] = {
+				["role"] = "prosody:admin";
+				["created"] = 1743457712;
+				["purpose"] = "oauth2";
+				["expires"] = 1743468512;
+			};
+		};
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
-		["id"] = "S-kTuFvQGTms";
-		["created"] = 1737408584;
 		["owner"] = "pauline.collins@prose-demo.org.local";
-		["accessed"] = 1737408584;
-		["jid"] = "pauline.collins@prose-demo.org.local";
-		["tokens"] = {
-			["sha256:359c8044894e25591683a6a521160118daf61822a2d39baee6cb5bfa766b2ad4"] = {
-				["expires"] = 1737419384;
-				["role"] = "prosody:admin";
-				["purpose"] = "oauth2";
-				["created"] = 1737408584;
-			};
-		};
 	};
 };

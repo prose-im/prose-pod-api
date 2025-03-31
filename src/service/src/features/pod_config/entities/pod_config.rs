@@ -5,7 +5,7 @@
 
 use sea_orm::entity::prelude::*;
 
-use crate::pod_config::{NetworkAddress, NetworkAddressError};
+use crate::{models::Url, pod_config::NetworkAddress};
 
 /// Prose Pod configuration, as stored in the database.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -16,24 +16,16 @@ pub struct Model {
     pub ipv4: Option<String>,
     pub ipv6: Option<String>,
     pub hostname: Option<String>,
-    pub dashboard_ipv4: Option<String>,
-    pub dashboard_ipv6: Option<String>,
-    pub dashboard_hostname: Option<String>,
+    pub dashboard_url: Option<Url>,
 }
 
 impl Model {
-    pub fn pod_address(&self) -> Result<NetworkAddress, NetworkAddressError> {
-        NetworkAddress::try_from(
+    pub fn pod_address(&self) -> Option<NetworkAddress> {
+        NetworkAddress::try_from_or_warn(
             self.hostname.as_ref(),
             self.ipv4.as_ref(),
             self.ipv6.as_ref(),
-        )
-    }
-    pub fn dashboard_address(&self) -> Result<NetworkAddress, NetworkAddressError> {
-        NetworkAddress::try_from(
-            self.dashboard_hostname.as_ref(),
-            self.dashboard_ipv4.as_ref(),
-            self.dashboard_ipv6.as_ref(),
+            "Pod address in database is invalid",
         )
     }
 }

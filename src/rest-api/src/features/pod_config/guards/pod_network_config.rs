@@ -3,12 +3,9 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    pod_config::{NetworkAddressError, PodConfigRepository},
-    server_config::ServerConfig,
-};
+use service::{pod_config::PodConfigRepository, server_config::ServerConfig};
 
-use crate::{error::ErrorCode, features::pod_config::PodAddressNotInitialized, guards::prelude::*};
+use crate::{features::pod_config::PodAddressNotInitialized, guards::prelude::*};
 
 impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     type Rejection = error::Error;
@@ -31,16 +28,8 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
             //   the whole config.
             return Err(Error::from(PodAddressNotInitialized));
         };
-        let pod_address = pod_config.pod_address().map_err(|err| match err {
-            NetworkAddressError::AddressNotInitialized => Error::from(PodAddressNotInitialized),
-            err @ NetworkAddressError::InvalidData(_) => Error::new(
-                ErrorCode::INTERNAL_SERVER_ERROR,
-                err.to_string(),
-                None,
-                vec![],
-                vec![],
-            ),
-        })?;
+        let pod_address =
+            (pod_config.pod_address()).ok_or(Error::from(PodAddressNotInitialized))?;
 
         Ok(Self {
             server_domain,

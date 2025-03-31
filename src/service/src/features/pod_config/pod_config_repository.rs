@@ -9,9 +9,11 @@ use hickory_proto::rr::Name as DomainName;
 use sea_orm::{prelude::*, ActiveModelTrait, QueryOrder as _, QuerySelect, Set, Unchanged};
 use tracing::instrument;
 
+use crate::models::Url;
+
 use super::{
     entities::pod_config::{self, ActiveModel, Column, Entity},
-    NetworkAddress, NetworkAddressError,
+    NetworkAddress,
 };
 
 pub enum PodConfigRepository {}
@@ -41,45 +43,52 @@ impl PodConfigRepository {
     }
 
     #[instrument(
-        name = "db::pod_config::get_dashboard_address",
+        name = "db::pod_config::get_dashboard_url",
         level = "trace",
         skip_all,
         err
     )]
-    pub async fn get_dashboard_address(
+    pub async fn get_dashboard_url(db: &impl ConnectionTrait) -> Result<Option<Url>, DbErr> {
+        let res = Entity::find()
+            .order_by_asc(Column::Id)
+            .select_only()
+            .columns([Column::DashboardUrl])
+            .into_tuple::<Option<Url>>()
+            .one(db)
+            .await?
+            .flatten();
+        Ok(res)
+    }
+
+    #[instrument(
+        name = "db::pod_config::get_pod_address",
+        level = "trace",
+        skip_all,
+        err
+    )]
+    pub async fn get_pod_address(
         db: &impl ConnectionTrait,
-    ) -> Result<Option<Result<NetworkAddress, NetworkAddressError>>, DbErr> {
-        let address = Entity::find()
+    ) -> Result<Option<NetworkAddress>, DbErr> {
+        let res = Entity::find()
             .order_by_asc(Column::Id)
             .select_only()
             .columns([
-                Column::DashboardIpv4,
-                Column::DashboardIpv6,
-                Column::DashboardHostname,
+                Column::Ipv4,
+                Column::Ipv6,
+                Column::Hostname,
             ])
             .into_tuple::<(Option<String>, Option<String>, Option<String>)>()
             .one(db)
             .await?
-            .map(|(ipv4, ipv6, hostname)| {
-                NetworkAddress::try_from(hostname.as_ref(), ipv4.as_ref(), ipv6.as_ref())
+            .and_then(|(ipv4, ipv6, hostname)| {
+                NetworkAddress::try_from_or_warn(
+                    hostname.as_ref(),
+                    ipv4.as_ref(),
+                    ipv6.as_ref(),
+                    "Pod address in database is invalid",
+                )
             });
-        Ok(address)
-    }
-
-    #[instrument(
-        name = "db::pod_config::get_dashboard_address",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub async fn get_dashboard_url(
-        db: &impl ConnectionTrait,
-    ) -> Result<Option<Option<String>>, DbErr> {
-        let Some(res) = Self::get_dashboard_address(db).await? else {
-            return Ok(None);
-        };
-        // TODO: Do not cut corners with `.ok()`.
-        Ok(Some(res.ok().as_ref().map(NetworkAddress::to_string)))
+        Ok(res)
     }
 
     #[instrument(name = "db::pod_config::set", level = "trace", skip_all, err)]
@@ -104,7 +113,7 @@ impl PodConfigRepository {
 #[derive(Debug, Clone, Default)]
 pub struct PodConfigCreateForm {
     pub address: NetworkAddressCreateForm,
-    pub dashboard_address: NetworkAddressCreateForm,
+    pub dashboard_url: Option<Url>,
 }
 
 impl PodConfigCreateForm {
@@ -113,9 +122,7 @@ impl PodConfigCreateForm {
             ipv4: Set(self.address.ipv4.map(|v| v.to_string())),
             ipv6: Set(self.address.ipv6.map(|v| v.to_string())),
             hostname: Set(self.address.hostname.map(|v| v.to_string())),
-            dashboard_ipv4: Set(self.dashboard_address.ipv4.map(|v| v.to_string())),
-            dashboard_ipv6: Set(self.dashboard_address.ipv6.map(|v| v.to_string())),
-            dashboard_hostname: Set(self.dashboard_address.hostname.map(|v| v.to_string())),
+            dashboard_url: Set(self.dashboard_url),
             id: Default::default(),
         }
     }
@@ -124,7 +131,7 @@ impl PodConfigCreateForm {
 #[derive(Debug, Clone, Default)]
 pub struct PodConfigUpdateForm {
     pub address: Option<NetworkAddressCreateForm>,
-    pub dashboard_address: Option<NetworkAddressCreateForm>,
+    pub dashboard_url: Option<Option<Url>>,
 }
 
 impl PodConfigUpdateForm {
@@ -135,10 +142,8 @@ impl PodConfigUpdateForm {
             active.ipv6 = Set(address.ipv6.map(|v| v.to_string()));
             active.hostname = Set(address.hostname.map(|v| v.to_string()));
         };
-        if let Some(address) = self.dashboard_address {
-            active.dashboard_ipv4 = Set(address.ipv4.map(|v| v.to_string()));
-            active.dashboard_ipv6 = Set(address.ipv6.map(|v| v.to_string()));
-            active.dashboard_hostname = Set(address.hostname.map(|v| v.to_string()));
+        if let Some(url) = self.dashboard_url {
+            active.dashboard_url = Set(url);
         };
         active
     }

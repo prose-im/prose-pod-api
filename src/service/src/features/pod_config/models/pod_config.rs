@@ -11,27 +11,27 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::pod_config::entities::pod_config;
+use crate::{models::Url, pod_config::entities::pod_config};
 
 /// The Prose Pod configuration, almost as stored in the database.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PodConfig {
     pub address: Option<NetworkAddress>,
-    pub dashboard_address: Option<NetworkAddress>,
+    pub dashboard_url: Option<Url>,
 }
 
 #[derive(Debug, Clone, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 pub enum PodConfigField {
     PodAddress,
-    DashboardAddress,
+    DashboardUrl,
 }
 
 impl From<pod_config::Model> for PodConfig {
     fn from(model: pod_config::Model) -> Self {
         Self {
-            address: model.pod_address().ok(),
-            dashboard_address: model.dashboard_address().ok(),
+            address: model.pod_address(),
+            dashboard_url: model.dashboard_url,
         }
     }
 }
@@ -53,29 +53,40 @@ impl NetworkAddress {
         hostname: Option<&String>,
         ipv4: Option<&String>,
         ipv6: Option<&String>,
-    ) -> Result<Self, NetworkAddressError> {
+    ) -> Result<Option<Self>, InvalidNetworkAddress> {
         match (hostname, ipv4, ipv6) {
             (Some(hostname), _, _) => {
-                let hostname = DomainName::from_str(&hostname).map_err(|err| {
-                    NetworkAddressError::InvalidData(format!("Invalid hostname: {err}"))
-                })?;
-                Ok(Self::Dynamic { hostname })
+                let hostname = DomainName::from_str(&hostname)
+                    .map_err(|err| InvalidNetworkAddress(format!("Invalid hostname: {err}")))?;
+                Ok(Some(Self::Dynamic { hostname }))
             }
-            (None, None, None) => Err(NetworkAddressError::AddressNotInitialized),
+            (None, None, None) => Ok(None),
             (None, ipv4, ipv6) => {
                 let ipv4 = ipv4
                     .as_ref()
                     .map_or(Ok(None), |s| Ipv4Addr::from_str(&s).map(Some))
-                    .map_err(|err| {
-                        NetworkAddressError::InvalidData(format!("Invalid IPv4: {err}"))
-                    })?;
+                    .map_err(|err| InvalidNetworkAddress(format!("Invalid IPv4: {err}")))?;
                 let ipv6 = ipv6
                     .as_ref()
                     .map_or(Ok(None), |s| Ipv6Addr::from_str(&s).map(Some))
-                    .map_err(|err| {
-                        NetworkAddressError::InvalidData(format!("Invalid IPv6: {err}"))
-                    })?;
-                Ok(Self::Static { ipv4, ipv6 })
+                    .map_err(|err| InvalidNetworkAddress(format!("Invalid IPv6: {err}")))?;
+                Ok(Some(Self::Static { ipv4, ipv6 }))
+            }
+        }
+    }
+
+    #[inline]
+    pub fn try_from_or_warn(
+        hostname: Option<&String>,
+        ipv4: Option<&String>,
+        ipv6: Option<&String>,
+        warning: &'static str,
+    ) -> Option<Self> {
+        match Self::try_from(hostname, ipv4, ipv6) {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!("{warning}: {e}");
+                None
             }
         }
     }
@@ -97,9 +108,5 @@ impl ToString for NetworkAddress {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum NetworkAddressError {
-    #[error("Network address not initialized.")]
-    AddressNotInitialized,
-    #[error("Invalid data stored: {0}.")]
-    InvalidData(String),
-}
+#[error("Invalid network address: {0}.")]
+pub struct InvalidNetworkAddress(String);

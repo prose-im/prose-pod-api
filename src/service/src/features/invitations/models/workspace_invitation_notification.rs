@@ -3,13 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{path::PathBuf, str::FromStr as _};
-
 use email_address::EmailAddress;
 use secrecy::ExposeSecret as _;
 
 use crate::{
     invitations::InvitationToken,
+    models::Url,
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
     AppConfig,
 };
@@ -20,7 +19,7 @@ pub struct WorkspaceInvitationPayload {
     pub accept_token: InvitationToken,
     pub reject_token: InvitationToken,
     pub workspace_name: String,
-    pub dashboard_url: String,
+    pub dashboard_url: Url,
     pub api_app_name: String,
     pub organization_name: Option<String>,
 }
@@ -65,21 +64,19 @@ pub fn notification_message(
         ..
     }: &WorkspaceInvitationPayload,
 ) -> String {
-    let admin_site_root = PathBuf::from_str(&dashboard_url).unwrap();
-    let accept_link = admin_site_root
-        .join(format!(
+    // NOTE: `join` erases the fragment and query.
+    let accept_link = dashboard_url
+        .join(&format!(
             "invitations/accept/{token}",
             token = accept_token.into_secret_string().expose_secret(),
         ))
-        .display()
-        .to_string();
-    let reject_link = admin_site_root
-        .join(format!(
+        .expect("Invalid accept link");
+    let reject_link = dashboard_url
+        .join(&format!(
             "invitations/reject/{token}",
             token = reject_token.into_secret_string().expose_secret(),
         ))
-        .display()
-        .to_string();
+        .expect("Invalid reject link");
 
     vec![
         if let Some(ref company) = organization_name {
