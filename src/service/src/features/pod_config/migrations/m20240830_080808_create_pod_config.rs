@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm_migration::{prelude::*, schema::*};
@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum PodConfig {
+pub(super) enum PodConfig {
     Table,
     Id,
     Ipv4,

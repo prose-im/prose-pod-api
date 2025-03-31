@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{
@@ -50,6 +50,7 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
         server_config: &ServerConfig,
         app_config: &AppConfig,
     ) -> Result<(), Error>;
+    async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error>;
     async fn reload(&self) -> Result<(), Error>;
 
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
@@ -62,6 +63,8 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
     /// Remove a user from everyone's roster.
     async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+
+    async fn delete_all_data(&self) -> Result<(), Error>;
 }
 
 pub type Error = ServerCtlError;
@@ -73,10 +76,10 @@ pub enum ServerCtlError {
     #[error("Cannot write Prosody config file at path `{path}`: {1}", path = ._0.display())]
     CannotWriteConfigFile(PathBuf, io::Error),
     #[error(
-        "Command failed ({}):\nstdout: {}\nstderr: {}",
-        ._0.status,
-        str::from_utf8(&._0.stdout).unwrap(),
-        str::from_utf8(&._0.stderr).unwrap(),
+        "Command failed ({status}):\nstdout: {stdout}\nstderr: {stderr}",
+        status = ._0.status,
+        stdout = str::from_utf8(&._0.stdout).unwrap(),
+        stderr = str::from_utf8(&._0.stderr).unwrap(),
     )]
     CommandFailed(Output),
     #[error("UTF-8 error: {0}")]
@@ -92,7 +95,7 @@ pub enum ServerCtlError {
 }
 
 impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
-        Self::Other(value.to_string())
+    fn from(error: reqwest::Error) -> Self {
+        Self::Other(format!("reqwest::Error: {error:?}"))
     }
 }

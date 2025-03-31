@@ -18,10 +18,10 @@ use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 use secrecy::SecretString;
 use serde::Deserialize;
-use url_serde::SerdeUrl;
 
 use crate::{
     invitations::InvitationChannel,
@@ -42,6 +42,11 @@ pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
 
+lazy_static! {
+    pub static ref CONFIG_FILE_PATH: PathBuf =
+        (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
+}
+
 pub type Config = AppConfig;
 
 /// Prose Pod configuration.
@@ -56,6 +61,7 @@ pub struct AppConfig {
     pub bootstrap: ConfigBootstrap,
     #[serde(default)]
     pub server: ConfigServer,
+    #[serde(default)]
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
@@ -82,7 +88,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn figment() -> Figment {
-        Self::figment_at_path(Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME))
+        Self::figment_at_path(CONFIG_FILE_PATH.as_path())
     }
 
     pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {
@@ -247,8 +253,17 @@ impl Default for ConfigServerDefaults {
 pub struct ConfigBranding {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
-    pub page_url: SerdeUrl,
-    pub company_name: String,
+    #[serde(default)]
+    pub company_name: Option<String>,
+}
+
+impl Default for ConfigBranding {
+    fn default() -> Self {
+        Self {
+            page_title: defaults::branding_page_title(),
+            company_name: None,
+        }
+    }
 }
 
 impl Default for InvitationChannel {

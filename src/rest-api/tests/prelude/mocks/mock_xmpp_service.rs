@@ -7,7 +7,7 @@ use linked_hash_map::LinkedHashMap;
 use service::xmpp::{
     xmpp_service::Error, AvatarData, BareJid, VCard, XmppServiceContext, XmppServiceImpl,
 };
-use tracing::trace;
+use tracing::{instrument, trace};
 
 use std::{
     collections::HashSet,
@@ -50,6 +50,11 @@ impl Default for MockXmppServiceState {
 }
 
 impl MockXmppService {
+    #[instrument(
+        level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        ret(level = "trace"), err(level = "trace")
+    )]
     pub fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, Error> {
         self.check_online()?;
 
@@ -61,6 +66,11 @@ impl MockXmppService {
             .get(jid)
             .map(ToOwned::to_owned))
     }
+    #[instrument(
+        level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        ret(level = "trace"), err(level = "trace")
+    )]
     pub fn set_vcard(&self, jid: &BareJid, vcard: &VCard) -> Result<(), Error> {
         self.check_online()?;
 
@@ -72,6 +82,11 @@ impl MockXmppService {
         Ok(())
     }
 
+    #[instrument(
+        level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        ret(level = "trace"), err(level = "trace")
+    )]
     pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, Error> {
         self.check_online()?;
 
@@ -85,6 +100,11 @@ impl MockXmppService {
             .cloned()
             .flatten())
     }
+    #[instrument(
+        level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        ret(level = "trace"), err(level = "trace")
+    )]
     pub fn set_avatar(&self, jid: &BareJid, image_data: Option<AvatarData>) -> Result<(), Error> {
         self.check_online()?;
 
@@ -97,6 +117,11 @@ impl MockXmppService {
         Ok(())
     }
 
+    #[instrument(
+        level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        ret(level = "trace"), err(level = "trace")
+    )]
     fn is_connected(&self, jid: &BareJid) -> Result<bool, Error> {
         self.check_online()?;
 

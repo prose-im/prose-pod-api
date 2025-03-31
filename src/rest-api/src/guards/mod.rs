@@ -5,7 +5,6 @@
 
 mod app_config;
 mod notification_service;
-mod pod_network_config;
 mod secrets_store;
 mod server_config;
 mod server_ctl;

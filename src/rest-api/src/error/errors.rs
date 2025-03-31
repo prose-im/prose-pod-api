@@ -156,6 +156,27 @@ impl HttpApiError for NotFound {
 }
 
 impl ErrorCode {
+    pub const MISSING_CONFIG: Self = Self {
+        value: "missing_config",
+        http_status: StatusCode::INTERNAL_SERVER_ERROR,
+        log_level: LogLevel::Error,
+    };
+}
+#[derive(Debug, thiserror::Error)]
+#[error("Missing configuration: {config_id}")]
+pub struct MissingConfig {
+    /// Not a configuration key as it might change over time, but rather
+    /// a stable configuration identifier that the Dashboard can use
+    /// to redirect a user to the appropriate settings section.
+    pub config_id: &'static str,
+}
+impl HttpApiError for MissingConfig {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::MISSING_CONFIG
+    }
+}
+
+impl ErrorCode {
     pub fn unknown(status: StatusCode) -> Self {
         Self {
             value: "unknown",

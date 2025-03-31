@@ -9,6 +9,8 @@ use service::{
     invitations::{invitation_service::*, InvitationAcceptError, InvitationToken},
     models::SerializableSecretString,
     notifications::NotificationService,
+    pod_config::PodConfigField,
+    workspace::WorkspaceService,
     AppConfig,
 };
 
@@ -44,10 +46,16 @@ pub async fn invitation_resend_route(
     invitation_service: InvitationService,
     app_config: AppConfig,
     notification_service: NotificationService,
+    workspace_service: WorkspaceService,
     Path(invitation_id): Path<i32>,
 ) -> Result<StatusCode, Error> {
     invitation_service
-        .resend(&app_config, &notification_service, invitation_id)
+        .resend(
+            &app_config,
+            &notification_service,
+            &workspace_service,
+            invitation_id,
+        )
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -111,6 +119,13 @@ impl CustomErrorCode for InvitationResendError {
         match self {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
             Self::CouldNotSendInvitation(err) => err.code(),
+            Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::PodConfigMissing(PodConfigField::PodAddress) => {
+                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+            }
+            Self::PodConfigMissing(PodConfigField::DashboardAddress) => {
+                ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
+            }
             Self::DbErr(err) => err.code(),
         }
     }

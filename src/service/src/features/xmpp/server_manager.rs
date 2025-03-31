@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
@@ -9,7 +9,7 @@ use jid::BareJid;
 use linked_hash_set::LinkedHashSet;
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use sea_orm::IntoActiveModel as _;
-use secrecy::SecretString;
+use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, trace};
 
 use crate::{
@@ -157,13 +157,13 @@ impl ServerManager {
         Ok(server_config)
     }
 
-    pub async fn rotate_api_xmpp_password(
+    async fn set_api_xmpp_password(
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         secrets_store: &SecretsStore,
+        password: SecretString,
     ) -> Result<(), ServerCtlError> {
         let api_jid = app_config.api_jid();
-        let password = Self::strong_random_password();
 
         server_ctl.set_user_password(&api_jid, &password).await?;
         secrets_store.set_prose_pod_api_xmpp_password(password);
@@ -171,6 +171,54 @@ impl ServerManager {
         Ok(())
     }
 
+    pub async fn reset_server_config(
+        db: &DatabaseConnection,
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), Error> {
+        ServerConfigRepository::reset(db).await?;
+
+        // Write the bootstrap configuration.
+        let password = Self::strong_random_password();
+        server_ctl
+            .reset_config(&password)
+            .await
+            .map_err(Error::from)?;
+
+        // Update the API user password to match the new one specified in the bootstrap configuration.
+        Self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone())
+            .await?;
+
+        // Store the new password in the environment variables to the next API instance
+        // can access it (the screts store will be dropped efore next run).
+        std::env::set_var(
+            "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
+            password.expose_secret(),
+        );
+
+        // Apply the bootstrap configuration.
+        server_ctl.reload().await.map_err(Error::from)?;
+
+        Ok(())
+    }
+
+    pub async fn rotate_api_xmpp_password(
+        server_ctl: &ServerCtl,
+        app_config: &AppConfig,
+        secrets_store: &SecretsStore,
+    ) -> Result<(), ServerCtlError> {
+        Self::set_api_xmpp_password(
+            server_ctl,
+            app_config,
+            secrets_store,
+            Self::strong_random_password(),
+        )
+        .await
+    }
+
+    /// NOTE: Used only in tests.
+    #[cfg(debug_assertions)]
     pub async fn set_domain(&self, domain: &JidDomain) -> Result<ServerConfig, Error> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {

@@ -11,6 +11,7 @@ before:
   name: "Before all (not a test)"
   steps:
     - $ref: "init.yaml#/components/steps/log_admin_in"
+    - $ref: "init.yaml#/components/steps/init_dashboard_address"
     - $ref: "#/components/steps/invite_member"
     - $ref: "#/components/steps/invite_member"
     - $ref: "#/components/steps/invite_member"

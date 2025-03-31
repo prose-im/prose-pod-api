@@ -18,9 +18,9 @@ paths:
   "/v1/login":
     post: { $ref: "features/auth.yaml#/paths/login" }
   "/v1/server/config":
+    put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
     head: { $ref: "features/server-config.yaml#/paths/is_server_initialized" }
     get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
-    put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
   "/v1/server/config/file-upload-allowed":
     put: { $ref: "features/server-config.yaml#/paths/set_file_upload_allowed" }
   "/v1/server/config/file-storage-retention":
@@ -68,26 +68,30 @@ paths:
   "/v1/server/config/federation-friendly-servers":
     put: { $ref: "features/server-config.yaml#/paths/set_federation_friendly_servers" }
   "/v1/pod/config":
+    put: { $ref: "features/pod-config.yaml#/paths/init_pod_config" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":
-    get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
     put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
+    get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
+  "/v1/pod/config/dashboard-address":
+    put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_address" }
+    get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_address" }
   "/v1/workspace":
-    get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
     put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
     patch: { $ref: "features/workspace.yaml#/paths/patch_workspace" }
   "/v1/workspace/name":
-    get: { $ref: "features/workspace.yaml#/paths/get_workspace_name" }
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_name" }
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_name" }
   "/v1/workspace/accent-color":
-    get: { $ref: "features/workspace.yaml#/paths/get_workspace_accent_color" }
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_accent_color" }
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_accent_color" }
   "/v1/workspace/icon":
-    get: { $ref: "features/workspace.yaml#/paths/get_workspace_icon" }
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_icon" }
+    get: { $ref: "features/workspace.yaml#/paths/get_workspace_icon" }
   "/v1/invitations":
-    get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
     post: { $ref: "features/invitations.yaml#/paths/invite_member" }
+    get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
   "/v1/invitations/{invitationId}":
     get: { $ref: "features/invitations.yaml#/paths/get_invitation" }
     delete: { $ref: "features/invitations.yaml#/paths/invitation_cancel" }
@@ -118,6 +122,8 @@ paths:
     get: { $ref: "features/network-checks-ip.yaml#/paths/check_ip" }
   "/v1/network/checks/ports":
     get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
+  "/":
+    delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
 components:
   securitySchemes:
     BasicAuth:

@@ -89,7 +89,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: openapi.json#/components/schemas/PodAddress
+            $ref: openapi.json#/components/schemas/NetworkAddress
           jsonpath:
             $.type: Dynamic
             $.hostname: ${{ env.DOMAIN }}
@@ -113,7 +113,7 @@ components:
             Content-Type: application/json
             Location: /.+/
           schema:
-            $ref: openapi.json#/components/schemas/PodAddress
+            $ref: openapi.json#/components/schemas/NetworkAddress
           jsonpath:
             $.type: Static
             $.ipv4: 172.20.0.40
@@ -131,4 +131,4 @@ components:
           headers:
             Content-Type: application/json
           schema:
-            $ref: openapi.json#/components/schemas/PodAddress
+            $ref: openapi.json#/components/schemas/NetworkAddress

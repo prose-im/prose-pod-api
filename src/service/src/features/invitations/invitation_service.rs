@@ -23,8 +23,10 @@ use crate::{
         notifier::email::{EmailNotification, EmailNotificationCreateError},
         NotificationService,
     },
+    pod_config::{PodConfigField, PodConfigRepository},
     server_config::ServerConfig,
     util::bare_jid_from_username,
+    workspace::{WorkspaceService, WorkspaceServiceError},
     xmpp::{BareJid, JidNode},
     AppConfig, MutationError,
 };
@@ -61,6 +63,7 @@ impl InvitationService {
         app_config: &AppConfig,
         server_config: &ServerConfig,
         notification_service: &NotificationService,
+        workspace_service: &WorkspaceService,
         form: impl Into<InviteMemberForm>,
         #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
@@ -94,11 +97,30 @@ impl InvitationService {
         )
         .await?;
 
+        let workspace_name = workspace_service
+            .get_workspace_name()
+            .await
+            .map_err(InviteMemberError::CouldNotGetWorkspaceDetails)?;
+
+        let dashboard_url = PodConfigRepository::get_dashboard_url(&self.db)
+            .await
+            .map_err(InviteMemberError::DbErr)?
+            .flatten()
+            .ok_or(InviteMemberError::PodConfigMissing(
+                PodConfigField::DashboardAddress,
+            ))?;
+
         if let Err(err) = notification_service
             .send_workspace_invitation(
                 form.contact,
-                invitation.accept_token.into(),
-                invitation.reject_token.into(),
+                WorkspaceInvitationPayload {
+                    accept_token: invitation.accept_token.into(),
+                    reject_token: invitation.reject_token.into(),
+                    workspace_name,
+                    dashboard_url,
+                    api_app_name: app_config.branding.page_title.clone(),
+                    organization_name: app_config.branding.company_name.clone(),
+                },
                 app_config,
             )
             .await
@@ -173,18 +195,14 @@ impl NotificationService {
     async fn send_workspace_invitation(
         &self,
         contact: InvitationContact,
-        accept_token: InvitationToken,
-        reject_token: InvitationToken,
+        payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
     ) -> Result<(), SendWorkspaceInvitationError> {
         match contact {
             InvitationContact::Email { email_address } => {
                 self.send_email(EmailNotification::from(
                     email_address.into(),
-                    WorkspaceInvitationPayload {
-                        accept_token,
-                        reject_token,
-                    },
+                    payload,
                     app_config,
                 )?)?;
             }
@@ -233,6 +251,10 @@ pub enum InviteMemberError {
     #[cfg(debug_assertions)]
     #[error("Could not auto-accept the invitation: {0}")]
     CouldNotAutoAcceptInvitation(#[from] CannotAcceptInvitation),
+    #[error("Could not get workspace details (to build the notification): {0}")]
+    CouldNotGetWorkspaceDetails(WorkspaceServiceError),
+    #[error("Pod configuration missing: {0}")]
+    PodConfigMissing(PodConfigField),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }
@@ -397,20 +419,40 @@ pub enum InvitationRejectError {
 impl InvitationService {
     pub async fn resend(
         &self,
-        config: &AppConfig,
+        app_config: &AppConfig,
         notification_service: &NotificationService,
+        workspace_service: &WorkspaceService,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
         let invitation = InvitationRepository::get_by_id(&self.db, &invitation_id)
             .await?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
+        let workspace = workspace_service
+            .get_workspace()
+            .await
+            .map_err(InvitationResendError::CouldNotGetWorkspaceDetails)?;
+
+        let dashboard_url = PodConfigRepository::get_dashboard_url(&self.db)
+            .await
+            .map_err(InvitationResendError::DbErr)?
+            .flatten()
+            .ok_or(InvitationResendError::PodConfigMissing(
+                PodConfigField::DashboardAddress,
+            ))?;
+
         notification_service
             .send_workspace_invitation(
                 invitation.contact(),
-                invitation.accept_token.into(),
-                invitation.reject_token.into(),
-                config,
+                WorkspaceInvitationPayload {
+                    accept_token: invitation.accept_token.into(),
+                    reject_token: invitation.reject_token.into(),
+                    workspace_name: workspace.name.clone(),
+                    dashboard_url,
+                    api_app_name: app_config.branding.page_title.clone(),
+                    organization_name: app_config.branding.company_name.clone(),
+                },
+                app_config,
             )
             .await?;
 
@@ -424,6 +466,10 @@ pub enum InvitationResendError {
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
     CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
+    #[error("Could not get workspace details (to build the notification): {0}")]
+    CouldNotGetWorkspaceDetails(WorkspaceServiceError),
+    #[error("Pod configuration missing: {0}")]
+    PodConfigMissing(PodConfigField),
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
 }

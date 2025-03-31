@@ -16,7 +16,9 @@ use service::{
     members::MemberRole,
     models::JidNode,
     notifications::NotificationService,
+    pod_config::PodConfigField,
     server_config::ServerConfig,
+    workspace::WorkspaceService,
     AppConfig,
 };
 
@@ -69,12 +71,19 @@ pub async fn invite_member_route(
     server_config: ServerConfig,
     notification_service: NotificationService,
     invitation_service: InvitationService,
+    workspace_service: WorkspaceService,
     #[cfg(debug_assertions)] Query(InviteMemberQuery { auto_accept }): Query<InviteMemberQuery>,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
     #[cfg(not(debug_assertions))]
     let invitation = invitation_service
-        .invite_member(&app_config, &server_config, &notification_service, req)
+        .invite_member(
+            &app_config,
+            &server_config,
+            &notification_service,
+            &workspace_service,
+            req,
+        )
         .await?;
     #[cfg(debug_assertions)]
     let invitation = invitation_service
@@ -82,6 +91,7 @@ pub async fn invite_member_route(
             &app_config,
             &server_config,
             &notification_service,
+            &workspace_service,
             req,
             auto_accept,
         )
@@ -132,6 +142,14 @@ impl CustomErrorCode for InviteMemberError {
             InviteMemberError::CouldNotSendNotification(err) => err.code(),
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
+            Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            // TODO: Use a dedicated error code for missing configuration keys.
+            Self::PodConfigMissing(PodConfigField::PodAddress) => {
+                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
+            }
+            Self::PodConfigMissing(PodConfigField::DashboardAddress) => {
+                ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
+            }
             Self::DbErr(err) => err.code(),
         }
     }

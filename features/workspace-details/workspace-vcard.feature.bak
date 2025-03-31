@@ -15,7 +15,7 @@ Feature: Workspace vCard
       Given the server config has been initialized
         And the workspace has not been initialized
        When an unauthenticated user gets the workspace vCard
-       Then the user should receive 'Workspace not initialized'
+       Then the user should receive 'Workspace not initialized: No vCard'
 
   """
   When logging into a workspace, we want to show some details of the workspace the person

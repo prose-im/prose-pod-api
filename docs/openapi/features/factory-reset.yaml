@@ -1,0 +1,46 @@
+paths:
+  factory_reset:
+    tags: ["Administration"]
+    summary: Factory reset
+    description: |
+      This will erase all data on your Pod (all settings and all user data).
+      Your Pod will then restart and show the initial setup process, as if it was never used before.
+
+      As a safety measure, the route must be called twice. After a first call with no body, the API
+      will return a `202 Accepted` response containing a confirmation token. This token can be used
+      in a second call, which will perform the factory reset.
+
+      This second call will return a `205 Reset Content`, implying the administration dashboard from
+      which the API call originated should be reloaded. After the factory reset (therefore after
+      returning the `205`), the API will restart and return `503 Service Unavailable` until it’s
+      done. A restart usually takes less than 100ms, but `Retry-After` will have a value of 1 second
+      since it’s the smallest allowed value (per the specification).
+    operationId: factory_reset
+    security:
+      - BearerAuth: []
+    requestBody:
+      description: Information about who to invite.
+      required: false
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/FactoryResetConfirmation" }
+    responses:
+      "202":
+        description: Confirmation code
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FactoryResetConfirmation" }
+      "205":
+        description: Successful factory reset
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+components:
+  schemas:
+    FactoryResetConfirmation:
+      type: object
+      required:
+        - confirmation
+      properties:
+        confirmation:
+          type: string
+          example: 2gbGiprPzkhZf8mZ

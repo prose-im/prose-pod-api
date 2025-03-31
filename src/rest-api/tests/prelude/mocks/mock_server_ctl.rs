@@ -8,7 +8,7 @@ use secrecy::SecretString;
 pub use service::xmpp::ServerCtlImpl;
 use service::{
     members::MemberRole,
-    prosody::{AsProsody as _, ProsodyConfig},
+    prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
     server_config::ServerConfig,
     xmpp::{server_ctl::Error, BareJid},
@@ -76,6 +76,13 @@ impl ServerCtlImpl for MockServerCtl {
 
         let mut state = self.state.write().unwrap();
         state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
+        Ok(())
+    }
+    async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error> {
+        self.check_online()?;
+
+        let mut state = self.state.write().unwrap();
+        state.applied_config = Some(prosody_bootstrap_config(init_admin_password));
         Ok(())
     }
     async fn reload(&self) -> Result<(), Error> {
@@ -163,6 +170,13 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
     async fn remove_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+        self.check_online()?;
+
+        // We don't care in tests for now
+        Ok(())
+    }
+
+    async fn delete_all_data(&self) -> Result<(), Error> {
         self.check_online()?;
 
         // We don't care in tests for now

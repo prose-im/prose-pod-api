@@ -9,16 +9,20 @@ use email_address::EmailAddress;
 use secrecy::ExposeSecret as _;
 
 use crate::{
-    app_config::ConfigBranding,
     invitations::InvitationToken,
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
     AppConfig,
 };
 
+/// All the data needed to generate the content of a workspace invitation.
 #[derive(Clone)]
 pub struct WorkspaceInvitationPayload {
     pub accept_token: InvitationToken,
     pub reject_token: InvitationToken,
+    pub workspace_name: String,
+    pub dashboard_url: String,
+    pub api_app_name: String,
+    pub organization_name: Option<String>,
 }
 
 impl EmailNotification {
@@ -29,29 +33,39 @@ impl EmailNotification {
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             email_recipient,
-            notification_subject(&app_config.branding),
-            notification_message(&app_config.branding, invitation_payload),
+            notification_subject(&invitation_payload),
+            notification_message(&invitation_payload),
             app_config,
         )
     }
 }
 
-pub fn notification_subject(branding: &ConfigBranding) -> String {
-    format!(
-        "You have been invited to {company}'s Prose server!",
-        company = branding.company_name,
-    )
+pub fn notification_subject(
+    WorkspaceInvitationPayload {
+        workspace_name,
+        organization_name,
+        ..
+    }: &WorkspaceInvitationPayload,
+) -> String {
+    if let Some(ref company) = organization_name {
+        format!("You have been invited to {company}’s Prose server!")
+    } else {
+        format!("You have been invited to {workspace_name}!")
+    }
 }
 
 pub fn notification_message(
-    branding: &ConfigBranding,
     WorkspaceInvitationPayload {
         accept_token,
         reject_token,
+        workspace_name,
+        dashboard_url,
+        api_app_name,
+        organization_name,
         ..
-    }: WorkspaceInvitationPayload,
+    }: &WorkspaceInvitationPayload,
 ) -> String {
-    let admin_site_root = PathBuf::from_str(&branding.page_url.to_string()).unwrap();
+    let admin_site_root = PathBuf::from_str(&dashboard_url).unwrap();
     let accept_link = admin_site_root
         .join(format!(
             "invitations/accept/{token}",
@@ -68,10 +82,11 @@ pub fn notification_message(
         .to_string();
 
     vec![
-        format!(
-            "You have been invited to {company}'s Prose server!",
-            company = branding.company_name,
-        )
+        if let Some(ref company) = organization_name {
+            format!("You have been invited to {company}’s Prose server!")
+        } else {
+            format!("You have been invited to {workspace_name}!")
+        }
         .as_str(),
         format!(
             "To join, open the following link in a web browser: {accept_link}. You will be guided to create an account.",
@@ -81,10 +96,14 @@ pub fn notification_message(
         // "This link is valid for three days. After that time passes, you will have to ask a workspace anministrator to invite you again.",
         "See you soon 👋",
         format!(
-            "If you have been invited by mistake, you can reject the invitation using the following link: {reject_link}. Your email address will be erased from {company}'s {app} database.",
-            company = branding.company_name,
-            app = branding.page_title,
-        ).as_str(),
+            "If you have been invited by mistake, you can reject the invitation using the following link: {reject_link}. Your email address will be erased from {database}.",
+            database = if let Some(ref company) = organization_name {
+                format!("{company}’s {api_app_name} database")
+            } else {
+                format!("the server’s database")
+            }
+        )
+        .as_str(),
     ]
     .join("\n\n")
 }

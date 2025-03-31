@@ -55,13 +55,21 @@ unset ARGS_
 # ===== MAIN LOGIC =====
 
 start() {
-	trace 'Starting the Prose Pod…'
-	task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral --no-update
+	if (( ${SKIP_POD_START:-0} )); then
+		trace "Not starting the Prose Pod ($(format_code "SKIP_POD_START=${SKIP_POD_START:?}"))."
+	else
+		trace 'Starting the Prose Pod…'
+		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral --no-update
+	fi
 }
 
 stop() {
-	trace 'Stopping the Prose Pod…'
-	task local:stop
+	if (( ${SKIP_POD_STOP:-0} )); then
+		trace "Not stopping the Prose Pod ($(format_code "SKIP_POD_STOP=${SKIP_POD_STOP:?}"))."
+	else
+		trace 'Stopping the Prose Pod…'
+		task local:stop
+	fi
 }
 
 abort() {
@@ -91,12 +99,20 @@ if [ "$#" -eq 0 ]; then
 	info "No test file provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
 	# WARN: Spaces in `*.yaml` files will break.
 	set -- $(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' ! -name 'env.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/")
+	# Add factory reset test.
+	set -- "$@" factory-reset
 fi
 
 info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
 
 # NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`. Special cases are handled here.
 for arg in "$@"; do
+	if [ "$arg" == factory-reset ]; then
+		unset PROSE_CONFIG_FILE
+		"${INTEGRATION_TESTS_DIR:?}"/test-factory-reset
+		continue
+	fi
+
 	test_file="${STEPCI_DIR:?}/${arg:?}.yaml"
 
 	if ! [ -e "$test_file" ]; then

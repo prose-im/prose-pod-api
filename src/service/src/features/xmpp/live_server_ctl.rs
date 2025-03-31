@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
@@ -8,11 +8,10 @@ use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 use reqwest::Method;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
-use tracing::error;
 
 use crate::{
     members::MemberRole,
-    prosody::{prosody_config_from_db, AsProsody as _, ProsodyAdminRest},
+    prosody::{prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest},
     server_config::ServerConfig,
     xmpp::{server_ctl, BareJid, ServerCtlImpl},
     AppConfig,
@@ -51,7 +50,7 @@ impl ServerCtlImpl for LiveServerCtl {
         }
 
         if start.elapsed() >= timeout {
-            error!("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.");
+            return Err(server_ctl::Error::Other("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.".to_string()));
         }
 
         Ok(())
@@ -70,6 +69,26 @@ impl ServerCtlImpl for LiveServerCtl {
             .map_err(|e| {
                 server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e)
             })?;
+
+        Ok(())
+    }
+    async fn reset_config(
+        &self,
+        init_admin_password: &SecretString,
+    ) -> Result<(), server_ctl::Error> {
+        let mut file = File::create(&self.config_file_path).map_err(|e| {
+            server_ctl::Error::CannotOpenConfigFile(self.config_file_path.clone(), e)
+        })?;
+
+        let prosody_config = prosody_bootstrap_config(init_admin_password);
+        let prosody_config_file = prosody_config;
+        file.write_all(
+            prosody_config_file
+                .print_with_bootstrap_header()
+                .to_string()
+                .as_bytes(),
+        )
+        .map_err(|e| server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
 
         Ok(())
     }
@@ -159,6 +178,17 @@ impl ServerCtlImpl for LiveServerCtl {
     async fn remove_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .update_team_members(Method::DELETE, jid)
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_all_data(&self) -> Result<(), server_ctl::Error> {
+        self.admin_rest
+            .call(|client| client.delete(self.admin_rest.url("certs")))
+            .await?;
+        // NOTE: Delete data last otherwise API calls fail because of authentication.
+        self.admin_rest
+            .call(|client| client.delete(self.admin_rest.url("data")))
             .await?;
         Ok(())
     }

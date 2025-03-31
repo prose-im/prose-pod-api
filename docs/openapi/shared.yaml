@@ -7,24 +7,7 @@ components:
       properties:
         error:
           type: string
-          enum:
-            - bad_request
-            - database_error
-            - internal_server_error
-            - not_found
-            - not_implemented
-            - workspace_already_initialized
-            - workspace_not_initialized
-            - server_config_already_initialized
-            - server_config_not_initialized
-            - first_account_already_created
-            - pod_address_not_initialized
-            - unauthorized
-            - forbidden
-            - unknown
-            - invitation_already_exists
-            - member_already_exists
-            - invalid_vcard
+          example: server_config_not_initialized
     DurationDateLike:
       description: A duration in [ISO 8601
         format](https://en.wikipedia.org/wiki/ISO_8601#Durations) containing
@@ -139,7 +122,11 @@ components:
       description: Unauthorized
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+            properties:
+              error:
+                const: unauthorized
           example:
             error: unauthorized
       headers:
@@ -148,28 +135,44 @@ components:
       description: Forbidden
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+            properties:
+              error:
+                const: forbidden
           example:
             error: forbidden
     NotFound:
       description: Object not found
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+            properties:
+              error:
+                const: not_found
           example:
             error: not_found
     Gone:
       description: Object does not exist
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+            properties:
+              error:
+                const: not_found
           example:
             error: not_found
     UnprocessableEntity:
       description: Unprocessable entity
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema:
+            $ref: "#/components/schemas/Error"
+            properties:
+              error:
+                const: unknown
           example:
             error: unknown
     PreconditionRequired:
@@ -177,13 +180,12 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - error
+            $ref: "#/components/schemas/Error"
             properties:
               error:
-                type: string
                 const: precondition_required
+          example:
+            error: precondition_required
   parameters:
     JidArray:
       description: A list of JIDs (as defined by [RFC 6120, section

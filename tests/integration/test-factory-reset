@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+source "${BASH_TOOLBOX:?}"/format.sh
+
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+BASE_SCENARIO_NAME=demo
+: ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
+
+SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+# Compute dynamic variables.
+source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
+
+abort() {
+	# Do not stop the API after a failure to allow investigation.
+	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
+	task integration-test:logs
+	die "$@"
+}
+
+info 'Starting the demo API (already populated with data)…'
+edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
+
+# Wait a bit to make sure the API is ready (e.g. has run migrations).
+sleep 1
+
+info Logging an admin in…
+TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login -a 'pauline.collins@prose-demo.org.local:demo' content-type: | jq -r '.token')"
+[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
+
+info Getting the factory reset token…
+CONFIRMATION="$(xh DELETE -I "${INTEGRATION_TEST_HOST:?}" -A bearer -a "${TOKEN:?}" | jq -r '.confirmation')"
+[ -n "${CONFIRMATION-}" ] && [ "${CONFIRMATION:?}" != null ] || abort
+
+info Performing the factory reset…
+edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" -A bearer -a "${TOKEN:?}" confirmation="${CONFIRMATION:?}" || abort
+
+info Checking if factory reset deleted everything…
+
+PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2eorg%2elocal'
+if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v "^${PROSODY_ADMIN_DATA_DIR_NAME:?}$")" ]; then
+	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
+fi
+success Prosody data deleted
+
+PROSODY_CONFIG_FILE="${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
+if ! head -n 1 "${PROSODY_CONFIG_FILE:?}" | grep -q '^-- Prose Pod Server bootstrap configuration$'; then
+	die "Prosody config ($(format_url "${PROSODY_CONFIG_FILE:?}")) hasn’t been reset to its initial state."
+fi
+success Prosody config reset
+
+PROSODY_CERTS_DIR="${ETC_PROSODY_DIR:?}"/certs
+if [ -d "${PROSODY_CERTS_DIR:?}" ] && [ -n "$(ls -A "${PROSODY_CERTS_DIR:?}")" ]; then
+	die "Prosody still contains certificates ($(format_url "${PROSODY_CERTS_DIR:?}") isn’t empty)."
+fi
+success Prosody certs directory is empty
+
+# Wait for the API to flush data to SQLite.
+sleep 1
+
+# NOTE: We can’t just check if the file is empty as the API runs migrations when it restarts.
+#   By checking that important tables are empty, we ensure a cleanup process took place
+#   (since the demo scenario comes with data). We know migrations are not just reverted,
+#   the whole file is rather emptied. Therefor, we don’t need to test **all** tables.
+table-empty() {
+	local table_name="${1:?}"
+	local row_count="$(sqlite3 "${DATABASE_PATH:?}" "SELECT CASE
+  WHEN EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='${table_name}')
+  THEN (SELECT COUNT(*) FROM ${table_name})
+  ELSE 0
+END;")"
+	if [ ${row_count:-1} -ne 0 ]; then
+		die "API database table $(format_code "${table_name}") isn’t empty. It contains ${row_count:-NaN} row(s). Database path: $(format_url "${DATABASE_PATH:?}")."
+	fi
+}
+table-empty member
+table-empty pod_config
+table-empty server_config
+table-empty workspace_invitation
+success API database reset
+
+if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/Prose-empty.toml)" ]; then
+	die "API config file wasn’t reset ($(format_url "${PROSE_CONFIG_FILE:?}") isn’t empty)."
+fi
+success API config file reset
+
+info Waiting for the API to restart…
+edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/api-docs/openapi.json --timeout 3 -p=HBhm || abort API stuck restarting.
+
+info Checking if the API still works…
+# Run the `init` integration test, which will initialize the Pod
+# (saving us a bunch of `curl`/`xh` commands).
+( export SKIP_POD_START=1 SKIP_POD_STOP=1; edo log_as_trace_ task integration-test -- init )
+success The API still works!
+
+# Everything worked, no need to investigate.
+# Delete the ephemeral scenario.
+edo task local:stop
