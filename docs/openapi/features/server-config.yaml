@@ -576,7 +576,11 @@ components:
       description: XMPP server already initialized
       content:
         application/json:
-          schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: server_config_already_initialized
           example:
             error: server_config_already_initialized
     ServerConfigNotInitialized:

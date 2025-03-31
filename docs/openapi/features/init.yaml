@@ -36,6 +36,10 @@ paths:
         description: First account already created
         content:
           application/json:
-            schema: { $ref: "../shared.yaml#/components/schemas/Error" }
+            schema:
+              $ref: "../shared.yaml#/components/schemas/Error"
+              properties:
+                error:
+                  const: first_account_already_created
             example:
               error: first_account_already_created
