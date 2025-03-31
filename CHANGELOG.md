@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: Move `ADRs/` to `docs/ADRs/` (@RemiBardon in 2e58e92).
 - feat(tasks): Run Jaeger by default on `task telemetry:start` (@RemiBardon in 4fa9d94).
 - docs(openapi): Improve errors (@RemiBardon in 3a7fe7f).
+- chore(tasks): Add default tag message on `task release` (@RemiBardon).
 
 ### Added
 

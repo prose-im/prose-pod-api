@@ -152,7 +152,7 @@ info "Committing changes…"
 edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${LOCAL_RUN_CONSTANTS_FILE:?}" "${CARGO_LOCK_FILE:?}"
 edo git commit -m "$(to-tag "${NEW_VERSION:?}")"
 info "Creating tag…"
-edo git tag "$(to-tag "${NEW_VERSION:?}")"
+edo git tag "$(to-tag "${NEW_VERSION:?}")" -m "$(to-tag "${NEW_VERSION:?}")"
 info "Pushing tag…"
 edo git push --atomic origin "${GIT_BRANCH:?}" "$(to-tag "${NEW_VERSION:?}")"
 
