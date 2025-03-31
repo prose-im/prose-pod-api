@@ -27,6 +27,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250112_184600_add_federation_fields::Migration),
             Box::new(m20250323_222400_delete_workspace::Migration),
             Box::new(m20250326_095800_add_dashboard_address::Migration),
+            Box::new(m20250331_222300_dashboard_address_to_url::Migration),
         ]
     }
 }

@@ -147,8 +147,8 @@ impl CustomErrorCode for InviteMemberError {
             Self::PodConfigMissing(PodConfigField::PodAddress) => {
                 ErrorCode::POD_ADDRESS_NOT_INITIALIZED
             }
-            Self::PodConfigMissing(PodConfigField::DashboardAddress) => {
-                ErrorCode::DASHBOARD_ADDRESS_NOT_INITIALIZED
+            Self::PodConfigMissing(PodConfigField::DashboardUrl) => {
+                ErrorCode::DASHBOARD_URL_NOT_INITIALIZED
             }
             Self::DbErr(err) => err.code(),
         }

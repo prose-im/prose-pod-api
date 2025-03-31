@@ -105,9 +105,8 @@ impl InvitationService {
         let dashboard_url = PodConfigRepository::get_dashboard_url(&self.db)
             .await
             .map_err(InviteMemberError::DbErr)?
-            .flatten()
             .ok_or(InviteMemberError::PodConfigMissing(
-                PodConfigField::DashboardAddress,
+                PodConfigField::DashboardUrl,
             ))?;
 
         if let Err(err) = notification_service
@@ -436,9 +435,8 @@ impl InvitationService {
         let dashboard_url = PodConfigRepository::get_dashboard_url(&self.db)
             .await
             .map_err(InvitationResendError::DbErr)?
-            .flatten()
             .ok_or(InvitationResendError::PodConfigMissing(
-                PodConfigField::DashboardAddress,
+                PodConfigField::DashboardUrl,
             ))?;
 
         notification_service
