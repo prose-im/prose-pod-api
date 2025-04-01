@@ -11,7 +11,6 @@ server_config_reset_route!(
 );
 
 server_config_set_route!(
-    SetPushNotificationWithBodyRequest,
     bool,
     push_notification_with_body,
     set_push_notification_with_body,
@@ -23,7 +22,6 @@ server_config_reset_route!(
 );
 
 server_config_set_route!(
-    SetPushNotificationWithSenderRequest,
     bool,
     push_notification_with_sender,
     set_push_notification_with_sender,

@@ -3,8 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::server_config::*;
 use service::{
+    models::{DateLike, Duration, PossiblyInfinite},
     prosody::IntoProsody as _,
     prosody_config::linked_hash_set::LinkedHashSet,
     prosody_config_from_db,
@@ -54,17 +54,13 @@ api_call_fn!(
     set_message_archiving,
     PUT,
     "/v1/server/config/message-archive-enabled",
-    SetMessageArchiveEnabledRequest,
-    message_archive_enabled,
-    bool
+    payload: bool,
 );
 api_call_fn!(
     set_message_archive_retention,
     PUT,
     "/v1/server/config/message-archive-retention",
-    SetMessageArchiveRetentionRequest,
-    message_archive_retention,
-    parameters::Duration
+    payload: PossiblyInfinite<Duration<DateLike>>,
 );
 api_call_fn!(
     reset_message_archive_retention,
@@ -192,17 +188,13 @@ api_call_fn!(
     set_file_uploading,
     PUT,
     "/v1/server/config/file-upload-allowed",
-    SetFileUploadAllowedRequest,
-    file_upload_allowed,
-    bool
+    payload: bool,
 );
 api_call_fn!(
     set_file_retention,
     PUT,
     "/v1/server/config/file-storage-retention",
-    SetFileStorageRetentionRequest,
-    file_storage_retention,
-    parameters::Duration
+    payload: PossiblyInfinite<Duration<DateLike>>,
 );
 
 #[given(expr = "file uploading is {toggle}")]

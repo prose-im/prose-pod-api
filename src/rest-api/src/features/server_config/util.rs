@@ -7,17 +7,11 @@
 /// Also generates its associated request type.
 #[macro_export]
 macro_rules! server_config_set_route {
-    ($req_type:ident, $var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        pub struct $req_type {
-            pub $var: $var_type,
-        }
-
+    ($var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
         pub async fn $route_fn(
             server_manager: service::xmpp::ServerManager,
-            axum::Json(req): axum::Json<$req_type>,
+            axum::Json(new_state): axum::Json<$var_type>,
         ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
-            let new_state: $var_type = req.$var.to_owned();
             let new_config = server_manager.$fn(new_state).await?;
             Ok(axum::Json(new_config))
         }

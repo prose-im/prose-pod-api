@@ -10,7 +10,6 @@ use crate::{server_config_reset_route, server_config_set_route};
 server_config_reset_route!(reset_messaging_config, reset_messaging_config_route);
 
 server_config_set_route!(
-    SetMessageArchiveEnabledRequest,
     bool,
     message_archive_enabled,
     set_message_archive_enabled,
@@ -18,7 +17,6 @@ server_config_set_route!(
 );
 
 server_config_set_route!(
-    SetMessageArchiveRetentionRequest,
     PossiblyInfinite<Duration<DateLike>>,
     message_archive_retention,
     set_message_archive_retention,

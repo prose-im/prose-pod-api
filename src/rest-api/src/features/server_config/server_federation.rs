@@ -15,7 +15,6 @@ server_config_reset_route!(
 server_config_reset_route!(reset_federation_enabled, reset_federation_enabled_route);
 
 server_config_set_route!(
-    SetFederationEnabledRequest,
     bool,
     federation_enabled,
     set_federation_enabled,
@@ -28,7 +27,6 @@ server_config_reset_route!(
 );
 
 server_config_set_route!(
-    SetFederationWhitelistEnabledRequest,
     bool,
     federation_whitelist_enabled,
     set_federation_whitelist_enabled,
@@ -41,7 +39,6 @@ server_config_reset_route!(
 );
 
 server_config_set_route!(
-    SetFederationFriendlyServersRequest,
     LinkedHashSet<String>,
     federation_friendly_servers,
     set_federation_friendly_servers,

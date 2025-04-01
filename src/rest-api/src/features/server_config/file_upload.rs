@@ -17,7 +17,6 @@ use crate::{
 server_config_reset_route!(reset_files_config, reset_files_config_route);
 
 server_config_set_route!(
-    SetFileUploadAllowedRequest,
     bool,
     file_upload_allowed,
     set_file_upload_allowed,
@@ -31,7 +30,6 @@ pub async fn set_file_storage_encryption_scheme_route() -> Result<Json<ServerCon
 }
 
 server_config_set_route!(
-    SetFileStorageRetentionRequest,
     PossiblyInfinite<Duration<DateLike>>,
     file_storage_retention,
     set_file_storage_retention,

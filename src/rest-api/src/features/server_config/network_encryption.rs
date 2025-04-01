@@ -13,7 +13,6 @@ server_config_reset_route!(
 );
 
 server_config_set_route!(
-    SetTlsProfileRequest,
     TlsProfile,
     tls_profile,
     set_tls_profile,
