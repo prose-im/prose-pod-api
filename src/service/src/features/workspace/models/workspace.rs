@@ -51,15 +51,13 @@ impl From<Workspace> for VCard4 {
     ) -> Self {
         Self {
             fn_: vec![vcard4::Fn_ { value: name }],
+            // See [RFC 6473: vCard KIND:application](https://www.rfc-editor.org/rfc/rfc6473.html).
+            kind: Some(vcard4::Kind::Application),
             unknown_properties: vec![accent_color
                 .as_ref()
                 .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.as_str()))]
             .into_iter()
             .flatten()
-            .chain(vec![
-                // See [RFC 6350 - vCard Format Specification, section 6.1.4](https://datatracker.ietf.org/doc/html/rfc6350#section-6.1.4).
-                ("kind", "org"),
-            ])
             .map(|(k, v)| {
                 Element::builder(k, ns::VCARD4)
                     .append(Element::builder("text", ns::VCARD4).append(v))
