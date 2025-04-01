@@ -120,4 +120,4 @@ components:
         check:
           status: 200
         schema:
-          $ref: openapi.json#/components/schemas/NetworkAddress
+          $ref: openapi.json#/components/schemas/PodConfig/properties/dashboard_url
