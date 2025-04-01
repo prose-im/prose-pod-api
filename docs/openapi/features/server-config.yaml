@@ -64,7 +64,11 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -81,7 +85,11 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -99,7 +107,12 @@ paths:
           schema:
             { $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -128,7 +141,12 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -169,7 +187,11 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -213,7 +235,12 @@ paths:
           schema:
             { $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -245,7 +272,12 @@ paths:
           schema:
             { $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -288,7 +320,11 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -332,7 +368,11 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -364,7 +404,12 @@ paths:
           schema:
             { $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -397,7 +442,12 @@ paths:
           schema:
             $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
