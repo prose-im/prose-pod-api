@@ -572,6 +572,10 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig" }
+      headers:
+        Content-Location:
+          $ref: "../shared.yaml#/components/headers/ContentLocation"
+          example: /v1/server/config
     ServerConfigAlreadyInitialized:
       description: XMPP server already initialized
       content:
