@@ -27,22 +27,9 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - domain
-            properties:
-              domain:
-                type: string
-                example: crisp.chat
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/domain" }
     responses:
-      "201":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig" }
-        headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "201": { $ref: "#/components/responses/ServerConfigCreated" }
       "409": { $ref: "#/components/responses/ServerConfigAlreadyInitialized" }
   get_server_config:
     tags: ["Server / Configuration"]
@@ -67,13 +54,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - file_upload_allowed
-            properties:
-              file_upload_allowed:
-                type: boolean
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -90,15 +71,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - file_storage_retention
-            properties:
-              file_storage_retention:
-                oneOf:
-                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
-                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -111,6 +84,12 @@ paths:
     operationId: set_file_storage_encryption_scheme
     security:
       - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            { $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -139,15 +118,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - message_archive_retention
-            properties:
-              message_archive_retention:
-                oneOf:
-                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
-                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -188,13 +159,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - message_archive_enabled
-            properties:
-              message_archive_enabled:
-                type: boolean
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -238,12 +203,7 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - push_notification_with_body
-            properties:
-              push_notification_with_body:
-                type: boolean
+            { $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -275,12 +235,7 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - push_notification_with_sender
-            properties:
-              push_notification_with_sender:
-                type: boolean
+            { $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -323,12 +278,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - tls_profile
-            properties:
-              tls_profile: { $ref: "#/components/schemas/TlsProfile" }
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -372,13 +322,7 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - federation_enabled
-            properties:
-              federation_enabled:
-                type: boolean
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -410,12 +354,7 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - federation_whitelist_enabled
-            properties:
-              federation_whitelist_enabled:
-                type: boolean
+            { $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled" }
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -448,15 +387,7 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - federation_friendly_servers
-            properties:
-              federation_friendly_servers:
-                type: array
-                items:
-                  type: string
-                  format: domain-name
+            $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
     responses:
       "200": { $ref: "#/components/responses/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
@@ -484,80 +415,140 @@ components:
         - push_notification_with_sender
       properties:
         domain:
+          title: Domain
+          description: |
+            Domain of your XMPP server. This will be the domain part of
+            user JIDs (`<name>@<domain>`) therefore it cannot be changed.
           type: string
+          format: hostname
           example: crisp.chat
         message_archive_enabled:
+          title: Message archive enabled
+          description: |
+            Whether or not to keep messages on the server.
+
+            Server default: `true`.
           type: boolean
-          default: true
+          example: true
         message_archive_retention:
+          title: Message archive retention
+          description: |
+            How long to keep messages on the server.
+
+            Server default: `"infinite"`.
           oneOf:
             - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
             - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
-          default: infinite
+          example: infinite
         file_upload_allowed:
+          title: File upload allowed
+          description: |
+            Whether or not to allow file uploads.
+
+            Server default: `true`.
           type: boolean
-          default: true
+          example: true
         file_storage_encryption_scheme:
+          title: File storage encryption scheme
+          description: |
+            Server default: `"AES-256"`.
           type: string
-          default: AES-256
+          example: AES-256
         file_storage_retention:
+          title: File storage retention
+          description: |
+            How long to keep uploaded files on the server.
+
+            Server default: `"infinite"`.
           oneOf:
             - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
             - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
-          default: infinite
+          example: infinite
         mfa_required:
           title: Require Multi-Factor Authentication
-          description: Whether or not [Multi-Factor Authentication
+          description: |
+            Whether or not [Multi-Factor Authentication
             (MFA)](https://en.wikipedia.org/wiki/Multi-factor_authentication) is
             required for users to log into their account.
+
+            Server default: `true`.
           type: boolean
-          default: true
-        tls_profile: { $ref: "#/components/schemas/TlsProfile" }
+          example: true
+        tls_profile:
+          title: TLS profile
+          description: |
+            The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
+            (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
+            for more explanation).
+
+            Server default: `"modern"`.
+          type: string
+          enum: [modern, intermediate, old]
+          example: modern
         federation_enabled:
           description: |
             Whether or not the XMPP server should support interdomain federation.
             For more information, see [RFC 6120, section 13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         federation_whitelist_enabled:
-          description: Turn on to federate with only a selected list of other XMPP servers.
+          title: Federation whitelist enabled
+          description: |
+            Turn on to federate with only a selected list of other XMPP servers.
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         federation_friendly_servers:
-          description: List of XMPP servers authorized for server-to-server communications (federation).
+          title: Friendly servers (for federation)
+          description: |
+            List of XMPP servers authorized for server-to-server communications (federation).
+
+            Server default: `[]`.
           type: array
           items:
             type: string
             format: domain-name
+            example: prose.org
+          example: []
         settings_backup_interval:
+          description: |
+            Time interval between settings backups.
+
+            Server default: `P1D`.
           type: string
           format: duration
-          default: P1D
+          example: P1D
         user_data_backup_interval:
+          description: |
+            Time interval between user data backups.
+
+            Server default: `P1W`.
           type: string
           format: duration
-          default: P1W
+          example: P1W
         push_notification_with_body:
-          description: Whether or not to send the real message body to remote pubsub node.
+          title: Push notifications with body
+          description: |
+            Whether or not to send the real message body to remote pubsub node.
             Without end-to-end encryption, enabling this may expose your message
             contents to your client developers and OS vendor. Not recommended.
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         push_notification_with_sender:
-          description: Whether or not to send the real message sender to remote pubsub
+          title: Push notifications with sender
+          description: |
+            Whether or not to send the real message sender to remote pubsub
             node. Enabling this may expose your contacts to your client
             developers and OS vendor. Not recommended.
+
+            Server default: `false`.
           type: boolean
-          default: false
-    TlsProfile:
-      title: TLS profile
-      description: |
-        The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
-        (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
-        for more explanation).
-      type: string
-      enum: [modern, intermediate, old]
-      default: modern
+          example: false
     ServerConfigNotInitialized:
       type: object
       required:
@@ -567,6 +558,15 @@ components:
           type: string
           const: server_config_not_initialized
   responses:
+    ServerConfigCreated:
+      description: Success
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServerConfig" }
+      headers:
+        Location:
+          $ref: "../shared.yaml#/components/headers/Location"
+          example: /v1/server/config
     ServerConfig:
       description: Success
       content:
