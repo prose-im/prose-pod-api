@@ -17,7 +17,9 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/PodConfig" }
         headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+          Location:
+            $ref: "../shared.yaml#/components/headers/Location"
+            example: /v1/pod/config
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "409": { $ref: "#/components/responses/PodConfigAlreadyInitialized" }
@@ -53,7 +55,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
@@ -69,7 +71,7 @@ paths:
         description: Pod address has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "204":
         description: Pod address has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
@@ -84,13 +86,13 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetDashboardUrlRequest" }
+          schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
@@ -106,7 +108,7 @@ paths:
         description: Dashboard URL has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
       "204":
         description: Dashboard URL has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
@@ -147,18 +149,6 @@ components:
       type: [string, "null"]
       format: uri
       example: https://admin.prose.crisp.chat/
-    SetDashboardUrlRequest:
-      type: object
-      required: [dashboard_url]
-      properties:
-        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
-    GetDashboardUrlResponse:
-      type: object
-      required: [dashboard_url]
-      properties:
-        dashboard_url:
-          $ref: "#/components/schemas/DashboardUrl"
-          type: string
     NetworkAddress:
       type: object
       required:
