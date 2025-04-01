@@ -57,10 +57,6 @@ impl From<Workspace> for VCard4 {
                 .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.as_str()))]
             .into_iter()
             .flatten()
-            .chain(vec![
-                // See [RFC 6350 - vCard Format Specification, section 6.1.4](https://datatracker.ietf.org/doc/html/rfc6350#section-6.1.4).
-                ("kind", "org"),
-            ])
             .map(|(k, v)| {
                 Element::builder(k, ns::VCARD4)
                     .append(Element::builder("text", ns::VCARD4).append(v))
