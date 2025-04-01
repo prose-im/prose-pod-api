@@ -3,20 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-/// Generates a route for setting a specific server config.
-#[macro_export]
-macro_rules! server_config_set_route {
-    ($var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
-        pub async fn $route_fn(
-            server_manager: service::xmpp::ServerManager,
-            axum::Json($var): axum::Json<$var_type>,
-        ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            server_manager.$fn($var.clone()).await?;
-            Ok(axum::Json($var))
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! server_config_route {
     (set: $var_type:ty, $var:ident, $route_fn:ident, $manager_fn:ident) => {
@@ -45,6 +31,7 @@ macro_rules! server_config_route {
     };
 }
 
+/// Generates routes for setting, querying and resetting a specific server config.
 #[macro_export]
 macro_rules! server_config_routes {
     (
@@ -60,7 +47,7 @@ macro_rules! server_config_routes {
     };
 }
 
-/// Generates a route for resetting a specific server config.
+/// Generates a route for resetting a group of server configs.
 #[macro_export]
 macro_rules! server_config_reset_route {
     ($fn:ident, $route_fn:ident $(,)?) => {
