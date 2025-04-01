@@ -51,6 +51,7 @@ impl From<Workspace> for VCard4 {
     ) -> Self {
         Self {
             fn_: vec![vcard4::Fn_ { value: name }],
+            kind: Some(vcard4::Kind::Application),
             unknown_properties: vec![accent_color
                 .as_ref()
                 .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.as_str()))]
