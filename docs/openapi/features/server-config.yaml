@@ -29,7 +29,15 @@ paths:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig/properties/domain" }
     responses:
-      "201": { $ref: "#/components/responses/ServerConfigCreated" }
+      "201":
+        description: Created
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig" }
+        headers:
+          Location:
+            $ref: "../shared.yaml#/components/headers/Location"
+            example: /v1/server/config
       "409": { $ref: "#/components/responses/ServerConfigAlreadyInitialized" }
   get_server_config:
     tags: ["Server / Configuration"]
@@ -558,15 +566,6 @@ components:
           type: string
           const: server_config_not_initialized
   responses:
-    ServerConfigCreated:
-      description: Success
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig" }
-      headers:
-        Location:
-          $ref: "../shared.yaml#/components/headers/Location"
-          example: /v1/server/config
     ServerConfig:
       description: Success
       content:
