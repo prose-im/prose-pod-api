@@ -25,8 +25,8 @@ paths:
     put: { $ref: "features/server-config.yaml#/paths/set_file_upload_allowed" }
   "/v1/server/config/file-storage-retention":
     put: { $ref: "features/server-config.yaml#/paths/set_file_storage_retention" }
-  "/v1/server/config/file-storage-encryption-scheme":
-    put: { $ref: "features/server-config.yaml#/paths/set_file_storage_encryption_scheme" }
+  # "/v1/server/config/file-storage-encryption-scheme":
+  #   put: { $ref: "features/server-config.yaml#/paths/set_file_storage_encryption_scheme" }
   "/v1/server/config/messaging/reset":
     put: { $ref: "features/server-config.yaml#/paths/reset_messaging_config" }
   "/v1/server/config/message-archive-retention":
