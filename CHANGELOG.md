@@ -11,6 +11,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.11.0...HEAD
 
+### Removed
+
+- feat(pod-config)!: Remove `type: [Static, Dynamic]` from the Pod address (@RemiBardon in 58cb3bb).
+- docs(openapi): Hide unimplemented `PUT /v1/server/config/file-storage-encryption-scheme` route (@RemiBardon in cb245ec).
+
+### Changed
+
+- feat: Set Workspace vCard `KIND` to `application` (@nesium in #198).
+- feat!: Routes (i.e. `/v1/server/config/tls-profile`) now return primitive JSON types when
+  they point to a primitive data type (e.g. just `"Prose (demo)"` for `GET /v1/workspace/name`)
+  (@RemiBardon in [#200]).
+  - See [#200 Remove API discrepancies and add missing CRUD routes][#200] for examples and explanations.
+- feat(server-config)!: Use HTTP verb `DELETE` instead of `PUT …/reset` (@RemiBardon in 860b5c7).
+
+  ```diff
+  -    PUT /v1/server/config/messaging/reset
+  + DELETE /v1/server/config/messaging
+  -    PUT /v1/server/config/message-archive-retention/reset
+  + DELETE /v1/server/config/message-archive-retention
+  -    PUT /v1/server/config/files/reset
+  + DELETE /v1/server/config/files
+  -    PUT /v1/server/config/push-notifications/reset
+  + DELETE /v1/server/config/push-notifications
+  -    PUT /v1/server/config/push-notification-with-body/reset
+  + DELETE /v1/server/config/push-notification-with-body
+  -    PUT /v1/server/config/push-notification-with-sender/reset
+  + DELETE /v1/server/config/push-notification-with-sender
+  -    PUT /v1/server/config/network-encryption/reset
+  + DELETE /v1/server/config/network-encryption
+  -    PUT /v1/server/config/tls-profile/reset
+  + DELETE /v1/server/config/tls-profile
+  -    PUT /v1/server/config/server-federation/reset
+  + DELETE /v1/server/config/server-federation
+  -    PUT /v1/server/config/federation-enabled/reset
+  + DELETE /v1/server/config/federation-enabled
+  -    PUT /v1/server/config/federation-whitelist-enabled/reset
+  + DELETE /v1/server/config/federation-whitelist-enabled
+  -    PUT /v1/server/config/federation-friendly-servers/reset
+  + DELETE /v1/server/config/federation-friendly-servers
+  ```
+
+[#200]: https://github.com/prose-im/prose-pod-api/pull/200 "Remove API discrepancies and add missing CRUD routes"
+
+### Added
+
+- `PATCH /v1/pod/config/address` (@RemiBardon in 75dad56).
+- feat(server-config): Make sure all server configs have `GET`, `PUT` and `DELETE` routes (@RemiBardon in 1d26c3f).
+
+  ```diff
+  +    GET /v1/server/config/file-upload-allowed
+  + DELETE /v1/server/config/file-upload-allowed
+  +    GET /v1/server/config/file-storage-retention
+  + DELETE /v1/server/config/file-storage-retention
+  +    GET /v1/server/config/message-archive-enabled
+  + DELETE /v1/server/config/message-archive-enabled
+  +    GET /v1/server/config/message-archive-retention
+  +    GET /v1/server/config/push-notification-with-body
+  +    GET /v1/server/config/push-notification-with-sender
+  +    GET /v1/server/config/tls-profile
+  +    GET /v1/server/config/federation-enabled
+  +    GET /v1/server/config/federation-whitelist-enabled
+  +    GET /v1/server/config/federation-friendly-servers
+  ```
+- feat(server-config): Return header `Content-Location` in "Server config" group routes (@RemiBardon in dc10322).
+
+### Fixed
+
+- fix(openapi): Return `204 No Content` in "Resend an invitation" (@RemiBardon in 4bbda5c).
+
 ## [0.11.0] - 2025-04-01
 
 [0.11.0]: https://github.com/prose-im/prose-pod-api/compare/v0.10.0...v0.11.0
