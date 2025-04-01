@@ -90,7 +90,7 @@ components:
           schema:
             $ref: openapi.json#/components/schemas/PodConfig/properties/address
           jsonpath:
-            $.type: Dynamic
+            # $.type: Dynamic
             $.hostname: ${{ env.DOMAIN }}
     init_pod_address_static:
       name: Initialize Pod address (static address)
@@ -114,7 +114,7 @@ components:
           schema:
             $ref: openapi.json#/components/schemas/PodConfig/properties/address
           jsonpath:
-            $.type: Static
+            # $.type: Static
             $.ipv4: 172.20.0.40
             $.ipv6: 2001:db8::40
     get_pod_address:

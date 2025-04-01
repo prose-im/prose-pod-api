@@ -26,14 +26,6 @@ pub struct InitWorkspaceRequest {
     pub accent_color: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InitWorkspaceResponse {
-    /// Organization name.
-    pub name: String,
-    /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
-    pub accent_color: Option<String>,
-}
-
 pub async fn init_workspace_route(
     init_service: InitService,
     app_config: AppConfig,
@@ -41,7 +33,7 @@ pub async fn init_workspace_route(
     xmpp_service: XmppServiceInner,
     server_config: ServerConfig,
     Json(req): Json<InitWorkspaceRequest>,
-) -> Result<Created<InitWorkspaceResponse>, Error> {
+) -> Result<Created<Workspace>, Error> {
     let workspace = init_service
         .init_workspace(
             Arc::new(app_config),
@@ -52,9 +44,10 @@ pub async fn init_workspace_route(
         )
         .await?;
 
-    let response = InitWorkspaceResponse {
+    let response = Workspace {
         name: req.name,
         accent_color: workspace.accent_color,
+        icon: None,
     };
 
     let resource_uri = WORKSPACE_ROUTE;

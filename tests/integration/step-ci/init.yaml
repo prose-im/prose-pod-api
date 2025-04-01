@@ -115,8 +115,7 @@ components:
         auth:
           bearer:
             token: ${{ captures.token }}
-        json:
-          dashboard_url: http://prose-dashboard.${{ env.DOMAIN }}
+        json: http://prose-dashboard.${{ env.DOMAIN }}
         check:
           status: 200
         schema:
