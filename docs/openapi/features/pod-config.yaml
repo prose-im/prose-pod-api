@@ -108,7 +108,9 @@ paths:
         description: Dashboard URL has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
+            schema:
+              $ref: "#/components/schemas/PodConfig/properties/dashboard_url"
+              type: string
       "204":
         description: Dashboard URL has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
@@ -130,8 +132,7 @@ components:
         address:
           $ref: "#/components/schemas/NetworkAddress"
           type: [object, "null"]
-        dashboard_url:
-          $ref: "#/components/schemas/DashboardUrl"
+        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     SetPodAddressRequest:
       type: object
       required: []
