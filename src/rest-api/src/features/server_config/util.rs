@@ -11,9 +11,9 @@ macro_rules! server_config_set_route {
         pub async fn $route_fn(
             server_manager: service::xmpp::ServerManager,
             axum::Json(new_state): axum::Json<$var_type>,
-        ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
-            let new_config = server_manager.$fn(new_state).await?;
-            Ok(axum::Json(new_config))
+        ) -> Result<axum::Json<$var_type>, crate::error::Error> {
+            server_manager.$fn(new_state.clone()).await?;
+            Ok(axum::Json(new_state))
         }
     };
 }
