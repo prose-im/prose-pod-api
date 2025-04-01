@@ -18,7 +18,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "members.yaml#/components/schemas/Member" }
+            schema: { $ref: "members.yaml#/components/schemas/Member/properties/role" }
       "204":
         description: Member already has the desired role
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }

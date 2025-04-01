@@ -5,7 +5,7 @@
 
 use chrono::{DateTime, Utc};
 use sea_orm::{
-    prelude::*, DeleteResult, IntoActiveModel, ItemsAndPagesNumber, NotSet, QueryOrder as _, Set,
+    prelude::*, DeleteResult, ItemsAndPagesNumber, NotSet, QueryOrder as _, QuerySelect, Set,
 };
 use tracing::instrument;
 
@@ -114,6 +114,11 @@ impl MemberRepository {
         Ok(member.role == MemberRole::Admin)
     }
 
+    /// Updates a member’s role in database.
+    ///
+    /// Returns `None` if the role hasn’t changed.
+    ///
+    /// Returns the **old** value if the role has changed.
     #[instrument(
         name = "db::member::set_role", level = "trace",
         skip_all, fields(
@@ -126,23 +131,29 @@ impl MemberRepository {
         db: &impl ConnectionTrait,
         jid: &BareJid,
         role: MemberRole,
-    ) -> Result<Option<Member>, DbErr> {
-        // TODO: Use a [Custom Struct](https://www.sea-ql.org/SeaORM/docs/advanced-query/custom-select/#custom-struct) to query only the `role` field.
-        let member = Entity::find_by_jid(jid).one(db).await?;
+    ) -> Result<Option<MemberRole>, DbErr> {
+        let member_role = Entity::find_by_jid(jid)
+            .select_only()
+            .columns([Column::Role])
+            .into_tuple::<MemberRole>()
+            .one(db)
+            .await?;
 
-        let Some(member) = member else {
+        let Some(member_role) = member_role else {
             return Err(DbErr::RecordNotFound(format!("No member with id '{jid}'.")));
         };
 
         // Abort if no change needed.
-        if member.role == role {
+        if member_role == role {
             return Ok(None);
         }
 
-        let mut member = member.into_active_model();
+        let mut member = <ActiveModel as ActiveModelTrait>::default();
+        member.set_jid(jid);
         member.role = Set(role);
+        member.update(db).await?;
 
-        member.update(db).await.map(Option::Some)
+        Ok(Some(member_role))
     }
 }
 

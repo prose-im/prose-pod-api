@@ -5,7 +5,7 @@
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    response::NoContent,
     Json,
 };
 use axum_extra::either::Either;
@@ -17,7 +17,6 @@ use service::{
 
 use crate::{
     error::{self, CustomErrorCode, Error, ErrorCode, HttpApiError},
-    features::members::Member,
     impl_into_error, AppState,
 };
 
@@ -27,7 +26,7 @@ pub async fn set_member_role_route(
     member_service: MemberService,
     user_info: UserInfo,
     Json(role): Json<MemberRole>,
-) -> Result<Either<Json<Member>, StatusCode>, Error> {
+) -> Result<Either<Json<MemberRole>, NoContent>, Error> {
     {
         let Some(caller) = MemberRepository::get(&db, &user_info.jid).await? else {
             return Err(Error::from(error::Forbidden(format!(
@@ -46,13 +45,12 @@ pub async fn set_member_role_route(
         };
     }
 
-    match member_service.set_member_role(&jid, role).await? {
-        Some(member) => {
-            let response = Member::from(member);
-            Ok(Either::E1(response.into()))
-        }
-        None => Ok(Either::E2(StatusCode::NO_CONTENT)),
-    }
+    let res = match member_service.set_member_role(&jid, role).await? {
+        Some(_) => Either::E1(Json(role)),
+        None => Either::E2(NoContent),
+    };
+
+    Ok(res)
 }
 
 impl CustomErrorCode for SetMemberRoleError {
