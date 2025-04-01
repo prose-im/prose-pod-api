@@ -13,7 +13,7 @@ mod util;
 
 use axum::{
     middleware::from_extractor_with_state,
-    routing::{get, head, put},
+    routing::{delete, get, head, put, MethodRouter},
 };
 
 pub use file_upload::*;
@@ -35,7 +35,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 // Server config
                 .route("/", get(get_server_config_route))
                 // File upload
-                .route("/files/reset", put(reset_files_config_route))
+                .route("/files", delete(reset_files_config_route))
                 .route("/file-upload-allowed", put(set_file_upload_allowed_route))
                 .route(
                     "/file-storage-encryption-scheme",
@@ -46,72 +46,67 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     put(set_file_storage_retention_route),
                 )
                 // Message archive
-                .route("/messaging/reset", put(reset_messaging_config_route))
+                .route("/messaging", delete(reset_messaging_config_route))
                 .route(
                     "/message-archive-enabled",
                     put(set_message_archive_enabled_route),
                 )
                 .route(
                     "/message-archive-retention",
-                    put(set_message_archive_retention_route),
-                )
-                .route(
-                    "/message-archive-retention/reset",
-                    put(reset_message_archive_retention_route),
+                    MethodRouter::new()
+                        .put(set_message_archive_retention_route)
+                        .delete(reset_message_archive_retention_route),
                 )
                 // Push notifications
                 .route(
-                    "/push-notifications/reset",
-                    put(reset_push_notifications_config_route),
+                    "/push-notifications",
+                    delete(reset_push_notifications_config_route),
                 )
                 .route(
                     "/push-notification-with-body",
-                    put(set_push_notification_with_body_route),
-                )
-                .route(
-                    "/push-notification-with-body/reset",
-                    put(reset_push_notification_with_body_route),
+                    MethodRouter::new()
+                        .put(set_push_notification_with_body_route)
+                        .delete(reset_push_notification_with_body_route),
                 )
                 .route(
                     "/push-notification-with-sender",
-                    put(set_push_notification_with_sender_route),
-                )
-                .route(
-                    "/push-notification-with-sender/reset",
-                    put(reset_push_notification_with_sender_route),
+                    MethodRouter::new()
+                        .put(set_push_notification_with_sender_route)
+                        .delete(reset_push_notification_with_sender_route),
                 )
                 // Network encryption
                 .route(
-                    "/network-encryption/reset",
-                    put(reset_network_encryption_config_route),
+                    "/network-encryption",
+                    delete(reset_network_encryption_config_route),
                 )
-                .route("/tls-profile", put(set_tls_profile_route))
-                .route("/tls-profile/reset", put(reset_tls_profile_route))
+                .route(
+                    "/tls-profile",
+                    MethodRouter::new()
+                        .put(set_tls_profile_route)
+                        .delete(reset_tls_profile_route),
+                )
                 // Server federation
                 .route(
-                    "/server-federation/reset",
-                    put(reset_server_federation_config_route),
+                    "/server-federation",
+                    delete(reset_server_federation_config_route),
                 )
                 .route(
-                    "/federation-enabled/reset",
-                    put(reset_federation_enabled_route),
-                )
-                .route("/federation-enabled", put(set_federation_enabled_route))
-                .route(
-                    "/federation-whitelist-enabled/reset",
-                    put(reset_federation_whitelist_enabled_route),
+                    "/federation-enabled",
+                    MethodRouter::new()
+                        .put(set_federation_enabled_route)
+                        .delete(reset_federation_enabled_route),
                 )
                 .route(
                     "/federation-whitelist-enabled",
-                    put(set_federation_whitelist_enabled_route),
-                )
-                .route(
-                    "/federation-friendly-servers/reset",
-                    put(reset_federation_friendly_servers_route),
+                    MethodRouter::new()
+                        .put(set_federation_whitelist_enabled_route)
+                        .delete(reset_federation_whitelist_enabled_route),
                 )
                 .route(
                     "/federation-friendly-servers",
-                    put(set_federation_friendly_servers_route),
+                    MethodRouter::new()
+                        .put(set_federation_friendly_servers_route)
+                        .delete(reset_federation_friendly_servers_route),
                 )
                 // Require authentication
                 .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),

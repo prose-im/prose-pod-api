@@ -47,8 +47,8 @@ fn then_server_not_reconfigured(world: &mut TestWorld) {
 
 api_call_fn!(
     reset_messaging_configuration,
-    PUT,
-    "/v1/server/config/messaging/reset"
+    DELETE,
+    "/v1/server/config/messaging"
 );
 api_call_fn!(
     set_message_archiving,
@@ -64,8 +64,8 @@ api_call_fn!(
 );
 api_call_fn!(
     reset_message_archive_retention,
-    PUT,
-    "/v1/server/config/message-archive-retention/reset"
+    DELETE,
+    "/v1/server/config/message-archive-retention"
 );
 
 #[given(expr = "message archiving is {toggle}")]
@@ -179,11 +179,7 @@ async fn then_message_archive_retention(
 
 // FILE UPLOADING
 
-api_call_fn!(
-    reset_files_configuration,
-    PUT,
-    "/v1/server/config/files/reset"
-);
+api_call_fn!(reset_files_configuration, DELETE, "/v1/server/config/files");
 api_call_fn!(
     set_file_uploading,
     PUT,

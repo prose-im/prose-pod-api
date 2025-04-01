@@ -27,46 +27,39 @@ paths:
     put: { $ref: "features/server-config.yaml#/paths/set_file_storage_retention" }
   # "/v1/server/config/file-storage-encryption-scheme":
   #   put: { $ref: "features/server-config.yaml#/paths/set_file_storage_encryption_scheme" }
-  "/v1/server/config/messaging/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_messaging_config" }
+  "/v1/server/config/messaging":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_messaging_config" }
   "/v1/server/config/message-archive-retention":
     put: { $ref: "features/server-config.yaml#/paths/set_message_archive_retention" }
-  "/v1/server/config/message-archive-retention/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_message_archive_retention" }
-  "/v1/server/config/files/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_files_config" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_message_archive_retention" }
+  "/v1/server/config/files":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_files_config" }
   "/v1/server/config/message-archive-enabled":
     put: { $ref: "features/server-config.yaml#/paths/set_message_archive_enabled" }
-  "/v1/server/config/push-notifications/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_push_notifications_config" }
-  "/v1/server/config/push-notification-with-body/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_body" }
+  "/v1/server/config/push-notifications":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_push_notifications_config" }
   "/v1/server/config/push-notification-with-body":
     put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_body" }
-  "/v1/server/config/push-notification-with-sender/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_sender" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_body" }
   "/v1/server/config/push-notification-with-sender":
     put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_sender" }
-  "/v1/server/config/network-encryption/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_network_encryption_config" }
-  "/v1/server/config/tls-profile/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_tls_profile" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_sender" }
+  "/v1/server/config/network-encryption":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_network_encryption_config" }
   "/v1/server/config/tls-profile":
     put: { $ref: "features/server-config.yaml#/paths/set_tls_profile" }
-  "/v1/server/config/server-federation/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_server_federation_config" }
-  "/v1/server/config/federation-enabled/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_federation_enabled" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_tls_profile" }
+  "/v1/server/config/server-federation":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_server_federation_config" }
   "/v1/server/config/federation-enabled":
     put: { $ref: "features/server-config.yaml#/paths/set_federation_enabled" }
-  "/v1/server/config/federation-whitelist-enabled/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_federation_whitelist_enabled" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_federation_enabled" }
   "/v1/server/config/federation-whitelist-enabled":
     put: { $ref: "features/server-config.yaml#/paths/set_federation_whitelist_enabled" }
-  "/v1/server/config/federation-friendly-servers/reset":
-    put: { $ref: "features/server-config.yaml#/paths/reset_federation_friendly_servers" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_federation_whitelist_enabled" }
   "/v1/server/config/federation-friendly-servers":
     put: { $ref: "features/server-config.yaml#/paths/set_federation_friendly_servers" }
+    delete: { $ref: "features/server-config.yaml#/paths/reset_federation_friendly_servers" }
   "/v1/pod/config":
     put: { $ref: "features/pod-config.yaml#/paths/init_pod_config" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
