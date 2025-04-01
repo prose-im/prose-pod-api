@@ -95,9 +95,12 @@ impl WorkspaceService {
         Ok(workspace.accent_color)
     }
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_accent_color(&self, accent_color: String) -> Result<String, Error> {
+    pub async fn set_workspace_accent_color(
+        &self,
+        accent_color: Option<String>,
+    ) -> Result<Option<String>, Error> {
         let mut workspace = self.get_workspace().await?;
-        workspace.accent_color = Some(accent_color.clone());
+        workspace.accent_color = accent_color.clone();
         self.set_workspace_vcard(&workspace.into()).await?;
         Ok(accent_color)
     }
