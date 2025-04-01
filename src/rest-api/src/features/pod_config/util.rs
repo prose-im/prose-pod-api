@@ -5,11 +5,28 @@
 
 /// Generates a route for setting a specific Pod config.
 #[macro_export]
-macro_rules! pod_config_routes {
-    ($var:ident, req: $req_type:ty, res: $res_type:ty $(, get: $get_route_fn:ident, get_fn: $get_repo_fn:ident)? $(, set: $set_route_fn:ident $(, validate_set: $validate:block)?)? $(,)?) => {
-        $(pub async fn $set_route_fn(
+macro_rules! pod_config_route {
+    ($route_fn:ident: get $var_name:ident ($res_type:ty) using $repo_fn:ident) => {
+        pub async fn $route_fn(
             axum::extract::State(crate::AppState { db, .. }): axum::extract::State<crate::AppState>,
-            axum::Json($var): axum::Json<$req_type>,
+        ) -> Result<
+            axum_extra::either::Either<axum::Json<$res_type>, axum::response::NoContent>,
+            crate::error::Error,
+        > {
+            use axum::{response::NoContent, Json};
+            use axum_extra::either::Either;
+            use service::pod_config::PodConfigRepository;
+
+            Ok(match PodConfigRepository::$repo_fn(&db).await? {
+                Some($var_name) => Either::E1(Json(Some($var_name))),
+                None => Either::E2(NoContent),
+            })
+        }
+    };
+    ($route_fn:ident: update $var_name:ident ($res_type:ty) with $req_type:ty $(, validate: $validate:block)?) => {
+        pub async fn $route_fn(
+            axum::extract::State(crate::AppState { db, .. }): axum::extract::State<crate::AppState>,
+            axum::Json($var_name): axum::Json<$req_type>,
         ) -> Result<axum::Json<$res_type>, crate::error::Error> {
             use axum::Json;
             use service::pod_config::{PodConfigRepository, PodConfigUpdateForm};
@@ -24,34 +41,40 @@ macro_rules! pod_config_routes {
             let model = PodConfigRepository::set(
                 &db,
                 PodConfigUpdateForm {
-                    $var: Some($var.into()),
+                    $var_name: Some($var_name.into()),
                     ..Default::default()
                 },
             )
             .await?;
 
-            Ok(Json(model.$var()))
-        })?
-
-        $(pub async fn $get_route_fn(
-            axum::extract::State(crate::AppState { db, .. }): axum::extract::State<crate::AppState>,
-        ) -> Result<axum_extra::either::Either<axum::Json<$res_type>, axum::response::NoContent>, crate::error::Error> {
-            use axum::{Json, response::NoContent};
-            use axum_extra::either::Either;
-            use service::pod_config::PodConfigRepository;
-
-            Ok(match PodConfigRepository::$get_repo_fn(&db).await? {
-                Some($var) => Either::E1(Json(Some($var))),
-                None => Either::E2(NoContent),
-            })
-        })?
+            Ok(Json(model.$var_name()))
+        }
     };
-    ($var:ident, $var_type:ty $(, get: $get_route_fn:ident, get_fn: $get_repo_fn:ident)? $(, set: $set_route_fn:ident $(, validate_set: $validate:tt)?)? $(,)?) => {
+}
+
+/// Generates CRU(D) routes for a specific Pod config.
+#[macro_export]
+macro_rules! pod_config_routes {
+    (
+        key: $var_name:ident, type: $res_type:ty
+        $(, set: $set_route_fn:ident with $set_req_type:ty $(, validate: $set_validate:block)?)?
+        $(, get: $get_route_fn:ident using $get_repo_fn:ident)?
+        $(, patch: $patch_route_fn:ident with $patch_req_type:ty $(, validate: $patch_validate:block)?)?
+        $(,)?
+    ) => {
+        $(crate::pod_config_route!($set_route_fn: update $var_name ($res_type) with $set_req_type $(, validate: $set_validate)?);)?
+        $(crate::pod_config_route!($get_route_fn: get $var_name ($res_type) using $get_repo_fn);)?
+        $(crate::pod_config_route!($patch_route_fn: update $var_name ($res_type) with $patch_req_type $(, validate: $patch_validate)?);)?
+    };
+    (
+        key: $var:ident, type: $var_type:ty
+        $(, set: $set_route_fn:ident $(, validate: $set_validate:tt)?)?
+        $(, get: $get_route_fn:ident using $get_repo_fn:ident)? $(,)?
+    ) => {
         crate::pod_config_routes!(
-            $var,
-            req: $var_type, res: $var_type,
-            $(get: $get_route_fn, get_fn: $get_repo_fn, )?
-            $(set: $set_route_fn, $( validate_set: $validate, )? )?
+            key: $var, type: $var_type,
+            $(set: $set_route_fn with $var_type, $( validate: $set_validate, )? )?
+            $(get: $get_route_fn using $get_repo_fn, )?
         );
     };
 }

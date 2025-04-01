@@ -17,6 +17,17 @@ use crate::{
 
 use super::{invalid_network_address, POD_CONFIG_ROUTE};
 
+pod_config_routes!(
+    key: address, type: Option<PodAddress>,
+    set: set_pod_address_route with SetPodAddressRequest, validate: {
+        check_processable_set(&address)?;
+    },
+    get: get_pod_address_route using get_pod_address,
+    patch: patch_pod_address_route with PatchPodAddressRequest, validate: {
+        check_processable_patch(&address)?;
+    },
+);
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SetPodAddressRequest {
     pub ipv4: Option<Ipv4Addr>,
@@ -40,15 +51,6 @@ impl Into<PodAddressUpdateForm> for SetPodAddressRequest {
         }
     }
 }
-
-pod_config_routes!(
-    address,
-    req: SetPodAddressRequest, res: Option<PodAddress>,
-    get: get_pod_address_route, get_fn: get_pod_address,
-    set: set_pod_address_route, validate_set: {
-        check_processable_set(&address)?;
-    },
-);
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct PatchPodAddressRequest {
@@ -76,14 +78,6 @@ impl Into<PodAddressUpdateForm> for PatchPodAddressRequest {
         }
     }
 }
-
-pod_config_routes!(
-    address,
-    req: PatchPodAddressRequest, res: Option<PodAddress>,
-    set: patch_pod_address_route, validate_set: {
-        check_processable_patch(&address)?;
-    },
-);
 
 #[derive(Debug, thiserror::Error)]
 #[error("Prose Pod address not initialized.")]

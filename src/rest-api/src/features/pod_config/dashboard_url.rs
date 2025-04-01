@@ -14,12 +14,11 @@ use crate::{
 use super::{check_url_has_no_path, POD_CONFIG_ROUTE};
 
 pod_config_routes!(
-    dashboard_url,
-    Option<Url>,
-    get: get_dashboard_url_route,
-    get_fn: get_dashboard_url,
-    set: set_dashboard_url_route,
-    validate_set: { check_url_has_no_path(&dashboard_url)?; },
+    key: dashboard_url, type: Option<Url>,
+    set: set_dashboard_url_route, validate: {
+        check_url_has_no_path(&dashboard_url)?;
+    },
+    get: get_dashboard_url_route using get_dashboard_url,
 );
 
 #[derive(Debug, thiserror::Error)]
