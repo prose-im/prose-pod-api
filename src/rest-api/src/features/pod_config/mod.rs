@@ -36,7 +36,8 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             POD_ADDRESS_ROUTE,
             MethodRouter::new()
                 .put(set_pod_address_route)
-                .get(get_pod_address_route),
+                .get(get_pod_address_route)
+                .patch(patch_pod_address_route),
         )
         .route(
             DASHBOARD_URL_ROUTE,

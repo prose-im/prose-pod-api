@@ -73,6 +73,7 @@ paths:
   "/v1/pod/config/address":
     put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
+    patch: { $ref: "features/pod-config.yaml#/paths/patch_pod_address" }
   "/v1/pod/config/dashboard-url":
     put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_url" }
     get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }

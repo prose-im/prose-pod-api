@@ -18,6 +18,39 @@ use crate::{
 use super::{invalid_network_address, POD_CONFIG_ROUTE};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+pub struct SetPodAddressRequest {
+    pub ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub hostname: Option<DomainName>,
+}
+
+fn check_processable_set(req: &SetPodAddressRequest) -> Result<(), Error> {
+    match (req.ipv4, req.ipv6, req.hostname.as_ref()) {
+        (None, None, None) => Err(invalid_network_address()),
+        _ => Ok(()),
+    }
+}
+
+impl Into<PodAddressUpdateForm> for SetPodAddressRequest {
+    fn into(self) -> PodAddressUpdateForm {
+        PodAddressUpdateForm {
+            ipv4: Some(self.ipv4),
+            ipv6: Some(self.ipv6),
+            hostname: Some((self.hostname).as_ref().map(ToString::to_string)),
+        }
+    }
+}
+
+pod_config_routes!(
+    address,
+    req: SetPodAddressRequest, res: Option<PodAddress>,
+    get: get_pod_address_route, get_fn: get_pod_address,
+    set: set_pod_address_route, validate_set: {
+        check_processable_set(&address)?;
+    },
+);
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct PatchPodAddressRequest {
     #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
     pub ipv4: Option<Option<Ipv4Addr>>,
@@ -27,7 +60,7 @@ pub struct PatchPodAddressRequest {
     pub hostname: Option<Option<DomainName>>,
 }
 
-fn check_processable_network_address(req: &PatchPodAddressRequest) -> Result<(), Error> {
+fn check_processable_patch(req: &PatchPodAddressRequest) -> Result<(), Error> {
     match (req.ipv4, req.ipv6, req.hostname.as_ref()) {
         (None, None, None) => Err(invalid_network_address()),
         _ => Ok(()),
@@ -47,9 +80,8 @@ impl Into<PodAddressUpdateForm> for PatchPodAddressRequest {
 pod_config_routes!(
     address,
     req: PatchPodAddressRequest, res: Option<PodAddress>,
-    get: get_pod_address_route, get_fn: get_pod_address,
-    set: set_pod_address_route, validate_set: {
-        check_processable_network_address(&address)?;
+    set: patch_pod_address_route, validate_set: {
+        check_processable_patch(&address)?;
     },
 );
 

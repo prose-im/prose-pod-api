@@ -42,7 +42,10 @@ paths:
   set_pod_address:
     tags: ["Pod / Configuration"]
     summary: Set Pod address
-    description: Tells the API how the Pod is publicly accessible.
+    description: |
+      Tells the API how the Pod is publicly accessible.
+
+      If a key is missing, it will be considered `null` and will erase an existing value.
     operationId: set_pod_address
     security: []
     requestBody:
@@ -50,6 +53,30 @@ paths:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/SetPodAddressRequest" }
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
+  patch_pod_address:
+    tags: ["Pod / Configuration"]
+    summary: Patch Pod address
+    description: |
+      Tells the API how the Pod is publicly accessible.
+
+      If a key is missing, it will not set an existing value to `null`.
+      To erase an existing value, use `null` explicitly.
+    operationId: patch_pod_address
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PatchPodAddressRequest" }
     responses:
       "200":
         description: Success
@@ -134,6 +161,29 @@ components:
         address: { $ref: "#/components/schemas/PodAddress" }
         dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     SetPodAddressRequest:
+      anyOf:
+        - title: IPv4
+          type: object
+          required: [ipv4]
+          properties:
+            ipv4:
+              $ref: "#/components/schemas/PodAddress/properties/ipv4"
+              type: string
+        - title: IPv6
+          type: object
+          required: [ipv6]
+          properties:
+            ipv6:
+              $ref: "#/components/schemas/PodAddress/properties/ipv6"
+              type: string
+        - title: Hostname
+          type: object
+          required: [hostname]
+          properties:
+            hostname:
+              $ref: "#/components/schemas/PodAddress/properties/hostname"
+              type: string
+    PatchPodAddressRequest:
       anyOf:
         - title: IPv4
           type: object
