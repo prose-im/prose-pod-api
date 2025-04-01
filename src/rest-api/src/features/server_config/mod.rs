@@ -3,12 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod file_upload;
-mod get_server_config;
-mod message_archive;
-mod network_encryption;
-mod push_notifications;
-mod server_federation;
 mod util;
 
 use axum::{
@@ -16,16 +10,11 @@ use axum::{
     routing::{delete, get, head, put, MethodRouter},
 };
 
-pub use file_upload::*;
-pub use get_server_config::*;
-pub use message_archive::*;
-pub use network_encryption::*;
-pub use push_notifications::*;
-pub use server_federation::*;
-
 use crate::AppState;
 
 use super::{auth::guards::IsAdmin, init::SERVER_CONFIG_ROUTE};
+
+use self::routes::*;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
@@ -133,4 +122,135 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         // NOTE: `HEAD /v1/server/config` doesn’t require authentication.
         .route(SERVER_CONFIG_ROUTE, head(is_server_initialized_route))
         .with_state(app_state)
+}
+
+mod routes {
+    use axum::{extract::State, http::header::IF_NONE_MATCH, response::NoContent, Json};
+    use axum_extra::{headers::IfNoneMatch, TypedHeader};
+
+    use service::{
+        models::durations::{DateLike, Duration, PossiblyInfinite},
+        server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
+        LinkedHashSet,
+    };
+
+    use crate::{
+        error::{Error, PreconditionRequired},
+        features::init::ServerConfigNotInitialized,
+        server_config_reset_route, server_config_routes, AppState,
+    };
+
+    // Server config
+
+    pub async fn get_server_config_route(server_config: ServerConfig) -> Json<ServerConfig> {
+        Json(server_config)
+    }
+
+    pub async fn is_server_initialized_route(
+        State(AppState { db, .. }): State<AppState>,
+        TypedHeader(if_none_match): TypedHeader<IfNoneMatch>,
+    ) -> Result<NoContent, Error> {
+        if if_none_match != IfNoneMatch::any() {
+            Err(Error::from(PreconditionRequired {
+                comment: format!("Missing header: '{IF_NONE_MATCH}'."),
+            }))
+        } else if ServerConfigRepository::is_initialized(&db).await? {
+            Ok(NoContent)
+        } else {
+            Err(Error::from(ServerConfigNotInitialized))
+        }
+    }
+
+    // File upload
+
+    server_config_reset_route!(reset_files_config, reset_files_config_route);
+    server_config_routes!(
+                key: file_upload_allowed, type: bool,
+          set:   set_file_upload_allowed_route using   set_file_upload_allowed,
+          get:   get_file_upload_allowed_route,
+        reset: reset_file_upload_allowed_route using reset_file_upload_allowed,
+    );
+    pub async fn set_file_storage_encryption_scheme_route(
+    ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
+        Err(crate::error::NotImplemented("File storage encryption scheme").into())
+    }
+    server_config_routes!(
+                key: file_storage_retention, type: PossiblyInfinite<Duration<DateLike>>,
+          set:   set_file_storage_retention_route using   set_file_storage_retention,
+          get:   get_file_storage_retention_route,
+        reset: reset_file_storage_retention_route using reset_file_storage_retention,
+    );
+
+    // Message archive
+
+    server_config_reset_route!(reset_messaging_config, reset_messaging_config_route);
+    server_config_routes!(
+                key: message_archive_enabled, type: bool,
+          set:   set_message_archive_enabled_route using   set_message_archive_enabled,
+          get:   get_message_archive_enabled_route,
+        reset: reset_message_archive_enabled_route using reset_message_archive_enabled,
+    );
+    server_config_routes!(
+                key: message_archive_retention, type: PossiblyInfinite<Duration<DateLike>>,
+          set:   set_message_archive_retention_route using   set_message_archive_retention,
+          get:   get_message_archive_retention_route,
+        reset: reset_message_archive_retention_route using reset_message_archive_retention,
+    );
+
+    // Push notifications
+
+    server_config_reset_route!(
+        reset_push_notifications_config,
+        reset_push_notifications_config_route,
+    );
+    server_config_routes!(
+                key: push_notification_with_body, type: bool,
+          set:   set_push_notification_with_body_route using   set_push_notification_with_body,
+          get:   get_push_notification_with_body_route,
+        reset: reset_push_notification_with_body_route using reset_push_notification_with_body,
+    );
+    server_config_routes!(
+                key: push_notification_with_sender, type: bool,
+          set:   set_push_notification_with_sender_route using   set_push_notification_with_sender,
+          get:   get_push_notification_with_sender_route,
+        reset: reset_push_notification_with_sender_route using reset_push_notification_with_sender,
+    );
+
+    // Network encryption
+
+    server_config_reset_route!(
+        reset_network_encryption_config,
+        reset_network_encryption_config_route,
+    );
+    server_config_routes!(
+                key: tls_profile, type: TlsProfile,
+          set:   set_tls_profile_route using   set_tls_profile,
+          get:   get_tls_profile_route,
+        reset: reset_tls_profile_route using reset_tls_profile,
+    );
+
+    // Server federation
+
+    server_config_reset_route!(
+        reset_server_federation_config,
+        reset_server_federation_config_route
+    );
+    server_config_routes!(
+                key: federation_enabled, type: bool,
+          set:   set_federation_enabled_route using   set_federation_enabled,
+          get:   get_federation_enabled_route,
+        reset: reset_federation_enabled_route using reset_federation_enabled,
+    );
+    server_config_routes!(
+                key: federation_whitelist_enabled, type: bool,
+          set:   set_federation_whitelist_enabled_route using   set_federation_whitelist_enabled,
+          get:   get_federation_whitelist_enabled_route,
+        reset: reset_federation_whitelist_enabled_route using reset_federation_whitelist_enabled,
+    );
+    server_config_routes!(
+                key: federation_friendly_servers, type: LinkedHashSet<String>,
+          set:   set_federation_friendly_servers_route using   set_federation_friendly_servers,
+          get:   get_federation_friendly_servers_route,
+        reset: reset_federation_friendly_servers_route using reset_federation_friendly_servers,
+    );
 }
