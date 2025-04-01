@@ -9,7 +9,6 @@ use axum::{
     Json,
 };
 use axum_extra::either::Either;
-use serde::{Deserialize, Serialize};
 use service::{
     auth::UserInfo,
     members::{MemberRepository, MemberRole, MemberService, SetMemberRoleError},
@@ -22,17 +21,12 @@ use crate::{
     impl_into_error, AppState,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SetMemberRoleRequest {
-    pub role: MemberRole,
-}
-
 pub async fn set_member_role_route(
     State(AppState { db, .. }): State<AppState>,
     Path(jid): Path<BareJid>,
     member_service: MemberService,
     user_info: UserInfo,
-    Json(req): Json<SetMemberRoleRequest>,
+    Json(role): Json<MemberRole>,
 ) -> Result<Either<Json<Member>, StatusCode>, Error> {
     {
         let Some(caller) = MemberRepository::get(&db, &user_info.jid).await? else {
@@ -45,14 +39,14 @@ pub async fn set_member_role_route(
                 "Cannot change your own role.".to_string(),
             )));
         };
-        if caller.role < req.role {
+        if caller.role < role {
             return Err(Error::from(error::Forbidden(
                 "Cannot give a role you don't have.".to_string(),
             )));
         };
     }
 
-    match member_service.set_member_role(&jid, req.role).await? {
+    match member_service.set_member_role(&jid, role).await? {
         Some(member) => {
             let response = Member::from(member);
             Ok(Either::E1(response.into()))
