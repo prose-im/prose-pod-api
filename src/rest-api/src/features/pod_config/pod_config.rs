@@ -26,45 +26,40 @@ use crate::{
 use super::POD_CONFIG_ROUTE;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+pub struct InitPodAddressRequest {
+    pub ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub hostname: Option<DomainName>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct InitPodConfigRequest {
-    pub address: SetNetworkAddressRequest,
+    pub address: InitPodAddressRequest,
     pub dashboard_url: Option<Url>,
 }
 
 impl Into<PodConfigCreateForm> for InitPodConfigRequest {
     fn into(self) -> PodConfigCreateForm {
         PodConfigCreateForm {
-            address: self.address.into(),
+            address: NetworkAddressCreateForm {
+                ipv4: self.address.ipv4,
+                ipv6: self.address.ipv6,
+                hostname: self.address.hostname.as_ref().map(ToString::to_string),
+            },
             dashboard_url: self.dashboard_url,
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct SetNetworkAddressRequest {
-    pub ipv4: Option<Ipv4Addr>,
-    pub ipv6: Option<Ipv6Addr>,
-    pub hostname: Option<DomainName>,
+pub fn invalid_network_address() -> Error {
+    Error::from(error::HTTPStatus {
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+        body: "You must pass either an IPv4, an IPv6 or a hostname.".to_string(),
+    })
 }
-
-impl Into<NetworkAddressCreateForm> for SetNetworkAddressRequest {
-    fn into(self) -> NetworkAddressCreateForm {
-        NetworkAddressCreateForm {
-            ipv4: self.ipv4,
-            ipv6: self.ipv6,
-            hostname: self.hostname,
-        }
-    }
-}
-
-pub(super) fn check_processable_network_address(
-    req: &SetNetworkAddressRequest,
-) -> Result<(), Error> {
+fn check_processable_network_address(req: &InitPodAddressRequest) -> Result<(), Error> {
     match (req.ipv4, req.ipv6, req.hostname.as_ref()) {
-        (None, None, None) => Err(Error::from(error::HTTPStatus {
-            status: StatusCode::UNPROCESSABLE_ENTITY,
-            body: "You must pass either an IPv4, an IPv6 or a hostname.".to_string(),
-        })),
+        (None, None, None) => Err(invalid_network_address()),
         _ => Ok(()),
     }
 }

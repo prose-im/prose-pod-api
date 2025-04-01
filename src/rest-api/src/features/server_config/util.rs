@@ -4,16 +4,15 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 /// Generates a route for setting a specific server config.
-/// Also generates its associated request type.
 #[macro_export]
 macro_rules! server_config_set_route {
     ($var_type:ty, $var:ident, $fn:ident, $route_fn:ident) => {
         pub async fn $route_fn(
             server_manager: service::xmpp::ServerManager,
-            axum::Json(new_state): axum::Json<$var_type>,
+            axum::Json($var): axum::Json<$var_type>,
         ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            server_manager.$fn(new_state.clone()).await?;
-            Ok(axum::Json(new_state))
+            server_manager.$fn($var.clone()).await?;
+            Ok(axum::Json($var))
         }
     };
 }

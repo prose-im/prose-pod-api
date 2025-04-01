@@ -5,15 +5,14 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use hickory_proto::rr::Name as DomainName;
 use sea_orm::{prelude::*, ActiveModelTrait, QueryOrder as _, QuerySelect, Set, Unchanged};
 use tracing::instrument;
 
-use crate::models::Url;
+use crate::models::{sea_orm::SeaOrmAsString, Url};
 
 use super::{
     entities::pod_config::{self, ActiveModel, Column, Entity},
-    NetworkAddress,
+    PodAddress,
 };
 
 pub enum PodConfigRepository {}
@@ -66,9 +65,7 @@ impl PodConfigRepository {
         skip_all,
         err
     )]
-    pub async fn get_pod_address(
-        db: &impl ConnectionTrait,
-    ) -> Result<Option<NetworkAddress>, DbErr> {
+    pub async fn get_pod_address(db: &impl ConnectionTrait) -> Result<Option<PodAddress>, DbErr> {
         let res = Entity::find()
             .order_by_asc(Column::Id)
             .select_only()
@@ -77,16 +74,15 @@ impl PodConfigRepository {
                 Column::Ipv6,
                 Column::Hostname,
             ])
-            .into_tuple::<(Option<String>, Option<String>, Option<String>)>()
+            .into_tuple::<(
+                Option<SeaOrmAsString<Ipv4Addr>>,
+                Option<SeaOrmAsString<Ipv6Addr>>,
+                Option<String>,
+            )>()
             .one(db)
             .await?
             .and_then(|(ipv4, ipv6, hostname)| {
-                NetworkAddress::try_from_or_warn(
-                    hostname.as_ref(),
-                    ipv4.as_ref(),
-                    ipv6.as_ref(),
-                    "Pod address in database is invalid",
-                )
+                PodAddress::try_from(ipv4.as_deref().cloned(), ipv6.as_deref().cloned(), hostname)
             });
         Ok(res)
     }
@@ -110,27 +106,16 @@ impl PodConfigRepository {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct PodConfigCreateForm {
-    pub address: NetworkAddressCreateForm,
-    pub dashboard_url: Option<Url>,
+#[derive(Debug, Default)]
+pub struct PodAddressUpdateForm {
+    pub ipv4: Option<Option<Ipv4Addr>>,
+    pub ipv6: Option<Option<Ipv6Addr>>,
+    pub hostname: Option<Option<String>>,
 }
 
-impl PodConfigCreateForm {
-    fn into_active_model(self) -> ActiveModel {
-        ActiveModel {
-            ipv4: Set(self.address.ipv4.map(|v| v.to_string())),
-            ipv6: Set(self.address.ipv6.map(|v| v.to_string())),
-            hostname: Set(self.address.hostname.map(|v| v.to_string())),
-            dashboard_url: Set(self.dashboard_url),
-            id: Default::default(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct PodConfigUpdateForm {
-    pub address: Option<NetworkAddressCreateForm>,
+    pub address: Option<PodAddressUpdateForm>,
     pub dashboard_url: Option<Option<Url>>,
 }
 
@@ -138,9 +123,15 @@ impl PodConfigUpdateForm {
     fn into_active_model(self) -> ActiveModel {
         let mut active = <ActiveModel as ActiveModelTrait>::default();
         if let Some(address) = self.address {
-            active.ipv4 = Set(address.ipv4.map(|v| v.to_string()));
-            active.ipv6 = Set(address.ipv6.map(|v| v.to_string()));
-            active.hostname = Set(address.hostname.map(|v| v.to_string()));
+            if let Some(ipv4) = address.ipv4 {
+                active.ipv4 = Set(ipv4.map(SeaOrmAsString));
+            }
+            if let Some(ipv6) = address.ipv6 {
+                active.ipv6 = Set(ipv6.map(SeaOrmAsString));
+            }
+            if let Some(hostname) = address.hostname {
+                active.hostname = Set(hostname);
+            }
         };
         if let Some(url) = self.dashboard_url {
             active.dashboard_url = Set(url);
@@ -149,9 +140,26 @@ impl PodConfigUpdateForm {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct NetworkAddressCreateForm {
     pub ipv4: Option<Ipv4Addr>,
     pub ipv6: Option<Ipv6Addr>,
-    pub hostname: Option<DomainName>,
+    pub hostname: Option<String>,
+}
+
+#[derive(Debug, Default)]
+pub struct PodConfigCreateForm {
+    pub address: NetworkAddressCreateForm,
+    pub dashboard_url: Option<Url>,
+}
+
+impl PodConfigCreateForm {
+    fn into_active_model(self) -> ActiveModel {
+        let mut active = <ActiveModel as ActiveModelTrait>::default();
+        active.ipv4 = Set(self.address.ipv4.map(SeaOrmAsString));
+        active.ipv6 = Set(self.address.ipv6.map(SeaOrmAsString));
+        active.hostname = Set(self.address.hostname);
+        active.dashboard_url = Set(self.dashboard_url);
+        active
+    }
 }

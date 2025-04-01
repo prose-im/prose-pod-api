@@ -7,6 +7,7 @@ mod dashboard_url;
 mod guards;
 mod pod_address;
 mod pod_config;
+mod util;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::MethodRouter;
