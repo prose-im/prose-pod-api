@@ -13,10 +13,8 @@ use crate::{
     AppState,
 };
 
-pub async fn get_server_config_route(
-    server_config: ServerConfig,
-) -> Result<Json<ServerConfig>, Error> {
-    Ok(Json(server_config))
+pub async fn get_server_config_route(server_config: ServerConfig) -> Json<ServerConfig> {
+    Json(server_config)
 }
 
 pub async fn is_server_initialized_route(

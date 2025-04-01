@@ -36,25 +36,38 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route("/", get(get_server_config_route))
                 // File upload
                 .route("/files", delete(reset_files_config_route))
-                .route("/file-upload-allowed", put(set_file_upload_allowed_route))
+                .route(
+                    "/file-upload-allowed",
+                    MethodRouter::new()
+                        .put(set_file_upload_allowed_route)
+                        .get(get_file_upload_allowed_route)
+                        .delete(reset_file_upload_allowed_route),
+                )
                 .route(
                     "/file-storage-encryption-scheme",
                     put(set_file_storage_encryption_scheme_route),
                 )
                 .route(
                     "/file-storage-retention",
-                    put(set_file_storage_retention_route),
+                    MethodRouter::new()
+                        .put(set_file_storage_retention_route)
+                        .get(get_file_storage_retention_route)
+                        .delete(reset_file_storage_retention_route),
                 )
                 // Message archive
                 .route("/messaging", delete(reset_messaging_config_route))
                 .route(
                     "/message-archive-enabled",
-                    put(set_message_archive_enabled_route),
+                    MethodRouter::new()
+                        .put(set_message_archive_enabled_route)
+                        .get(get_message_archive_enabled_route)
+                        .delete(reset_message_archive_enabled_route),
                 )
                 .route(
                     "/message-archive-retention",
                     MethodRouter::new()
                         .put(set_message_archive_retention_route)
+                        .get(get_message_archive_retention_route)
                         .delete(reset_message_archive_retention_route),
                 )
                 // Push notifications
@@ -66,12 +79,14 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     "/push-notification-with-body",
                     MethodRouter::new()
                         .put(set_push_notification_with_body_route)
+                        .get(get_push_notification_with_body_route)
                         .delete(reset_push_notification_with_body_route),
                 )
                 .route(
                     "/push-notification-with-sender",
                     MethodRouter::new()
                         .put(set_push_notification_with_sender_route)
+                        .get(get_push_notification_with_sender_route)
                         .delete(reset_push_notification_with_sender_route),
                 )
                 // Network encryption
@@ -83,6 +98,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     "/tls-profile",
                     MethodRouter::new()
                         .put(set_tls_profile_route)
+                        .get(get_tls_profile_route)
                         .delete(reset_tls_profile_route),
                 )
                 // Server federation
@@ -94,18 +110,21 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                     "/federation-enabled",
                     MethodRouter::new()
                         .put(set_federation_enabled_route)
+                        .get(get_federation_enabled_route)
                         .delete(reset_federation_enabled_route),
                 )
                 .route(
                     "/federation-whitelist-enabled",
                     MethodRouter::new()
                         .put(set_federation_whitelist_enabled_route)
+                        .get(get_federation_whitelist_enabled_route)
                         .delete(reset_federation_whitelist_enabled_route),
                 )
                 .route(
                     "/federation-friendly-servers",
                     MethodRouter::new()
                         .put(set_federation_friendly_servers_route)
+                        .get(get_federation_friendly_servers_route)
                         .delete(reset_federation_friendly_servers_route),
                 )
                 // Require authentication

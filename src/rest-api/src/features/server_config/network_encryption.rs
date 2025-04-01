@@ -5,17 +5,16 @@
 
 use service::server_config::TlsProfile;
 
-use crate::{server_config_reset_route, server_config_set_route};
+use crate::{server_config_reset_route, server_config_routes};
 
 server_config_reset_route!(
     reset_network_encryption_config,
-    reset_network_encryption_config_route
+    reset_network_encryption_config_route,
 );
 
-server_config_set_route!(
-    TlsProfile,
-    tls_profile,
-    set_tls_profile,
-    set_tls_profile_route
+server_config_routes!(
+            key: tls_profile, type: TlsProfile,
+      set:   set_tls_profile_route using   set_tls_profile,
+      get:   get_tls_profile_route,
+    reset: reset_tls_profile_route using reset_tls_profile,
 );
-server_config_reset_route!(reset_tls_profile, reset_tls_profile_route);

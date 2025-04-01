@@ -332,30 +332,10 @@ pub enum CreateServiceAccountError {
     CouldNotLogIn(#[from] auth_service::Error),
 }
 
-macro_rules! set_bool {
-    ($fn:ident, $var:ident) => {
-        pub async fn $fn(&self, new_state: bool) -> Result<ServerConfig, Error> {
-            trace!(
-                "Turning {} {}…",
-                stringify!($var),
-                if new_state { "on" } else { "off" },
-            );
-            self.update(|active| active.$var = Set(Some(new_state)))
-                .await
-        }
-    };
-}
 macro_rules! set {
-    ($t:ty, $fn:ident, $var:ident) => {
+    ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
         pub async fn $fn(&self, new_state: $t) -> Result<ServerConfig, Error> {
-            trace!("Setting {} to {new_state}…", stringify!($var));
-            self.update(|active| active.$var = Set(Some(new_state)))
-                .await
-        }
-    };
-    ($t1:ty, $t2:ty, $fn:ident, $var:ident) => {
-        pub async fn $fn(&self, new_state: $t1) -> Result<ServerConfig, Error> {
-            let new_state = <$t2>::from(new_state);
+            $(let new_state = <$db_type>::from(new_state);)?
             trace!("Setting {} to {new_state}…", stringify!($var));
             self.update(|active| active.$var = Set(Some(new_state)))
                 .await
@@ -363,70 +343,93 @@ macro_rules! set {
     };
 }
 macro_rules! reset {
-    ($fn:ident, $var:ident) => {
+    ($fn:ident, $var:ident $(,)?) => {
         pub async fn $fn(&self) -> Result<ServerConfig, Error> {
             trace!("Resetting {}…", stringify!($var));
             self.update(|active| active.$var = Set(None)).await
         }
     };
 }
+macro_rules! property_helpers {
+    (
+        $var:ident, type: $t:ty
+        $(, set: $set_fn:ident)?
+        $(, reset: $reset_fn:ident)?
+        $(,)?
+    ) => {
+        $(set!($t, $set_fn, $var);)?
+        $(reset!($reset_fn, $var);)?
+    };
+    (
+        $var:ident, type: $t:ty as $db_type:ty
+        $(, set: $set_fn:ident)?
+        $(, reset: $reset_fn:ident)?
+        $(,)?
+    ) => {
+        $(set!($t as $db_type, $set_fn, $var);)?
+        $(reset!($reset_fn, $var);)?
+    };
+}
 
 impl ServerManager {
-    set_bool!(set_message_archive_enabled, message_archive_enabled);
-
-    set!(
-        PossiblyInfinite<Duration<DateLike>>,
-        set_message_archive_retention,
-        message_archive_retention
+    // File upload
+    property_helpers!(
+        file_upload_allowed, type: bool,
+        set: set_file_upload_allowed,
+        reset: reset_file_upload_allowed,
     );
-    reset!(reset_message_archive_retention, message_archive_retention);
+    property_helpers!(
+        file_storage_retention, type: PossiblyInfinite<Duration<DateLike>>,
+        set: set_file_storage_retention,
+        reset: reset_file_storage_retention,
+    );
 
-    set_bool!(set_file_upload_allowed, file_upload_allowed);
-    set!(
-        PossiblyInfinite<Duration<DateLike>>,
-        set_file_storage_retention,
-        file_storage_retention
+    // Message archive
+    property_helpers!(
+        message_archive_enabled, type: bool,
+        set: set_message_archive_enabled,
+        reset: reset_message_archive_enabled,
+    );
+    property_helpers!(
+        message_archive_retention, type: PossiblyInfinite<Duration<DateLike>>,
+        set: set_message_archive_retention,
+        reset: reset_message_archive_retention,
     );
 
     // Push notifications
-    set_bool!(set_push_notification_with_body, push_notification_with_body);
-    reset!(
-        reset_push_notification_with_body,
-        push_notification_with_body
+    property_helpers!(
+        push_notification_with_body, type: bool,
+        set: set_push_notification_with_body,
+        reset: reset_push_notification_with_body,
     );
-    set_bool!(
-        set_push_notification_with_sender,
-        push_notification_with_sender
-    );
-    reset!(
-        reset_push_notification_with_sender,
-        push_notification_with_sender
+    property_helpers!(
+        push_notification_with_sender, type: bool,
+        set: set_push_notification_with_sender,
+        reset: reset_push_notification_with_sender,
     );
 
     // Network encryption
-    set!(TlsProfile, set_tls_profile, tls_profile);
-    reset!(reset_tls_profile, tls_profile);
+    property_helpers!(
+        tls_profile, type: TlsProfile,
+        set: set_tls_profile,
+        reset: reset_tls_profile,
+    );
 
     // Server federation
-    set_bool!(set_federation_enabled, federation_enabled);
-    reset!(reset_federation_enabled, federation_enabled);
-    set_bool!(
-        set_federation_whitelist_enabled,
-        federation_whitelist_enabled
+    property_helpers!(
+        federation_enabled, type: bool,
+        set: set_federation_enabled,
+        reset: reset_federation_enabled,
     );
-    reset!(
-        reset_federation_whitelist_enabled,
-        federation_whitelist_enabled
+    property_helpers!(
+        federation_whitelist_enabled, type: bool,
+        set: set_federation_whitelist_enabled,
+        reset: reset_federation_whitelist_enabled,
     );
-    set!(
-        LinkedHashSet<String>,
-        LinkedStringSet,
-        set_federation_friendly_servers,
-        federation_friendly_servers
-    );
-    reset!(
-        reset_federation_friendly_servers,
-        federation_friendly_servers
+    property_helpers!(
+        federation_friendly_servers, type: LinkedHashSet<String> as LinkedStringSet,
+        set: set_federation_friendly_servers,
+        reset: reset_federation_friendly_servers,
     );
 }
 
