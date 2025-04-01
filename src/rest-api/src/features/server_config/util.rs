@@ -24,9 +24,23 @@ macro_rules! server_config_reset_route {
     ($fn:ident, $route_fn:ident) => {
         pub async fn $route_fn(
             server_manager: service::xmpp::ServerManager,
-        ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
+        ) -> Result<
+            (
+                [(axum::http::HeaderName, axum::http::HeaderValue); 1],
+                axum::Json<service::server_config::ServerConfig>,
+            ),
+            crate::error::Error,
+        > {
             let new_config = server_manager.$fn().await?;
-            Ok(axum::Json(new_config))
+            Ok((
+                [(
+                    axum::http::header::CONTENT_LOCATION,
+                    axum::http::HeaderValue::from_static(
+                        crate::features::init::SERVER_CONFIG_ROUTE,
+                    ),
+                )],
+                axum::Json(new_config),
+            ))
         }
     };
 }
