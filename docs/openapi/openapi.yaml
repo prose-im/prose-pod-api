@@ -1,4 +1,5 @@
 openapi: 3.1.0
+
 info:
   title: prose-pod-api
   description: Prose Pod API server.
@@ -9,33 +10,43 @@ info:
     name: MPL-2.0
     url: https://github.com/prose-im/prose-pod-api/blob/master/LICENSE.md
   version: 0.3.1
+
 servers:
   - url: http://127.0.0.1:8080
     description: Localhost
+
 paths:
+  # ===== Init =====
   "/v1/init/first-account":
     put: { $ref: "features/init.yaml#/paths/init_first_account" }
+
+  # ===== Misc =====
   "/v1/login":
     post: { $ref: "features/auth.yaml#/paths/login" }
+
+  # ===== Server config =====
   "/v1/server/config":
     put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
     head: { $ref: "features/server-config.yaml#/paths/is_server_initialized" }
     get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
+  # === File upload ===
+  "/v1/server/config/files":
+    delete: { $ref: "features/server-config.yaml#/paths/reset_files_config" }
   "/v1/server/config/file-upload-allowed":
     put: { $ref: "features/server-config.yaml#/paths/set_file_upload_allowed" }
-  "/v1/server/config/file-storage-retention":
-    put: { $ref: "features/server-config.yaml#/paths/set_file_storage_retention" }
   # "/v1/server/config/file-storage-encryption-scheme":
   #   put: { $ref: "features/server-config.yaml#/paths/set_file_storage_encryption_scheme" }
+  "/v1/server/config/file-storage-retention":
+    put: { $ref: "features/server-config.yaml#/paths/set_file_storage_retention" }
+  # === Message archive ===
   "/v1/server/config/messaging":
     delete: { $ref: "features/server-config.yaml#/paths/reset_messaging_config" }
+  "/v1/server/config/message-archive-enabled":
+    put: { $ref: "features/server-config.yaml#/paths/set_message_archive_enabled" }
   "/v1/server/config/message-archive-retention":
     put: { $ref: "features/server-config.yaml#/paths/set_message_archive_retention" }
     delete: { $ref: "features/server-config.yaml#/paths/reset_message_archive_retention" }
-  "/v1/server/config/files":
-    delete: { $ref: "features/server-config.yaml#/paths/reset_files_config" }
-  "/v1/server/config/message-archive-enabled":
-    put: { $ref: "features/server-config.yaml#/paths/set_message_archive_enabled" }
+  # === Push notifications ===
   "/v1/server/config/push-notifications":
     delete: { $ref: "features/server-config.yaml#/paths/reset_push_notifications_config" }
   "/v1/server/config/push-notification-with-body":
@@ -44,11 +55,13 @@ paths:
   "/v1/server/config/push-notification-with-sender":
     put: { $ref: "features/server-config.yaml#/paths/set_push_notification_with_sender" }
     delete: { $ref: "features/server-config.yaml#/paths/reset_push_notification_with_sender" }
+  # === Network encryption ===
   "/v1/server/config/network-encryption":
     delete: { $ref: "features/server-config.yaml#/paths/reset_network_encryption_config" }
   "/v1/server/config/tls-profile":
     put: { $ref: "features/server-config.yaml#/paths/set_tls_profile" }
     delete: { $ref: "features/server-config.yaml#/paths/reset_tls_profile" }
+  # === Server federation ===
   "/v1/server/config/server-federation":
     delete: { $ref: "features/server-config.yaml#/paths/reset_server_federation_config" }
   "/v1/server/config/federation-enabled":
@@ -60,6 +73,8 @@ paths:
   "/v1/server/config/federation-friendly-servers":
     put: { $ref: "features/server-config.yaml#/paths/set_federation_friendly_servers" }
     delete: { $ref: "features/server-config.yaml#/paths/reset_federation_friendly_servers" }
+
+  # ===== Pod config =====
   "/v1/pod/config":
     put: { $ref: "features/pod-config.yaml#/paths/init_pod_config" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
@@ -70,6 +85,8 @@ paths:
   "/v1/pod/config/dashboard-url":
     put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_url" }
     get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }
+
+  # ===== Workspace =====
   "/v1/workspace":
     put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
     get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
@@ -83,6 +100,8 @@ paths:
   "/v1/workspace/icon":
     put: { $ref: "features/workspace.yaml#/paths/set_workspace_icon" }
     get: { $ref: "features/workspace.yaml#/paths/get_workspace_icon" }
+
+  # ===== Invitations =====
   "/v1/invitations":
     post: { $ref: "features/invitations.yaml#/paths/invite_member" }
     get: { $ref: "features/invitations.yaml#/paths/get_invitations" }
@@ -97,6 +116,8 @@ paths:
     put: { $ref: "features/invitations.yaml#/paths/invitation_reject" }
   "/v1/invitations/{invitationId}/resend":
     post: { $ref: "features/invitations.yaml#/paths/invitation_resend" }
+
+  # ===== Members =====
   "/v1/members":
     get: { $ref: "features/members.yaml#/paths/get_members" }
   "/v1/members/{memberId}":
@@ -106,6 +127,8 @@ paths:
     get: { $ref: "features/members.yaml#/paths/enrich_members" }
   "/v1/members/{memberId}/role":
     put: { $ref: "features/roles.yaml#/paths/set_member_role" }
+
+  # ===== Network config =====
   "/v1/network/dns/records":
     get: { $ref: "features/dns-setup.yaml#/paths/get_dns_records" }
   "/v1/network/checks":
@@ -116,8 +139,11 @@ paths:
     get: { $ref: "features/network-checks-ip.yaml#/paths/check_ip" }
   "/v1/network/checks/ports":
     get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
+
+  # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
+
 components:
   securitySchemes:
     BasicAuth:
