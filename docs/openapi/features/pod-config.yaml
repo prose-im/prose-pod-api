@@ -127,49 +127,53 @@ components:
         dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     PodConfig:
       type: object
-      required: []
+      required:
+        - address
+        - dashboard_url
       properties:
-        address:
-          $ref: "#/components/schemas/NetworkAddress"
-          type: [object, "null"]
+        address: { $ref: "#/components/schemas/PodAddress" }
         dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     SetPodAddressRequest:
+      anyOf:
+        - title: IPv4
+          type: object
+          required: [ipv4]
+          properties:
+            ipv4: { $ref: "#/components/schemas/PodAddress/properties/ipv4" }
+        - title: IPv6
+          type: object
+          required: [ipv6]
+          properties:
+            ipv6: { $ref: "#/components/schemas/PodAddress/properties/ipv6" }
+        - title: Hostname
+          type: object
+          required: [hostname]
+          properties:
+            hostname: { $ref: "#/components/schemas/PodAddress/properties/hostname" }
+    PodAddress:
       type: object
-      required: []
+      required:
+        - ipv4
+        - ipv6
+        - hostname
       properties:
         ipv4:
-          type: string
+          type: [string, "null"]
           example: 104.18.28.104
         ipv6:
-          type: string
+          type: [string, "null"]
           example: 2606:4700::6812:1c68
         hostname:
-          type: string
+          type: [string, "null"]
           example: crisp.chat
+      example:
+        hostname: crisp.chat
+        ipv4: null
+        ipv6: null
     DashboardUrl:
       type: [string, "null"]
       format: uri
       example: https://admin.prose.crisp.chat/
-    NetworkAddress:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum: [Static, Dynamic]
-        ipv4:
-          type: string
-          example: 104.18.28.104
-        ipv6:
-          type: string
-          example: 2606:4700::6812:1c68
-        hostname:
-          type: string
-          example: crisp.chat
-      example:
-        type: Dynamic
-        hostname: crisp.chat
   responses:
     PodConfigNotInitialized:
       description: Pod config not initialized
