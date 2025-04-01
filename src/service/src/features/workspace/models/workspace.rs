@@ -51,6 +51,7 @@ impl From<Workspace> for VCard4 {
     ) -> Self {
         Self {
             fn_: vec![vcard4::Fn_ { value: name }],
+            // See [RFC 6473: vCard KIND:application](https://www.rfc-editor.org/rfc/rfc6473.html).
             kind: Some(vcard4::Kind::Application),
             unknown_properties: vec![accent_color
                 .as_ref()
