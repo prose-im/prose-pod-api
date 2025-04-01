@@ -197,11 +197,7 @@ paths:
     parameters:
       - $ref: "#/components/parameters/InvitationId"
     responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
       "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
