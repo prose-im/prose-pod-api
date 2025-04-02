@@ -19,7 +19,10 @@ use crate::{
     server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
     workspace::{workspace_service, Workspace, WorkspaceService, WorkspaceServiceInitError},
-    xmpp::{server_manager, CreateServiceAccountError, ServerCtl, ServerManager, XmppServiceInner},
+    xmpp::{
+        server_ctl, server_manager, CreateServiceAccountError, ServerCtl, ServerManager,
+        XmppServiceInner,
+    },
     AppConfig,
 };
 
@@ -59,6 +62,13 @@ impl InitService {
         )
         .await?;
 
+        // Add the Workspace XMPP account to everyone’s rosters.
+        let workspace_jid = app_config.workspace_jid(&server_config.domain);
+        server_ctl
+            .add_team_member(&workspace_jid)
+            .await
+            .map_err(InitServerConfigError::CouldNotAddWorkspaceToTeam)?;
+
         Ok(server_config)
     }
 }
@@ -71,6 +81,8 @@ pub enum InitServerConfigError {
     CouldNotRegisterOAuth2Client(auth_service::Error),
     #[error("Could not create service XMPP account: {0}")]
     CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
+    #[error("Could add the Workspace to the team: {0}")]
+    CouldNotAddWorkspaceToTeam(server_ctl::Error),
 }
 
 impl InitService {
