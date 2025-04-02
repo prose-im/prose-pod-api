@@ -1,11 +1,12 @@
 use-default() {
-	local -n var=${1:?"Must pass a variable name."}
+	local var_name=${1:?"Must pass a variable name."}
+	eval "var=\${$var_name}"
 	local path="${2:?"Must pass a file path."}"
 	if [ -z "${var-}" ]; then
-		var="${SCENARIO_DIR:?}/${path}"
+		eval "$var_name='${SCENARIO_DIR:?}/${path}'"
 	fi
 	if [ "${SCENARIO_NAME:?}" != default ] && ! [ -f "${var}" ]; then
-		var="${SCENARIOS_DIR:?}"/default/"${path}"
+		eval "$var_name='${SCENARIOS_DIR:?}/default/${path}'"
 		warn "Using $(format_code "$1") from default scenario at $(format_url "$var")."
 	fi
 }
