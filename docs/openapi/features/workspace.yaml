@@ -198,14 +198,14 @@ components:
       anyOf:
         - title: Name
           type: object
-          required: name
+          required: [name]
           properties:
             name:
               $ref: "#/components/schemas/Workspace/properties/name"
               type: [string, "null"]
         - title: Accent color
           type: object
-          required: accent_color
+          required: [accent_color]
           properties:
             accent_color: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
   responses:
