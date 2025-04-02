@@ -100,12 +100,18 @@ impl MemberService {
 }
 
 impl MemberService {
+    /// Updates a member’s role in database and on the server.
+    ///
+    /// Returns `None` if the role hasn’t changed.
+    ///
+    /// Returns the **old** value if the role has changed.
     pub async fn set_member_role(
         &self,
         jid: &BareJid,
         role: MemberRole,
-    ) -> Result<Option<Member>, SetMemberRoleError> {
-        let member = MemberRepository::set_role(self.db.as_ref(), jid, role).await?;
+    ) -> Result<Option<MemberRole>, SetMemberRoleError> {
+        let new_role =
+            (MemberRepository::set_role(self.db.as_ref(), jid, role).await?).replace(role);
 
         // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -115,7 +121,7 @@ impl MemberService {
 
         server_ctl.set_user_role(jid, &role).await?;
 
-        Ok(member)
+        Ok(new_role)
     }
 }
 

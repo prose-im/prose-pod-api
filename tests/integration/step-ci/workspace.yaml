@@ -89,8 +89,7 @@ components:
             token: ${{ captures.token }}
         check:
           status: 200
-          schema:
-            $ref: openapi.json#/components/schemas/Workspace
+          schema: { $ref: openapi.json#/components/schemas/Workspace }
     patch_workspace:
       name: Patch workspace details
       http:
@@ -101,8 +100,7 @@ components:
             token: ${{ captures.token }}
         check:
           status: 200
-          schema:
-            $ref: openapi.json#/components/schemas/Workspace
+          schema: { $ref: openapi.json#/components/schemas/Workspace }
     get_workspace_name:
       name: Get workspace name
       http:
@@ -114,7 +112,7 @@ components:
         check:
           status: 200
           schema:
-            $ref: openapi.json#/components/schemas/GetWorkspaceNameResponse
+            $ref: openapi.json#/components/schemas/Workspace/properties/name
     get_workspace_icon:
       name: Get workspace icon
       http:
@@ -126,7 +124,7 @@ components:
         check:
           status: 200
           schema:
-            $ref: openapi.json#/components/schemas/GetWorkspaceIconResponse
+            $ref: openapi.json#/components/schemas/Workspace/properties/icon
     get_workspace_accent_color:
       name: Get workspace accent color
       http:
@@ -138,4 +136,4 @@ components:
         check:
           status: 200
           schema:
-            $ref: openapi.json#/components/schemas/GetWorkspaceAccentColorResponse
+            $ref: openapi.json#/components/schemas/Workspace/properties/accent_color

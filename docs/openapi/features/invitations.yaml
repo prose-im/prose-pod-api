@@ -21,7 +21,9 @@ paths:
                 required:
                   - username
                 properties:
-                  pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+                  pre_assigned_role:
+                    $ref: "roles.yaml#/components/schemas/MemberRole"
+                    default: MEMBER
                   username: { $ref: "../shared.yaml#/components/schemas/Username" }
             example:
               username: remi
@@ -195,11 +197,7 @@ paths:
     parameters:
       - $ref: "#/components/parameters/InvitationId"
     responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
       "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }

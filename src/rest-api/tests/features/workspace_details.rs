@@ -3,8 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::workspace_details::*;
-
 use super::prelude::*;
 
 // WORKSPACE NAME
@@ -18,9 +16,7 @@ api_call_fn!(
     set_workspace_name,
     PUT,
     "/v1/workspace/name",
-    SetWorkspaceNameRequest,
-    name,
-    String
+    payload: String,
 );
 
 #[given(expr = "the workspace is named {string}")]
@@ -48,8 +44,8 @@ async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_
 
 #[then(expr = "the returned workspace name should be {string}")]
 async fn then_response_workspace_name(world: &mut TestWorld, name: String) {
-    let res: GetWorkspaceNameResponse = world.result().json();
-    assert_eq!(res.name, name);
+    let res: String = world.result().json();
+    assert_eq!(res, name);
 }
 
 #[then(expr = "the workspace should be named {string}")]
@@ -66,14 +62,7 @@ api_call_fn!(
     unauthenticated: GET,
     "/v1/workspace/icon",
 );
-api_call_fn!(
-    set_workspace_icon,
-    PUT,
-    "/v1/workspace/icon",
-    SetWorkspaceIconRequest,
-    image,
-    String
-);
+api_call_fn!(set_workspace_icon, PUT, "/v1/workspace/icon", payload: String);
 
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
@@ -100,14 +89,14 @@ async fn when_set_workspace_icon(world: &mut TestWorld, name: String, png_data: 
 
 #[then("the returned workspace icon should be undefined")]
 async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
-    let res: GetWorkspaceIconResponse = world.result().json();
-    assert_eq!(res.icon, None);
+    let res: Option<String> = world.result().json();
+    assert_eq!(res, None);
 }
 
 #[then(expr = "the returned workspace icon should be {string}")]
 async fn then_response_workspace_icon(world: &mut TestWorld, png_data: String) {
-    let res: GetWorkspaceIconResponse = world.result().json();
-    assert_eq!(res.icon, Some(png_data));
+    let res: Option<String> = world.result().json();
+    assert_eq!(res, Some(png_data));
 }
 
 #[then(expr = "the workspace icon should be {string}")]
@@ -133,9 +122,7 @@ api_call_fn!(
     set_workspace_accent_color,
     PUT,
     "/v1/workspace/accent-color",
-    SetWorkspaceAccentColorRequest,
-    accent_color,
-    String
+    payload: String,
 );
 
 #[given(expr = "the workspace accent color is {string}")]
@@ -143,7 +130,7 @@ async fn given_workspace_accent_color(world: &mut TestWorld, name: String) -> Re
     world
         .workspace_service()
         .await
-        .set_workspace_accent_color(name)
+        .set_workspace_accent_color(Some(name))
         .await?;
     Ok(())
 }
@@ -167,8 +154,8 @@ async fn when_set_workspace_accent_color(
 
 #[then(expr = "the returned workspace accent color should be {string}")]
 async fn then_response_workspace_accent_color(world: &mut TestWorld, accent_color: String) {
-    let res: GetWorkspaceAccentColorResponse = world.result().json();
-    assert_eq!(res.accent_color, Some(accent_color));
+    let res: Option<String> = world.result().json();
+    assert_eq!(res, Some(accent_color));
 }
 
 #[then(expr = "the workspace accent color should be {string}")]

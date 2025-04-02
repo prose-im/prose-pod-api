@@ -3,56 +3,80 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::{extract::State, http::StatusCode, response::NoContent, Json};
-use axum_extra::either::Either;
-use service::pod_config::{
-    NetworkAddress, NetworkAddressCreateForm, PodConfig, PodConfigRepository, PodConfigUpdateForm,
-};
+use std::net::{Ipv4Addr, Ipv6Addr};
+
+use axum::http::StatusCode;
+use hickory_resolver::Name as DomainName;
+use serde::{Deserialize, Serialize};
+use service::pod_config::{PodAddress, PodAddressUpdateForm};
 
 use crate::{
     error::{Error, ErrorCode, HttpApiError, LogLevel},
-    AppState,
+    pod_config_routes,
 };
 
-use super::{
-    check_processable_network_address, PodConfigNotInitialized, SetNetworkAddressRequest,
-    POD_CONFIG_ROUTE,
-};
+use super::{invalid_network_address, POD_CONFIG_ROUTE};
 
-pub async fn set_pod_address_route(
-    State(AppState { db, .. }): State<AppState>,
-    Json(req): Json<SetNetworkAddressRequest>,
-) -> Result<Json<NetworkAddress>, Error> {
-    check_processable_network_address(&req)?;
+pod_config_routes!(
+    key: address, type: Option<PodAddress>,
+    set: set_pod_address_route with SetPodAddressRequest, validate: {
+        check_processable_set(&address)?;
+    },
+    get: get_pod_address_route using get_pod_address,
+    patch: patch_pod_address_route with PatchPodAddressRequest, validate: {
+        check_processable_patch(&address)?;
+    },
+);
 
-    if !PodConfigRepository::is_initialized(&db).await? {
-        return Err(Error::from(PodConfigNotInitialized));
-    }
-
-    let model = PodConfigRepository::set(
-        &db,
-        PodConfigUpdateForm {
-            address: Some(NetworkAddressCreateForm {
-                ipv4: req.ipv4,
-                ipv6: req.ipv6,
-                hostname: req.hostname,
-            }),
-            ..Default::default()
-        },
-    )
-    .await?;
-
-    let res = PodConfig::from(model).address.unwrap();
-    Ok(Json(res))
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct SetPodAddressRequest {
+    pub ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub hostname: Option<DomainName>,
 }
 
-pub async fn get_pod_address_route(
-    State(AppState { db, .. }): State<AppState>,
-) -> Result<Either<Json<NetworkAddress>, NoContent>, Error> {
-    Ok(match PodConfigRepository::get_pod_address(&db).await? {
-        Some(address) => Either::E1(Json(address)),
-        None => Either::E2(NoContent),
-    })
+fn check_processable_set(req: &SetPodAddressRequest) -> Result<(), Error> {
+    match (req.ipv4, req.ipv6, req.hostname.as_ref()) {
+        (None, None, None) => Err(invalid_network_address()),
+        _ => Ok(()),
+    }
+}
+
+impl Into<PodAddressUpdateForm> for SetPodAddressRequest {
+    fn into(self) -> PodAddressUpdateForm {
+        PodAddressUpdateForm {
+            ipv4: Some(self.ipv4),
+            ipv6: Some(self.ipv6),
+            hostname: Some((self.hostname).as_ref().map(ToString::to_string)),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct PatchPodAddressRequest {
+    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    pub ipv4: Option<Option<Ipv4Addr>>,
+    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    pub ipv6: Option<Option<Ipv6Addr>>,
+    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    pub hostname: Option<Option<DomainName>>,
+}
+
+fn check_processable_patch(req: &PatchPodAddressRequest) -> Result<(), Error> {
+    match (req.ipv4, req.ipv6, req.hostname.as_ref()) {
+        (None, None, None) => Err(invalid_network_address()),
+        _ => Ok(()),
+    }
+}
+
+impl Into<PodAddressUpdateForm> for PatchPodAddressRequest {
+    fn into(self) -> PodAddressUpdateForm {
+        PodAddressUpdateForm {
+            ipv4: self.ipv4,
+            ipv6: self.ipv6,
+            hostname: (self.hostname).map(|opt| opt.as_ref().map(ToString::to_string)),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

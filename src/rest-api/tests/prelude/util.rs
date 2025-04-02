@@ -95,7 +95,7 @@ macro_rules! api_call_fn {
             .unwrap()
         }
     };
-    ($fn:ident, $method:ident, $route:literal $(; $route_param_name:tt=$route_param:ty)*, payload: $payload_type:ident,) => {
+    ($fn:ident, $method:ident, $route:literal $(; $route_param_name:tt=$route_param:ty)*, payload: $payload_type:ty $(,)?) => {
         async fn $fn(
             api: &axum_test::TestServer,
             token: secrecy::SecretString,

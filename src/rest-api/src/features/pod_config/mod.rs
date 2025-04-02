@@ -7,6 +7,7 @@ mod dashboard_url;
 mod guards;
 mod pod_address;
 mod pod_config;
+mod util;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::MethodRouter;
@@ -35,7 +36,8 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             POD_ADDRESS_ROUTE,
             MethodRouter::new()
                 .put(set_pod_address_route)
-                .get(get_pod_address_route),
+                .get(get_pod_address_route)
+                .patch(patch_pod_address_route),
         )
         .route(
             DASHBOARD_URL_ROUTE,

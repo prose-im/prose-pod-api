@@ -12,25 +12,19 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetMemberRoleRequest" }
+          schema: { $ref: "members.yaml#/components/schemas/Member/properties/role" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "members.yaml#/components/schemas/Member" }
+            schema: { $ref: "members.yaml#/components/schemas/Member/properties/role" }
       "204":
         description: Member already has the desired role
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
-    SetMemberRoleRequest:
-      type: object
-      required:
-        - role
-      properties:
-        role: { $ref: "#/components/schemas/MemberRole" }
     MemberRole:
       description: A member's role.
       type: string

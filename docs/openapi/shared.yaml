@@ -77,6 +77,13 @@ components:
         type: string
         format: uri
       example: /v1/invitations/42
+    ContentLocation:
+      description: Alternate URL of the returned resource. See [`Content-Location` on
+        MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Location).
+      schema:
+        type: string
+        format: uri
+      example: /v1/invitations/42
     WWW-Authenticate:
       description: Standard `WWW-Authenticate` header. See [`WWW-Authenticate` on
         MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/WWW-Authenticate).

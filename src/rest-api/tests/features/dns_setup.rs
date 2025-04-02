@@ -38,16 +38,16 @@ async fn given_pod_config(
 #[given("the Prose Pod is publicly accessible via an IPv4")]
 async fn given_pod_has_ipv4(world: &mut TestWorld) -> Result<(), Error> {
     // We don't care about the value so we can leave it unspecified.
-    let ipv4 = Ipv4Addr::UNSPECIFIED.to_string();
-    given_pod_config(world, |model| model.ipv4 = Set(Some(ipv4))).await?;
+    let ipv4 = Ipv4Addr::UNSPECIFIED;
+    given_pod_config(world, |model| model.ipv4 = Set(Some(ipv4.into()))).await?;
     Ok(())
 }
 
 #[given("the Prose Pod is publicly accessible via an IPv6")]
 async fn given_pod_has_ipv6(world: &mut TestWorld) -> Result<(), Error> {
     // We don't care about the value so we can leave it unspecified.
-    let ipv6 = Ipv6Addr::UNSPECIFIED.to_string();
-    given_pod_config(world, |model| model.ipv6 = Set(Some(ipv6))).await?;
+    let ipv6 = Ipv6Addr::UNSPECIFIED;
+    given_pod_config(world, |model| model.ipv6 = Set(Some(ipv6.into()))).await?;
     Ok(())
 }
 

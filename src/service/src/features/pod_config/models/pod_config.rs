@@ -16,7 +16,7 @@ use crate::{models::Url, pod_config::entities::pod_config};
 /// The Prose Pod configuration, almost as stored in the database.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PodConfig {
-    pub address: Option<NetworkAddress>,
+    pub address: Option<PodAddress>,
     pub dashboard_url: Option<Url>,
 }
 
@@ -30,14 +30,37 @@ pub enum PodConfigField {
 impl From<pod_config::Model> for PodConfig {
     fn from(model: pod_config::Model) -> Self {
         Self {
-            address: model.pod_address(),
-            dashboard_url: model.dashboard_url,
+            address: model.address(),
+            dashboard_url: model.dashboard_url(),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "type")]
+pub struct PodAddress {
+    pub ipv4: Option<Ipv4Addr>,
+    pub ipv6: Option<Ipv6Addr>,
+    pub hostname: Option<String>,
+}
+
+impl PodAddress {
+    pub fn try_from(
+        ipv4: Option<Ipv4Addr>,
+        ipv6: Option<Ipv6Addr>,
+        hostname: Option<String>,
+    ) -> Option<Self> {
+        match (ipv4, ipv6, hostname) {
+            (None, None, None) => None,
+            (ipv4, ipv6, hostname) => Some(PodAddress {
+                ipv4,
+                ipv6,
+                hostname,
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NetworkAddress {
     Static {
         ipv4: Option<Ipv4Addr>,
@@ -51,8 +74,8 @@ pub enum NetworkAddress {
 impl NetworkAddress {
     pub fn try_from(
         hostname: Option<&String>,
-        ipv4: Option<&String>,
-        ipv6: Option<&String>,
+        ipv4: Option<Ipv4Addr>,
+        ipv6: Option<Ipv6Addr>,
     ) -> Result<Option<Self>, InvalidNetworkAddress> {
         match (hostname, ipv4, ipv6) {
             (Some(hostname), _, _) => {
@@ -61,25 +84,15 @@ impl NetworkAddress {
                 Ok(Some(Self::Dynamic { hostname }))
             }
             (None, None, None) => Ok(None),
-            (None, ipv4, ipv6) => {
-                let ipv4 = ipv4
-                    .as_ref()
-                    .map_or(Ok(None), |s| Ipv4Addr::from_str(&s).map(Some))
-                    .map_err(|err| InvalidNetworkAddress(format!("Invalid IPv4: {err}")))?;
-                let ipv6 = ipv6
-                    .as_ref()
-                    .map_or(Ok(None), |s| Ipv6Addr::from_str(&s).map(Some))
-                    .map_err(|err| InvalidNetworkAddress(format!("Invalid IPv6: {err}")))?;
-                Ok(Some(Self::Static { ipv4, ipv6 }))
-            }
+            (None, ipv4, ipv6) => Ok(Some(Self::Static { ipv4, ipv6 })),
         }
     }
 
     #[inline]
     pub fn try_from_or_warn(
         hostname: Option<&String>,
-        ipv4: Option<&String>,
-        ipv6: Option<&String>,
+        ipv4: Option<Ipv4Addr>,
+        ipv6: Option<Ipv6Addr>,
         warning: &'static str,
     ) -> Option<Self> {
         match Self::try_from(hostname, ipv4, ipv6) {

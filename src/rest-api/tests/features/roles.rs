@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::{error::Error, features::roles::*};
+use prose_pod_api::error::Error;
 use service::members::*;
 
 use super::prelude::*;
@@ -74,7 +74,7 @@ async fn set_member_role(
     api.put(&format!("/v1/members/{jid}/role"))
         .add_header(CONTENT_TYPE, "application/json")
         .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .json(&json!(SetMemberRoleRequest { role }))
+        .json(&json!(role))
         .await
 }
 

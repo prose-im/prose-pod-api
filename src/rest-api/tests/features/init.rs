@@ -107,7 +107,7 @@ async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error
                 Url::parse(&format!("https://admin.{base_domain}")).expect("Invalid dashboard URL"),
             ),
             address: NetworkAddressCreateForm {
-                hostname: Some(base_domain),
+                hostname: Some(base_domain.to_string()),
                 ..Default::default()
             },
         },

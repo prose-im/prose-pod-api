@@ -27,22 +27,17 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - domain
-            properties:
-              domain:
-                type: string
-                example: crisp.chat
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/domain" }
     responses:
       "201":
-        description: Success
+        description: Created
         content:
           application/json:
             schema: { $ref: "#/components/schemas/ServerConfig" }
         headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+          Location:
+            $ref: "../shared.yaml#/components/headers/Location"
+            example: /v1/server/config
       "409": { $ref: "#/components/responses/ServerConfigAlreadyInitialized" }
   get_server_config:
     tags: ["Server / Configuration"]
@@ -58,7 +53,7 @@ paths:
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_file_upload_allowed:
     tags: ["Server / Configuration"]
-    summary: Change file upload settings
+    summary: Change file upload allowed
     description: Activate or deactivate file upload and sharing.
     operationId: set_file_upload_allowed
     security:
@@ -67,18 +62,32 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - file_upload_allowed
-            properties:
-              file_upload_allowed:
-                type: boolean
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
+    responses: { $ref: "#/paths/get_file_upload_allowed/responses" }
+  get_file_upload_allowed:
+    tags: ["Server / Configuration"]
+    summary: Get file upload allowed
+    description: Get whether or not file upload and sharing is enabled.
+    operationId: get_file_upload_allowed
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_file_upload_allowed:
+    tags: ["Server / Configuration"]
+    summary: Reset file upload allowed
+    description: Reset whether or not file upload and sharing is enabled and return the default value.
+    operationId: reset_file_upload_allowed
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_file_upload_allowed/responses" }
   set_file_storage_retention:
     tags: ["Server / Configuration"]
     summary: Change uploaded files retention
@@ -90,20 +99,32 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - file_storage_retention
-            properties:
-              file_storage_retention:
-                oneOf:
-                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
-                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
+    responses: { $ref: "#/paths/get_file_storage_retention/responses" }
+  get_file_storage_retention:
+    tags: ["Server / Configuration"]
+    summary: Get uploaded files retention
+    description: Get the retention of uploaded files.
+    operationId: get_file_storage_retention
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_file_storage_retention:
+    tags: ["Server / Configuration"]
+    summary: Reset uploaded files retention
+    description: Reset the retention of uploaded files and return the default value.
+    operationId: reset_file_storage_retention
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_file_storage_retention/responses" }
   set_file_storage_encryption_scheme:
     tags: ["Server / Configuration"]
     summary: Change file storage encryption scheme
@@ -111,8 +132,19 @@ paths:
     operationId: set_file_storage_encryption_scheme
     security:
       - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            { $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme" }
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -139,32 +171,33 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - message_archive_retention
-            properties:
-              message_archive_retention:
-                oneOf:
-                  - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
-                  - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention" }
+    responses: { $ref: "#/paths/get_message_archive_retention/responses" }
+  get_message_archive_retention:
+    tags: ["Server / Configuration"]
+    summary: Get message archive retention
+    description: Get the message archive retention.
+    operationId: get_message_archive_retention
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_message_archive_retention:
     tags: ["Server / Configuration"]
     summary: Reset message archive retention
-    description: Reset the message archive retention to its default value.
+    description: Reset the message archive retention and return the default value.
     operationId: reset_message_archive_retention
     security:
       - BearerAuth: []
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+    responses: { $ref: "#/paths/get_message_archive_retention/responses" }
   reset_files_config:
     tags: ["Server / Configuration"]
     summary: Reset 'Files' configuration
@@ -179,7 +212,7 @@ paths:
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_message_archive_enabled:
     tags: ["Server / Configuration"]
-    summary: Activate or deactivate message archiving
+    summary: Set message archiving enabled
     description: Activate or deactivate message archiving.
     operationId: set_message_archive_enabled
     security:
@@ -188,18 +221,32 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - message_archive_enabled
-            properties:
-              message_archive_enabled:
-                type: boolean
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
+    responses: { $ref: "#/paths/get_message_archive_enabled/responses" }
+  get_message_archive_enabled:
+    tags: ["Server / Configuration"]
+    summary: Get message archiving enabled
+    description: Get whether or not message archiving is enabled.
+    operationId: get_message_archive_enabled
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_message_archive_enabled:
+    tags: ["Server / Configuration"]
+    summary: Reset message archiving enabled
+    description: Reset whether or not message archiving is enabled and return the default value.
+    operationId: reset_message_archive_enabled
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_message_archive_enabled/responses" }
   reset_push_notifications_config:
     tags: ["Server / Configuration"]
     summary: Reset 'Push notifications' configuration
@@ -212,22 +259,11 @@ paths:
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_push_notification_with_body:
-    tags: ["Server / Configuration"]
-    summary: Reset 'Push notification with body'
-    description: Reset 'Push notification with body' to its default value.
-    operationId: reset_push_notification_with_body
-    security:
-      - BearerAuth: []
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_push_notification_with_body:
     tags: ["Server / Configuration"]
     summary: Change 'Push notification with body'
-    description: Whether or not to send the real message body to remote pubsub node.
+    description: |
+      Whether or not to send the real message body to the remote pubsub node.
       Without end-to-end encryption, enabling this may expose your message
       contents to your client developers and OS vendor. Not recommended.
     operationId: set_push_notification_with_body
@@ -238,35 +274,41 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - push_notification_with_body
-            properties:
-              push_notification_with_body:
-                type: boolean
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_push_notification_with_sender:
+            $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body"
+    responses: { $ref: "#/paths/get_push_notification_with_body/responses" }
+  get_push_notification_with_body:
     tags: ["Server / Configuration"]
-    summary: Reset 'Push notification with sender'
-    description: Reset 'Push notification with sender' to its default value.
-    operationId: reset_push_notification_with_sender
+    summary: Get 'Push notification with body'
+    description: |
+      Whether or not to send the real message body to the remote pubsub node.
+    operationId: get_push_notification_with_body
     security:
       - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_push_notification_with_body:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Push notification with body'
+    description: Reset 'Push notification with body' and return the default value.
+    operationId: reset_push_notification_with_body
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_push_notification_with_body/responses" }
   set_push_notification_with_sender:
     tags: ["Server / Configuration"]
     summary: Change 'Push notification with sender'
-    description: Whether or not to send the real message sender to remote pubsub
-      node. Enabling this may expose your contacts to your client developers and
-      OS vendor. Not recommended.
+    description: |
+      Whether or not to send the real message sender to the remote pubsub node.
+      Enabling this may expose your contacts to your client developers and OS vendor.
+      Not recommended.
     operationId: set_push_notification_with_sender
     security:
       - BearerAuth: []
@@ -275,17 +317,34 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - push_notification_with_sender
-            properties:
-              push_notification_with_sender:
-                type: boolean
+            $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender"
+    responses: { $ref: "#/paths/get_push_notification_with_sender/responses" }
+  get_push_notification_with_sender:
+    tags: ["Server / Configuration"]
+    summary: Get 'Push notification with sender'
+    description: |
+      Whether or not to send the real message sender to the remote pubsub node.
+    operationId: get_push_notification_with_sender
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_push_notification_with_sender:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Push notification with sender'
+    description: Reset 'Push notification with sender' and return the default value.
+    operationId: reset_push_notification_with_sender
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_push_notification_with_sender/responses" }
   reset_network_encryption_config:
     tags: ["Server / Configuration"]
     summary: Reset 'Network encryption' configuration
@@ -298,24 +357,13 @@ paths:
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_tls_profile:
-    tags: ["Server / Configuration"]
-    summary: Reset 'TLS profile'
-    description: Reset 'TLS profile' to its default value.
-    operationId: reset_tls_profile
-    security:
-      - BearerAuth: []
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_tls_profile:
     tags: ["Server / Configuration"]
     summary: Change 'TLS profile'
-    description: Whether or not to send the real message sender to remote pubsub
-      node. Enabling this may expose your contacts to your client developers and
-      OS vendor. Not recommended.
+    description: |
+      The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
+      (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
+      for more explanation).
     operationId: set_tls_profile
     security:
       - BearerAuth: []
@@ -323,34 +371,40 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - tls_profile
-            properties:
-              tls_profile: { $ref: "#/components/schemas/TlsProfile" }
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
+    responses: { $ref: "#/paths/get_tls_profile/responses" }
+  get_tls_profile:
+    tags: ["Server / Configuration"]
+    summary: Get 'TLS profile'
+    description: |
+      The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
+      (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
+      for more explanation).
+    operationId: get_tls_profile
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_tls_profile:
+    tags: ["Server / Configuration"]
+    summary: Reset 'TLS profile'
+    description: Reset 'TLS profile' and return the default value.
+    operationId: reset_tls_profile
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_tls_profile/responses" }
   reset_server_federation_config:
     tags: ["Server / Configuration"]
     summary: Reset 'Server federation' configuration
     description: Reset the 'Server federation' configuration to its default value.
     operationId: reset_server_federation_config
-    security:
-      - BearerAuth: []
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_federation_enabled:
-    tags: ["Server / Configuration"]
-    summary: Reset 'Federation enabled'
-    description: Reset 'Federation enabled' to its default value.
-    operationId: reset_federation_enabled
     security:
       - BearerAuth: []
     responses:
@@ -372,30 +426,35 @@ paths:
       required: true
       content:
         application/json:
-          schema:
-            type: object
-            required:
-              - federation_enabled
-            properties:
-              federation_enabled:
-                type: boolean
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_federation_whitelist_enabled:
+          schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
+    responses: { $ref: "#/paths/get_federation_enabled/responses" }
+  get_federation_enabled:
     tags: ["Server / Configuration"]
-    summary: Reset 'Federation whitelist enabled'
-    description: Reset 'Federation whitelist enabled' to its default value.
-    operationId: reset_federation_whitelist_enabled
+    summary: Get 'Federation enabled'
+    description: |
+      Allowing other servers to connect will enable federation.
+      This lets users from other Prose workspaces connect with users in this workspace.
+      For more safety, whitelist friendly servers.
+    operationId: get_federation_enabled
     security:
       - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_enabled:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Federation enabled'
+    description: Reset 'Federation enabled' and return the default value.
+    operationId: reset_federation_enabled
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_federation_enabled/responses" }
   set_federation_whitelist_enabled:
     tags: ["Server / Configuration"]
     summary: Change 'Federation whitelist enabled'
@@ -410,29 +469,35 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - federation_whitelist_enabled
-            properties:
-              federation_whitelist_enabled:
-                type: boolean
-    responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  reset_federation_friendly_servers:
+            $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled"
+    responses: { $ref: "#/paths/get_federation_whitelist_enabled/responses" }
+  get_federation_whitelist_enabled:
     tags: ["Server / Configuration"]
-    summary: Reset 'Friendly servers'
-    description: Reset 'Friendly servers' to its default value.
-    operationId: reset_federation_friendly_servers
+    summary: Get 'Federation whitelist enabled'
+    description: |
+      Whether or not to enable server whitelisting. Caution: If a whitelist is set but disabled,
+      your server will still federate with the entire XMPP network.
+    operationId: get_federation_whitelist_enabled
     security:
       - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_whitelist_enabled:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Federation whitelist enabled'
+    description: Reset 'Federation whitelist enabled' and return the default value.
+    operationId: reset_federation_whitelist_enabled
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_federation_whitelist_enabled/responses" }
   set_federation_friendly_servers:
     tags: ["Server / Configuration"]
     summary: Change 'Friendly servers'
@@ -448,20 +513,36 @@ paths:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - federation_friendly_servers
-            properties:
-              federation_friendly_servers:
-                type: array
-                items:
-                  type: string
-                  format: domain-name
+            $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
+    responses: { $ref: "#/paths/get_federation_friendly_servers/responses" }
+  get_federation_friendly_servers:
+    tags: ["Server / Configuration"]
+    summary: Get 'Friendly servers'
+    description: |
+      If a whitelist is defined, then other servers will not be allowed to connect to this server,
+      except whitelisted ones. It is recommended to whitelist servers you typically work with,
+      ie. other teams.
+    operationId: get_federation_friendly_servers
+    security:
+      - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_federation_friendly_servers:
+    tags: ["Server / Configuration"]
+    summary: Reset 'Friendly servers'
+    description: Reset 'Friendly servers' and return the default value.
+    operationId: reset_federation_friendly_servers
+    security:
+      - BearerAuth: []
+    responses: { $ref: "#/paths/get_federation_friendly_servers/responses" }
 components:
   schemas:
     ServerConfig:
@@ -484,80 +565,140 @@ components:
         - push_notification_with_sender
       properties:
         domain:
+          title: Domain
+          description: |
+            Domain of your XMPP server. This will be the domain part of
+            user JIDs (`<name>@<domain>`) therefore it cannot be changed.
           type: string
+          format: hostname
           example: crisp.chat
         message_archive_enabled:
+          title: Message archive enabled
+          description: |
+            Whether or not to keep messages on the server.
+
+            Server default: `true`.
           type: boolean
-          default: true
+          example: true
         message_archive_retention:
+          title: Message archive retention
+          description: |
+            How long to keep messages on the server.
+
+            Server default: `"infinite"`.
           oneOf:
             - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
             - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
-          default: infinite
+          example: infinite
         file_upload_allowed:
+          title: File upload allowed
+          description: |
+            Whether or not to allow file uploads.
+
+            Server default: `true`.
           type: boolean
-          default: true
+          example: true
         file_storage_encryption_scheme:
+          title: File storage encryption scheme
+          description: |
+            Server default: `"AES-256"`.
           type: string
-          default: AES-256
+          example: AES-256
         file_storage_retention:
+          title: File storage retention
+          description: |
+            How long to keep uploaded files on the server.
+
+            Server default: `"infinite"`.
           oneOf:
             - $ref: "../shared.yaml#/components/schemas/DurationDateLike"
             - $ref: "../shared.yaml#/components/schemas/DurationInfinite"
-          default: infinite
+          example: infinite
         mfa_required:
           title: Require Multi-Factor Authentication
-          description: Whether or not [Multi-Factor Authentication
+          description: |
+            Whether or not [Multi-Factor Authentication
             (MFA)](https://en.wikipedia.org/wiki/Multi-factor_authentication) is
             required for users to log into their account.
+
+            Server default: `true`.
           type: boolean
-          default: true
-        tls_profile: { $ref: "#/components/schemas/TlsProfile" }
+          example: true
+        tls_profile:
+          title: TLS profile
+          description: |
+            The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
+            (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
+            for more explanation).
+
+            Server default: `"modern"`.
+          type: string
+          enum: [modern, intermediate, old]
+          example: modern
         federation_enabled:
           description: |
             Whether or not the XMPP server should support interdomain federation.
             For more information, see [RFC 6120, section 13.14](https://www.rfc-editor.org/rfc/rfc6120#section-13.14).
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         federation_whitelist_enabled:
-          description: Turn on to federate with only a selected list of other XMPP servers.
+          title: Federation whitelist enabled
+          description: |
+            Turn on to federate with only a selected list of other XMPP servers.
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         federation_friendly_servers:
-          description: List of XMPP servers authorized for server-to-server communications (federation).
+          title: Friendly servers (for federation)
+          description: |
+            List of XMPP servers authorized for server-to-server communications (federation).
+
+            Server default: `[]`.
           type: array
           items:
             type: string
             format: domain-name
+            example: prose.org
+          example: []
         settings_backup_interval:
+          description: |
+            Time interval between settings backups.
+
+            Server default: `P1D`.
           type: string
           format: duration
-          default: P1D
+          example: P1D
         user_data_backup_interval:
+          description: |
+            Time interval between user data backups.
+
+            Server default: `P1W`.
           type: string
           format: duration
-          default: P1W
+          example: P1W
         push_notification_with_body:
-          description: Whether or not to send the real message body to remote pubsub node.
+          title: Push notifications with body
+          description: |
+            Whether or not to send the real message body to the remote pubsub node.
             Without end-to-end encryption, enabling this may expose your message
             contents to your client developers and OS vendor. Not recommended.
+
+            Server default: `false`.
           type: boolean
-          default: false
+          example: false
         push_notification_with_sender:
-          description: Whether or not to send the real message sender to remote pubsub
+          title: Push notifications with sender
+          description: |
+            Whether or not to send the real message sender to the remote pubsub
             node. Enabling this may expose your contacts to your client
             developers and OS vendor. Not recommended.
+
+            Server default: `false`.
           type: boolean
-          default: false
-    TlsProfile:
-      title: TLS profile
-      description: |
-        The [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile to use
-        (see [Security/Server Side TLS - MozillaWiki](https://wiki.mozilla.org/Security/Server_Side_TLS)
-        for more explanation).
-      type: string
-      enum: [modern, intermediate, old]
-      default: modern
+          example: false
     ServerConfigNotInitialized:
       type: object
       required:
@@ -572,6 +713,10 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ServerConfig" }
+      headers:
+        Content-Location:
+          $ref: "../shared.yaml#/components/headers/ContentLocation"
+          example: /v1/server/config
     ServerConfigAlreadyInitialized:
       description: XMPP server already initialized
       content:

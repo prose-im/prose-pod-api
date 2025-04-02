@@ -29,7 +29,7 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
             return Err(Error::from(PodAddressNotInitialized));
         };
         let pod_address =
-            (pod_config.pod_address()).ok_or(Error::from(PodAddressNotInitialized))?;
+            (pod_config.network_address()).ok_or(Error::from(PodAddressNotInitialized))?;
 
         Ok(Self {
             server_domain,

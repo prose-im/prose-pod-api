@@ -17,7 +17,9 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/PodConfig" }
         headers:
-          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+          Location:
+            $ref: "../shared.yaml#/components/headers/Location"
+            example: /v1/pod/config
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "409": { $ref: "#/components/responses/PodConfigAlreadyInitialized" }
@@ -40,7 +42,10 @@ paths:
   set_pod_address:
     tags: ["Pod / Configuration"]
     summary: Set Pod address
-    description: Tells the API how the Pod is publicly accessible.
+    description: |
+      Tells the API how the Pod is publicly accessible.
+
+      If a key is missing, it will be considered `null` and will erase an existing value.
     operationId: set_pod_address
     security: []
     requestBody:
@@ -53,7 +58,31 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
+  patch_pod_address:
+    tags: ["Pod / Configuration"]
+    summary: Patch Pod address
+    description: |
+      Tells the API how the Pod is publicly accessible.
+
+      If a key is missing, it will not set an existing value to `null`.
+      To erase an existing value, use `null` explicitly.
+    operationId: patch_pod_address
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PatchPodAddressRequest" }
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
@@ -69,7 +98,7 @@ paths:
         description: Pod address has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/NetworkAddress" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "204":
         description: Pod address has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
@@ -84,13 +113,13 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetDashboardUrlRequest" }
+          schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
@@ -106,7 +135,9 @@ paths:
         description: Dashboard URL has a value
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetDashboardUrlResponse" }
+            schema:
+              $ref: "#/components/schemas/PodConfig/properties/dashboard_url"
+              type: string
       "204":
         description: Dashboard URL has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
@@ -123,62 +154,76 @@ components:
         dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     PodConfig:
       type: object
-      required: []
+      required:
+        - address
+        - dashboard_url
       properties:
-        address:
-          $ref: "#/components/schemas/NetworkAddress"
-          type: [object, "null"]
-        dashboard_url:
-          $ref: "#/components/schemas/DashboardUrl"
+        address: { $ref: "#/components/schemas/PodAddress" }
+        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     SetPodAddressRequest:
+      anyOf:
+        - title: IPv4
+          type: object
+          required: [ipv4]
+          properties:
+            ipv4:
+              $ref: "#/components/schemas/PodAddress/properties/ipv4"
+              type: string
+        - title: IPv6
+          type: object
+          required: [ipv6]
+          properties:
+            ipv6:
+              $ref: "#/components/schemas/PodAddress/properties/ipv6"
+              type: string
+        - title: Hostname
+          type: object
+          required: [hostname]
+          properties:
+            hostname:
+              $ref: "#/components/schemas/PodAddress/properties/hostname"
+              type: string
+    PatchPodAddressRequest:
+      anyOf:
+        - title: IPv4
+          type: object
+          required: [ipv4]
+          properties:
+            ipv4: { $ref: "#/components/schemas/PodAddress/properties/ipv4" }
+        - title: IPv6
+          type: object
+          required: [ipv6]
+          properties:
+            ipv6: { $ref: "#/components/schemas/PodAddress/properties/ipv6" }
+        - title: Hostname
+          type: object
+          required: [hostname]
+          properties:
+            hostname: { $ref: "#/components/schemas/PodAddress/properties/hostname" }
+    PodAddress:
       type: object
-      required: []
+      required:
+        - ipv4
+        - ipv6
+        - hostname
       properties:
         ipv4:
-          type: string
+          type: [string, "null"]
           example: 104.18.28.104
         ipv6:
-          type: string
+          type: [string, "null"]
           example: 2606:4700::6812:1c68
         hostname:
-          type: string
+          type: [string, "null"]
           example: crisp.chat
+      example:
+        hostname: crisp.chat
+        ipv4: null
+        ipv6: null
     DashboardUrl:
       type: [string, "null"]
       format: uri
       example: https://admin.prose.crisp.chat/
-    SetDashboardUrlRequest:
-      type: object
-      required: [dashboard_url]
-      properties:
-        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
-    GetDashboardUrlResponse:
-      type: object
-      required: [dashboard_url]
-      properties:
-        dashboard_url:
-          $ref: "#/components/schemas/DashboardUrl"
-          type: string
-    NetworkAddress:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum: [Static, Dynamic]
-        ipv4:
-          type: string
-          example: 104.18.28.104
-        ipv6:
-          type: string
-          example: 2606:4700::6812:1c68
-        hostname:
-          type: string
-          example: crisp.chat
-      example:
-        type: Dynamic
-        hostname: crisp.chat
   responses:
     PodConfigNotInitialized:
       description: Pod config not initialized

@@ -67,7 +67,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/name" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -82,13 +82,13 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetWorkspaceNameRequest" }
+          schema: { $ref: "#/components/schemas/Workspace/properties/name" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceNameResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/name" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -104,7 +104,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -119,13 +119,13 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetWorkspaceAccentColorRequest" }
+          schema: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceAccentColorResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -141,7 +141,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -159,13 +159,13 @@ paths:
       description: Workspace icon
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/SetWorkspaceIconRequest" }
+          schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
     responses:
       "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/GetWorkspaceIconResponse" }
+            schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -175,76 +175,39 @@ components:
       type: object
       required:
         - name
+        - icon
+        - accent_color
       properties:
-        name: { $ref: "#/components/schemas/WorkspaceName" }
-        icon:
-          $ref: "members.yaml#/components/schemas/Avatar"
-          type: [string, "null"]
+        name:
+          type: string
+          description: The name of a Prose workspace.
+          example: Crisp
+        icon: { $ref: "members.yaml#/components/schemas/Avatar" }
         accent_color:
-          $ref: "#/components/schemas/WorkspaceAccentColor"
+          description: A color, in CSS format.
           type: [string, "null"]
-    WorkspaceName:
-      type: string
-      description: The name of a Prose workspace.
-      example: Crisp
-    WorkspaceAccentColor:
-      type: string
-      description: A color, in CSS format.
-      example: "#4233BE"
+          example: "#4233BE"
     InitWorkspaceRequest:
       type: object
       required:
         - name
       properties:
-        name: { $ref: "#/components/schemas/WorkspaceName" }
-        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+        name: { $ref: "#/components/schemas/Workspace/properties/name" }
+        accent_color: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
     PatchWorkspaceDetailsRequest:
-      type: object
-      properties:
-        name:
-          $ref: "#/components/schemas/WorkspaceName"
-          type: [string, "null"]
-        accent_color:
-          $ref: "#/components/schemas/WorkspaceAccentColor"
-          type: [string, "null"]
-    GetWorkspaceNameResponse:
-      type: object
-      required:
-        - name
-      properties:
-        name: { $ref: "#/components/schemas/WorkspaceName" }
-    SetWorkspaceNameRequest:
-      type: object
-      required:
-        - name
-      properties:
-        name: { $ref: "#/components/schemas/WorkspaceName" }
-    GetWorkspaceIconResponse:
-      type: object
-      properties:
-        icon:
-          oneOf:
-            - { $ref: "members.yaml#/components/schemas/Avatar" }
-            - type: "null"
-    SetWorkspaceIconRequest:
-      type: object
-      required:
-        - image
-      properties:
-        image: { $ref: "members.yaml#/components/schemas/Avatar" }
-    GetWorkspaceAccentColorResponse:
-      type: object
-      properties:
-        accent_color:
-          oneOf:
-            - { $ref: "#/components/schemas/WorkspaceAccentColor" }
-            - type: "null"
-    SetWorkspaceAccentColorRequest:
-      type: object
-      required:
-        - accent_color
-      properties:
-        accent_color: { $ref: "#/components/schemas/WorkspaceAccentColor" }
+      anyOf:
+        - title: Name
+          type: object
+          required: [name]
+          properties:
+            name:
+              $ref: "#/components/schemas/Workspace/properties/name"
+              type: [string, "null"]
+        - title: Accent color
+          type: object
+          required: [accent_color]
+          properties:
+            accent_color: { $ref: "#/components/schemas/Workspace/properties/accent_color" }
   responses:
     WorkspaceNotInitialized:
       description: Workspace not initialized
