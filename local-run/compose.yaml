@@ -28,7 +28,6 @@ services:
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
       - "${VAR_LIB_PROSODY_DIR:?}:/var/lib/prosody/"
     ports:
-      - "5000:5000"
       - "5222:5222"
       - "5269:5269"
       - "5280:5280"
