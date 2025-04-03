@@ -99,7 +99,6 @@ impl From<&IpConnectivityCheck> for IpConnectivityCheckId {
 pub enum IpConnectivityCheckResult {
     Success,
     Failure,
-    Missing,
 }
 
 impl RetryableNetworkCheckResult for IpConnectivityCheckResult {

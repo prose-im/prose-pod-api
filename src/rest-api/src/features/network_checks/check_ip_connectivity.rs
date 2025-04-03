@@ -42,7 +42,6 @@ pub enum IpConnectivityStatus {
     Checking,
     Success,
     Failure,
-    Missing,
 }
 
 // BOILERPLATE
@@ -71,7 +70,6 @@ impl From<IpConnectivityCheckResult> for IpConnectivityStatus {
         match value {
             IpConnectivityCheckResult::Success => Self::Success,
             IpConnectivityCheckResult::Failure => Self::Failure,
-            IpConnectivityCheckResult::Missing => Self::Missing,
         }
     }
 }
