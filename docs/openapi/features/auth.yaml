@@ -1,6 +1,6 @@
 paths:
   login:
-    tags: [Misc]
+    tags: [Auth]
     summary: Log in
     description: Logs a user in and returns an authentication token (using the JWT format).
     operationId: login

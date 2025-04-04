@@ -20,7 +20,7 @@ paths:
   "/v1/init/first-account":
     put: { $ref: "features/init.yaml#/paths/init_first_account" }
 
-  # ===== Misc =====
+  # ===== Auth =====
   "/v1/login":
     post: { $ref: "features/auth.yaml#/paths/login" }
 
@@ -156,6 +156,10 @@ paths:
   # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
+
+  # ===== Miscellaneous =====
+  "/version":
+    get: { $ref: "features/version.yaml#/paths/get_version" }
 
 components:
   securitySchemes:
