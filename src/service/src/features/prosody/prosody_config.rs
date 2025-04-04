@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
+use std::{ops::Deref, str::FromStr};
 
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use secrecy::ExposeSecret;
@@ -119,7 +119,7 @@ impl ProsodyConfig {
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
         let api_jid = app_config.api_jid();
-        let api_jid = JID::try_from(api_jid.to_string()).expect(&format!("Invalid JID: {api_jid}"));
+        let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
         Self {
             global_settings: ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),

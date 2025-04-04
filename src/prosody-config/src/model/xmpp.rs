@@ -3,11 +3,14 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Display;
+#[cfg(feature = "serde")]
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::{fmt::Display, str::FromStr};
 
 // ===== JID =====
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub struct JID {
     pub node: String,
     pub domain: String,
@@ -28,11 +31,11 @@ impl Display for JID {
     }
 }
 
-impl TryFrom<String> for JID {
-    type Error = &'static str;
+impl FromStr for JID {
+    type Err = &'static str;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.split_once("@") {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.split_once("@") {
             Some((node, domain)) => Ok(Self::new(node, domain)),
             None => Err("The JID does not contain a '@'"),
         }

@@ -3,7 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr as _;
+use std::str::FromStr;
 
 use jid::{BareJid, DomainPart};
 use prosody_config::{utils::def, *};
@@ -18,7 +18,7 @@ pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyCo
         Some(&app_config::defaults::service_accounts_prose_pod_api().xmpp_node),
         &DomainPart::from_str(ADMIN_HOST).unwrap(),
     );
-    let api_jid = JID::try_from(api_jid.to_string()).expect(&format!("Invalid JID: {api_jid}"));
+    let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
     let config = prosody_config::ProsodyConfig {
         global_settings: prosody_config::ProsodySettings {
             pidfile: Some("/var/run/prosody/prosody.pid".into()),
