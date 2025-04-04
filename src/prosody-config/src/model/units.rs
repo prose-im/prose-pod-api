@@ -5,12 +5,16 @@
 
 use std::ops::Deref;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 // ===== Data =====
 
 /// Bytes.
 ///
 /// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Bytes {
     Bytes(u32),
     KiloBytes(u32),
@@ -24,6 +28,7 @@ pub enum Bytes {
 /// See <https://en.wikipedia.org/wiki/Data-rate_units>
 /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum DataRate {
     BytesPerSec(u32),
     KiloBytesPerSec(u32),
@@ -35,6 +40,7 @@ pub enum DataRate {
 pub trait DurationContent {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Duration<Content: DurationContent>(pub Content);
 
 impl<Content: DurationContent> Deref for Duration<Content> {
@@ -46,6 +52,7 @@ impl<Content: DurationContent> Deref for Duration<Content> {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum TimeLike {
     Seconds(u32),
     Minutes(u32),
@@ -65,6 +72,7 @@ impl TimeLike {
 impl DurationContent for TimeLike {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum DateLike {
     Days(u32),
     Weeks(u32),
@@ -75,6 +83,7 @@ pub enum DateLike {
 impl DurationContent for DateLike {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum PossiblyInfinite<D> {
     Infinite,
     Finite(D),

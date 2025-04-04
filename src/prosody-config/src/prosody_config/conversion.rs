@@ -3,8 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use linked_hash_map::LinkedHashMap;
 
 use super::*;
@@ -303,7 +301,8 @@ impl Into<LuaValue> for JID {
 
 impl Into<LuaValue> for SecretString {
     fn into(self) -> LuaValue {
-        secrecy::ExposeSecret::expose_secret(self.deref()).into()
+        use secrecy::ExposeSecret as _;
+        LuaValue::String(self.into_secret_string().expose_secret().to_string())
     }
 }
 

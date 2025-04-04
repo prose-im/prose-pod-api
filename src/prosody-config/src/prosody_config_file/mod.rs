@@ -8,6 +8,8 @@ pub mod utils;
 
 use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{hash::Hash, path::PathBuf};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -47,8 +49,11 @@ impl<S: ToString> From<S> for LuaComment {
 /// When we want to group definitions together by topic for example,
 /// we can use groups to avoid printing empty lines in-between.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Group<T> {
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub comment: Option<LuaComment>,
+    #[cfg_attr(feature = "serde", serde(flatten))]
     pub elements: Vec<T>,
 }
 

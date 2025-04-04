@@ -5,6 +5,8 @@
 
 mod conversion;
 
+#[cfg(feature = "serde")]
+use ::serde::{Deserialize, Serialize};
 use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
 use std::hash::Hash;
@@ -28,12 +30,14 @@ use crate::{model::*, LuaValue};
 ///
 /// See <https://prosody.im/doc/configure>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ProsodyConfig {
     pub global_settings: ProsodySettings,
     pub additional_sections: Vec<ProsodyConfigSection>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ProsodyConfigSection {
     VirtualHost {
         hostname: String,
@@ -63,6 +67,11 @@ impl ProsodyConfigSection {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(
+    feature = "serde",
+    serde_with::skip_serializing_none,
+    derive(Serialize, Deserialize)
+)]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
     pub admins: Option<LinkedHashSet<JID>>,
@@ -119,8 +128,10 @@ pub struct ProsodySettings {
     pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
-    pub custom_settings: Vec<Group<LuaDefinition>>,
     pub tls_profile: Option<TlsProfile>,
+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub custom_settings: Vec<Group<LuaDefinition>>,
 }
 
 impl ProsodySettings {
@@ -165,6 +176,7 @@ impl ProsodySettings {
 
 /// See <https://prosody.im/doc/authentication#providers>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum AuthenticationProvider {
     /// Plaintext passwords stored using built-in storage.
     InternalPlain,
@@ -180,6 +192,7 @@ pub enum AuthenticationProvider {
 
 /// See <https://prosody.im/doc/storage>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
     Raw(StorageBackend),
@@ -191,6 +204,7 @@ pub enum StorageConfig {
 
 /// See <https://prosody.im/doc/storage#backends>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
@@ -206,6 +220,7 @@ pub enum StorageBackend {
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Interface {
     /// All IPv4 interfaces.
     AllIPv4,
@@ -217,6 +232,7 @@ pub enum Interface {
 
 /// See <https://prosody.im/doc/logging>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LogConfig {
     /// One value (file path, `"*syslog"` or `"*console"`).
     Raw(LogLevelValue),
@@ -230,6 +246,7 @@ pub enum LogConfig {
 
 /// See <https://prosody.im/doc/logging>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LogLevelValue {
     /// A file path, relative to the config file.
     FilePath(PathBuf),
@@ -242,6 +259,7 @@ pub enum LogLevelValue {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum LogLevel {
     Debug,
     Info,
@@ -263,6 +281,7 @@ pub enum LogLevel {
 /// }
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SSLConfig {
     /// Required. Path to your certificate file, relative to your primary config file.
     ///
@@ -322,6 +341,7 @@ pub struct SSLConfig {
 ///
 /// Source: `protocols` in <https://hg.prosody.im/trunk/file/tip/util/sslconfig.lua>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SslProtocol {
     /// `"sslv2"`.
     Sslv2,
@@ -348,11 +368,12 @@ pub enum SslProtocol {
     /// `"tlsv1_3+"`.
     Tlsv1_3OrMore,
     /// A custom value, for future-proofing.
-    Other(&'static str),
+    Other(String),
 }
 
 /// See <https://prosody.im/doc/advanced_ssl_config#verify>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SslVerificationOption {
     /// No verification.
     None,
@@ -363,41 +384,46 @@ pub enum SslVerificationOption {
     /// Fail if the peer does not present a certificate.
     FailIfNoPeerCert,
     /// A custom value, for future-proofing.
-    Other(&'static str),
+    Other(String),
 }
 
 /// See <https://prosody.im/doc/advanced_ssl_config#options>
 /// and <https://docs.openssl.org/master/man3/SSL_CTX_set_options/#notes>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-pub struct SslOption(pub &'static str);
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct SslOption(String);
 
 /// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.
 #[allow(non_upper_case_globals)]
 pub mod ssl_option {
     use super::SslOption;
 
-    pub const SSL_OP_NO_SSLv2: SslOption = SslOption("no_sslv2");
-    pub const SSL_OP_NO_SSLv3: SslOption = SslOption("no_sslv3");
-    pub const SSL_OP_NO_TLSv1: SslOption = SslOption("no_tlsv1");
-    pub const SSL_OP_NO_TLSv1_1: SslOption = SslOption("no_tlsv1_1");
-    pub const SSL_OP_NO_TLSv1_2: SslOption = SslOption("no_tlsv1_2");
-    pub const SSL_OP_NO_TLSv1_3: SslOption = SslOption("no_tlsv1_3");
+    lazy_static::lazy_static! {
+        pub static ref SSL_OP_NO_SSLv2: SslOption = SslOption("no_sslv2".to_owned());
+        pub static ref SSL_OP_NO_SSLv3: SslOption = SslOption("no_sslv3".to_owned());
+        pub static ref SSL_OP_NO_TLSv1: SslOption = SslOption("no_tlsv1".to_owned());
+        pub static ref SSL_OP_NO_TLSv1_1: SslOption = SslOption("no_tlsv1_1".to_owned());
+        pub static ref SSL_OP_NO_TLSv1_2: SslOption = SslOption("no_tlsv1_2".to_owned());
+        pub static ref SSL_OP_NO_TLSv1_3: SslOption = SslOption("no_tlsv1_3".to_owned());
+    }
 }
 
 /// See <https://prosody.im/doc/advanced_ssl_config#verifyext>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ExtraVerificationOption {
     /// Don’t fail the handshake when an untrusted/invalid certificate is encountered.
     LsecContinue,
     /// Ignore the certificate’s “purpose” flags.
     LsecIgnorePurpose,
     /// A custom value, for future-proofing.
-    Other(&'static str),
+    Other(String),
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ConnectionType {
     /// "c2s"
     ClientToServer,
@@ -409,6 +435,7 @@ pub enum ConnectionType {
 
 /// See <https://prosody.im/doc/modules/mod_limits>.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ConnectionLimits {
     pub rate: Option<DataRate>,
     pub burst: Option<Duration<TimeLike>>,
@@ -416,6 +443,7 @@ pub struct ConnectionLimits {
 
 /// See <https://prosody.im/doc/modules/mod_server_contact_info#configuration>.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ContactInfo {
     pub abuse: Vec<String>,
     pub admin: Vec<String>,
@@ -427,6 +455,7 @@ pub struct ContactInfo {
 
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum RoomCreationRestriction {
     /// Restrict room creation to server admins defined in the Prosody config.
     AdminsOnly,
@@ -437,6 +466,7 @@ pub enum RoomCreationRestriction {
 
 /// See <https://prosody.im/doc/modules/mod_mam>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ArchivePolicy {
     /// Always archive messages.
     Always,
@@ -450,6 +480,7 @@ pub enum ArchivePolicy {
 ///
 /// Source: `mozilla_ssl_configs` in <https://hg.prosody.im/trunk/file/tip/core/certmanager.lua>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum TlsProfile {
     /// Modern clients that support TLS 1.3, with no need for backwards compatibility.
     ///
