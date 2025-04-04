@@ -211,6 +211,12 @@ impl<E: HttpApiError> From<E> for Error {
     }
 }
 
+impl From<std::convert::Infallible> for Error {
+    fn from(error: std::convert::Infallible) -> Self {
+        match error {}
+    }
+}
+
 pub trait CustomErrorCode {
     fn error_code(&self) -> ErrorCode;
 }
