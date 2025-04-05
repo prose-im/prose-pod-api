@@ -15,12 +15,14 @@ use tracing::{debug, trace};
 use crate::{
     auth::{auth_service, AuthService},
     models::{sea_orm::LinkedStringSet, DateLike, Duration, JidDomain, PossiblyInfinite},
+    prosody::ProsodyOverrides,
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     secrets::{SecretsStore, ServiceAccountSecrets},
     server_config::{
         entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
         TlsProfile,
     },
+    util::Either,
     AppConfig,
 };
 
@@ -431,6 +433,30 @@ impl ServerManager {
         set: set_federation_friendly_servers,
         reset: reset_federation_friendly_servers,
     );
+}
+
+impl ServerManager {
+    pub async fn set_prosody_overrides(
+        &self,
+        new_state: ProsodyOverrides,
+    ) -> Result<ServerConfig, Either<serde_json::Error, Error>> {
+        let new_state = serde_json::to_value(new_state).map_err(Either::Left)?;
+        trace!("Setting prosody_overrides to {new_state}…");
+        self.update(|active| active.prosody_overrides = Set(Some(new_state)))
+            .await
+            .map_err(Either::Right)
+    }
+
+    /// - `Ok(Some(None))` => Server config initialized, no value
+    /// - `Ok(None)` => Server config not initialized
+    pub async fn get_prosody_overrides(
+        &self,
+    ) -> Result<Option<Option<ProsodyOverrides>>, Either<sea_orm::DbErr, serde_json::Error>> {
+        trace!("Getting prosody_overrides…");
+        ServerConfigRepository::get_prosody_overrides(self.db.as_ref()).await
+    }
+
+    reset!(reset_prosody_overrides, prosody_overrides);
 }
 
 pub type Error = ServerManagerError;

@@ -14,8 +14,59 @@ paths:
             schema: { $ref: "#/components/schemas/ProsodyConfigFileLua" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_prosody_overrides:
+    tags: [Expert]
+    summary: Set Prosody overrides
+    description: |
+      Set overrides to apply when generating Prosody configuration files.
+      This can be very dangerous, so make sure you know what you’re doing.
+    operationId: set_prosody_overrides
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProsodyOverrides" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_prosody_overrides:
+    tags: [Expert]
+    summary: Get Prosody overrides
+    description: Get the current overrides applied when generating Prosody configuration files.
+    operationId: get_prosody_overrides
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Overrides configured
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProsodyOverrides" }
+      "204": { description: No overrides configured }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_prosody_overrides:
+    tags: [Expert]
+    summary: Reset Prosody overrides
+    description: Reset the current overrides applied when generating Prosody configuration files.
+    operationId: reset_prosody_overrides
+    security:
+      - BasicAuth: []
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
 components:
   schemas:
+    ProsodyOverrides:
+      type: object
+      required: []
+      properties:
+        c2s_require_encryption:
+          type: [boolean, "null"]
     ProsodyConfigFileLua:
       type: string
       example: |

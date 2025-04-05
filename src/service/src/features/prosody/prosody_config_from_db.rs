@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prosody_config::*;
+use tracing::{info, warn};
 
 use crate::{
     app_config::{AppConfig, FILE_SHARE_HOST},
@@ -12,7 +13,7 @@ use crate::{
     ProseDefault,
 };
 
-use super::{prosody_config::util::*, ProsodyConfig};
+use super::{prosody_config::util::*, prosody_overrides::ProsodyOverrides, ProsodyConfig};
 
 pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> ProsodyConfig {
     let mut config = prosody_config::ProsodyConfig::prose_default(&model, app_config);
@@ -75,6 +76,23 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
         if model.federation_whitelist_enabled {
             global_settings.enable_module("s2s_whitelist".to_owned());
             global_settings.s2s_whitelist = Some(model.federation_friendly_servers);
+        }
+    }
+
+    if let Some(overrides) = model.prosody_overrides {
+        match serde_json::from_value::<ProsodyOverrides>(overrides) {
+            Ok(overrides) => {
+                info!("Applying overrides to the generated Prosody configuration file…");
+                macro_rules! override_global_setting {
+                    ($var:ident) => {
+                        if let Some($var) = overrides.$var {
+                            config.global_settings.$var = Some($var);
+                        }
+                    };
+                }
+                override_global_setting!(c2s_require_encryption);
+            },
+            Err(err) => warn!("Prosody overrides stored in database cannot be read, they won’t be applied. To fix this, call `PUT /v1/server/config/prosody-overrides` with a new value. You can `GET /v1/server/config/prosody-overrides` first to see what the stored value was. Error: {err}"),
         }
     }
 
