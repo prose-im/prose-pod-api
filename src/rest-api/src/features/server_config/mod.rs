@@ -3,6 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod guards;
+mod prosody_routes;
 mod routes;
 
 use axum::{
@@ -14,6 +16,7 @@ use crate::AppState;
 
 use super::{auth::guards::IsAdmin, init::SERVER_CONFIG_ROUTE};
 
+use self::prosody_routes::*;
 use self::routes::*;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
@@ -115,6 +118,15 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                         .put(set_federation_friendly_servers_route)
                         .get(get_federation_friendly_servers_route)
                         .delete(reset_federation_friendly_servers_route),
+                )
+                // Prosody
+                .route("/prosody", get(get_prosody_config_lua_route))
+                .route(
+                    "/prosody-overrides",
+                    MethodRouter::new()
+                        .put(set_prosody_overrides_route)
+                        .get(get_prosody_overrides_route)
+                        .delete(delete_prosody_overrides_route),
                 )
                 // Require authentication
                 .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),

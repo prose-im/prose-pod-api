@@ -5,6 +5,7 @@
 
 use linked_hash_set::LinkedHashSet;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as Json;
 
 use crate::models::{durations::*, JidDomain};
 
@@ -26,6 +27,7 @@ pub struct ServerConfig {
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,
     pub push_notification_with_sender: bool,
+    pub prosody_overrides: Option<Json>,
 }
 
 /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.

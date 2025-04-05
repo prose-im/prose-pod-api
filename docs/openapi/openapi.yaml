@@ -161,6 +161,14 @@ paths:
   "/version":
     get: { $ref: "features/version.yaml#/paths/get_version" }
 
+  # ===== Expert =====
+  "/v1/server/config/prosody":
+    get: { $ref: "features/prosody.yaml#/paths/get_prosody_config" }
+  "/v1/server/config/prosody-overrides":
+    put: { $ref: "features/prosody.yaml#/paths/set_prosody_overrides" }
+    get: { $ref: "features/prosody.yaml#/paths/get_prosody_overrides" }
+    delete: { $ref: "features/prosody.yaml#/paths/reset_prosody_overrides" }
+
 components:
   securitySchemes:
     BasicAuth:

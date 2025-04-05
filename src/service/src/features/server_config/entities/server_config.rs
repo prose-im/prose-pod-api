@@ -41,6 +41,7 @@ pub struct Model {
     pub user_data_backup_interval: Option<String>,
     pub push_notification_with_body: Option<bool>,
     pub push_notification_with_sender: Option<bool>,
+    pub prosody_overrides: Option<Json>,
 }
 
 impl Model {
@@ -63,6 +64,7 @@ impl Model {
             user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
             push_notification_with_body: self.push_notification_with_body(defaults).to_owned(),
             push_notification_with_sender: self.push_notification_with_sender(defaults).to_owned(),
+            prosody_overrides: self.prosody_overrides.clone(),
         }
     }
     /// Same as [Model::with_default_values], used in places where we have easier access to a full [AppConfig].

@@ -6,7 +6,6 @@
 mod app_config;
 mod notification_service;
 mod secrets_store;
-mod server_config;
 mod server_ctl;
 mod server_manager;
 mod uuid_generator;
