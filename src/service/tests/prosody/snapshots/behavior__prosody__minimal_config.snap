@@ -16,8 +16,6 @@ storage = "internal"
 
 log = {
   info = "*console";
-  warn = "*console";
-  error = "*console";
 }
 
 -- Network interfaces/ports

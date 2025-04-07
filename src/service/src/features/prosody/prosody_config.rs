@@ -10,7 +10,7 @@ use secrecy::ExposeSecret;
 use utils::def;
 
 use crate::{
-    app_config::{AppConfig, ADMIN_HOST},
+    app_config::{AppConfig, ServerLogLevel, ADMIN_HOST},
     server_config::ServerConfig,
     ProseDefault,
 };
@@ -126,11 +126,10 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 authentication: Some(AuthenticationProvider::InternalHashed),
                 storage: Some(StorageConfig::Raw(StorageBackend::Internal)),
                 log: Some(LogConfig::Map(
-                    vec![
-                        (LogLevel::Info, LogLevelValue::Console),
-                        (LogLevel::Warn, LogLevelValue::Console),
-                        (LogLevel::Error, LogLevelValue::Console),
-                    ]
+                    vec![(
+                        LogLevel::from(app_config.server.log_level),
+                        LogLevelValue::Console,
+                    )]
                     .into_iter()
                     .collect(),
                 )),
@@ -306,6 +305,17 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     },
                 },
             ],
+        }
+    }
+}
+
+impl From<ServerLogLevel> for prosody_config::LogLevel {
+    fn from(value: ServerLogLevel) -> Self {
+        match value {
+            ServerLogLevel::Debug => Self::Debug,
+            ServerLogLevel::Info => Self::Info,
+            ServerLogLevel::Warn => Self::Warn,
+            ServerLogLevel::Error => Self::Error,
         }
     }
 }
