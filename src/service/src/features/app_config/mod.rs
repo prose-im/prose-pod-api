@@ -155,6 +155,15 @@ pub struct ConfigBootstrap {
     pub prose_pod_api_xmpp_password: Option<SecretString>,
 }
 
+#[derive(Debug, Clone, Deserialize, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ServerLogLevel {
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServer {
     #[serde(default = "defaults::server_local_hostname")]
@@ -169,6 +178,8 @@ pub struct ConfigServer {
     pub oauth2_registration_key: SecretString,
     #[serde(default = "defaults::server_oauth2_access_token_ttl")]
     pub oauth2_access_token_ttl: u32,
+    #[serde(default = "defaults::server_log_level")]
+    pub log_level: ServerLogLevel,
     #[serde(default)]
     pub defaults: ConfigServerDefaults,
 }
@@ -203,6 +214,7 @@ impl Default for ConfigServer {
             prosody_config_file_path: defaults::server_prosody_config_file_path(),
             oauth2_registration_key: defaults::server_oauth2_registration_key(),
             oauth2_access_token_ttl: defaults::server_oauth2_access_token_ttl(),
+            log_level: defaults::server_log_level(),
             defaults: Default::default(),
         }
     }

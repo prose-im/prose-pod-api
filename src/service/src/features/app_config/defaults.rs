@@ -21,7 +21,7 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{ConfigDatabase, ConfigServiceAccount, API_DATA_DIR};
+use super::{ConfigDatabase, ConfigServiceAccount, ServerLogLevel, API_DATA_DIR};
 
 // GENERAL
 
@@ -89,6 +89,10 @@ pub fn server_oauth2_registration_key() -> SecretString {
 
 pub fn server_oauth2_access_token_ttl() -> u32 {
     10800
+}
+
+pub fn server_log_level() -> ServerLogLevel {
+    ServerLogLevel::Info
 }
 
 /// Enable message archiving by default.
