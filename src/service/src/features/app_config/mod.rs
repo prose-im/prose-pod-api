@@ -8,6 +8,7 @@
 pub mod defaults;
 
 use std::{
+    collections::HashSet,
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
@@ -362,6 +363,8 @@ pub struct ConfigDebugOnly {
     pub insecure_password_on_auto_accept_invitation: bool,
     #[serde(default)]
     pub dependency_modes: ConfigDependencyModes,
+    #[serde(default)]
+    pub skip_startup_actions: HashSet<String>,
 }
 
 #[cfg(debug_assertions)]

@@ -49,6 +49,7 @@ impl From<Workspace> for VCard4 {
             name, accent_color, ..
         }: Workspace,
     ) -> Self {
+        // NOTE: When updating this function, also update `WorkspaceService::migrate_workspace_vcard`.
         Self {
             fn_: vec![vcard4::Fn_ { value: name }],
             // See [RFC 6473: vCard KIND:application](https://www.rfc-editor.org/rfc/rfc6473.html).
