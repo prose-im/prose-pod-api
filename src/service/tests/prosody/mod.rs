@@ -40,5 +40,5 @@ fn when_generating_prosody_config(world: &mut TestWorld) {
 
 #[then(expr = "the file should match the snapshot named {string}")]
 fn then_prosody_config_file_matches(world: &mut TestWorld, snapshot_name: String) {
-    assert_snapshot!(snapshot_name, world.prosody_config().to_string())
+    assert_snapshot!(snapshot_name, world.prosody_config().to_string(None))
 }

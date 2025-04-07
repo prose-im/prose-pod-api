@@ -128,6 +128,13 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                         .get(get_prosody_overrides_route)
                         .delete(delete_prosody_overrides_route),
                 )
+                .route(
+                    "/prosody-overrides-raw",
+                    MethodRouter::new()
+                        .put(set_prosody_overrides_raw_route)
+                        .get(get_prosody_overrides_raw_route)
+                        .delete(delete_prosody_overrides_raw_route),
+                )
                 // Require authentication
                 .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
         )

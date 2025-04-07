@@ -168,6 +168,10 @@ paths:
     put: { $ref: "features/prosody.yaml#/paths/set_prosody_overrides" }
     get: { $ref: "features/prosody.yaml#/paths/get_prosody_overrides" }
     delete: { $ref: "features/prosody.yaml#/paths/reset_prosody_overrides" }
+  "/v1/server/config/prosody-overrides-raw":
+    put: { $ref: "features/prosody.yaml#/paths/set_prosody_overrides_raw" }
+    get: { $ref: "features/prosody.yaml#/paths/get_prosody_overrides_raw" }
+    delete: { $ref: "features/prosody.yaml#/paths/reset_prosody_overrides_raw" }
 
 components:
   securitySchemes:

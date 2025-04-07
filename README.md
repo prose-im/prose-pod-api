@@ -6,7 +6,7 @@
 
 Copyright 2022-2024, Prose Foundation - Released under the [Mozilla Public License 2.0](./LICENSE.md).
 
-_Tested at Rust version: `rustc 1.85.1 (4eb161250 2025-03-15) (Homebrew)`_
+_Tested at Rust version: `rustc 1.86.0 (05f9846f8 2025-03-31) (Homebrew)`_
 
 ## License
 

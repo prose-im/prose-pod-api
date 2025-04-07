@@ -42,6 +42,7 @@ pub struct Model {
     pub push_notification_with_body: Option<bool>,
     pub push_notification_with_sender: Option<bool>,
     pub prosody_overrides: Option<Json>,
+    pub prosody_overrides_raw: Option<String>,
 }
 
 impl Model {
@@ -65,6 +66,7 @@ impl Model {
             push_notification_with_body: self.push_notification_with_body(defaults).to_owned(),
             push_notification_with_sender: self.push_notification_with_sender(defaults).to_owned(),
             prosody_overrides: self.prosody_overrides.clone(),
+            prosody_overrides_raw: self.prosody_overrides_raw.clone(),
         }
     }
     /// Same as [Model::with_default_values], used in places where we have easier access to a full [AppConfig].

@@ -18,6 +18,8 @@ use crate::{
     features::init::ServerConfigNotInitialized,
 };
 
+use super::guards::Lua;
+
 pub async fn get_prosody_config_lua_route(
     app_config: AppConfig,
 ) -> Result<([(HeaderName, HeaderValue); 1], String), Error> {
@@ -45,6 +47,8 @@ pub async fn get_prosody_config_lua_route(
         prosody_config,
     ));
 }
+
+// PROSODY OVERRIDES (JSON)
 
 pub async fn set_prosody_overrides_route(
     server_manager: ServerManager,
@@ -86,6 +90,46 @@ pub async fn get_prosody_overrides_route(
 }
 
 pub async fn delete_prosody_overrides_route(
+    server_manager: ServerManager,
+) -> Result<NoContent, Error> {
+    match server_manager.reset_prosody_overrides().await {
+        Ok(_) => Ok(NoContent),
+        Err(err) => Err(Error::from(err)),
+    }
+}
+
+// PROSODY OVERRIDES (RAW)
+
+pub async fn set_prosody_overrides_raw_route(
+    server_manager: ServerManager,
+    Lua(overrides): Lua,
+) -> Result<Lua, Error> {
+    let res = match server_manager.set_prosody_overrides_raw(overrides).await {
+        Ok(model) => Ok(model
+            .prosody_overrides_raw
+            .map(Lua)
+            // NOTE: It’s safe enough to force unwrap here as the
+            //   Lua data should be exactly the user’s request.
+            .unwrap()),
+        Err(err) => Err(Error::from(err)),
+    };
+
+    server_manager.reload_current().await?;
+
+    res
+}
+
+pub async fn get_prosody_overrides_raw_route(
+    server_manager: ServerManager,
+) -> Result<Either<Lua, NoContent>, Error> {
+    match server_manager.get_prosody_overrides_raw().await {
+        Ok(Some(overrides)) => Ok(Either::E1(Lua(overrides))),
+        Ok(None) => Ok(Either::E2(NoContent)),
+        Err(err) => Err(Error::from(err)),
+    }
+}
+
+pub async fn delete_prosody_overrides_raw_route(
     server_manager: ServerManager,
 ) -> Result<NoContent, Error> {
     match server_manager.reset_prosody_overrides().await {

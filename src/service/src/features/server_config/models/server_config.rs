@@ -28,6 +28,7 @@ pub struct ServerConfig {
     pub push_notification_with_body: bool,
     pub push_notification_with_sender: bool,
     pub prosody_overrides: Option<Json>,
+    pub prosody_overrides_raw: Option<String>,
 }
 
 /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.

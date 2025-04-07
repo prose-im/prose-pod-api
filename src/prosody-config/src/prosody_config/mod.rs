@@ -27,7 +27,7 @@ use crate::{model::*, LuaValue};
 /// > Prosody defaults.
 ///
 /// See <https://prosody.im/doc/configure>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct ProsodyConfig {
     pub global_settings: ProsodySettings,
     pub additional_sections: Vec<ProsodyConfigSection>,

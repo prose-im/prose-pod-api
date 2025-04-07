@@ -29,6 +29,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250326_095800_add_dashboard_address::Migration),
             Box::new(m20250331_222300_dashboard_address_to_url::Migration),
             Box::new(m20250404_193000_add_prosody_overrides::Migration),
+            Box::new(m20250407_014800_add_prosody_overrides_raw::Migration),
         ]
     }
 }

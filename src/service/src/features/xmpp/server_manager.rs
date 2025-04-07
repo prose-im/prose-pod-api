@@ -344,6 +344,16 @@ macro_rules! set {
         }
     };
 }
+macro_rules! get {
+    ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
+        pub async fn $fn(&self) -> Result<Option<$t>, Error> {
+            trace!("Getting {}…", stringify!($var));
+            let $var = self.server_config().$var;
+            $(let $var = <$t>::from(<$var as $db_type>);)?
+            Ok($var)
+        }
+    };
+}
 macro_rules! reset {
     ($fn:ident, $var:ident $(,)?) => {
         pub async fn $fn(&self) -> Result<ServerConfig, Error> {
@@ -356,19 +366,23 @@ macro_rules! property_helpers {
     (
         $var:ident, type: $t:ty
         $(, set: $set_fn:ident)?
+        $(, get: $get_fn:ident)?
         $(, reset: $reset_fn:ident)?
         $(,)?
     ) => {
         $(set!($t, $set_fn, $var);)?
+        $(get!($t, $get_fn, $var);)?
         $(reset!($reset_fn, $var);)?
     };
     (
         $var:ident, type: $t:ty as $db_type:ty
         $(, set: $set_fn:ident)?
+        $(, get: $get_fn:ident)?
         $(, reset: $reset_fn:ident)?
         $(,)?
     ) => {
         $(set!($t as $db_type, $set_fn, $var);)?
+        $(get!($t as $db_type, $get_fn, $var);)?
         $(reset!($reset_fn, $var);)?
     };
 }
@@ -457,6 +471,15 @@ impl ServerManager {
     }
 
     reset!(reset_prosody_overrides, prosody_overrides);
+}
+
+impl ServerManager {
+    property_helpers!(
+        prosody_overrides_raw, type: String,
+        set: set_prosody_overrides_raw,
+        get: get_prosody_overrides_raw,
+        reset: reset_prosody_overrides_raw,
+    );
 }
 
 pub type Error = ServerManagerError;

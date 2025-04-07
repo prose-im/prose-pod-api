@@ -57,8 +57,10 @@ impl Print for ProsodyConfigFile {
     fn print(&self, acc: &mut String, indent: u8) {
         self.header.print(acc, indent);
 
-        LuaComment::new("Base server configuration").print(acc, indent);
-        self.global_settings.print(acc, indent);
+        if !self.global_settings.is_empty() {
+            LuaComment::new("Base server configuration").print(acc, indent);
+            self.global_settings.print(acc, indent);
+        }
 
         if !self.additional_sections.is_empty() {
             LuaComment::new("Server hosts and components").print(acc, indent);
