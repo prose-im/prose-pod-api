@@ -23,6 +23,11 @@ paths:
     operationId: set_prosody_overrides
     security:
       - BasicAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ProsodyOverrides" }
     responses:
       "200":
         description: Success
@@ -58,6 +63,66 @@ paths:
       "204": { description: Success }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_prosody_overrides_raw:
+    tags: [Expert]
+    summary: Set raw Prosody overrides
+    description: |
+      Set overrides to apply when generating Prosody configuration files.
+      This can be very dangerous, so make sure you know what you’re doing.
+
+      `/v1/server/config/prosody-overrides` supports only a fixed set of configuration keys, so if
+      you need to set a non-supported configuration, `/v1/server/config/prosody-overrides-raw` can
+      be useful.
+
+      Raw overrides aren’t typed and can really break your Prosody instance. Do not use it unless
+      you absolutely know what you are doing.
+
+      Raw overrides will be applied after regular overrides, which mutate the base configuration.
+      Raw overrides will be included **as is** at the end of each `VirtualHost` and `Component`,
+      taking precedence over existing keys.
+    operationId: set_prosody_overrides_raw
+    security:
+      - BasicAuth: []
+    requestBody:
+      required: true
+      content:
+        text/x-lua:
+          schema: { $ref: "#/components/schemas/RawProsodyOverrides" }
+    responses:
+      "200":
+        description: Success
+        content:
+          text/x-lua:
+            schema: { $ref: "#/components/schemas/RawProsodyOverrides" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_prosody_overrides_raw:
+    tags: [Expert]
+    summary: Get raw Prosody overrides
+    description: Get the current raw overrides applied when generating Prosody configuration files.
+    operationId: get_prosody_overrides_raw
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Overrides configured
+        content:
+          text/x-lua:
+            schema: { $ref: "#/components/schemas/RawProsodyOverrides" }
+      "204": { description: No overrides configured }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_prosody_overrides_raw:
+    tags: [Expert]
+    summary: Reset raw Prosody overrides
+    description: Reset the current raw overrides applied when generating Prosody configuration files.
+    operationId: reset_prosody_overrides_raw
+    security:
+      - BasicAuth: []
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 
 components:
   schemas:
@@ -67,6 +132,21 @@ components:
       properties:
         c2s_require_encryption:
           type: [boolean, "null"]
+          example: false
+    RawProsodyOverrides:
+      type: string
+      description: |
+        Part of a Prosody configuration file
+        (see [Configuring Prosody – Prosody IM](https://prosody.im/doc/configure)).
+      example: |
+        allow_unencrypted_plain_auth = false
+        modules_enabled = {
+          "rest";
+          "http_oauth2";
+          "admin_rest";
+          "reload_modules";
+        }
+        reload_modules = { "saslauth" }
     ProsodyConfigFileLua:
       type: string
       example: |
