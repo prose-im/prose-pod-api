@@ -34,6 +34,10 @@ pub fn true_in_debug() -> bool {
     false
 }
 
+pub fn always_false() -> bool {
+    false
+}
+
 // SPECIFIC
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {

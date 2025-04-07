@@ -27,6 +27,7 @@ pub struct ServerConfig {
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,
     pub push_notification_with_sender: bool,
+    pub c2s_unencrypted: bool,
     pub prosody_overrides: Option<Json>,
     pub prosody_overrides_raw: Option<String>,
 }

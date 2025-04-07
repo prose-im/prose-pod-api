@@ -3,7 +3,6 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use linked_hash_set::LinkedHashSet;
 use sea_orm::entity::prelude::*;
 
 use crate::{
@@ -47,73 +46,60 @@ pub struct Model {
 
 impl Model {
     pub fn with_default_values(&self, defaults: &ConfigServerDefaults) -> ServerConfig {
+        // NOTE: Destructure so the compiler checks we will never miss using a field.
+        let ConfigServerDefaults {
+            message_archive_enabled,
+            message_archive_retention,
+            file_upload_allowed,
+            file_storage_encryption_scheme,
+            file_storage_retention,
+            mfa_required,
+            tls_profile,
+            federation_enabled,
+            federation_whitelist_enabled,
+            federation_friendly_servers,
+            settings_backup_interval,
+            user_data_backup_interval,
+            push_notification_with_body,
+            push_notification_with_sender,
+        } = defaults;
+
+        macro_rules! get_or_default {
+            ($var:ident) => {
+                self.$var.unwrap_or($var.to_owned())
+            };
+            (deref $var:ident) => {
+                self.$var.as_deref().unwrap_or($var).to_owned()
+            };
+        }
+
         ServerConfig {
             domain: self.domain.to_owned(),
-            message_archive_enabled: self.message_archive_enabled(defaults),
-            message_archive_retention: self.message_archive_retention(defaults),
-            file_upload_allowed: self.file_upload_allowed(defaults),
-            file_storage_encryption_scheme: self
-                .file_storage_encryption_scheme(defaults)
-                .to_owned(),
-            file_storage_retention: self.file_storage_retention(defaults),
-            mfa_required: self.mfa_required(defaults),
-            tls_profile: self.tls_profile(defaults).to_owned(),
-            federation_enabled: self.federation_enabled(defaults),
-            federation_whitelist_enabled: self.federation_whitelist_enabled(defaults),
-            federation_friendly_servers: self.federation_friendly_servers(defaults).to_owned(),
-            settings_backup_interval: self.settings_backup_interval(defaults).to_owned(),
-            user_data_backup_interval: self.user_data_backup_interval(defaults).to_owned(),
-            push_notification_with_body: self.push_notification_with_body(defaults).to_owned(),
-            push_notification_with_sender: self.push_notification_with_sender(defaults).to_owned(),
-            prosody_overrides: self.prosody_overrides.clone(),
-            prosody_overrides_raw: self.prosody_overrides_raw.clone(),
+            message_archive_enabled: get_or_default!(message_archive_enabled),
+            message_archive_retention: get_or_default!(message_archive_retention),
+            file_upload_allowed: get_or_default!(file_upload_allowed),
+            file_storage_encryption_scheme: get_or_default!(deref file_storage_encryption_scheme),
+            file_storage_retention: get_or_default!(file_storage_retention),
+            mfa_required: get_or_default!(mfa_required),
+            tls_profile: get_or_default!(tls_profile),
+            federation_enabled: get_or_default!(federation_enabled),
+            federation_whitelist_enabled: get_or_default!(federation_whitelist_enabled),
+            federation_friendly_servers: get_or_default!(deref federation_friendly_servers),
+            settings_backup_interval: get_or_default!(deref settings_backup_interval),
+            user_data_backup_interval: get_or_default!(deref user_data_backup_interval),
+            push_notification_with_body: get_or_default!(push_notification_with_body),
+            push_notification_with_sender: get_or_default!(push_notification_with_sender),
+            c2s_unencrypted: false,
+            prosody_overrides: self.prosody_overrides.to_owned(),
+            prosody_overrides_raw: self.prosody_overrides_raw.to_owned(),
         }
     }
     /// Same as [Model::with_default_values], used in places where we have easier access to a full [AppConfig].
     pub fn with_default_values_from(&self, app_config: &AppConfig) -> ServerConfig {
-        self.with_default_values(&app_config.server.defaults)
+        let mut config = self.with_default_values(&app_config.server.defaults);
+        config.c2s_unencrypted = app_config.debug.c2s_unencrypted;
+        config
     }
-}
-
-macro_rules! get_or_default {
-    ($var:ident, $t:ty) => {
-        pub fn $var(&self, defaults: &ConfigServerDefaults) -> $t {
-            self.$var.unwrap_or(defaults.$var)
-        }
-    };
-}
-macro_rules! get_or_default_deref {
-    ($var:ident, $t:ty) => {
-        pub fn $var<'a, 'b>(&'a self, defaults: &'b ConfigServerDefaults) -> &'a $t
-        where
-            'b: 'a,
-        {
-            match self.$var.as_deref() {
-                Some(s) => s,
-                None => &defaults.$var,
-            }
-        }
-    };
-}
-
-impl Model {
-    get_or_default!(message_archive_enabled, bool);
-    get_or_default!(
-        message_archive_retention,
-        PossiblyInfinite<Duration<DateLike>>
-    );
-    get_or_default!(file_upload_allowed, bool);
-    get_or_default_deref!(file_storage_encryption_scheme, str);
-    get_or_default!(file_storage_retention, PossiblyInfinite<Duration<DateLike>>);
-    get_or_default!(mfa_required, bool);
-    get_or_default!(tls_profile, TlsProfile);
-    get_or_default!(federation_enabled, bool);
-    get_or_default!(federation_whitelist_enabled, bool);
-    get_or_default_deref!(federation_friendly_servers, LinkedHashSet<String>);
-    get_or_default_deref!(settings_backup_interval, str);
-    get_or_default_deref!(user_data_backup_interval, str);
-    get_or_default!(push_notification_with_body, bool);
-    get_or_default!(push_notification_with_sender, bool);
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
