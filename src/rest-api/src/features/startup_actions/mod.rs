@@ -5,6 +5,7 @@
 
 mod add_workspace_to_team;
 mod create_service_accounts;
+mod init_cors;
 mod init_server_config;
 mod register_oauth2_client;
 mod rotate_api_xmpp_password;
@@ -18,6 +19,7 @@ use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
 use self::add_workspace_to_team::*;
 use self::create_service_accounts::*;
+use self::init_cors::*;
 use self::init_server_config::*;
 use self::register_oauth2_client::*;
 use self::rotate_api_xmpp_password::*;
@@ -42,6 +44,7 @@ pub async fn run_startup_actions(app_state: &AppState) -> Result<(), String> {
     register_oauth2_client(app_state).await?;
     create_service_accounts(app_state).await?;
     add_workspace_to_team(app_state).await?;
+    init_cors(app_state).await?;
 
     Ok(())
 }
