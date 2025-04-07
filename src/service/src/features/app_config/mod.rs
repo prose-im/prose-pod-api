@@ -342,6 +342,8 @@ pub struct ConfigDebug {
     pub log_config_at_startup: bool,
     #[serde(default = "defaults::true_in_debug")]
     pub detailed_error_responses: bool,
+    #[serde(default = "defaults::always_false")]
+    pub c2s_unencrypted: bool,
 }
 
 impl Default for ConfigDebug {
@@ -349,6 +351,7 @@ impl Default for ConfigDebug {
         Self {
             log_config_at_startup: defaults::true_in_debug(),
             detailed_error_responses: defaults::true_in_debug(),
+            c2s_unencrypted: defaults::always_false(),
         }
     }
 }

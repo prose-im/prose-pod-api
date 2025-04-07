@@ -17,6 +17,7 @@ smtp_encrypt = false
 [debug_use_at_your_own_risk]
 log_config_at_startup = true
 detailed_error_responses = true
+c2s_unencrypted = true
 
 [debug_only]
 insecure_password_on_auto_accept_invitation = true

@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prosody_config::*;
+use prosody_config::{utils::def, *};
 use tracing::{info, warn};
 
 use crate::{
@@ -77,6 +77,19 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
             global_settings.enable_module("s2s_whitelist".to_owned());
             global_settings.s2s_whitelist = Some(model.federation_friendly_servers);
         }
+    }
+
+    if model.c2s_unencrypted {
+        warn!("Debug config `c2s_unencrypted` is enabled.");
+        global_settings.enable_module("reload_modules".to_owned());
+        global_settings.custom_settings.push(Group::new(
+            "Debug config: c2s_unencrypted",
+            vec![
+                def("c2s_require_encryption", false),
+                def("allow_unencrypted_plain_auth", true),
+                def("reload_modules", vec!["saslauth"]),
+            ],
+        ));
     }
 
     if let Some(overrides) = model.prosody_overrides {
