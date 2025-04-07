@@ -51,6 +51,12 @@ pub enum WorkspaceServiceInitError {
 
 impl WorkspaceService {
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
+    pub async fn is_workspace_initialized(&self) -> Result<bool, Error> {
+        let vcard = self.xmpp_service.get_own_vcard().await?;
+        Ok(vcard.is_some())
+    }
+
+    #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn get_workspace(&self) -> Result<Workspace, Error> {
         let vcard = self.get_workspace_vcard().await?;
         let mut workspace = Workspace::try_from(vcard)?;
@@ -118,6 +124,23 @@ impl WorkspaceService {
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {
         self.xmpp_service.set_own_avatar(png_data).await?;
+        Ok(())
+    }
+}
+
+impl WorkspaceService {
+    pub async fn migrate_workspace_vcard(&self) -> Result<(), Error> {
+        let mut vcard = self.get_workspace_vcard().await?;
+
+        let workspace = self.get_workspace().await?;
+        let expected = VCard4::from(workspace);
+
+        if vcard.kind.is_none() {
+            vcard.kind = expected.kind;
+        }
+
+        self.set_workspace_vcard(&vcard).await?;
+
         Ok(())
     }
 }

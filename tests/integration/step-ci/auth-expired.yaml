@@ -8,7 +8,6 @@ env:
 
 # NOTE: Paths are relative to the directory from which `stepci` is ran.
 tests:
-  # See [When a token expires, routes return `403` instead of `401` · Issue #171 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/171).
   expiredTokenYieldsUnauthenticated:
     name: Using an expired token yields 401 Unauthorized
     steps:
