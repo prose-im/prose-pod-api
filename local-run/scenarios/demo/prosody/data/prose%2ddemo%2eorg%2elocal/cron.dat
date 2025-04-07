@@ -1,4 +1,5 @@
 return {
-	["http_oauth2/clear_expired_authorization_codes"] = 1743446143;
-	["tokenauth/clear_expired_grants"] = 1743446143;
+	["http_oauth2/clear_expired_authorization_codes"] = 1744044610;
+	["tokenauth/clear_expired_grants"] = 1744044610;
+	["user_account_management/remove_deleted_accounts"] = 1744044610;
 };

@@ -1,19 +1,7 @@
 return {
 	[false] = {
 		["pending"] = {};
-		["version"] = 48;
-	};
-	["meghan.donnelly@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["charlie.schmitt@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["evan.turner@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
+		["version"] = 52;
 	};
 	["taylor.cartwright@prose-demo.org.local"] = {
 		["groups"] = {
@@ -27,17 +15,7 @@ return {
 		};
 		["subscription"] = "both";
 	};
-	["pablo.bartoletti@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["pauline.collins@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["barbara.mante@prose-demo.org.local"] = {
+	["charlie.schmitt@prose-demo.org.local"] = {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
@@ -47,10 +25,34 @@ return {
 		};
 		["subscription"] = "both";
 	};
-	["dianna.hermann@prose-demo.org.local"] = {
+	["evan.turner@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["meghan.donnelly@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["prose-workspace@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["barbara.mante@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["ella.white@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["pauline.collins@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
+		["subscription"] = "both";
+	};
+	["pablo.bartoletti@prose-demo.org.local"] = {
+		["groups"] = {};
 		["subscription"] = "both";
 	};
 	["drew.howell@prose-demo.org.local"] = {
@@ -59,8 +61,10 @@ return {
 		};
 		["subscription"] = "both";
 	};
-	["ella.white@prose-demo.org.local"] = {
-		["groups"] = {};
+	["dianna.hermann@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
 		["subscription"] = "both";
 	};
 };

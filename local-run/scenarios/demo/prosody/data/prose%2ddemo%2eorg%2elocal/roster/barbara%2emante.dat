@@ -1,23 +1,7 @@
 return {
 	[false] = {
 		["pending"] = {};
-		["version"] = 48;
-	};
-	["dianna.hermann@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["charlie.schmitt@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["evan.turner@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
+		["version"] = 52;
 	};
 	["taylor.cartwright@prose-demo.org.local"] = {
 		["groups"] = {
@@ -31,23 +15,17 @@ return {
 		};
 		["subscription"] = "both";
 	};
-	["pablo.bartoletti@prose-demo.org.local"] = {
+	["charlie.schmitt@prose-demo.org.local"] = {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
-	["pauline.collins@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["todd.schultz@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["jake.lang@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["evan.turner@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -59,6 +37,10 @@ return {
 		};
 		["subscription"] = "both";
 	};
+	["prose-workspace@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
 	["drew.howell@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
@@ -66,6 +48,28 @@ return {
 		["subscription"] = "both";
 	};
 	["ella.white@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["pauline.collins@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["pablo.bartoletti@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["todd.schultz@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["dianna.hermann@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};

@@ -1,10 +1,16 @@
 return {
 	[false] = {
 		["pending"] = {};
-		["version"] = 48;
+		["version"] = 52;
 	};
-	["meghan.donnelly@prose-demo.org.local"] = {
+	["pauline.collins@prose-demo.org.local"] = {
 		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["sheri.nienow@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
 		["subscription"] = "both";
 	};
 	["charlie.schmitt@prose-demo.org.local"] = {
@@ -13,16 +19,30 @@ return {
 		};
 		["subscription"] = "both";
 	};
+	["jake.lang@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
 	["evan.turner@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["sheri.nienow@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
+	["meghan.donnelly@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["prose-workspace@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["barbara.mante@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
+	["ella.white@prose-demo.org.local"] = {
+		["groups"] = {};
 		["subscription"] = "both";
 	};
 	["todd.schultz@prose-demo.org.local"] = {
@@ -35,32 +55,16 @@ return {
 		};
 		["subscription"] = "both";
 	};
-	["pauline.collins@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["jake.lang@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["barbara.mante@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["dianna.hermann@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["drew.howell@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["ella.white@prose-demo.org.local"] = {
-		["groups"] = {};
+	["dianna.hermann@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
 		["subscription"] = "both";
 	};
 };

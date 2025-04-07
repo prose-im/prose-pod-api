@@ -11,8 +11,6 @@ storage = "internal"
 
 log = {
   info = "*console";
-  warn = "*console";
-  error = "*console";
 }
 
 -- Network interfaces/ports
@@ -51,7 +49,9 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "cloud_notify";
+  "register";
   "mam";
+  "reload_modules";
 }
 modules_disabled = { "s2s" }
 
@@ -93,6 +93,11 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
+-- Debug config: c2s_unencrypted
+c2s_require_encryption = false
+allow_unencrypted_plain_auth = true
+reload_modules = { "saslauth" }
+
 -- Server hosts and components
 VirtualHost "prose-demo.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }
@@ -115,7 +120,7 @@ VirtualHost "prose-demo.org.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "Q8UB3ua8o6ZtNsPLliIY3Komfjz18eOJTpOF-hrEUXaG9hWWLTmZkep0ZRDKCItHKORMFHuBLAoFTqM-L9w7gvM3ptnH5sinpYLQjm_Hs3b6aAHDm9NOQ89X0vGg_fjidNXwQ1w2F2uYJeXpnqtwVmX8E1peMLSTSzpJWE1NNpiariwBirnW0zEj1bgLr1ys-Bk7WCAK7GF661t607C3xcG8B5lMjgpCXqcdBJ9BUNroAYumnYmtReX8q47jsN4nU5GrRMerVAmMOMfC4laF9Zaty2n7dyvhzpyDqCXfTyUwD7Fgi04grJh0JdMcWpxPC5kUxyEzbEpOyytR1iHqhg"
+  oauth2_registration_key = "1aNVgHbKKc1n-0PX5ohmXVnJ_VKrbCfmPVRy8EvFWYtEBs5hpQg0aRd9iUXZl4uUu0UNoME3ANFGn_ET5C8y22QS3EAlgCopKrUupucRU8tpkC0GahNJGm_2goJlfrQ1aJp7dL1lVD5axHKL4nl6ZyIanycNXitF6iy_gPYCTRv0CvV9XNWQ13j8Rps-bwUEoNuOA4whsFMsnCSH4inHLG0jU8190wEGx0ozqLB1FgLpmxnFBikb1L1kyXQh7RaP3uAynkhkpaAYwbc0wzEcihGNVAInFeXJZx-9XsMk2wxUS03iEj2RgGckkdPfZsrwqffMjAdWA6Kr7uXKS-OLoQ"
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }

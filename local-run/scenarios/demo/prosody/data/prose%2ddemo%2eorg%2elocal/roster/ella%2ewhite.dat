@@ -1,9 +1,15 @@
 return {
 	[false] = {
 		["pending"] = {};
-		["version"] = 48;
+		["version"] = 52;
 	};
-	["meghan.donnelly@prose-demo.org.local"] = {
+	["taylor.cartwright@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["todd.schultz@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -13,17 +19,37 @@ return {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
+	["jake.lang@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
 	["evan.turner@prose-demo.org.local"] = {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
-	["taylor.cartwright@prose-demo.org.local"] = {
+	["meghan.donnelly@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
+	["prose-workspace@prose-demo.org.local"] = {
+		["groups"] = {};
+		["subscription"] = "both";
+	};
 	["drew.howell@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["sheri.nienow@prose-demo.org.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["pauline.collins@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -33,33 +59,11 @@ return {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
-	["pauline.collins@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["dianna.hermann@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["barbara.mante@prose-demo.org.local"] = {
 		["groups"] = {};
 		["subscription"] = "both";
 	};
-	["todd.schultz@prose-demo.org.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["jake.lang@prose-demo.org.local"] = {
-		["groups"] = {};
-		["subscription"] = "both";
-	};
-	["sheri.nienow@prose-demo.org.local"] = {
+	["dianna.hermann@prose-demo.org.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};

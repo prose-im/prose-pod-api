@@ -1,42 +1,19 @@
 return {
-	["4OydunrpHjgQ"] = {
-		["accessed"] = 1743457706;
-		["id"] = "4OydunrpHjgQ";
+	["uoi9oy0fc6nd"] = {
+		["id"] = "uoi9oy0fc6nd";
 		["jid"] = "prose-workspace@prose-demo.org.local";
-		["created"] = 1743457706;
-		["owner"] = "prose-workspace@prose-demo.org.local";
-		["data"] = {
-			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:40acaeac7c4b1c4e4c6d7cb71562e122c5358ab98e82675609d3832ba7725f1f"] = {
-				["created"] = 1743457706;
-				["purpose"] = "oauth2-refresh";
-				["expires"] = 1743457706;
-			};
-			["sha256:e130c371bdef0f3ec73971dada22bf3eb14e8f1a1141d334391713889aa51190"] = {
-				["role"] = "prosody:registered";
-				["created"] = 1743457706;
-				["purpose"] = "oauth2";
-				["expires"] = 1743468506;
-			};
-		};
-	};
-	["gPgHAWah4i5x"] = {
-		["accessed"] = 1743446142;
-		["id"] = "gPgHAWah4i5x";
-		["jid"] = "prose-workspace@prose-demo.org.local";
+		["created"] = 1744044609;
+		["accessed"] = 1744044609;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
 		["owner"] = "prose-workspace@prose-demo.org.local";
-		["created"] = 1743446142;
 		["tokens"] = {
-			["sha256:6b901b5b83236e64adc467bb5dc890b7ade9db9954973b69a09a573ec13e2000"] = {
-				["role"] = "prosody:registered";
-				["created"] = 1743446142;
+			["sha256:e33f9f3a593394425946b2284ac367b8d51bcbd7b61c9b2445a2a9a50859efbe"] = {
 				["purpose"] = "oauth2";
-				["expires"] = 1743456942;
+				["created"] = 1744044609;
+				["role"] = "prosody:registered";
+				["expires"] = 1744055409;
 			};
 		};
 	};
