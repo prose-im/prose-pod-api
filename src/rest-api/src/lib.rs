@@ -12,7 +12,11 @@ pub mod util;
 
 use axum::{http::StatusCode, middleware, routing::get_service, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
-use features::{factory_reset::restart_guard, startup_actions};
+use features::{
+    cors::{CorsConfig, CorsLayer},
+    factory_reset::restart_guard,
+    startup_actions,
+};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
@@ -42,6 +46,9 @@ pub struct AppState {
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
     lifecycle_manager: LifecycleManager,
+    /// CORS configuration, modifiable at runtime
+    /// (e.g. when the Dashboard URL is set).
+    cors_config: CorsConfig,
 }
 
 impl AppState {
@@ -59,6 +66,7 @@ impl AppState {
         Self {
             db,
             uuid_gen: Uuid::from_config(&app_config),
+            cors_config: CorsConfig::from_config(&app_config),
             app_config,
             server_ctl,
             xmpp_service,
@@ -98,6 +106,9 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
         .layer(OtelInResponseLayer::default())
         // Start OpenTelemetry trace on incoming request.
         .layer(OtelAxumLayer::default())
+        .layer(CorsLayer {
+            cors_config: app_state.cors_config.clone(),
+        })
         // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
         .layer(ServiceBuilder::new().map_response(error_catcher))
         .layer(middleware::from_fn_with_state(

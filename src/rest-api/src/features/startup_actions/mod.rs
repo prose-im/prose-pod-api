@@ -5,6 +5,7 @@
 
 mod add_workspace_to_team;
 mod create_service_accounts;
+mod init_cors;
 mod init_server_config;
 mod migrate_workspace_vcard;
 mod register_oauth2_client;
@@ -19,6 +20,7 @@ use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
 use self::add_workspace_to_team::*;
 use self::create_service_accounts::*;
+use self::init_cors::*;
 use self::init_server_config::*;
 use self::migrate_workspace_vcard::*;
 use self::register_oauth2_client::*;
@@ -45,6 +47,7 @@ pub async fn run_startup_actions(app_state: &AppState) -> Result<(), String> {
     create_service_accounts(app_state).await?;
     migrate_workspace_vcard(app_state).await?;
     add_workspace_to_team(app_state).await?;
+    init_cors(app_state).await?;
 
     Ok(())
 }

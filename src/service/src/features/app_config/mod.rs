@@ -29,7 +29,7 @@ use crate::{
     models::{
         durations::{DateLike, Duration, PossiblyInfinite},
         xmpp::jid::{BareJid, DomainPart, DomainRef, JidNode},
-        TimeLike,
+        TimeLike, Url,
     },
 };
 
@@ -68,6 +68,8 @@ pub struct AppConfig {
     pub notify: ConfigNotify,
     #[serde(default)]
     pub databases: ConfigDatabases,
+    #[serde(default)]
+    pub cors: ConfigCors,
     /// IP address to serve on.
     #[serde(default = "defaults::address")]
     pub address: IpAddr,
@@ -347,6 +349,11 @@ pub struct ConfigDatabase {
     pub idle_timeout: Option<u64>,
     #[serde(default)]
     pub sqlx_logging: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ConfigCors {
+    pub allowed_origins: LinkedHashSet<Url>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

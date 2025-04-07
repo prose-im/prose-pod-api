@@ -55,7 +55,7 @@ tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true }
 tower = { workspace = true, features = ["util"] }
-tower-http = { workspace = true, features = ["fs", "trace"] }
+tower-http = { workspace = true, features = ["fs", "trace", "cors"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi"] }
 uuid = { workspace = true }

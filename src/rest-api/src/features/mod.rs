@@ -5,6 +5,7 @@
 
 use crate::{forms::multi_value_items::rename_bracketed_query_param_names, AppState};
 
+pub mod cors;
 pub mod startup_actions;
 
 pub mod api_docs;

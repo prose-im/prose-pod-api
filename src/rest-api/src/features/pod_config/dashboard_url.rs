@@ -3,23 +3,40 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::http::StatusCode;
+use axum::{extract::State, http::StatusCode, Json};
 use service::models::Url;
 
 use crate::{
-    error::{ErrorCode, HttpApiError, LogLevel},
-    pod_config_routes,
+    error::{Error, ErrorCode, HttpApiError, LogLevel},
+    pod_config_routes, AppState,
 };
 
 use super::{check_url_has_no_path, POD_CONFIG_ROUTE};
 
 pod_config_routes!(
     key: dashboard_url, type: Option<Url>,
-    set: set_dashboard_url_route, validate: {
-        check_url_has_no_path(&dashboard_url)?;
-    },
     get: get_dashboard_url_route using get_dashboard_url,
 );
+
+pub async fn set_dashboard_url_route(
+    State(app_state): State<AppState>,
+    req: Json<Option<Url>>,
+) -> Result<Json<Option<Url>>, Error> {
+    pod_config_routes!(
+        key: dashboard_url, type: Option<Url>,
+        set: set_dashboard_url_route, validate: {
+            check_url_has_no_path(&dashboard_url)?;
+        },
+    );
+
+    let Json(dashboard_url) = set_dashboard_url_route(State(app_state.clone()), req).await?;
+
+    if let Some(ref dashboard_url) = dashboard_url {
+        (app_state.cors_config.allowed_origins.write().unwrap()).insert(dashboard_url.clone());
+    }
+
+    Ok(Json(dashboard_url))
+}
 
 #[derive(Debug, thiserror::Error)]
 #[error("Prose Pod Dashboard URL not initialized.")]
