@@ -10,7 +10,7 @@ use std::{fmt::Display, time::Duration};
 use email_address::EmailAddress;
 use lettre::{
     address::AddressError,
-    message::{header::ContentType, Mailbox, Message},
+    message::{Mailbox, Message, MultiPart, SinglePart},
     transport::smtp::{
         authentication::Credentials,
         client::{Tls, TlsParameters},
@@ -88,8 +88,11 @@ impl GenericNotifier for EmailNotifier {
             .to(notification.to.clone())
             .from(notification.from.clone())
             .subject(notification.subject.clone())
-            .header(ContentType::TEXT_PLAIN)
-            .body(notification.message.clone())
+            .multipart(
+                MultiPart::alternative()
+                    .singlepart(SinglePart::plain(notification.message_plain.clone()))
+                    .singlepart(SinglePart::html(notification.message_html.clone())),
+            )
             .map_err(SendError::BuildEmail)?;
 
         // Deliver the message
@@ -145,14 +148,16 @@ pub struct EmailNotification {
     pub from: Mailbox,
     pub to: Mailbox,
     pub subject: String,
-    pub message: String,
+    pub message_plain: String,
+    pub message_html: String,
 }
 
 impl EmailNotification {
     pub fn new(
         to: EmailAddress,
         subject: String,
-        message: String,
+        message_plain: String,
+        message_html: String,
         app_config: &AppConfig,
     ) -> Result<Self, EmailNotificationCreateError> {
         let email_config = app_config.notify.email()?;
@@ -166,7 +171,8 @@ impl EmailNotification {
                     .map_err(CreateError::ParseTo)?,
             ),
             subject,
-            message,
+            message_plain,
+            message_html,
         })
     }
 }
@@ -188,7 +194,7 @@ impl Display for EmailNotification {
         write!(
             f,
             "  Message: {}",
-            self.message
+            self.message_plain
                 .lines()
                 .map(|l| format!("    {l}"))
                 .collect::<Vec<_>>()
