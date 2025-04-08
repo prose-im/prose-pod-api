@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::fmt::Display;
+
 use email_address::EmailAddress;
 use secrecy::ExposeSecret as _;
 
@@ -33,13 +35,14 @@ impl EmailNotification {
         EmailNotification::new(
             email_recipient,
             notification_subject(&invitation_payload),
-            notification_message(&invitation_payload),
+            notification_message_plain(&invitation_payload),
+            notification_message_html(&invitation_payload),
             app_config,
         )
     }
 }
 
-pub fn notification_subject(
+fn notification_subject(
     WorkspaceInvitationPayload {
         workspace_name,
         organization_name,
@@ -53,31 +56,16 @@ pub fn notification_subject(
     }
 }
 
-pub fn notification_message(
+fn notification_message(
     WorkspaceInvitationPayload {
-        accept_token,
-        reject_token,
         workspace_name,
-        dashboard_url,
         api_app_name,
         organization_name,
         ..
     }: &WorkspaceInvitationPayload,
+    accept_link: impl Display,
+    reject_link: impl Display,
 ) -> String {
-    // NOTE: `join` erases the fragment and query.
-    let accept_link = dashboard_url
-        .join(&format!(
-            "invitations/accept/{token}",
-            token = accept_token.into_secret_string().expose_secret(),
-        ))
-        .expect("Invalid accept link");
-    let reject_link = dashboard_url
-        .join(&format!(
-            "invitations/reject/{token}",
-            token = reject_token.into_secret_string().expose_secret(),
-        ))
-        .expect("Invalid reject link");
-
     vec![
         if let Some(ref company) = organization_name {
             format!("You have been invited to {company}’s Prose server!")
@@ -103,4 +91,72 @@ pub fn notification_message(
         .as_str(),
     ]
     .join("\n\n")
+}
+
+fn accept_link(accept_token: &InvitationToken, dashboard_url: &url::Url) -> url::Url {
+    // NOTE: `join` erases the fragment and query.
+    dashboard_url
+        .join(&format!(
+            "invitations/accept/{token}",
+            token = accept_token.into_secret_string().expose_secret(),
+        ))
+        .expect("Invalid accept link")
+}
+fn reject_link(reject_token: &InvitationToken, dashboard_url: &url::Url) -> url::Url {
+    // NOTE: `join` erases the fragment and query.
+    dashboard_url
+        .join(&format!(
+            "invitations/reject/{token}",
+            token = reject_token.into_secret_string().expose_secret(),
+        ))
+        .expect("Invalid reject link")
+}
+
+fn notification_message_plain(payload: &WorkspaceInvitationPayload) -> String {
+    notification_message(
+        payload,
+        accept_link(&payload.accept_token, &payload.dashboard_url),
+        reject_link(&payload.reject_token, &payload.dashboard_url),
+    )
+}
+
+fn notification_message_html(payload: &WorkspaceInvitationPayload) -> String {
+    let accept_link = format!(
+        r#"<a href="{url}">{url}</a>"#,
+        url = accept_link(&payload.accept_token, &payload.dashboard_url),
+    );
+    let reject_link = format!(
+        r#"<a href="{url}">{url}</a>"#,
+        url = reject_link(&payload.reject_token, &payload.dashboard_url),
+    );
+    let mut body = notification_message(payload, accept_link, reject_link);
+    body = body.replace("\n\n", "</p><p>");
+    format!(
+        r#"<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+body {{
+  color: #222;
+  background: #fff;
+  font: 100% system-ui;
+}}
+a {{
+  color: #0033cc;
+}}
+
+@media (prefers-color-scheme: dark) {{
+  body {{
+    color: #eee;
+    background: #121212;
+  }}
+  a {{
+    color: #809fff;
+  }}
+}}
+</style>
+  </head>
+  <body><p>{body}</p></body>
+</html>"#
+    )
 }
