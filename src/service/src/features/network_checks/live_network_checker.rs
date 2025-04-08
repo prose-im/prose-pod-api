@@ -50,12 +50,15 @@ pub struct LiveNetworkChecker {
 impl LiveNetworkChecker {
     async fn direct_resolver(&self, domain: &DomainName) -> Arc<Resolver> {
         // Read the cache to avoid unnecessary DNS queries.
-        if let Some((cached_at, resolver)) = self.direct_resolvers.read().get(domain) {
-            if cached_at.elapsed() < *DNS_CACHE_TTL {
-                return resolver.clone();
-            } else {
-                // Clear the cache if it's expired.
-                self.direct_resolvers.write().remove(domain);
+        {
+            let mut resolvers_guard = self.direct_resolvers.upgradable_read();
+            if let Some((cached_at, resolver)) = resolvers_guard.get(domain) {
+                if cached_at.elapsed() < *DNS_CACHE_TTL {
+                    return resolver.clone();
+                } else {
+                    // Clear the cache if it's expired.
+                    resolvers_guard.with_upgraded(|r| r.remove(domain));
+                }
             }
         }
 
