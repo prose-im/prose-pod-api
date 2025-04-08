@@ -10,7 +10,7 @@ use std::{fmt::Display, time::Duration};
 use email_address::EmailAddress;
 use lettre::{
     address::AddressError,
-    message::{Mailbox, Message},
+    message::{header::ContentType, Mailbox, Message},
     transport::smtp::{
         authentication::Credentials,
         client::{Tls, TlsParameters},
@@ -88,6 +88,7 @@ impl GenericNotifier for EmailNotifier {
             .to(notification.to.clone())
             .from(notification.from.clone())
             .subject(notification.subject.clone())
+            .header(ContentType::TEXT_PLAIN)
             .body(notification.message.clone())
             .map_err(SendError::BuildEmail)?;
 
