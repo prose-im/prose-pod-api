@@ -10,6 +10,7 @@ mod migrate_workspace_vcard;
 mod register_oauth2_client;
 mod rotate_api_xmpp_password;
 mod run_migrations;
+mod start_cron_tasks;
 mod test_services_reachability;
 mod wait_for_server;
 
@@ -24,6 +25,7 @@ use self::migrate_workspace_vcard::*;
 use self::register_oauth2_client::*;
 use self::rotate_api_xmpp_password::*;
 use self::run_migrations::*;
+use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
 use self::wait_for_server::*;
 
@@ -45,6 +47,7 @@ pub async fn run_startup_actions(app_state: &AppState) -> Result<(), String> {
     create_service_accounts(app_state).await?;
     migrate_workspace_vcard(app_state).await?;
     add_workspace_to_team(app_state).await?;
+    start_cron_tasks(app_state).await?;
 
     Ok(())
 }

@@ -5,7 +5,7 @@
 
 use std::{fmt::Debug, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use async_trait::async_trait;
 use minidom::Element;
 use parking_lot::RwLock;
@@ -161,17 +161,19 @@ impl ConnectionTrait for Connection {
                                 .unwrap_or_else(|err| format!("<error: {err}>")),
                         ));
                     }
-                    return Err(anyhow!("Unexpected Prosody REST API response: {err}"));
+                    bail!("Unexpected Prosody REST API response: {err}");
                 }
                 let response_body = response.text().await?;
+
+                if response_body.as_str() == "not-authorized" {
+                    bail!("Not authorized (token possibly expired).");
+                }
+
                 trace!("response_body: {response_body:?}");
                 let xml = format!(r#"<wrapper xmlns="jabber:client">{response_body}</wrapper>"#);
                 let wrapper = xml.parse::<Element>()?;
                 let Some(stanza) = wrapper.get_child("iq", "jabber:client") else {
-                    // TODO: Handle "not-authorized".
-                    return Err(anyhow!(
-                        "Prosody response is not an `iq` stanza (`{response_body}`)."
-                    ));
+                    bail!("Prosody response is not an `iq` stanza (`{response_body}`).");
                 };
                 self.receive_stanza(stanza.to_owned()).await;
                 Result::<_, anyhow::Error>::Ok(())

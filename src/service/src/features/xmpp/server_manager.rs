@@ -318,6 +318,7 @@ impl ServerManager {
 
         // Store the secrets
         let secrets = ServiceAccountSecrets {
+            password,
             prosody_token: auth_token.clone(),
         };
         secrets_store.set_service_account_secrets(jid, secrets);

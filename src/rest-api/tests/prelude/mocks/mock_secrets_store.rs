@@ -51,6 +51,9 @@ impl MockSecretsStore {
             .expect("`MockSecretsStoreState` lock poisonned.")
     }
 
+    pub fn increase_changes_count(&self, jid: BareJid) {
+        *self.state_mut().changes_count.entry(jid).or_insert(0) += 1
+    }
     pub fn changes_count(&self, jid: &BareJid) -> u32 {
         self.state().changes_count.get(jid).cloned().unwrap_or(0)
     }
@@ -58,11 +61,7 @@ impl MockSecretsStore {
 
 impl SecretsStoreImpl for MockSecretsStore {
     fn set_prose_pod_api_xmpp_password(&self, password: SecretString) {
-        *self
-            .state_mut()
-            .changes_count
-            .entry(self.api_jid.clone())
-            .or_insert(0) += 1;
+        self.increase_changes_count(self.api_jid.clone());
         self.implem.set_prose_pod_api_xmpp_password(password)
     }
     fn prose_pod_api_xmpp_password(&self) -> SecretString {
@@ -70,14 +69,22 @@ impl SecretsStoreImpl for MockSecretsStore {
     }
 
     fn set_service_account_secrets(&self, jid: BareJid, secrets: ServiceAccountSecrets) {
-        *self
-            .state_mut()
-            .changes_count
-            .entry(jid.clone())
-            .or_insert(0) += 1;
+        self.increase_changes_count(jid.clone());
         self.implem.set_service_account_secrets(jid, secrets)
+    }
+    fn get_service_account_password(&self, jid: &BareJid) -> Option<SecretString> {
+        self.implem.get_service_account_password(jid)
     }
     fn get_service_account_prosody_token(&self, jid: &BareJid) -> Option<SecretString> {
         self.implem.get_service_account_prosody_token(jid)
+    }
+    fn set_service_account_prosody_token(
+        &self,
+        jid: &BareJid,
+        prosody_token: SecretString,
+    ) -> Result<(), service::secrets::ServiceAccountNotFound> {
+        self.increase_changes_count(jid.clone());
+        self.implem
+            .set_service_account_prosody_token(jid, prosody_token)
     }
 }

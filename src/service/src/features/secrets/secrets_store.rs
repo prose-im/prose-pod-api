@@ -30,6 +30,9 @@ impl Deref for SecretsStore {
 
 #[derive(Debug, Clone)]
 pub struct ServiceAccountSecrets {
+    /// NOTE: We have to store the password so tokens can be refreshed.
+    ///   It’s unfortunate but we could just rotate them very often if we want to.
+    pub password: SecretString,
     pub prosody_token: SecretString,
 }
 
@@ -38,5 +41,15 @@ pub trait SecretsStoreImpl: Debug + Sync + Send {
     fn prose_pod_api_xmpp_password(&self) -> SecretString;
 
     fn set_service_account_secrets(&self, jid: BareJid, secrets: ServiceAccountSecrets);
+    fn get_service_account_password(&self, jid: &BareJid) -> Option<SecretString>;
     fn get_service_account_prosody_token(&self, jid: &BareJid) -> Option<SecretString>;
+    fn set_service_account_prosody_token(
+        &self,
+        jid: &BareJid,
+        prosody_token: SecretString,
+    ) -> Result<(), ServiceAccountNotFound>;
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("Service account not found.")]
+pub struct ServiceAccountNotFound;
