@@ -16,14 +16,16 @@ use crate::{
     AppConfig,
 };
 
+use super::ServiceAccountNotFound;
+
 /// A place to store service accounts secrets (e.g. Prosody tokens).
 ///
 /// WARN: This must NOT be used to save user tokens!
 #[derive(Debug, Clone)]
 pub struct LiveSecretsStore {
     store: Arc<RwLock<HashMap<BareJid, ServiceAccountSecrets>>>,
-    // NOTE: This password is the only one to get a special treatment because of how
-    //   the Prose Pod API interacts with the Prose Pod Server.
+    // NOTE: This account is the only one to get a special treatment because
+    //   of how the Prose Pod API interacts with the Prose Pod Server.
     prose_pod_api_xmpp_password: Arc<RwLock<SecretString>>,
 }
 
@@ -71,7 +73,22 @@ impl SecretsStoreImpl for LiveSecretsStore {
             .insert(jid, secrets);
     }
 
+    fn get_service_account_password(&self, jid: &BareJid) -> Option<SecretString> {
+        self.get_secrets(jid).map(|c| c.password)
+    }
     fn get_service_account_prosody_token(&self, jid: &BareJid) -> Option<SecretString> {
         self.get_secrets(jid).map(|c| c.prosody_token)
+    }
+    fn set_service_account_prosody_token(
+        &self,
+        jid: &BareJid,
+        prosody_token: SecretString,
+    ) -> Result<(), ServiceAccountNotFound> {
+        (self.store.write())
+            .expect("`ServiceSecretsStore` lock poisonned.")
+            .get_mut(jid)
+            .ok_or(ServiceAccountNotFound)?
+            .prosody_token = prosody_token;
+        Ok(())
     }
 }

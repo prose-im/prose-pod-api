@@ -5,6 +5,7 @@
 
 pub mod app_config;
 pub mod auth;
+pub mod cron;
 pub mod init;
 pub mod invitations;
 pub mod members;

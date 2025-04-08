@@ -106,6 +106,10 @@ impl LifecycleManager {
             stopped.wait().await;
         }
     }
+
+    pub fn child_cancellation_token(&self) -> CancellationToken {
+        self.master_cancellation_token.child_token()
+    }
 }
 
 impl LifecycleManager {
