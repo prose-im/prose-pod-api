@@ -118,8 +118,14 @@ impl WorkspaceService {
     }
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn get_workspace_icon_base64(&self) -> Result<Option<String>, Error> {
-        let avatar_data = self.get_workspace_icon().await?;
-        Ok(avatar_data.map(|d| d.base64().into_owned()))
+        Ok(self.get_workspace_icon().await?.map(|avatar_data| {
+            let base64 = avatar_data.base64();
+            if base64.starts_with("data:image/") {
+                base64.into_owned()
+            } else {
+                format!("data:image/png;base64,{base64}")
+            }
+        }))
     }
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {

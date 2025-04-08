@@ -40,7 +40,7 @@ add-member() {
 	MEMBER_EMAILS+=("${7:?}")
 	local avatar_file=
 	if [ -n "${8-}" ]; then
-		local avatar="$(cat "${AVATARS_DIR:?}/${8:?}" | base64)"
+		local avatar="data:image/png;base64,$(cat "${AVATARS_DIR:?}/${8:?}" | base64)"
 		MEMBER_AVATARS+=("${avatar:?}")
 	else
 		MEMBER_AVATARS+=('')
