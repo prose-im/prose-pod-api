@@ -7,8 +7,9 @@
 
 pub mod defaults;
 
+#[cfg(debug_assertions)]
+use std::collections::HashSet;
 use std::{
-    collections::HashSet,
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
