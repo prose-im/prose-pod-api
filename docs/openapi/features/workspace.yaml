@@ -148,10 +148,7 @@ paths:
   set_workspace_icon:
     tags: [Workspace]
     summary: Set workspace icon
-    description: |-
-      Set the icon of your workspace.
-
-      Accepted content types are: `image/jpeg`, `image/png`, `image/gif`, `image/webp` and `text/plain` (containing either the URL to an external image or a base64-encoded image).
+    description: Set the icon of your workspace.
     operationId: set_workspace_icon
     security:
       - BearerAuth: []
