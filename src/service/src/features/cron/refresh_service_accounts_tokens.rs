@@ -41,6 +41,12 @@ pub async fn run(
     });
 
     loop {
+        info!(
+            "Will refresh service accounts tokens in {secs}s",
+            secs = refresh_interval.as_secs()
+        );
+        sleep(refresh_interval).await;
+
         info!("Refreshing service accounts tokens…");
 
         let server_config = match ServerConfigRepository::get(db).await {
@@ -78,12 +84,6 @@ pub async fn run(
             };
             info!("Refreshed token for service accounts '{jid}'…");
         }
-
-        info!(
-            "Will refresh service accounts tokens again in {secs}s",
-            secs = refresh_interval.as_secs()
-        );
-        sleep(refresh_interval).await;
     }
 }
 
