@@ -3,8 +3,12 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::{extract::State, http::header::IF_NONE_MATCH, response::NoContent, Json};
-use axum_extra::{headers::IfNoneMatch, TypedHeader};
+use axum::{
+    extract::State,
+    http::{header::IF_MATCH, StatusCode},
+    Json,
+};
+use axum_extra::{headers::IfMatch, TypedHeader};
 
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
@@ -14,7 +18,6 @@ use service::{
 
 use crate::{
     error::{Error, PreconditionRequired},
-    features::init::ServerConfigNotInitialized,
     AppState,
 };
 
@@ -97,16 +100,16 @@ pub async fn get_server_config_route(server_config: ServerConfig) -> Json<Server
 
 pub async fn is_server_initialized_route(
     State(AppState { db, .. }): State<AppState>,
-    TypedHeader(if_none_match): TypedHeader<IfNoneMatch>,
-) -> Result<NoContent, Error> {
-    if if_none_match != IfNoneMatch::any() {
+    TypedHeader(if_match): TypedHeader<IfMatch>,
+) -> Result<StatusCode, Error> {
+    if if_match != IfMatch::any() {
         Err(Error::from(PreconditionRequired {
-            comment: format!("Missing header: '{IF_NONE_MATCH}'."),
+            comment: format!("Missing header: '{IF_MATCH}'."),
         }))
     } else if ServerConfigRepository::is_initialized(&db).await? {
-        Ok(NoContent)
+        Ok(StatusCode::NO_CONTENT)
     } else {
-        Err(Error::from(ServerConfigNotInitialized))
+        Ok(StatusCode::PRECONDITION_FAILED)
     }
 }
 

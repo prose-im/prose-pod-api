@@ -9,6 +9,7 @@ mod init_server_config;
 mod init_workspace;
 
 use axum::routing::put;
+use axum::routing::MethodRouter;
 
 use crate::AppState;
 
@@ -20,7 +21,12 @@ pub const SERVER_CONFIG_ROUTE: &'static str = "/v1/server/config";
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        .route("/v1/init/first-account", put(init_first_account_route))
+        .route(
+            "/v1/init/first-account",
+            MethodRouter::new()
+                .put(init_first_account_route)
+                .head(is_first_account_created_route),
+        )
         .route(SERVER_CONFIG_ROUTE, put(init_server_config_route))
         .with_state(app_state)
 }

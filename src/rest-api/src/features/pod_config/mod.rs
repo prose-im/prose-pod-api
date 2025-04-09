@@ -10,6 +10,7 @@ mod pod_config;
 mod util;
 
 use axum::middleware::from_extractor_with_state;
+use axum::routing::head;
 use axum::routing::MethodRouter;
 
 use crate::AppState;
@@ -46,5 +47,6 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .get(get_dashboard_url_route),
         )
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+        .route(POD_CONFIG_ROUTE, head(is_pod_config_initialized_route))
         .with_state(app_state)
 }

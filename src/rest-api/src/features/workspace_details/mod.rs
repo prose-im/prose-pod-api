@@ -34,8 +34,9 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route(
                     "/",
                     MethodRouter::new()
-                        .get(get_workspace_route)
-                        .put(init_workspace_route),
+                        .put(init_workspace_route)
+                        .head(is_workspace_initialized_route)
+                        .get(get_workspace_route),
                 )
                 .route("/accent-color", get(get_workspace_accent_color_route))
                 .route("/icon", get(get_workspace_icon_route))

@@ -3,6 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use axum::extract::OptionalFromRequestParts;
 use service::{
     server_config::ServerConfig,
     workspace::{WorkspaceService, WorkspaceServiceInitError},
@@ -26,6 +27,21 @@ impl FromRequestParts<AppState> for WorkspaceService {
             Arc::new(state.secrets_store.clone()),
         )
         .map_err(Error::from)
+    }
+}
+
+impl OptionalFromRequestParts<AppState> for WorkspaceService {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        Ok(
+            <WorkspaceService as FromRequestParts<AppState>>::from_request_parts(parts, state)
+                .await
+                .ok(),
+        )
     }
 }
 

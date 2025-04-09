@@ -21,7 +21,7 @@ tests:
           method: HEAD
           url: /v1/server/config
           headers:
-            If-None-Match: "*"
+            If-Match: "*"
           check:
             status: 412
       - $ref: "#/components/steps/init_server"
@@ -33,7 +33,7 @@ tests:
           method: HEAD
           url: /v1/server/config
           headers:
-            If-None-Match: "*"
+            If-Match: "*"
           check:
             status: 204
 

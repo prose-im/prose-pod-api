@@ -7,9 +7,10 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 
 use axum::{
     extract::State,
-    http::{HeaderValue, StatusCode},
+    http::{header::IF_MATCH, HeaderValue, StatusCode},
     Json,
 };
+use axum_extra::{headers::IfMatch, TypedHeader};
 use hickory_resolver::Name as DomainName;
 use serde::{Deserialize, Serialize};
 use service::{
@@ -18,7 +19,7 @@ use service::{
 };
 
 use crate::{
-    error::{self, Error, ErrorCode, HttpApiError, LogLevel},
+    error::{self, Error, ErrorCode, HttpApiError, LogLevel, PreconditionRequired},
     responders::Created,
     AppState,
 };
@@ -92,6 +93,21 @@ pub async fn init_pod_config_route(
             location: HeaderValue::from_static(POD_CONFIG_ROUTE),
             body: PodConfig::from(model),
         })
+    }
+}
+
+pub async fn is_pod_config_initialized_route(
+    State(AppState { ref db, .. }): State<AppState>,
+    TypedHeader(if_match): TypedHeader<IfMatch>,
+) -> Result<StatusCode, Error> {
+    if if_match != IfMatch::any() {
+        Err(Error::from(PreconditionRequired {
+            comment: format!("Missing header: '{IF_MATCH}'."),
+        }))
+    } else if PodConfigRepository::is_initialized(db).await? {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Ok(StatusCode::PRECONDITION_FAILED)
     }
 }
 

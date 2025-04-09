@@ -3,16 +3,16 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::{http::HeaderValue, Json};
+use axum::{extract::State, http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
-    members::UnauthenticatedMemberService,
+    members::{MemberRepository, UnauthenticatedMemberService},
     models::{JidNode, SerializableSecretString},
     server_config::ServerConfig,
 };
 
-use crate::{error::prelude::*, features::members::Member, responders::Created};
+use crate::{error::prelude::*, features::members::Member, responders::Created, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
@@ -36,6 +36,16 @@ pub async fn init_first_account_route(
         location: HeaderValue::from_str(&resource_uri)?,
         body: Member::from(member),
     })
+}
+
+pub async fn is_first_account_created_route(
+    State(AppState { db, .. }): State<AppState>,
+) -> StatusCode {
+    if MemberRepository::count(&db).await.unwrap_or_default() == 0 {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::CONFLICT
+    }
 }
 
 // ERRORS

@@ -19,6 +19,7 @@ paths:
   # ===== Init =====
   "/v1/init/first-account":
     put: { $ref: "features/init.yaml#/paths/init_first_account" }
+    head: { $ref: "features/init.yaml#/paths/is_first_account_created" }
 
   # ===== Auth =====
   "/v1/login":
@@ -102,6 +103,7 @@ paths:
   # ===== Workspace =====
   "/v1/workspace":
     put: { $ref: "features/workspace.yaml#/paths/init_workspace" }
+    head: { $ref: "features/workspace.yaml#/paths/is_workspace_initialized" }
     get: { $ref: "features/workspace.yaml#/paths/get_workspace" }
     patch: { $ref: "features/workspace.yaml#/paths/patch_workspace" }
   "/v1/workspace/name":

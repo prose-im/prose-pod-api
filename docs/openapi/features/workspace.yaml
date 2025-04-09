@@ -1,23 +1,8 @@
 paths:
-  get_workspace:
-    tags: [Workspace]
-    summary: Get workspace details
-    description: Get the details of your workspace.
-    operationId: get_workspace
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Workspace" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   init_workspace:
     tags: [Init, Workspace]
-    summary: Initialize the workspace
-    description: Initializes the workspace and returns its details.
+    summary: Initialize the Workspace
+    description: Initializes the Workspace and returns its details.
     operationId: init_workspace
     security: []
     requestBody:
@@ -34,10 +19,42 @@ paths:
         headers:
           Location: { $ref: "../shared.yaml#/components/headers/Location" }
       "409": { $ref: "#/components/responses/WorkspaceAlreadyInitialized" }
+  is_workspace_initialized:
+    tags: [Init, Workspace]
+    summary: Is the Workspace initialized?
+    description: Returns whether or not the Workspece has already been initialized.
+    operationId: is_workspace_initialized
+    security: []
+    parameters:
+      - in: header
+        name: If-Match
+        schema:
+          type: string
+          const: "*"
+        required: true
+    responses:
+      "204": { description: Workspace already initialized }
+      "412": { description: Workspace not initialized }
+      "428": { $ref: "../shared.yaml#/components/responses/PreconditionRequired" }
+  get_workspace:
+    tags: [Workspace]
+    summary: Get Workspace details
+    description: Get the details of your Workspace.
+    operationId: get_workspace
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Workspace" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   patch_workspace:
     tags: [Workspace]
-    summary: Update workspace details
-    description: Updates the workspace details and returns it.
+    summary: Update Workspace details
+    description: Updates the Workspace details and returns it.
     operationId: patch_workspace
     security:
       - BearerAuth: []
@@ -57,8 +74,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_name:
     tags: [Workspace]
-    summary: Get workspace name
-    description: Get the name of your workspace.
+    summary: Get Workspace name
+    description: Get the name of your Workspace.
     operationId: get_workspace_name
     security:
       - BearerAuth: []
@@ -73,8 +90,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_name:
     tags: [Workspace]
-    summary: Set workspace name
-    description: Set the name of your workspace.
+    summary: Set Workspace name
+    description: Set the name of your Workspace.
     operationId: set_workspace_name
     security:
       - BearerAuth: []
@@ -94,8 +111,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_accent_color:
     tags: [Workspace]
-    summary: Get workspace accent color
-    description: Get the accent color of your workspace.
+    summary: Get Workspace accent color
+    description: Get the accent color of your Workspace.
     operationId: get_workspace_accent_color
     security:
       - BearerAuth: []
@@ -110,8 +127,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_accent_color:
     tags: [Workspace]
-    summary: Set workspace accent color
-    description: Set the accent color of your workspace.
+    summary: Set Workspace accent color
+    description: Set the accent color of your Workspace.
     operationId: set_workspace_accent_color
     security:
       - BearerAuth: []
@@ -131,8 +148,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   get_workspace_icon:
     tags: [Workspace]
-    summary: Get workspace icon
-    description: Get the icon of your workspace.
+    summary: Get Workspace icon
+    description: Get the icon of your Workspace.
     operationId: get_workspace_icon
     security:
       - BearerAuth: []
@@ -147,8 +164,8 @@ paths:
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
   set_workspace_icon:
     tags: [Workspace]
-    summary: Set workspace icon
-    description: Set the icon of your workspace.
+    summary: Set Workspace icon
+    description: Set the icon of your Workspace.
     operationId: set_workspace_icon
     security:
       - BearerAuth: []
@@ -177,7 +194,7 @@ components:
       properties:
         name:
           type: string
-          description: The name of a Prose workspace.
+          description: The name of a Prose Workspace.
           example: Crisp
         icon: { $ref: "members.yaml#/components/schemas/Avatar" }
         accent_color:

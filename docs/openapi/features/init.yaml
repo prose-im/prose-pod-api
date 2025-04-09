@@ -43,3 +43,12 @@ paths:
                   const: first_account_already_created
             example:
               error: first_account_already_created
+  is_first_account_created:
+    tags: [Init]
+    summary: Is the first XMPP account created?
+    description: Returns whether or not the first account has already been created.
+    operationId: is_first_account_created
+    security: []
+    responses:
+      "204": { description: First account not created }
+      "409": { description: First account already created }

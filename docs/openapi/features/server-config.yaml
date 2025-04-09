@@ -7,15 +7,14 @@ paths:
     security: []
     parameters:
       - in: header
-        name: If-None-Match
+        name: If-Match
         schema:
           type: string
           const: "*"
         required: true
     responses:
-      "204":
-        description: XMPP server initialized
-      "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
+      "204": { description: XMPP server already initialized }
+      "412": { description: XMPP server not initialized }
       "428": { $ref: "../shared.yaml#/components/responses/PreconditionRequired" }
   init_server_config:
     tags: [Init]

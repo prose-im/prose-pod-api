@@ -25,6 +25,23 @@ paths:
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "409": { $ref: "#/components/responses/PodConfigAlreadyInitialized" }
       "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
+  is_pod_config_initialized:
+    tags: [Init, "Pod / Configuration"]
+    summary: Is the Pod config initialized?
+    description: Returns whether or not the Pod config has already been initialized.
+    operationId: is_pod_config_initialized
+    security: []
+    parameters:
+      - in: header
+        name: If-Match
+        schema:
+          type: string
+          const: "*"
+        required: true
+    responses:
+      "204": { description: Pod config already initialized }
+      "412": { description: Pod config not initialized }
+      "428": { $ref: "../shared.yaml#/components/responses/PreconditionRequired" }
   get_pod_config:
     tags: ["Pod / Configuration"]
     summary: Get Pod config
