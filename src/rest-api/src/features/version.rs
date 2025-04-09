@@ -21,19 +21,24 @@ lazy_static! {
 
 pub(super) fn router() -> axum::Router {
     axum::Router::new()
-        .route("/version", get(version_route))
-        .route("/v1/version", get(version_route))
+        .route("/version", get(get_api_version_route))
+        .route("/v1/version", get(get_api_version_route))
+        .route("/pod/version", get(get_pod_version_route))
+        .route("/v1/pod/version", get(get_pod_version_route))
 }
 
-async fn version_route() -> Json<Versions> {
-    Json(Versions {
+async fn get_api_version_route() -> Json<VersionInfo> {
+    Json(API_VERSION.clone())
+}
+
+async fn get_pod_version_route() -> Json<PodComponentsVersions> {
+    Json(PodComponentsVersions {
         api: API_VERSION.clone(),
     })
 }
 
 #[derive(Serialize, Deserialize)]
-struct Versions {
-    #[serde(rename = "self")]
+struct PodComponentsVersions {
     api: VersionInfo,
 }
 

@@ -1,9 +1,9 @@
 paths:
-  get_version:
+  get_api_version:
     tags: [Misc]
     summary: Get API version
     description: Get information about the version of the running Prose Pod API.
-    operationId: get_version
+    operationId: get_api_version
     security:
       - BasicAuth: []
     responses:
@@ -11,18 +11,31 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Versions" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+            schema: { $ref: "#/components/schemas/VersionInfo" }
+  get_pod_version:
+    tags: [Misc]
+    summary: Get Pod version
+    description: |
+      Get information about the versions of the running Prose Pod components (e.g. API, Server).
+    operationId: get_pod_version
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PodComponentsVersions" }
 components:
   schemas:
-    Versions:
+    PodComponentsVersions:
       type: object
       required:
-        - self
+        - api
       properties:
-        self:
+        api:
           $ref: "#/components/schemas/VersionInfo"
-          description: Version of the Prose Pod API itself.
+          description: Version of the Prose Pod API.
     VersionInfo:
       type: object
       required:

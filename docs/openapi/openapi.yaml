@@ -159,7 +159,9 @@ paths:
 
   # ===== Miscellaneous =====
   "/version":
-    get: { $ref: "features/version.yaml#/paths/get_version" }
+    get: { $ref: "features/version.yaml#/paths/get_api_version" }
+  "/pod/version":
+    get: { $ref: "features/version.yaml#/paths/get_pod_version" }
 
   # ===== Expert =====
   "/v1/server/config/prosody":
