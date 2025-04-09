@@ -1,8 +1,6 @@
 name: Lint & Test
 on:
   push:
-    tags:
-      - "v*.*.*"
     branches:
       - master
     # Do not run the workflow if the project hasn't changed.
@@ -17,7 +15,6 @@ on:
       - ".dockerignore"
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
-      - ".github/workflows/release.yaml"
       # We changed some packaged documentation:
       - "docs/openapi/**"
       - "src/*/static/**"

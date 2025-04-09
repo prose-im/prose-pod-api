@@ -4,6 +4,26 @@ on:
     workflows: ["Lint & Test"]
     types:
       - completed
+  push:
+    tags:
+      - "v*.*.*"
+    # Do not run the workflow if the project hasn't changed.
+    # NOTE: It will run on every tag push, but only if the `paths` filter is satisfied on the chosen `branches`
+    #   (source: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore).
+    paths:
+      # We changed the code:
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      # We changed how the image is built:
+      - "Dockerfile"
+      - ".dockerignore"
+      # We changed how the workflow is ran:
+      - ".github/workflows/release.yaml"
+      # We changed some packaged documentation:
+      - "docs/openapi/**"
+      - "src/*/static/**"
 jobs:
   create-github-release:
     if: startsWith(github.ref, 'refs/tags/') && github.event.workflow_run.conclusion == 'success'
