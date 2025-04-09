@@ -1,4 +1,19 @@
 paths:
+  can_invite_member:
+    tags: [Invitations]
+    summary: Can I invite a member?
+    description: |
+      Members cannot be invited if the user doesn’t have necessary rights or if the email notifier
+      isn’t configured in the static API configuration. This route allows checking in advance if
+      inviting a member will succeed.
+    operationId: can_invite_member
+    security:
+      - BearerAuth: []
+    responses:
+      "204": { description: User can invite members }
+      "412": { description: Static API configuration missing }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   invite_member:
     tags: [Invitations]
     summary: Invite a member

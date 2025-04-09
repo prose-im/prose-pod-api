@@ -3,6 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use axum::extract::OptionalFromRequestParts;
 use service::{auth::UserInfo, members::MemberRepository};
 
 use crate::guards::prelude::*;
@@ -31,5 +32,20 @@ impl FromRequestParts<AppState> for IsAdmin {
                 "<{jid}> is not an admin."
             ))))
         }
+    }
+}
+
+impl OptionalFromRequestParts<AppState> for IsAdmin {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        Ok(
+            <Self as FromRequestParts<AppState>>::from_request_parts(parts, state)
+                .await
+                .ok(),
+        )
     }
 }

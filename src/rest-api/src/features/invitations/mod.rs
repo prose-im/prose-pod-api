@@ -52,5 +52,6 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route("/{token}/accept", put(invitation_accept_route))
                 .route("/{token}/reject", put(invitation_reject_route)),
         )
+        .route("/v1/invitations", head(can_invite_member_route))
         .with_state(app_state)
 }

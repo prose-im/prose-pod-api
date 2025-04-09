@@ -22,7 +22,7 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, responders::Created};
+use crate::{error::prelude::*, features::auth::guards::IsAdmin, responders::Created};
 #[cfg(debug_assertions)]
 use crate::{features::members::Member, AppState};
 
@@ -113,6 +113,19 @@ pub async fn invite_member_route(
 
     let resource_uri = format!("/v1/invitations/{}", invitation.id);
     ok(invitation.into(), HeaderValue::from_str(&resource_uri)?)
+}
+
+pub async fn can_invite_member_route(
+    is_admin: Option<IsAdmin>,
+    app_config: AppConfig,
+) -> StatusCode {
+    if is_admin.is_none() {
+        StatusCode::FORBIDDEN
+    } else if app_config.notify.email.is_some() {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::PRECONDITION_FAILED
+    }
 }
 
 // ERRORS
