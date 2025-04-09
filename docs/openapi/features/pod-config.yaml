@@ -4,7 +4,8 @@ paths:
     summary: Init Pod config
     description: Initialize the configuration of the Prose Pod.
     operationId: init_pod_config
-    security: []
+    security:
+      - BearerAuth: []
     requestBody:
       required: true
       content:
