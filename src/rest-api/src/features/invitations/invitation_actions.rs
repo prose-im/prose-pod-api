@@ -37,8 +37,11 @@ pub async fn invitation_reject_route(
     invitation_service: InvitationService,
     Path(token): Path<InvitationToken>,
 ) -> Result<StatusCode, Error> {
-    invitation_service.reject_by_token(token).await?;
-    Ok(StatusCode::NO_CONTENT)
+    match invitation_service.reject_by_token(token).await {
+        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Err(InvitationRejectError::InvitationNotFound) => Ok(StatusCode::NO_CONTENT),
+        Err(InvitationRejectError::DbErr(e)) => Err(Error::from(e)),
+    }
 }
 
 /// Resend a workspace invitation.
@@ -93,16 +96,6 @@ impl CustomErrorCode for CannotAcceptInvitation {
     }
 }
 impl_into_error!(CannotAcceptInvitation);
-
-impl CustomErrorCode for InvitationRejectError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InvitationRejectError);
 
 impl CustomErrorCode for SendWorkspaceInvitationError {
     fn error_code(&self) -> ErrorCode {
