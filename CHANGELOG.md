@@ -11,14 +11,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.12.0...HEAD
 
+### Changed
+
+- chore: Remove unused `IpConnectivityStatus::Missing` case (@RemiBardon in 9ec5ec9).
+- chore: Update Redoc (@RemiBardon in 946fd0e).
+- chore(local-run): Update `demo` scenario (@RemiBardon in ae4e5df).
+- feat!: Move Pod versions to `GET /pod/version` and rename `self` to `api` (@RemiBardon in 13036b3).
+- feat!: Use `If-Match` instead of `If-None-Match` (@RemiBardon in 07b1725).
+
+### Added
+
+- feat: Add Workspace XMPP account to everyone’s rosters (@RemiBardon in #202).
+- docs(openapi): Document `GET /version` (@RemiBardon in 76a6d9e).
+- feat: Add `GET /v1/server/config/prosody` (@RemiBardon in 5b55708 in #206).
+- feat: Add `PUT|GET|DELETE /v1/server/config/prosody-overrides` (@RemiBardon in #206).
+- feat: Add `PUT|GET|DELETE /v1/server/config/prosody-overrides-raw` (@RemiBardon in #207).
+- feat(app-config): Add `debug_use_at_your_own_risk.c2s_unencrypted` (@RemiBardon in #208).
+- feat(app-config): Add `server.log_level` (@RemiBardon in #210).
+- feat(startup): Add `migrate_workspace_vcard` startup action (@RemiBardon in #209).
+- feat: Add `HEAD` routes for initialization steps (@RemiBardon in 07b1725).
+- feat: Allow checking of one can send invitations in advance (@RemiBardon in 2b58c0f).
+
+### Fixed
+
+- fix(scripts): Fix scripts so they don’t require `declare -n`. Because of this, one couldn’t
+  use the version of Bash that’s shipped by default on macOS. (@RemiBardon in 9bf1aa9).
+- fix(local-run): Expose Prosody ports `5222`, `5269`, `5280` and `5281` when running locally
+  to allow one to log into the local Prosody instance (@RemiBardon in a440982 and 3003b61).
+- fix(openapi): `PUT /v1/server/config` accepts a JSON object (@RemiBardon in 4c68734).
+- fix: Refresh service accounts OAuth tokens before they expire (@RemiBardon in #213).
+- fix: Fix API hangs when running network checks after 5 minutes (@RemiBardon in #215).
+- fix(invitations): Send emails as plain UTF-8 and HTML (@RemiBardon in #217).
+- docs(openapi): Fix description of `PUT /v1/workspace/icon` (@RemiBardon in c6f0285).
+- docs(openapi): Fix authentication of `init_pod_config` (@RemiBardon in 57cacae).
+- fix(invitations): Return `204` when rejecting a used invitation (@RemiBardon in 1bac849).
+
 ## [0.12.0] - 2025-04-02
 
 [0.12.0]: https://github.com/prose-im/prose-pod-api/compare/v0.11.0...v0.12.0
 
 ### Removed
 
-- feat(pod-config)!: Remove `type: [Static, Dynamic]` from the Pod address (@RemiBardon in 58cb3bb).
-- docs(openapi): Hide unimplemented `PUT /v1/server/config/file-storage-encryption-scheme` route (@RemiBardon in cb245ec).
+- feat(pod-config)!: Remove `type: [Static, Dynamic]` from the Pod address
+  (@RemiBardon in 58cb3bb).
+- docs(openapi): Hide unimplemented `PUT /v1/server/config/file-storage-encryption-scheme` route
+  (@RemiBardon in cb245ec).
 
 ### Changed
 
