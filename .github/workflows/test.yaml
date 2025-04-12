@@ -83,8 +83,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Ensure no debug tags are committed in feature files
-        run: |
-          grep -rEn --include='*.feature' '@(testing|debug)' . && { echo 'ERROR: Unwanted tags found.'; exit 1; } || echo 'No unwanted tags found in .feature files.'
+        run: "! grep -rEn --include='*.feature' '@(testing|debug)' ."
 
   smoke-test:
     if: github.event.pull_request.draft == false
