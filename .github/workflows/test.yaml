@@ -84,12 +84,7 @@ jobs:
 
       - name: Check unwanted tags
         run: |
-          if grep -rEn --include="*.feature" '@(testing|debug)' . ; then
-            echo "ERROR: Unwanted tags found."
-            exit 1
-          else
-            echo "No unwanted tags found in .feature files."
-          fi
+          grep -rEn --include='*.feature' '@(testing|debug)' . && { echo 'ERROR: Unwanted tags found.'; exit 1; } || echo 'No unwanted tags found in .feature files.'
 
   smoke-test:
     if: github.event.pull_request.draft == false
