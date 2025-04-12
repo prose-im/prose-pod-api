@@ -82,7 +82,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check unwanted tags
+      - name: Ensure no debug tags are committed in feature files
         run: |
           grep -rEn --include='*.feature' '@(testing|debug)' . && { echo 'ERROR: Unwanted tags found.'; exit 1; } || echo 'No unwanted tags found in .feature files.'
 
