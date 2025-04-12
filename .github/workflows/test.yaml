@@ -76,9 +76,24 @@ jobs:
       - name: Lint OpenAPI specification file
         run: docs/openapi/openapi-lint
 
+  check-no-unwanted-strings:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check unwanted tags
+        run: |
+          if  find . -type f -name "*.feature" -exec grep -En '@(testing|debug)' {} +; then
+            echo "ERROR: Unwated tags found."
+            exit 1
+          else
+            echo "No unwanted tags found in .feature files."
+          fi
+
   smoke-test:
     if: github.event.pull_request.draft == false
-    needs: [lint-rust, lint-openapi]
+    needs: [lint-rust, lint-openapi, check-no-unwanted-strings]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
