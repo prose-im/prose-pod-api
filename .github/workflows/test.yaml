@@ -84,8 +84,8 @@ jobs:
 
       - name: Check unwanted tags
         run: |
-          if  find . -type f -name "*.feature" -exec grep -En '@(testing|debug)' {} +; then
-            echo "ERROR: Unwated tags found."
+          if grep -rEn --include="*.feature" '@(testing|debug)' . ; then
+            echo "ERROR: Unwanted tags found."
             exit 1
           else
             echo "No unwanted tags found in .feature files."
