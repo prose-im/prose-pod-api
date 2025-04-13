@@ -10,12 +10,13 @@ mod get_members;
 mod guards;
 mod model;
 
+use axum::http::StatusCode;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{delete, get};
 use axum_extra::handler::HandlerCallWithExtractors as _;
 use service::members::{UserCreateError, UserDeleteError};
 
-use crate::error::{CustomErrorCode, ErrorCode, HttpApiError as _};
+use crate::error::{CustomErrorCode, ErrorCode, HttpApiError as _, LogLevel};
 use crate::util::content_type_or::*;
 use crate::{impl_into_error, AppState};
 
@@ -56,11 +57,22 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
+impl ErrorCode {
+    const MEMBER_LIMIT_REACHED: Self = Self {
+        value: "member_limit_reached",
+        http_status: StatusCode::FORBIDDEN,
+        log_level: LogLevel::Error,
+    };
+}
 impl CustomErrorCode for UserCreateError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::CouldNotCreateVCard(_)
+            | Self::XmppServerCannotCreateUser(_)
+            | Self::XmppServerCannotAddTeamMember(_)
+            | Self::XmppServerCannotSetUserRole(_) => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::LimitReached => ErrorCode::MEMBER_LIMIT_REACHED,
         }
     }
 }

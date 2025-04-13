@@ -61,6 +61,7 @@ fn then_response_success(world: &mut TestWorld) {
 }
 
 #[then("the call should not succeed")]
+#[then("the call should fail")]
 fn then_response_failure(world: &mut TestWorld) {
     world.result().assert_status_failure();
 }

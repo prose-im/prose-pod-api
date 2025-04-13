@@ -116,7 +116,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sqlite3
 
       - name: Test code in debug mode
-        run: cargo test
+        run: cargo test -F test
 
   integration-test:
     if: github.event.pull_request.draft == false

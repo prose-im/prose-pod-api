@@ -59,7 +59,7 @@ async fn get_workspace_invitation_by_token(
     .await
 }
 
-async fn accept_workspace_invitation(
+pub(super) async fn accept_workspace_invitation(
     api: &TestServer,
     token: Uuid,
     nickname: String,

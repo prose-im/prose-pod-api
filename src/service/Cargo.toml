@@ -74,6 +74,10 @@ xmpp-parsers = { workspace = true }
 cucumber = { workspace = true, features = ["macros"] }
 insta = { workspace = true }
 
+[features]
+default = []
+test = []
+
 [[test]]
 name = "behavior"
 harness = false

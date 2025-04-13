@@ -78,7 +78,8 @@ impl CustomErrorCode for InvitationAcceptError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::DbErr(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
+            Self::CouldNotCreateUser(err) => err.code(),
+            Self::CouldNotAcceptInvitation(_) => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
