@@ -76,9 +76,18 @@ jobs:
       - name: Lint OpenAPI specification file
         run: docs/openapi/openapi-lint
 
+  check-no-unwanted-strings:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Ensure no debug tags are committed in feature files
+        run: "! grep -rEn --include='*.feature' '@(testing|debug)' ."
+
   smoke-test:
     if: github.event.pull_request.draft == false
-    needs: [lint-rust, lint-openapi]
+    needs: [lint-rust, lint-openapi, check-no-unwanted-strings]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
