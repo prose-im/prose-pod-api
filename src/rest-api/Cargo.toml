@@ -79,6 +79,10 @@ doc = false
 name = "prose_pod_api"
 path = "src/lib.rs"
 
+[features]
+default = []
+test = ["service/test"]
+
 [[test]]
 name = "behavior"
 harness = false

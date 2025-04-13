@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm::{ConnectionTrait, DbErr, TransactionTrait};
 use secrecy::SecretString;
 
 use crate::{
@@ -40,17 +40,21 @@ impl UnauthenticatedMemberService {
 }
 
 impl UnauthenticatedMemberService {
-    pub async fn create_user(
+    pub async fn create_user<DB: ConnectionTrait + TransactionTrait>(
         &self,
-        db: &impl ConnectionTrait,
+        db: &DB,
         jid: &BareJid,
         password: &SecretString,
         nickname: &str,
         role: &Option<MemberRole>,
     ) -> Result<Member, UserCreateError> {
+        // Start a database transaction so we can roll back
+        // if the member limit is reached.
+        let txn = db.begin().await?;
+
         // Create the user in database
         let member = MemberRepository::create(
-            db,
+            &txn,
             MemberCreateForm {
                 jid: jid.to_owned(),
                 role: role.to_owned(),
@@ -58,6 +62,17 @@ impl UnauthenticatedMemberService {
             },
         )
         .await?;
+
+        // Check if the member limit is reached.
+        let count = MemberRepository::count(&txn).await?;
+        if count > MEMBER_LIMIT.as_u64() {
+            txn.rollback().await?;
+            return Err(UserCreateError::LimitReached);
+        }
+
+        // Try to commit the transaction before performing
+        // non-transactional XMPP server changes.
+        txn.commit().await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -108,6 +123,55 @@ impl UnauthenticatedMemberService {
     }
 }
 
+#[cfg(not(feature = "test"))]
+#[doc(hidden)]
+#[repr(transparent)]
+struct MemberLimit(u32);
+
+#[cfg(not(feature = "test"))]
+lazy_static::lazy_static! {
+    /// WARNING: Any attempt to reverse-engineer the Prose Pod API
+    ///   for the purpose of bypassing or removing the member limit,
+    ///   is strictly prohibited and may expose you to legal action.
+    #[doc(hidden)]
+    static ref MEMBER_LIMIT: MemberLimit = {
+        const MARKER: u128 = u128::from_be(0x128A21444f5f4e4f545f4d4f44494659u128);
+        // Prevent `100` from appearing in the binary to prevent tampering.
+        static VALUE: u128 = 100u128 | MARKER;
+        // NOTE: `read_volatile` prevents `MARKER` from being optimized away.
+        let value: u128 = unsafe { std::ptr::read_volatile(&VALUE as *const u128) };
+        // Remove `MARKER`.
+        MemberLimit((value ^ MARKER) as u32)
+    };
+}
+
+#[cfg(not(feature = "test"))]
+impl MemberLimit {
+    fn as_u64(&self) -> u64 {
+        self.0 as u64
+    }
+}
+
+#[cfg(feature = "test")]
+#[doc(hidden)]
+#[repr(transparent)]
+pub struct MemberLimit(pub std::sync::atomic::AtomicU32);
+
+#[cfg(feature = "test")]
+lazy_static::lazy_static! {
+    #[doc(hidden)]
+    pub static ref MEMBER_LIMIT: MemberLimit = {
+        MemberLimit(std::sync::atomic::AtomicU32::new(100))
+    };
+}
+
+#[cfg(feature = "test")]
+impl MemberLimit {
+    fn as_u64(&self) -> u64 {
+        self.0.load(std::sync::atomic::Ordering::Relaxed) as u64
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum UserCreateError {
     #[error("Database error: {0}")]
@@ -120,4 +184,6 @@ pub enum UserCreateError {
     XmppServerCannotAddTeamMember(ServerCtlError),
     #[error("XMPP server cannot set user role: {0}")]
     XmppServerCannotSetUserRole(ServerCtlError),
+    #[error("Member limit reached.")]
+    LimitReached,
 }

@@ -65,7 +65,7 @@ tasks:
 
   smoke-test:
     desc: Runs smoke tests.
-    cmd: cargo test --test behavior -- {{.CLI_ARGS}}
+    cmd: cargo test --test behavior -F test -- {{.CLI_ARGS}}
 
   integration-test:
     desc: Runs integration tests.

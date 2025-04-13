@@ -47,6 +47,7 @@ fn given_workspace_not_initialized(_world: &mut TestWorld) {
 }
 
 #[given("the workspace has been initialized")]
+#[given("the Workspace has been initialized")]
 async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
     let workspace = Workspace {
         name: DEFAULT_WORKSPACE_NAME.to_string(),

@@ -19,11 +19,11 @@ use service::{
     dependencies,
     errors::DbErr,
     init::InitService,
-    invitations::Invitation,
+    invitations::{Invitation, InvitationService},
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
     network_checks::NetworkChecker,
-    notifications::{notifier::email::EmailNotification, Notifier},
+    notifications::{notifier::email::EmailNotification, NotificationService, Notifier},
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
@@ -133,6 +133,18 @@ impl TestWorld {
             Arc::new(self.secrets_store.clone()),
         )
         .expect("Workspace not initialized")
+    }
+
+    pub fn invitation_service(&self) -> InvitationService {
+        InvitationService::new(
+            self.db().clone(),
+            self.uuid_gen.clone(),
+            self.member_service(),
+        )
+    }
+
+    pub fn notifcation_service(&self) -> NotificationService {
+        NotificationService::new(self.email_notifier.clone())
     }
 
     pub async fn opt_server_config_model(&self) -> Result<Option<server_config::Model>, DbErr> {
