@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use sea_orm::{ConnectionTrait, DbErr, TransactionTrait};
 use secrecy::SecretString;
+use tracing::instrument;
 
 use crate::{
     auth::AuthService,
@@ -40,6 +41,14 @@ impl UnauthenticatedMemberService {
 }
 
 impl UnauthenticatedMemberService {
+    #[instrument(
+        level = "trace",
+        skip_all, fields(
+            jid = jid.to_string(),
+            role = role.as_ref().map(ToString::to_string),
+        ),
+        err,
+    )]
     pub async fn create_user<DB: ConnectionTrait + TransactionTrait>(
         &self,
         db: &DB,

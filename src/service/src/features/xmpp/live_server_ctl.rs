@@ -8,6 +8,7 @@ use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 use reqwest::Method;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
+use tracing::instrument;
 
 use crate::{
     members::MemberRole,
@@ -34,6 +35,7 @@ impl LiveServerCtl {
 
 #[async_trait::async_trait]
 impl ServerCtlImpl for LiveServerCtl {
+    #[instrument(name = "server_ctl::wait_until_ready", level = "trace", skip_all, err)]
     async fn wait_until_ready(&self) -> Result<(), server_ctl::Error> {
         let start = Instant::now();
         let timeout = Duration::from_secs(10);
@@ -56,6 +58,7 @@ impl ServerCtlImpl for LiveServerCtl {
         Ok(())
     }
 
+    #[instrument(name = "server_ctl::save_config", level = "trace", skip_all, err)]
     async fn save_config(
         &self,
         server_config: &ServerConfig,
@@ -74,6 +77,7 @@ impl ServerCtlImpl for LiveServerCtl {
 
         Ok(())
     }
+    #[instrument(name = "server_ctl::reset_config", level = "trace", skip_all, err)]
     async fn reset_config(
         &self,
         init_admin_password: &SecretString,
@@ -94,6 +98,7 @@ impl ServerCtlImpl for LiveServerCtl {
 
         Ok(())
     }
+    #[instrument(name = "server_ctl::reload", level = "trace", skip_all, err)]
     async fn reload(&self) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .call(|client| client.put(self.admin_rest.url("reload")))
@@ -101,6 +106,11 @@ impl ServerCtlImpl for LiveServerCtl {
             .map(|_| ())
     }
 
+    #[instrument(
+        name = "server_ctl::add_user", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     async fn add_user(
         &self,
         jid: &BareJid,
@@ -120,6 +130,11 @@ impl ServerCtlImpl for LiveServerCtl {
 
         Ok(())
     }
+    #[instrument(
+        name = "server_ctl::remove_user", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     async fn remove_user(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .call(|client| {
@@ -134,6 +149,14 @@ impl ServerCtlImpl for LiveServerCtl {
         Ok(())
     }
 
+    #[instrument(
+        name = "server_ctl::set_user_role", level = "trace",
+        skip_all, fields(
+            jid = jid.to_string(),
+            role = role.to_string(),
+        ),
+        err,
+    )]
     async fn set_user_role(
         &self,
         jid: &BareJid,
@@ -152,6 +175,11 @@ impl ServerCtlImpl for LiveServerCtl {
             .await
             .map(|_| ())
     }
+    #[instrument(
+        name = "server_ctl::set_user_password", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     async fn set_user_password(
         &self,
         jid: &BareJid,
@@ -171,12 +199,22 @@ impl ServerCtlImpl for LiveServerCtl {
             .map(|_| ())
     }
 
+    #[instrument(
+        name = "server_ctl::add_team_member", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     async fn add_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .update_team_members(Method::PUT, jid)
             .await?;
         Ok(())
     }
+    #[instrument(
+        name = "server_ctl::remove_team_member", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     async fn remove_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .update_team_members(Method::DELETE, jid)
@@ -184,6 +222,7 @@ impl ServerCtlImpl for LiveServerCtl {
         Ok(())
     }
 
+    #[instrument(name = "server_ctl::delete_all_data", level = "trace", skip_all, err)]
     async fn delete_all_data(&self) -> Result<(), server_ctl::Error> {
         self.admin_rest
             .call(|client| client.delete(self.admin_rest.url("certs")))
