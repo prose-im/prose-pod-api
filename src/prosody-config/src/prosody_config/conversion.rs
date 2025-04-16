@@ -20,6 +20,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             pidfile,
             admins,
             authentication,
+            default_storage,
             storage,
             log,
             interfaces,
@@ -76,6 +77,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 None,
                 vec![
                     option_def(None, "authentication", authentication),
+                    option_def(None, "default_storage", default_storage),
                     option_def(None, "storage", storage),
                 ],
             ),

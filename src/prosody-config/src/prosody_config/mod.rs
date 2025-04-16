@@ -74,6 +74,7 @@ pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
     pub admins: Option<LinkedHashSet<JID>>,
     pub authentication: Option<AuthenticationProvider>,
+    pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,
     pub log: Option<LogConfig>,
     pub interfaces: Option<Vec<Interface>>,
