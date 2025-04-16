@@ -243,6 +243,7 @@ pub enum Interface {
     #[strum(serialize = "::1")]
     AllIPv6,
     /// IPv4 or IPv6 address.
+    #[strum(transparent)]
     Address(String),
 }
 
@@ -410,6 +411,7 @@ pub enum SslProtocol {
     #[strum(serialize = "tlsv1_3+")]
     Tlsv1_3OrMore,
     /// A custom value, for future-proofing.
+    #[strum(transparent)]
     Other(String),
 }
 
@@ -431,6 +433,7 @@ pub enum SslVerificationOption {
     /// Fail if the peer does not present a certificate.
     FailIfNoPeerCert,
     /// A custom value, for future-proofing.
+    #[strum(transparent)]
     Other(String),
 }
 
@@ -439,6 +442,7 @@ pub enum SslVerificationOption {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[serde(transparent)]
 pub struct SslOption(String);
 
 /// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.
@@ -470,6 +474,7 @@ pub enum ExtraVerificationOption {
     /// Ignore the certificate’s “purpose” flags.
     LsecIgnorePurpose,
     /// A custom value, for future-proofing.
+    #[strum(transparent)]
     Other(String),
 }
 

@@ -17,5 +17,8 @@ fn test_serializing_enums() -> Result<(), serde_json::Error> {
     );
     assert_eq!(serde_json::to_string(&storage)?, r#"{"roster":"sql"}"#);
 
+    let interface = Interface::Address("127.0.0.1".to_owned());
+    assert_eq!(serde_json::to_string(&interface)?, r#""127.0.0.1""#);
+
     Ok(())
 }
