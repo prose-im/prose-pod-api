@@ -1,0 +1,58 @@
+---
+source: src/prosody-config/tests/serde.rs
+assertion_line: 155
+expression: config_json
+---
+{
+  "global_settings": {
+    "pidfile": "/var/run/prosody/prosody.pid",
+    "admins": [
+      "remi@prose.org.local"
+    ],
+    "authentication": "InternalHashed",
+    "storage": {
+      "Raw": "Internal"
+    },
+    "log": {
+      "Map": {
+        "Info": "Console",
+        "Warn": "Console",
+        "Error": "Console"
+      }
+    },
+    "interfaces": [
+      "AllIPv4"
+    ],
+    "c2s_ports": [
+      5222
+    ],
+    "http_interfaces": [
+      "AllIPv4"
+    ]
+  },
+  "additional_sections": [
+    {
+      "VirtualHost": {
+        "hostname": "example.org",
+        "settings": {}
+      }
+    },
+    {
+      "Component": {
+        "hostname": "groups.prose.org.local",
+        "plugin": "muc",
+        "name": "Chatrooms",
+        "settings": {
+          "modules_enabled": [
+            "muc_mam"
+          ],
+          "max_archive_query_results": 100,
+          "restrict_room_creation": "DomainOnly",
+          "muc_log_all_rooms": true,
+          "muc_log_by_default": true,
+          "muc_log_expires_after": "Infinite"
+        }
+      }
+    }
+  ]
+}
