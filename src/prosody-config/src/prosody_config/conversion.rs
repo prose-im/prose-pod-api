@@ -22,6 +22,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             authentication,
             default_storage,
             storage,
+            sql,
             log,
             interfaces,
             c2s_ports,
@@ -71,14 +72,15 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
 
         push_if_some(&mut res, option_def(None, "pidfile", pidfile));
         push_if_some(&mut res, option_def(None, "admins", admins));
+        push_if_some(&mut res, option_def(None, "authentication", authentication));
         push_if_some(
             &mut res,
             Group::flattened(
                 None,
                 vec![
-                    option_def(None, "authentication", authentication),
                     option_def(None, "default_storage", default_storage),
                     option_def(None, "storage", storage),
+                    option_def(None, "sql", sql),
                 ],
             ),
         );
@@ -295,6 +297,44 @@ impl ProsodyConfig {
     }
 }
 
+// ===== LuaValue mappings =====
+
+macro_rules! enum_to_lua_string {
+    ($t:ty) => {
+        impl Into<LuaValue> for $t {
+            fn into(self) -> LuaValue {
+                self.to_string().into()
+            }
+        }
+    };
+}
+macro_rules! insert_in_map {
+    ($map:ident $value:ident) => {
+        if let Some($value) = $value {
+            $map.insert(stringify!($value).to_string(), $value.into());
+        }
+    };
+    ($map:ident $head:ident $(, $tail:ident)* $(,)?) => {
+        insert_in_map!($map $head);
+        $(insert_in_map!($map $tail);)*
+    };
+}
+macro_rules! struct_to_lua_map {
+    ($t:ty, keys: $head:ident $(, $tail:ident)* $(,)?) => {
+        impl Into<LuaValue> for $t {
+            fn into(self) -> LuaValue {
+                let Self {
+                    $head,
+                    $($tail,)*
+                } = self;
+                let mut map: LinkedHashMap<String, LuaValue> = LinkedHashMap::new();
+                insert_in_map!(map $head, $($tail,)*);
+                map.into()
+            }
+        }
+    };
+}
+
 impl Into<LuaValue> for JID {
     fn into(self) -> LuaValue {
         self.to_string().into()
@@ -329,19 +369,17 @@ impl Into<LuaValue> for StorageConfig {
         }
     }
 }
+enum_to_lua_string!(StorageBackend);
 
-impl Into<LuaValue> for StorageBackend {
-    fn into(self) -> LuaValue {
-        match self {
-            Self::Internal => "internal",
-            Self::SQL => "sql",
-            Self::Memory => "memory",
-            Self::Null => "null",
-            Self::None => "none",
-        }
-        .into()
-    }
-}
+struct_to_lua_map!(SqlConfig, keys:
+    driver,
+    database,
+    host,
+    port,
+    username,
+    password,
+);
+enum_to_lua_string!(SqlDriver);
 
 impl Into<LuaValue> for LogConfig {
     fn into(self) -> LuaValue {

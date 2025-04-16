@@ -13,6 +13,7 @@ pidfile = "/var/run/prosody/prosody.pid"
 admins = { "prose-pod-api@admin.prose.org.local" }
 
 authentication = "internal_hashed"
+
 storage = "internal"
 
 log = {
