@@ -195,12 +195,15 @@ pub enum AuthenticationProvider {
 
 /// See <https://prosody.im/doc/storage>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
+    #[serde(untagged)]
     Raw(StorageBackend),
     /// A map of values (e.g. `storage = {
     ///   roster = "sql";
     /// }`).
+    #[serde(untagged)]
     Map(LinkedHashMap<String, StorageBackend>),
 }
 
