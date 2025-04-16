@@ -225,12 +225,18 @@ impl Default for ConfigServer {
 pub struct ConfigProsody {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
+    /// NOTE: Those modules will be added to `modules_enabled` after everything
+    ///   else has been applied (apart from dynamic overrides, which are always
+    ///   applied last).
+    #[serde(default)]
+    pub additional_modules_enabled: Vec<String>,
 }
 
 impl Default for ConfigProsody {
     fn default() -> Self {
         Self {
             config_file_path: defaults::prosody_config_file_path(),
+            additional_modules_enabled: Default::default(),
         }
     }
 }

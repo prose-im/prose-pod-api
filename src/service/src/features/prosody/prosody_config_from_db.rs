@@ -92,6 +92,10 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
         ));
     }
 
+    for module in app_config.prosody.additional_modules_enabled.iter() {
+        config.global_settings.enable_module(module.clone());
+    }
+
     if let Some(overrides) = model.prosody_overrides {
         match serde_json::from_value::<ProsodyOverrides>(overrides) {
             Ok(overrides) => {
