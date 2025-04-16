@@ -22,7 +22,7 @@ use figment::{
 };
 use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
-use prosody_config::StorageConfig;
+use prosody_config::{StorageBackend, StorageConfig};
 use secrecy::SecretString;
 use serde::Deserialize;
 
@@ -226,6 +226,8 @@ impl Default for ConfigServer {
 pub struct ConfigProsody {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
+    #[serde(default = "defaults::prosody_default_storage")]
+    pub default_storage: StorageBackend,
     #[serde(default)]
     pub storage: Option<StorageConfig>,
     /// NOTE: Those modules will be added to `modules_enabled` after everything
@@ -239,6 +241,7 @@ impl Default for ConfigProsody {
     fn default() -> Self {
         Self {
             config_file_path: defaults::prosody_config_file_path(),
+            default_storage: defaults::prosody_default_storage(),
             storage: Default::default(),
             additional_modules_enabled: Default::default(),
         }

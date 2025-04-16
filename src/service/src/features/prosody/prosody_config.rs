@@ -124,7 +124,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             global_settings: ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),
                 authentication: Some(AuthenticationProvider::InternalHashed),
-                default_storage: Some(StorageBackend::Internal),
+                default_storage: Some(app_config.prosody.default_storage),
                 storage: app_config.prosody.storage.clone(),
                 log: Some(LogConfig::Map(
                     vec![(

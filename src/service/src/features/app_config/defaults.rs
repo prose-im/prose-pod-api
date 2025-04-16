@@ -12,6 +12,7 @@ use std::{
 };
 
 use linked_hash_set::LinkedHashSet;
+use prosody_config::StorageBackend;
 use rand::RngCore as _;
 use secrecy::SecretString;
 
@@ -163,6 +164,10 @@ pub fn server_defaults_push_notification_with_sender() -> bool {
 
 pub fn prosody_config_file_path() -> PathBuf {
     PathBuf::from("/etc/prosody/prosody.cfg.lua")
+}
+
+pub fn prosody_default_storage() -> StorageBackend {
+    StorageBackend::Internal
 }
 
 pub fn branding_page_title() -> String {

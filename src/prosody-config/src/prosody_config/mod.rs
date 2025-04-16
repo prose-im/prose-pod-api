@@ -209,7 +209,7 @@ pub enum StorageConfig {
 }
 
 /// See <https://prosody.im/doc/storage#backends>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),

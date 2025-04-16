@@ -23,7 +23,7 @@ pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyCo
         global_settings: prosody_config::ProsodySettings {
             pidfile: Some("/var/run/prosody/prosody.pid".into()),
             authentication: Some(AuthenticationProvider::InternalHashed),
-            default_storage: Some(StorageBackend::Internal),
+            default_storage: Some(app_config::defaults::prosody_default_storage()),
             log: Some(LogConfig::Map(
                 vec![(LogLevel::Debug, LogLevelValue::Console)]
                     .into_iter()
