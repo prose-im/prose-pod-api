@@ -64,6 +64,8 @@ pub struct AppConfig {
     #[serde(default)]
     pub server: ConfigServer,
     #[serde(default)]
+    pub prosody: ConfigProsody,
+    #[serde(default)]
     pub branding: ConfigBranding,
     #[serde(default)]
     pub notify: ConfigNotify,
@@ -174,8 +176,6 @@ pub struct ConfigServer {
     pub local_hostname_admin: String,
     #[serde(default = "defaults::server_http_port")]
     pub http_port: u16,
-    #[serde(default = "defaults::server_prosody_config_file_path")]
-    pub prosody_config_file_path: PathBuf,
     #[serde(default = "defaults::server_oauth2_registration_key")]
     pub oauth2_registration_key: SecretString,
     #[serde(default = "defaults::server_oauth2_access_token_ttl")]
@@ -213,11 +213,24 @@ impl Default for ConfigServer {
             local_hostname: defaults::server_local_hostname(),
             local_hostname_admin: defaults::server_local_hostname_admin(),
             http_port: defaults::server_http_port(),
-            prosody_config_file_path: defaults::server_prosody_config_file_path(),
             oauth2_registration_key: defaults::server_oauth2_registration_key(),
             oauth2_access_token_ttl: defaults::server_oauth2_access_token_ttl(),
             log_level: defaults::server_log_level(),
             defaults: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigProsody {
+    #[serde(default = "defaults::prosody_config_file_path")]
+    pub config_file_path: PathBuf,
+}
+
+impl Default for ConfigProsody {
+    fn default() -> Self {
+        Self {
+            config_file_path: defaults::prosody_config_file_path(),
         }
     }
 }

@@ -68,10 +68,6 @@ pub fn server_http_port() -> u16 {
     5280
 }
 
-pub fn server_prosody_config_file_path() -> PathBuf {
-    PathBuf::from("/etc/prosody/prosody.cfg.lua")
-}
-
 pub fn server_oauth2_registration_key() -> SecretString {
     let mut key = [0u8; 256];
     rand::thread_rng().fill_bytes(&mut key);
@@ -163,6 +159,10 @@ pub fn server_defaults_push_notification_with_body() -> bool {
 
 pub fn server_defaults_push_notification_with_sender() -> bool {
     false
+}
+
+pub fn prosody_config_file_path() -> PathBuf {
+    PathBuf::from("/etc/prosody/prosody.cfg.lua")
 }
 
 pub fn branding_page_title() -> String {

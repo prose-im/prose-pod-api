@@ -27,7 +27,7 @@ pub struct LiveServerCtl {
 impl LiveServerCtl {
     pub fn from_config(config: &AppConfig, admin_rest: Arc<ProsodyAdminRest>) -> Self {
         Self {
-            config_file_path: config.server.prosody_config_file_path.to_owned(),
+            config_file_path: config.prosody.config_file_path.to_owned(),
             admin_rest,
         }
     }
