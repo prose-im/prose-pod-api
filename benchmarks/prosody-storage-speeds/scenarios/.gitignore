@@ -1,0 +1,18 @@
+/*
+!.git*
+
+# Do not ignore base scenario files
+!default/
+!internal/
+!sqlite/
+!appendmap/
+
+!*/local-run.env
+
+*/prosody/data
+*/prosody/config/*
+!*/prosody/config/prosody.initial.cfg.lua
+*/coredns
+*.zone
+*.sqlite
+*.db

@@ -10,10 +10,10 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 # ===== CONSTANTS =====
 
 : ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
-DEMO_DATA_DIR="${REPOSITORY_ROOT:?}/local-run/demo-data"
-SCENARIOS_DIR="${REPOSITORY_ROOT:?}/local-run/scenarios"
+DEMO_DATA_DIR="${REPOSITORY_ROOT:?}"/local-run/demo-data
+: ${SCENARIOS_DIR:="${REPOSITORY_ROOT:?}"/local-run/scenarios}
 
-SCENARIO_NAME='demo'
+: ${SCENARIO_NAME:=demo}
 
 source "${DEMO_DATA_DIR:?}/constants.sh"
 

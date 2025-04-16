@@ -1,0 +1,10 @@
+# syntax=docker/dockerfile:1.7-labs
+
+ARG TAG
+
+FROM proseim/prose-pod-server:${TAG}
+
+USER root
+RUN apk update && apk add sqlite lua5.4-dbi-sqlite3
+
+USER prosody:prosody

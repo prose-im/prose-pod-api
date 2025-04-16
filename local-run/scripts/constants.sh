@@ -6,7 +6,7 @@
 LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 : ${COMPOSE_FILE:="${LOCAL_RUN_DIR:?}"/compose.yaml}
 DEFAULT_SCENARIO_NAME=default
-SCENARIOS_DIR="${LOCAL_RUN_DIR:?}"/scenarios
+: ${SCENARIOS_DIR:="${LOCAL_RUN_DIR:?}"/scenarios}
 EPHEMERAL_SCENARIO_NAME_FILE="${SCENARIOS_DIR:?}"/last-ephemeral-scenario-name.txt
 
 source "${SCRIPTS_ROOT:?}"/constants.sh

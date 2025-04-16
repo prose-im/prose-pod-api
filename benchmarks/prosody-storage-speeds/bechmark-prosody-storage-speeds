@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${PROSE_POD_API_DIR:="$(realpath "$(dirname $0)"/../..)"}
+export PROSE_POD_API_DIR
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+export REPOSITORY_ROOT
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+BENCHMARK_DIR="${REPOSITORY_ROOT:?}"/benchmarks/prosody-storage-speeds
+: ${SCENARIOS_DIR:="${BENCHMARK_DIR:?}"/scenarios}
+export SCENARIOS_DIR
+EPHEMERAL_SCENARIO_NAME_FILE="${SCENARIOS_DIR:?}"/last-ephemeral-scenario-name.txt
+
+export PROSE_POD_API_IMAGE_TAG='0.14.0'
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT='0.3.14'
+
+if ! which gdate >/dev/null; then
+	echo 'date doesn’t support milliseconds. Please install gdate.' >&2
+	echo 'On macOS, you can use `brew install coreutils`.' >&2
+	exit 1
+fi
+
+SUMMARY_FILE="${BENCHMARK_DIR:?}/results.md"
+REPETITIONS=10
+
+export LOG_TRACE=1
+
+if [ -f "${SUMMARY_FILE:?}" ]; then
+	# Create a backup of the previous results.
+	mv "${SUMMARY_FILE:?}" "${SUMMARY_FILE%'.md'}.$(date +%s).bak.md"
+fi
+
+write() {
+	printf "%b" "$@\n" >> "${SUMMARY_FILE:?}"
+}
+
+git checkout "v${PROSE_POD_API_IMAGE_TAG:?}"
+export PROSE_POD_API_IMAGE_TAG=bench
+# NOTE: We need to build the API locally because we need to use `debug_only`
+#   configuration.
+task build-image -- --tag="${PROSE_POD_API_IMAGE_TAG:?}" --profile=dev --locked
+
+write '# Prosody storages benchmark results (`'"$(date -Iseconds -u)"'`)\n'
+
+test-storage() {
+	SCENARIO_NAME=${1:?"Must pass a storage (scenario name)"}
+	export SCENARIO_NAME
+	SCENARIO_DIR="${SCENARIOS_DIR:?}/${SCENARIO_NAME:?}"
+
+	if [ -f "${SCENARIO_DIR:?}"/Dockerfile.server ]; then
+		export PROSE_POD_SERVER_IMAGE_TAG=bench
+		docker build -f "${SCENARIO_DIR:?}"/Dockerfile.server \
+			-t proseim/prose-pod-server:"${PROSE_POD_SERVER_IMAGE_TAG:?}" \
+			--build-arg TAG="${PROSE_POD_SERVER_IMAGE_TAG_DEFAULT:?}" \
+			.
+	else
+		export PROSE_POD_SERVER_IMAGE_TAG="${PROSE_POD_SERVER_IMAGE_TAG_DEFAULT:?}"
+	fi
+
+	write '## `'"$*"'`\n'
+
+	# Generate demo data if needed.
+	# NOTE: `prosody/data` isn’t committed, to reduce repository bloat.
+	if ! [ -d "${SCENARIO_DIR:?}/prosody/data" ]; then
+		. "${LOCAL_RUN_DIR:?}"/scripts/make-demo-scenario
+	fi
+
+	echo Running the API…
+	unset SCENARIO_DIR
+	task local:run -- --ephemeral --detach --no-update
+
+	# Read ephemeral scenario name.
+	SCENARIO_NAME="$(tail -n 1 "${EPHEMERAL_SCENARIO_NAME_FILE:?}")"
+	SCENARIO_DIR="${SCENARIOS_DIR:?}/${SCENARIO_NAME:?}"
+
+	if [ "${1-}" == sqlite ] && [ "${2-}" == 'journal_mode=WAL' ]; then
+		echo 'Setting `PRAGMA journal_mode=WAL` in `prosody.sqlite`…'
+		docker run --rm --entrypoint sqlite3 \
+			-v "${SCENARIO_DIR:?}"/prosody/data/prosody.sqlite:/var/lib/prosody/prosody.sqlite \
+			proseim/prose-pod-server:"${PROSE_POD_SERVER_IMAGE_TAG:?}" \
+			/var/lib/prosody/prosody.sqlite \
+			'PRAGMA journal_mode=WAL;'
+	fi
+
+	ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@prose-demo.org.local:demo' -b | jq -r '.token')"
+
+	add-member-n() {
+		local n="${1:?}"
+		echo "Add member ${n} (via auto-accepted invitation)"
+		xh POST :8080/v1/invitations -q \
+			auto_accept==true \
+			username="member.${n}" \
+			channel=email \
+			email_address="member.${n}@example.org" \
+			-A bearer -a "${ADMIN_TOKEN:?}"
+	}
+	delete-member-n() {
+		local n="${1:?}"
+		xh DELETE :8080/v1/members/"member.${n}@prose-demo.org.local" -q \
+			-A bearer -a "${ADMIN_TOKEN:?}"
+	}
+
+	local test_member member_count
+	write "| member # | min.   | max.   | avg.   |"
+	write "| -------- | ------ | ------ | ------ |"
+	for test_member in 25 50 75 100; do
+		member_count="$(xh GET :8080/v1/members page_size==1 -h -A bearer -a "${ADMIN_TOKEN:?}" | grep '^Pagination-Item-Count:' | cut -d' ' -f2-)"
+
+		for n in $(seq $(( member_count + 1 )) $(( test_member - 1 ))); do
+			add-member-n "${n:?}"
+		done
+
+		echo "Performing the benchmark…"
+		local total_ms=0 min_ms=999999 max_ms=0 start_ms end_ms duration_ms
+		for n in $(seq 1 ${REPETITIONS:?}); do
+			# NOTE: We cannot use `test_member` only to create JIDs as rosters aren’t
+			#   cleaned up properly when deleting a member and that would speed up
+			#   subsequent subscriptions.
+			member_n="${test_member:?}-$(gdate +%s%3N)"
+
+			start_ms=$(gdate +%s%3N)
+			add-member-n ${member_n:?}
+			end_ms=$(gdate +%s%3N)
+
+			duration_ms=$(( end_ms - start_ms ))
+			echo "[$n] Took ${duration_ms:?}ms."
+			max_ms=$(( duration_ms > max_ms ? duration_ms : max_ms ))
+			min_ms=$(( duration_ms < min_ms ? duration_ms : min_ms ))
+			total_ms=$(( total_ms + duration_ms ))
+
+			delete-member-n ${member_n:?}
+		done
+		write "| $(printf "%-3d" "$test_member")      | $(printf "%4d" "$min_ms")ms | $(printf "%4d" "$max_ms")ms | $(printf "%4d" "$(( total_ms / REPETITIONS ))")ms |"
+	done
+
+	echo Stopping the API…
+	task local:stop
+}
+
+test-storage internal
+write ""
+test-storage appendmap
+write ""
+test-storage sqlite
+write ""
+test-storage sqlite 'journal_mode=WAL'
