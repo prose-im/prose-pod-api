@@ -22,7 +22,11 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             authentication,
             default_storage,
             storage,
+            storage_archive_item_limit,
+            storage_archive_item_limit_cache_size,
             sql,
+            sql_manage_tables,
+            sqlite_tune,
             log,
             interfaces,
             c2s_ports,
@@ -80,7 +84,19 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "default_storage", default_storage),
                     option_def(None, "storage", storage),
+                    option_def(
+                        None,
+                        "storage_archive_item_limit",
+                        storage_archive_item_limit,
+                    ),
+                    option_def(
+                        None,
+                        "storage_archive_item_limit_cache_size",
+                        storage_archive_item_limit_cache_size,
+                    ),
                     option_def(None, "sql", sql),
+                    option_def(None, "sql_manage_tables", sql_manage_tables),
+                    option_def(None, "sqlite_tune", sqlite_tune),
                 ],
             ),
         );
@@ -380,6 +396,7 @@ struct_to_lua_map!(SqlConfig, keys:
     password,
 );
 enum_to_lua_string!(SqlDriver);
+enum_to_lua_string!(SqliteTune);
 
 impl Into<LuaValue> for LogConfig {
     fn into(self) -> LuaValue {

@@ -76,7 +76,11 @@ pub struct ProsodySettings {
     pub authentication: Option<AuthenticationProvider>,
     pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,
+    pub storage_archive_item_limit: Option<u32>,
+    pub storage_archive_item_limit_cache_size: Option<u32>,
     pub sql: Option<SqlConfig>,
+    pub sql_manage_tables: Option<bool>,
+    pub sqlite_tune: Option<SqliteTune>,
     pub log: Option<LogConfig>,
     pub interfaces: Option<Vec<Interface>>,
     pub c2s_ports: Option<Vec<u16>>,
@@ -272,6 +276,21 @@ pub enum SqlDriver {
     Sqlite3,
     #[strum(serialize = "MySQL")]
     MySql,
+}
+
+/// See <https://hg.prosody.im/trunk/file/5611ce3bc54c/plugins/mod_storage_sql.lua#l974>.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
+    derive(strum::Display, strum::EnumString)
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum SqliteTune {
+    Default,
+    Normal,
+    Fast,
+    Safe,
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
