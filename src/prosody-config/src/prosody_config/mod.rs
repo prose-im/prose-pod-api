@@ -210,7 +210,7 @@ pub enum StorageConfig {
 }
 
 /// See <https://prosody.im/doc/storage#backends>.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -221,13 +221,17 @@ pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
     /// SQL database support.
-    SQL,
+    Sql,
     /// Keeps data in memory only, intended for tests, **not for production**.
     Memory,
     /// Built-in backend that always fails to load/save data.
     Null,
     /// Backend where all stores are always empty and saving data always fails.
     None,
+    /// Backends can be extended (e.g. [mod_storage_appendmap - Prosody Community Modules](https://modules.prosody.im/mod_storage_appendmap.html)).
+    /// This case handles unknown backends.
+    #[strum(transparent, default)]
+    Other(String),
 }
 
 /// See [mod_storage_sql – Prosody IM](https://prosody.im/doc/modules/mod_storage_sql).
