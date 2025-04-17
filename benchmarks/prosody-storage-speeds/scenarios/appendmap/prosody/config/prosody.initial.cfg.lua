@@ -1,11 +1,13 @@
--- Prose Pod Server initial configuration
+-- Prose Pod Server bootstrap configuration
 -- XMPP Server Configuration
 
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
 
 authentication = "internal_hashed"
+
 default_storage = "internal"
+storage = { roster = "appendmap" }
 
 log = {
   debug = "*console",
@@ -24,6 +26,7 @@ https_interfaces = {}
 plugin_paths = { "/usr/local/lib/prosody/modules" }
 modules_enabled = {
   "auto_activate_hosts",
+  "storage_appendmap",
 }
 
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
@@ -33,24 +36,6 @@ allow_registration = false
 c2s_require_encryption = true
 s2s_require_encryption = true
 s2s_secure_auth = false
-
--- Enforce safety C2S/S2S limits
-c2s_stanza_size_limit = 256 * 1024
-s2s_stanza_size_limit = 512 * 1024
-
-limits = {
-  c2s = {
-    rate = "50kb/s",
-    burst = "2s",
-  },
-  s2sin = {
-    rate = "250kb/s",
-    burst = "4s",
-  },
-}
-
--- Allow reverse-proxying to WebSocket service over insecure local HTTP
-consider_websocket_secure = true
 
 -- Server hosts and components
 VirtualHost "admin.prose.org.local"

@@ -58,14 +58,6 @@ copy-if-exists() {
 
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
-
-# NOTE: While it’d be easier to use symbolic links instead of copying files
-#   from the `default` scenario, it wouldn’t work because Docker wouldn’t be
-#   able to access the source files because they aren’t mounted.
-#   To make sure non-overridable files stay up-to-date, we created a task called
-#   `task local:scenarios:update` which copies the files again.
-log_as_trace_ edo "${SELF_SCRIPTS:?}"/scenarios-update "${SCENARIO_NAME:?}"
-
 copy-if-exists constants.sh
 copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
 copy-if-exists "$(basename "${ENV_FILE:?}")"

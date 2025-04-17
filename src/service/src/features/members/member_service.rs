@@ -68,6 +68,12 @@ impl MemberService {
         // TODO: Find a way to rollback XMPP server changes.
         let server_ctl = self.server_ctl.clone();
 
+        // Remove the user from everyone's rosters.
+        server_ctl
+            .remove_team_member(jid)
+            .await
+            .map_err(UserDeleteError::XmppServerCannotRemoveTeamMember)?;
+
         // Delete the user from the XMPP server.
         server_ctl
             .remove_user(jid)
@@ -84,6 +90,8 @@ pub enum UserDeleteError {
     CannotSelfRemove,
     #[error("Database error: {0}")]
     DbErr(#[from] DbErr),
+    #[error("XMPP server cannot remove team member: {0}")]
+    XmppServerCannotRemoveTeamMember(ServerCtlError),
     #[error("XMPP server cannot delete user: {0}")]
     XmppServerCannotDeleteUser(ServerCtlError),
 }

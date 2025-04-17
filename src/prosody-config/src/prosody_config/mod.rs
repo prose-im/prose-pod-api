@@ -74,7 +74,9 @@ pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
     pub admins: Option<LinkedHashSet<JID>>,
     pub authentication: Option<AuthenticationProvider>,
+    pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,
+    pub sql: Option<SqlConfig>,
     pub log: Option<LogConfig>,
     pub interfaces: Option<Vec<Interface>>,
     pub c2s_ports: Option<Vec<u16>>,
@@ -219,13 +221,57 @@ pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
     /// SQL database support.
-    SQL,
+    Sql,
     /// Keeps data in memory only, intended for tests, **not for production**.
     Memory,
     /// Built-in backend that always fails to load/save data.
     Null,
     /// Backend where all stores are always empty and saving data always fails.
     None,
+    /// Backends can be extended (e.g. [mod_storage_appendmap - Prosody Community Modules](https://modules.prosody.im/mod_storage_appendmap.html)).
+    /// This case handles unknown backends.
+    #[strum(transparent, default)]
+    Other(String),
+}
+
+/// See [mod_storage_sql – Prosody IM](https://prosody.im/doc/modules/mod_storage_sql).
+///
+/// Example:
+///
+/// ```lua
+/// storage = "sql"
+/// sql = {
+///   driver = "PostgreSQL"; -- May also be "SQLite3" or "MySQL" (case sensitive!)
+///   database = "prosody"; -- The database name to use. For SQLite3 this the database filename (relative to the data storage directory).
+///   host = "localhost"; -- The address of the database server (delete this line for Postgres)
+///   port = 3306; -- For databases connecting over TCP
+///   username = "prosody"; -- The username to authenticate to the database
+///   password = "secretpassword"; -- The password to authenticate to the database
+/// }
+/// ```
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
+pub struct SqlConfig {
+    pub driver: Option<SqlDriver>,
+    pub database: Option<PathBuf>,
+    pub host: Option<String>,
+    pub port: Option<u16>,
+    pub username: Option<String>,
+    pub password: Option<SecretString>,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
+    derive(strum::Display, strum::EnumString)
+)]
+pub enum SqlDriver {
+    #[strum(serialize = "PostgreSQL")]
+    PostgreSql,
+    #[strum(serialize = "SQLite3")]
+    Sqlite3,
+    #[strum(serialize = "MySQL")]
+    MySql,
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.

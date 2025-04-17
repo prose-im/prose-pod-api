@@ -98,11 +98,13 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
 
     if let Some(overrides) = model.prosody_overrides {
         match serde_json::from_value::<ProsodyOverrides>(overrides) {
-            Ok(overrides) => {
+            Ok(ProsodyOverrides {
+                c2s_require_encryption,
+            }) => {
                 info!("Applying overrides to the generated Prosody configuration file…");
                 macro_rules! override_global_setting {
                     ($var:ident) => {
-                        if let Some($var) = overrides.$var {
+                        if let Some($var) = $var {
                             config.global_settings.$var = Some($var);
                         }
                     };
