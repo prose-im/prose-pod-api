@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.7-labs
+
+ARG TAG
+
+FROM proseim/prose-pod-server:${TAG} as build
+
+USER root
+RUN apk add sqlite-dev
+RUN apk add lua5.4-dev
+RUN apk add build-base
+RUN apk add luarocks5.4
+RUN luarocks-5.4 install lsqlite3
+
+FROM proseim/prose-pod-server:${TAG}
+
+COPY --from=build /usr/local/lib/lua/5.4/lsqlite3.so /usr/local/lib/lua/5.4/
+
+USER root
+RUN apk add sqlite-libs
+USER prosody:prosody
+
+# Just for checks in benchmarks, not needed in production
+USER root
+RUN apk add sqlite
+USER prosody:prosody
