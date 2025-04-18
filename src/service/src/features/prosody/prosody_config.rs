@@ -121,11 +121,10 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         let api_jid = app_config.api_jid();
         let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
         Self {
-            global_settings: ProsodySettings {
+            global_settings: (app_config.prosody).shallow_merged_with(ProsodySettings {
                 pidfile: Some("/var/run/prosody/prosody.pid".into()),
                 authentication: Some(AuthenticationProvider::InternalHashed),
-                default_storage: Some(app_config.prosody.default_storage.clone()),
-                storage: app_config.prosody.storage.clone(),
+                default_storage: Some(StorageBackend::Internal),
                 log: Some(LogConfig::Map(
                     vec![(
                         LogLevel::from(app_config.server.log_level),
@@ -207,7 +206,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 }),
                 upgrade_legacy_vcards: Some(true),
                 ..Default::default()
-            },
+            }),
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
                     hostname: server_config.domain.to_string(),
