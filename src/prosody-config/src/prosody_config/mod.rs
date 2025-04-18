@@ -70,7 +70,8 @@ impl ProsodyConfigSection {
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
-    derive(Serialize, Deserialize)
+    derive(Serialize, Deserialize),
+    serde(deny_unknown_fields)
 )]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
