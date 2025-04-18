@@ -4,6 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod conversion;
+#[cfg(feature = "merge")]
+mod merge;
 
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};

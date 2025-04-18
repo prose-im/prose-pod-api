@@ -29,7 +29,8 @@ insta = { version = "1", default-features = false }
 serde_json = { version = "1", features = ["std"], default-features = false }
 
 [features]
-default = ["serde"]
+default = ["merge", "serde"]
+merge = []
 serde = [
     "dep:serde",
     "dep:serde_with",
