@@ -23,7 +23,7 @@ use super::guards::Lua;
 pub async fn get_prosody_config_lua_route(
     app_config: AppConfig,
 ) -> Result<([(HeaderName, HeaderValue); 1], String), Error> {
-    let config_file_path = app_config.prosody.config_file_path;
+    let config_file_path = app_config.prosody_ext.config_file_path;
     let mut file = File::open(&config_file_path).map_err(|e| error::HTTPStatus {
         status: StatusCode::INTERNAL_SERVER_ERROR,
         body: format!(

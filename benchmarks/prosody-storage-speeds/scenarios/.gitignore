@@ -4,7 +4,9 @@
 # Do not ignore base scenario files
 !default/
 !internal/
-!sqlite/
+!sqlite-luadbi/
+!sqlite-luasqlite/
+!sqlite-as-default-luasqlite/
 !appendmap/
 
 !*/local-run.env

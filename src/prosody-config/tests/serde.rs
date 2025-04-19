@@ -37,3 +37,26 @@ fn test_serializing_enums() -> Result<(), serde_json::Error> {
 
     Ok(())
 }
+
+#[test]
+fn test_deserializing_unsupported_keys() -> Result<(), serde_json::Error> {
+    let json = r#"{"log":"warn"}"#;
+    assert!(serde_json::from_str::<ProsodySettings>(json).is_err());
+
+    let json = r#"{}"#;
+    assert_eq!(
+        serde_json::from_str::<ProsodySettings>(json)?,
+        ProsodySettings::default(),
+    );
+
+    let json = r#"{"default_storage":"sql"}"#;
+    assert_eq!(
+        serde_json::from_str::<ProsodySettings>(json)?,
+        ProsodySettings {
+            default_storage: Some(StorageBackend::Sql),
+            ..Default::default()
+        },
+    );
+
+    Ok(())
+}

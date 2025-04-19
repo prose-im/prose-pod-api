@@ -23,3 +23,14 @@ Durations represent the time it takes:
 
 Updating all the rosters when adding the member to a team is the only O(n) operation, therefore
 the results directly reflect the effect of the storage used for the `roster` module.
+
+Scenarios:
+
+- `internal` means we use `internal` as the default storage
+- `appendmap` means we use `appendmap` as the storage for `roster`
+- `sqlite-luadbi` means we use SQLite as the storage for `roster`, and make DB calls using
+  LuaDBI
+- `sqlite-luasqlite` means we use SQLite as the storage for `roster`, and make DB calls using
+  LuaSQLite3
+- `sqlite-as-default-luasqlite` means we use SQLite as the default , and make DB calls using
+  LuaSQLite3
