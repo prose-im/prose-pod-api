@@ -1,0 +1,38 @@
+return {
+	["6cIOg_3dwhUm"] = {
+		["id"] = "6cIOg_3dwhUm";
+		["jid"] = "barbara.mante@prose-demo.org.local";
+		["accessed"] = 1745349436;
+		["created"] = 1745349436;
+		["tokens"] = {
+			["sha256:1e2135302c939e7aa549638d02845dfa001b77348b17c351eb8489bb71dcb57e"] = {
+				["created"] = 1745349436;
+				["expires"] = 1745360236;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:admin";
+			};
+		};
+		["owner"] = "barbara.mante@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+	["omi2lgRB-jIz"] = {
+		["accessed"] = 1745349436;
+		["jid"] = "barbara.mante@prose-demo.org.local";
+		["owner"] = "barbara.mante@prose-demo.org.local";
+		["created"] = 1745349436;
+		["tokens"] = {
+			["sha256:3c8c20c19a7e3f8c20e3f5d1986bd3f61a67e4f982a822f9423e01d1f03d235c"] = {
+				["created"] = 1745349436;
+				["expires"] = 1745360236;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:admin";
+			};
+		};
+		["id"] = "omi2lgRB-jIz";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+};

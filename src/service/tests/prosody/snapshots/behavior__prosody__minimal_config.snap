@@ -128,10 +128,6 @@ VirtualHost "admin.prose.org.local"
   -- HTTP settings
   http_host = "prose-pod-server-admin"
 
-  -- mod_init_admin
-  init_admin_jid = "prose-pod-api@admin.prose.org.local"
-  init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
-
 Component "groups.prose.test.org" "muc"
   name = "Chatrooms"
 

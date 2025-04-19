@@ -1,20 +1,20 @@
 return {
-	["uoi9oy0fc6nd"] = {
-		["id"] = "uoi9oy0fc6nd";
+	["ZnOEZcdEO9Ea"] = {
+		["id"] = "ZnOEZcdEO9Ea";
 		["jid"] = "prose-workspace@prose-demo.org.local";
-		["created"] = 1744044609;
-		["accessed"] = 1744044609;
-		["data"] = {
-			["oauth2_scopes"] = "openid xmpp";
+		["accessed"] = 1745349430;
+		["created"] = 1745349430;
+		["tokens"] = {
+			["sha256:9249bfa4affd496fbf1a8c6b43e10e3eaa9c9e70303c42e823bfdc928954fbfe"] = {
+				["created"] = 1745349430;
+				["expires"] = 1745360230;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:registered";
+			};
 		};
 		["owner"] = "prose-workspace@prose-demo.org.local";
-		["tokens"] = {
-			["sha256:e33f9f3a593394425946b2284ac367b8d51bcbd7b61c9b2445a2a9a50859efbe"] = {
-				["purpose"] = "oauth2";
-				["created"] = 1744044609;
-				["role"] = "prosody:registered";
-				["expires"] = 1744055409;
-			};
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
 		};
 	};
 };

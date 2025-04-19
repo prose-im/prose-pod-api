@@ -87,14 +87,11 @@ impl ServerCtlImpl for LiveServerCtl {
         })?;
 
         let prosody_config = prosody_bootstrap_config(init_admin_password);
-        let prosody_config_file = prosody_config;
-        file.write_all(
-            prosody_config_file
-                .print_with_bootstrap_header()
-                .to_string()
-                .as_bytes(),
-        )
-        .map_err(|e| server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;
+        let prosody_config_file = prosody_config.print_with_bootstrap_header();
+        file.write_all(prosody_config_file.to_string().as_bytes())
+            .map_err(|e| {
+                server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e)
+            })?;
 
         Ok(())
     }

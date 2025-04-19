@@ -7,6 +7,7 @@
 pidfile = "/var/run/prosody/prosody.pid"
 
 authentication = "internal_hashed"
+
 default_storage = "internal"
 
 log = {
@@ -120,7 +121,7 @@ VirtualHost "prose-demo.org.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "1aNVgHbKKc1n-0PX5ohmXVnJ_VKrbCfmPVRy8EvFWYtEBs5hpQg0aRd9iUXZl4uUu0UNoME3ANFGn_ET5C8y22QS3EAlgCopKrUupucRU8tpkC0GahNJGm_2goJlfrQ1aJp7dL1lVD5axHKL4nl6ZyIanycNXitF6iy_gPYCTRv0CvV9XNWQ13j8Rps-bwUEoNuOA4whsFMsnCSH4inHLG0jU8190wEGx0ozqLB1FgLpmxnFBikb1L1kyXQh7RaP3uAynkhkpaAYwbc0wzEcihGNVAInFeXJZx-9XsMk2wxUS03iEj2RgGckkdPfZsrwqffMjAdWA6Kr7uXKS-OLoQ"
+  oauth2_registration_key = "xrsSR2YWD-Am3XWPp-oab9s5ny9PsRLCcxjIZY-et64dVO0lheU51KelcaQFHFEJ6zZUSRkXP4X39Eg2sLXSWmvvB0ACMXettsrSV-KKuQdW-9CmOjz7eyhWATIMjUB1Nqh-jB8MKKclJnexw11VlD5M6c3D-35CuFqnLyqyn6x0W7UiKJKsExuHx3PtkKPJejTt5cJehHR1FUBlJhajEAGQ9cVpMw9JPgktckedxUMVIz1fDIajwbXZvNVbzcGs4NtZTrvyrgiGdfvCgTgQBkZIArqoWX2OPtNkq4kgqfPxqIPqh8KQZXAdEDXq8vVVnPPwHJtvIzLI2Bpkvf8zow"
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }
@@ -136,7 +137,7 @@ VirtualHost "admin.prose.org.local"
 
   -- mod_init_admin
   init_admin_jid = "prose-pod-api@admin.prose.org.local"
-  init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
+  init_admin_password = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
 
 Component "groups.prose-demo.org.local" "muc"
   name = "Chatrooms"

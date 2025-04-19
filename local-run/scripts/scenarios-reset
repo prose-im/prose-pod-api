@@ -41,6 +41,7 @@ reset-one() {
 	fi
 	edo rm -rf "${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
 	edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*%2e*
+	edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*.sqlite*
 }
 
 for name in "$@"; do

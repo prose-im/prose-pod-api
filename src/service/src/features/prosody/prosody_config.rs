@@ -10,10 +10,12 @@ use secrecy::ExposeSecret;
 use utils::def;
 
 use crate::{
-    app_config::{AppConfig, ServerLogLevel, ADMIN_HOST},
+    app_config::{AppConfig, ServerLogLevel},
     server_config::ServerConfig,
     ProseDefault,
 };
+
+use super::prosody_bootstrap_config;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProsodyConfig(pub(super) prosody_config::ProsodyConfig);
@@ -120,93 +122,81 @@ impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
         let api_jid = app_config.api_jid();
         let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+
         Self {
-            global_settings: (app_config.prosody).shallow_merged_with(ProsodySettings {
-                pidfile: Some("/var/run/prosody/prosody.pid".into()),
-                authentication: Some(AuthenticationProvider::InternalHashed),
-                default_storage: Some(StorageBackend::Internal),
-                log: Some(LogConfig::Map(
-                    vec![(
-                        LogLevel::from(app_config.server.log_level),
-                        LogLevelValue::Console,
-                    )]
-                    .into_iter()
-                    .collect(),
-                )),
-                interfaces: Some(vec![Interface::AllIPv4]),
-                c2s_ports: Some(vec![5222]),
-                http_ports: Some(vec![app_config.server.http_port]),
-                http_interfaces: Some(vec![Interface::AllIPv4]),
-                https_ports: Some(vec![]),
-                https_interfaces: Some(vec![]),
-                plugin_paths: Some(
-                    vec!["/usr/local/lib/prosody/modules"]
+            global_settings: (app_config.prosody)
+                .shallow_merged_with(ProsodySettings {
+                    log: Some(LogConfig::Map(
+                        vec![(LogLevel::Info, LogLevelValue::Console)]
+                            .into_iter()
+                            .collect(),
+                    )),
+                    c2s_ports: Some(vec![5222]),
+                    http_ports: Some(vec![app_config.server.http_port]),
+                    modules_enabled: Some(
+                        vec![
+                            "auto_activate_hosts",
+                            "roster",
+                            "groups_internal",
+                            "saslauth",
+                            "tls",
+                            "dialback",
+                            "disco",
+                            "posix",
+                            "smacks",
+                            "private",
+                            "vcard_legacy",
+                            "vcard4",
+                            "version",
+                            "uptime",
+                            "time",
+                            "ping",
+                            "lastactivity",
+                            "pep",
+                            "blocklist",
+                            "limits",
+                            "carbons",
+                            "csi",
+                            "server_contact_info",
+                            "websocket",
+                            "cloud_notify",
+                            "register",
+                        ]
                         .into_iter()
                         .map(ToString::to_string)
                         .collect(),
-                ),
-                modules_enabled: Some(
-                    vec![
-                        "auto_activate_hosts",
-                        "roster",
-                        "groups_internal",
-                        "saslauth",
-                        "tls",
-                        "dialback",
-                        "disco",
-                        "posix",
-                        "smacks",
-                        "private",
-                        "vcard_legacy",
-                        "vcard4",
-                        "version",
-                        "uptime",
-                        "time",
-                        "ping",
-                        "lastactivity",
-                        "pep",
-                        "blocklist",
-                        "limits",
-                        "carbons",
-                        "csi",
-                        "server_contact_info",
-                        "websocket",
-                        "cloud_notify",
-                        "register",
-                    ]
-                    .into_iter()
-                    .map(ToString::to_string)
-                    .collect(),
-                ),
-                modules_disabled: Some(vec!["s2s"].into_iter().map(ToString::to_string).collect()),
-                ssl: Some(SSLConfig {
-                    key: Some("/etc/prosody/certs/prose.org.local.key".into()),
-                    certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
+                    ),
+                    modules_disabled: Some(
+                        vec!["s2s"].into_iter().map(ToString::to_string).collect(),
+                    ),
+                    ssl: Some(SSLConfig {
+                        key: Some("/etc/prosody/certs/prose.org.local.key".into()),
+                        certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
+                        ..Default::default()
+                    }),
+                    c2s_require_encryption: Some(true),
+                    c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
+                    limits: Some(
+                        vec![(
+                            ConnectionType::ClientToServer,
+                            ConnectionLimits {
+                                rate: Some(DataRate::KiloBytesPerSec(50)),
+                                burst: Some(Duration(TimeLike::Seconds(2))),
+                            },
+                        )]
+                        .into_iter()
+                        .collect(),
+                    ),
+                    consider_websocket_secure: Some(true),
+                    cross_domain_websocket: None,
+                    contact_info: Some(ContactInfo {
+                        admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                        ..Default::default()
+                    }),
+                    upgrade_legacy_vcards: Some(true),
                     ..Default::default()
-                }),
-                allow_registration: Some(false),
-                c2s_require_encryption: Some(true),
-                c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
-                limits: Some(
-                    vec![(
-                        ConnectionType::ClientToServer,
-                        ConnectionLimits {
-                            rate: Some(DataRate::KiloBytesPerSec(50)),
-                            burst: Some(Duration(TimeLike::Seconds(2))),
-                        },
-                    )]
-                    .into_iter()
-                    .collect(),
-                ),
-                consider_websocket_secure: Some(true),
-                cross_domain_websocket: None,
-                contact_info: Some(ContactInfo {
-                    admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
-                    ..Default::default()
-                }),
-                upgrade_legacy_vcards: Some(true),
-                ..Default::default()
-            }),
+                })
+                .shallow_merged_with(prosody_bootstrap_config::global_settings()),
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
                     hostname: server_config.domain.to_string(),
@@ -249,48 +239,14 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                     ),
                                 ],
                             ),
-                            // // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
-                            // Group::new(
-                            //     "mod_init_admin",
-                            //     vec![def(
-                            //         "init_admin_jid",
-                            //         api_jid.to_owned(),
-                            //     )],
-                            // ),
                         ],
                         ..Default::default()
                     },
                 },
-                ProsodyConfigSection::VirtualHost {
-                    hostname: ADMIN_HOST.into(),
-                    settings: ProsodySettings {
-                        admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
-                        modules_enabled: Some(
-                            vec![
-                                "admin_rest",
-                                "init_admin",
-                            ]
-                            .into_iter()
-                            .map(ToString::to_string)
-                            .collect(),
-                        ),
-                        http_host: Some(app_config.server.local_hostname_admin.to_owned()),
-                        custom_settings: vec![
-                            // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
-                            Group::new(
-                                "mod_init_admin",
-                                vec![
-                                    def("init_admin_jid", api_jid.to_owned()),
-                                    def(
-                                        "init_admin_password_env_var_name",
-                                        "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
-                                    ),
-                                ],
-                            ),
-                        ],
-                        ..Default::default()
-                    },
-                },
+                prosody_bootstrap_config::admin_virtual_host(
+                    &api_jid,
+                    app_config.server.local_hostname_admin.to_owned(),
+                ),
                 ProsodyConfigSection::Component {
                     hostname: format!("groups.{}", server_config.domain),
                     plugin: "muc".into(),

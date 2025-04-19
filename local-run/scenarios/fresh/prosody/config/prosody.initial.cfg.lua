@@ -5,6 +5,7 @@
 pidfile = "/var/run/prosody/prosody.pid"
 
 authentication = "internal_hashed"
+
 default_storage = "internal"
 
 log = {

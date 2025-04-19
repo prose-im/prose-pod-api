@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "6085";
 			["id"] = "f034688fdb2631906423b84a7f28bb18eb372477";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "f034688fdb2631906423b84a7f28bb18eb372477";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:46Z";
+		["stamp"] = "2025-04-22T19:17:11Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349431;
+	["key"] = "f034688fdb2631906423b84a7f28bb18eb372477";
 	["with"] = "todd.schultz@prose-demo.org.local";
-	["when"] = 1737408586;
+	["name"] = "metadata";
 });

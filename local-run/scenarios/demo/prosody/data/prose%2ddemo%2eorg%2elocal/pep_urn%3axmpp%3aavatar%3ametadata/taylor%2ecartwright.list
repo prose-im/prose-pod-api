@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "5024";
 			["id"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:55Z";
+		["stamp"] = "2025-04-22T19:17:14Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349434;
+	["key"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
 	["with"] = "taylor.cartwright@prose-demo.org.local";
-	["when"] = 1737408595;
+	["name"] = "metadata";
 });

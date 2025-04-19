@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "5121";
 			["id"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:53Z";
+		["stamp"] = "2025-04-22T19:17:14Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349434;
+	["key"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
 	["with"] = "ella.white@prose-demo.org.local";
-	["when"] = 1737408593;
+	["name"] = "metadata";
 });

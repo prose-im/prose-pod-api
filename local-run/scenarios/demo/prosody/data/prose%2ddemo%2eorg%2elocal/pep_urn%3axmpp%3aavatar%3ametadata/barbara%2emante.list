@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "5814";
 			["id"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:30:01Z";
+		["stamp"] = "2025-04-22T19:17:16Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349436;
+	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
 	["with"] = "barbara.mante@prose-demo.org.local";
-	["when"] = 1737408601;
+	["name"] = "metadata";
 });

@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "6476";
 			["id"] = "6d2c15dd7c83354288a112b588ae5f7cb0f9a248";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "6d2c15dd7c83354288a112b588ae5f7cb0f9a248";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:49Z";
+		["stamp"] = "2025-04-22T19:17:12Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349432;
+	["key"] = "6d2c15dd7c83354288a112b588ae5f7cb0f9a248";
 	["with"] = "evan.turner@prose-demo.org.local";
-	["when"] = 1737408589;
+	["name"] = "metadata";
 });

@@ -82,8 +82,8 @@ This section describes our response to these forces. It is stated in full
 sentences, with active voice. "We will …"
 -->
 
-Since the [Admin Console][Console] does not solve all our needs we cannot use
-`prosodyctl` from another Docker container, we will use the third option
+Since the [Admin Console][Console] does not solve all our needs and we cannot
+use `prosodyctl` from another Docker container, we will use the third option
 (a REST API as a Prosody plugin). [wltsmrz/mod_admin_rest] does not support
 all of our requirements, so we will fork it and add routes as needed.
 

@@ -1,19 +1,19 @@
 item({
 	{
-		["name"] = "info";
 		["attr"] = {
+			["type"] = "image/png";
 			["bytes"] = "8045";
 			["id"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
 		};
+		["name"] = "info";
 	};
-	["name"] = "metadata";
-	["key"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:50Z";
+		["stamp"] = "2025-04-22T19:17:12Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
+	["when"] = 1745349432;
+	["key"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
 	["with"] = "charlie.schmitt@prose-demo.org.local";
-	["when"] = 1737408590;
+	["name"] = "metadata";
 });

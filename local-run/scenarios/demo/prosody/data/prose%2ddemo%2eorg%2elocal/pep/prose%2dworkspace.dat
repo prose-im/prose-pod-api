@@ -2,7 +2,19 @@ return {
 	["urn:ietf:params:xml:ns:vcard-4.0"] = {
 		["affiliations"] = {};
 		["subscribers"] = {};
-		["name"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		["config"] = {};
+		["name"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["urn:xmpp:avatar:metadata"] = {
+		["affiliations"] = {};
+		["subscribers"] = {};
+		["config"] = {};
+		["name"] = "urn:xmpp:avatar:metadata";
+	};
+	["urn:xmpp:avatar:data"] = {
+		["affiliations"] = {};
+		["name"] = "urn:xmpp:avatar:data";
+		["config"] = {};
+		["subscribers"] = {};
 	};
 };

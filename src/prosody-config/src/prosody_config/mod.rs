@@ -64,6 +64,12 @@ impl ProsodyConfigSection {
             Self::Component { settings, .. } => settings,
         }
     }
+    pub fn settings_mut(&mut self) -> &mut ProsodySettings {
+        match self {
+            Self::VirtualHost { settings, .. } => settings,
+            Self::Component { settings, .. } => settings,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]

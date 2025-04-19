@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${PROSE_POD_API_DIR:="$(realpath "$(dirname $0)"/../..)"}
+export PROSE_POD_API_DIR
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+export REPOSITORY_ROOT
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+
+# ===== MAIN LOGIC =====
+
+task local:scenarios:reset -y -- default fresh
+
+"${LOCAL_RUN_DIR:?}"/scripts/make-demo-scenario
+
+SCENARIO_NAME=demo-dynamic \
+	"${LOCAL_RUN_DIR:?}"/scripts/make-demo-scenario \
+	--pod-address-dynamic
