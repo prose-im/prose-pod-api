@@ -301,6 +301,9 @@ impl MemberService {
             }
             match step {
                 EnrichingStep::VCard => {
+                    if member.nickname.is_some() {
+                        continue;
+                    }
                     let (vcard, _) = VCARDS_DATA_CACHE
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s vCard…");
@@ -329,6 +332,9 @@ impl MemberService {
                     }
                 }
                 EnrichingStep::Avatar => {
+                    if member.avatar.is_some() {
+                        continue;
+                    }
                     let (avatar, _) = AVATARS_CACHE
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s avatar…");
@@ -351,6 +357,9 @@ impl MemberService {
                     member.avatar = avatar;
                 }
                 EnrichingStep::OnlineStatus => {
+                    if member.online.is_some() {
+                        continue;
+                    }
                     let (online, _) = ONLINE_STATUSES_CACHE
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Checking if `{jid}` is connected…");
