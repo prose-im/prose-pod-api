@@ -3,38 +3,38 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    cmp::min,
-    collections::HashSet,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{cmp::min, collections::HashSet, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
-use parking_lot::RwLock;
-use prosody_config::linked_hash_map::LinkedHashMap;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, instrument, trace, warn};
+use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
-    util::{unaccent, ConcurrentTaskRunner},
+    util::{unaccent, Cache, ConcurrentTaskRunner},
     xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
 };
 
 use super::{Member, MemberRepository, MemberRole};
 
-lazy_static! {
-    static ref ENRICHED_MEMBERS_CACHE: RwLock<Option<(Instant, LinkedHashMap<BareJid, EnrichedMember>)>> = RwLock::new(None);
+#[derive(Debug, Clone)]
+struct VCardData {
+    pub nickname: Option<String>,
+}
 
+lazy_static! {
     /// When enriching members, we query the XMPP server for all vCards. To
     /// avoid flooding the server with too many requests, we cache enriched
     /// members for a little while (enough for someone to finish searching for a
     /// member, but short enough to react to changes). Enriching isn’t a very
     /// costly operation but we wouldn’t want to enrich all members for every
     /// keystroke in the search bar of the Dashboard.
-    static ref ENRICHED_MEMBERS_CACHE_TTL: Duration = Duration::from_secs(2 * 60);
+    static ref CACHE_TTL: Duration = Duration::from_secs(2 * 60);
+
+    static ref VCARDS_DATA_CACHE: Cache<BareJid, Option<VCardData>> = Cache::new(*CACHE_TTL);
+    static ref AVATARS_CACHE: Cache<BareJid, Option<String>> = Cache::new(*CACHE_TTL);
+    static ref ONLINE_STATUSES_CACHE: Cache<BareJid, Option<bool>> = Cache::new(*CACHE_TTL);
 }
 
 #[derive(Debug, Clone)]
@@ -141,20 +141,9 @@ impl MemberService {
     }
 
     /// Enrich **all** members with vCard data (no avater nor online status).
+    ///
+    /// NOTE: Uses cached data automatically.
     async fn get_all_members_with_vcard_data(&self) -> Result<Vec<EnrichedMember>, DbErr> {
-        // Read from cache if possible.
-        {
-            let mut cache_guard = ENRICHED_MEMBERS_CACHE.upgradable_read();
-            if let Some((cached_at, members)) = cache_guard.as_ref() {
-                if cached_at.elapsed() < *ENRICHED_MEMBERS_CACHE_TTL {
-                    return Ok(members.values().cloned().into_iter().collect());
-                } else {
-                    // Clear the cache if it's expired.
-                    cache_guard.with_upgraded(|opt| *opt = None);
-                }
-            };
-        }
-
         let members = MemberRepository::get_all(self.db.as_ref()).await?;
         let res = self
             .enrich_members_(
@@ -162,19 +151,6 @@ impl MemberService {
                 [EnrichingStep::VCard].into_iter().collect(),
             )
             .await;
-
-        // Cache results.
-        {
-            let mut cache_guard = ENRICHED_MEMBERS_CACHE.write();
-            *cache_guard = Some((
-                Instant::now(),
-                res.clone()
-                    .into_iter()
-                    .map(|m| (m.jid.clone(), m))
-                    .collect(),
-            ));
-        }
-
         Ok(res)
     }
 
@@ -332,6 +308,11 @@ impl MemberService {
         Ok(Some(member))
     }
 
+    #[instrument(
+        name = "member_service::enrich_member_",
+        level = "trace",
+        skip_all, fields(jid = member.jid.to_string(), steps)
+    )]
     async fn enrich_member_(
         &self,
         mut member: EnrichedMember,
@@ -345,79 +326,80 @@ impl MemberService {
             }
             match step {
                 EnrichingStep::VCard => {
-                    if member.nickname.is_some() {
-                        trace!("-> Not getting `{jid}`'s vCard: already know.");
-                        continue;
+                    let (vcard, _) = VCARDS_DATA_CACHE
+                        .get_or_insert_with(&member.jid, async || {
+                            trace!("Getting `{jid}`'s vCard…");
+                            let vcard = match self.xmpp_service.get_vcard(jid).await {
+                                Ok(Some(vcard)) => Some(vcard),
+                                Ok(None) => {
+                                    debug!("`{jid}` has no vCard.");
+                                    None
+                                }
+                                Err(err) => {
+                                    // Log error
+                                    warn!("Could not get `{jid}`'s vCard: {err}");
+                                    // But dismiss it
+                                    None
+                                }
+                            };
+                            vcard.map(|vcard| {
+                                let nickname = vcard.nickname.first().cloned().map(|p| p.value);
+                                VCardData { nickname }
+                            })
+                        })
+                        .instrument(trace_span!("get_vcard"))
+                        .await;
+                    if let Some(vcard) = vcard {
+                        member.nickname = vcard.nickname;
                     }
-                    trace!("-> Getting `{jid}`'s vCard…");
-                    let vcard = match self.xmpp_service.get_vcard(jid).await {
-                        Ok(Some(vcard)) => Some(vcard),
-                        Ok(None) => {
-                            debug!("`{jid}` has no vCard.");
-                            None
-                        }
-                        Err(err) => {
-                            // Log error
-                            warn!("Could not get `{jid}`'s vCard: {err}");
-                            // But dismiss it
-                            None
-                        }
-                    };
-                    member.nickname = vcard
-                        .and_then(|vcard| vcard.nickname.first().cloned())
-                        .map(|p| p.value);
                 }
                 EnrichingStep::Avatar => {
-                    if member.avatar.is_some() {
-                        trace!("-> Not getting `{jid}`'s avatar: already know.");
-                        continue;
-                    }
-                    trace!("-> Getting `{jid}`'s avatar…");
-                    member.avatar = match self.xmpp_service.get_avatar(jid).await {
-                        Ok(Some(avatar)) => Some(avatar.base64().to_string()),
-                        Ok(None) => {
-                            debug!("`{jid}` has no avatar.");
-                            None
-                        }
-                        Err(err) => {
-                            // Log error
-                            warn!("Could not get `{jid}`'s avatar: {err}");
-                            // But dismiss it
-                            None
-                        }
-                    };
+                    let (avatar, _) = AVATARS_CACHE
+                        .get_or_insert_with(&member.jid, async || {
+                            trace!("Getting `{jid}`'s avatar…");
+                            match self.xmpp_service.get_avatar(jid).await {
+                                Ok(Some(avatar)) => Some(avatar.base64().to_string()),
+                                Ok(None) => {
+                                    debug!("`{jid}` has no avatar.");
+                                    None
+                                }
+                                Err(err) => {
+                                    // Log error
+                                    warn!("Could not get `{jid}`'s avatar: {err}");
+                                    // But dismiss it
+                                    None
+                                }
+                            }
+                        })
+                        .instrument(trace_span!("get_avatar"))
+                        .await;
+                    member.avatar = avatar;
                 }
                 EnrichingStep::OnlineStatus => {
-                    if member.online.is_some() {
-                        trace!("-> Not checking if `{jid}` is connected: already know.");
-                        continue;
-                    }
-                    trace!("-> Checking if `{jid}` is connected…");
-                    member.online = self
-                        .xmpp_service
-                        .is_connected(jid)
-                        .await
-                        // Log error
-                        .inspect_err(|err| warn!("Could not get `{jid}`'s online status: {err}"))
-                        // But dismiss it
-                        .ok();
+                    let (online, _) = ONLINE_STATUSES_CACHE
+                        .get_or_insert_with(&member.jid, async || {
+                            trace!("Checking if `{jid}` is connected…");
+                            self.xmpp_service
+                                .is_connected(jid)
+                                .await
+                                // Log error
+                                .inspect_err(|err| {
+                                    warn!("Could not get `{jid}`'s online status: {err}")
+                                })
+                                // But dismiss it
+                                .ok()
+                        })
+                        .instrument(trace_span!("get_online_status"))
+                        .await;
+                    member.online = online;
                 }
             }
-        }
-
-        // Update cached value if applicable.
-        {
-            let mut cache_guard = ENRICHED_MEMBERS_CACHE.write();
-            if let Some((_, members)) = cache_guard.as_mut() {
-                if members.contains_key(&member.jid) {
-                    members.insert(member.jid.clone(), member.clone());
-                }
-            };
         }
 
         member
     }
 
+    /// NOTE: Uses cached data automatically.
     async fn enrich_members_(
         &self,
         members: Vec<EnrichedMember>,
