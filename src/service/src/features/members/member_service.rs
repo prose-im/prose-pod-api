@@ -13,6 +13,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
+use prosody_config::linked_hash_map::LinkedHashMap;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, warn};
@@ -25,7 +26,7 @@ use crate::{
 use super::{Member, MemberRepository, MemberRole};
 
 lazy_static! {
-    static ref ENRICHED_MEMBERS_CACHE: RwLock<Option<(Instant, Vec<EnrichedMember>)>> = RwLock::new(None);
+    static ref ENRICHED_MEMBERS_CACHE: RwLock<Option<(Instant, LinkedHashMap<BareJid, EnrichedMember>)>> = RwLock::new(None);
 
     /// When enriching members, we query the XMPP server for all vCards. To
     /// avoid flooding the server with too many requests, we cache enriched
@@ -146,7 +147,7 @@ impl MemberService {
             let mut cache_guard = ENRICHED_MEMBERS_CACHE.upgradable_read();
             if let Some((cached_at, members)) = cache_guard.as_ref() {
                 if cached_at.elapsed() < *ENRICHED_MEMBERS_CACHE_TTL {
-                    return Ok(members.clone());
+                    return Ok(members.values().cloned().into_iter().collect());
                 } else {
                     // Clear the cache if it's expired.
                     cache_guard.with_upgraded(|opt| *opt = None);
@@ -161,6 +162,19 @@ impl MemberService {
                 [EnrichingStep::VCard].into_iter().collect(),
             )
             .await;
+
+        // Cache results.
+        {
+            let mut cache_guard = ENRICHED_MEMBERS_CACHE.write();
+            *cache_guard = Some((
+                Instant::now(),
+                res.clone()
+                    .into_iter()
+                    .map(|m| (m.jid.clone(), m))
+                    .collect(),
+            ));
+        }
+
         Ok(res)
     }
 
@@ -391,6 +405,16 @@ impl MemberService {
             }
         }
 
+        // Update cached value if applicable.
+        {
+            let mut cache_guard = ENRICHED_MEMBERS_CACHE.write();
+            if let Some((_, members)) = cache_guard.as_mut() {
+                if members.contains_key(&member.jid) {
+                    members.insert(member.jid.clone(), member.clone());
+                }
+            };
+        }
+
         member
     }
 
@@ -402,7 +426,7 @@ impl MemberService {
         let mut res = Vec::with_capacity(members.len());
 
         let member_service = self.clone();
-        let mut rx = self.concurrent_task_runner.child().run(
+        let mut rx = self.concurrent_task_runner.child().ordered().run(
             members,
             move |member| {
                 let member_service = member_service.clone();
