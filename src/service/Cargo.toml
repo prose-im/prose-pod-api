@@ -64,6 +64,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
+unicode-normalization = { workspace = true }
 url = { workspace = true }
 url_serde = { workspace = true }
 urlencoding = { workspace = true }

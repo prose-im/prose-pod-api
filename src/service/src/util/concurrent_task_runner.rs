@@ -58,6 +58,15 @@ impl ConcurrentTaskRunner {
         self.retry_interval = retry_interval;
         self
     }
+    pub fn child(&self) -> Self {
+        Self {
+            timeout: self.timeout.clone(),
+            ordered: self.ordered,
+            cancellation_token: self.cancellation_token.child_token(),
+            retry_interval: self.retry_interval.clone(),
+            retry_timeout: self.retry_timeout.clone(),
+        }
+    }
 }
 
 /// Just a helper.
