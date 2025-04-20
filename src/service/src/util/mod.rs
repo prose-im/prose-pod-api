@@ -6,6 +6,7 @@
 mod concurrent_task_runner;
 mod either;
 mod sea_orm;
+mod unaccent;
 
 use crate::{
     models::jid::{self, BareJid, NodePart, JID},
@@ -14,6 +15,7 @@ use crate::{
 
 pub use self::concurrent_task_runner::*;
 pub use self::either::*;
+pub use self::unaccent::*;
 
 pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())
