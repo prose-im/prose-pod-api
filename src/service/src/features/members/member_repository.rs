@@ -97,6 +97,19 @@ impl MemberRepository {
         Entity::find().order_by_asc(Column::JoinedAt).all(db).await
     }
 
+    #[instrument(name = "db::member::get_all_until", level = "trace", skip_all, err)]
+    #[inline]
+    pub async fn get_all_until(
+        db: &impl ConnectionTrait,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<Vec<Member>, DbErr> {
+        let mut query = Entity::find().order_by_asc(Column::JoinedAt);
+        if let Some(until) = until {
+            query = query.filter(Column::JoinedAt.lte(until));
+        }
+        query.all(db).await
+    }
+
     #[instrument(name = "db::member::get_count", level = "trace", skip_all, err)]
     pub async fn count(db: &impl ConnectionTrait) -> Result<u64, DbErr> {
         Entity::find().count(db).await

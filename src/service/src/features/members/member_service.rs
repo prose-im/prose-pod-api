@@ -127,10 +127,6 @@ pub enum UserDeleteError {
 }
 
 impl MemberService {
-    pub async fn member_count(&self) -> Result<u64, DbErr> {
-        MemberRepository::count(self.db.as_ref()).await
-    }
-
     pub async fn get_members(
         &self,
         page_number: u64,
@@ -140,54 +136,28 @@ impl MemberService {
         MemberRepository::get_page(self.db.as_ref(), page_number, page_size, until).await
     }
 
-    /// Enrich **all** members with vCard data (no avater nor online status).
-    ///
-    /// NOTE: Uses cached data automatically.
-    async fn get_all_members_with_vcard_data(&self) -> Result<Vec<EnrichedMember>, DbErr> {
-        let members = MemberRepository::get_all(self.db.as_ref()).await?;
-        let res = self
-            .enrich_members_(
-                members.into_iter().map(EnrichedMember::from).collect(),
-                [EnrichingStep::VCard].into_iter().collect(),
-            )
-            .await;
-        Ok(res)
-    }
-
-    async fn search_members_not_re_enriched(
-        &self,
-        query: String,
-    ) -> Result<Vec<EnrichedMember>, DbErr> {
-        let members = self.get_all_members_with_vcard_data().await?;
-        let filtered_members = filter(members, query);
-        Ok(filtered_members)
-    }
-
-    pub async fn search_members(&self, query: String) -> Result<Vec<EnrichedMember>, DbErr> {
-        let filtered_members = self.search_members_not_re_enriched(query).await?;
-        // Re-enrich with missing data.
-        let enriched_members = self
-            .enrich_members_(
-                filtered_members,
-                [
-                    EnrichingStep::Avatar,
-                    EnrichingStep::OnlineStatus,
-                ]
-                .into_iter()
-                .collect(),
-            )
-            .await;
-        Ok(enriched_members)
-    }
-
-    pub async fn search_members_paged(
+    pub async fn search_members(
         &self,
         query: String,
         page_number: u64,
         page_size: u64,
+        until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<EnrichedMember>), DbErr> {
-        let filtered_members = self.search_members_not_re_enriched(query).await?;
+        // Get **all** members from database (no details).
+        let members = MemberRepository::get_all_until(self.db.as_ref(), until).await?;
 
+        // Enrich members with vCard data (no avatar nor online status).
+        let members = self
+            .enrich_members(
+                members.into_iter().map(EnrichedMember::from).collect(),
+                [EnrichingStep::VCard].into_iter().collect(),
+            )
+            .await;
+
+        // Filter members based on search query.
+        let filtered_members = filter(members, query);
+
+        // Compute pagination metadata.
         let member_count = filtered_members.len() as u64;
         let number_of_pages = member_count.div_ceil(page_size);
         let pages_metadata = ItemsAndPagesNumber {
@@ -195,6 +165,7 @@ impl MemberService {
             number_of_pages,
         };
 
+        // Get only the desired page from the filtered members.
         let start = (page_number - 1) * page_size;
         let end = min(start + page_size, member_count);
         let Some(filtered_members) = filtered_members.get((start as usize)..(end as usize)) else {
@@ -202,9 +173,9 @@ impl MemberService {
             return Ok((pages_metadata, filtered_members));
         };
 
-        // Re-enrich with missing data.
+        // Re-enrich remaining members with missing data.
         let enriched_members = self
-            .enrich_members_(
+            .enrich_members(
                 filtered_members.to_vec(),
                 [
                     EnrichingStep::Avatar,
@@ -214,11 +185,15 @@ impl MemberService {
                 .collect(),
             )
             .await;
+
         Ok((pages_metadata, enriched_members))
     }
 }
 
 /// Filter members on as much data as possible.
+///
+/// NOTE: Written as a standalone function so we can test it in the future if we
+///   want to.
 fn filter(members: Vec<EnrichedMember>, query: String) -> Vec<EnrichedMember> {
     // Normalize the query string (lowercase and remove diacritics).
     let query = unaccent(query).to_lowercase();
@@ -286,7 +261,7 @@ pub enum SetMemberRoleError {
 
 impl MemberService {
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
-    pub async fn enrich_member(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
+    pub async fn enrich_jid(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
         trace!("Enriching `{jid}`…");
 
         let member = match MemberRepository::get(self.db.as_ref(), jid).await {
@@ -302,18 +277,18 @@ impl MemberService {
         };
 
         let member = self
-            .enrich_member_(member.into(), EnrichingStep::iter().collect())
+            .enrich_member(member.into(), EnrichingStep::iter().collect())
             .await;
 
         Ok(Some(member))
     }
 
     #[instrument(
-        name = "member_service::enrich_member_",
+        name = "member_service::enrich_member",
         level = "trace",
         skip_all, fields(jid = member.jid.to_string(), steps)
     )]
-    async fn enrich_member_(
+    async fn enrich_member(
         &self,
         mut member: EnrichedMember,
         steps: HashSet<EnrichingStep>,
@@ -400,7 +375,7 @@ impl MemberService {
     }
 
     /// NOTE: Uses cached data automatically.
-    async fn enrich_members_(
+    async fn enrich_members(
         &self,
         members: Vec<EnrichedMember>,
         steps: HashSet<EnrichingStep>,
@@ -413,7 +388,7 @@ impl MemberService {
             move |member| {
                 let member_service = member_service.clone();
                 let steps = steps.clone();
-                Box::pin(async move { member_service.enrich_member_(member, steps).await })
+                Box::pin(async move { member_service.enrich_member(member, steps).await })
             },
             move || {},
         );

@@ -57,7 +57,7 @@ pub async fn enrich_members_route(
         jids,
         move |jid| {
             let member_service = member_service.clone();
-            Box::pin(async move { member_service.enrich_member(&jid).await })
+            Box::pin(async move { member_service.enrich_jid(&jid).await })
         },
         move || cancellation_token.cancel(),
     );
@@ -94,7 +94,7 @@ pub async fn enrich_members_stream_route(
                         jids,
                         move |jid| {
                             let member_service = member_service.clone();
-                            Box::pin(async move { member_service.enrich_member(&jid).await })
+                            Box::pin(async move { member_service.enrich_jid(&jid).await })
                         },
                         move || cancellation_token.cancel(),
                     );
