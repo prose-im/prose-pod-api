@@ -14,7 +14,7 @@ pub async fn get_member_route(
     Path(jid): Path<BareJid>,
     member_service: MemberService,
 ) -> Result<Json<EnrichedMember>, Error> {
-    let member = member_service.enrich_member(&jid).await?;
+    let member = member_service.enrich_jid(&jid).await?;
     let Some(member) = member else {
         return Err(Error::from(error::NotFound {
             reason: format!("No member with id '{jid}'"),

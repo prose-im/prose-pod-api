@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use service::members::MemberService;
 
 use crate::{
-    error::{self, Error},
+    error::Error,
     forms::{OptionalQuery, Pagination, SearchQuery},
     responders::Paginated,
 };
@@ -83,19 +83,14 @@ async fn get_members_filtered(
     query: String,
     pagination: Pagination,
 ) -> Result<Paginated<EnrichedMember>, Error> {
-    if pagination.until.is_some() {
-        return Err(Error::from(error::NotImplemented(
-            "`until` query parameter",
-        )));
-    }
     let PaginationWithDefaults {
         page_number,
         page_size,
-        ..
+        until,
     } = pagination_with_defaults(pagination)?;
 
     let (pages_metadata, members) = member_service
-        .search_members_paged(query, page_number, page_size)
+        .search_members(query, page_number, page_size, until)
         .await?;
 
     Ok(Paginated::new(

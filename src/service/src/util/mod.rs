@@ -3,6 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod cache;
 mod concurrent_task_runner;
 mod either;
 mod sea_orm;
@@ -13,6 +14,7 @@ use crate::{
     server_config::ServerConfig,
 };
 
+pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::either::*;
 pub use self::unaccent::*;
