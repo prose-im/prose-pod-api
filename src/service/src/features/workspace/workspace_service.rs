@@ -12,7 +12,10 @@ use crate::{
     secrets::SecretsStore,
     server_config::ServerConfig,
     workspace::Workspace,
-    xmpp::{xmpp_service, AvatarData, XmppService, XmppServiceContext, XmppServiceInner},
+    xmpp::{
+        xmpp_service::{self, Avatar},
+        XmppService, XmppServiceContext, XmppServiceInner,
+    },
     AppConfig,
 };
 
@@ -61,7 +64,7 @@ impl WorkspaceService {
         let vcard = self.get_workspace_vcard().await?;
         let mut workspace = Workspace::try_from(vcard)?;
         // Avatars are not stored in vCards.
-        workspace.icon = self.get_workspace_icon_base64().await?;
+        workspace.icon = self.get_workspace_icon().await?;
         Ok(workspace)
     }
 
@@ -112,18 +115,13 @@ impl WorkspaceService {
     }
 
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_icon(&self) -> Result<Option<AvatarData>, Error> {
+    pub async fn get_workspace_icon(&self) -> Result<Option<Avatar>, Error> {
         let avatar = self.xmpp_service.get_own_avatar().await?;
         Ok(avatar)
     }
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_icon_base64(&self) -> Result<Option<String>, Error> {
-        let avatar_data = self.get_workspace_icon().await?;
-        Ok(avatar_data.map(|d| d.base64().into_owned()))
-    }
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_icon(&self, png_data: Vec<u8>) -> Result<(), Error> {
-        self.xmpp_service.set_own_avatar(png_data).await?;
+    pub async fn set_workspace_icon(&self, data: Vec<u8>, mime: &mime::Mime) -> Result<(), Error> {
+        self.xmpp_service.set_own_avatar(data, mime).await?;
         Ok(())
     }
 }

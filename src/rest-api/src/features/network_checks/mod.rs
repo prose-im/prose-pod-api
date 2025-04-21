@@ -53,7 +53,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             axum::Router::new()
                 .route(
                     "/checks",
-                    get(with_content_type::<TextEventStream, _>(
+                    get(with_accept::<TextEventStream, _>(
                         check_network_configuration_stream_route,
                     )
                     .or(check_network_configuration_route)),
@@ -61,21 +61,21 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route(
                     "/checks/dns",
                     get(
-                        with_content_type::<TextEventStream, _>(check_dns_records_stream_route)
+                        with_accept::<TextEventStream, _>(check_dns_records_stream_route)
                             .or(check_dns_records_route),
                     ),
                 )
                 .route(
                     "/checks/ip",
                     get(
-                        with_content_type::<TextEventStream, _>(check_ip_stream_route)
+                        with_accept::<TextEventStream, _>(check_ip_stream_route)
                             .or(check_ip_route),
                     ),
                 )
                 .route(
                     "/checks/ports",
                     get(
-                        with_content_type::<TextEventStream, _>(check_ports_stream_route)
+                        with_accept::<TextEventStream, _>(check_ports_stream_route)
                             .or(check_ports_route),
                     ),
                 ),

@@ -65,18 +65,33 @@ macro_rules! user_token {
 
 #[macro_export]
 macro_rules! api_call_fn {
-    ($fn:ident, unauthenticated: $method:ident, $route:literal, $(path: $($route_param_name:tt=$route_param:ty,)*)? $(accept: $accept:literal)?) => {
+    (
+        $fn:ident,
+        unauthenticated: $method:ident,
+        $route:literal $(; path: $($route_param_name:tt=$route_param:ty)*)?
+        $(, accept: $accept:literal)?
+        $(, content_type: $content_type:literal)?
+        $(,)?
+    ) => {
         async fn $fn(api: &axum_test::TestServer $(, $route_param_name: $route_param)*) -> axum_test::TestResponse {
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
-                    $( .add_header(axum::http::header::ACCEPT, $accept) )?,
+                    $( .add_header(axum::http::header::ACCEPT, $accept) )?
+                    $( .content_type($content_type) )?,
             )
             .await
             .unwrap()
         }
     };
-    ($fn:ident, $method:ident, $route:literal $(, accept: $accept:literal)?) => {
+    (
+        $fn:ident,
+        $method:ident,
+        $route:literal
+        $(, accept: $accept:literal)?
+        $(, content_type: $content_type:literal)?
+        $(,)?
+    ) => {
         async fn $fn(
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
@@ -86,6 +101,7 @@ macro_rules! api_call_fn {
                 tokio::time::Duration::from_secs(2),
                 api.method(axum::http::Method::$method, $route)
                     $( .add_header(axum::http::header::ACCEPT, $accept) )?
+                    $( .content_type($content_type) )?
                     .add_header(
                         axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
@@ -95,7 +111,14 @@ macro_rules! api_call_fn {
             .unwrap()
         }
     };
-    ($fn:ident, $method:ident, $route:literal $(; $route_param_name:tt=$route_param:ty)*, payload: $payload_type:ty $(,)?) => {
+    (
+        $fn:ident,
+        $method:ident,
+        $route:literal $(; $route_param_name:tt=$route_param:ty)*,
+        payload: $payload_type:ty
+        $(, content_type: $content_type:literal)?
+        $(,)?
+    ) => {
         async fn $fn(
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
@@ -110,7 +133,37 @@ macro_rules! api_call_fn {
                         axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
                     )
-                    .json(&serde_json::json!(payload)),
+                    .json(&serde_json::json!(payload))
+                    $( .content_type($content_type) )?,
+            )
+            .await
+            .unwrap()
+        }
+    };
+    (
+        $fn:ident,
+        $method:ident,
+        $route:literal $(; $route_param_name:tt=$route_param:ty)*,
+        raw: $payload_type:ty
+        $(, content_type: $content_type:literal)?
+        $(,)?
+    ) => {
+        async fn $fn(
+            api: &axum_test::TestServer,
+            token: secrecy::SecretString,
+            $( $route_param_name: $route_param, )*
+            payload: $payload_type,
+        ) -> axum_test::TestResponse {
+            use secrecy::ExposeSecret as _;
+            tokio::time::timeout(
+                tokio::time::Duration::from_secs(2),
+                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
+                    .add_header(
+                        axum::http::header::AUTHORIZATION,
+                        format!("Bearer {}", token.expose_secret()),
+                    )
+                    .text(payload)
+                    $( .content_type($content_type) )?,
             )
             .await
             .unwrap()

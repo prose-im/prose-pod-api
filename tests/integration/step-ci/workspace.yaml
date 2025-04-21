@@ -118,6 +118,8 @@ components:
       http:
         method: GET
         url: /v1/workspace/icon
+        headers:
+          Accept: application/json
         auth:
           bearer:
             token: ${{ captures.token }}

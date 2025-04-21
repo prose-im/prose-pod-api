@@ -3,30 +3,81 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::Json;
+use axum::{
+    http::{header::ACCEPT, HeaderMap, HeaderValue},
+    response::NoContent,
+    Json,
+};
+use axum_extra::{either::Either, headers::ContentType, TypedHeader};
 use base64::{engine::general_purpose, Engine as _};
-use service::workspace::WorkspaceService;
+use mime::Mime;
+use service::{workspace::WorkspaceService, xmpp::xmpp_service::Avatar};
+
+const MAGIC_PREFIX_PNG: &'static str = "iVBORw0KGgo";
+const MAGIC_PREFIX_GIF: &'static str = "R0lGOD";
+const MAGIC_PREFIX_JPEG: &'static str = "/9j/";
 
 use crate::error::{self, Error};
 
 pub async fn get_workspace_icon_route(
     workspace_service: WorkspaceService,
-) -> Result<Json<Option<String>>, Error> {
-    let icon = workspace_service.get_workspace_icon_base64().await?;
+) -> Result<Either<(TypedHeader<ContentType>, String), NoContent>, Error> {
+    Ok(match workspace_service.get_workspace_icon().await? {
+        Some(icon) => Either::E1((TypedHeader(ContentType::from(icon.mime)), icon.base64)),
+        None => Either::E2(NoContent),
+    })
+}
+pub async fn get_workspace_icon_json_route(
+    workspace_service: WorkspaceService,
+) -> Result<Json<Option<Avatar>>, Error> {
+    let icon = workspace_service.get_workspace_icon().await?;
     Ok(Json(icon))
 }
 
 pub async fn set_workspace_icon_route(
     workspace_service: WorkspaceService,
-    Json(base64_png): Json<String>,
-) -> Result<Json<Option<String>>, Error> {
-    let image_data = general_purpose::STANDARD
-        .decode(&base64_png)
-        .map_err(|err| error::BadRequest {
-            reason: format!("Image data should be base64-encoded. Error: {err}"),
-        })?;
+    content_type: Option<TypedHeader<ContentType>>,
+    headers: HeaderMap,
+    base64: String,
+) -> Result<Either<(TypedHeader<ContentType>, String), Json<Avatar>>, Error> {
+    let mime = content_type.map(|TypedHeader(ct)| Mime::from(ct));
 
-    workspace_service.set_workspace_icon(image_data).await?;
+    let image_data =
+        general_purpose::STANDARD
+            .decode(&base64)
+            .map_err(|err| error::BadRequest {
+                reason: format!("Image data should be Base64-encoded. Error: {err}"),
+            })?;
 
-    Ok(Json(Some(base64_png)))
+    let mime = match mime {
+        Some(mime) if mime.type_() == mime::IMAGE => mime,
+        None if base64.starts_with(MAGIC_PREFIX_PNG) => mime::IMAGE_PNG,
+        None if base64.starts_with(MAGIC_PREFIX_GIF) => mime::IMAGE_GIF,
+        None if base64.starts_with(MAGIC_PREFIX_JPEG) => mime::IMAGE_JPEG,
+        _ => {
+            return Err(Error::from(error::UnsupportedMediaType {
+                comment: format!(
+                    "Supported content types: {}.",
+                    [
+                        mime::IMAGE_PNG.to_string(),
+                        mime::IMAGE_GIF.to_string(),
+                        mime::IMAGE_JPEG.to_string(),
+                    ]
+                    .join(", ")
+                ),
+            }))
+        }
+    };
+
+    workspace_service
+        .set_workspace_icon(image_data, &mime)
+        .await?;
+
+    if headers.get(ACCEPT)
+        == Some(&HeaderValue::from_str(&mime::APPLICATION_JSON.to_string()).unwrap())
+    {
+        Ok(Either::E2(Json(Avatar { base64, mime })))
+    } else {
+        Ok(Either::E1((TypedHeader(ContentType::from(mime)), base64)))
+    }
 }

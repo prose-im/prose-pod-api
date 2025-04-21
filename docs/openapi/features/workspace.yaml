@@ -159,6 +159,16 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
+          image/png:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+          image/gif:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+          image/jpeg:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+      "204": { description: No icon }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }
@@ -169,17 +179,37 @@ paths:
     operationId: set_workspace_icon
     security:
       - BearerAuth: []
+    parameters:
+      - in: header
+        name: Accept
+        schema:
+          $ref: "../shared.yaml#/components/schemas/headers/Accept"
+          enum: [application/json, image/png, image/gif, image/jpeg]
     requestBody:
       description: Workspace icon
       content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
+        image/png:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+          example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+        image/gif:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+          example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+        image/jpeg:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+          example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
     responses:
       "200":
         description: Success
         content:
-          application/json:
-            schema: { $ref: "#/components/schemas/Workspace/properties/icon" }
+          image/png:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+          image/gif:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
+          image/jpeg:
+            schema: { $ref: "members.yaml#/components/schemas/AvatarData" }
+            example: { $ref: "members.yaml#/components/schemas/AvatarData/example" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "412": { $ref: "#/components/responses/WorkspaceNotInitialized" }

@@ -9,6 +9,7 @@ use service::{
     members::*,
     models::EmailAddress,
     sea_orm::QueryOrder as _,
+    xmpp::xmpp_service::Avatar,
 };
 use urlencoding::encode;
 
@@ -86,11 +87,15 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
 }
 
 #[given(expr = "{}'s avatar is {}")]
-async fn given_avatar(world: &mut TestWorld, name: String, avatar: String) -> Result<(), Error> {
+async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    world
-        .mock_xmpp_service
-        .set_avatar(&jid, Some(AvatarData::Base64(avatar)))?;
+    world.mock_xmpp_service.set_avatar(
+        &jid,
+        Some(Avatar {
+            base64,
+            mime: mime::IMAGE_PNG,
+        }),
+    )?;
     Ok(())
 }
 

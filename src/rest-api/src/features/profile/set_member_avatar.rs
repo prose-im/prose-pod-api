@@ -44,7 +44,9 @@ pub async fn set_member_avatar_route(
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
 
-    xmpp_service.set_own_avatar(image_data).await?;
+    xmpp_service
+        .set_own_avatar(image_data, &mime::IMAGE_PNG)
+        .await?;
 
     Ok(Json(SetMemberAvatarResponse {
         jid: jid.to_owned(),

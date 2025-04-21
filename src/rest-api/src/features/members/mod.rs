@@ -36,7 +36,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .route(
             "/v1/enrich-members",
             get(
-                with_content_type::<TextEventStream, _>(enrich_members_stream_route)
+                with_accept::<TextEventStream, _>(enrich_members_stream_route)
                     .or(enrich_members_route),
             ),
         )

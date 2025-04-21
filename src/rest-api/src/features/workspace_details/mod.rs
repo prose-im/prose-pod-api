@@ -12,7 +12,9 @@ mod workspace_name;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{get, patch, put, MethodRouter};
+use axum_extra::handler::HandlerCallWithExtractors as _;
 
+use crate::util::content_type_or::{with_accept, ApplictionJson};
 use crate::AppState;
 
 pub use self::get_workspace::*;
@@ -39,7 +41,13 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                         .get(get_workspace_route),
                 )
                 .route("/accent-color", get(get_workspace_accent_color_route))
-                .route("/icon", get(get_workspace_icon_route))
+                .route(
+                    "/icon",
+                    get(
+                        with_accept::<ApplictionJson, _>(get_workspace_icon_json_route)
+                            .or(get_workspace_icon_route),
+                    ),
+                )
                 .route("/name", get(get_workspace_name_route))
                 .merge(
                     axum::Router::new()
