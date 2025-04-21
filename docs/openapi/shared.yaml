@@ -47,6 +47,10 @@ components:
       type: integer
       format: int32
       minimum: 0
+    ContentType:
+      type: string
+      description: A [IANA-registered content type](https://www.iana.org/assignments/media-types/media-types.xhtml).
+      example: application/json
     sse-events:
       end:
         description: A Server-Sent Event indicating all events have been sent (the
@@ -69,6 +73,13 @@ components:
           data:
             type: string
             const: ""
+    headers:
+      Accept:
+        description: |
+          Accepted content types.
+          See [`Accept` on MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept).
+        type: string
+        example: application/json
   headers:
     Location:
       description: URL to the created resource. See [`Location` on

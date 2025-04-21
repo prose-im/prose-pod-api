@@ -138,6 +138,24 @@ impl HttpApiError for PreconditionRequired {
 }
 
 impl ErrorCode {
+    pub const UNSUPPORTED_MEDIA_TYPE: Self = Self {
+        value: "unsupported_media_type",
+        http_status: StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        log_level: LogLevel::Info,
+    };
+}
+#[derive(Debug, thiserror::Error)]
+#[error("Precondition required: {comment}")]
+pub struct UnsupportedMediaType {
+    pub comment: String,
+}
+impl HttpApiError for UnsupportedMediaType {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::UNSUPPORTED_MEDIA_TYPE
+    }
+}
+
+impl ErrorCode {
     pub const NOT_FOUND: Self = Self {
         value: "not_found",
         http_status: StatusCode::NOT_FOUND,

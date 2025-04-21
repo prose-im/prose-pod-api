@@ -339,7 +339,7 @@ impl MemberService {
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s avatar…");
                             match self.xmpp_service.get_avatar(jid).await {
-                                Ok(Some(avatar)) => Some(avatar.base64().to_string()),
+                                Ok(Some(avatar)) => Some(avatar.base64),
                                 Ok(None) => {
                                     debug!("`{jid}` has no avatar.");
                                     None
