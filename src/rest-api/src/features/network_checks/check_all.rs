@@ -110,10 +110,10 @@ pub async fn check_network_configuration_stream_route(
                     );
 
                     while let Some(event) = rx.recv().await {
-                        sse_tx.send(Ok(logged(event))).await.unwrap();
+                        sse_tx.send(Ok(logged(event))).await.ok();
                     }
 
-                    sse_tx.send(Ok(logged(end_event()))).await.unwrap();
+                    sse_tx.send(Ok(logged(end_event()))).await.ok();
                 } => {}
             _ = cancellation_token.cancelled() => {
                 trace!("Token cancelled.");
