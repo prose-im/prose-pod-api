@@ -3,7 +3,9 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{auth::UserInfo, members::MemberServiceContext, xmpp::XmppService};
+use service::{
+    auth::UserInfo, members::MemberServiceContext, util::ConcurrentTaskRunner, xmpp::XmppService,
+};
 
 use crate::guards::prelude::*;
 
@@ -25,6 +27,7 @@ impl FromRequestParts<AppState> for service::members::MemberService {
             Arc::new(state.db.clone()),
             Arc::new(state.server_ctl.clone()),
             Arc::new(xmpp_service),
+            ConcurrentTaskRunner::default(&state.app_config),
             ctx,
         ))
     }

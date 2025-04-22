@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use service::xmpp::xmpp_service::Avatar;
+
 use super::prelude::*;
 
 // WORKSPACE NAME
@@ -61,15 +63,24 @@ api_call_fn!(
     get_workspace_icon_unauthenticated,
     unauthenticated: GET,
     "/v1/workspace/icon",
+    accept: "application/json",
 );
-api_call_fn!(set_workspace_icon, PUT, "/v1/workspace/icon", payload: String);
+api_call_fn!(
+    set_workspace_icon,
+    PUT, "/v1/workspace/icon",
+    raw: String,
+    content_type: "image/png",
+);
 
 #[given(expr = "the workspace icon is {string}")]
-async fn given_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
+async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
     let server_config = world.server_config().await?;
     world.mock_xmpp_service.set_avatar(
         &world.app_config.workspace_jid(&server_config.domain),
-        Some(AvatarData::Base64(png_data)),
+        Some(Avatar {
+            base64,
+            mime: mime::IMAGE_PNG,
+        }),
     )?;
     Ok(())
 }
@@ -89,14 +100,14 @@ async fn when_set_workspace_icon(world: &mut TestWorld, name: String, png_data: 
 
 #[then("the returned workspace icon should be undefined")]
 async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
-    let res: Option<String> = world.result().json();
+    let res: Option<Avatar> = world.result().json();
     assert_eq!(res, None);
 }
 
 #[then(expr = "the returned workspace icon should be {string}")]
-async fn then_response_workspace_icon(world: &mut TestWorld, png_data: String) {
-    let res: Option<String> = world.result().json();
-    assert_eq!(res, Some(png_data));
+async fn then_response_workspace_icon(world: &mut TestWorld, base64: String) {
+    let res: Option<Avatar> = world.result().json();
+    assert_eq!(res.map(|a| a.base64), Some(base64));
 }
 
 #[then(expr = "the workspace icon should be {string}")]
@@ -106,7 +117,7 @@ async fn then_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<
         .await
         .get_workspace_icon()
         .await?
-        .map(|d| d.base64().into_owned());
+        .map(|d| d.base64);
     assert_eq!(workspace_icon, Some(png_data));
     Ok(())
 }

@@ -10,10 +10,12 @@ use prose_xmpp::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::xmpp::xmpp_service::Avatar;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Workspace {
     pub name: String,
-    pub icon: Option<String>,
+    pub icon: Option<Avatar>,
     pub accent_color: Option<String>,
 }
 

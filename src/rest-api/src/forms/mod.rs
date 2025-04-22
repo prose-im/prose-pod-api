@@ -6,10 +6,14 @@
 mod deserialize_some;
 mod interval;
 pub mod multi_value_items;
+mod opt_query;
 mod pagination;
+mod search_query;
 mod timestamp;
 
-pub use deserialize_some::deserialize_some;
-pub use interval::Interval;
-pub use pagination::Pagination;
-pub use timestamp::Timestamp;
+pub use self::deserialize_some::*;
+pub use self::interval::*;
+pub use self::opt_query::*;
+pub use self::pagination::*;
+pub use self::search_query::*;
+pub use self::timestamp::*;

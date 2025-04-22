@@ -5,6 +5,7 @@
 
 use std::{str::FromStr as _, sync::Arc};
 
+use mime::Mime;
 use prose_xmpp::{
     mods::{self, AvatarData},
     stanza::avatar::{self, ImageId},
@@ -17,7 +18,7 @@ use xmpp_parsers::hashes::Sha1HexAttribute;
 use crate::{
     models::jid::ResourcePart,
     prosody::ProsodyRest,
-    xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
+    xmpp::{xmpp_service::Avatar, VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
     AppConfig,
 };
 
@@ -124,33 +125,40 @@ impl XmppServiceImpl for LiveXmppService {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarData>, XmppServiceError> {
+    ) -> Result<Option<Avatar>, XmppServiceError> {
         let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx).await? else {
             return Ok(None);
         };
         let image_id = avatar_metadata.id;
+        let mime = Mime::from_str(&avatar_metadata.r#type)
+            .map_err(|e| XmppServiceError::Other(format!("Invalid MIME type: {e}")))?;
 
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
-        profile
+        let avatar = profile
             .load_avatar_image(
                 jid.to_owned(),
                 &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
             )
-            .await
-            .map_err(Into::into)
+            .await?;
+
+        Ok(avatar.map(|data| Avatar {
+            base64: data.base64().to_string(),
+            mime,
+        }))
     }
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
     async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        png_data: Vec<u8>,
+        data: Vec<u8>,
+        mime: &Mime,
     ) -> Result<(), XmppServiceError> {
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
 
-        let image_data_len = png_data.len();
-        let image_data = AvatarData::Data(png_data.into_boxed_slice());
+        let image_data_len = data.len();
+        let image_data = AvatarData::Data(data.into_boxed_slice());
         let checksum: ImageId = image_data
             .generate_sha1_checksum()
             .map_err(|err| {
@@ -168,8 +176,7 @@ impl XmppServiceImpl for LiveXmppService {
         debug!("Uploading avatar metadata…");
         profile
             // TODO: Allow specifying width and height
-            // TODO: Support other MIME types
-            .set_avatar_metadata(image_data_len, &checksum, "image/png", None, None)
+            .set_avatar_metadata(image_data_len, &checksum, mime.to_string(), None, None)
             .await
             .map_err(|err| {
                 XmppServiceError::Other(format!("Could not upload avatar metadata: {err}"))

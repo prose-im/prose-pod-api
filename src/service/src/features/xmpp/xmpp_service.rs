@@ -5,12 +5,14 @@
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
+use mime::Mime;
 use prose_xmpp::{
-    mods::AvatarData,
     stanza::vcard4::{Fn_, Nickname},
     BareJid, ConnectionError, RequestError,
 };
 use secrecy::SecretString;
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use tracing::{debug, instrument};
 
 pub use super::live_xmpp_service::LiveXmppService;
@@ -51,6 +53,15 @@ impl XmppServiceInner {
 }
 
 pub type VCard = prose_xmpp::stanza::VCard4;
+
+#[serde_as]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Avatar {
+    pub base64: String,
+    #[serde(rename = "type")]
+    #[serde_as(as = "DisplayFromStr")]
+    pub mime: Mime,
+}
 
 impl XmppService {
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
@@ -94,16 +105,20 @@ impl XmppService {
     }
 
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
-    pub async fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, XmppServiceError> {
+    pub async fn get_avatar(&self, jid: &BareJid) -> Result<Option<Avatar>, XmppServiceError> {
         self.deref().get_avatar(&self.ctx, jid).await
     }
     #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
-    pub async fn get_own_avatar(&self) -> Result<Option<AvatarData>, XmppServiceError> {
+    pub async fn get_own_avatar(&self) -> Result<Option<Avatar>, XmppServiceError> {
         self.deref().get_own_avatar(&self.ctx).await
     }
     #[instrument(level = "trace", skip_all, fields(jid = self.ctx.bare_jid.to_string()), err)]
-    pub async fn set_own_avatar(&self, png_data: Vec<u8>) -> Result<(), XmppServiceError> {
-        self.deref().set_own_avatar(&self.ctx, png_data).await
+    pub async fn set_own_avatar(
+        &self,
+        data: Vec<u8>,
+        mime: &mime::Mime,
+    ) -> Result<(), XmppServiceError> {
+        self.deref().set_own_avatar(&self.ctx, data, mime).await
     }
 
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), ret, err)]
@@ -191,19 +206,18 @@ pub trait XmppServiceImpl: Debug + Send + Sync {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarData>, XmppServiceError>;
+    ) -> Result<Option<Avatar>, XmppServiceError>;
     async fn get_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-    ) -> Result<Option<AvatarData>, XmppServiceError> {
+    ) -> Result<Option<Avatar>, XmppServiceError> {
         self.get_avatar(ctx, &ctx.bare_jid).await
     }
-    // TODO: Allow other MIME types
-    // TODO: Allow setting an avatar pointing to a URL
     async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        png_data: Vec<u8>,
+        data: Vec<u8>,
+        mime: &mime::Mime,
     ) -> Result<(), XmppServiceError>;
 
     async fn is_connected(

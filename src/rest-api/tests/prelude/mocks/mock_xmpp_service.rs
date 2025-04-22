@@ -5,7 +5,8 @@
 
 use linked_hash_map::LinkedHashMap;
 use service::xmpp::{
-    xmpp_service::Error, AvatarData, BareJid, VCard, XmppServiceContext, XmppServiceImpl,
+    xmpp_service::{Avatar, Error},
+    AvatarData, BareJid, VCard, XmppServiceContext, XmppServiceImpl,
 };
 use tracing::{instrument, trace};
 
@@ -24,7 +25,7 @@ pub struct MockXmppService {
 pub struct MockXmppServiceState {
     pub online: bool,
     pub vcards: LinkedHashMap<BareJid, VCard>,
-    pub avatars: LinkedHashMap<BareJid, Option<AvatarData>>,
+    pub avatars: LinkedHashMap<BareJid, Option<Avatar>>,
     pub online_members: HashSet<BareJid>,
 }
 
@@ -87,7 +88,7 @@ impl MockXmppService {
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<AvatarData>, Error> {
+    pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<Avatar>, Error> {
         self.check_online()?;
 
         trace!("Getting {jid}'s avatar…");
@@ -105,7 +106,7 @@ impl MockXmppService {
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn set_avatar(&self, jid: &BareJid, image_data: Option<AvatarData>) -> Result<(), Error> {
+    pub fn set_avatar(&self, jid: &BareJid, avatar: Option<Avatar>) -> Result<(), Error> {
         self.check_online()?;
 
         trace!("Setting {jid}'s avatar…");
@@ -113,7 +114,7 @@ impl MockXmppService {
             .write()
             .expect("`MockXmppServiceState` lock poisonned")
             .avatars
-            .insert(jid.to_owned(), image_data);
+            .insert(jid.to_owned(), avatar);
         Ok(())
     }
 
@@ -146,17 +147,22 @@ impl XmppServiceImpl for MockXmppService {
         &self,
         _ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarData>, Error> {
+    ) -> Result<Option<Avatar>, Error> {
         self.get_avatar(jid)
     }
     async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        png_data: Vec<u8>,
+        data: Vec<u8>,
+        mime: &mime::Mime,
     ) -> Result<(), Error> {
+        let avatar_data = AvatarData::Data(data.into_boxed_slice());
         self.set_avatar(
             &ctx.bare_jid,
-            Some(AvatarData::Data(png_data.into_boxed_slice())),
+            Some(Avatar {
+                base64: avatar_data.base64().to_string(),
+                mime: mime.clone(),
+            }),
         )
     }
 

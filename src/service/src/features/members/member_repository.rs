@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
@@ -64,13 +64,13 @@ impl MemberRepository {
     }
 
     #[instrument(
-        name = "db::member::get_all",
+        name = "db::member::get_page",
         level = "trace",
         skip_all,
         fields(page_number, page_size, until),
         err
     )]
-    pub async fn get_all(
+    pub async fn get_page(
         db: &impl ConnectionTrait,
         page_number: u64,
         page_size: u64,
@@ -90,6 +90,24 @@ impl MemberRepository {
         let num_items_and_pages = pages.num_items_and_pages().await?;
         let models = pages.fetch_page(page_number - 1).await?;
         Ok((num_items_and_pages, models))
+    }
+
+    #[instrument(name = "db::member::get_all", level = "trace", skip_all, err)]
+    pub async fn get_all(db: &impl ConnectionTrait) -> Result<Vec<Member>, DbErr> {
+        Entity::find().order_by_asc(Column::JoinedAt).all(db).await
+    }
+
+    #[instrument(name = "db::member::get_all_until", level = "trace", skip_all, err)]
+    #[inline]
+    pub async fn get_all_until(
+        db: &impl ConnectionTrait,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<Vec<Member>, DbErr> {
+        let mut query = Entity::find().order_by_asc(Column::JoinedAt);
+        if let Some(until) = until {
+            query = query.filter(Column::JoinedAt.lte(until));
+        }
+        query.all(db).await
     }
 
     #[instrument(name = "db::member::get_count", level = "trace", skip_all, err)]

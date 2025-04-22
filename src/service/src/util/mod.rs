@@ -3,17 +3,21 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod cache;
 mod concurrent_task_runner;
 mod either;
 mod sea_orm;
+mod unaccent;
 
 use crate::{
     models::jid::{self, BareJid, NodePart, JID},
     server_config::ServerConfig,
 };
 
+pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::either::*;
+pub use self::unaccent::*;
 
 pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
     BareJid::new(jid.to_string().as_str())
