@@ -1,4 +1,4 @@
-# Prosody storages benchmark results (`2025-04-18T16:06:20+00:00`)
+# Prosody storages benchmark results (`2025-04-23T10:18:01+00:00`)
 
 ## `internal`
 
@@ -57,3 +57,39 @@
 | 50       |  249ms |  259ms |  253ms |
 | 75       |  378ms |  391ms |  382ms |
 | 100      |  396ms |  480ms |  465ms |
+
+## `internal (delayed roster updates)`
+
+| member # | min.   | max.   | avg.   |
+| -------- | ------ | ------ | ------ |
+| 25       |  132ms |  137ms |  134ms |
+| 50       |  133ms |  137ms |  136ms |
+| 75       |  134ms |  141ms |  137ms |
+| 100      |  133ms |  160ms |  138ms |
+
+## `appendmap (delayed roster updates)`
+
+| member # | min.   | max.   | avg.   |
+| -------- | ------ | ------ | ------ |
+| 25       |  132ms |  137ms |  134ms |
+| 50       |  134ms |  151ms |  138ms |
+| 75       |  133ms |  139ms |  135ms |
+| 100      |  133ms |  138ms |  135ms |
+
+## `sqlite-luasqlite sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)`
+
+| member # | min.   | max.   | avg.   |
+| -------- | ------ | ------ | ------ |
+| 25       |  133ms |  138ms |  135ms |
+| 50       |  133ms |  138ms |  135ms |
+| 75       |  132ms |  141ms |  135ms |
+| 100      |  129ms |  140ms |  135ms |
+
+## `sqlite-as-default-luasqlite sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)`
+
+| member # | min.   | max.   | avg.   |
+| -------- | ------ | ------ | ------ |
+| 25       |  122ms |  137ms |  131ms |
+| 50       |  125ms |  133ms |  129ms |
+| 75       |  132ms |  140ms |  134ms |
+| 100      |  128ms |  135ms |  131ms |

@@ -3,22 +3,31 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::{sync::Arc, time::Duration};
+
 use mime::Mime;
 use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use secrecy::ExposeSecret as _;
 use serde::Deserialize;
 use serde_json::json;
-use tracing::trace;
+use tokio::{sync::RwLock, task::JoinHandle};
+use tracing::{error, trace};
 
 use crate::{
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
     secrets::SecretsStore,
+    util::DebouncedNotify,
     xmpp::{server_ctl, BareJid, NonStandardXmppClient},
     AppConfig,
 };
 
 const TEAM_GROUP_ID: &'static str = "team";
 const TEAM_GROUP_NAME: &'static str = "Team";
+/// NOTE: Value must be greater than the time it takes to add a member (approx.
+///   150ms) otherwise it really is useless but should also be lower than the
+///   time it takes for someone to fill a signup form so rosters are updated a
+///   bit more frequently.
+const TEAM_ROSTERS_SYNC_DEBOUNCE_MILLIS: u64 = 10_000;
 
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
 #[derive(Debug, Clone)]
@@ -28,6 +37,7 @@ pub struct ProsodyAdminRest {
     admin_rest_api_on_main_host_url: String,
     api_jid: BareJid,
     secrets_store: SecretsStore,
+    team_updated_notifier: Arc<RwLock<Option<(DebouncedNotify, JoinHandle<()>)>>>,
 }
 
 impl ProsodyAdminRest {
@@ -42,6 +52,7 @@ impl ProsodyAdminRest {
             admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
             api_jid: config.api_jid(),
             secrets_store,
+            team_updated_notifier: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -126,18 +137,20 @@ impl ProsodyAdminRest {
         jid: &BareJid,
     ) -> Result<(), server_ctl::Error> {
         let add_member = |client: &HttpClient| {
-            client.request(
-                method,
-                format!(
-                    "{}/{TEAM_GROUP_ID}/members/{}",
-                    self.url_on_main_host("groups"),
-                    urlencoding::encode(
-                        jid.node()
-                            .expect("Bare JID has no node part: {jid}")
-                            .as_str()
-                    )
-                ),
-            )
+            client
+                .request(
+                    method,
+                    format!(
+                        "{}/{TEAM_GROUP_ID}/members/{}",
+                        self.url_on_main_host("groups"),
+                        urlencoding::encode(
+                            jid.node()
+                                .expect("Bare JID has no node part: {jid}")
+                                .as_str()
+                        )
+                    ),
+                )
+                .json(&json!({ "delay_update": true }))
         };
         let map_res = |response: ResponseData| {
             if response.status.is_success() {
@@ -155,14 +168,58 @@ impl ProsodyAdminRest {
 
         // Try to add the member
         match self.call_(add_member.clone(), map_res).await? {
-            Ok(_) => Ok(()),
+            Ok(_) => {}
             // If group wasn't found, try to create it and add the member again
             Err(AddMemberFailed::GroupNotFound) => {
                 self.create_team_group().await?;
                 self.call(add_member).await?;
-                Ok(())
             }
         }
+
+        // Notify that the team has been updated, to trigger a sync of rosters
+        // after a debounce delay.
+        self.notify_team_updated().await;
+
+        Ok(())
+    }
+
+    async fn update_rosters(&self) -> Result<(), server_ctl::Error> {
+        tracing::debug!("Synchronizing rosters…");
+        self.call(|client| {
+            client.post(format!(
+                "{}/{TEAM_GROUP_ID}/sync",
+                self.url_on_main_host("groups")
+            ))
+        })
+        .await?;
+        Ok(())
+    }
+
+    async fn notify_team_updated(&self) {
+        {
+            if let Some((notifier, _)) = self.team_updated_notifier.read().await.as_ref() {
+                notifier.notify();
+                return;
+            }
+        }
+
+        let notifier = DebouncedNotify::new();
+
+        let admin_rest = self.clone();
+        let handle = notifier.listen_debounced(
+            Duration::from_millis(TEAM_ROSTERS_SYNC_DEBOUNCE_MILLIS),
+            move |_| {
+                let admin_rest = admin_rest.clone();
+                tokio::spawn(async move {
+                    if let Err(err) = admin_rest.update_rosters().await {
+                        error!("Could not synchronize rosters after updating team members: {err}")
+                    }
+                });
+            },
+        );
+
+        notifier.notify();
+        *self.team_updated_notifier.write().await = Some((notifier, handle));
     }
 }
 

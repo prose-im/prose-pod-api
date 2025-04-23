@@ -34,3 +34,6 @@ Scenarios:
   LuaSQLite3
 - `sqlite-as-default-luasqlite` means we use SQLite as the default , and make DB calls using
   LuaSQLite3
+- “Delayed roster updates” means the API leveraged `mod_groups_internal:add_member`’s
+  `delay_update` parameter to not synchronize the team members’ rosters and used a debounce
+  to synchronize it after some time (≈10s).

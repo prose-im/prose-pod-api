@@ -145,15 +145,21 @@ fi
 
 write '# Prosody storages benchmark results (`'"$(date -Iseconds -u)"'`)'
 
-GIT_HEAD="$(git rev-parse HEAD)"
-git checkout 001dddd03675cd1331c3161fca6320cb8651ccc9
-export PROSE_POD_API_IMAGE_TAG=bench
-# NOTE: We need to build the API locally because we need to use `debug_only`
-#   configuration.
-task build-image -- --tag="${PROSE_POD_API_IMAGE_TAG:?}" --profile=dev --locked
-# NOTE: We have to check out the commit we were on so this script doesn’t
-#   change during its execution.
-git checkout "${GIT_HEAD:?}"
+build-api-commit() {
+	local docker_tag="${1:?"Must pass a git ref"}"
+	local checkout_ref="${2:?"Must pass a git ref"}"
+	local git_head="$(git rev-parse HEAD)"
+	git checkout "${checkout_ref:?}"
+	# NOTE: We need to build the API locally because we need to use `debug_only`
+	#   configuration.
+	task build-image -- --tag="${docker_tag:?}" --profile=dev --locked
+	# NOTE: We have to check out the commit we were on so this script doesn’t
+	#   change during its execution.
+	git checkout "${git_head:?}"
+}
+
+build-api-commit bench-no-delay d5244ee6042ad8645c6810477b0b3239af5382bf
+PROSE_POD_API_IMAGE_TAG=bench-no-delay
 
 # NOTE: `0.3.14` includes all community modules (therefore adding support for
 #   `mod_appendmap`).
@@ -174,3 +180,14 @@ fi
 PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.15
 test-storage sqlite-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
 test-storage sqlite-as-default-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
+
+build-api-commit bench-delay "$(git rev-parse --abbrev-ref HEAD)"
+# NOTE: `bench-delay` delays roster updates.
+PROSE_POD_API_IMAGE_TAG=bench-delay
+
+# NOTE: `0.3.16` adds delayed sync in `mod_admin_rest`.
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.16
+test-storage internal '(delayed roster updates)'
+test-storage appendmap '(delayed roster updates)'
+test-storage sqlite-luasqlite 'sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)'
+test-storage sqlite-as-default-luasqlite 'sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)'

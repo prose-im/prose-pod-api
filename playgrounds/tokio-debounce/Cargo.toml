@@ -1,0 +1,21 @@
+[package]
+name = "tokio-debounce"
+version = "0.1.0"
+edition = "2021"
+publish = false
+authors = ["Rémi Bardon <remi@remibardon.name>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1", default-features = false, features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
+
+[[bin]]
+name = "tokio-debounce"
+path = "main.rs"
