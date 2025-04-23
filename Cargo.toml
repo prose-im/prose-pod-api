@@ -100,7 +100,7 @@ inherits = "dev"
 lto = "thin"
 debug = false
 debug-assertions = false
-panic = "abort"
+panic = "unwind"
 incremental = true
 
 # See defaults at <https://doc.rust-lang.org/cargo/reference/profiles.html#release>.
@@ -112,4 +112,4 @@ debug = false
 debug-assertions = false
 # NOTE: No need to `strip = "debuginfo"` since debug info won't be generated in the first place.
 strip = "symbols"
-panic = "abort"
+panic = "unwind"
