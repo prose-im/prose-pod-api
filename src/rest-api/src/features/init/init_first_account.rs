@@ -44,7 +44,7 @@ pub async fn is_first_account_created_route(
     if MemberRepository::count(&db).await.unwrap_or_default() == 0 {
         StatusCode::NO_CONTENT
     } else {
-        StatusCode::CONFLICT
+        StatusCode::OK
     }
 }
 
