@@ -2,22 +2,22 @@ item({
 	{
 		{
 			"Jake L.";
-			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
+			["name"] = "text";
 		};
-		["name"] = "nickname";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
+		["name"] = "nickname";
 	};
-	["name"] = "vcard";
-	["key"] = "jake.lang@prose-demo.org.local";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:58Z";
+		["stamp"] = "2025-04-22T19:17:15Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
+	["when"] = 1745349435;
+	["key"] = "jake.lang@prose-demo.org.local";
 	["with"] = "jake.lang@prose-demo.org.local";
-	["when"] = 1737408598;
+	["name"] = "vcard";
 });

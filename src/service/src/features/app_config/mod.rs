@@ -22,7 +22,7 @@ use figment::{
 };
 use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
-use prosody_config::{StorageBackend, StorageConfig};
+use prosody_config::ProsodySettings;
 use secrecy::SecretString;
 use serde::Deserialize;
 
@@ -65,7 +65,9 @@ pub struct AppConfig {
     #[serde(default)]
     pub server: ConfigServer,
     #[serde(default)]
-    pub prosody: ConfigProsody,
+    pub prosody_ext: ConfigProsodyExt,
+    #[serde(default)]
+    pub prosody: ProsodySettings,
     #[serde(default)]
     pub branding: ConfigBranding,
     #[serde(default)]
@@ -222,14 +224,13 @@ impl Default for ConfigServer {
     }
 }
 
+/// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
+///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
+///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigProsody {
+pub struct ConfigProsodyExt {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
-    #[serde(default = "defaults::prosody_default_storage")]
-    pub default_storage: StorageBackend,
-    #[serde(default)]
-    pub storage: Option<StorageConfig>,
     /// NOTE: Those modules will be added to `modules_enabled` after everything
     ///   else has been applied (apart from dynamic overrides, which are always
     ///   applied last).
@@ -237,12 +238,10 @@ pub struct ConfigProsody {
     pub additional_modules_enabled: Vec<String>,
 }
 
-impl Default for ConfigProsody {
+impl Default for ConfigProsodyExt {
     fn default() -> Self {
         Self {
             config_file_path: defaults::prosody_config_file_path(),
-            default_storage: defaults::prosody_default_storage(),
-            storage: Default::default(),
             additional_modules_enabled: Default::default(),
         }
     }

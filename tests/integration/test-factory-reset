@@ -13,6 +13,7 @@ LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 BASE_SCENARIO_NAME=demo
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
+: ${PROSE_POD_API_IMAGE_TAG:=local}
 
 SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
 # Compute dynamic variables.
@@ -26,7 +27,7 @@ abort() {
 }
 
 info 'Starting the demo API (already populated with data)…'
-edo task local:run -- --detach --api=local --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
+edo task local:run -- --detach --api="${PROSE_POD_API_IMAGE_TAG:?}" --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
 
 # Wait a bit to make sure the API is ready (e.g. has run migrations).
 sleep 1
@@ -47,6 +48,10 @@ info Checking if factory reset deleted everything…
 PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2eorg%2elocal'
 if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v "^${PROSODY_ADMIN_DATA_DIR_NAME:?}$")" ]; then
 	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
+fi
+PROSODY_DB_NAME='prosody.sqlite'
+if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep "^${PROSODY_DB_NAME:?}$")" ]; then
+	die "Prosody still contains data ($(format_url "${PROSODY_DB_NAME:?}") still exists)."
 fi
 success Prosody data deleted
 

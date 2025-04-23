@@ -1,0 +1,38 @@
+return {
+	["l5_worNsQepZ"] = {
+		["id"] = "l5_worNsQepZ";
+		["jid"] = "todd.schultz@prose-demo.org.local";
+		["accessed"] = 1745349431;
+		["created"] = 1745349431;
+		["tokens"] = {
+			["sha256:2186a2956ed2ea169a5b8a1282e3fccf31caa3277f9594205c01303d9fae9155"] = {
+				["created"] = 1745349431;
+				["expires"] = 1745360231;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+			};
+		};
+		["owner"] = "todd.schultz@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+	["Kbw2zu8aKfG2"] = {
+		["accessed"] = 1745349431;
+		["jid"] = "todd.schultz@prose-demo.org.local";
+		["owner"] = "todd.schultz@prose-demo.org.local";
+		["created"] = 1745349431;
+		["tokens"] = {
+			["sha256:08cddf180d8ed4a412499874b50967d507229463998151ae5fb3bc6c1e9f7632"] = {
+				["created"] = 1745349431;
+				["expires"] = 1745360231;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+			};
+		};
+		["id"] = "Kbw2zu8aKfG2";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+};

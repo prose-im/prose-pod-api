@@ -63,33 +63,28 @@ info 'Log first admin in'
 MEMBER_TOKENS[0]="$(log-in-member-n 0)"
 ADMIN_TOKEN="${MEMBER_TOKENS[0]}"
 
-info 'Initialize Pod address (static address)'
-xh PUT :8080/v1/pod/config -q \
-	address[ipv4]=172.20.0.40 \
-	address[ipv6]=2001:db8::40 \
-	dashboard_url=http://localhost:3030 \
+if [[ "$*" == *'--pod-address-dynamic'* ]]; then
+	info 'Initialize Pod address (dynamic address)'
+	xh PUT :8080/v1/pod/config -q \
+		address[hostname]="${DOMAIN:?}" \
+		dashboard_url=http://localhost:3030 \
+		-A bearer -a "${ADMIN_TOKEN:?}"
+else
+	info 'Initialize Pod address (static address)'
+	xh PUT :8080/v1/pod/config -q \
+		address[ipv4]=172.20.0.40 \
+		address[ipv6]=2001:db8::40 \
+		dashboard_url=http://localhost:3030 \
+		-A bearer -a "${ADMIN_TOKEN:?}"
+fi
+
+info 'Set Workspace icon'
+xh PUT :8080/v1/workspace/icon -q \
+	Content-Type:image/png \
+	--raw "$(cat "${AVATARS_DIR:?}"/prose.png | base64)" \
 	-A bearer -a "${ADMIN_TOKEN:?}"
 
-# info 'Initialize Pod address (dynamic address)'
-# xh PUT :8080/v1/pod/config/address -q \
-# 	address[hostname]="${DOMAIN:?}" \
-# 	dasboard_url=http://localhost:3030 \
-# 	-A bearer -a "${ADMIN_TOKEN:?}"
-
-add-member-n() {
-	local n="${1:?}"
-	info "Add member ${MEMBER_JIDS[n]} (via auto-accepted invitation)"
-	xh POST :8080/v1/invitations -q \
-		auto_accept==true \
-		username="${MEMBER_USERNAMES[n]}" \
-		pre_assigned_role="${MEMBER_ROLES[n]}" \
-		channel=email \
-		email_address="${MEMBER_EMAILS[n]}" \
-		-A bearer -a "${ADMIN_TOKEN:?}"
-
-	info "Log ${MEMBER_JIDS[n]} in"
-	MEMBER_TOKENS[n]="$(log-in-member-n "${n:?}")"
-
+update-member-n() {
 	local nickname="${MEMBER_NICKNAMES[n]}"
 	if [ -n "${nickname?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s nickname"
@@ -110,6 +105,25 @@ add-member-n() {
 		warn "Member ${n:?} (${MEMBER_JIDS[n]}) has no avatar"
 	fi
 }
+
+add-member-n() {
+	local n="${1:?}"
+	info "Add member ${MEMBER_JIDS[n]} (via auto-accepted invitation)"
+	xh POST :8080/v1/invitations -q \
+		auto_accept==true \
+		username="${MEMBER_USERNAMES[n]}" \
+		pre_assigned_role="${MEMBER_ROLES[n]}" \
+		channel=email \
+		email_address="${MEMBER_EMAILS[n]}" \
+		-A bearer -a "${ADMIN_TOKEN:?}"
+
+	info "Log ${MEMBER_JIDS[n]} in"
+	MEMBER_TOKENS[n]="$(log-in-member-n "${n:?}")"
+
+	update-member-n "${n:?}"
+}
+
+update-member-n 0
 
 for n in $(seq 1 $(( ${#MEMBER_USERNAMES[@]} - 1 ))); do
 	add-member-n "${n:?}"

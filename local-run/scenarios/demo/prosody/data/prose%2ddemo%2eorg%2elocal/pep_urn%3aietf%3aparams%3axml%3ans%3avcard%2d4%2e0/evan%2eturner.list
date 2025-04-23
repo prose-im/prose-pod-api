@@ -2,22 +2,22 @@ item({
 	{
 		{
 			"Evan T.";
-			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
+			["name"] = "text";
 		};
-		["name"] = "nickname";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
+		["name"] = "nickname";
 	};
-	["name"] = "vcard";
-	["key"] = "evan.turner@prose-demo.org.local";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:29:48Z";
+		["stamp"] = "2025-04-22T19:17:12Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
+	["when"] = 1745349432;
+	["key"] = "evan.turner@prose-demo.org.local";
 	["with"] = "evan.turner@prose-demo.org.local";
-	["when"] = 1737408588;
+	["name"] = "vcard";
 });

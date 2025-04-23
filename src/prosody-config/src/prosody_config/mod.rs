@@ -4,6 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod conversion;
+#[cfg(feature = "merge")]
+mod merge;
 
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
@@ -62,21 +64,33 @@ impl ProsodyConfigSection {
             Self::Component { settings, .. } => settings,
         }
     }
+    pub fn settings_mut(&mut self) -> &mut ProsodySettings {
+        match self {
+            Self::VirtualHost { settings, .. } => settings,
+            Self::Component { settings, .. } => settings,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
-// #[cfg_attr(
-//     feature = "serde",
-//     serde_with::skip_serializing_none,
-//     derive(Serialize, Deserialize)
-// )]
+#[cfg_attr(
+    feature = "serde",
+    serde_with::skip_serializing_none,
+    derive(Serialize, Deserialize),
+    serde(deny_unknown_fields)
+)]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
     pub admins: Option<LinkedHashSet<JID>>,
     pub authentication: Option<AuthenticationProvider>,
     pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,
+    pub storage_archive_item_limit: Option<u32>,
+    pub storage_archive_item_limit_cache_size: Option<u32>,
     pub sql: Option<SqlConfig>,
+    pub sql_manage_tables: Option<bool>,
+    pub sqlite_tune: Option<SqliteTune>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub log: Option<LogConfig>,
     pub interfaces: Option<Vec<Interface>>,
     pub c2s_ports: Option<Vec<u16>>,
@@ -94,18 +108,23 @@ pub struct ProsodySettings {
     pub c2s_require_encryption: Option<bool>,
     pub s2s_require_encryption: Option<bool>,
     pub s2s_secure_auth: Option<bool>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub c2s_stanza_size_limit: Option<Bytes>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub s2s_stanza_size_limit: Option<Bytes>,
     /// See <https://modules.prosody.im/mod_s2s_whitelist>.
     pub s2s_whitelist: Option<LinkedHashSet<String>>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub limits: Option<LinkedHashMap<ConnectionType, ConnectionLimits>>,
     pub consider_websocket_secure: Option<bool>,
     pub cross_domain_websocket: Option<bool>,
     pub contact_info: Option<ContactInfo>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     /// Controls whether messages are archived by default.
     ///
     /// See <https://prosody.im/doc/modules/mod_mam>.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub default_archive_policy: Option<ArchivePolicy>,
     /// The maxiumum number of messages returned to a client at a time.
     /// Too low will cause excessive queries when clients try to fetch all messages,
@@ -115,22 +134,27 @@ pub struct ProsodySettings {
     pub max_archive_query_results: Option<u32>,
     pub upgrade_legacy_vcards: Option<bool>,
     pub groups_file: Option<PathBuf>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_size_limit: Option<Bytes>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_daily_quota: Option<Bytes>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub http_host: Option<String>,
     pub http_external_url: Option<String>,
     /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub restrict_room_creation: Option<RoomCreationRestriction>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_all_rooms: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub tls_profile: Option<TlsProfile>,
 
-    // #[cfg_attr(feature = "serde", serde(skip))]
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub custom_settings: Vec<Group<LuaDefinition>>,
 }
 
@@ -181,7 +205,7 @@ impl ProsodySettings {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum AuthenticationProvider {
     /// Plaintext passwords stored using built-in storage.
     InternalPlain,
@@ -200,12 +224,12 @@ pub enum AuthenticationProvider {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
-    #[serde(untagged)]
+    #[cfg_attr(feature = "serde", serde(untagged))]
     Raw(StorageBackend),
     /// A map of values (e.g. `storage = {
     ///   roster = "sql";
     /// }`).
-    #[serde(untagged)]
+    #[cfg_attr(feature = "serde", serde(untagged))]
     Map(LinkedHashMap<String, StorageBackend>),
 }
 
@@ -216,7 +240,7 @@ pub enum StorageConfig {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
@@ -230,7 +254,7 @@ pub enum StorageBackend {
     None,
     /// Backends can be extended (e.g. [mod_storage_appendmap - Prosody Community Modules](https://modules.prosody.im/mod_storage_appendmap.html)).
     /// This case handles unknown backends.
-    #[strum(transparent, default)]
+    #[cfg_attr(feature = "serde", strum(transparent, default))]
     Other(String),
 }
 
@@ -250,6 +274,11 @@ pub enum StorageBackend {
 /// }
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(
+    feature = "serde",
+    serde_with::skip_serializing_none,
+    derive(Serialize, Deserialize)
+)]
 pub struct SqlConfig {
     pub driver: Option<SqlDriver>,
     pub database: Option<PathBuf>,
@@ -266,12 +295,27 @@ pub struct SqlConfig {
     derive(strum::Display, strum::EnumString)
 )]
 pub enum SqlDriver {
-    #[strum(serialize = "PostgreSQL")]
+    #[cfg_attr(feature = "serde", strum(serialize = "PostgreSQL"))]
     PostgreSql,
-    #[strum(serialize = "SQLite3")]
+    #[cfg_attr(feature = "serde", strum(serialize = "SQLite3"))]
     Sqlite3,
-    #[strum(serialize = "MySQL")]
+    #[cfg_attr(feature = "serde", strum(serialize = "MySQL"))]
     MySql,
+}
+
+/// See <https://hg.prosody.im/trunk/file/5611ce3bc54c/plugins/mod_storage_sql.lua#l974>.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
+    derive(strum::Display, strum::EnumString)
+)]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
+pub enum SqliteTune {
+    Default,
+    Normal,
+    Fast,
+    Safe,
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
@@ -283,13 +327,13 @@ pub enum SqlDriver {
 )]
 pub enum Interface {
     /// All IPv4 interfaces.
-    #[strum(serialize = "*")]
+    #[cfg_attr(feature = "serde", strum(serialize = "*"))]
     AllIPv4,
     /// All IPv6 interfaces.
-    #[strum(serialize = "::1")]
+    #[cfg_attr(feature = "serde", strum(serialize = "::1"))]
     AllIPv6,
     /// IPv4 or IPv6 address.
-    #[strum(transparent)]
+    #[cfg_attr(feature = "serde", strum(transparent, default))]
     Address(String),
 }
 
@@ -317,12 +361,15 @@ pub enum LogLevelValue {
     /// A file path, relative to the config file.
     FilePath(PathBuf),
     /// Log to the console, useful for debugging when running in the foreground (`"*console"`).
-    #[strum(serialize = "*console", serialize = "console")]
+    #[cfg_attr(
+        feature = "serde",
+        strum(serialize = "*console", serialize = "console")
+    )]
     Console,
     /// Log to syslog (`"*syslog"`).
     ///
     /// Requires the `mod_posix` module.
-    #[strum(serialize = "*syslog", serialize = "syslog")]
+    #[cfg_attr(feature = "serde", strum(serialize = "*syslog", serialize = "syslog"))]
     Syslog,
 }
 
@@ -332,7 +379,7 @@ pub enum LogLevelValue {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum LogLevel {
     Debug,
     Info,
@@ -421,43 +468,43 @@ pub struct SSLConfig {
 )]
 pub enum SslProtocol {
     /// `"sslv2"`.
-    #[strum(serialize = "sslv2")]
+    #[cfg_attr(feature = "serde", strum(serialize = "sslv2"))]
     Sslv2,
     /// `"sslv2+"`.
-    #[strum(serialize = "sslv2+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "sslv2+"))]
     Sslv2OrMore,
     /// `"sslv3"`.
-    #[strum(serialize = "sslv3")]
+    #[cfg_attr(feature = "serde", strum(serialize = "sslv3"))]
     Sslv3,
     /// `"sslv3+"`.
-    #[strum(serialize = "sslv3+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "sslv3+"))]
     Sslv3OrMore,
     /// `"tlsv1"`.
-    #[strum(serialize = "tlsv1")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1"))]
     Tlsv1,
     /// `"tlsv1+"`.
-    #[strum(serialize = "tlsv1+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1+"))]
     Tlsv1OrMore,
     /// `"tlsv1_1"`.
-    #[strum(serialize = "tlsv1_1")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_1"))]
     Tlsv1_1,
     /// `"tlsv1_1+"`.
-    #[strum(serialize = "tlsv1_1+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_1+"))]
     Tlsv1_1OrMore,
     /// `"tlsv1_2"`.
-    #[strum(serialize = "tlsv1_2")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_2"))]
     Tlsv1_2,
     /// `"tlsv1_2+"`.
-    #[strum(serialize = "tlsv1_2+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_2+"))]
     Tlsv1_2OrMore,
     /// `"tlsv1_3"`.
-    #[strum(serialize = "tlsv1_3")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_3"))]
     Tlsv1_3,
     /// `"tlsv1_3+"`.
-    #[strum(serialize = "tlsv1_3+")]
+    #[cfg_attr(feature = "serde", strum(serialize = "tlsv1_3+"))]
     Tlsv1_3OrMore,
     /// A custom value, for future-proofing.
-    #[strum(transparent)]
+    #[cfg_attr(feature = "serde", strum(transparent))]
     Other(String),
 }
 
@@ -468,7 +515,7 @@ pub enum SslProtocol {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum SslVerificationOption {
     /// No verification.
     None,
@@ -479,7 +526,7 @@ pub enum SslVerificationOption {
     /// Fail if the peer does not present a certificate.
     FailIfNoPeerCert,
     /// A custom value, for future-proofing.
-    #[strum(transparent)]
+    #[cfg_attr(feature = "serde", strum(transparent))]
     Other(String),
 }
 
@@ -488,7 +535,7 @@ pub enum SslVerificationOption {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[serde(transparent)]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SslOption(String);
 
 /// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.
@@ -513,14 +560,14 @@ pub mod ssl_option {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum ExtraVerificationOption {
     /// Don’t fail the handshake when an untrusted/invalid certificate is encountered.
     LsecContinue,
     /// Ignore the certificate’s “purpose” flags.
     LsecIgnorePurpose,
     /// A custom value, for future-proofing.
-    #[strum(transparent)]
+    #[cfg_attr(feature = "serde", strum(transparent))]
     Other(String),
 }
 
@@ -533,13 +580,13 @@ pub enum ExtraVerificationOption {
 )]
 pub enum ConnectionType {
     /// "c2s"
-    #[strum(serialize = "c2s")]
+    #[cfg_attr(feature = "serde", strum(serialize = "c2s"))]
     ClientToServer,
     /// "s2sin"
-    #[strum(serialize = "s2sin")]
+    #[cfg_attr(feature = "serde", strum(serialize = "s2sin"))]
     ServerToServerInbounds,
     /// "s2sout"
-    #[strum(serialize = "s2sout")]
+    #[cfg_attr(feature = "serde", strum(serialize = "s2sout"))]
     ServerToServerOutbounds,
 }
 
@@ -592,7 +639,7 @@ pub enum ArchivePolicy {
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
     derive(strum::Display, strum::EnumString)
 )]
-#[strum(serialize_all = "snake_case")]
+#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
 pub enum TlsProfile {
     /// Modern clients that support TLS 1.3, with no need for backwards compatibility.
     ///

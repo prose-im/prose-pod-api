@@ -13,73 +13,90 @@ use crate::app_config::{self, ADMIN_HOST};
 
 use super::ProsodyConfig;
 
+pub fn global_settings() -> prosody_config::ProsodySettings {
+    prosody_config::ProsodySettings {
+        pidfile: Some("/var/run/prosody/prosody.pid".into()),
+        authentication: Some(AuthenticationProvider::InternalHashed),
+        default_storage: Some(StorageBackend::Internal),
+        log: Some(LogConfig::Map(
+            vec![(LogLevel::Debug, LogLevelValue::Console)]
+                .into_iter()
+                .collect(),
+        )),
+        interfaces: Some(vec![Interface::AllIPv4]),
+        http_ports: Some(vec![app_config::defaults::server_http_port()]),
+        http_interfaces: Some(vec![Interface::AllIPv4]),
+        https_ports: Some(vec![]),
+        https_interfaces: Some(vec![]),
+        plugin_paths: Some(
+            vec!["/usr/local/lib/prosody/modules"]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+        ),
+        modules_enabled: Some(
+            vec!["auto_activate_hosts"]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+        ),
+        // Disable in-band registrations (done through the Prose Pod Dashboard/API)
+        allow_registration: Some(false),
+        // consider_websocket_secure: Some(true),
+        ..Default::default()
+    }
+}
+
+pub fn admin_virtual_host(
+    api_jid: &JID,
+    local_hostname_admin: String,
+) -> prosody_config::ProsodyConfigSection {
+    ProsodyConfigSection::VirtualHost {
+        hostname: ADMIN_HOST.to_owned(),
+        settings: ProsodySettings {
+            admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
+            modules_enabled: Some(
+                vec![
+                    "admin_rest",
+                    "init_admin",
+                ]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+            ),
+            http_host: Some(local_hostname_admin),
+            ..Default::default()
+        },
+    }
+}
+
 pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyConfig {
     let api_jid = BareJid::from_parts(
         Some(&app_config::defaults::service_accounts_prose_pod_api().xmpp_node),
         &DomainPart::from_str(ADMIN_HOST).unwrap(),
     );
     let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+
+    let mut admin_virtual_host = admin_virtual_host(
+        &api_jid,
+        app_config::defaults::server_local_hostname_admin(),
+    );
+    (admin_virtual_host.settings_mut().custom_settings).push(
+        // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
+        Group::new(
+            "mod_init_admin",
+            vec![
+                def("init_admin_jid", api_jid),
+                def("init_admin_password", init_admin_password.expose_secret()),
+            ],
+        ),
+    );
+
     let config = prosody_config::ProsodyConfig {
-        global_settings: prosody_config::ProsodySettings {
-            pidfile: Some("/var/run/prosody/prosody.pid".into()),
-            authentication: Some(AuthenticationProvider::InternalHashed),
-            default_storage: Some(app_config::defaults::prosody_default_storage()),
-            log: Some(LogConfig::Map(
-                vec![(LogLevel::Debug, LogLevelValue::Console)]
-                    .into_iter()
-                    .collect(),
-            )),
-            interfaces: Some(vec![Interface::AllIPv4]),
-            http_ports: Some(vec![5280]),
-            http_interfaces: Some(vec![Interface::AllIPv4]),
-            https_ports: Some(vec![]),
-            https_interfaces: Some(vec![]),
-            plugin_paths: Some(
-                vec!["/usr/local/lib/prosody/modules"]
-                    .into_iter()
-                    .map(ToString::to_string)
-                    .collect(),
-            ),
-            modules_enabled: Some(
-                vec!["auto_activate_hosts"]
-                    .into_iter()
-                    .map(ToString::to_string)
-                    .collect(),
-            ),
-            allow_registration: Some(false),
-            // consider_websocket_secure: Some(true),
-            ..Default::default()
-        },
-        additional_sections: vec![
-            ProsodyConfigSection::VirtualHost {
-                hostname: ADMIN_HOST.to_owned(),
-                settings: ProsodySettings {
-                    admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
-                    modules_enabled: Some(
-                        vec![
-                            "admin_rest",
-                            "init_admin",
-                        ]
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect(),
-                    ),
-                    http_host: Some(app_config::defaults::server_local_hostname_admin()),
-                    custom_settings: vec![
-                        // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
-                        Group::new(
-                            "mod_init_admin",
-                            vec![
-                                def("init_admin_jid", api_jid),
-                                def("init_admin_password", init_admin_password.expose_secret()),
-                            ],
-                        ),
-                    ],
-                    ..Default::default()
-                },
-            },
-        ],
+        global_settings: global_settings(),
+        additional_sections: vec![admin_virtual_host],
     };
+
     ProsodyConfig(config)
 }
 

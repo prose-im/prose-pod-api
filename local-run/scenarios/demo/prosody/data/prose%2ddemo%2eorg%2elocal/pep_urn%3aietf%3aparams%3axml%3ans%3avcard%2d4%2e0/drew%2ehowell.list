@@ -2,22 +2,22 @@ item({
 	{
 		{
 			"Drew H.";
-			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
+			["name"] = "text";
 		};
-		["name"] = "nickname";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
+		["name"] = "nickname";
 	};
-	["name"] = "vcard";
-	["key"] = "drew.howell@prose-demo.org.local";
 	["attr"] = {
-		["stamp"] = "2025-01-20T21:30:02Z";
+		["stamp"] = "2025-04-22T19:17:17Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
+	["when"] = 1745349437;
+	["key"] = "drew.howell@prose-demo.org.local";
 	["with"] = "drew.howell@prose-demo.org.local";
-	["when"] = 1737408602;
+	["name"] = "vcard";
 });

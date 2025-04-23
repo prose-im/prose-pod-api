@@ -92,7 +92,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
         ));
     }
 
-    for module in app_config.prosody.additional_modules_enabled.iter() {
+    for module in app_config.prosody_ext.additional_modules_enabled.iter() {
         config.global_settings.enable_module(module.clone());
     }
 

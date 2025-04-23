@@ -5,8 +5,11 @@
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [prosody]
-additional_modules_enabled = ["storage_appendmap"]
+default_storage = "internal"
 storage = { roster = "appendmap" }
+
+[prosody_ext]
+additional_modules_enabled = ["storage_appendmap"]
 
 [branding]
 company_name = "Prose (demo)"

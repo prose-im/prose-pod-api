@@ -8,7 +8,8 @@ authentication = "internal_hashed"
 
 default_storage = "internal"
 storage = { roster = "sql" }
--- NOTE: SQLite3 is the default SQL driver
+sql = { driver = "SQLite3", database = "prosody.sqlite" }
+sqlite_tune = "normal"
 
 log = {
   debug = "*console",

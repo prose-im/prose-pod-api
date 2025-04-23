@@ -1,0 +1,38 @@
+return {
+	["gfdT1zxx3T00"] = {
+		["id"] = "gfdT1zxx3T00";
+		["jid"] = "dianna.hermann@prose-demo.org.local";
+		["accessed"] = 1745349434;
+		["created"] = 1745349434;
+		["tokens"] = {
+			["sha256:030d6457990b388e0f30cc8420521f1ed692c7848b889f064c75fe5b75a31e47"] = {
+				["created"] = 1745349434;
+				["expires"] = 1745360234;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+			};
+		};
+		["owner"] = "dianna.hermann@prose-demo.org.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+	["NQbejNDrsZwL"] = {
+		["accessed"] = 1745349434;
+		["jid"] = "dianna.hermann@prose-demo.org.local";
+		["owner"] = "dianna.hermann@prose-demo.org.local";
+		["created"] = 1745349434;
+		["tokens"] = {
+			["sha256:f28ea8b2e557030ad993266b82ddb720228db71dfa5a63344efaea3ff4851eb0"] = {
+				["created"] = 1745349434;
+				["expires"] = 1745360234;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+			};
+		};
+		["id"] = "NQbejNDrsZwL";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+	};
+};

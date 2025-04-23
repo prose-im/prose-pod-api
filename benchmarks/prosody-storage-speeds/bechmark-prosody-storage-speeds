@@ -12,9 +12,6 @@ BENCHMARK_DIR="${REPOSITORY_ROOT:?}"/benchmarks/prosody-storage-speeds
 export SCENARIOS_DIR
 EPHEMERAL_SCENARIO_NAME_FILE="${SCENARIOS_DIR:?}"/last-ephemeral-scenario-name.txt
 
-export PROSE_POD_API_IMAGE_TAG='0.14.0'
-PROSE_POD_SERVER_IMAGE_TAG_DEFAULT='0.3.14'
-
 if ! which gdate >/dev/null; then
 	echo 'date doesn’t support milliseconds. Please install gdate.' >&2
 	echo 'On macOS, you can use `brew install coreutils`.' >&2
@@ -26,22 +23,9 @@ REPETITIONS=10
 
 export LOG_TRACE=1
 
-if [ -f "${SUMMARY_FILE:?}" ]; then
-	# Create a backup of the previous results.
-	mv "${SUMMARY_FILE:?}" "${SUMMARY_FILE%'.md'}.$(date +%s).bak.md"
-fi
-
 write() {
 	printf "%b" "$@\n" >> "${SUMMARY_FILE:?}"
 }
-
-git checkout "v${PROSE_POD_API_IMAGE_TAG:?}"
-export PROSE_POD_API_IMAGE_TAG=bench
-# NOTE: We need to build the API locally because we need to use `debug_only`
-#   configuration.
-task build-image -- --tag="${PROSE_POD_API_IMAGE_TAG:?}" --profile=dev --locked
-
-write '# Prosody storages benchmark results (`'"$(date -Iseconds -u)"'`)\n'
 
 test-storage() {
 	SCENARIO_NAME=${1:?"Must pass a storage (scenario name)"}
@@ -58,7 +42,7 @@ test-storage() {
 		export PROSE_POD_SERVER_IMAGE_TAG="${PROSE_POD_SERVER_IMAGE_TAG_DEFAULT:?}"
 	fi
 
-	write '## `'"$*"'`\n'
+	write '\n## `'"$*"'`\n'
 
 	# Generate demo data if needed.
 	# NOTE: `prosody/data` isn’t committed, to reduce repository bloat.
@@ -68,19 +52,35 @@ test-storage() {
 
 	echo Running the API…
 	unset SCENARIO_DIR
-	task local:run -- --ephemeral --detach --no-update
+	task local:run -- --scenario="${SCENARIO_NAME:?}" \
+		--api="${PROSE_POD_API_IMAGE_TAG:?}" \
+		--ephemeral --detach \
+		--no-update
 
 	# Read ephemeral scenario name.
 	SCENARIO_NAME="$(tail -n 1 "${EPHEMERAL_SCENARIO_NAME_FILE:?}")"
 	SCENARIO_DIR="${SCENARIOS_DIR:?}/${SCENARIO_NAME:?}"
 
-	if [ "${1-}" == sqlite ] && [ "${2-}" == 'journal_mode=WAL' ]; then
-		echo 'Setting `PRAGMA journal_mode=WAL` in `prosody.sqlite`…'
-		docker run --rm --entrypoint sqlite3 \
-			-v "${SCENARIO_DIR:?}"/prosody/data/prosody.sqlite:/var/lib/prosody/prosody.sqlite \
-			proseim/prose-pod-server:"${PROSE_POD_SERVER_IMAGE_TAG:?}" \
-			/var/lib/prosody/prosody.sqlite \
-			'PRAGMA journal_mode=WAL;'
+	if [[ "${1-}" == sqlite* ]]; then
+		if [ "${2-}" == 'journal_mode=WAL' ]; then
+			echo 'Setting `PRAGMA journal_mode=WAL` in `prosody.sqlite`…'
+			docker run --rm --entrypoint sqlite3 \
+				-v "${SCENARIO_DIR:?}"/prosody/data/prosody.sqlite:/var/lib/prosody/prosody.sqlite \
+				proseim/prose-pod-server:"${PROSE_POD_SERVER_IMAGE_TAG:?}" \
+				/var/lib/prosody/prosody.sqlite \
+				'PRAGMA journal_mode=WAL;'
+		elif [[ "${2-}" == 'sqlite_tune="normal"'* ]]; then
+			echo 'Checking for `PRAGMA journal_mode=WAL` in `prosody.sqlite`…'
+			local journal_mode="$(docker run --rm --entrypoint sqlite3 \
+				-v "${SCENARIO_DIR:?}"/prosody/data/prosody.sqlite:/var/lib/prosody/prosody.sqlite \
+				proseim/prose-pod-server:"${PROSE_POD_SERVER_IMAGE_TAG:?}" \
+				/var/lib/prosody/prosody.sqlite \
+				'PRAGMA journal_mode;')"
+			if [ "${journal_mode:?}" != wal ]; then
+				write '`sqlite_tune="normal"` didn’t work (`journal_mode` is `'"${journal_mode:?}"'`).'
+				return 1
+			fi
+		fi
 	fi
 
 	ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@prose-demo.org.local:demo' -b | jq -r '.token')"
@@ -138,10 +138,56 @@ test-storage() {
 	task local:stop
 }
 
+if [ -f "${SUMMARY_FILE:?}" ]; then
+	# Create a backup of the previous results.
+	mv "${SUMMARY_FILE:?}" "${SUMMARY_FILE%'.md'}.$(date +%s).bak.md"
+fi
+
+write '# Prosody storages benchmark results (`'"$(date -Iseconds -u)"'`)'
+
+build-api-commit() {
+	local docker_tag="${1:?"Must pass a git ref"}"
+	local checkout_ref="${2:?"Must pass a git ref"}"
+	local git_head="$(git rev-parse HEAD)"
+	git checkout "${checkout_ref:?}"
+	# NOTE: We need to build the API locally because we need to use `debug_only`
+	#   configuration.
+	task build-image -- --tag="${docker_tag:?}" --profile=dev --locked
+	# NOTE: We have to check out the commit we were on so this script doesn’t
+	#   change during its execution.
+	git checkout "${git_head:?}"
+}
+
+build-api-commit bench-no-delay d5244ee6042ad8645c6810477b0b3239af5382bf
+PROSE_POD_API_IMAGE_TAG=bench-no-delay
+
+# NOTE: `0.3.14` includes all community modules (therefore adding support for
+#   `mod_appendmap`).
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.14
 test-storage internal
-write ""
 test-storage appendmap
-write ""
-test-storage sqlite
-write ""
-test-storage sqlite 'journal_mode=WAL'
+
+# NOTE: `0.3.14` doesn’t have anything related to SQLite.
+#   We add SQLite and LuaDBI by hand in `Dockerfile.server`.
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.14
+test-storage sqlite-luadbi
+test-storage sqlite-luadbi 'journal_mode=WAL'
+if ! test-storage sqlite-luadbi 'sqlite_tune="normal" (journal_mode=WAL)'; then
+	echo '`sqlite_tune="normal"` didn’t work with LuaDBI.'
+fi
+
+# NOTE: `0.3.15` adds LuaSQLite3.
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.15
+test-storage sqlite-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
+test-storage sqlite-as-default-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
+
+build-api-commit bench-delay 229fb4d29a8460440ff73500a13c013ac10f7ca8
+# NOTE: `bench-delay` delays roster updates.
+PROSE_POD_API_IMAGE_TAG=bench-delay
+
+# NOTE: `0.3.16` adds delayed sync in `mod_admin_rest`.
+PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.16
+test-storage internal '(delayed roster updates)'
+test-storage appendmap '(delayed roster updates)'
+test-storage sqlite-luasqlite 'sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)'
+test-storage sqlite-as-default-luasqlite 'sqlite_tune="normal" (journal_mode=WAL) (delayed roster updates)'
