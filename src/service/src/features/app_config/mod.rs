@@ -58,6 +58,8 @@ pub type Config = AppConfig;
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
+    #[serde(default = "defaults::log_level")]
+    pub log_level: LogLevel,
     #[serde(default)]
     pub service_accounts: ConfigServiceAccounts,
     #[serde(default)]
@@ -133,6 +135,18 @@ impl AppConfig {
             domain,
         )
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -21,7 +21,7 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{ConfigDatabase, ConfigServiceAccount, ServerLogLevel, API_DATA_DIR};
+use super::{ConfigDatabase, ConfigServiceAccount, LogLevel, ServerLogLevel, API_DATA_DIR};
 
 // GENERAL
 
@@ -39,6 +39,10 @@ pub fn always_false() -> bool {
 }
 
 // SPECIFIC
+
+pub fn log_level() -> LogLevel {
+    LogLevel::Info
+}
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
