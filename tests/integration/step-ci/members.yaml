@@ -145,6 +145,34 @@ tests:
       # $.['${{ env.MEMBER_JIDS.8 }}'].avatar: ${{ env.MEMBER_AVATARS.8 }}
       # $.['${{ env.MEMBER_JIDS.9 }}'].nickname: ${{ env.MEMBER_NICKNAMES.9 }}
       # $.['${{ env.MEMBER_JIDS.9 }}'].avatar: null
+  search:
+    name: Search members
+    steps:
+      - name: Search members (query yields a result)
+        http:
+          method: GET
+          url: /v1/members
+          params:
+            q: todd
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: /2../
+            jsonpath:
+              $.length: 1
+      # NOTE: Check for https://github.com/prose-im/prose-pod-api/issues/238.
+      - name: Search members (query yields no result)
+        http:
+          method: GET
+          url: /v1/members
+          params:
+            q: pablos
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: /2../
 
 components:
   steps:
