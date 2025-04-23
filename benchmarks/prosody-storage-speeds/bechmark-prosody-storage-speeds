@@ -181,7 +181,7 @@ PROSE_POD_SERVER_IMAGE_TAG_DEFAULT=0.3.15
 test-storage sqlite-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
 test-storage sqlite-as-default-luasqlite 'sqlite_tune="normal" (journal_mode=WAL)'
 
-build-api-commit bench-delay "$(git rev-parse --abbrev-ref HEAD)"
+build-api-commit bench-delay 229fb4d29a8460440ff73500a13c013ac10f7ca8
 # NOTE: `bench-delay` delays roster updates.
 PROSE_POD_API_IMAGE_TAG=bench-delay
 
