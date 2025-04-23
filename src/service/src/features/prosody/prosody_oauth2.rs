@@ -62,6 +62,19 @@ impl ProsodyOAuth2 {
                 {
                     Error::Unauthorized("Invalid JID".to_string())
                 }
+                StatusCode::BAD_REQUEST
+                    if response
+                        .text()
+                        .to_lowercase()
+                        .contains("incorrect credentials") =>
+                {
+                    Error::Unauthorized("Incorrect credentials".to_string())
+                }
+                StatusCode::BAD_REQUEST
+                    if response.text().to_lowercase().contains("invalid_grant") =>
+                {
+                    Error::Unauthorized("Invalid token".to_string())
+                }
                 _ => Error::UnexpectedResponse(
                     UnexpectedHttpResponse::new(request_data, response, error_description).await,
                 ),

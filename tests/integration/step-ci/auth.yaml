@@ -66,6 +66,39 @@ tests:
             Content-Type: application/json
           schema:
             $ref: openapi.json#/components/schemas/Error
+  # See [prose-pod-api#239](https://github.com/prose-im/prose-pod-api/issues/239).
+  badPasswordYieldsUnauthorized:
+    name: Logging in with a bad password yields 401 Unauthorized
+    steps:
+      - http:
+          method: POST
+          url: /v1/login
+          auth:
+            basic:
+              username: ${{ env.MEMBER_JIDS.0 }}
+              password: invalid
+          check:
+            status: 401
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/Error
+  unknownJidYieldsUnauthorized:
+    name: Logging in with an unknown JID yields 401 Unauthorized
+    steps:
+      - http:
+          method: POST
+          url: /v1/login
+          auth:
+            basic:
+              username: invalid@${{ env.DOMAIN }}
+              password: anything
+          check:
+            status: 401
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/Error
 
 components:
   steps:
