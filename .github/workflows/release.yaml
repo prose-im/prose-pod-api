@@ -4,9 +4,13 @@ on:
     workflows: ["Lint & Test"]
     types:
       - completed
+    branches:
+      - master
   push:
     tags:
       - "v*.*.*"
+    branches:
+      - master
     # Do not run the workflow if the project hasn't changed.
     # NOTE: It will run on every tag push, but only if the `paths` filter is satisfied on the chosen `branches`
     #   (source: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore).
