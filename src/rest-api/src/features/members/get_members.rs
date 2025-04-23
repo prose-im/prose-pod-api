@@ -3,15 +3,16 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum_extra::either::Either;
 use chrono::{DateTime, Utc};
-use service::members::MemberService;
+use service::members::{MemberRepository, MemberService};
 
 use crate::{
     error::Error,
     forms::{OptionalQuery, Pagination, SearchQuery},
     responders::Paginated,
+    AppState,
 };
 
 use super::{model::*, EnrichedMember};
@@ -99,4 +100,11 @@ async fn get_members_filtered(
         page_size,
         pages_metadata,
     ))
+}
+
+pub async fn head_members(
+    State(AppState { ref db, .. }): State<AppState>,
+) -> Result<Paginated<Member>, Error> {
+    let (metadata, _) = MemberRepository::get_page(db, 1, 1, None).await?;
+    Ok(Paginated::new(vec![], 1, 1, metadata))
 }

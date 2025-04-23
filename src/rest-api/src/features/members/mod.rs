@@ -12,7 +12,7 @@ mod model;
 
 use axum::http::StatusCode;
 use axum::middleware::from_extractor_with_state;
-use axum::routing::{delete, get};
+use axum::routing::{delete, get, head};
 use axum_extra::handler::HandlerCallWithExtractors as _;
 use service::members::{UserCreateError, UserDeleteError};
 
@@ -54,6 +54,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .route_layer(from_extractor_with_state::<Authenticated, _>(
             app_state.clone(),
         ))
+        .route(MEMBERS_ROUTE, head(head_members))
         .with_state(app_state)
 }
 

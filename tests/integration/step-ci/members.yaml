@@ -173,6 +173,17 @@ tests:
               token: ${{ captures.token }}
           check:
             status: /2../
+  headUnauthenticated:
+    name: Get member count without authentication
+    steps:
+      - name: HEAD /v1/members
+        http:
+          method: HEAD
+          url: /v1/members
+          check:
+            status: /2../
+            headers:
+              Pagination-Item-Count: 13
 
 components:
   steps:
