@@ -19,7 +19,7 @@ use prose_xmpp::{
 use reqwest::Client as HttpClient;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::runtime::Handle;
-use tracing::{debug, instrument, trace};
+use tracing::{instrument, trace};
 
 use crate::models::FullJid;
 
@@ -133,7 +133,7 @@ impl ConnectionTrait for Connection {
             .body(request_body)
             .bearer_auth(token.expose_secret())
             .build()?;
-        debug!("Calling `{} {}`…", request.method(), request.url());
+        trace!("Calling `{} {}`…", request.method(), request.url());
 
         tokio::task::block_in_place(move || {
             Handle::current().block_on(async move {
