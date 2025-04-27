@@ -27,7 +27,7 @@ abort() {
 }
 
 info 'Starting the demo API (already populated with data)…'
-edo task local:run -- --detach --api="${PROSE_POD_API_IMAGE_TAG:?}" --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}" --no-update
+edo task local:run -- --detach --api="${PROSE_POD_API_IMAGE_TAG:?}" --scenario="${BASE_SCENARIO_NAME:?}" --ephemeral --ephemeral-name="${SCENARIO_NAME:?}"
 
 # Wait a bit to make sure the API is ready (e.g. has run migrations).
 sleep 1

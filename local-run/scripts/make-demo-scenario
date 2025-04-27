@@ -28,7 +28,7 @@ fi
 
 # Run the API.
 # NOTE: We need to run `local` so we can auto-accept invitations.
-edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach --no-update
+edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
 while ! xh :8080/v1/version -q; do
   sleep 1
 done

@@ -59,7 +59,7 @@ start() {
 		trace "Not starting the Prose Pod ($(format_code "SKIP_POD_START=${SKIP_POD_START:?}"))."
 	else
 		trace 'Starting the Prose Pod…'
-		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral --no-update
+		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral
 	fi
 }
 

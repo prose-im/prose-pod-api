@@ -54,8 +54,7 @@ test-storage() {
 	unset SCENARIO_DIR
 	task local:run -- --scenario="${SCENARIO_NAME:?}" \
 		--api="${PROSE_POD_API_IMAGE_TAG:?}" \
-		--ephemeral --detach \
-		--no-update
+		--ephemeral --detach
 
 	# Read ephemeral scenario name.
 	SCENARIO_NAME="$(tail -n 1 "${EPHEMERAL_SCENARIO_NAME_FILE:?}")"
