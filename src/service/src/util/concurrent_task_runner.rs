@@ -55,6 +55,10 @@ impl ConcurrentTaskRunner {
             ..self
         }
     }
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
     /// "No timeout" means 1 hour (which should never happen).
     pub fn no_timeout(mut self) -> Self {
         self.timeout = Duration::from_secs(3600);

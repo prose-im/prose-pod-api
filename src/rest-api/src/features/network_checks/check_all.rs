@@ -16,7 +16,7 @@ use crate::features::network_checks::{
     check_ports_reachability::port_reachability_check_result,
 };
 
-use super::{model::*, prelude::*, util::*};
+use super::{model::*, prelude::*, util::*, SSE_TIMEOUT};
 
 pub async fn check_network_configuration_route(
     pod_network_config: PodNetworkConfig,
@@ -71,7 +71,7 @@ pub async fn check_network_configuration_stream_route(
         validate_retry_interval,
     )?;
     let runner = ConcurrentTaskRunner::default(&app_config)
-        .no_timeout()
+        .with_timeout(*SSE_TIMEOUT)
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();
 

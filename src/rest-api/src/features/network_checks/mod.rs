@@ -30,9 +30,12 @@ mod prelude {
     };
 }
 
+use std::time::Duration;
+
 use axum::middleware::from_extractor_with_state;
 use axum::routing::get;
 use axum_extra::handler::HandlerCallWithExtractors as _;
+use lazy_static::lazy_static;
 
 use crate::util::content_type_or::*;
 use crate::AppState;
@@ -45,6 +48,10 @@ pub use self::model::*;
 
 use super::auth::guards::IsAdmin;
 use super::NETWORK_ROUTE;
+
+lazy_static! {
+    static ref SSE_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+}
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
