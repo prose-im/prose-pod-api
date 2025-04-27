@@ -77,10 +77,14 @@ where
                     network_checker.run_checks(checks, map_to_event, tx, &runner);
 
                     while let Some(event) = rx.recv().await {
-                        sse_tx.send(Ok(logged(event))).await.ok();
+                        if sse_tx.send(Ok(logged(event))).await.ok().is_none() {
+                            return
+                        }
                     }
 
-                    sse_tx.send(Ok(logged(end_event()))).await.ok();
+                    if sse_tx.send(Ok(logged(end_event()))).await.ok().is_none() {
+                        return
+                    }
                 } => {}
                 _ = cancellation_token.cancelled() => {
                     trace!("Token cancelled.");
