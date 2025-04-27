@@ -60,9 +60,6 @@ $(format_title 'Options:')
     $(format_flag --detach)
       Run containers in the background. Check logs with $(format_code 'task local:logs').
       $(format_secondary "Same as $(format_code docker compose up --detach).")
-    $(format_flag --no-update)
-      Do not try to $(format_code 'task local:update').
-      $(format_secondary "See $(format_hyperlink 'prose-pod-api#114' 'https://github.com/prose-im/prose-pod-api/issues/114').")
 
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
@@ -114,7 +111,6 @@ for arg in "$@"; do
 		--ephemeral) EPHEMERAL=1 ;;
 		--ephemeral-name=*) EPHEMERAL_SCENARIO_NAME="${arg#'--ephemeral-name='}" ;;
 		--detach) DETACH=1 ;;
-		--no-update) NO_UPDATE=1 ;;
 		--help) help ;;
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;
@@ -141,12 +137,6 @@ if (( $EPHEMERAL )); then
 	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
 elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ] && ! (( $FORCE_RUN )); then
 	die "Cannot run the $(format_code "${SCENARIO_NAME:?}") scenario. You must copy it ($(format_code "task local:scenarios:create -- NEW_NAME --based-on='${SCENARIO_NAME:?}'")) or run it with $(format_code --ephemeral)."
-fi
-
-if ! (( $NO_UPDATE )); then
-	# Update if needed. See <https://github.com/prose-im/prose-pod-api/issues/114>.
-	info "Updating the repository… (disable with $(format_code '--no-update'))"
-	log_as_trace_ task local:update
 fi
 
 if ! [ -d "${SCENARIO_DIR:?}" ]; then
