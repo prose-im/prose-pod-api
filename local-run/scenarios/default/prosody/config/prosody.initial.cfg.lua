@@ -1,4 +1,4 @@
--- Prose Pod Server
+-- Prose Pod Server bootstrap configuration
 -- XMPP Server Configuration
 
 -- Base server configuration
