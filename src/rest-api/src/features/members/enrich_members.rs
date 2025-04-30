@@ -20,6 +20,7 @@ use service::{
     members::{member_service, MemberRole, MemberService},
     models::BareJid,
     util::ConcurrentTaskRunner,
+    xmpp::xmpp_service::Avatar,
     AppConfig,
 };
 use tokio::sync::mpsc;
@@ -36,7 +37,7 @@ pub struct EnrichedMember {
     pub role: MemberRole,
     pub online: Option<bool>,
     pub nickname: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Avatar>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -13,11 +13,10 @@ use base64::{engine::general_purpose, Engine as _};
 use mime::Mime;
 use service::{workspace::WorkspaceService, xmpp::xmpp_service::Avatar};
 
-const MAGIC_PREFIX_PNG: &'static str = "iVBORw0KGgo";
-const MAGIC_PREFIX_GIF: &'static str = "R0lGOD";
-const MAGIC_PREFIX_JPEG: &'static str = "/9j/";
-
-use crate::error::{self, Error};
+use crate::{
+    error::{self, Error},
+    util::detect_image_mime_type,
+};
 
 pub async fn get_workspace_icon_route(
     workspace_service: WorkspaceService,
@@ -49,25 +48,18 @@ pub async fn set_workspace_icon_route(
                 reason: format!("Image data should be Base64-encoded. Error: {err}"),
             })?;
 
-    let mime = match mime {
-        Some(mime) if mime.type_() == mime::IMAGE => mime,
-        None if base64.starts_with(MAGIC_PREFIX_PNG) => mime::IMAGE_PNG,
-        None if base64.starts_with(MAGIC_PREFIX_GIF) => mime::IMAGE_GIF,
-        None if base64.starts_with(MAGIC_PREFIX_JPEG) => mime::IMAGE_JPEG,
-        _ => {
-            return Err(Error::from(error::UnsupportedMediaType {
-                comment: format!(
-                    "Supported content types: {}.",
-                    [
-                        mime::IMAGE_PNG.to_string(),
-                        mime::IMAGE_GIF.to_string(),
-                        mime::IMAGE_JPEG.to_string(),
-                    ]
-                    .join(", ")
-                ),
-            }))
-        }
-    };
+    let mime =
+        detect_image_mime_type(&base64, mime).ok_or(Error::from(error::UnsupportedMediaType {
+            comment: format!(
+                "Supported content types: {}.",
+                [
+                    mime::IMAGE_PNG.to_string(),
+                    mime::IMAGE_GIF.to_string(),
+                    mime::IMAGE_JPEG.to_string(),
+                ]
+                .join(", ")
+            ),
+        }))?;
 
     workspace_service
         .set_workspace_icon(image_data, &mime)

@@ -92,13 +92,15 @@ tests:
           type: enriched-member
           jsonpath:
             $.nickname: ${{ env.MEMBER_NICKNAMES.1 }}
-            $.avatar: ${{ env.MEMBER_AVATARS.1 }}
+            $.avatar.base64: ${{ env.MEMBER_AVATARS.1 }}
+            $.avatar.type: image/png
         - id: ${{ env.MEMBER_JIDS.8 }}
           type: enriched-member
           jsonpath:
             # NOTE: Since member 8 doesn’t have a nickname, `nickname` should be the local part of their JID (i.e. “username”).
             $.nickname: ${{ env.MEMBER_USERNAMES.8 }}
-            $.avatar: ${{ env.MEMBER_AVATARS.8 }}
+            $.avatar.base64: ${{ env.MEMBER_AVATARS.8 }}
+            $.avatar.type: image/png
         - id: ${{ env.MEMBER_JIDS.9 }}
           type: enriched-member
           jsonpath:

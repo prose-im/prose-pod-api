@@ -13,7 +13,7 @@ use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
     util::{unaccent, Cache, ConcurrentTaskRunner},
-    xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
+    xmpp::{xmpp_service::Avatar, BareJid, ServerCtl, ServerCtlError, XmppService},
 };
 
 use super::{Member, MemberRepository, MemberRole};
@@ -33,7 +33,7 @@ lazy_static! {
     static ref CACHE_TTL: Duration = Duration::from_secs(2 * 60);
 
     static ref VCARDS_DATA_CACHE: Cache<BareJid, Option<VCardData>> = Cache::new(*CACHE_TTL);
-    static ref AVATARS_CACHE: Cache<BareJid, Option<String>> = Cache::new(*CACHE_TTL);
+    static ref AVATARS_CACHE: Cache<BareJid, Option<Avatar>> = Cache::new(*CACHE_TTL);
     static ref ONLINE_STATUSES_CACHE: Cache<BareJid, Option<bool>> = Cache::new(*CACHE_TTL);
 }
 
@@ -339,7 +339,7 @@ impl MemberService {
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s avatar…");
                             match self.xmpp_service.get_avatar(jid).await {
-                                Ok(Some(avatar)) => Some(avatar.base64),
+                                Ok(Some(avatar)) => Some(avatar),
                                 Ok(None) => {
                                     debug!("`{jid}` has no avatar.");
                                     None
@@ -422,7 +422,7 @@ pub struct EnrichedMember {
     pub role: MemberRole,
     pub online: Option<bool>,
     pub nickname: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Avatar>,
 }
 
 impl From<Member> for EnrichedMember {

@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::members::Member as MemberDTO;
+use prose_pod_api::{features::members::Member as MemberDTO, util::detect_image_mime_type};
 use service::{
     invitations::{InvitationContact, InviteMemberForm},
     members::*,
@@ -92,8 +92,8 @@ async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Re
     world.mock_xmpp_service.set_avatar(
         &jid,
         Some(Avatar {
+            mime: detect_image_mime_type(&base64, None).expect("Invalid base64"),
             base64,
-            mime: mime::IMAGE_PNG,
         }),
     )?;
     Ok(())
