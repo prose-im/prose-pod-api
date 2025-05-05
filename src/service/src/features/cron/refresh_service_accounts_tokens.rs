@@ -3,8 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::time::SystemTime;
+
 use sea_orm::DatabaseConnection;
-use tokio::time::{sleep, Duration};
+use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
 use crate::{
@@ -28,24 +30,57 @@ pub async fn run(
         ref auth_service,
     }: Context,
 ) {
+    let oauth2_tokens_ttl = app_config.server.oauth2_access_token_ttl;
+
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
-    if app_config.server.oauth2_access_token_ttl == 0 {
+    if oauth2_tokens_ttl == 0 {
         return;
     }
 
-    let refresh_interval = Duration::from_secs_f64({
+    let refresh_interval = Duration::from_secs_f64(
         // NOTE: We cannot refresh tokens after the TTL as they would
         //   be expired for some time (leading to unexpected scenarios)
         //   therefore we set the refresh interval to $0.9 * TTL$.
-        (app_config.server.oauth2_access_token_ttl as f64) * 0.9
-    });
+        (oauth2_tokens_ttl as f64) * 0.9,
+    );
 
+    let ticker_interval = Duration::from_secs(10);
+    // NOTE: `tokio::time::interval` avoids time drifts.
+    let mut ticker = interval(ticker_interval);
+    // Configure ticker so it skips missed ticks if the API was suspended
+    // (each token refresh would just cause a new token to be created).
+    ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
+    // NOTE: `SystemTime::now()` reflects actual wall-clock time, even after a
+    //   container pause.
+    let mut last_refresh = SystemTime::now();
+
+    info!(
+        "Will refresh service accounts tokens in {secs}s",
+        secs = refresh_interval.as_secs()
+    );
     loop {
-        info!(
-            "Will refresh service accounts tokens in {secs}s",
-            secs = refresh_interval.as_secs()
-        );
-        sleep(refresh_interval).await;
+        ticker.tick().await;
+
+        let Ok(lifetime) = SystemTime::now().duration_since(last_refresh) else {
+            warn!("Time went backwards.");
+            continue;
+        };
+
+        if lifetime < refresh_interval {
+            trace!(
+                "Service accounts tokens are still valid, will retry in {secs}s",
+                secs = ticker_interval.as_secs(),
+            );
+            continue;
+        }
+
+        if lifetime.as_secs_f32() > oauth2_tokens_ttl as f32 {
+            warn!(
+                "Service accounts tokens were invalid for some time (TTL exceeded for {secs_since_expiry}s). This was likely caused by the API being suspended. Will refresh all tokens now to recover from this unexpected state.",
+                secs_since_expiry = lifetime.as_secs_f32() - oauth2_tokens_ttl as f32,
+            );
+        }
 
         info!("Refreshing service accounts tokens…");
 
@@ -84,6 +119,12 @@ pub async fn run(
             };
             info!("Refreshed token for service accounts '{jid}'…");
         }
+
+        last_refresh = SystemTime::now();
+        info!(
+            "Will refresh service accounts tokens in {secs}s",
+            secs = refresh_interval.as_secs()
+        );
     }
 }
 
