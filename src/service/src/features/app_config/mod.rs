@@ -60,6 +60,8 @@ pub type Config = AppConfig;
 pub struct AppConfig {
     #[serde(default = "defaults::log_level")]
     pub log_level: LogLevel,
+    #[serde(default = "defaults::log_format")]
+    pub log_format: LogFormat,
     #[serde(default)]
     pub service_accounts: ConfigServiceAccounts,
     #[serde(default)]
@@ -137,7 +139,7 @@ impl AppConfig {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
 #[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
@@ -147,6 +149,17 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum LogFormat {
+    Full,
+    Compact,
+    Json,
+    Pretty,
 }
 
 #[derive(Debug, Clone, Deserialize)]

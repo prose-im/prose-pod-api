@@ -10,72 +10,97 @@ use init_tracing_opentelemetry::{
     tracing_subscriber_ext::{build_otel_layer, TracingGuard},
     Error,
 };
-use service::{app_config::LogLevel, AppConfig};
+use service::{
+    app_config::{self, LogFormat, LogLevel},
+    AppConfig,
+};
 use tracing::{info, warn, Subscriber};
-use tracing_subscriber::{layer::SubscriberExt, registry::LookupSpan, EnvFilter, Layer};
+use tracing_subscriber::{
+    fmt::{
+        self,
+        format::{Compact, Format, Json, Pretty},
+        FormatFields, MakeWriter,
+    },
+    layer::SubscriberExt,
+    registry::LookupSpan,
+    reload, EnvFilter, Layer,
+};
 
 // NOTE: Overriding `RUST_LOG` when building tracing filters would cause
 //   `RUST_LOG` to grow infinitely, but also break dynamic log levels and leak
 //   configuration on factory resets.
 const LOG_LEVELS_ENV_VAR: &'static str = "PROSE_LOG";
 
-pub fn build_logger_text<S>() -> Box<dyn Layer<S> + Send + Sync + 'static>
-where
-    S: Subscriber + for<'a> LookupSpan<'a>,
-{
-    // use tracing_subscriber::fmt::format::FmtSpan;
-    if cfg!(debug_assertions) {
-        Box::new(
-            tracing_subscriber::fmt::layer()
-                // .compact()
-                .pretty()
-                // .with_target(false)
-                // .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-                // .without_time()
-                .with_timer(tracing_subscriber::fmt::time::uptime()),
-        )
-    } else {
-        Box::new(
-            tracing_subscriber::fmt::layer()
-                .json()
-                //.with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-                .with_timer(tracing_subscriber::fmt::time::uptime()),
-        )
+struct LogConfig {
+    level: LogLevel,
+    format: LogFormat,
+}
+
+impl From<&AppConfig> for LogConfig {
+    fn from(app_config: &AppConfig) -> Self {
+        Self {
+            level: app_config.log_level,
+            format: app_config.log_format,
+        }
     }
 }
 
-/// Slight modification of
-/// `init_tracing_opentelemetry::tracing_subscriber_ext::build_loglevel_filter_layer`
-/// to avoid overwriting `RUST_LOG` (breaks runtime reloading of log levels).
-#[must_use]
-pub fn build_bootstrap_loglevel_filter_layer() -> tracing_subscriber::filter::EnvFilter {
-    std::env::set_var(
-        LOG_LEVELS_ENV_VAR,
-        format!(
-            // NOTE: `otel::tracing` must be at level info to emit OTel traces
-            //   & spans.
-            // NOTE: `otel::setup` must be at level debug to log detected
-            //   resources and configuration read.
-            "{},otel::tracing=trace",
-            std::env::var("RUST_LOG")
-                .or_else(|_| std::env::var("OTEL_LOG_LEVEL"))
-                .unwrap_or_else(|_| "info".to_string())
-        ),
-    );
-    EnvFilter::builder()
-        .with_env_var(LOG_LEVELS_ENV_VAR)
-        .from_env_lossy()
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            level: app_config::defaults::log_level(),
+            format: app_config::defaults::log_format(),
+        }
+    }
 }
 
 #[must_use]
-fn build_loglevel_filter_layer(app_config: &AppConfig) -> EnvFilter {
+fn build_logger_layer<S>(log_config: &LogConfig) -> Box<dyn Layer<S> + Send + Sync + 'static>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    fn with_log_format<S, N, L, T, W>(
+        layer: fmt::Layer<S, N, Format<L, T>, W>,
+        format: &LogFormat,
+    ) -> Box<dyn Layer<S> + Send + Sync + 'static>
+    where
+        N: for<'writer> FormatFields<'writer> + 'static,
+        fmt::Layer<S, N, Format<L, T>, W>: Layer<S> + Send + Sync + 'static,
+        fmt::Layer<S, N, Format<Compact, T>, W>: Layer<S> + Send + Sync + 'static,
+        fmt::Layer<S, fmt::format::JsonFields, Format<Json, T>, W>:
+            Layer<S> + Send + Sync + 'static,
+        fmt::Layer<S, fmt::format::Pretty, Format<Pretty, T>, W>: Layer<S> + Send + Sync + 'static,
+        S: Subscriber + for<'a> LookupSpan<'a>,
+        W: for<'writer> MakeWriter<'writer> + 'static,
+    {
+        match format {
+            LogFormat::Full => layer.boxed(),
+            LogFormat::Compact => layer.compact().boxed(),
+            LogFormat::Json => layer.json().boxed(),
+            LogFormat::Pretty => layer.pretty().boxed(),
+        }
+    }
+
+    // use tracing_subscriber::fmt::format::FmtSpan;
+    with_log_format(
+        tracing_subscriber::fmt::layer()
+            // .with_target(false)
+            // .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+            // .without_time()
+            .with_timer(fmt::time::uptime()),
+        &log_config.format,
+    )
+}
+
+#[must_use]
+fn build_filter_layer(log_config: &LogConfig) -> EnvFilter {
     // NOTE: Last values take precedence in `RUST_LOG` (i.e. `trace,info` logs
     //   >`info`, while `info,trace` logs >`trace`), so important values must be
     //   added last.
     let mut rust_log: Vec<String> = vec![];
 
     rust_log.extend(
-        match app_config.log_level {
+        match log_config.level {
             LogLevel::Trace => vec![
                 "trace",
                 "h2=info",
@@ -120,15 +145,41 @@ fn build_loglevel_filter_layer(app_config: &AppConfig) -> EnvFilter {
         .from_env_lossy()
 }
 
+#[derive(Debug)]
+pub struct TracingReloadHandles<L1, S1, L2, S2> {
+    pub filter: reload::Handle<L1, S1>,
+    pub logger: reload::Handle<L2, S2>,
+}
+
+impl<L1, S1, L2, S2> Clone for TracingReloadHandles<L1, S1, L2, S2> {
+    fn clone(&self) -> Self {
+        Self {
+            filter: self.filter.clone(),
+            logger: self.logger.clone(),
+        }
+    }
+}
+
 /// NOTE: Can be called multiple times.
-pub fn update_global_log_level_filter(
+pub fn update_tracing_config(
     app_config: &AppConfig,
-    tracing_filter_reload_handle: &tracing_subscriber::reload::Handle<EnvFilter, impl Subscriber>,
+    tracing_reload_handles: &TracingReloadHandles<
+        EnvFilter,
+        impl Subscriber + for<'a> LookupSpan<'a>,
+        Box<dyn Layer<impl Subscriber + for<'a> LookupSpan<'a>> + Send + Sync>,
+        impl Subscriber,
+    >,
 ) {
-    info!("Updating global log level filter…");
-    tracing_filter_reload_handle
-        .modify(|filter| *filter = build_loglevel_filter_layer(app_config))
+    info!("Updating global tracing configuration…");
+    let TracingReloadHandles { filter, logger } = tracing_reload_handles;
+    let log_config = LogConfig::from(app_config);
+    filter
+        .modify(|filter| *filter = build_filter_layer(&log_config))
         .inspect_err(|err| warn!("Error when updating global log level filter: {err}"))
+        .unwrap_or_default();
+    logger
+        .modify(|logger| *logger = build_logger_layer(&log_config))
+        .inspect_err(|err| warn!("Error when updating global logger: {err}"))
         .unwrap_or_default();
 }
 
@@ -140,26 +191,40 @@ pub fn update_global_log_level_filter(
 pub fn init_subscribers() -> Result<
     (
         TracingGuard,
-        tracing_subscriber::reload::Handle<EnvFilter, impl Subscriber>,
+        TracingReloadHandles<
+            EnvFilter,
+            impl Subscriber + for<'a> LookupSpan<'a>,
+            Box<dyn Layer<impl Subscriber + for<'a> LookupSpan<'a>> + Send + Sync>,
+            impl Subscriber,
+        >,
     ),
     Error,
 > {
+    let log_config = LogConfig::default();
+
     // Setup a temporary subscriber to log output during setup.
     let subscriber = tracing_subscriber::registry()
-        .with(build_bootstrap_loglevel_filter_layer())
-        .with(build_logger_text());
+        .with(build_filter_layer(&log_config))
+        .with(build_logger_layer(&log_config));
     let _guard = tracing::subscriber::set_default(subscriber);
     info!("init logging & tracing");
 
     let (otel_layer, guard) = build_otel_layer()?;
 
-    let (loglevel_filter_layer, reload_handle) =
-        tracing_subscriber::reload::Layer::new(build_bootstrap_loglevel_filter_layer());
+    let (filter_layer, filter_reload_handle) =
+        reload::Layer::<EnvFilter, _>::new(build_filter_layer(&log_config));
+    let (logger_layer, logger_reload_handle) = reload::Layer::new(build_logger_layer(&log_config));
 
     let subscriber = tracing_subscriber::registry()
         .with(otel_layer)
-        .with(loglevel_filter_layer)
-        .with(build_logger_text());
+        .with(filter_layer)
+        .with(logger_layer);
     tracing::subscriber::set_global_default(subscriber)?;
-    Ok((guard, reload_handle))
+    Ok((
+        guard,
+        TracingReloadHandles {
+            filter: filter_reload_handle,
+            logger: logger_reload_handle,
+        },
+    ))
 }

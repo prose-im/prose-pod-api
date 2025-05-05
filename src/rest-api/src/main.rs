@@ -10,7 +10,7 @@ use prose_pod_api::{
     make_router, run_startup_actions,
     util::{
         database::db_conn,
-        tracing_subscriber_ext::{self, init_subscribers},
+        tracing_subscriber_ext::{self, init_subscribers, TracingReloadHandles},
         LifecycleManager,
     },
     AppState,
@@ -26,7 +26,7 @@ use service::{
     AppConfig, HttpClient,
 };
 use tracing::{info, instrument, trace, warn, Subscriber};
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
 #[tokio::main]
 async fn main() {
@@ -35,7 +35,7 @@ async fn main() {
         .expect("Could not install default crypto provider.");
 
     // NOTE: Can only be called once.
-    let (_tracing_guard, tracing_filter_reload_handle) = init_subscribers()
+    let (_tracing_guard, tracing_reload_handles) = init_subscribers()
         .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
         .unwrap();
 
@@ -56,10 +56,10 @@ async fn main() {
 
         {
             let lifecycle_manager = lifecycle_manager.clone();
-            let tracing_filter_reload_handle = tracing_filter_reload_handle.clone();
+            let tracing_reload_handles = tracing_reload_handles.clone();
             tokio::task::spawn(async move {
                 trace!("Starting an instance…");
-                run(&lifecycle_manager, &tracing_filter_reload_handle).await;
+                run(&lifecycle_manager, &tracing_reload_handles).await;
                 trace!("Run finished.");
             });
         }
@@ -78,7 +78,12 @@ async fn main() {
 
 async fn run(
     lifecycle_manager: &LifecycleManager,
-    tracing_filter_reload_handle: &tracing_subscriber::reload::Handle<EnvFilter, impl Subscriber>,
+    tracing_reload_handles: &TracingReloadHandles<
+        EnvFilter,
+        impl Subscriber + for<'a> LookupSpan<'a>,
+        Box<dyn Layer<impl Subscriber + for<'a> LookupSpan<'a>> + Send + Sync>,
+        impl Subscriber,
+    >,
 ) {
     let app_config = AppConfig::from_default_figment();
     if app_config.debug.log_config_at_startup {
@@ -86,10 +91,7 @@ async fn run(
     }
     let addr = SocketAddr::new(app_config.address, app_config.port);
 
-    tracing_subscriber_ext::update_global_log_level_filter(
-        &app_config,
-        &tracing_filter_reload_handle,
-    );
+    tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
 
     let app = startup(app_config, lifecycle_manager).await;
     lifecycle_manager.set_restart_finished();
