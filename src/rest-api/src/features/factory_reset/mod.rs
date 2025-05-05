@@ -17,12 +17,14 @@ use lazy_static::lazy_static;
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use serde::{Deserialize, Serialize};
 use service::app_config::CONFIG_FILE_PATH;
+use service::auth::{AuthService, UserInfo};
+use service::models::SerializableSecretString;
 use service::secrets::SecretsStore;
 use service::xmpp::{ServerCtl, ServerManager};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
-use crate::error::{Error, ErrorCode};
+use crate::error::{self, Error, ErrorCode};
 use crate::AppState;
 
 use super::auth::guards::IsAdmin;
@@ -43,6 +45,13 @@ struct FactoryResetConfirmation {
     pub confirmation: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum FactoryResetRequest {
+    PasswordConfirmation { password: SerializableSecretString },
+    ConfirmationToken(FactoryResetConfirmation),
+}
+
 async fn factory_reset_route(
     State(AppState {
         db,
@@ -52,10 +61,27 @@ async fn factory_reset_route(
     }): State<AppState>,
     server_ctl: ServerCtl,
     secrets_store: SecretsStore,
-    req: Option<Json<FactoryResetConfirmation>>,
+    user_info: UserInfo,
+    auth_service: AuthService,
+    req: Json<FactoryResetRequest>,
 ) -> Result<Either<(StatusCode, Json<FactoryResetConfirmation>), StatusCode>, Error> {
     match req {
-        None => {
+        Json(FactoryResetRequest::PasswordConfirmation { password }) => {
+            // Test password.
+            // NOTE: This cannot be used to brute-force a user’s password since
+            //   the request is already authenticated using a valid OAuth 2.0
+            //   token for that user.
+            // TODO: Use a method that does not create a new token.
+            if auth_service
+                .log_in(&user_info.jid, &password.into_secret_string())
+                .await
+                .is_err()
+            {
+                return Err(Error::from(error::BadRequest {
+                    reason: "Invalid password.".to_owned(),
+                }));
+            }
+
             // Generate a new 16-characters long string.
             let confirmation = thread_rng()
                 .sample_iter(&Alphanumeric)
@@ -71,7 +97,7 @@ async fn factory_reset_route(
                 Json(FactoryResetConfirmation { confirmation }),
             )));
         }
-        Some(Json(FactoryResetConfirmation {
+        Json(FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation {
             confirmation: validation,
         })) => {
             if Some(validation) != *FACTORY_RESET_CONFIRMATION_CODE.read().await {
