@@ -8,16 +8,19 @@ use axum::{
     http::{header::IF_MATCH, StatusCode},
     Json,
 };
-use axum_extra::{headers::IfMatch, TypedHeader};
+use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 
+use serde::{Deserialize, Serialize};
 use service::{
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
+    xmpp::JidDomain,
     LinkedHashSet,
 };
 
 use crate::{
     error::{Error, PreconditionRequired},
+    features::auth::guards::IsAdmin,
     AppState,
 };
 
@@ -94,8 +97,28 @@ macro_rules! server_config_reset_route {
 
 // Server config
 
-pub async fn get_server_config_route(server_config: ServerConfig) -> Json<ServerConfig> {
-    Json(server_config)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PublicServerConfig {
+    pub domain: JidDomain,
+}
+
+impl From<ServerConfig> for PublicServerConfig {
+    fn from(server_config: ServerConfig) -> Self {
+        Self {
+            domain: server_config.domain,
+        }
+    }
+}
+
+pub async fn get_server_config_route(
+    server_config: ServerConfig,
+    is_admin: Option<IsAdmin>,
+) -> Either<Json<ServerConfig>, Json<PublicServerConfig>> {
+    if is_admin.is_some() {
+        Either::E1(Json(server_config))
+    } else {
+        Either::E2(Json(PublicServerConfig::from(server_config)))
+    }
 }
 
 pub async fn is_server_initialized_route(

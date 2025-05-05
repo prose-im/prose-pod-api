@@ -44,9 +44,17 @@ paths:
     description: Get the current configuration of the XMPP server.
     operationId: get_server_config
     security:
+      - {}
       - BearerAuth: []
     responses:
-      "200": { $ref: "#/components/responses/ServerConfig" }
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - { $ref: "#/components/schemas/PublicServerConfig" }
+                - { $ref: "#/components/schemas/ServerConfig" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -61,7 +69,8 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
+          schema:
+            { $ref: "#/components/schemas/PrivateServerConfig/properties/file_upload_allowed" }
     responses: { $ref: "#/paths/get_file_upload_allowed/responses" }
   get_file_upload_allowed:
     tags: ["Server / Configuration"]
@@ -75,7 +84,8 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_upload_allowed" }
+            schema:
+              { $ref: "#/components/schemas/PrivateServerConfig/properties/file_upload_allowed" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -98,7 +108,8 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
+          schema:
+            { $ref: "#/components/schemas/PrivateServerConfig/properties/file_storage_retention" }
     responses: { $ref: "#/paths/get_file_storage_retention/responses" }
   get_file_storage_retention:
     tags: ["Server / Configuration"]
@@ -112,7 +123,8 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig/properties/file_storage_retention" }
+            schema:
+              { $ref: "#/components/schemas/PrivateServerConfig/properties/file_storage_retention" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -136,14 +148,16 @@ paths:
       content:
         application/json:
           schema:
-            { $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme" }
+            {
+              $ref: "#/components/schemas/PrivateServerConfig/properties/file_storage_encryption_scheme",
+            }
     responses:
       "200":
         description: Success
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/file_storage_encryption_scheme"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/file_storage_encryption_scheme"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -170,7 +184,10 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention" }
+          schema:
+            {
+              $ref: "#/components/schemas/PrivateServerConfig/properties/message_archive_retention",
+            }
     responses: { $ref: "#/paths/get_message_archive_retention/responses" }
   get_message_archive_retention:
     tags: ["Server / Configuration"]
@@ -185,7 +202,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/message_archive_retention"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/message_archive_retention"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -220,7 +237,8 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
+          schema:
+            { $ref: "#/components/schemas/PrivateServerConfig/properties/message_archive_enabled" }
     responses: { $ref: "#/paths/get_message_archive_enabled/responses" }
   get_message_archive_enabled:
     tags: ["Server / Configuration"]
@@ -234,7 +252,10 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig/properties/message_archive_enabled" }
+            schema:
+              {
+                $ref: "#/components/schemas/PrivateServerConfig/properties/message_archive_enabled",
+              }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -273,7 +294,7 @@ paths:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body"
+            $ref: "#/components/schemas/PrivateServerConfig/properties/push_notification_with_body"
     responses: { $ref: "#/paths/get_push_notification_with_body/responses" }
   get_push_notification_with_body:
     tags: ["Server / Configuration"]
@@ -289,7 +310,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_body"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/push_notification_with_body"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -316,7 +337,7 @@ paths:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender"
+            $ref: "#/components/schemas/PrivateServerConfig/properties/push_notification_with_sender"
     responses: { $ref: "#/paths/get_push_notification_with_sender/responses" }
   get_push_notification_with_sender:
     tags: ["Server / Configuration"]
@@ -332,7 +353,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/push_notification_with_sender"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/push_notification_with_sender"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -370,7 +391,7 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
+          schema: { $ref: "#/components/schemas/PrivateServerConfig/properties/tls_profile" }
     responses: { $ref: "#/paths/get_tls_profile/responses" }
   get_tls_profile:
     tags: ["Server / Configuration"]
@@ -387,7 +408,7 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig/properties/tls_profile" }
+            schema: { $ref: "#/components/schemas/PrivateServerConfig/properties/tls_profile" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -425,7 +446,7 @@ paths:
       required: true
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
+          schema: { $ref: "#/components/schemas/PrivateServerConfig/properties/federation_enabled" }
     responses: { $ref: "#/paths/get_federation_enabled/responses" }
   get_federation_enabled:
     tags: ["Server / Configuration"]
@@ -442,7 +463,8 @@ paths:
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ServerConfig/properties/federation_enabled" }
+            schema:
+              { $ref: "#/components/schemas/PrivateServerConfig/properties/federation_enabled" }
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -468,7 +490,7 @@ paths:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled"
+            $ref: "#/components/schemas/PrivateServerConfig/properties/federation_whitelist_enabled"
     responses: { $ref: "#/paths/get_federation_whitelist_enabled/responses" }
   get_federation_whitelist_enabled:
     tags: ["Server / Configuration"]
@@ -485,7 +507,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/federation_whitelist_enabled"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/federation_whitelist_enabled"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -512,7 +534,7 @@ paths:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
+            $ref: "#/components/schemas/PrivateServerConfig/properties/federation_friendly_servers"
     responses: { $ref: "#/paths/get_federation_friendly_servers/responses" }
   get_federation_friendly_servers:
     tags: ["Server / Configuration"]
@@ -530,7 +552,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ServerConfig/properties/federation_friendly_servers"
+              $ref: "#/components/schemas/PrivateServerConfig/properties/federation_friendly_servers"
       "412": { $ref: "#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
@@ -546,8 +568,25 @@ components:
   schemas:
     ServerConfig:
       type: object
+      allOf:
+        - { $ref: "#/components/schemas/PublicServerConfig" }
+        - { $ref: "#/components/schemas/PrivateServerConfig" }
+    PublicServerConfig:
+      type: object
       required:
         - domain
+      properties:
+        domain:
+          title: Domain
+          description: |
+            Domain of your XMPP server. This will be the domain part of
+            user JIDs (`<name>@<domain>`) therefore it cannot be changed.
+          type: string
+          format: hostname
+          example: crisp.chat
+    PrivateServerConfig:
+      type: object
+      required:
         - message_archive_enabled
         - message_archive_retention
         - file_upload_allowed
@@ -563,14 +602,6 @@ components:
         - push_notification_with_body
         - push_notification_with_sender
       properties:
-        domain:
-          title: Domain
-          description: |
-            Domain of your XMPP server. This will be the domain part of
-            user JIDs (`<name>@<domain>`) therefore it cannot be changed.
-          type: string
-          format: hostname
-          example: crisp.chat
         message_archive_enabled:
           title: Message archive enabled
           description: |
@@ -702,7 +733,7 @@ components:
       type: object
       required: [domain]
       properties:
-        domain: { $ref: "#/components/schemas/ServerConfig/properties/domain" }
+        domain: { $ref: "#/components/schemas/PublicServerConfig/properties/domain" }
     ServerConfigNotInitialized:
       type: object
       required:

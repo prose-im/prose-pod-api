@@ -9,7 +9,7 @@ mod routes;
 
 use axum::{
     middleware::from_extractor_with_state,
-    routing::{delete, get, head, put, MethodRouter},
+    routing::{delete, get, put, MethodRouter},
 };
 
 use crate::AppState;
@@ -24,8 +24,6 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .nest(
             SERVER_CONFIG_ROUTE,
             axum::Router::new()
-                // Server config
-                .route("/", get(get_server_config_route))
                 // File upload
                 .route("/files", delete(reset_files_config_route))
                 .route(
@@ -138,7 +136,15 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 // Require authentication
                 .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone())),
         )
-        // NOTE: `HEAD /v1/server/config` doesn’t require authentication.
-        .route(SERVER_CONFIG_ROUTE, head(is_server_initialized_route))
+        .route(
+            SERVER_CONFIG_ROUTE,
+            MethodRouter::new()
+                // NOTE: `GET /v1/server/config` handles authentication itself,
+                //   so it can return only the domain when called
+                //   unauthenticated (requirement of the Dashboard).
+                .get(get_server_config_route)
+                // NOTE: `HEAD /v1/server/config` doesn’t require authentication.
+                .head(is_server_initialized_route),
+        )
         .with_state(app_state)
 }
