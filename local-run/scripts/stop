@@ -24,5 +24,4 @@ if [ -f "${EPHEMERAL_SCENARIOS_FILE:?}" ]; then
 			log_as_trace_ task local:scenarios:delete -y -- "${scenario_name:?}"
 		fi
 	done < "${EPHEMERAL_SCENARIOS_FILE:?}"
-	edo rm "${EPHEMERAL_SCENARIOS_FILE:?}"
 fi
