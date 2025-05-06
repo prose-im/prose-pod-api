@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::NoContent,
     Json,
 };
@@ -16,9 +17,35 @@ use service::{
 };
 
 use crate::{
-    error::{self, CustomErrorCode, Error, ErrorCode, HttpApiError},
+    error::{self, CustomErrorCode, Error, ErrorCode, HttpApiError, LogLevel},
     impl_into_error, AppState,
 };
+
+#[derive(Debug, thiserror::Error)]
+#[error("Cannot change your own role.")]
+pub struct CannotChangeOwnRole;
+impl HttpApiError for CannotChangeOwnRole {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "cannot_change_own_role",
+            http_status: StatusCode::FORBIDDEN,
+            log_level: LogLevel::Info,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Cannot give a role you don't have.")]
+pub struct CannotAssignRole;
+impl HttpApiError for CannotAssignRole {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "cannot_assign_role",
+            http_status: StatusCode::FORBIDDEN,
+            log_level: LogLevel::Info,
+        }
+    }
+}
 
 pub async fn set_member_role_route(
     State(AppState { db, .. }): State<AppState>,
@@ -34,14 +61,10 @@ pub async fn set_member_role_route(
             ))));
         };
         if caller.jid() == jid {
-            return Err(Error::from(error::Forbidden(
-                "Cannot change your own role.".to_string(),
-            )));
+            return Err(Error::from(CannotChangeOwnRole));
         };
         if caller.role < role {
-            return Err(Error::from(error::Forbidden(
-                "Cannot give a role you don't have.".to_string(),
-            )));
+            return Err(Error::from(CannotAssignRole));
         };
     }
 
