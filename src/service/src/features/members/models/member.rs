@@ -4,7 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use serde::{Deserialize, Serialize};
-use service::{
+
+use crate::{
     members::{self, MemberRole},
     models::BareJid,
 };

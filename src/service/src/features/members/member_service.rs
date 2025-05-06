@@ -5,9 +5,11 @@
 
 use std::{cmp::min, collections::HashSet, sync::Arc, time::Duration};
 
+use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
+use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
@@ -16,7 +18,7 @@ use crate::{
     xmpp::{xmpp_service::Avatar, BareJid, ServerCtl, ServerCtlError, XmppService},
 };
 
-use super::{Member, MemberRepository, MemberRole};
+use super::{entities::member, Member, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
 struct VCardData {
@@ -132,19 +134,25 @@ impl MemberService {
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
-        MemberRepository::get_page(self.db.as_ref(), page_number, page_size, until).await
+    ) -> Result<(ItemsAndPagesNumber, Vec<Member>), anyhow::Error> {
+        let (metadata, members) =
+            MemberRepository::get_page(self.db.as_ref(), page_number, page_size, until)
+                .await
+                .context("Database error")?;
+        Ok((metadata, members.into_iter().map(Into::into).collect()))
     }
 
     pub async fn search_members(
         &self,
-        query: String,
+        query: &str,
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<EnrichedMember>), DbErr> {
+    ) -> Result<(ItemsAndPagesNumber, Vec<EnrichedMember>), anyhow::Error> {
         // Get **all** members from database (no details).
-        let members = MemberRepository::get_all_until(self.db.as_ref(), until).await?;
+        let members = MemberRepository::get_all_until(self.db.as_ref(), until)
+            .await
+            .context("Database error")?;
 
         // Enrich members with vCard data (no avatar nor online status).
         let members = self
@@ -194,7 +202,7 @@ impl MemberService {
 ///
 /// NOTE: Written as a standalone function so we can test it in the future if we
 ///   want to.
-fn filter(members: Vec<EnrichedMember>, query: String) -> Vec<EnrichedMember> {
+fn filter(members: Vec<EnrichedMember>, query: &str) -> Vec<EnrichedMember> {
     // Normalize the query string (lowercase and remove diacritics).
     let query = unaccent(query).to_lowercase();
     // Get tokens from the query (to match out of order too).
@@ -261,7 +269,7 @@ pub enum SetMemberRoleError {
 
 impl MemberService {
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
-    pub async fn enrich_jid(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, DbErr> {
+    pub async fn enrich_jid(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, anyhow::Error> {
         trace!("Enriching `{jid}`…");
 
         let member = match MemberRepository::get(self.db.as_ref(), jid).await {
@@ -272,7 +280,7 @@ impl MemberService {
             }
             Err(err) => {
                 warn!("Couldn't find member '{jid}' in database: {err}");
-                return Err(err);
+                return Err(anyhow!(err).context("Database error"));
             }
         };
 
@@ -416,7 +424,7 @@ enum EnrichingStep {
     OnlineStatus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
     pub role: MemberRole,
@@ -425,14 +433,24 @@ pub struct EnrichedMember {
     pub avatar: Option<Avatar>,
 }
 
-impl From<Member> for EnrichedMember {
-    fn from(member: Member) -> Self {
+impl From<member::Model> for EnrichedMember {
+    fn from(model: member::Model) -> Self {
         Self {
-            jid: member.jid(),
-            role: member.role,
+            jid: model.jid(),
+            role: model.role,
             online: None,
             nickname: None,
             avatar: None,
+        }
+    }
+}
+
+// NOTE: This is just to ensure that `EnrichedMember` is a supertype of `Member`.
+impl From<EnrichedMember> for Member {
+    fn from(value: EnrichedMember) -> Self {
+        Self {
+            jid: value.jid,
+            role: value.role,
         }
     }
 }

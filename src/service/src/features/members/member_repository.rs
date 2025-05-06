@@ -11,8 +11,8 @@ use tracing::instrument;
 
 use crate::{
     members::{
-        member::{ActiveModel, Column, Entity},
-        Member, MemberRole,
+        entities::member::{ActiveModel, Column, Entity, Model},
+        MemberRole,
     },
     models::BareJid,
 };
@@ -28,7 +28,7 @@ impl MemberRepository {
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<MemberCreateForm>,
-    ) -> Result<Member, DbErr> {
+    ) -> Result<Model, DbErr> {
         let form: MemberCreateForm = form.into();
         tracing::Span::current()
             .record("jid", form.jid.to_string())
@@ -59,7 +59,7 @@ impl MemberRepository {
         skip_all, fields(jid = jid.to_string()),
         err
     )]
-    pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Member>, DbErr> {
+    pub async fn get(db: &impl ConnectionTrait, jid: &BareJid) -> Result<Option<Model>, DbErr> {
         Entity::find_by_jid(&jid.to_owned().into()).one(db).await
     }
 
@@ -75,7 +75,7 @@ impl MemberRepository {
         page_number: u64,
         page_size: u64,
         until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Member>), DbErr> {
+    ) -> Result<(ItemsAndPagesNumber, Vec<Model>), DbErr> {
         assert_ne!(
             page_number, 0,
             "`page_number` starts at 1 like in the public API."
@@ -93,7 +93,7 @@ impl MemberRepository {
     }
 
     #[instrument(name = "db::member::get_all", level = "trace", skip_all, err)]
-    pub async fn get_all(db: &impl ConnectionTrait) -> Result<Vec<Member>, DbErr> {
+    pub async fn get_all(db: &impl ConnectionTrait) -> Result<Vec<Model>, DbErr> {
         Entity::find().order_by_asc(Column::JoinedAt).all(db).await
     }
 
@@ -102,7 +102,7 @@ impl MemberRepository {
     pub async fn get_all_until(
         db: &impl ConnectionTrait,
         until: Option<DateTime<Utc>>,
-    ) -> Result<Vec<Member>, DbErr> {
+    ) -> Result<Vec<Model>, DbErr> {
         let mut query = Entity::find().order_by_asc(Column::JoinedAt);
         if let Some(until) = until {
             query = query.filter(Column::JoinedAt.lte(until));

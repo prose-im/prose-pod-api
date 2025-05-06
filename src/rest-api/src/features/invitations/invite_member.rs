@@ -10,7 +10,7 @@ use axum::{http::HeaderValue, Json};
 use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
 #[cfg(debug_assertions)]
-use service::members::MemberRepository;
+use service::members::{Member, MemberRepository};
 use service::{
     invitations::{InvitationContact, InvitationService, InviteMemberError, InviteMemberForm},
     members::MemberRole,
@@ -22,9 +22,9 @@ use service::{
     AppConfig,
 };
 
-use crate::{error::prelude::*, features::auth::guards::IsAdmin, responders::Created};
 #[cfg(debug_assertions)]
-use crate::{features::members::Member, AppState};
+use crate::AppState;
+use crate::{error::prelude::*, features::auth::guards::IsAdmin, responders::Created};
 
 use super::model::*;
 

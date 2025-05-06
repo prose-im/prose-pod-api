@@ -8,38 +8,21 @@ use axum::{
     response::IntoResponse,
 };
 use serde::Serialize;
-use service::sea_orm::ItemsAndPagesNumber;
 
-pub struct Paginated<T> {
-    data: Vec<T>,
-    current_page: u64,
-    page_size: u64,
-    page_count: u64,
-    item_count: u64,
+pub struct Paginated<T>(pub service::models::Paginated<T>);
+
+impl<T> From<service::models::Paginated<T>> for Paginated<T> {
+    fn from(value: service::models::Paginated<T>) -> Self {
+        Self(value)
+    }
 }
 
 impl<T> Paginated<T> {
-    pub fn new(
-        data: Vec<T>,
-        current_page: u64,
-        page_size: u64,
-        metadata: ItemsAndPagesNumber,
-    ) -> Self {
-        Self {
-            data,
-            current_page,
-            page_size,
-            page_count: metadata.number_of_pages,
-            item_count: metadata.number_of_items,
-        }
-    }
-
     fn status(&self) -> StatusCode {
-        // NOTE: Page number starts at `1` and `number_of_pages` can be `0` if there are `0` items.
-        if self.current_page >= self.page_count {
-            StatusCode::OK
-        } else {
+        if self.0.is_partial() {
             StatusCode::PARTIAL_CONTENT
+        } else {
+            StatusCode::OK
         }
     }
 }
@@ -54,12 +37,12 @@ impl<T: Serialize> IntoResponse for Paginated<T> {
         IntoResponse::into_response((
             self.status(),
             [
-                ("Pagination-Current-Page", u64_to_str(self.current_page)),
-                ("Pagination-Page-Size", u64_to_str(self.page_size)),
-                ("Pagination-Page-Count", u64_to_str(self.page_count)),
-                ("Pagination-Item-Count", u64_to_str(self.item_count)),
+                ("Pagination-Current-Page", u64_to_str(self.0.current_page)),
+                ("Pagination-Page-Size", u64_to_str(self.0.page_size)),
+                ("Pagination-Page-Count", u64_to_str(self.0.page_count)),
+                ("Pagination-Item-Count", u64_to_str(self.0.item_count)),
             ],
-            axum::Json(self.data),
+            axum::Json(self.0.data),
         ))
     }
 }

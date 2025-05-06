@@ -31,10 +31,10 @@ pub async fn get_invitations_route(
         .get_invitations(page_number, page_size, until)
         .await?;
 
-    Ok(Paginated::new(
+    Ok(Paginated(service::models::Paginated::new(
         invitations.into_iter().map(Into::into).collect(),
         page_number,
         page_size,
         pages_metadata,
-    ))
+    )))
 }

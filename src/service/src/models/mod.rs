@@ -6,6 +6,8 @@
 mod data;
 pub mod durations;
 mod email_address;
+mod paginated;
+mod pagination;
 pub mod sea_orm;
 mod serializable_secret_string;
 mod url;
@@ -14,6 +16,8 @@ pub mod xmpp;
 pub use data::*;
 pub use durations::*;
 pub use email_address::*;
+pub use paginated::*;
+pub use pagination::*;
 pub use serializable_secret_string::*;
 pub use url::*;
 pub use xmpp::{

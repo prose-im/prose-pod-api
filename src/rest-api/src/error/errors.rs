@@ -22,6 +22,39 @@ impl HttpApiError for anyhow::Error {
     }
 }
 
+impl<A: HttpApiError, B: HttpApiError> HttpApiError for service::util::Either<A, B> {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::Left(err) => err.code(),
+            Self::Right(err) => err.code(),
+        }
+    }
+    fn message(&self) -> String {
+        match self {
+            Self::Left(err) => err.message(),
+            Self::Right(err) => err.message(),
+        }
+    }
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        match self {
+            Self::Left(err) => err.debug_info(),
+            Self::Right(err) => err.debug_info(),
+        }
+    }
+    fn recovery_suggestions(&self) -> Vec<String> {
+        match self {
+            Self::Left(err) => err.recovery_suggestions(),
+            Self::Right(err) => err.recovery_suggestions(),
+        }
+    }
+    fn http_headers(&self) -> Vec<(String, String)> {
+        match self {
+            Self::Left(err) => err.http_headers(),
+            Self::Right(err) => err.http_headers(),
+        }
+    }
+}
+
 impl ErrorCode {
     pub const NOT_IMPLEMENTED: Self = Self {
         value: "not_implemented",

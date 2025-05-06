@@ -7,12 +7,12 @@ use axum::{extract::State, http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
-    members::{MemberRepository, UnauthenticatedMemberService},
+    members::{Member, MemberRepository, UnauthenticatedMemberService},
     models::{JidNode, SerializableSecretString},
     server_config::ServerConfig,
 };
 
-use crate::{error::prelude::*, features::members::Member, responders::Created, AppState};
+use crate::{error::prelude::*, responders::Created, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
@@ -31,7 +31,7 @@ pub async fn init_first_account_route(
         .init_first_account(&server_config, &member_service, req)
         .await?;
 
-    let resource_uri = format!("/v1/members/{jid}", jid = member.jid());
+    let resource_uri = format!("/v1/members/{jid}", jid = member.jid);
     Ok(Created {
         location: HeaderValue::from_str(&resource_uri)?,
         body: Member::from(member),
