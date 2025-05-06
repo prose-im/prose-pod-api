@@ -13,6 +13,15 @@ use service::{
 
 use super::prelude::*;
 
+impl HttpApiError for anyhow::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INTERNAL_SERVER_ERROR
+    }
+    fn message(&self) -> String {
+        self.root_cause().to_string()
+    }
+}
+
 impl ErrorCode {
     pub const NOT_IMPLEMENTED: Self = Self {
         value: "not_implemented",

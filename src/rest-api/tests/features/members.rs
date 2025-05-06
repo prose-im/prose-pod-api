@@ -79,7 +79,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             joined_at: None,
         };
         let model = MemberRepository::create(db, member).await?;
-        let token = world.mock_auth_service.log_in_unchecked(&jid)?;
+        let token = world.mock_auth_service.log_in_unchecked(&jid);
 
         world.members.insert(jid.to_string(), (model, token));
     }

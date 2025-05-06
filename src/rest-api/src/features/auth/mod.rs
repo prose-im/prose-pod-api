@@ -19,19 +19,9 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 mod error {
-    use http_auth_basic::AuthBasicError;
     use service::{auth::auth_service, prosody::ProsodyOAuth2Error};
 
     use crate::error::prelude::*;
-
-    impl_into_error!(
-        AuthBasicError,
-        ErrorCode::UNAUTHORIZED,
-        vec![(
-            "WWW-Authenticate".into(),
-            r#"Basic realm="Admin only area", charset="UTF-8""#.into(),
-        )]
-    );
 
     impl HttpApiError for auth_service::Error {
         fn code(&self) -> ErrorCode {

@@ -3,7 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 pub enum Either<A, B> {
     Left(A),
@@ -21,6 +21,15 @@ impl<A, B> Either<A, B> {
         match self {
             Self::Right(v) => Some(v),
             _ => None,
+        }
+    }
+}
+
+impl<A: Debug, B: Debug> Debug for Either<A, B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Either::Left(v) => Debug::fmt(&v, f),
+            Either::Right(v) => Debug::fmt(&v, f),
         }
     }
 }

@@ -1,17 +1,19 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 
-use crate::{models::BareJid, prosody::ProsodyOAuth2};
+use crate::{models::BareJid, prosody::ProsodyOAuth2, util::Either};
 
 use super::{
     auth_service::{AuthToken, UserInfo},
+    errors::InvalidCredentials,
     AuthError, AuthServiceImpl,
 };
 
@@ -28,12 +30,18 @@ impl LiveAuthService {
 
 #[async_trait::async_trait]
 impl AuthServiceImpl for LiveAuthService {
-    async fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<AuthToken, AuthError> {
-        let Some(prosody_token) = self.prosody_oauth2.log_in(jid, password).await? else {
-            Err(AuthError::InvalidCredentials)?
-        };
-
-        Ok(AuthToken(prosody_token))
+    async fn log_in(
+        &self,
+        jid: &BareJid,
+        password: &SecretString,
+    ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
+        match self.prosody_oauth2.log_in(jid, password).await {
+            Ok(Some(token)) => Ok(AuthToken(token.into())),
+            Ok(None) => Err(Either::Left(InvalidCredentials)),
+            Err(err) => Err(Either::Right(
+                anyhow!(err).context("Prosody OAuth 2.0 error"),
+            )),
+        }
     }
 
     async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError> {

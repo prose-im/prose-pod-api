@@ -3,11 +3,13 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use anyhow::anyhow;
 use base64::engine::{general_purpose::STANDARD_NO_PAD as Base64, Engine as _};
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
-    auth::{auth_service, AuthServiceImpl, AuthToken, UserInfo},
+    auth::{auth_service, errors::InvalidCredentials, AuthServiceImpl, AuthToken, UserInfo},
     models::BareJid,
+    util::Either,
 };
 
 use std::sync::{Arc, RwLock};
@@ -36,20 +38,20 @@ impl MockAuthService {
         }
     }
 
-    fn check_online(&self) -> Result<(), auth_service::Error> {
+    fn check_online(&self) -> Result<(), anyhow::Error> {
         if self.state.read().unwrap().online {
             Ok(())
         } else {
-            Err(auth_service::Error::Other("XMPP server offline".to_owned()))?
+            Err(anyhow!("XMPP server offline"))
         }
     }
 
-    pub fn log_in_unchecked(&self, jid: &BareJid) -> Result<AuthToken, auth_service::Error> {
+    pub fn log_in_unchecked(&self, jid: &BareJid) -> AuthToken {
         let json = serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap();
         let base64 = Base64.encode(json);
         let token = SecretString::from(base64);
 
-        Ok(AuthToken(token))
+        AuthToken(token)
     }
 }
 
@@ -65,8 +67,8 @@ impl AuthServiceImpl for MockAuthService {
         &self,
         jid: &BareJid,
         password: &SecretString,
-    ) -> Result<AuthToken, auth_service::Error> {
-        self.check_online()?;
+    ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
+        self.check_online().map_err(Either::Right)?;
 
         let state = self.mock_server_ctl_state.read().unwrap();
         let valid_credentials = state
@@ -76,10 +78,10 @@ impl AuthServiceImpl for MockAuthService {
             .expect("User must be created first");
 
         if !valid_credentials {
-            Err(auth_service::Error::InvalidCredentials)?
+            return Err(Either::Left(InvalidCredentials));
         }
 
-        self.log_in_unchecked(jid)
+        Ok(self.log_in_unchecked(jid))
     }
 
     async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, auth_service::Error> {

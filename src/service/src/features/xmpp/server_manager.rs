@@ -13,7 +13,7 @@ use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, trace};
 
 use crate::{
-    auth::{auth_service, AuthService},
+    auth::{errors::InvalidCredentials, AuthService},
     models::{sea_orm::LinkedStringSet, DateLike, Duration, JidDomain, PossiblyInfinite},
     prosody::ProsodyOverrides,
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
@@ -332,7 +332,13 @@ pub enum CreateServiceAccountError {
     #[error("Could not create XMPP account: {0}")]
     CouldNotCreateXmppAccount(#[from] server_ctl::Error),
     #[error("Could not log in: {0}")]
-    CouldNotLogIn(#[from] auth_service::Error),
+    CouldNotLogIn(Either<InvalidCredentials, anyhow::Error>),
+}
+
+impl From<Either<InvalidCredentials, anyhow::Error>> for CreateServiceAccountError {
+    fn from(error: Either<InvalidCredentials, anyhow::Error>) -> Self {
+        Self::CouldNotLogIn(error)
+    }
 }
 
 macro_rules! set {

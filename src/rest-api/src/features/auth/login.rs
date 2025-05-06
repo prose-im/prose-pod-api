@@ -3,14 +3,15 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::Json;
+use axum::{http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    auth::{auth_service::AuthToken, AuthService},
+    auth::{auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService},
     models::SerializableSecretString,
+    util::Either,
 };
 
-use crate::error::Error;
+use crate::error::{Error, ErrorCode, LogLevel};
 
 use super::guards::BasicAuth;
 
@@ -23,19 +24,27 @@ pub struct LoginResponse {
     pub token: LoginToken,
 }
 
-/// Log user in and return an authentication token.
 pub async fn login_route(
     basic_auth: BasicAuth,
     auth_service: AuthService,
 ) -> Result<Json<LoginResponse>, Error> {
-    let token = auth_service
-        .log_in(&basic_auth.jid, &basic_auth.password)
-        .await?;
-
-    let response = LoginResponse {
-        token: LoginToken::from(token),
-    };
-    Ok(response.into())
+    match auth_controller::log_in(&basic_auth.into(), &auth_service).await {
+        Ok(token) => Ok(Json(LoginResponse {
+            token: LoginToken::from(token),
+        })),
+        Err(Either::Left(err @ InvalidCredentials)) => Err(Error::new(
+            ErrorCode {
+                value: "invalid_credentials",
+                http_status: StatusCode::UNAUTHORIZED,
+                log_level: LogLevel::Info,
+            },
+            err.to_string(),
+            None,
+            vec![],
+            vec![],
+        )),
+        Err(Either::Right(err)) => Err(Error::from(err)),
+    }
 }
 
 // BOILERPLATE

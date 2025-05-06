@@ -1,6 +1,6 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
@@ -10,7 +10,9 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::{models::BareJid, prosody::ProsodyOAuth2Error};
+use crate::{models::BareJid, prosody::ProsodyOAuth2Error, util::Either};
+
+use super::errors::InvalidCredentials;
 
 #[derive(Debug, Clone)]
 pub struct AuthService {
@@ -30,7 +32,7 @@ impl AuthService {
         &self,
         jid: &BareJid,
         password: &SecretString,
-    ) -> Result<AuthToken, AuthError> {
+    ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
         self.implem.log_in(jid, password).await
     }
     #[instrument(level = "trace", skip_all, ret, err)]
@@ -63,7 +65,11 @@ pub struct UserInfo {
 
 #[async_trait::async_trait]
 pub trait AuthServiceImpl: Debug + Sync + Send {
-    async fn log_in(&self, jid: &BareJid, password: &SecretString) -> Result<AuthToken, AuthError>;
+    async fn log_in(
+        &self,
+        jid: &BareJid,
+        password: &SecretString,
+    ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>>;
     async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError>;
     async fn register_oauth2_client(&self) -> Result<(), AuthError>;
 }
