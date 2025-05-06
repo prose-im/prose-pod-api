@@ -1,5 +1,5 @@
 version: "1.1"
-name: Authentication (tokens expiring after 1 second)
+name: Authentication (tokens expiring instantly)
 config:
   http:
     baseURL: ${{ env.host }}
