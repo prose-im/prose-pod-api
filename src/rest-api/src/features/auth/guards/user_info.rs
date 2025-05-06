@@ -10,7 +10,7 @@ use crate::guards::prelude::*;
 impl FromRequestParts<AppState> for service::auth::UserInfo {
     type Rejection = error::Error;
 
-    #[tracing::instrument(name = "req::auth::user_info", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "req::auth::user_info", level = "trace", skip_all)]
     async fn from_request_parts(
         parts: &mut request::Parts,
         state: &AppState,

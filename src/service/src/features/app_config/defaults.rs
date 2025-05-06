@@ -21,7 +21,10 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{ConfigDatabase, ConfigServiceAccount, ServerLogLevel, API_DATA_DIR};
+use super::{
+    ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, LogTimer, ServerLogLevel,
+    API_DATA_DIR,
+};
 
 // GENERAL
 
@@ -34,11 +37,34 @@ pub fn true_in_debug() -> bool {
     false
 }
 
+pub fn always_true() -> bool {
+    true
+}
 pub fn always_false() -> bool {
     false
 }
 
 // SPECIFIC
+
+pub fn log_level() -> LogLevel {
+    LogLevel::Info
+}
+
+pub fn log_format() -> LogFormat {
+    if cfg!(debug_assertions) {
+        LogFormat::Pretty
+    } else {
+        LogFormat::Json
+    }
+}
+
+pub fn log_timer() -> LogTimer {
+    if cfg!(debug_assertions) {
+        LogTimer::Uptime
+    } else {
+        LogTimer::Time
+    }
+}
 
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {

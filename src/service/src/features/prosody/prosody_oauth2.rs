@@ -8,7 +8,7 @@ use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 use serde_json::json;
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::{
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
@@ -40,7 +40,7 @@ impl ProsodyOAuth2 {
         let request = make_req(&client)
             .build()
             .map_err(Error::CannotBuildRequest)?;
-        debug!("Calling `{} {}`…", request.method(), request.url());
+        trace!("Calling `{} {}`…", request.method(), request.url());
 
         let request_data = match request.try_clone() {
             Some(request_clone) => Some(RequestData::from(request_clone).await),

@@ -8,7 +8,11 @@ use std::{net::SocketAddr, sync::Arc};
 use axum::Router;
 use prose_pod_api::{
     make_router, run_startup_actions,
-    util::{database::db_conn, tracing_subscriber_ext, LifecycleManager},
+    util::{
+        database::db_conn,
+        tracing_subscriber_ext::{self, init_subscribers, TracingReloadHandles},
+        LifecycleManager,
+    },
     AppState,
 };
 use service::{
@@ -21,7 +25,8 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing::{info, instrument, trace, warn};
+use tracing::{info, instrument, trace, warn, Subscriber};
+use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
 #[tokio::main]
 async fn main() {
@@ -29,7 +34,8 @@ async fn main() {
         .install_default()
         .expect("Could not install default crypto provider.");
 
-    let _tracing_guard = tracing_subscriber_ext::init_subscribers()
+    // NOTE: Can only be called once.
+    let (_tracing_guard, tracing_reload_handles) = init_subscribers()
         .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
         .unwrap();
 
@@ -41,22 +47,19 @@ async fn main() {
     }
 
     let mut starting = true;
-    fn should_start(starting: &mut bool) -> bool {
-        let should_start = *starting;
-        *starting = false;
-        should_start
-    }
-
-    while should_start(&mut starting) || lifecycle_manager.should_restart().await {
-        if !starting {
+    while starting || lifecycle_manager.should_restart().await {
+        if starting {
+            starting = false;
+        } else {
             warn!("Restarting…");
         }
 
         {
             let lifecycle_manager = lifecycle_manager.clone();
+            let tracing_reload_handles = tracing_reload_handles.clone();
             tokio::task::spawn(async move {
                 trace!("Starting an instance…");
-                run(&lifecycle_manager).await;
+                run(&lifecycle_manager, &tracing_reload_handles).await;
                 trace!("Run finished.");
             });
         }
@@ -73,12 +76,22 @@ async fn main() {
     info!("Nothing else to do, exiting.");
 }
 
-async fn run(lifecycle_manager: &LifecycleManager) {
+async fn run(
+    lifecycle_manager: &LifecycleManager,
+    tracing_reload_handles: &TracingReloadHandles<
+        EnvFilter,
+        impl Subscriber + for<'a> LookupSpan<'a>,
+        Box<dyn Layer<impl Subscriber + for<'a> LookupSpan<'a>> + Send + Sync>,
+        impl Subscriber,
+    >,
+) {
     let app_config = AppConfig::from_default_figment();
     if app_config.debug.log_config_at_startup {
         dbg!(&app_config);
     }
     let addr = SocketAddr::new(app_config.address, app_config.port);
+
+    tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
 
     let app = startup(app_config, lifecycle_manager).await;
     lifecycle_manager.set_restart_finished();

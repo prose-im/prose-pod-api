@@ -60,7 +60,7 @@ pub struct Authenticated;
 impl FromRequestParts<AppState> for Authenticated {
     type Rejection = error::Error;
 
-    #[tracing::instrument(name = "req::auth::authenticated", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "req::auth::authenticated", level = "trace", skip_all)]
     async fn from_request_parts(
         parts: &mut request::Parts,
         state: &AppState,
