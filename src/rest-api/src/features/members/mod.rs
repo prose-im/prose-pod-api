@@ -82,7 +82,11 @@ impl_into_error!(UserCreateError);
 impl CustomErrorCode for UserDeleteError {
     fn error_code(&self) -> ErrorCode {
         match self {
-            Self::CannotSelfRemove => ErrorCode::FORBIDDEN,
+            Self::CannotSelfRemove => ErrorCode {
+                value: "cannot_remove_self",
+                http_status: StatusCode::FORBIDDEN,
+                log_level: LogLevel::Info,
+            },
             Self::DbErr(err) => err.code(),
             Self::XmppServerCannotRemoveTeamMember(err) => err.code(),
             Self::XmppServerCannotDeleteUser(err) => err.code(),
