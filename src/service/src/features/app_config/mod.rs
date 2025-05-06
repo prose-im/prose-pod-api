@@ -143,6 +143,24 @@ pub struct ConfigLog {
     pub level: LogLevel,
     #[serde(default = "defaults::log_format")]
     pub format: LogFormat,
+    #[serde(default = "defaults::log_timer")]
+    pub timer: LogTimer,
+    #[serde(default = "defaults::true_in_debug")]
+    pub with_ansi: bool,
+    #[serde(default = "defaults::true_in_debug")]
+    pub with_file: bool,
+    #[serde(default = "defaults::always_true")]
+    pub with_level: bool,
+    #[serde(default = "defaults::always_true")]
+    pub with_target: bool,
+    #[serde(default = "defaults::always_false")]
+    pub with_thread_ids: bool,
+    #[serde(default = "defaults::true_in_debug")]
+    pub with_line_number: bool,
+    #[serde(default = "defaults::always_false")]
+    pub with_span_events: bool,
+    #[serde(default = "defaults::true_in_debug")]
+    pub with_thread_names: bool,
 }
 
 impl Default for ConfigLog {
@@ -150,6 +168,15 @@ impl Default for ConfigLog {
         Self {
             level: defaults::log_level(),
             format: defaults::log_format(),
+            timer: defaults::log_timer(),
+            with_ansi: defaults::true_in_debug(),
+            with_file: defaults::true_in_debug(),
+            with_level: defaults::always_true(),
+            with_target: defaults::always_true(),
+            with_thread_ids: defaults::always_false(),
+            with_line_number: defaults::always_true(),
+            with_span_events: defaults::always_false(),
+            with_thread_names: defaults::true_in_debug(),
         }
     }
 }
@@ -175,6 +202,16 @@ pub enum LogFormat {
     Compact,
     Json,
     Pretty,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum LogTimer {
+    None,
+    Time,
+    Uptime,
 }
 
 #[derive(Debug, Clone, Deserialize)]

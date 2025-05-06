@@ -11,20 +11,11 @@ use init_tracing_opentelemetry::{
     Error,
 };
 use service::{
-    app_config::{ConfigLog, LogFormat, LogLevel},
+    app_config::{ConfigLog, LogFormat, LogLevel, LogTimer},
     AppConfig,
 };
 use tracing::{info, warn, Subscriber};
-use tracing_subscriber::{
-    fmt::{
-        self,
-        format::{Compact, Format, Json, Pretty},
-        FormatFields, MakeWriter,
-    },
-    layer::SubscriberExt,
-    registry::LookupSpan,
-    reload, EnvFilter, Layer,
-};
+use tracing_subscriber::{layer::SubscriberExt, registry::LookupSpan, reload, EnvFilter, Layer};
 
 // NOTE: Overriding `RUST_LOG` when building tracing filters would cause
 //   `RUST_LOG` to grow infinitely, but also break dynamic log levels and leak
@@ -34,41 +25,86 @@ use tracing_subscriber::{
 const LOG_LEVELS_ENV_VAR: &'static str = "_PROSE_LOG";
 
 #[must_use]
-fn build_logger_layer<S>(log_config: &ConfigLog) -> Box<dyn Layer<S> + Send + Sync + 'static>
+fn build_logger_layer<S>(
+    ConfigLog {
+        level: _level,
+        format,
+        timer,
+        with_ansi,
+        with_file,
+        with_level,
+        with_target,
+        with_thread_ids,
+        with_line_number,
+        with_span_events,
+        with_thread_names,
+    }: &ConfigLog,
+) -> Box<dyn Layer<S> + Send + Sync + 'static>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    fn with_log_format<S, N, L, T, W>(
+    use tracing_subscriber::fmt::format::FmtSpan;
+    let layer = tracing_subscriber::fmt::layer()
+        .with_ansi(*with_ansi)
+        .with_file(*with_file)
+        .with_level(*with_level)
+        .with_target(*with_target)
+        .with_thread_ids(*with_thread_ids)
+        .with_line_number(*with_line_number)
+        .with_span_events(if *with_span_events {
+            FmtSpan::NEW | FmtSpan::CLOSE
+        } else {
+            FmtSpan::NONE
+        })
+        .with_thread_names(*with_thread_names);
+
+    use tracing_subscriber::fmt::{
+        self,
+        format::{Compact, Format, Json, JsonFields, Pretty},
+        {FormatEvent, FormatFields, MakeWriter},
+    };
+    fn with_format_and_timer<S, N, L, T, W>(
         layer: fmt::Layer<S, N, Format<L, T>, W>,
         format: &LogFormat,
+        timer: &LogTimer,
     ) -> Box<dyn Layer<S> + Send + Sync + 'static>
     where
-        N: for<'writer> FormatFields<'writer> + 'static,
+        S: Subscriber + for<'a> LookupSpan<'a>,
+        N: for<'writer> FormatFields<'writer> + Send + Sync + 'static,
         fmt::Layer<S, N, Format<L, T>, W>: Layer<S> + Send + Sync + 'static,
         fmt::Layer<S, N, Format<Compact, T>, W>: Layer<S> + Send + Sync + 'static,
-        fmt::Layer<S, fmt::format::JsonFields, Format<Json, T>, W>:
-            Layer<S> + Send + Sync + 'static,
-        fmt::Layer<S, fmt::format::Pretty, Format<Pretty, T>, W>: Layer<S> + Send + Sync + 'static,
-        S: Subscriber + for<'a> LookupSpan<'a>,
-        W: for<'writer> MakeWriter<'writer> + 'static,
+        fmt::Layer<S, JsonFields, Format<Json, T>, W>: Layer<S> + Send + Sync + 'static,
+        fmt::Layer<S, Pretty, Format<Pretty, T>, W>: Layer<S> + Send + Sync + 'static,
+        L: Send + Sync + 'static,
+        Format<L, ()>: FormatEvent<S, N>,
+        Format<L>: FormatEvent<S, N>,
+        Format<L, fmt::time::Uptime>: FormatEvent<S, N>,
+        W: for<'writer> MakeWriter<'writer> + Send + Sync + 'static,
     {
-        match format {
-            LogFormat::Full => layer.boxed(),
-            LogFormat::Compact => layer.compact().boxed(),
-            LogFormat::Json => layer.json().boxed(),
-            LogFormat::Pretty => layer.pretty().boxed(),
+        // NOTE(RemiBardon): This is ugly AF, but because of how tracing layers
+        //   are typed I found no better way.
+        use fmt::time::{time, uptime};
+        use {LogFormat as F, LogTimer as T};
+        match (format, timer) {
+            (F::Full, T::None) => layer.without_time().boxed(),
+            (F::Compact, T::None) => layer.compact().without_time().boxed(),
+            (F::Json, T::None) => layer.json().without_time().boxed(),
+            (F::Pretty, T::None) => layer.pretty().without_time().boxed(),
+
+            (F::Full, T::Time) => layer.with_timer(time()).boxed(),
+            (F::Compact, T::Time) => layer.compact().with_timer(time()).boxed(),
+            (F::Json, T::Time) => layer.json().with_timer(time()).boxed(),
+            (F::Pretty, T::Time) => layer.pretty().with_timer(time()).boxed(),
+
+            (F::Full, T::Uptime) => layer.with_timer(uptime()).boxed(),
+            (F::Compact, T::Uptime) => layer.compact().with_timer(uptime()).boxed(),
+            (F::Json, T::Uptime) => layer.json().with_timer(uptime()).boxed(),
+            (F::Pretty, T::Uptime) => layer.pretty().with_timer(uptime()).boxed(),
         }
     }
+    let layer = with_format_and_timer(layer, &format, &timer);
 
-    // use tracing_subscriber::fmt::format::FmtSpan;
-    with_log_format(
-        tracing_subscriber::fmt::layer()
-            // .with_target(false)
-            // .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-            // .without_time()
-            .with_timer(fmt::time::uptime()),
-        &log_config.format,
-    )
+    layer
 }
 
 #[must_use]

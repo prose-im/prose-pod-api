@@ -22,7 +22,8 @@ use crate::{
 };
 
 use super::{
-    ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, ServerLogLevel, API_DATA_DIR,
+    ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, LogTimer, ServerLogLevel,
+    API_DATA_DIR,
 };
 
 // GENERAL
@@ -36,6 +37,9 @@ pub fn true_in_debug() -> bool {
     false
 }
 
+pub fn always_true() -> bool {
+    true
+}
 pub fn always_false() -> bool {
     false
 }
@@ -51,6 +55,14 @@ pub fn log_format() -> LogFormat {
         LogFormat::Pretty
     } else {
         LogFormat::Json
+    }
+}
+
+pub fn log_timer() -> LogTimer {
+    if cfg!(debug_assertions) {
+        LogTimer::Uptime
+    } else {
+        LogTimer::Time
     }
 }
 
