@@ -33,6 +33,22 @@ delete-one() {
 
 	warn "Deleting scenario $(format_code "${SCENARIO_NAME:?}")…"
 	edo rm -rf "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"
+
+	if [ -f "${EPHEMERAL_SCENARIOS_FILE:?}" ]; then
+		# Delete scenario name from list of running scenarios.
+		if [[ "$OSTYPE" == "darwin"* ]]; then
+			# macOS (BSD sed)
+			edo sed -i '' '/^'"${SCENARIO_NAME:?}"'$/d' "${EPHEMERAL_SCENARIOS_FILE:?}"
+		else
+			# GNU/Linux (GNU sed)
+			edo sed -i '/^'"${SCENARIO_NAME:?}"'$/d' "${EPHEMERAL_SCENARIOS_FILE:?}"
+		fi
+
+		# Delete file if empty.
+		if [[ ! -s "${EPHEMERAL_SCENARIOS_FILE:?}" ]]; then
+			edo rm "${EPHEMERAL_SCENARIOS_FILE:?}"
+		fi
+	fi
 }
 
 for name in "$@"; do

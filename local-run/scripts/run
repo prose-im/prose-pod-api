@@ -134,7 +134,7 @@ source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 if (( $EPHEMERAL )); then
 	edo task local:scenarios:create -- "${SCENARIO_NAME:?}" ${BASE_SCENARIO_NAME:+--based-on="${BASE_SCENARIO_NAME:?}"}
-	echo "${SCENARIO_NAME:?}" > "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
+	echo "${SCENARIO_NAME:?}" >> "${EPHEMERAL_SCENARIOS_FILE:?}"
 elif [ -f "${SCENARIO_DIR:?}"/NO_RUN ] && ! (( $FORCE_RUN )); then
 	die "Cannot run the $(format_code "${SCENARIO_NAME:?}") scenario. You must copy it ($(format_code "task local:scenarios:create -- NEW_NAME --based-on='${SCENARIO_NAME:?}'")) or run it with $(format_code --ephemeral)."
 fi
@@ -166,5 +166,4 @@ edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans $
 
 if (( $EPHEMERAL )) && ! (( $DETACH )); then
 	log_as_trace_ task local:scenarios:delete -y -- "${SCENARIO_NAME:?}"
-	edo rm "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
 fi

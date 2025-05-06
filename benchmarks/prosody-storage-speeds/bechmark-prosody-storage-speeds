@@ -10,7 +10,7 @@ LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 BENCHMARK_DIR="${REPOSITORY_ROOT:?}"/benchmarks/prosody-storage-speeds
 : ${SCENARIOS_DIR:="${BENCHMARK_DIR:?}"/scenarios}
 export SCENARIOS_DIR
-EPHEMERAL_SCENARIO_NAME_FILE="${SCENARIOS_DIR:?}"/last-ephemeral-scenario-name.txt
+EPHEMERAL_SCENARIOS_FILE="${SCENARIOS_DIR:?}"/ephemeral-scenarios.txt
 
 if ! which gdate >/dev/null; then
 	echo 'date doesn’t support milliseconds. Please install gdate.' >&2
@@ -57,7 +57,7 @@ test-storage() {
 		--ephemeral --detach
 
 	# Read ephemeral scenario name.
-	SCENARIO_NAME="$(tail -n 1 "${EPHEMERAL_SCENARIO_NAME_FILE:?}")"
+	SCENARIO_NAME="$(tail -n 1 "${EPHEMERAL_SCENARIOS_FILE:?}")"
 	SCENARIO_DIR="${SCENARIOS_DIR:?}/${SCENARIO_NAME:?}"
 
 	if [[ "${1-}" == sqlite* ]]; then
