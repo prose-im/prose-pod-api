@@ -18,10 +18,11 @@ source "${SELF_SCRIPTS:?}"/compose-exports.sh
 
 edo docker compose -f "${COMPOSE_FILE:?}" stop
 
-if [ -f "${EPHEMERAL_SCENARIO_NAME_FILE:?}" ]; then
-	SCENARIO_NAME="$(cat "${EPHEMERAL_SCENARIO_NAME_FILE:?}")"
-	if [[ -n "${SCENARIO_NAME-}" ]]; then
-		log_as_trace_ task local:scenarios:delete -y -- "${SCENARIO_NAME:?}"
-		edo rm "${EPHEMERAL_SCENARIO_NAME_FILE:?}"
-	fi
+if [ -f "${EPHEMERAL_SCENARIOS_FILE:?}" ]; then
+	while IFS= read -r scenario_name; do
+		if [[ -n "${scenario_name-}" ]]; then
+			log_as_trace_ task local:scenarios:delete -y -- "${scenario_name:?}"
+		fi
+	done < "${EPHEMERAL_SCENARIOS_FILE:?}"
+	edo rm "${EPHEMERAL_SCENARIOS_FILE:?}"
 fi
