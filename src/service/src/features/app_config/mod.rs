@@ -58,10 +58,8 @@ pub type Config = AppConfig;
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
-    #[serde(default = "defaults::log_level")]
-    pub log_level: LogLevel,
-    #[serde(default = "defaults::log_format")]
-    pub log_format: LogFormat,
+    #[serde(default)]
+    pub log: ConfigLog,
     #[serde(default)]
     pub service_accounts: ConfigServiceAccounts,
     #[serde(default)]
@@ -136,6 +134,23 @@ impl AppConfig {
             Some(&self.service_accounts.prose_workspace.xmpp_node),
             domain,
         )
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigLog {
+    #[serde(default = "defaults::log_level")]
+    pub level: LogLevel,
+    #[serde(default = "defaults::log_format")]
+    pub format: LogFormat,
+}
+
+impl Default for ConfigLog {
+    fn default() -> Self {
+        Self {
+            level: defaults::log_level(),
+            format: defaults::log_format(),
+        }
     }
 }
 

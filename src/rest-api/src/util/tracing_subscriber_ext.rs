@@ -11,7 +11,7 @@ use init_tracing_opentelemetry::{
     Error,
 };
 use service::{
-    app_config::{self, LogFormat, LogLevel},
+    app_config::{ConfigLog, LogFormat, LogLevel},
     AppConfig,
 };
 use tracing::{info, warn, Subscriber};
@@ -29,33 +29,12 @@ use tracing_subscriber::{
 // NOTE: Overriding `RUST_LOG` when building tracing filters would cause
 //   `RUST_LOG` to grow infinitely, but also break dynamic log levels and leak
 //   configuration on factory resets.
-const LOG_LEVELS_ENV_VAR: &'static str = "PROSE_LOG";
-
-struct LogConfig {
-    level: LogLevel,
-    format: LogFormat,
-}
-
-impl From<&AppConfig> for LogConfig {
-    fn from(app_config: &AppConfig) -> Self {
-        Self {
-            level: app_config.log_level,
-            format: app_config.log_format,
-        }
-    }
-}
-
-impl Default for LogConfig {
-    fn default() -> Self {
-        Self {
-            level: app_config::defaults::log_level(),
-            format: app_config::defaults::log_format(),
-        }
-    }
-}
+// NOTE: We can’t use `PROSE_LOG` as it would conflict with app config defined
+//   in env.
+const LOG_LEVELS_ENV_VAR: &'static str = "_PROSE_LOG";
 
 #[must_use]
-fn build_logger_layer<S>(log_config: &LogConfig) -> Box<dyn Layer<S> + Send + Sync + 'static>
+fn build_logger_layer<S>(log_config: &ConfigLog) -> Box<dyn Layer<S> + Send + Sync + 'static>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -93,7 +72,7 @@ where
 }
 
 #[must_use]
-fn build_filter_layer(log_config: &LogConfig) -> EnvFilter {
+fn build_filter_layer(log_config: &ConfigLog) -> EnvFilter {
     // NOTE: Last values take precedence in `RUST_LOG` (i.e. `trace,info` logs
     //   >`info`, while `info,trace` logs >`trace`), so important values must be
     //   added last.
@@ -172,13 +151,12 @@ pub fn update_tracing_config(
 ) {
     info!("Updating global tracing configuration…");
     let TracingReloadHandles { filter, logger } = tracing_reload_handles;
-    let log_config = LogConfig::from(app_config);
     filter
-        .modify(|filter| *filter = build_filter_layer(&log_config))
+        .modify(|filter| *filter = build_filter_layer(&app_config.log))
         .inspect_err(|err| warn!("Error when updating global log level filter: {err}"))
         .unwrap_or_default();
     logger
-        .modify(|logger| *logger = build_logger_layer(&log_config))
+        .modify(|logger| *logger = build_logger_layer(&app_config.log))
         .inspect_err(|err| warn!("Error when updating global logger: {err}"))
         .unwrap_or_default();
 }
@@ -200,7 +178,7 @@ pub fn init_subscribers() -> Result<
     ),
     Error,
 > {
-    let log_config = LogConfig::default();
+    let log_config = ConfigLog::default();
 
     // Setup a temporary subscriber to log output during setup.
     let subscriber = tracing_subscriber::registry()
