@@ -26,6 +26,7 @@ impl AuthService {
 }
 
 impl AuthService {
+    // TODO: Allow passing `Credentials`.
     /// Generates a token from a username and password.
     #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
     pub async fn log_in(

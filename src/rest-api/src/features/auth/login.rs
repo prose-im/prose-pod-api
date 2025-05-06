@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::{http::StatusCode, Json};
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use service::{
     auth::{auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService},
@@ -11,7 +11,7 @@ use service::{
     util::Either,
 };
 
-use crate::error::{Error, ErrorCode, LogLevel};
+use crate::error::Error;
 
 use super::guards::BasicAuth;
 
@@ -32,17 +32,7 @@ pub async fn login_route(
         Ok(token) => Ok(Json(LoginResponse {
             token: LoginToken::from(token),
         })),
-        Err(Either::Left(err @ InvalidCredentials)) => Err(Error::new(
-            ErrorCode {
-                value: "invalid_credentials",
-                http_status: StatusCode::UNAUTHORIZED,
-                log_level: LogLevel::Info,
-            },
-            err.to_string(),
-            None,
-            vec![],
-            vec![],
-        )),
+        Err(Either::Left(err @ InvalidCredentials)) => Err(Error::from(err)),
         Err(Either::Right(err)) => Err(Error::from(err)),
     }
 }

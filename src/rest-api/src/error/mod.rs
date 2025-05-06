@@ -233,6 +233,23 @@ macro_rules! impl_into_error {
             }
         }
     };
+    (
+        $t:ty
+        , code: $code:literal
+        , http_status: $status:ident
+        , log_level: $log_level:ident
+        $(,)?
+    ) => {
+        impl crate::error::HttpApiError for $t {
+            fn code(&self) -> crate::error::ErrorCode {
+                crate::error::ErrorCode {
+                    value: $code,
+                    http_status: axum::http::StatusCode::$status,
+                    log_level: crate::error::LogLevel::$log_level,
+                }
+            }
+        }
+    };
     ($t:ty, $code:expr) => {
         impl crate::error::HttpApiError for $t {
             fn code(&self) -> ErrorCode {

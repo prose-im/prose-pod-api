@@ -19,9 +19,22 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 mod error {
-    use service::{auth::auth_service, prosody::ProsodyOAuth2Error};
+    use service::{
+        auth::{auth_service, errors::InvalidCredentials},
+        prosody::ProsodyOAuth2Error,
+    };
 
     use crate::error::prelude::*;
+
+    impl HttpApiError for InvalidCredentials {
+        fn code(&self) -> ErrorCode {
+            ErrorCode {
+                value: "invalid_credentials",
+                http_status: StatusCode::UNAUTHORIZED,
+                log_level: LogLevel::Info,
+            }
+        }
+    }
 
     impl HttpApiError for auth_service::Error {
         fn code(&self) -> ErrorCode {

@@ -6,6 +6,7 @@
 pub mod app_config;
 pub mod auth;
 pub mod cron;
+pub mod factory_reset;
 pub mod global_storage;
 pub mod init;
 pub mod invitations;
