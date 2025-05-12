@@ -5,8 +5,9 @@
 
 use super::prelude::*;
 
+api_call_fn!(check_dns_records, GET, "/v1/network/checks/dns");
 api_call_fn!(
-    check_dns_records,
+    check_dns_records_stream,
     GET,
     "/v1/network/checks/dns",
     accept: "text/event-stream"
@@ -16,6 +17,13 @@ api_call_fn!(
 async fn when_check_dns(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = check_dns_records(world.api(), token).await;
+    world.result = Some(res.into());
+}
+
+#[when(expr = "{} checks the DNS records configuration as \"text\\/event-stream\"")]
+async fn when_check_dns_stream(world: &mut TestWorld, name: String) {
+    let token = user_token!(world, name);
+    let res = check_dns_records_stream(world.api(), token).await;
     world.result = Some(res.into());
 }
 

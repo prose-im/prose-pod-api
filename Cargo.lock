@@ -2846,6 +2846,7 @@ dependencies = [
 name = "prose-pod-api"
 version = "0.13.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "axum 0.8.3",
  "axum-extra",

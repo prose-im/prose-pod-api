@@ -1,0 +1,29 @@
+paths:
+  get_onboarding_steps_statuses:
+    tags: [Init]
+    summary: Get onboarding steps statuses
+    description: |
+      Returns whether or not some actions have already been done to show onboarding steps in the
+      Dashboard if needed.
+    operationId: get_onboarding_steps_statuses
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingStepsStatuses" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+components:
+  schemas:
+    OnboardingStepsStatuses:
+      type: object
+      required:
+        - all_dns_checks_passed_once
+        - at_least_one_invitation_sent
+      properties:
+        all_dns_checks_passed_once:
+          type: boolean
+        at_least_one_invitation_sent:
+          type: boolean

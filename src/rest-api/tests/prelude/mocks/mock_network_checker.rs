@@ -103,6 +103,7 @@ impl NetworkCheckerImpl for MockNetworkChecker {
 }
 
 #[given(expr = "{domain_name}'s DNS zone has no {} record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has no {} record for {domain_name}")]
 async fn given_no_record(
     _world: &mut TestWorld,
     _host: DomainName,
@@ -119,6 +120,7 @@ fn add_record(world: &mut TestWorld, dns_record: DnsRecord) {
 }
 
 #[given(expr = "{domain_name}'s DNS zone has a A record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has a A record for {domain_name}")]
 async fn given_a_record(world: &mut TestWorld, _host: DomainName, record_hostname: DomainName) {
     add_record(
         world,
@@ -131,6 +133,7 @@ async fn given_a_record(world: &mut TestWorld, _host: DomainName, record_hostnam
 }
 
 #[given(expr = "{domain_name}'s DNS zone has a AAAA record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has a AAAA record for {domain_name}")]
 async fn given_aaaa_record(world: &mut TestWorld, _host: DomainName, record_hostname: DomainName) {
     add_record(
         world,
@@ -144,6 +147,9 @@ async fn given_aaaa_record(world: &mut TestWorld, _host: DomainName, record_host
 
 #[given(
     expr = "{domain_name}'s DNS zone has a SRV record for {domain_name} redirecting port {int} to {domain_name}"
+)]
+#[given(
+    expr = "{domain_name}’s DNS zone has a SRV record for {domain_name} redirecting port {int} to {domain_name}"
 )]
 async fn given_srv_record(
     world: &mut TestWorld,
