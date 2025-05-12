@@ -5,10 +5,10 @@
 
 use axum::response::sse::KeepAlive;
 use futures::{stream::FuturesOrdered, StreamExt};
-use service::util::ConcurrentTaskRunner;
+use service::{onboarding, util::ConcurrentTaskRunner};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::{trace, Instrument as _};
+use tracing::{trace, warn, Instrument as _};
 
 use crate::features::network_checks::{
     check_dns_records::dns_record_check_result,
@@ -16,46 +16,61 @@ use crate::features::network_checks::{
     check_ports_reachability::port_reachability_check_result,
 };
 
-use super::{model::*, prelude::*, util::*, SSE_TIMEOUT};
+use super::{check_dns_records_route_, model::*, prelude::*, util::*, SSE_TIMEOUT};
 
 pub async fn check_network_configuration_route(
+    State(AppState { db, .. }): State<AppState>,
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let mut tasks: FuturesOrdered<tokio::task::JoinHandle<_>> = FuturesOrdered::default();
+    let mut tasks: FuturesOrdered<_> = FuturesOrdered::default();
 
-    for check in pod_network_config.dns_record_checks() {
+    {
+        let pod_network_config = pod_network_config.clone();
+        let network_checker = network_checker.clone();
+        tasks.push_back(tokio::spawn(
+            async move { check_dns_records_route_(pod_network_config, network_checker, &db).await }
+                .in_current_span(),
+        ));
+    }
+    {
+        let pod_network_config = pod_network_config.clone();
         let network_checker = network_checker.clone();
         tasks.push_back(tokio::spawn(
             async move {
-                let result = check.run(&network_checker).await;
-                NetworkCheckResult::from((check, result))
+                run_checks(
+                    pod_network_config.port_reachability_checks().into_iter(),
+                    &network_checker,
+                    NetworkCheckResult::from,
+                )
+                .await
             }
             .in_current_span(),
         ));
     }
-    for check in pod_network_config.port_reachability_checks() {
+    {
+        let pod_network_config = pod_network_config.clone();
         let network_checker = network_checker.clone();
         tasks.push_back(tokio::spawn(
             async move {
-                let result = check.run(&network_checker).await;
-                NetworkCheckResult::from((check, result))
-            }
-            .in_current_span(),
-        ));
-    }
-    for check in pod_network_config.ip_connectivity_checks() {
-        let network_checker = network_checker.clone();
-        tasks.push_back(tokio::spawn(
-            async move {
-                let result = check.run(&network_checker).await;
-                NetworkCheckResult::from((check, result))
+                run_checks(
+                    pod_network_config.ip_connectivity_checks().into_iter(),
+                    &network_checker,
+                    NetworkCheckResult::from,
+                )
+                .await
             }
             .in_current_span(),
         ));
     }
 
-    let res: Vec<NetworkCheckResult> = tasks.filter_map(|res| async { res.ok() }).collect().await;
+    let res: Vec<NetworkCheckResult> = tasks
+        .filter_map(|res| async { res.ok() })
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .flatten()
+        .collect();
 
     Ok(Json(res))
 }
@@ -64,7 +79,7 @@ pub async fn check_network_configuration_stream_route(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
     Query(forms::Interval { interval }): Query<forms::Interval>,
-    State(AppState { app_config, .. }): State<AppState>,
+    State(AppState { app_config, db, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let retry_interval = interval.map_or_else(
         || Ok(app_config.default_retry_interval.into_std_duration()),
@@ -95,18 +110,30 @@ pub async fn check_network_configuration_stream_route(
                         dns_record_check_result,
                         tx.clone(),
                         &runner,
+                        move || {
+                            tokio::spawn(async move {
+                                trace!("Setting `all_dns_checks_passed_once` to true…");
+                                (onboarding::all_dns_checks_passed_once::set(&db, true).await)
+                                    .inspect_err(|err| {
+                                        warn!("Could not set `all_dns_checks_passed_once` to true: {err}")
+                                    })
+                                    .ok();
+                            });
+                        },
                     );
                     network_checker.run_checks(
                         port_reachability_checks.into_iter(),
                         port_reachability_check_result,
                         tx.clone(),
                         &runner,
+                        move || {},
                     );
                     network_checker.run_checks(
                         ip_connectivity_checks.into_iter(),
                         ip_connectivity_check_result,
                         tx.clone(),
                         &runner,
+                        move || {},
                     );
 
                     while let Some(event) = rx.recv().await {

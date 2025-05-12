@@ -10,9 +10,7 @@ use sea_orm::{
     DatabaseConnection, DbConn, DbErr, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _,
 };
 use secrecy::{ExposeSecret as _, SecretString};
-#[cfg(debug_assertions)]
-use tracing::warn;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::{
     dependencies,
@@ -23,6 +21,7 @@ use crate::{
         notifier::email::{EmailNotification, EmailNotificationCreateError},
         NotificationService,
     },
+    onboarding,
     pod_config::{PodConfigField, PodConfigRepository},
     server_config::ServerConfig,
     util::bare_jid_from_username,
@@ -96,6 +95,10 @@ impl InvitationService {
             &self.uuid_gen,
         )
         .await?;
+
+        (onboarding::at_least_one_invitation_sent::set(&self.db, true).await)
+            .inspect_err(|err| warn!("Could not set `at_least_one_invitation_sent` to true: {err}"))
+            .ok();
 
         let workspace_name = workspace_service
             .get_workspace_name()

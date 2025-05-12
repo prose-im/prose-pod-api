@@ -25,5 +25,8 @@ pub trait NetworkCheck {
 }
 
 pub trait RetryableNetworkCheckResult {
-    fn should_retry(&self) -> bool;
+    fn is_failure(&self) -> bool;
+    fn should_retry(&self) -> bool {
+        self.is_failure()
+    }
 }

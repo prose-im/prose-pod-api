@@ -12,6 +12,7 @@ pub async fn check_ports_route(
     let res = run_checks(
         pod_network_config.port_reachability_checks().into_iter(),
         &network_checker,
+        NetworkCheckResult::from,
     )
     .await;
     Ok(Json(res))
@@ -29,6 +30,7 @@ pub async fn check_ports_stream_route(
         port_reachability_check_result,
         interval,
         app_config,
+        move || {},
     )
 }
 

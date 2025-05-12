@@ -119,7 +119,7 @@ pub async fn run_startup_actions(
     router: PreStartupRouter,
     app_state: AppState,
 ) -> Result<Router, StartupError> {
-    startup_actions::run_startup_actions(&app_state)
+    startup_actions::run_startup_actions(app_state)
         .await
         .map_err(StartupError)?;
 

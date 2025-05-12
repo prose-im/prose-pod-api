@@ -95,7 +95,7 @@ pub enum PortReachabilityCheckResult {
 }
 
 impl RetryableNetworkCheckResult for PortReachabilityCheckResult {
-    fn should_retry(&self) -> bool {
+    fn is_failure(&self) -> bool {
         matches!(self, Self::Closed)
     }
 }

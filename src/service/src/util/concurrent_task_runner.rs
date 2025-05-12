@@ -179,6 +179,7 @@ impl ConcurrentTaskRunner {
         before_all: Option<DefaultResult>,
         before_retry: Option<RetryResult>,
         should_retry: impl Fn(&R) -> bool + Send + 'static + Copy + Sync,
+        on_finish: impl FnOnce() -> () + Send + 'static,
         on_cancel: impl FnOnce() -> () + Send + 'static,
     ) -> mpsc::Receiver<R>
     where
@@ -289,6 +290,8 @@ impl ConcurrentTaskRunner {
 
                         // Wait for all tasks to finish.
                         while let Some(Ok(())) = tasks.next().await {}
+
+                        on_finish()
                     } => {}
                     // Add global timeout.
                     _ = sleep(timeout) => {
