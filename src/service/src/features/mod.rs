@@ -1,11 +1,12 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod app_config;
 pub mod auth;
 pub mod cron;
+pub mod global_storage;
 pub mod init;
 pub mod invitations;
 pub mod members;

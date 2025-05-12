@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
 use crate::features::{
-    invitations::migrations::*, members::migrations::*, pod_config::migrations::*,
-    server_config::migrations::*, workspace::migrations::*,
+    global_storage::migrations::*, invitations::migrations::*, members::migrations::*,
+    pod_config::migrations::*, server_config::migrations::*, workspace::migrations::*,
 };
 
 pub struct Migrator;
@@ -30,6 +30,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250331_222300_dashboard_address_to_url::Migration),
             Box::new(m20250404_193000_add_prosody_overrides::Migration),
             Box::new(m20250407_014800_add_prosody_overrides_raw::Migration),
+            Box::new(m20250512_131300_create_kv_store::Migration),
         ]
     }
 }
