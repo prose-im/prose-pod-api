@@ -17,22 +17,22 @@ use tracing::{instrument, trace, Instrument as _};
 
 use crate::error::{self, Error};
 
-use super::{end_event, NetworkCheckResult, SSE_TIMEOUT};
+use super::{end_event, SSE_TIMEOUT};
 
 #[instrument(level = "trace", skip_all)]
-pub async fn run_checks<'r, Check>(
+pub async fn run_checks<'r, Check, T>(
     checks: impl Iterator<Item = Check> + 'r,
     network_checker: &'r NetworkChecker,
-) -> Vec<NetworkCheckResult>
+    map: impl Fn((Check, Check::CheckResult)) -> T + Copy,
+) -> Vec<T>
 where
     Check: NetworkCheck + Send + 'static,
     Check::CheckResult: Clone + Send,
-    NetworkCheckResult: From<(Check, Check::CheckResult)>,
 {
     checks
         .map(|check| async move {
             let result = check.run(network_checker).await;
-            NetworkCheckResult::from((check, result))
+            map((check, result))
         })
         .collect::<FuturesOrdered<_>>()
         .collect()
@@ -46,6 +46,7 @@ pub fn run_checks_stream<Check, Status>(
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + Sync + 'static,
     retry_interval: Option<iso8601_duration::Duration>,
     app_config: AppConfig,
+    on_succeed: impl FnOnce() -> () + Send + 'static,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>
 where
     Check: NetworkCheck + Debug + Send + 'static + Clone + Sync,
@@ -74,7 +75,7 @@ where
                     }
 
                     let (tx, mut rx) = mpsc::channel::<Event>(32);
-                    network_checker.run_checks(checks, map_to_event, tx, &runner);
+                    network_checker.run_checks(checks, map_to_event, tx, &runner, on_succeed);
 
                     while let Some(event) = rx.recv().await {
                         if sse_tx.send(Ok(logged(event))).await.ok().is_none() {

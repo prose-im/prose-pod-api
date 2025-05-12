@@ -102,7 +102,7 @@ pub enum IpConnectivityCheckResult {
 }
 
 impl RetryableNetworkCheckResult for IpConnectivityCheckResult {
-    fn should_retry(&self) -> bool {
+    fn is_failure(&self) -> bool {
         matches!(self, Self::Failure)
     }
 }

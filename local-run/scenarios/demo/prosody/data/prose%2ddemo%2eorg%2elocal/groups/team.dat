@@ -1,16 +1,16 @@
 return {
-	["todd.schultz"] = {};
-	["drew.howell"] = {};
-	["evan.turner"] = {};
-	["jake.lang"] = {};
-	["ella.white"] = {};
-	["pablo.bartoletti"] = {};
-	["dianna.hermann"] = {};
-	["meghan.donnelly"] = {};
-	["prose-workspace"] = {};
 	["pauline.collins"] = {};
+	["ella.white"] = {};
+	["jake.lang"] = {};
+	["drew.howell"] = {};
 	["taylor.cartwright"] = {};
-	["barbara.mante"] = {};
-	["sheri.nienow"] = {};
 	["charlie.schmitt"] = {};
+	["pablo.bartoletti"] = {};
+	["evan.turner"] = {};
+	["sheri.nienow"] = {};
+	["barbara.mante"] = {};
+	["prose-workspace"] = {};
+	["meghan.donnelly"] = {};
+	["todd.schultz"] = {};
+	["dianna.hermann"] = {};
 };

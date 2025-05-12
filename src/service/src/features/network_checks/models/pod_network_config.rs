@@ -18,6 +18,7 @@ use crate::{
     xmpp::{JidDomain, XmppConnectionType},
 };
 
+#[derive(Debug, Clone)]
 pub struct PodNetworkConfig {
     pub server_domain: JidDomain,
     pub pod_address: NetworkAddress,

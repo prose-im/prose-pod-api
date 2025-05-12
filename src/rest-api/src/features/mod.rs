@@ -15,6 +15,7 @@ pub mod init;
 pub mod invitations;
 pub mod members;
 pub mod network_checks;
+pub mod onboarding;
 pub mod pod_config;
 pub mod profile;
 pub mod roles;
@@ -34,6 +35,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(invitations::router(app_state.clone()))
         .merge(members::router(app_state.clone()))
         .merge(network_checks::router(app_state.clone()))
+        .merge(onboarding::router(app_state.clone()))
         .merge(pod_config::router(app_state.clone()))
         .merge(profile::router(app_state.clone()))
         .merge(roles::router(app_state.clone()))

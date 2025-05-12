@@ -122,6 +122,7 @@ impl NetworkChecker {
         map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + 'static,
         sender: Sender<Event>,
         runner: &ConcurrentTaskRunner,
+        on_succeed: impl FnOnce() -> () + Send + 'static,
     ) where
         Check: NetworkCheck + Debug + Clone + Send + 'static + Sync,
         Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
@@ -142,6 +143,7 @@ impl NetworkChecker {
             Some(|check: &Check| (check.clone(), Either::Right(Status::queued()))),
             Some(|check: &Check| (check.clone(), Either::Right(Status::checking()))),
             |(_, res)| res.left().unwrap().should_retry(),
+            on_succeed,
             move || {},
         );
 

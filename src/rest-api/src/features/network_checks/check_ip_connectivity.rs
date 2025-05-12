@@ -12,6 +12,7 @@ pub async fn check_ip_route(
     let res = run_checks(
         pod_network_config.ip_connectivity_checks().into_iter(),
         &network_checker,
+        NetworkCheckResult::from,
     )
     .await;
     Ok(Json(res))
@@ -29,6 +30,7 @@ pub async fn check_ip_stream_route(
         ip_connectivity_check_result,
         interval,
         app_config,
+        move || {},
     )
 }
 

@@ -80,7 +80,7 @@ pub enum DnsRecordCheckResult {
 }
 
 impl RetryableNetworkCheckResult for DnsRecordCheckResult {
-    fn should_retry(&self) -> bool {
+    fn is_failure(&self) -> bool {
         matches!(self, Self::Invalid | Self::Error(_))
     }
 }
