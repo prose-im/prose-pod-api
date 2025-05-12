@@ -6,15 +6,15 @@
 use std::collections::HashMap;
 
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    QueryFilter,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, Set, Unchanged,
 };
 use serde_json::Value as Json;
 use tracing::{instrument, warn};
 
-use crate::util::Either;
+use crate::{global_storage::entity::ActiveModel, util::Either};
 
-use super::entity::{Column, Entity, Model};
+use super::entity::{Column, Entity};
 
 #[derive(Debug)]
 pub struct KvStore;
@@ -27,18 +27,25 @@ impl KvStore {
         key: &str,
         value: Json,
     ) -> Result<(), DbErr> {
-        let model = Model {
-            namespace: namespace.to_owned(),
-            key: key.to_owned(),
-            value,
+        let primary_key = (namespace.to_owned(), key.to_owned());
+        if Entity::find_by_id(primary_key).count(db).await? > 0 {
+            ActiveModel {
+                namespace: Unchanged(namespace.to_owned()),
+                key: Unchanged(key.to_owned()),
+                value: Set(value),
+            }
+            .update(db)
+            .await
+        } else {
+            ActiveModel {
+                namespace: Set(namespace.to_owned()),
+                key: Set(key.to_owned()),
+                value: Set(value),
+            }
+            .insert(db)
+            .await
         }
-        .into_active_model();
-
-        match model.clone().update(db).await {
-            // If model couldn’t be updated, if means it needs to be inserted.
-            Err(DbErr::RecordNotFound(_)) => model.insert(db).await.map(|_| ()),
-            res => res.map(|_| ()),
-        }
+        .map(|_| ())
     }
 
     #[instrument(name = "store::get_all", level = "trace", skip_all, fields(namespace))]
