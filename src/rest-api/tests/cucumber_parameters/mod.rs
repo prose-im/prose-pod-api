@@ -7,6 +7,7 @@
 // See <https://cucumber-rs.github.io/cucumber/current/writing/capturing.html#custom-parameters>
 
 mod array;
+mod boolean;
 mod dns_record_type;
 mod domain_name;
 mod duration;
@@ -21,6 +22,7 @@ mod text;
 mod toggle_state;
 
 pub use array::*;
+pub use boolean::*;
 pub use dns_record_type::*;
 pub use domain_name::*;
 pub use duration::*;
