@@ -121,7 +121,7 @@ VirtualHost "prose-demo.org.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "xrsSR2YWD-Am3XWPp-oab9s5ny9PsRLCcxjIZY-et64dVO0lheU51KelcaQFHFEJ6zZUSRkXP4X39Eg2sLXSWmvvB0ACMXettsrSV-KKuQdW-9CmOjz7eyhWATIMjUB1Nqh-jB8MKKclJnexw11VlD5M6c3D-35CuFqnLyqyn6x0W7UiKJKsExuHx3PtkKPJejTt5cJehHR1FUBlJhajEAGQ9cVpMw9JPgktckedxUMVIz1fDIajwbXZvNVbzcGs4NtZTrvyrgiGdfvCgTgQBkZIArqoWX2OPtNkq4kgqfPxqIPqh8KQZXAdEDXq8vVVnPPwHJtvIzLI2Bpkvf8zow"
+  oauth2_registration_key = "fLCk0sLvmtGiKZDt-gKdr7fP2SzN3zGDf52aKBBbLxQKliJYKGAZ_FT90dgiKqQnoFboohyihk8KHS03MtqD-ik847YgZne5Na8LeQLrWnNZxU_iaZITjmj5E9NFmTE7bCmMzhTnkXfR0MpouqkVxO-j0wpk3W9_rybIOmluPsf2_X2RuJJNy4k2nFl2xEnFqgvQo-u6tqKNe-EPnOMoDnombr8U1eyXgzQVXbh4OuJxk6Gq1otVr3CdDPiHQOAapARfd7HaBiZvvEDTQp5NInQv2YPJB3Dz7Y4gTuxYYCJrQ8phPt1fcUFd_Axt8ZPRzl9HqF1QOey4OzukHkU0RQ"
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }
@@ -134,10 +134,6 @@ VirtualHost "admin.prose.org.local"
 
   -- HTTP settings
   http_host = "prose-pod-server-admin"
-
-  -- mod_init_admin
-  init_admin_jid = "prose-pod-api@admin.prose.org.local"
-  init_admin_password = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
 
 Component "groups.prose-demo.org.local" "muc"
   name = "Chatrooms"
