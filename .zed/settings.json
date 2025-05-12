@@ -26,5 +26,12 @@
     "**/.DS_Store",
     "**/redoc.standalone.js",
     "**/redoc.html"
-  ]
+  ],
+  "lsp": {
+    "cucumber": {
+      "settings": {
+        "glue": ["src/*/tests/features/*.rs"]
+      }
+    }
+  }
 }
