@@ -20,6 +20,8 @@ paths:
   "/v1/init/first-account":
     put: { $ref: "features/init.yaml#/paths/init_first_account" }
     head: { $ref: "features/init.yaml#/paths/is_first_account_created" }
+  "/v1/onboarding-steps":
+    get: { $ref: "features/onboarding.yaml#/paths/get_onboarding_steps_statuses" }
 
   # ===== Auth =====
   "/v1/login":
