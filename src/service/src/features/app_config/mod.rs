@@ -530,4 +530,4 @@ pub struct ConfigDependencyModes {
 #[error(
     "Missing key `{0}` the app configuration. Add it to `Prose.toml` or use environment variables."
 )]
-pub struct MissingConfiguration(&'static str);
+pub struct MissingConfiguration(pub &'static str);

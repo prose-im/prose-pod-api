@@ -3,8 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-// ========== TOKEN TYPES ==========
-
 #[derive(Debug, PartialEq, Eq)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
 #[derive(strum::Display, strum::EnumString)]

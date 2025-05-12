@@ -1,7 +1,9 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
+
+//! Data Transfer Objects.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -13,7 +15,7 @@ use service::{
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WorkspaceInvitation {
+pub struct WorkspaceInvitationDto {
     pub invitation_id: i32,
     pub created_at: DateTime<Utc>,
     pub status: InvitationStatus,
@@ -23,15 +25,9 @@ pub struct WorkspaceInvitation {
     pub accept_token_expires_at: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WorkspaceInvitationBasicDetails {
-    pub jid: BareJid,
-    pub pre_assigned_role: MemberRole,
-}
-
 // BOILERPLATE
 
-impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitation {
+impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationDto {
     fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
         Self {
             invitation_id: value.id,
@@ -41,15 +37,6 @@ impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvit
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,
-        }
-    }
-}
-
-impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationBasicDetails {
-    fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
-        Self {
-            jid: to_bare_jid(&value.jid).unwrap(),
-            pre_assigned_role: value.pre_assigned_role,
         }
     }
 }
