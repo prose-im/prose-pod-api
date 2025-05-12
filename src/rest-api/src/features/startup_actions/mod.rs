@@ -54,14 +54,15 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
 
     // Some actions won’t prevent the API from running properly so let’s not
     // make startup longer because of it.
-    async fn run_remaining(app_state: AppState) -> Result<(), String> {
+    async fn run_remaining(app_state: &AppState) -> Result<(), String> {
         backfill_database(&app_state).await?;
         Ok(())
     }
     tokio::spawn(async move {
-        if let Err(err) = run_remaining(app_state).await {
+        if let Err(err) = run_remaining(&app_state).await {
             warn!("{}", crate::StartupError(err));
         }
+        app_state.lifecycle_manager.set_startup_actions_finished();
     });
 
     Ok(())

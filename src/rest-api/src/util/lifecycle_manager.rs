@@ -20,6 +20,9 @@ pub struct LifecycleManager {
     /// NOTE: Receives `true` every time the API should restart.
     ///   Receives `false` once the API has restarted.
     restart_rx: watch::Receiver<bool>,
+    /// NOTE: Some startup actions run asynchronously.
+    ///   This allows tests to wait for it to finish.
+    startup_actions_finished_channel: (watch::Sender<bool>, watch::Receiver<bool>),
 }
 
 impl LifecycleManager {
@@ -32,12 +35,14 @@ impl LifecycleManager {
     pub fn new() -> Self {
         let master_cancellation_token = CancellationToken::new();
         let (restart_tx, restart_rx) = watch::channel(false);
+        let startup_actions_finished_channel = watch::channel(false);
         Self {
             current_instance: Self::new_instance(master_cancellation_token.child_token()),
             master_cancellation_token,
             previous_instance: None,
             restart_tx: Some(Arc::new(restart_tx)),
             restart_rx,
+            startup_actions_finished_channel,
         }
     }
 
@@ -85,6 +90,20 @@ impl LifecycleManager {
         }
     }
 
+    pub fn set_startup_actions_finished(&self) {
+        (self.startup_actions_finished_channel.0).send_modify(|finished| *finished = true);
+    }
+    pub async fn wait_for_startup_actions_to_finish(&self) -> anyhow::Result<()> {
+        match (self.startup_actions_finished_channel.1.clone())
+            .wait_for(|finished| *finished)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(anyhow::Error::from(err)),
+        }
+    }
+
+    #[tracing::instrument(level = "debug")]
     pub fn rotate_instance(self) -> Self {
         Self {
             current_instance: Self::new_instance(self.master_cancellation_token.child_token()),
@@ -92,6 +111,7 @@ impl LifecycleManager {
             previous_instance: Some(self.current_instance),
             restart_tx: self.restart_tx,
             restart_rx: self.restart_rx,
+            startup_actions_finished_channel: watch::channel(false),
         }
     }
 
