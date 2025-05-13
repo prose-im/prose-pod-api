@@ -33,8 +33,8 @@ pub async fn get_member(
 ) -> Result<EnrichedMember, Either<MemberNotFound, anyhow::Error>> {
     match member_service.enrich_jid(&jid).await {
         Ok(Some(member)) => Ok(member),
-        Ok(None) => Err(Either::Left(MemberNotFound { jid: jid.clone() })),
-        Err(err) => Err(Either::Right(anyhow!(err).context("Enriching error"))),
+        Ok(None) => Err(Either::E1(MemberNotFound { jid: jid.clone() })),
+        Err(err) => Err(Either::E2(anyhow!(err).context("Enriching error"))),
     }
 }
 

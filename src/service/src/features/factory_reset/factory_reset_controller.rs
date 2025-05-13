@@ -81,7 +81,7 @@ pub async fn perform_factory_reset(
     secrets_store: &SecretsStore,
 ) -> Result<(), Either<InvalidConfirmationCode, anyhow::Error>> {
     if Some(confirmation) != *FACTORY_RESET_CONFIRMATION_CODE.read().await {
-        return Err(Either::Left(InvalidConfirmationCode));
+        return Err(Either::E1(InvalidConfirmationCode));
     }
 
     warn!("Performing a factory reset…");
@@ -89,29 +89,29 @@ pub async fn perform_factory_reset(
     debug!("Resetting the server…");
     (ServerManager::reset_server_config(&db, server_ctl, app_config, secrets_store).await)
         .context("Could not reset server config")
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
 
     debug!("Erasing user data from the server…");
     (server_ctl.delete_all_data().await)
         .context("Could not erase all server data")
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
 
     debug!("Resetting the API’s database…");
     // Close the database connection to make sure SeaORM
     // doesn’t write to it after we empty the file.
     (db.close().await)
         .context("Could not close the database connection")
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
     let database_url = (app_config.databases.main.url)
         .strip_prefix("sqlite://")
         .context("Database URL should start with `sqlite://`")
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
     // NOTE: `File::create` truncates the file if it exists.
     File::create(database_url)
         .context(format!("Could not reset API database at <{database_url}>"))
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
 
     debug!("Resetting the API’s configuration file…");
     let config_file_path = CONFIG_FILE_PATH.as_path();
@@ -123,7 +123,7 @@ pub async fn perform_factory_reset(
             "Could not reset API config file at <{path}>: Cannot open.",
             path = config_file_path.display(),
         ))
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
     let bootstrap_config = r#"# Prose Pod API configuration file
 # Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
@@ -133,7 +133,7 @@ pub async fn perform_factory_reset(
             "Could not reset API config file at <{path}>: Cannot write",
             path = config_file_path.display(),
         ))
-        .map_err(Either::Right)?;
+        .map_err(Either::E2)?;
 
     info!("Factory reset done.");
     Ok(())

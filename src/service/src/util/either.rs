@@ -5,40 +5,32 @@
 
 use std::fmt::{Debug, Display};
 
-pub enum Either<A, B> {
-    Left(A),
-    Right(B),
+macro_rules! gen {
+    ($t:ident<$case1:ident$(, $case:ident)+>) => {
+        pub enum $t<$case1$(, $case)+> {
+            $case1($case1),
+            $($case($case),)+
+        }
+
+        impl<$case1: Debug$(, $case: Debug)+> Debug for $t<$case1$(, $case)+> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    Self::$case1(v) => Debug::fmt(&v, f),
+                    $(Self::$case(v) => Debug::fmt(&v, f),)+
+                }
+            }
+        }
+
+        impl<$case1: Display$(, $case: Display)+> Display for $t<$case1$(, $case)+> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    Self::$case1(v) => Display::fmt(&v, f),
+                    $(Self::$case(v) => Display::fmt(&v, f),)+
+                }
+            }
+        }
+    };
 }
 
-impl<A, B> Either<A, B> {
-    pub fn left(&self) -> Option<&A> {
-        match self {
-            Self::Left(v) => Some(v),
-            _ => None,
-        }
-    }
-    pub fn right(&self) -> Option<&B> {
-        match self {
-            Self::Right(v) => Some(v),
-            _ => None,
-        }
-    }
-}
-
-impl<A: Debug, B: Debug> Debug for Either<A, B> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Either::Left(v) => Debug::fmt(&v, f),
-            Either::Right(v) => Debug::fmt(&v, f),
-        }
-    }
-}
-
-impl<A: Display, B: Display> Display for Either<A, B> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Either::Left(v) => Display::fmt(&v, f),
-            Either::Right(v) => Display::fmt(&v, f),
-        }
-    }
-}
+gen!(Either<E1, E2>);
+gen!(Either3<E1, E2, E3>);

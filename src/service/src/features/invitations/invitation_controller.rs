@@ -40,7 +40,7 @@ pub type InviteMemberResponse =
     Result<Either<Invitation, crate::members::Member>, Either<InviteMemberError, anyhow::Error>>;
 #[cfg(debug_assertions)]
 fn ok(invitation: Invitation) -> InviteMemberResponse {
-    Ok(Either::Left(invitation))
+    Ok(Either::E1(invitation))
 }
 
 /// Invite a new member and auto-accept the invitation if enabled.
@@ -69,7 +69,7 @@ pub async fn invite_member(
             #[cfg(not(debug_assertions))]
             return err;
             #[cfg(debug_assertions)]
-            return Either::Left(err);
+            return Either::E1(err);
         })?;
 
     #[cfg(debug_assertions)]
@@ -78,9 +78,9 @@ pub async fn invite_member(
             let jid = invitation.jid;
             let member = (crate::members::MemberRepository::get(db, &jid).await)
                 .context("Database error")
-                .map_err(Either::Right)?
+                .map_err(Either::E2)?
                 .unwrap();
-            return Ok(Either::Right(member.into()));
+            return Ok(Either::E2(member.into()));
         }
     }
 
@@ -96,10 +96,10 @@ pub async fn get_invitation(
 ) -> Result<Invitation, Either<InvitationNotFound, anyhow::Error>> {
     match invitation_service.get(&invitation_id).await {
         Ok(Some(invitation)) => Ok(invitation),
-        Ok(None) => Err(Either::Left(InvitationNotFound(format!(
+        Ok(None) => Err(Either::E1(InvitationNotFound(format!(
             "No invitation with id '{invitation_id}'.",
         )))),
-        Err(err) => Err(Either::Right(anyhow!(err).context("Database error"))),
+        Err(err) => Err(Either::E2(anyhow!(err).context("Database error"))),
     }
 }
 
@@ -131,10 +131,10 @@ pub async fn get_invitation_by_token(
 
     match res {
         Ok(Some(invitation)) => Ok(invitation.into()),
-        Ok(None) => Err(Either::Left(InvitationNotFound(
+        Ok(None) => Err(Either::E1(InvitationNotFound(
             "No invitation found for provided token.".to_string(),
         ))),
-        Err(err) => Err(Either::Right(err)),
+        Err(err) => Err(Either::E2(err)),
     }
 }
 

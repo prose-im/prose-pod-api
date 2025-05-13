@@ -32,8 +32,8 @@ pub async fn login_route(
         Ok(token) => Ok(Json(LoginResponse {
             token: LoginToken::from(token),
         })),
-        Err(Either::Left(err @ InvalidCredentials)) => Err(Error::from(err)),
-        Err(Either::Right(err)) => Err(Error::from(err)),
+        Err(Either::E1(err @ InvalidCredentials)) => Err(Error::from(err)),
+        Err(Either::E2(err)) => Err(Error::from(err)),
     }
 }
 

@@ -102,8 +102,8 @@ pub async fn invite_member_route(
 
     #[cfg(debug_assertions)]
     let invitation = match res {
-        service::util::Either::Left(invitation) => invitation,
-        service::util::Either::Right(member) => {
+        service::util::Either::E1(invitation) => invitation,
+        service::util::Either::E2(member) => {
             let resource_uri = format!("/v1/members/{jid}", jid = member.jid);
             return Ok(Either::E2(Created {
                 location: HeaderValue::from_str(&resource_uri)?,

@@ -62,11 +62,11 @@ pub async fn set_prosody_overrides_route(
                 //   JSON data should be exactly the user’s request.
                 .map(|json| serde_json::from_value(json).unwrap()),
         )),
-        Err(service::util::Either::Left(err)) => Err(Error::from(error::HTTPStatus {
+        Err(service::util::Either::E1(err)) => Err(Error::from(error::HTTPStatus {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             body: format!("Prosody overrides cannot be stored in database: {err}"),
         })),
-        Err(service::util::Either::Right(err)) => Err(Error::from(err)),
+        Err(service::util::Either::E2(err)) => Err(Error::from(err)),
     };
 
     server_manager.reload_current().await?;
@@ -81,8 +81,8 @@ pub async fn get_prosody_overrides_route(
         Ok(Some(Some(overrides))) => Ok(Either::E1(Json(overrides))),
         Ok(Some(None)) => Ok(Either::E2(NoContent)),
         Ok(None) => Err(Error::from(ServerConfigNotInitialized)),
-        Err(service::util::Either::Left(err)) => Err(Error::from(err)),
-        Err(service::util::Either::Right(err)) => Err(Error::from(error::HTTPStatus {
+        Err(service::util::Either::E1(err)) => Err(Error::from(err)),
+        Err(service::util::Either::E2(err)) => Err(Error::from(error::HTTPStatus {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             body: format!("Prosody overrides stored in database cannot be read. To fix this, call `PUT /v1/server/config/prosody-overrides` with a new value. You can `GET /v1/server/config/prosody-overrides` first to see what the stored value was. Error: {err}"),
         })),

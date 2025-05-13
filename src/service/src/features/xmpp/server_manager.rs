@@ -461,11 +461,11 @@ impl ServerManager {
         &self,
         new_state: ProsodyOverrides,
     ) -> Result<ServerConfig, Either<serde_json::Error, Error>> {
-        let new_state = serde_json::to_value(new_state).map_err(Either::Left)?;
+        let new_state = serde_json::to_value(new_state).map_err(Either::E1)?;
         trace!("Setting prosody_overrides to {new_state}…");
         self.update(|active| active.prosody_overrides = Set(Some(new_state)))
             .await
-            .map_err(Either::Right)
+            .map_err(Either::E2)
     }
 
     /// - `Ok(Some(None))` => Server config initialized, no value

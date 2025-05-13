@@ -68,7 +68,7 @@ impl AuthServiceImpl for MockAuthService {
         jid: &BareJid,
         password: &SecretString,
     ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
-        self.check_online().map_err(Either::Right)?;
+        self.check_online().map_err(Either::E2)?;
 
         let state = self.mock_server_ctl_state.read().unwrap();
         let valid_credentials = state
@@ -78,7 +78,7 @@ impl AuthServiceImpl for MockAuthService {
             .expect("User must be created first");
 
         if !valid_credentials {
-            return Err(Either::Left(InvalidCredentials));
+            return Err(Either::E1(InvalidCredentials));
         }
 
         Ok(self.log_in_unchecked(jid))

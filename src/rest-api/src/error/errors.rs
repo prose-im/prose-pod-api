@@ -25,32 +25,32 @@ impl HttpApiError for anyhow::Error {
 impl<A: HttpApiError, B: HttpApiError> HttpApiError for service::util::Either<A, B> {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::Left(err) => err.code(),
-            Self::Right(err) => err.code(),
+            Self::E1(err) => err.code(),
+            Self::E2(err) => err.code(),
         }
     }
     fn message(&self) -> String {
         match self {
-            Self::Left(err) => err.message(),
-            Self::Right(err) => err.message(),
+            Self::E1(err) => err.message(),
+            Self::E2(err) => err.message(),
         }
     }
     fn debug_info(&self) -> Option<serde_json::Value> {
         match self {
-            Self::Left(err) => err.debug_info(),
-            Self::Right(err) => err.debug_info(),
+            Self::E1(err) => err.debug_info(),
+            Self::E2(err) => err.debug_info(),
         }
     }
     fn recovery_suggestions(&self) -> Vec<String> {
         match self {
-            Self::Left(err) => err.recovery_suggestions(),
-            Self::Right(err) => err.recovery_suggestions(),
+            Self::E1(err) => err.recovery_suggestions(),
+            Self::E2(err) => err.recovery_suggestions(),
         }
     }
     fn http_headers(&self) -> Vec<(String, String)> {
         match self {
-            Self::Left(err) => err.http_headers(),
-            Self::Right(err) => err.http_headers(),
+            Self::E1(err) => err.http_headers(),
+            Self::E2(err) => err.http_headers(),
         }
     }
 }

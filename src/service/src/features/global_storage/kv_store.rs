@@ -120,8 +120,8 @@ macro_rules! get_set {
             key: &str,
             value: $t,
         ) -> Result<(), Either<serde_json::Error, DbErr>> {
-            let json = serde_json::to_value(value).map_err(Either::Left)?;
-            (Self::set(db, namespace, key, json).await).map_err(Either::Right)
+            let json = serde_json::to_value(value).map_err(Either::E1)?;
+            (Self::set(db, namespace, key, json).await).map_err(Either::E2)
         }
     };
 }
@@ -163,8 +163,8 @@ macro_rules! kv_store_scoped_get_set {
         ) -> anyhow::Result<()> {
             (global_storage::KvStore::$set_fn(db, NAMESPACE, key, value).await).map_err(|err| {
                 match err {
-                    Either::Left(err) => anyhow::anyhow!("JSON error: {err}"),
-                    Either::Right(err) => anyhow::anyhow!("Database error: {err}"),
+                    Either::E1(err) => anyhow::anyhow!("JSON error: {err}"),
+                    Either::E2(err) => anyhow::anyhow!("Database error: {err}"),
                 }
             })
         }

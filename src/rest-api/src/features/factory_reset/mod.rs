@@ -81,8 +81,8 @@ async fn factory_reset_route(
             )
             .await
             .map_err(|err| match err {
-                service::util::Either::Left(err @ InvalidConfirmationCode) => Error::from(err),
-                service::util::Either::Right(err) => Error::from(err),
+                service::util::Either::E1(err @ InvalidConfirmationCode) => Error::from(err),
+                service::util::Either::E2(err) => Error::from(err),
             })?;
 
             info!("Restarting the API…");

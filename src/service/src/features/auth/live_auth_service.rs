@@ -37,8 +37,8 @@ impl AuthServiceImpl for LiveAuthService {
     ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
         match self.prosody_oauth2.log_in(jid, password).await {
             Ok(Some(token)) => Ok(AuthToken(token.into())),
-            Ok(None) => Err(Either::Left(InvalidCredentials)),
-            Err(err) => Err(Either::Right(
+            Ok(None) => Err(Either::E1(InvalidCredentials)),
+            Err(err) => Err(Either::E2(
                 anyhow!(err).context("Prosody OAuth 2.0 error"),
             )),
         }
