@@ -4,14 +4,16 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use hickory_resolver::Name as DomainName;
-use prose_pod_api::features::{init::*, server_config::dtos::InitServerConfigRequest};
+use prose_pod_api::features::{
+    init::*, server_config::dtos::InitServerConfigRequest, workspace_details::InitWorkspaceRequest,
+};
 use service::{
     models::Url,
     pod_config::{
         NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
     },
     server_config::server_config_controller,
-    workspace::Workspace,
+    workspace::{workspace_controller, Workspace},
 };
 
 use super::prelude::*;
@@ -56,16 +58,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         icon: None,
     };
 
-    world
-        .init_service()
-        .init_workspace(
-            Arc::new(world.app_config.clone()),
-            Arc::new(world.secrets_store.clone()),
-            Arc::new(world.xmpp_service.clone()),
-            &world.server_config().await?.domain,
-            workspace,
-        )
-        .await?;
+    workspace_controller::init_workspace(&world.workspace_service().await, workspace).await?;
 
     Ok(())
 }

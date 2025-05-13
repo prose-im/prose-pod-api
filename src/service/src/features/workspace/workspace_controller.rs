@@ -3,15 +3,46 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use anyhow::Context as _;
 use base64::{engine::general_purpose, Engine as _};
 use mime::Mime;
+use tracing::info;
 
 use crate::{
-    util::detect_image_mime_type,
+    util::{detect_image_mime_type, Either},
     xmpp::{xmpp_service::Avatar, VCard},
 };
 
-use super::{GetWorkspaceError, Workspace, WorkspaceService};
+use super::{errors::WorkspaceAlreadyInitialized, GetWorkspaceError, Workspace, WorkspaceService};
+
+// MARK: INIT WORKSPACE
+
+pub async fn init_workspace(
+    workspace_service: &WorkspaceService,
+    form: impl Into<Workspace>,
+) -> Result<Workspace, Either<WorkspaceAlreadyInitialized, anyhow::Error>> {
+    // Check that the workspace isn't already initialized.
+    if workspace_service.get_workspace_name().await.is_ok() {
+        return Err(Either::E1(WorkspaceAlreadyInitialized));
+    };
+
+    let workspace: Workspace = form.into();
+
+    workspace_service
+        .set_workspace_vcard(&workspace.clone().into())
+        .await
+        .context("Could not set workspace vCard")?;
+
+    info!("Workspace initialized successfully.");
+
+    Ok(workspace)
+}
+
+pub async fn is_workspace_initialized(
+    workspace_service: &WorkspaceService,
+) -> anyhow::Result<bool> {
+    workspace_service.is_workspace_initialized().await
+}
 
 // MARK: GET ONE
 

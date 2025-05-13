@@ -12,3 +12,13 @@ pub mod server_config_repository;
 pub use entities::*;
 pub use models::*;
 pub use server_config_repository::*;
+
+pub mod errors {
+    #[derive(Debug, thiserror::Error)]
+    #[error("XMPP server not initialized.")]
+    pub struct ServerConfigNotInitialized;
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("XMPP server already initialized.")]
+    pub struct ServerConfigAlreadyInitialized;
+}

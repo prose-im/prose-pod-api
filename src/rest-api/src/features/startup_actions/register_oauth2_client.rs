@@ -3,10 +3,10 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::server_config::ServerConfigRepository;
+use service::server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository};
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::errors::ServerConfigNotInitialized, AppState};
+use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn register_oauth2_client(
@@ -21,7 +21,10 @@ pub async fn register_oauth2_client(
     match ServerConfigRepository::get(db).await {
         Ok(Some(_)) => {}
         Ok(None) => {
-            info!("Not registering the OAuth 2.0 client: {ServerConfigNotInitialized}");
+            info!(
+                "Not registering the OAuth 2.0 client: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {

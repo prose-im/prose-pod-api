@@ -20,8 +20,8 @@ use crate::{
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     secrets::{SecretsStore, ServiceAccountSecrets},
     server_config::{
-        entities::server_config, ServerConfig, ServerConfigCreateForm, ServerConfigRepository,
-        TlsProfile,
+        entities::server_config, errors::ServerConfigAlreadyInitialized, ServerConfig,
+        ServerConfigCreateForm, ServerConfigRepository, TlsProfile,
     },
     util::Either,
     AppConfig,
@@ -485,7 +485,3 @@ impl ServerManager {
         reset: reset_prosody_overrides_raw,
     );
 }
-
-#[derive(Debug, thiserror::Error)]
-#[error("XMPP server already initialized.")]
-pub struct ServerConfigAlreadyInitialized;

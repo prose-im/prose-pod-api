@@ -18,7 +18,6 @@ use service::{
     auth::{AuthService, AuthToken},
     dependencies,
     errors::DbErr,
-    init::InitService,
     invitations::{Invitation, InvitationService},
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
@@ -113,13 +112,6 @@ impl TestWorld {
             Arc::new(self.auth_service.clone()),
             Arc::new(self.xmpp_service.clone()),
         )
-    }
-
-    pub fn init_service(&self) -> InitService {
-        let db = self.db();
-        InitService {
-            db: Arc::new(db.clone()),
-        }
     }
 
     pub async fn workspace_service(&self) -> WorkspaceService {

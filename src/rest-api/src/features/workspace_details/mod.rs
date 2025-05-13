@@ -17,8 +17,6 @@ use crate::AppState;
 
 pub use self::routes::*;
 
-use super::init::init_workspace_route;
-
 pub const WORKSPACE_ROUTE: &'static str = "/v1/workspace";
 
 pub(super) fn router(app_state: AppState) -> axum::Router {

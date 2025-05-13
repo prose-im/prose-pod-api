@@ -3,12 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{pod_config::PodConfigRepository, server_config::server_config_controller};
-
-use crate::{
-    features::{init::errors::ServerConfigNotInitialized, pod_config::PodAddressNotInitialized},
-    guards::prelude::*,
+use service::{
+    pod_config::PodConfigRepository,
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
 };
+
+use crate::{features::pod_config::PodAddressNotInitialized, guards::prelude::*};
 
 impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     type Rejection = error::Error;

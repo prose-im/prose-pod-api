@@ -18,11 +18,11 @@ use crate::{
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
     util::Either,
-    xmpp::{server_manager::ServerConfigAlreadyInitialized, JidDomain, ServerCtl, ServerManager},
+    xmpp::{JidDomain, ServerCtl, ServerManager},
     AppConfig, LinkedHashSet,
 };
 
-use super::{server_config, ServerConfigCreateForm};
+use super::{errors::*, server_config, ServerConfigCreateForm};
 
 // Helper macros
 

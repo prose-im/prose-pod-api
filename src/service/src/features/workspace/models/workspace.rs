@@ -10,7 +10,7 @@ use prose_xmpp::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{workspace::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar};
+use crate::{workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Workspace {

@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod dtos;
+mod errors;
 mod routes;
 
 use axum::{

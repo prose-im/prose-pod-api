@@ -3,9 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::server_config::ServerConfigRepository;
-
-use crate::features::init::errors::ServerConfigNotInitialized;
+use service::server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository};
 
 use super::prelude::*;
 

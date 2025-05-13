@@ -6,12 +6,12 @@
 use std::sync::Arc;
 
 use service::{
-    server_config::server_config_controller,
-    workspace::{WorkspaceNotInitialized, WorkspaceService},
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
+    workspace::{errors::WorkspaceNotInitialized, WorkspaceService},
 };
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::errors::ServerConfigNotInitialized, AppState};
+use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(
@@ -34,7 +34,10 @@ pub async fn migrate_workspace_vcard(
     let server_domain = match server_config_controller::get_server_domain(db).await {
         Ok(Some(server_domain)) => server_domain,
         Ok(None) => {
-            info!("Not migrating the Workspace vCard: {ServerConfigNotInitialized}");
+            info!(
+                "Not migrating the Workspace vCard: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {

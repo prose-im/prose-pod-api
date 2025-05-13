@@ -20,7 +20,7 @@ use service::{
     members::MemberRole,
     models::{PaginationForm, SerializableSecretString},
     notifications::NotificationService,
-    server_config::server_config_controller,
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
     workspace::WorkspaceService,
     xmpp::JidNode,
     AppConfig,
@@ -28,7 +28,6 @@ use service::{
 
 use crate::{
     error::Error,
-    features::init::errors::ServerConfigNotInitialized,
     responders::{Created, Paginated},
     AppState,
 };

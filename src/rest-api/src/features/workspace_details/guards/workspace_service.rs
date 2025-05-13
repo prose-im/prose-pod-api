@@ -4,11 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::extract::OptionalFromRequestParts;
-use service::{server_config::server_config_controller, workspace::WorkspaceService};
-
-use crate::{
-    error::prelude::*, features::init::errors::ServerConfigNotInitialized, guards::prelude::*,
+use service::{
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
+    workspace::WorkspaceService,
 };
+
+use crate::{error::prelude::*, guards::prelude::*};
 
 impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;

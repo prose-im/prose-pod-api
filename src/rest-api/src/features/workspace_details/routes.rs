@@ -25,7 +25,35 @@ use service::{
     xmpp::xmpp_service::Avatar,
 };
 
-use crate::error::{Error, PreconditionRequired};
+use crate::{
+    error::{Error, PreconditionRequired},
+    responders::Created,
+};
+
+use super::WORKSPACE_ROUTE;
+
+// MARK: INIT WORKSPACE
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InitWorkspaceRequest {
+    /// Organization name.
+    pub name: String,
+    /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
+    pub accent_color: Option<String>,
+}
+
+pub async fn init_workspace_route(
+    ref workspace_service: WorkspaceService,
+    Json(req): Json<InitWorkspaceRequest>,
+) -> Result<Created<Workspace>, Error> {
+    let workspace = workspace_controller::init_workspace(workspace_service, req).await?;
+
+    let resource_uri = WORKSPACE_ROUTE;
+    Ok(Created {
+        location: HeaderValue::from_static(resource_uri),
+        body: workspace,
+    })
+}
 
 // MARK: GET ONE
 
@@ -46,14 +74,16 @@ pub async fn is_workspace_initialized_route(
             comment: format!("Missing header: '{IF_MATCH}'."),
         }))
     } else {
-        Ok(match workspace_service {
+        match workspace_service {
             // NOTE: `WorkspaceService` needs the Server config to be initialized.
             //   In order to check the `If-Match` precondition first (the result
             //   wouldn’t make sense otherwise) we have to make `WorkspaceService`
             //   optional.
-            Some(s) if s.is_workspace_initialized().await? => StatusCode::NO_CONTENT,
-            _ => StatusCode::PRECONDITION_FAILED,
-        })
+            Some(ref s) if workspace_controller::is_workspace_initialized(s).await? => {
+                Ok(StatusCode::NO_CONTENT)
+            }
+            _ => Ok(StatusCode::PRECONDITION_FAILED),
+        }
     }
 }
 
@@ -138,5 +168,17 @@ pub async fn patch_workspace_route(
 ) -> Result<Json<Workspace>, Error> {
     match workspace_controller::patch_workspace(workspace_service, req).await? {
         workspace => Ok(Json(workspace)),
+    }
+}
+
+// MARK: BOILERPLATE
+
+impl Into<Workspace> for InitWorkspaceRequest {
+    fn into(self) -> Workspace {
+        Workspace {
+            name: self.name,
+            accent_color: self.accent_color,
+            icon: None,
+        }
     }
 }

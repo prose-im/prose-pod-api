@@ -3,12 +3,9 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    init::InitWorkspaceError,
-    workspace::{
-        workspace_controller::SetWorkspaceIconError, GetWorkspaceError, WorkspaceNotInitialized,
-        WorkspaceServiceInitError,
-    },
+use service::workspace::{
+    errors::*, workspace_controller::SetWorkspaceIconError, GetWorkspaceError,
+    WorkspaceServiceInitError,
 };
 
 use crate::error::prelude::*;
@@ -38,14 +35,9 @@ impl HttpApiError for WorkspaceNotInitialized {
         )]
     }
 }
-
-impl HttpApiError for InitWorkspaceError {
+impl HttpApiError for WorkspaceAlreadyInitialized {
     fn code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
-            Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-            Self::Internal(err) => err.code(),
-        }
+        ErrorCode::WORKSPACE_ALREADY_INITIALIZED
     }
 }
 

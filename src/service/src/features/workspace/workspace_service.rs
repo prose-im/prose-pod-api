@@ -17,7 +17,7 @@ use crate::{
     AppConfig,
 };
 
-use super::WorkspaceNotInitialized;
+use super::errors::WorkspaceNotInitialized;
 
 #[derive(Clone)]
 pub struct WorkspaceService {

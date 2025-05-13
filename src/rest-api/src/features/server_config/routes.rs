@@ -17,6 +17,7 @@ use service::{
     prosody::ProsodyOverrides,
     secrets::SecretsStore,
     server_config::{
+        errors::ServerConfigNotInitialized,
         server_config_controller::{self, PublicServerConfig},
         ServerConfig, TlsProfile,
     },
@@ -26,7 +27,6 @@ use service::{
 
 use crate::{
     error::{Error, PreconditionRequired},
-    features::init::errors::ServerConfigNotInitialized,
     guards::Lua,
     responders::Created,
     AppState,
@@ -72,8 +72,10 @@ macro_rules! server_config_route {
             ref app_config: service::AppConfig,
             ref is_admin: service::auth::IsAdmin,
         ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            use crate::{error::Error, features::init::errors::ServerConfigNotInitialized};
-            use service::server_config::server_config_controller;
+            use crate::error::Error;
+            use service::server_config::{
+                errors::ServerConfigNotInitialized, server_config_controller,
+            };
 
             match server_config_controller::get_server_config(db, app_config, is_admin).await {
                 Ok(Some(server_config)) => Ok(axum::Json(server_config.$var)),
