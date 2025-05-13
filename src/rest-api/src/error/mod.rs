@@ -112,26 +112,36 @@ impl Error {
             return;
         }
 
-        let message = match self.recovery_suggestions.len() {
-            0 => self.message.clone(),
-            1 => format!(
-                "{} (recovery suggestion: {})",
-                self.message, self.recovery_suggestions[0],
-            ),
-            _ => format!(
-                "{} (recovery suggestions: {:?})",
-                self.message, self.recovery_suggestions,
-            ),
+        let mut messages = Vec::<String>::with_capacity(3);
+
+        messages.push(self.message.clone());
+
+        match self.recovery_suggestions.len() {
+            0 => {}
+            1 => messages.push(format!(
+                "Recovery suggestion: {}",
+                self.recovery_suggestions[0],
+            )),
+            _ => messages.push(format!(
+                "Recovery suggestions: {:?}",
+                self.recovery_suggestions,
+            )),
         };
+
+        if let Some(ref debug_info) = self.debug_info {
+            messages.push(format!("Debug info: {debug_info}"));
+        }
+
+        let log_line = messages.join("\n\n");
 
         // NOTE: `tracing` does not allow passing the log level dynamically
         //   therefore we introduced this custom `LogLevel` type and do a manual mapping.
         match self.log_level {
-            LogLevel::Trace => trace!("{message}"),
-            LogLevel::Debug => debug!("{message}"),
-            LogLevel::Info => info!("{message}"),
-            LogLevel::Warn => warn!("{message}"),
-            LogLevel::Error => error!("{message}"),
+            LogLevel::Trace => trace!("{log_line}"),
+            LogLevel::Debug => debug!("{log_line}"),
+            LogLevel::Info => info!("{log_line}"),
+            LogLevel::Warn => warn!("{log_line}"),
+            LogLevel::Error => error!("{log_line}"),
         };
 
         self.logged.store(true, Ordering::Relaxed);
