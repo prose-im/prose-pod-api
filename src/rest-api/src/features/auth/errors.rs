@@ -16,3 +16,23 @@ impl HttpApiError for InvalidCredentials {
         }
     }
 }
+
+impl HttpApiError for CannotChangeOwnRole {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "cannot_change_own_role",
+            http_status: StatusCode::FORBIDDEN,
+            log_level: LogLevel::Info,
+        }
+    }
+}
+
+impl HttpApiError for CannotAssignRole {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "cannot_assign_role",
+            http_status: StatusCode::FORBIDDEN,
+            log_level: LogLevel::Info,
+        }
+    }
+}

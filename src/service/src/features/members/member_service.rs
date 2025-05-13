@@ -243,7 +243,7 @@ impl MemberService {
         &self,
         jid: &BareJid,
         role: MemberRole,
-    ) -> Result<Option<MemberRole>, SetMemberRoleError> {
+    ) -> anyhow::Result<Option<MemberRole>> {
         let new_role =
             (MemberRepository::set_role(self.db.as_ref(), jid, role).await?).replace(role);
 
@@ -253,18 +253,11 @@ impl MemberService {
         // TODO: Find a way to rollback XMPP server changes.
         let server_ctl = self.server_ctl.clone();
 
-        server_ctl.set_user_role(jid, &role).await?;
+        (server_ctl.set_user_role(jid, &role).await)
+            .context("XMPP server could not set user role")?;
 
         Ok(new_role)
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SetMemberRoleError {
-    #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
-    #[error("XMPP server cannot set user role: {0}")]
-    XmppServerCannotSetUserRole(#[from] ServerCtlError),
 }
 
 impl MemberService {

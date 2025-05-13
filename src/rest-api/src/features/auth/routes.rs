@@ -3,14 +3,21 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::Json;
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use service::{
-    auth::{auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService},
+    auth::{
+        auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService, UserInfo,
+    },
+    members::{MemberRole, MemberService},
     models::SerializableSecretString,
     util::Either,
+    xmpp::BareJid,
 };
 
-use crate::error::Error;
+use crate::{error::Error, AppState};
 
 use super::guards::BasicAuth;
 
@@ -35,6 +42,20 @@ pub async fn login_route(
         })),
         Err(Either::E1(err @ InvalidCredentials)) => Err(Error::from(err)),
         Err(Either::E2(err)) => Err(Error::from(err)),
+    }
+}
+
+// MARK: ROLES
+
+pub async fn set_member_role_route(
+    State(AppState { ref db, .. }): State<AppState>,
+    ref member_service: MemberService,
+    ref user_info: UserInfo,
+    Path(jid): Path<BareJid>,
+    Json(role): Json<MemberRole>,
+) -> Result<Json<MemberRole>, Error> {
+    match auth_controller::set_member_role(db, member_service, user_info, jid, role).await? {
+        () => Ok(Json(role)),
     }
 }
 

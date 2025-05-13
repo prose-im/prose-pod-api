@@ -3,8 +3,11 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+//! Authentication & authorization.
+
 pub mod auth_controller;
 pub mod auth_service;
+pub mod errors;
 pub mod live_auth_service;
 
 pub use auth_service::{AuthError, AuthService, AuthServiceImpl, AuthToken, UserInfo};
@@ -29,10 +32,4 @@ mod models {
     /// It's not perfect, one day we'll replace it with scopes and permissions,
     /// but it'll do for now.
     pub struct IsAdmin;
-}
-
-pub mod errors {
-    #[derive(Debug, thiserror::Error)]
-    #[error("Invalid credentials.")]
-    pub struct InvalidCredentials;
 }
