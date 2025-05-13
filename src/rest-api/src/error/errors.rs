@@ -7,7 +7,7 @@ use axum::http::header::InvalidHeaderValue;
 use service::{
     notifications::notification_service,
     sea_orm,
-    xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
+    xmpp::{server_ctl, xmpp_service, CreateServiceAccountError},
     MutationError,
 };
 
@@ -308,17 +308,6 @@ impl CustomErrorCode for MutationError {
 }
 impl_into_error!(MutationError);
 
-impl CustomErrorCode for server_manager::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::ServerConfigAlreadyInitialized => ErrorCode::SERVER_CONFIG_ALREADY_INITIALIZED,
-            Self::ServerCtl(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(server_manager::Error);
-
 impl CustomErrorCode for CreateServiceAccountError {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -346,3 +335,9 @@ impl HttpApiError for service::errors::UnexpectedHttpResponse {
 }
 
 impl_into_error!(InvalidHeaderValue, ErrorCode::INTERNAL_SERVER_ERROR);
+
+impl HttpApiError for service::errors::NotImplemented {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::NOT_IMPLEMENTED
+    }
+}

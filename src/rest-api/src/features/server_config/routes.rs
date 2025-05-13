@@ -6,21 +6,27 @@
 use axum::{
     extract::State,
     http::{header::IF_MATCH, StatusCode},
+    response::NoContent,
     Json,
 };
 use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 
-use serde::{Deserialize, Serialize};
 use service::{
     auth::IsAdmin,
     models::durations::{DateLike, Duration, PossiblyInfinite},
-    server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
-    xmpp::JidDomain,
-    LinkedHashSet,
+    prosody::ProsodyOverrides,
+    server_config::{
+        server_config_controller::{self, PublicServerConfig},
+        ServerConfig, TlsProfile,
+    },
+    xmpp::ServerManager,
+    AppConfig, LinkedHashSet,
 };
 
 use crate::{
     error::{Error, PreconditionRequired},
+    features::init::ServerConfigNotInitialized,
+    guards::Lua,
     AppState,
 };
 
@@ -30,49 +36,64 @@ use crate::{
 macro_rules! server_config_routes {
     (
         key: $var_name:ident, type: $res_type:ty
-        $(,   set:   $set_route_fn:ident using   $set_manager_fn:ident)?
-        $(,   get:   $get_route_fn:ident                              )?
-        $(, reset: $reset_route_fn:ident using $reset_manager_fn:ident)?
+        $(,   set:   $set_route_fn:ident)?
+        $(,   get:   $get_route_fn:ident)?
+        $(, reset: $reset_route_fn:ident)?
         $(,)?
     ) => {
-        $(server_config_route!(  set: $res_type, $var_name,   $set_route_fn,   $set_manager_fn);)?
-        $(server_config_route!(  get: $res_type, $var_name,   $get_route_fn                   );)?
-        $(server_config_route!(reset: $res_type, $var_name, $reset_route_fn, $reset_manager_fn);)?
+        $(server_config_route!(  set: $res_type, $var_name,   $set_route_fn);)?
+        $(server_config_route!(  get: $res_type, $var_name,   $get_route_fn);)?
+        $(server_config_route!(reset: $res_type, $var_name, $reset_route_fn);)?
     };
 }
 
 /// Generates a route for setting, querying or resetting a specific server config.
 macro_rules! server_config_route {
-    (set: $var_type:ty, $var:ident, $route_fn:ident, $manager_fn:ident) => {
-        pub async fn $route_fn(
-            server_manager: service::xmpp::ServerManager,
+    (set: $var_type:ty, $var:ident, $fn:ident) => {
+        pub async fn $fn(
+            ref server_manager: service::xmpp::ServerManager,
             axum::Json($var): axum::Json<$var_type>,
         ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            server_manager.$manager_fn($var.clone()).await?;
-            Ok(axum::Json($var))
+            use service::server_config::server_config_controller;
+            match server_config_controller::$fn(server_manager, $var).await? {
+                $var => Ok(axum::Json($var)),
+            }
         }
     };
-    (get: $var_type:ty, $var:ident, $route_fn:ident) => {
-        pub async fn $route_fn(
-            server_config: service::server_config::ServerConfig,
-        ) -> axum::Json<$var_type> {
-            axum::Json(server_config.$var)
-        }
-    };
-    (reset: $var_type:ty, $var:ident, $route_fn:ident, $manager_fn:ident) => {
-        pub async fn $route_fn(
-            server_manager: service::xmpp::ServerManager,
+    (get: $var_type:ty, $var:ident, $fn:ident) => {
+        pub async fn $fn(
+            axum::extract::State(crate::AppState { ref db, .. }): axum::extract::State<
+                crate::AppState,
+            >,
+            ref app_config: service::AppConfig,
+            ref is_admin: service::auth::IsAdmin,
         ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            let $var = server_manager.$manager_fn().await?.$var;
-            Ok(axum::Json($var))
+            use crate::{error::Error, features::init::ServerConfigNotInitialized};
+            use service::server_config::server_config_controller;
+
+            match server_config_controller::get_server_config(db, app_config, is_admin).await {
+                Ok(Some(server_config)) => Ok(axum::Json(server_config.$var)),
+                Ok(None) => Err(Error::from(ServerConfigNotInitialized)),
+                Err(err) => Err(Error::from(err)),
+            }
+        }
+    };
+    (reset: $var_type:ty, $var:ident, $fn:ident) => {
+        pub async fn $fn(
+            ref server_manager: service::xmpp::ServerManager,
+        ) -> Result<axum::Json<$var_type>, crate::error::Error> {
+            use service::server_config::server_config_controller;
+            match server_config_controller::$fn(server_manager).await? {
+                $var => Ok(axum::Json($var)),
+            }
         }
     };
 }
 
 /// Generates a route for resetting a group of server configs.
-macro_rules! server_config_reset_route {
-    ($fn:ident, $route_fn:ident $(,)?) => {
-        pub async fn $route_fn(
+macro_rules! gen_server_config_group_reset_route {
+    ($fn:ident) => {
+        pub async fn $fn(
             server_manager: service::xmpp::ServerManager,
         ) -> Result<
             (
@@ -86,7 +107,7 @@ macro_rules! server_config_reset_route {
                 [(
                     axum::http::header::CONTENT_LOCATION,
                     axum::http::HeaderValue::from_static(
-                        crate::features::init::SERVER_CONFIG_ROUTE,
+                        crate::features::server_config::SERVER_CONFIG_ROUTE,
                     ),
                 )],
                 axum::Json(new_config),
@@ -97,39 +118,27 @@ macro_rules! server_config_reset_route {
 
 // Server config
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PublicServerConfig {
-    pub domain: JidDomain,
-}
-
-impl From<ServerConfig> for PublicServerConfig {
-    fn from(server_config: ServerConfig) -> Self {
-        Self {
-            domain: server_config.domain,
-        }
-    }
-}
-
-pub async fn get_server_config_route(
-    server_config: ServerConfig,
+pub async fn get_server_config(
+    State(AppState { ref db, .. }): State<AppState>,
+    ref app_config: AppConfig,
     is_admin: Option<IsAdmin>,
-) -> Either<Json<ServerConfig>, Json<PublicServerConfig>> {
-    if is_admin.is_some() {
-        Either::E1(Json(server_config))
-    } else {
-        Either::E2(Json(PublicServerConfig::from(server_config)))
+) -> Result<Either<Json<ServerConfig>, Json<PublicServerConfig>>, Error> {
+    match server_config_controller::get_server_config_public(db, app_config, is_admin).await? {
+        Some(service::util::Either::E1(config)) => Ok(Either::E1(Json(config))),
+        Some(service::util::Either::E2(config)) => Ok(Either::E2(Json(config))),
+        None => Err(Error::from(ServerConfigNotInitialized)),
     }
 }
 
-pub async fn is_server_initialized_route(
-    State(AppState { db, .. }): State<AppState>,
+pub async fn is_server_initialized(
+    State(AppState { ref db, .. }): State<AppState>,
     TypedHeader(if_match): TypedHeader<IfMatch>,
 ) -> Result<StatusCode, Error> {
     if if_match != IfMatch::any() {
         Err(Error::from(PreconditionRequired {
             comment: format!("Missing header: '{IF_MATCH}'."),
         }))
-    } else if ServerConfigRepository::is_initialized(&db).await? {
+    } else if server_config_controller::is_server_initialized(db).await? {
         Ok(StatusCode::NO_CONTENT)
     } else {
         Ok(StatusCode::PRECONDITION_FAILED)
@@ -138,93 +147,152 @@ pub async fn is_server_initialized_route(
 
 // File upload
 
-server_config_reset_route!(reset_files_config, reset_files_config_route);
+gen_server_config_group_reset_route!(reset_files_config);
 server_config_routes!(
             key: file_upload_allowed, type: bool,
-      set:   set_file_upload_allowed_route using   set_file_upload_allowed,
-      get:   get_file_upload_allowed_route,
-    reset: reset_file_upload_allowed_route using reset_file_upload_allowed,
+      set:   set_file_upload_allowed,
+      get:   get_file_upload_allowed,
+    reset: reset_file_upload_allowed,
 );
-pub async fn set_file_storage_encryption_scheme_route(
+pub async fn set_file_storage_encryption_scheme(
 ) -> Result<axum::Json<service::server_config::ServerConfig>, crate::error::Error> {
-    Err(crate::error::NotImplemented("File storage encryption scheme").into())
+    use service::server_config::server_config_controller;
+    match server_config_controller::set_file_storage_encryption_scheme().await? {
+        server_config => Ok(Json(server_config)),
+    }
 }
 server_config_routes!(
             key: file_storage_retention, type: PossiblyInfinite<Duration<DateLike>>,
-      set:   set_file_storage_retention_route using   set_file_storage_retention,
-      get:   get_file_storage_retention_route,
-    reset: reset_file_storage_retention_route using reset_file_storage_retention,
+      set:   set_file_storage_retention,
+      get:   get_file_storage_retention,
+    reset: reset_file_storage_retention,
 );
 
 // Message archive
 
-server_config_reset_route!(reset_messaging_config, reset_messaging_config_route);
+gen_server_config_group_reset_route!(reset_messaging_config);
 server_config_routes!(
             key: message_archive_enabled, type: bool,
-      set:   set_message_archive_enabled_route using   set_message_archive_enabled,
-      get:   get_message_archive_enabled_route,
-    reset: reset_message_archive_enabled_route using reset_message_archive_enabled,
+      set:   set_message_archive_enabled,
+      get:   get_message_archive_enabled,
+    reset: reset_message_archive_enabled,
 );
 server_config_routes!(
             key: message_archive_retention, type: PossiblyInfinite<Duration<DateLike>>,
-      set:   set_message_archive_retention_route using   set_message_archive_retention,
-      get:   get_message_archive_retention_route,
-    reset: reset_message_archive_retention_route using reset_message_archive_retention,
+      set:   set_message_archive_retention,
+      get:   get_message_archive_retention,
+    reset: reset_message_archive_retention,
 );
 
 // Push notifications
 
-server_config_reset_route!(
-    reset_push_notifications_config,
-    reset_push_notifications_config_route,
-);
+gen_server_config_group_reset_route!(reset_push_notifications_config);
 server_config_routes!(
             key: push_notification_with_body, type: bool,
-      set:   set_push_notification_with_body_route using   set_push_notification_with_body,
-      get:   get_push_notification_with_body_route,
-    reset: reset_push_notification_with_body_route using reset_push_notification_with_body,
+      set:   set_push_notification_with_body,
+      get:   get_push_notification_with_body,
+    reset: reset_push_notification_with_body,
 );
 server_config_routes!(
             key: push_notification_with_sender, type: bool,
-      set:   set_push_notification_with_sender_route using   set_push_notification_with_sender,
-      get:   get_push_notification_with_sender_route,
-    reset: reset_push_notification_with_sender_route using reset_push_notification_with_sender,
+      set:   set_push_notification_with_sender,
+      get:   get_push_notification_with_sender,
+    reset: reset_push_notification_with_sender,
 );
 
 // Network encryption
 
-server_config_reset_route!(
-    reset_network_encryption_config,
-    reset_network_encryption_config_route,
-);
+gen_server_config_group_reset_route!(reset_network_encryption_config);
 server_config_routes!(
             key: tls_profile, type: TlsProfile,
-      set:   set_tls_profile_route using   set_tls_profile,
-      get:   get_tls_profile_route,
-    reset: reset_tls_profile_route using reset_tls_profile,
+      set:   set_tls_profile,
+      get:   get_tls_profile,
+    reset: reset_tls_profile,
 );
 
 // Server federation
 
-server_config_reset_route!(
-    reset_server_federation_config,
-    reset_server_federation_config_route
-);
+gen_server_config_group_reset_route!(reset_server_federation_config);
 server_config_routes!(
             key: federation_enabled, type: bool,
-      set:   set_federation_enabled_route using   set_federation_enabled,
-      get:   get_federation_enabled_route,
-    reset: reset_federation_enabled_route using reset_federation_enabled,
+      set:   set_federation_enabled,
+      get:   get_federation_enabled,
+    reset: reset_federation_enabled,
 );
 server_config_routes!(
             key: federation_whitelist_enabled, type: bool,
-      set:   set_federation_whitelist_enabled_route using   set_federation_whitelist_enabled,
-      get:   get_federation_whitelist_enabled_route,
-    reset: reset_federation_whitelist_enabled_route using reset_federation_whitelist_enabled,
+      set:   set_federation_whitelist_enabled,
+      get:   get_federation_whitelist_enabled,
+    reset: reset_federation_whitelist_enabled,
 );
 server_config_routes!(
             key: federation_friendly_servers, type: LinkedHashSet<String>,
-      set:   set_federation_friendly_servers_route using   set_federation_friendly_servers,
-      get:   get_federation_friendly_servers_route,
-    reset: reset_federation_friendly_servers_route using reset_federation_friendly_servers,
+      set:   set_federation_friendly_servers,
+      get:   get_federation_friendly_servers,
+    reset: reset_federation_friendly_servers,
 );
+
+// GET PROSODY CONFIG (LUA)
+
+pub async fn get_prosody_config_lua_route(ref app_config: AppConfig) -> Result<Lua, Error> {
+    match server_config_controller::get_prosody_config_lua(app_config).await? {
+        prosody_config => Ok(Lua::from(prosody_config)),
+    }
+}
+
+// PROSODY OVERRIDES (JSON)
+
+pub async fn set_prosody_overrides_route(
+    ref server_manager: ServerManager,
+    Json(overrides): Json<ProsodyOverrides>,
+) -> Result<Json<Option<ProsodyOverrides>>, Error> {
+    match server_config_controller::set_prosody_overrides(server_manager, overrides).await? {
+        overrides => Ok(Json(overrides)),
+    }
+}
+
+pub async fn get_prosody_overrides_route(
+    ref server_manager: ServerManager,
+) -> Result<Either<Json<ProsodyOverrides>, NoContent>, Error> {
+    match server_config_controller::get_prosody_overrides(server_manager).await? {
+        Some(Some(overrides)) => Ok(Either::E1(Json(overrides))),
+        Some(None) => Ok(Either::E2(NoContent)),
+        None => Err(Error::from(ServerConfigNotInitialized)),
+    }
+}
+
+pub async fn delete_prosody_overrides_route(
+    ref server_manager: ServerManager,
+) -> Result<NoContent, Error> {
+    match server_config_controller::delete_prosody_overrides(server_manager).await? {
+        _ => Ok(NoContent),
+    }
+}
+
+// PROSODY OVERRIDES (RAW)
+
+pub async fn set_prosody_overrides_raw_route(
+    ref server_manager: ServerManager,
+    lua: Lua,
+) -> Result<Lua, Error> {
+    match server_config_controller::set_prosody_overrides_raw(server_manager, lua.into()).await? {
+        lua => Ok(Lua::from(lua)),
+    }
+}
+
+pub async fn get_prosody_overrides_raw_route(
+    ref server_manager: ServerManager,
+) -> Result<Either<Lua, NoContent>, Error> {
+    match server_config_controller::get_prosody_overrides_raw(server_manager).await? {
+        Some(overrides) => Ok(Either::E1(Lua::from(overrides))),
+        None => Ok(Either::E2(NoContent)),
+    }
+}
+
+pub async fn delete_prosody_overrides_raw_route(
+    ref server_manager: ServerManager,
+) -> Result<NoContent, Error> {
+    match server_config_controller::delete_prosody_overrides_raw(server_manager).await? {
+        _ => Ok(NoContent),
+    }
+}

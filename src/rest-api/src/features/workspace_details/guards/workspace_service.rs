@@ -4,23 +4,24 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::extract::OptionalFromRequestParts;
-use service::{server_config::ServerConfig, workspace::WorkspaceService};
+use service::{server_config::server_config_controller, workspace::WorkspaceService};
 
-use crate::{error::prelude::*, guards::prelude::*};
+use crate::{error::prelude::*, features::init::ServerConfigNotInitialized, guards::prelude::*};
 
 impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;
 
     async fn from_request_parts(
-        parts: &mut request::Parts,
+        _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let server_config = ServerConfig::from_request_parts(parts, state).await?;
+        let server_domain = (server_config_controller::get_server_domain(&state.db).await)?
+            .ok_or(ServerConfigNotInitialized)?;
 
         WorkspaceService::new(
             Arc::new(state.xmpp_service.clone()),
             Arc::new(state.app_config.clone()),
-            &server_config,
+            &server_domain,
             Arc::new(state.secrets_store.clone()),
         )
         .map_err(Error::from)

@@ -5,6 +5,7 @@
 
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
+use anyhow::{anyhow, Context as _};
 use jid::BareJid;
 use linked_hash_set::LinkedHashSet;
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
@@ -26,7 +27,7 @@ use crate::{
     AppConfig,
 };
 
-use super::{server_ctl, ServerCtl, ServerCtlError};
+use super::{server_ctl, ServerCtl};
 
 #[derive(Clone)]
 pub struct ServerManager {
@@ -66,7 +67,7 @@ impl ServerManager {
 }
 
 impl ServerManager {
-    async fn update<U>(&self, update: U) -> Result<ServerConfig, Error>
+    async fn update<U>(&self, update: U) -> anyhow::Result<ServerConfig>
     where
         U: FnOnce(&mut server_config::ActiveModel) -> (),
     {
@@ -89,12 +90,12 @@ impl ServerManager {
     }
 
     /// Reload the XMPP server using the server configuration stored in `self`.
-    pub async fn reload_current(&self) -> Result<(), Error> {
+    pub async fn reload_current(&self) -> anyhow::Result<()> {
         self.reload(&self.server_config()).await
     }
 
     /// Reload the XMPP server using the server configuration passed as an argument.
-    async fn reload(&self, server_config: &server_config::Model) -> Result<(), Error> {
+    async fn reload(&self, server_config: &server_config::Model) -> anyhow::Result<()> {
         let server_ctl = self.server_ctl.as_ref();
 
         // Save new server config
@@ -131,9 +132,9 @@ impl ServerManager {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         server_config: impl Into<ServerConfigCreateForm>,
-    ) -> Result<ServerConfig, Error> {
-        let None = ServerConfigRepository::get(db).await? else {
-            return Err(Error::ServerConfigAlreadyInitialized);
+    ) -> Result<ServerConfig, Either<ServerConfigAlreadyInitialized, anyhow::Error>> {
+        let None = (ServerConfigRepository::get(db).await)? else {
+            return Err(Either::E1(ServerConfigAlreadyInitialized));
         };
 
         let txn = db.begin().await?;
@@ -148,8 +149,9 @@ impl ServerManager {
         //   but better than nothing.
         // TODO: Find a way to rollback XMPP server changes.
         {
-            server_ctl.save_config(&server_config, app_config).await?;
-            server_ctl.reload().await?;
+            (server_ctl.save_config(&server_config, app_config).await)
+                .context("ServerCtl error")?;
+            server_ctl.reload().await.context("ServerCtl error")?;
         }
 
         // Commit the transaction only if the admin user was
@@ -164,10 +166,10 @@ impl ServerManager {
         app_config: &AppConfig,
         secrets_store: &SecretsStore,
         password: SecretString,
-    ) -> Result<(), ServerCtlError> {
+    ) -> anyhow::Result<()> {
         let api_jid = app_config.api_jid();
 
-        server_ctl.set_user_password(&api_jid, &password).await?;
+        (server_ctl.set_user_password(&api_jid, &password).await).context("ServerCtl error")?;
         secrets_store.set_prose_pod_api_xmpp_password(password);
 
         Ok(())
@@ -178,15 +180,12 @@ impl ServerManager {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         secrets_store: &SecretsStore,
-    ) -> Result<(), Error> {
+    ) -> anyhow::Result<()> {
         ServerConfigRepository::reset(db).await?;
 
         // Write the bootstrap configuration.
         let password = Self::strong_random_password();
-        server_ctl
-            .reset_config(&password)
-            .await
-            .map_err(Error::from)?;
+        server_ctl.reset_config(&password).await?;
 
         // Update the API user password to match the new one specified in the bootstrap configuration.
         Self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone())
@@ -200,7 +199,7 @@ impl ServerManager {
         );
 
         // Apply the bootstrap configuration.
-        server_ctl.reload().await.map_err(Error::from)?;
+        server_ctl.reload().await?;
 
         Ok(())
     }
@@ -209,7 +208,7 @@ impl ServerManager {
         server_ctl: &ServerCtl,
         app_config: &AppConfig,
         secrets_store: &SecretsStore,
-    ) -> Result<(), ServerCtlError> {
+    ) -> anyhow::Result<()> {
         Self::set_api_xmpp_password(
             server_ctl,
             app_config,
@@ -221,7 +220,7 @@ impl ServerManager {
 
     /// NOTE: Used only in tests.
     #[cfg(debug_assertions)]
-    pub async fn set_domain(&self, domain: &JidDomain) -> Result<ServerConfig, Error> {
+    pub async fn set_domain(&self, domain: &JidDomain) -> anyhow::Result<ServerConfig> {
         trace!("Setting XMPP server domain to {domain}…");
         self.update(|active| {
             active.domain = Set(domain.to_owned());
@@ -232,14 +231,12 @@ impl ServerManager {
 
 macro_rules! reset_fn {
     ($fn:ident, $display:literal, $($field:ident),*,) => {
-        pub async fn $fn(&self) -> Result<ServerConfig, Error> {
+        pub async fn $fn(&self) -> anyhow::Result<ServerConfig> {
             trace!(concat!("Resetting ", $display, "…"));
-            let model = self
-                .update(|active| {
-                    $( active.$field = Set(None); )*
-                })
-                .await?;
-            Ok(model)
+            self.update(|active| {
+                $( active.$field = Set(None); )*
+            })
+            .await
         }
     };
 }
@@ -343,17 +340,16 @@ impl From<Either<InvalidCredentials, anyhow::Error>> for CreateServiceAccountErr
 
 macro_rules! set {
     ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self, new_state: $t) -> Result<ServerConfig, Error> {
+        pub async fn $fn(&self, new_state: $t) -> anyhow::Result<ServerConfig> {
             $(let new_state = <$db_type>::from(new_state);)?
             trace!("Setting {} to {new_state}…", stringify!($var));
-            self.update(|active| active.$var = Set(Some(new_state)))
-                .await
+            self.update(|active| active.$var = Set(Some(new_state))).await
         }
     };
 }
 macro_rules! get {
     ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self) -> Result<Option<$t>, Error> {
+        pub async fn $fn(&self) -> anyhow::Result<Option<$t>> {
             trace!("Getting {}…", stringify!($var));
             let $var = self.server_config().$var;
             $(let $var = <$t>::from(<$var as $db_type>);)?
@@ -363,7 +359,7 @@ macro_rules! get {
 }
 macro_rules! reset {
     ($fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self) -> Result<ServerConfig, Error> {
+        pub async fn $fn(&self) -> anyhow::Result<ServerConfig> {
             trace!("Resetting {}…", stringify!($var));
             self.update(|active| active.$var = Set(None)).await
         }
@@ -460,21 +456,22 @@ impl ServerManager {
     pub async fn set_prosody_overrides(
         &self,
         new_state: ProsodyOverrides,
-    ) -> Result<ServerConfig, Either<serde_json::Error, Error>> {
-        let new_state = serde_json::to_value(new_state).map_err(Either::E1)?;
+    ) -> anyhow::Result<ServerConfig> {
+        let new_state = serde_json::to_value(new_state).context("serde_json error")?;
         trace!("Setting prosody_overrides to {new_state}…");
         self.update(|active| active.prosody_overrides = Set(Some(new_state)))
             .await
-            .map_err(Either::E2)
     }
 
     /// - `Ok(Some(None))` => Server config initialized, no value
     /// - `Ok(None)` => Server config not initialized
-    pub async fn get_prosody_overrides(
-        &self,
-    ) -> Result<Option<Option<ProsodyOverrides>>, Either<sea_orm::DbErr, serde_json::Error>> {
+    pub async fn get_prosody_overrides(&self) -> anyhow::Result<Option<Option<ProsodyOverrides>>> {
         trace!("Getting prosody_overrides…");
-        ServerConfigRepository::get_prosody_overrides(self.db.as_ref()).await
+        match ServerConfigRepository::get_prosody_overrides(self.db.as_ref()).await {
+            Ok(overrides) => Ok(overrides),
+            Err(Either::E1(err)) => Err(anyhow!(err).context("Database error")),
+            Err(Either::E2(err)) => Err(anyhow!(err).context("serde_json error")),
+        }
     }
 
     reset!(reset_prosody_overrides, prosody_overrides);
@@ -489,14 +486,6 @@ impl ServerManager {
     );
 }
 
-pub type Error = ServerManagerError;
-
 #[derive(Debug, thiserror::Error)]
-pub enum ServerManagerError {
-    #[error("XMPP server already initialized.")]
-    ServerConfigAlreadyInitialized,
-    #[error("`ServerCtl` error: {0}")]
-    ServerCtl(#[from] server_ctl::Error),
-    #[error("Database error: {0}")]
-    DbErr(#[from] sea_orm::DbErr),
-}
+#[error("XMPP server already initialized.")]
+pub struct ServerConfigAlreadyInitialized;

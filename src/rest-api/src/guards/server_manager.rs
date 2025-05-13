@@ -3,7 +3,9 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::server_config::entities::server_config;
+use service::server_config::ServerConfigRepository;
+
+use crate::features::init::ServerConfigNotInitialized;
 
 use super::prelude::*;
 
@@ -12,10 +14,11 @@ impl FromRequestParts<AppState> for service::xmpp::ServerManager {
 
     #[tracing::instrument(name = "req::extract::server_manager", level = "trace", skip_all, err)]
     async fn from_request_parts(
-        parts: &mut request::Parts,
+        _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let server_config = server_config::Model::from_request_parts(parts, state).await?;
+        let server_config =
+            (ServerConfigRepository::get(&state.db).await)?.ok_or(ServerConfigNotInitialized)?;
 
         Ok(Self::new(
             Arc::new(state.db.clone()),

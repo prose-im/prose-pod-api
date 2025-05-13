@@ -5,6 +5,7 @@
 
 use anyhow::Context;
 use chrono::{DateTime, Utc};
+use jid::DomainRef;
 #[cfg(debug_assertions)]
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{
@@ -24,7 +25,6 @@ use crate::{
     },
     onboarding,
     pod_config::{PodConfigField, PodConfigRepository},
-    server_config::ServerConfig,
     util::bare_jid_from_username,
     workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
@@ -61,14 +61,14 @@ impl InvitationService {
     pub async fn invite_member(
         &self,
         app_config: &AppConfig,
-        server_config: &ServerConfig,
+        server_domain: &DomainRef,
         notification_service: &NotificationService,
         workspace_service: &WorkspaceService,
         form: impl Into<InviteMemberForm>,
         #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
-        let jid = form.jid(&server_config)?;
+        let jid = form.jid(server_domain)?;
 
         if (InvitationRepository::get_by_jid(&self.db, &jid).await)
             .as_ref()
@@ -226,8 +226,8 @@ pub struct InviteMemberForm {
 }
 
 impl InviteMemberForm {
-    fn jid(&self, server_config: &ServerConfig) -> Result<BareJid, InviteMemberError> {
-        bare_jid_from_username(&self.username, server_config).map_err(InviteMemberError::InvalidJid)
+    fn jid(&self, server_domain: &DomainRef) -> Result<BareJid, InviteMemberError> {
+        bare_jid_from_username(&self.username, server_domain).map_err(InviteMemberError::InvalidJid)
     }
 }
 

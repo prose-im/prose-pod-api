@@ -3,9 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{pod_config::PodConfigRepository, server_config::ServerConfig};
+use service::{pod_config::PodConfigRepository, server_config::server_config_controller};
 
-use crate::{features::pod_config::PodAddressNotInitialized, guards::prelude::*};
+use crate::{
+    features::{init::ServerConfigNotInitialized, pod_config::PodAddressNotInitialized},
+    guards::prelude::*,
+};
 
 impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     type Rejection = error::Error;
@@ -17,10 +20,11 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
         err
     )]
     async fn from_request_parts(
-        parts: &mut request::Parts,
+        _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let server_domain = ServerConfig::from_request_parts(parts, state).await?.domain;
+        let server_domain = (server_config_controller::get_server_domain(&state.db).await)?
+            .ok_or(ServerConfigNotInitialized)?;
 
         let Some(pod_config) = PodConfigRepository::get(&state.db).await? else {
             // NOTE: We return `PodAddressNotInitialized` and not `PodConfigNotInitialized`
@@ -28,8 +32,7 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
             //   the whole config.
             return Err(Error::from(PodAddressNotInitialized));
         };
-        let pod_address =
-            (pod_config.network_address()).ok_or(Error::from(PodAddressNotInitialized))?;
+        let pod_address = (pod_config.network_address()).ok_or(PodAddressNotInitialized)?;
 
         Ok(Self {
             server_domain,

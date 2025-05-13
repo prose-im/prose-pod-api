@@ -3,10 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-#[cfg(debug_assertions)]
-use axum::extract::State;
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     http::{HeaderValue, StatusCode},
     Json,
 };
@@ -22,17 +20,17 @@ use service::{
     members::MemberRole,
     models::{PaginationForm, SerializableSecretString},
     notifications::NotificationService,
-    server_config::ServerConfig,
+    server_config::server_config_controller,
     workspace::WorkspaceService,
     xmpp::JidNode,
     AppConfig,
 };
 
-#[cfg(debug_assertions)]
-use crate::AppState;
 use crate::{
     error::Error,
+    features::init::ServerConfigNotInitialized,
     responders::{Created, Paginated},
+    AppState,
 };
 
 use super::dtos::*;
@@ -77,20 +75,22 @@ pub struct InviteMemberQuery {
 
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member_route(
-    #[cfg(debug_assertions)] State(AppState { ref db, .. }): State<AppState>,
+    State(AppState { ref db, .. }): State<AppState>,
     ref app_config: AppConfig,
-    ref server_config: ServerConfig,
     ref notification_service: NotificationService,
     ref invitation_service: InvitationService,
     ref workspace_service: WorkspaceService,
     #[cfg(debug_assertions)] Query(InviteMemberQuery { auto_accept }): Query<InviteMemberQuery>,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
+    let server_domain = (server_config_controller::get_server_domain(db).await)?
+        .ok_or(ServerConfigNotInitialized)?;
+
     let res = invitation_controller::invite_member(
         #[cfg(debug_assertions)]
         db,
         app_config,
-        server_config,
+        &server_domain,
         notification_service,
         invitation_service,
         workspace_service,

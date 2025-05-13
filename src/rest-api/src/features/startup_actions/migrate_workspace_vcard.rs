@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use service::{
-    server_config::ServerConfigRepository,
+    server_config::server_config_controller,
     workspace::{WorkspaceNotInitialized, WorkspaceService},
 };
 use tracing::{debug, info, instrument};
@@ -31,8 +31,8 @@ pub async fn migrate_workspace_vcard(
         return Ok(());
     }
 
-    let server_config = match ServerConfigRepository::get(db).await {
-        Ok(Some(server_config)) => server_config,
+    let server_domain = match server_config_controller::get_server_domain(db).await {
+        Ok(Some(server_domain)) => server_domain,
         Ok(None) => {
             info!("Not migrating the Workspace vCard: {ServerConfigNotInitialized}");
             return Ok(());
@@ -40,13 +40,12 @@ pub async fn migrate_workspace_vcard(
         Err(err) => {
             return Err(format!("Could not migrate the Workspace vCard: {err}"));
         }
-    }
-    .with_default_values_from(app_config);
+    };
 
     let workspace_service = WorkspaceService::new(
         Arc::new(xmpp_service.clone()),
         Arc::new(app_config.clone()),
-        &server_config,
+        &server_domain,
         Arc::new(secrets_store.clone()),
     )
     .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?;

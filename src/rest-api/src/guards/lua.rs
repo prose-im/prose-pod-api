@@ -3,13 +3,14 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::error::{Error, ErrorCode, HttpApiError, LogLevel};
 use axum::extract::{rejection::*, FromRequest, OptionalFromRequest, Request};
 use axum::http::{
     header::{self, HeaderMap, HeaderValue},
     StatusCode,
 };
 use axum::response::{IntoResponse, Response};
+
+use crate::error::{Error, ErrorCode, HttpApiError, LogLevel};
 
 #[derive(Debug, Clone, Default)]
 pub struct Lua(pub String);
@@ -96,5 +97,16 @@ impl HttpApiError for LuaRejection {
             http_status: StatusCode::UNSUPPORTED_MEDIA_TYPE,
             log_level: LogLevel::Info,
         }
+    }
+}
+
+impl From<service::models::Lua> for Lua {
+    fn from(value: service::models::Lua) -> Self {
+        Self(value.0)
+    }
+}
+impl From<Lua> for service::models::Lua {
+    fn from(value: Lua) -> Self {
+        Self(value.0)
     }
 }

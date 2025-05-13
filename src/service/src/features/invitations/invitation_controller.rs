@@ -4,14 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::{anyhow, Context as _};
-use jid::BareJid;
+use jid::{BareJid, DomainRef};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     members::MemberRole,
     models::{Paginated, Pagination, PaginationForm},
     notifications::NotificationService,
-    server_config::ServerConfig,
     util::{to_bare_jid, Either},
     workspace::WorkspaceService,
     AppConfig,
@@ -47,7 +46,7 @@ fn ok(invitation: Invitation) -> InviteMemberResponse {
 pub async fn invite_member(
     #[cfg(debug_assertions)] db: &sea_orm::DatabaseConnection,
     app_config: &AppConfig,
-    server_config: &ServerConfig,
+    server_domain: &DomainRef,
     notification_service: &NotificationService,
     invitation_service: &InvitationService,
     workspace_service: &WorkspaceService,
@@ -57,7 +56,7 @@ pub async fn invite_member(
     let invitation = invitation_service
         .invite_member(
             app_config,
-            server_config,
+            server_domain,
             notification_service,
             workspace_service,
             req,

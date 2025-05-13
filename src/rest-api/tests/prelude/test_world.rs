@@ -126,10 +126,9 @@ impl TestWorld {
         WorkspaceService::new(
             Arc::new(self.xmpp_service.clone()),
             Arc::new(self.app_config.clone()),
-            &self
-                .server_config()
-                .await
-                .expect("Error getting server config"),
+            &(self.server_config().await)
+                .expect("Error getting server config")
+                .domain,
             Arc::new(self.secrets_store.clone()),
         )
         .expect("Workspace not initialized")

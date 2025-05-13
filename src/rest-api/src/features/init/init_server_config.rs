@@ -10,7 +10,7 @@ use service::{
     init::{InitServerConfigError, InitService},
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
-    xmpp::{JidDomain, ServerCtl},
+    xmpp::{server_manager::ServerConfigAlreadyInitialized, JidDomain, ServerCtl},
     AppConfig,
 };
 
@@ -50,11 +50,16 @@ impl ErrorCode {
         http_status: StatusCode::PRECONDITION_FAILED,
         log_level: LogLevel::Warn,
     };
-    pub const SERVER_CONFIG_ALREADY_INITIALIZED: Self = Self {
-        value: "server_config_already_initialized",
-        http_status: StatusCode::CONFLICT,
-        log_level: LogLevel::Info,
-    };
+}
+
+impl HttpApiError for ServerConfigAlreadyInitialized {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "server_config_already_initialized",
+            http_status: StatusCode::CONFLICT,
+            log_level: LogLevel::Info,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -71,17 +76,17 @@ impl HttpApiError for ServerConfigNotInitialized {
     }
 }
 
-impl CustomErrorCode for InitServerConfigError {
-    fn error_code(&self) -> ErrorCode {
+impl HttpApiError for InitServerConfigError {
+    fn code(&self) -> ErrorCode {
         match self {
-            Self::CouldNotInitServerConfig(err) => err.code(),
+            Self::ServerConfigAlreadyInitialized(err) => err.code(),
             Self::CouldNotRegisterOAuth2Client(_) => ErrorCode::INTERNAL_SERVER_ERROR,
             Self::CouldNotCreateServiceAccount(err) => err.code(),
             Self::CouldNotAddWorkspaceToTeam(err) => err.code(),
+            Self::Internal(err) => err.code(),
         }
     }
 }
-impl_into_error!(InitServerConfigError);
 
 // BOILERPLATE
 

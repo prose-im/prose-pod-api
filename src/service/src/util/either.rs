@@ -34,3 +34,16 @@ macro_rules! gen {
 
 gen!(Either<E1, E2>);
 gen!(Either3<E1, E2, E3>);
+
+// MARK: USEFUL (OPINIONATED) IMPLEMENTATIONS
+
+impl<T> From<anyhow::Error> for Either<T, anyhow::Error> {
+    fn from(value: anyhow::Error) -> Self {
+        Self::E2(value)
+    }
+}
+impl<T> From<sea_orm::DbErr> for Either<T, anyhow::Error> {
+    fn from(value: sea_orm::DbErr) -> Self {
+        Self::E2(anyhow::Error::new(value).context("Database error"))
+    }
+}

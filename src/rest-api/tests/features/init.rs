@@ -61,7 +61,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
             Arc::new(world.app_config.clone()),
             Arc::new(world.secrets_store.clone()),
             Arc::new(world.xmpp_service.clone()),
-            &world.server_config().await?,
+            &world.server_config().await?.domain,
             workspace,
         )
         .await?;
@@ -279,6 +279,6 @@ async fn then_error_server_config_already_initialized(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "server_config_already_initialized",
-        "message": "InitServerConfigError error: Could not init server config: XMPP server already initialized.",
+        "message": "XMPP server already initialized.",
     }));
 }

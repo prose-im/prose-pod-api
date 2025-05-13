@@ -17,7 +17,7 @@ pub use self::init_first_account::*;
 pub use self::init_server_config::*;
 pub use self::init_workspace::*;
 
-pub const SERVER_CONFIG_ROUTE: &'static str = "/v1/server/config";
+use super::server_config::SERVER_CONFIG_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

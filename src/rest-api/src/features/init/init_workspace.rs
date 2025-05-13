@@ -5,14 +5,18 @@
 
 use std::sync::Arc;
 
-use axum::{http::HeaderValue, Json};
+use axum::{extract::State, http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    init::InitService, secrets::SecretsStore, server_config::ServerConfig, workspace::Workspace,
-    xmpp::XmppServiceInner, AppConfig,
+    init::InitService, secrets::SecretsStore, server_config::server_config_controller,
+    workspace::Workspace, xmpp::XmppServiceInner, AppConfig,
 };
 
-use crate::{error::prelude::*, features::workspace_details::WORKSPACE_ROUTE, responders::Created};
+use crate::{
+    error::prelude::*, features::workspace_details::WORKSPACE_ROUTE, responders::Created, AppState,
+};
+
+use super::ServerConfigNotInitialized;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InitWorkspaceRequest {
@@ -23,19 +27,22 @@ pub struct InitWorkspaceRequest {
 }
 
 pub async fn init_workspace_route(
+    State(AppState { db, .. }): State<AppState>,
     init_service: InitService,
     app_config: AppConfig,
     secrets_store: SecretsStore,
     xmpp_service: XmppServiceInner,
-    server_config: ServerConfig,
     Json(req): Json<InitWorkspaceRequest>,
 ) -> Result<Created<Workspace>, Error> {
+    let server_domain = (server_config_controller::get_server_domain(&db).await)?
+        .ok_or(ServerConfigNotInitialized)?;
+
     let workspace = init_service
         .init_workspace(
             Arc::new(app_config),
             Arc::new(secrets_store),
             Arc::new(xmpp_service),
-            &server_config,
+            &server_domain,
             req.clone(),
         )
         .await?;

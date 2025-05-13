@@ -12,10 +12,7 @@ mod either;
 mod sea_orm;
 mod unaccent;
 
-use crate::{
-    models::jid::{self, BareJid, NodePart, JID},
-    server_config::ServerConfig,
-};
+use crate::models::jid::{self, BareJid, DomainRef, NodePart, JID};
 
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
@@ -31,11 +28,11 @@ pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
 
 pub fn bare_jid_from_username(
     username: &str,
-    server_config: &ServerConfig,
+    server_domain: &DomainRef,
 ) -> Result<BareJid, String> {
     Ok(BareJid::from_parts(
         Some(&NodePart::new(username).map_err(|err| format!("Invalid username: {err}"))?),
-        &server_config.domain,
+        &server_domain,
     ))
 }
 

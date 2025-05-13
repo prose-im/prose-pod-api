@@ -127,7 +127,7 @@ async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
         .invitation_service()
         .invite_member(
             &world.app_config,
-            &world.server_config().await?,
+            &world.server_config().await?.domain,
             &world.notifcation_service(),
             &world.workspace_service().await,
             InviteMemberForm {

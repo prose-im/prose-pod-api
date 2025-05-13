@@ -9,10 +9,12 @@ use service::{
     init::{InitFirstAccountError, InitFirstAccountForm, InitService},
     members::{Member, MemberRepository, UnauthenticatedMemberService},
     models::{JidNode, SerializableSecretString},
-    server_config::ServerConfig,
+    server_config::server_config_controller,
 };
 
 use crate::{error::prelude::*, responders::Created, AppState};
+
+use super::ServerConfigNotInitialized;
 
 #[derive(Serialize, Deserialize)]
 pub struct InitFirstAccountRequest {
@@ -22,13 +24,16 @@ pub struct InitFirstAccountRequest {
 }
 
 pub async fn init_first_account_route(
+    State(AppState { ref db, .. }): State<AppState>,
     init_service: InitService,
-    server_config: ServerConfig,
     member_service: UnauthenticatedMemberService,
     Json(req): Json<InitFirstAccountRequest>,
 ) -> Result<Created<Member>, Error> {
+    let server_domain = (server_config_controller::get_server_domain(db).await)?
+        .ok_or(ServerConfigNotInitialized)?;
+
     let member = init_service
-        .init_first_account(&server_config, &member_service, req)
+        .init_first_account(&server_domain, &member_service, req)
         .await?;
 
     let resource_uri = format!("/v1/members/{jid}", jid = member.jid);
