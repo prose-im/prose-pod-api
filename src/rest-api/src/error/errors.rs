@@ -20,6 +20,9 @@ impl HttpApiError for anyhow::Error {
     fn message(&self) -> String {
         format!("{self:#}")
     }
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        Some(serde_json::Value::String(format!("{self:#?}")))
+    }
 }
 
 macro_rules! impl_error_for_either {
