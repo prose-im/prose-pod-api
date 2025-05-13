@@ -10,6 +10,4 @@ mod basic_auth;
 mod is_admin;
 mod user_info;
 
-pub use authenticated::*;
 pub use basic_auth::*;
-pub use is_admin::*;

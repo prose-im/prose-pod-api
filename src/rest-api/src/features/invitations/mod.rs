@@ -10,13 +10,12 @@ mod routes;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::*;
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
 pub use self::dtos::*;
 pub use self::routes::*;
-
-use super::auth::guards::IsAdmin;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

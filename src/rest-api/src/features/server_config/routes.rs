@@ -12,6 +12,7 @@ use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 
 use serde::{Deserialize, Serialize};
 use service::{
+    auth::IsAdmin,
     models::durations::{DateLike, Duration, PossiblyInfinite},
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
     xmpp::JidDomain,
@@ -20,7 +21,6 @@ use service::{
 
 use crate::{
     error::{Error, PreconditionRequired},
-    features::auth::guards::IsAdmin,
     AppState,
 };
 

@@ -4,15 +4,12 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::extract::OptionalFromRequestParts;
-use service::{auth::UserInfo, members::MemberRepository};
+use service::{
+    auth::{IsAdmin, UserInfo},
+    members::MemberRepository,
+};
 
 use crate::guards::prelude::*;
-
-/// Checks if the logged in user is an admin.
-///
-/// It's not perfect, one day we'll replace it with scopes and permissions,
-/// but it'll do for now.
-pub struct IsAdmin;
 
 impl FromRequestParts<AppState> for IsAdmin {
     type Rejection = error::Error;

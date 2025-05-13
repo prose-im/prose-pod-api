@@ -10,13 +10,13 @@ mod routes;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{get, patch, put, MethodRouter};
 use axum_extra::handler::HandlerCallWithExtractors as _;
+use service::auth::IsAdmin;
 
 use crate::util::content_type_or::{with_accept, ApplictionJson};
 use crate::AppState;
 
 pub use self::routes::*;
 
-use super::auth::guards::IsAdmin;
 use super::init::init_workspace_route;
 
 pub const WORKSPACE_ROUTE: &'static str = "/v1/workspace";

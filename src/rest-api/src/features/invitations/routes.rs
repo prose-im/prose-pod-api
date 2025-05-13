@@ -13,6 +13,7 @@ use axum::{
 #[cfg(debug_assertions)]
 use axum_extra::either::Either;
 use service::{
+    auth::IsAdmin,
     invitations::{
         invitation_controller::{self, WorkspaceInvitationBasicDetails},
         InvitationAcceptForm, InvitationContact, InvitationId, InvitationService, InvitationToken,
@@ -31,7 +32,6 @@ use service::{
 use crate::AppState;
 use crate::{
     error::Error,
-    features::auth::guards::IsAdmin,
     responders::{Created, Paginated},
 };
 

@@ -11,10 +11,11 @@ use axum::{
     middleware::from_extractor_with_state,
     routing::{delete, get, put, MethodRouter},
 };
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
-use super::{auth::guards::IsAdmin, init::SERVER_CONFIG_ROUTE};
+use super::init::SERVER_CONFIG_ROUTE;
 
 use self::prosody_routes::*;
 use self::routes::*;

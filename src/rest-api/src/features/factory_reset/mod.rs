@@ -12,7 +12,7 @@ use axum::Json;
 use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
 use service::auth::errors::InvalidCredentials;
-use service::auth::{AuthService, Credentials, UserInfo};
+use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
 use service::factory_reset::factory_reset_controller::{self, InvalidConfirmationCode};
 use service::models::SerializableSecretString;
 use service::secrets::SecretsStore;
@@ -21,8 +21,6 @@ use tracing::info;
 
 use crate::error::Error;
 use crate::AppState;
-
-use super::auth::guards::IsAdmin;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

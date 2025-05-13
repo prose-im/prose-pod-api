@@ -6,12 +6,13 @@
 mod set_member_role;
 
 use axum::{middleware::from_extractor_with_state, routing::put};
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
 pub use self::set_member_role::*;
 
-use super::{auth::guards::IsAdmin, members::MEMBER_ROUTE};
+use super::members::MEMBER_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

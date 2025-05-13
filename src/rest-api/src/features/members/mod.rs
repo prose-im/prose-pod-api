@@ -10,11 +10,10 @@ mod routes;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{delete, get, head};
 use axum_extra::handler::HandlerCallWithExtractors as _;
+use service::auth::{Authenticated, IsAdmin};
 
 use crate::util::content_type_or::*;
 use crate::AppState;
-
-use super::auth::guards::{Authenticated, IsAdmin};
 
 pub use self::routes::*;
 

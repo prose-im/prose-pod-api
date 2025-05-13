@@ -20,6 +20,15 @@ mod models {
         pub jid: BareJid,
         pub password: SecretString,
     }
+
+    /// Ensures a user is logged in.
+    pub struct Authenticated;
+
+    /// Ensures the logged in user is an admin.
+    ///
+    /// It's not perfect, one day we'll replace it with scopes and permissions,
+    /// but it'll do for now.
+    pub struct IsAdmin;
 }
 
 pub mod errors {
