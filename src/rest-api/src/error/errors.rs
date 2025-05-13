@@ -18,7 +18,7 @@ impl HttpApiError for anyhow::Error {
         ErrorCode::INTERNAL_SERVER_ERROR
     }
     fn message(&self) -> String {
-        self.root_cause().to_string()
+        format!("{self:#}")
     }
 }
 
