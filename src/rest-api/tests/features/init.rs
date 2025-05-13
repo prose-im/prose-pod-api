@@ -226,7 +226,7 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     );
     res.assert_json(&json!({
         "error": "workspace_not_initialized",
-        "message": "WorkspaceServiceError: Workspace not initialized: No vCard.",
+        "message": "Workspace not initialized: No vCard.",
         "recovery_suggestions": [
             "Call `PUT /v1/workspace` to initialize it.",
         ]
@@ -240,7 +240,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "workspace_already_initialized",
-        "message": "InitWorkspaceError error: Workspace already initialized.",
+        "message": "Workspace already initialized.",
     }));
 }
 

@@ -6,6 +6,8 @@
 mod cache;
 mod concurrent_task_runner;
 mod debounced_notify;
+mod deserialize_some;
+mod detect_mime_type;
 mod either;
 mod sea_orm;
 mod unaccent;
@@ -18,6 +20,8 @@ use crate::{
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::debounced_notify::*;
+pub use self::deserialize_some::*;
+pub use self::detect_mime_type::*;
 pub use self::either::*;
 pub use self::unaccent::*;
 

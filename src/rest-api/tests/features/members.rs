@@ -3,12 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::util::detect_image_mime_type;
 use service::{
     invitations::{InvitationContact, InviteMemberForm},
     members::{entities::member, *},
     models::EmailAddress,
     sea_orm::QueryOrder as _,
+    util::detect_image_mime_type,
     xmpp::xmpp_service::Avatar,
 };
 use urlencoding::encode;

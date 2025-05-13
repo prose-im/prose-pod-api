@@ -8,12 +8,8 @@ use std::sync::Arc;
 use axum::{http::HeaderValue, Json};
 use serde::{Deserialize, Serialize};
 use service::{
-    init::{InitService, InitWorkspaceError},
-    secrets::SecretsStore,
-    server_config::ServerConfig,
-    workspace::{Workspace, WorkspaceServiceError},
-    xmpp::XmppServiceInner,
-    AppConfig,
+    init::InitService, secrets::SecretsStore, server_config::ServerConfig, workspace::Workspace,
+    xmpp::XmppServiceInner, AppConfig,
 };
 
 use crate::{error::prelude::*, features::workspace_details::WORKSPACE_ROUTE, responders::Created};
@@ -55,64 +51,6 @@ pub async fn init_workspace_route(
         location: HeaderValue::from_static(resource_uri),
         body: response,
     })
-}
-
-// ERRORS
-
-impl ErrorCode {
-    pub const WORKSPACE_NOT_INITIALIZED: Self = Self {
-        value: "workspace_not_initialized",
-        http_status: StatusCode::PRECONDITION_FAILED,
-        log_level: LogLevel::Warn,
-    };
-    pub const WORKSPACE_ALREADY_INITIALIZED: Self = Self {
-        value: "workspace_already_initialized",
-        http_status: StatusCode::CONFLICT,
-        log_level: LogLevel::Info,
-    };
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("Workspace not initialized.")]
-pub struct WorkspaceNotInitialized;
-impl HttpApiError for WorkspaceNotInitialized {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::WORKSPACE_NOT_INITIALIZED
-    }
-    fn recovery_suggestions(&self) -> Vec<String> {
-        vec![format!(
-            "Call `PUT {WORKSPACE_ROUTE}` to initialize it.",
-        )]
-    }
-}
-
-impl CustomErrorCode for InitWorkspaceError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceAlreadyInitialized => ErrorCode::WORKSPACE_ALREADY_INITIALIZED,
-            Self::XmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-            Self::CouldNotSetWorkspaceVCard(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(InitWorkspaceError);
-
-impl HttpApiError for WorkspaceServiceError {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceNotInitialized(_) => WorkspaceNotInitialized.code(),
-            Self::XmppServiceError(err) => err.code(),
-        }
-    }
-    fn message(&self) -> String {
-        format!("WorkspaceServiceError: {self}")
-    }
-    fn recovery_suggestions(&self) -> Vec<String> {
-        match self {
-            Self::WorkspaceNotInitialized(_) => WorkspaceNotInitialized.recovery_suggestions(),
-            _ => vec![],
-        }
-    }
 }
 
 // BOILERPLATE

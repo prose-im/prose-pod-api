@@ -5,13 +5,13 @@
 
 use std::sync::Arc;
 
-use service::{server_config::ServerConfigRepository, workspace::WorkspaceService};
+use service::{
+    server_config::ServerConfigRepository,
+    workspace::{WorkspaceNotInitialized, WorkspaceService},
+};
 use tracing::{debug, info, instrument};
 
-use crate::{
-    features::init::{ServerConfigNotInitialized, WorkspaceNotInitialized},
-    AppState,
-};
+use crate::{features::init::ServerConfigNotInitialized, AppState};
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(
@@ -51,12 +51,13 @@ pub async fn migrate_workspace_vcard(
     )
     .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?;
 
-    if !workspace_service
-        .is_workspace_initialized()
-        .await
+    if !(workspace_service.is_workspace_initialized().await)
         .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?
     {
-        info!("Not migrating the Workspace vCard: {WorkspaceNotInitialized}");
+        info!(
+            "Not migrating the Workspace vCard: {err}",
+            err = WorkspaceNotInitialized::NoReason,
+        );
         return Ok(());
     }
 

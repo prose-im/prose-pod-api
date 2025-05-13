@@ -54,11 +54,11 @@ impl Into<PodAddressUpdateForm> for SetPodAddressRequest {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct PatchPodAddressRequest {
-    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    #[serde(default, deserialize_with = "service::util::deserialize_some")]
     pub ipv4: Option<Option<Ipv4Addr>>,
-    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    #[serde(default, deserialize_with = "service::util::deserialize_some")]
     pub ipv6: Option<Option<Ipv6Addr>>,
-    #[serde(default, deserialize_with = "crate::forms::deserialize_some")]
+    #[serde(default, deserialize_with = "service::util::deserialize_some")]
     pub hostname: Option<Option<DomainName>>,
 }
 

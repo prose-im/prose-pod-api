@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 use tracing::{info, instrument};
@@ -18,7 +19,7 @@ use crate::{
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigCreateForm},
     util::bare_jid_from_username,
-    workspace::{workspace_service, Workspace, WorkspaceService, WorkspaceServiceInitError},
+    workspace::{Workspace, WorkspaceService, WorkspaceServiceInitError},
     xmpp::{
         server_ctl, server_manager, CreateServiceAccountError, ServerCtl, ServerManager,
         XmppServiceInner,
@@ -108,7 +109,7 @@ impl InitService {
         workspace_service
             .set_workspace_vcard(&workspace.clone().into())
             .await
-            .map_err(InitWorkspaceError::CouldNotSetWorkspaceVCard)?;
+            .context("Could not set workspace vCard")?;
 
         info!("Workspace initialized successfully.");
 
@@ -122,8 +123,8 @@ pub enum InitWorkspaceError {
     WorkspaceAlreadyInitialized,
     #[error("Workspace XMPP account not initialized.")]
     XmppAccountNotInitialized,
-    #[error("Could not set workspace vCard: {0}")]
-    CouldNotSetWorkspaceVCard(workspace_service::Error),
+    #[error("Internal error: {0}")]
+    Internal(#[from] anyhow::Error),
 }
 
 impl From<WorkspaceServiceInitError> for InitWorkspaceError {

@@ -4,10 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::extract::OptionalFromRequestParts;
-use service::{
-    server_config::ServerConfig,
-    workspace::{WorkspaceService, WorkspaceServiceInitError},
-};
+use service::{server_config::ServerConfig, workspace::WorkspaceService};
 
 use crate::{error::prelude::*, guards::prelude::*};
 
@@ -44,14 +41,3 @@ impl OptionalFromRequestParts<AppState> for WorkspaceService {
         )
     }
 }
-
-// ERRORS
-
-impl CustomErrorCode for WorkspaceServiceInitError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-        }
-    }
-}
-impl_into_error!(WorkspaceServiceInitError);

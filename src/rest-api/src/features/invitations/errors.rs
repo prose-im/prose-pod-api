@@ -84,7 +84,6 @@ impl HttpApiError for InvitationResendError {
         match self {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
             Self::CouldNotSendInvitation(err) => err.code(),
-            Self::CouldNotGetWorkspaceDetails(_) => ErrorCode::INTERNAL_SERVER_ERROR,
             Self::PodConfigMissing(PodConfigField::PodAddress) => {
                 ErrorCode::POD_ADDRESS_NOT_INITIALIZED
             }

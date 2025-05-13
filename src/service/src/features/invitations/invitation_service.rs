@@ -26,7 +26,7 @@ use crate::{
     pod_config::{PodConfigField, PodConfigRepository},
     server_config::ServerConfig,
     util::bare_jid_from_username,
-    workspace::{WorkspaceService, WorkspaceServiceError},
+    workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
     AppConfig,
 };
@@ -411,7 +411,7 @@ impl InvitationService {
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
         let workspace = (workspace_service.get_workspace().await)
-            .map_err(InvitationResendError::CouldNotGetWorkspaceDetails)?;
+            .context("Could not get workspace details (to build the notification)")?;
 
         let dashboard_url = (PodConfigRepository::get_dashboard_url(&self.db).await)
             .context("Database error")?
@@ -444,8 +444,6 @@ pub enum InvitationResendError {
     InvitationNotFound(i32),
     #[error("Could not send invitation: {0}")]
     CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
-    #[error("Could not get workspace details (to build the notification): {0}")]
-    CouldNotGetWorkspaceDetails(WorkspaceServiceError),
     #[error("Pod configuration missing: {0}")]
     PodConfigMissing(PodConfigField),
     #[error("Internal error: {0}")]
