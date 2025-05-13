@@ -5,30 +5,34 @@
 
 use axum::{
     extract::State,
-    http::{header::IF_MATCH, StatusCode},
+    http::{header::IF_MATCH, HeaderValue, StatusCode},
     response::NoContent,
     Json,
 };
 use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 
 use service::{
-    auth::IsAdmin,
+    auth::{AuthService, IsAdmin},
     models::durations::{DateLike, Duration, PossiblyInfinite},
     prosody::ProsodyOverrides,
+    secrets::SecretsStore,
     server_config::{
         server_config_controller::{self, PublicServerConfig},
         ServerConfig, TlsProfile,
     },
-    xmpp::ServerManager,
+    xmpp::{ServerCtl, ServerManager},
     AppConfig, LinkedHashSet,
 };
 
 use crate::{
     error::{Error, PreconditionRequired},
-    features::init::ServerConfigNotInitialized,
+    features::init::errors::ServerConfigNotInitialized,
     guards::Lua,
+    responders::Created,
     AppState,
 };
+
+use super::{dtos::InitServerConfigRequest, SERVER_CONFIG_ROUTE};
 
 // Helper macros
 
@@ -68,7 +72,7 @@ macro_rules! server_config_route {
             ref app_config: service::AppConfig,
             ref is_admin: service::auth::IsAdmin,
         ) -> Result<axum::Json<$var_type>, crate::error::Error> {
-            use crate::{error::Error, features::init::ServerConfigNotInitialized};
+            use crate::{error::Error, features::init::errors::ServerConfigNotInitialized};
             use service::server_config::server_config_controller;
 
             match server_config_controller::get_server_config(db, app_config, is_admin).await {
@@ -114,6 +118,32 @@ macro_rules! gen_server_config_group_reset_route {
             ))
         }
     };
+}
+
+// MARK: INIT SERVER CONFIG
+
+pub async fn init_server_config_route(
+    State(AppState { ref db, .. }): State<AppState>,
+    ref server_ctl: ServerCtl,
+    ref app_config: AppConfig,
+    ref auth_service: AuthService,
+    ref secrets_store: SecretsStore,
+    Json(req): Json<InitServerConfigRequest>,
+) -> Result<Created<ServerConfig>, Error> {
+    let server_config = server_config_controller::init_server_config(
+        db,
+        server_ctl,
+        app_config,
+        auth_service,
+        secrets_store,
+        req,
+    )
+    .await?;
+
+    Ok(Created {
+        location: HeaderValue::from_static(SERVER_CONFIG_ROUTE),
+        body: server_config,
+    })
 }
 
 // Server config

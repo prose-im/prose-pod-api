@@ -12,80 +12,19 @@ use secrecy::SecretString;
 use tracing::{info, instrument};
 
 use crate::{
-    auth::{auth_service, AuthService},
     members::{
         Member, MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError,
     },
     models::JidNode,
     secrets::SecretsStore,
-    server_config::{ServerConfig, ServerConfigCreateForm},
-    util::{bare_jid_from_username, Either},
+    util::bare_jid_from_username,
     workspace::{Workspace, WorkspaceService, WorkspaceServiceInitError},
-    xmpp::{
-        server_ctl, server_manager::ServerConfigAlreadyInitialized, CreateServiceAccountError,
-        ServerCtl, ServerManager, XmppServiceInner,
-    },
+    xmpp::XmppServiceInner,
     AppConfig,
 };
 
 pub struct InitService {
     pub db: Arc<DatabaseConnection>,
-}
-
-impl InitService {
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn init_server_config(
-        &self,
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        auth_service: &AuthService,
-        secrets_store: &SecretsStore,
-        server_config: impl Into<ServerConfigCreateForm>,
-    ) -> Result<ServerConfig, InitServerConfigError> {
-        // Initialize XMPP server configuration
-        let server_config =
-            ServerManager::init_server_config(&self.db, server_ctl, app_config, server_config)
-                .await?;
-
-        // Register OAuth 2.0 client
-        auth_service
-            .register_oauth2_client()
-            .await
-            .map_err(InitServerConfigError::CouldNotRegisterOAuth2Client)?;
-
-        // Create service XMPP accounts
-        ServerManager::create_service_accounts(
-            &server_config.domain,
-            server_ctl,
-            app_config,
-            auth_service,
-            secrets_store,
-        )
-        .await?;
-
-        // Add the Workspace XMPP account to everyone’s rosters.
-        let workspace_jid = app_config.workspace_jid(&server_config.domain);
-        server_ctl
-            .add_team_member(&workspace_jid)
-            .await
-            .map_err(InitServerConfigError::CouldNotAddWorkspaceToTeam)?;
-
-        Ok(server_config)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum InitServerConfigError {
-    #[error("{0}")]
-    ServerConfigAlreadyInitialized(ServerConfigAlreadyInitialized),
-    #[error("Could register OAuth 2.0 client: {0}")]
-    CouldNotRegisterOAuth2Client(auth_service::Error),
-    #[error("Could not create service XMPP account: {0}")]
-    CouldNotCreateServiceAccount(#[from] CreateServiceAccountError),
-    #[error("Could add the Workspace to the team: {0}")]
-    CouldNotAddWorkspaceToTeam(server_ctl::Error),
-    #[error("Internal error: {0}")]
-    Internal(anyhow::Error),
 }
 
 impl InitService {
@@ -127,16 +66,6 @@ pub enum InitWorkspaceError {
     XmppAccountNotInitialized,
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
-}
-
-impl From<WorkspaceServiceInitError> for InitWorkspaceError {
-    fn from(value: WorkspaceServiceInitError) -> Self {
-        match value {
-            WorkspaceServiceInitError::WorkspaceXmppAccountNotInitialized => {
-                Self::XmppAccountNotInitialized
-            }
-        }
-    }
 }
 
 impl InitService {
@@ -193,11 +122,12 @@ pub enum InitFirstAccountError {
 
 // MARK: BOILERPLATE
 
-impl From<Either<ServerConfigAlreadyInitialized, anyhow::Error>> for InitServerConfigError {
-    fn from(value: Either<ServerConfigAlreadyInitialized, anyhow::Error>) -> Self {
+impl From<WorkspaceServiceInitError> for InitWorkspaceError {
+    fn from(value: WorkspaceServiceInitError) -> Self {
         match value {
-            Either::E1(err) => Self::ServerConfigAlreadyInitialized(err),
-            Either::E2(err) => Self::Internal(err),
+            WorkspaceServiceInitError::WorkspaceXmppAccountNotInitialized => {
+                Self::XmppAccountNotInitialized
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ use service::{
 
 use crate::{
     error::Error,
-    features::init::ServerConfigNotInitialized,
+    features::init::errors::ServerConfigNotInitialized,
     responders::{Created, Paginated},
     AppState,
 };

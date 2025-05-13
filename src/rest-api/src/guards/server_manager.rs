@@ -5,7 +5,7 @@
 
 use service::server_config::ServerConfigRepository;
 
-use crate::features::init::ServerConfigNotInitialized;
+use crate::features::init::errors::ServerConfigNotInitialized;
 
 use super::prelude::*;
 

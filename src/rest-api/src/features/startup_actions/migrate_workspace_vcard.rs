@@ -11,7 +11,7 @@ use service::{
 };
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::ServerConfigNotInitialized, AppState};
+use crate::{features::init::errors::ServerConfigNotInitialized, AppState};
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(

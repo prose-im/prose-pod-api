@@ -6,7 +6,9 @@
 use axum::extract::OptionalFromRequestParts;
 use service::{server_config::server_config_controller, workspace::WorkspaceService};
 
-use crate::{error::prelude::*, features::init::ServerConfigNotInitialized, guards::prelude::*};
+use crate::{
+    error::prelude::*, features::init::errors::ServerConfigNotInitialized, guards::prelude::*,
+};
 
 impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;

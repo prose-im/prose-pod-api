@@ -3,6 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+pub mod dtos;
 mod routes;
 
 use axum::{
@@ -134,6 +135,8 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .route(
             SERVER_CONFIG_ROUTE,
             MethodRouter::new()
+                // NOTE: `PUT /v1/server/config` doesn’t require authentication.
+                .put(init_server_config_route)
                 // NOTE: `GET /v1/server/config` handles authentication itself,
                 //   so it can return only the domain when called
                 //   unauthenticated (requirement of the Dashboard).

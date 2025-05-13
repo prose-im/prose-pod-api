@@ -4,12 +4,13 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use hickory_resolver::Name as DomainName;
-use prose_pod_api::features::init::*;
+use prose_pod_api::features::{init::*, server_config::dtos::InitServerConfigRequest};
 use service::{
     models::Url,
     pod_config::{
         NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
     },
+    server_config::server_config_controller,
     workspace::Workspace,
 };
 
@@ -80,16 +81,15 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
         domain: JidDomain::from_str(&world.initial_server_domain).unwrap(),
     };
 
-    world
-        .init_service()
-        .init_server_config(
-            &world.server_ctl,
-            &world.app_config,
-            &world.auth_service,
-            &world.secrets_store,
-            form,
-        )
-        .await?;
+    server_config_controller::init_server_config(
+        world.db(),
+        &world.server_ctl,
+        &world.app_config,
+        &world.auth_service,
+        &world.secrets_store,
+        form,
+    )
+    .await?;
 
     world.reset_server_ctl_counts();
     Ok(())
@@ -268,7 +268,7 @@ async fn then_error_first_account_already_created(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "first_account_already_created",
-        "message": "InitFirstAccountError error: First account already created.",
+        "message": "First account already created.",
     }));
 }
 

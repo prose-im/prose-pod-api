@@ -6,7 +6,7 @@
 use service::server_config::ServerConfigRepository;
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::ServerConfigNotInitialized, AppState};
+use crate::{features::init::errors::ServerConfigNotInitialized, AppState};
 
 /// NOTE: Users need to receive PEP events when the workspace vCard changes for
 ///   Prose to update the UI automatically. For this, the Workspace needs to be

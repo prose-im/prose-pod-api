@@ -9,19 +9,20 @@ use anyhow::Context;
 use sea_orm::DatabaseConnection;
 
 use crate::{
-    auth::IsAdmin,
+    auth::{AuthService, IsAdmin},
     models::{
         durations::{DateLike, Duration, PossiblyInfinite},
         Lua,
     },
     prosody::ProsodyOverrides,
+    secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
     util::Either,
-    xmpp::{JidDomain, ServerManager},
+    xmpp::{server_manager::ServerConfigAlreadyInitialized, JidDomain, ServerCtl, ServerManager},
     AppConfig, LinkedHashSet,
 };
 
-use super::server_config;
+use super::{server_config, ServerConfigCreateForm};
 
 // Helper macros
 
@@ -66,27 +67,52 @@ macro_rules! gen_server_config_group_reset_route {
     };
 }
 
+// MARK: INIT SERVER CONFIG
+
+#[tracing::instrument(level = "trace", skip_all, err(level = "trace"))]
+pub async fn init_server_config(
+    db: &DatabaseConnection,
+    server_ctl: &ServerCtl,
+    app_config: &AppConfig,
+    auth_service: &AuthService,
+    secrets_store: &SecretsStore,
+    form: impl Into<ServerConfigCreateForm>,
+) -> Result<ServerConfig, Either<ServerConfigAlreadyInitialized, anyhow::Error>> {
+    // Initialize XMPP server configuration.
+    let server_config = ServerManager::init_server_config(db, server_ctl, app_config, form).await?;
+
+    // Register OAuth 2.0 client.
+    (auth_service.register_oauth2_client().await).context("Could not register OAuth 2.0 client")?;
+
+    // Create service XMPP accounts.
+    ServerManager::create_service_accounts(
+        &server_config.domain,
+        server_ctl,
+        app_config,
+        auth_service,
+        secrets_store,
+    )
+    .await
+    .context("Could not create service XMPP account")?;
+
+    // Add the Workspace XMPP account to everyone’s rosters so they receive
+    // Workspace icon updates.
+    let workspace_jid = app_config.workspace_jid(&server_config.domain);
+    (server_ctl.add_team_member(&workspace_jid).await)
+        .context("Could not add the Workspace to the team")?;
+
+    Ok(server_config)
+}
+
+pub async fn is_server_initialized(db: &DatabaseConnection) -> anyhow::Result<bool> {
+    (ServerConfigRepository::is_initialized(db).await).context("Database error")
+}
+
 // Server config
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PublicServerConfig {
     pub domain: JidDomain,
-}
-
-impl From<server_config::Model> for PublicServerConfig {
-    fn from(server_config: server_config::Model) -> Self {
-        Self {
-            domain: server_config.domain,
-        }
-    }
-}
-
-impl From<ServerConfig> for PublicServerConfig {
-    fn from(server_config: ServerConfig) -> Self {
-        Self {
-            domain: server_config.domain,
-        }
-    }
 }
 
 pub async fn get_server_domain(db: &DatabaseConnection) -> anyhow::Result<Option<JidDomain>> {
@@ -124,10 +150,6 @@ pub async fn get_server_config_public(
         }
         None => Ok(None),
     }
-}
-
-pub async fn is_server_initialized(db: &DatabaseConnection) -> anyhow::Result<bool> {
-    (ServerConfigRepository::is_initialized(db).await).context("Database error")
 }
 
 // File upload
@@ -297,4 +319,22 @@ pub async fn delete_prosody_overrides_raw(
     server_manager: &ServerManager,
 ) -> anyhow::Result<ServerConfig> {
     server_manager.reset_prosody_overrides().await
+}
+
+// MARK: BOILERPLATE
+
+impl From<server_config::Model> for PublicServerConfig {
+    fn from(server_config: server_config::Model) -> Self {
+        Self {
+            domain: server_config.domain,
+        }
+    }
+}
+
+impl From<ServerConfig> for PublicServerConfig {
+    fn from(server_config: ServerConfig) -> Self {
+        Self {
+            domain: server_config.domain,
+        }
+    }
 }

@@ -6,7 +6,7 @@
 use service::{pod_config::PodConfigRepository, server_config::server_config_controller};
 
 use crate::{
-    features::{init::ServerConfigNotInitialized, pod_config::PodAddressNotInitialized},
+    features::{init::errors::ServerConfigNotInitialized, pod_config::PodAddressNotInitialized},
     guards::prelude::*,
 };
 
