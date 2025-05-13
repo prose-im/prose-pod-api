@@ -75,9 +75,9 @@ impl CustomErrorCode for InitServerConfigError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::CouldNotInitServerConfig(err) => err.code(),
-            Self::CouldNotRegisterOAuth2Client(err) => err.code(),
+            Self::CouldNotRegisterOAuth2Client(_) => ErrorCode::INTERNAL_SERVER_ERROR,
             Self::CouldNotCreateServiceAccount(err) => err.code(),
-            InitServerConfigError::CouldNotAddWorkspaceToTeam(err) => err.code(),
+            Self::CouldNotAddWorkspaceToTeam(err) => err.code(),
         }
     }
 }

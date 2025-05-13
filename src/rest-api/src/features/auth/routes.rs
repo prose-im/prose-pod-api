@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::Json;
-use serde::{Deserialize, Serialize};
 use service::{
     auth::{auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService},
     models::SerializableSecretString,
@@ -15,11 +14,13 @@ use crate::error::Error;
 
 use super::guards::BasicAuth;
 
-#[derive(Clone, Serialize, Deserialize)]
+// MARK: LOG IN
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[repr(transparent)]
 pub struct LoginToken(SerializableSecretString);
 
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct LoginResponse {
     pub token: LoginToken,
 }
@@ -37,7 +38,7 @@ pub async fn login_route(
     }
 }
 
-// BOILERPLATE
+// MARK: BOILERPLATE
 
 impl From<AuthToken> for LoginToken {
     fn from(value: AuthToken) -> Self {
