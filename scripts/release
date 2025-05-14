@@ -91,7 +91,7 @@ case "$1" in
 		VERSION_COMPONENTS[2]=$(( VERSION_COMPONENTS[2] + 1 ))
 		;;
 	--help) help ;;
-	'') die "Expected at least one argument.\n$(usage)" ;;
+	'') error "Expected at least one argument."; info "$(usage)"; die ;;
 	*) error "Unknown argument: $(format_code $1)."; info "$(usage)"; die ;;
 esac
 # Skip first argument now that it's processed.
