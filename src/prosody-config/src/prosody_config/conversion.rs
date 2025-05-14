@@ -65,6 +65,8 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             muc_log_by_default,
             muc_log_expires_after,
             custom_settings,
+            reload_modules,
+            reload_global_modules,
             tls_profile,
         } = self;
 
@@ -257,6 +259,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "muc_log_all_rooms", muc_log_all_rooms),
                     option_def(None, "muc_log_by_default", muc_log_by_default),
                     option_def(None, "muc_log_expires_after", muc_log_expires_after),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                "mod_reload_modules".into(),
+                vec![
+                    option_def(None, "reload_modules", reload_modules),
+                    option_def(None, "reload_global_modules", reload_global_modules),
                 ],
             ),
         );

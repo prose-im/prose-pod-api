@@ -153,6 +153,10 @@ pub struct ProsodySettings {
     #[cfg_attr(feature = "serde", serde(skip))]
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub tls_profile: Option<TlsProfile>,
+    /// See <https://modules.prosody.im/mod_reload_modules>.
+    pub reload_modules: Option<LinkedHashSet<String>>,
+    /// See <https://modules.prosody.im/mod_reload_modules>.
+    pub reload_global_modules: Option<LinkedHashSet<String>>,
 
     #[cfg_attr(feature = "serde", serde(skip))]
     pub custom_settings: Vec<Group<LuaDefinition>>,

@@ -68,6 +68,8 @@ impl ProsodySettings {
             muc_log_by_default,
             muc_log_expires_after,
             tls_profile,
+            reload_modules,
+            reload_global_modules,
             custom_settings,
         } = other;
 
@@ -126,6 +128,8 @@ impl ProsodySettings {
         replace_if_none!(muc_log_all_rooms);
         replace_if_none!(muc_log_by_default);
         replace_if_none!(muc_log_expires_after);
+        replace_if_none!(reload_modules);
+        replace_if_none!(reload_global_modules);
         replace_if_none!(tls_profile);
 
         // NOTE: We cannot simply use `Vec::extend`, as it would make values
