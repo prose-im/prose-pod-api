@@ -236,9 +236,18 @@ pub struct ConfigServiceAccount {
     pub xmpp_node: JidNode,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigBootstrap {
-    pub prose_pod_api_xmpp_password: Option<SecretString>,
+    #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
+    pub prose_pod_api_xmpp_password: SecretString,
+}
+
+impl Default for ConfigBootstrap {
+    fn default() -> Self {
+        Self {
+            prose_pod_api_xmpp_password: defaults::bootstrap_prose_pod_api_xmpp_password(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Copy)]
