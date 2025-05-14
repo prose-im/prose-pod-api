@@ -39,6 +39,9 @@ WORKDIR /usr/share/prose-pod-api
 COPY --from=build /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
 COPY --from=api-docs /usr/share/prose-pod-api/static /usr/share/prose-pod-api/static
 
+VOLUME /etc/prose-pod-api/
+VOLUME /var/lib/prose-pod-api/
+
 CMD ["prose-pod-api"]
 
 EXPOSE 8080
