@@ -82,12 +82,12 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     if model.c2s_unencrypted {
         warn!("Debug config `c2s_unencrypted` is enabled.");
         global_settings.enable_module("reload_modules".to_owned());
+        (global_settings.reload_modules.get_or_insert_default()).insert("saslauth".to_owned());
         global_settings.custom_settings.push(Group::new(
             "Debug config: c2s_unencrypted",
             vec![
                 def("c2s_require_encryption", false),
                 def("allow_unencrypted_plain_auth", true),
-                def("reload_modules", vec!["saslauth"]),
             ],
         ));
     }
