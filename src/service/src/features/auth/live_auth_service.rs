@@ -9,7 +9,11 @@ use anyhow::anyhow;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 
-use crate::{models::BareJid, prosody::ProsodyOAuth2, util::Either};
+use crate::{
+    models::BareJid,
+    prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
+    util::Either,
+};
 
 use super::{
     auth_service::{AuthToken, UserInfo},
@@ -38,9 +42,8 @@ impl AuthServiceImpl for LiveAuthService {
         match self.prosody_oauth2.log_in(jid, password).await {
             Ok(Some(token)) => Ok(AuthToken(token.into())),
             Ok(None) => Err(Either::E1(InvalidCredentials)),
-            Err(err) => Err(Either::E2(
-                anyhow!(err).context("Prosody OAuth 2.0 error"),
-            )),
+            Err(ProsodyOAuth2Error::Unauthorized(_)) => Err(Either::E1(InvalidCredentials)),
+            Err(err) => Err(Either::E2(anyhow!(err).context("Prosody OAuth 2.0 error"))),
         }
     }
 

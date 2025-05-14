@@ -3,6 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use anyhow::Context;
 use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -37,9 +38,7 @@ impl ProsodyOAuth2 {
         accept: impl FnOnce(&ResponseData) -> bool,
     ) -> Result<ResponseData, Error> {
         let client = self.http_client.clone();
-        let request = make_req(&client)
-            .build()
-            .map_err(Error::CannotBuildRequest)?;
+        let request = make_req(&client).build().context("Cannot build request")?;
         trace!("Calling `{} {}`…", request.method(), request.url());
 
         let request_data = match request.try_clone() {
@@ -47,7 +46,8 @@ impl ProsodyOAuth2 {
             None => None,
         };
         let response = {
-            let response = client.execute(request).await.map_err(Error::CallFailed)?;
+            let response =
+                (client.execute(request).await).context("Prosody OAuth2 API call failed")?;
             ResponseData::from(response).await
         };
 
@@ -75,9 +75,12 @@ impl ProsodyOAuth2 {
                 {
                     Error::Unauthorized("Invalid token".to_string())
                 }
-                _ => Error::UnexpectedResponse(
-                    UnexpectedHttpResponse::new(request_data, response, error_description).await,
-                ),
+                _ => {
+                    let err =
+                        UnexpectedHttpResponse::new(request_data, response, error_description)
+                            .await;
+                    Error::Internal(anyhow::Error::new(err).context("Unexpected API response"))
+                }
             })
         }
     }
@@ -127,7 +130,8 @@ impl ProsodyOAuth2 {
             return Ok(None);
         }
 
-        let res: TokenResponse = serde_json::from_str(&response.text())?;
+        let res: TokenResponse = serde_json::from_str(&response.text())
+            .context("Could not decode Prosody OAuth2 API response")?;
 
         debug!("Logged in as {jid}");
 
@@ -150,7 +154,8 @@ impl ProsodyOAuth2 {
             )
             .await?;
 
-        let _: RegisterResponse = serde_json::from_str(&response.text())?;
+        let _: RegisterResponse = serde_json::from_str(&response.text())
+            .context("Could not decode Prosody OAuth2 API response")?;
 
         Ok(())
     }
@@ -210,20 +215,12 @@ type Error = ProsodyOAuth2Error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProsodyOAuth2Error {
-    #[error("Cannot build request: {0}")]
-    CannotBuildRequest(reqwest::Error),
-    #[error("Prosody OAuth2 API call failed: {0}")]
-    CallFailed(reqwest::Error),
-    #[error("Could not decode Prosody OAuth2 API response: {0}")]
-    InvalidResponse(#[from] serde_json::Error),
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
     #[error("Forbidden: {0}")]
     Forbidden(String),
-    #[error("Unexpected API response: {0}")]
-    UnexpectedResponse(UnexpectedHttpResponse),
-    #[error("Internal server error: {0}")]
-    InternalServerError(String),
+    #[error("Internal error: {0}")]
+    Internal(#[from] anyhow::Error),
 }
 
 fn error_description(
