@@ -31,12 +31,10 @@ pub struct LiveSecretsStore {
 
 impl LiveSecretsStore {
     pub fn from_config(app_config: &AppConfig) -> Self {
-        let prose_pod_api_xmpp_password = app_config.bootstrap.prose_pod_api_xmpp_password.as_ref().expect("App config is missing `bootstrap.prose_pod_api_xmpp_password`. You should define the `PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD` environment variable.");
-
         Self {
             store: Arc::default(),
             prose_pod_api_xmpp_password: Arc::new(RwLock::new(
-                prose_pod_api_xmpp_password.to_owned(),
+                app_config.bootstrap.prose_pod_api_xmpp_password.clone(),
             )),
         }
     }

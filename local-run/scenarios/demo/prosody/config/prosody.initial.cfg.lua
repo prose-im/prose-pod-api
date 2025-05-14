@@ -69,3 +69,4 @@ VirtualHost "admin.prose.org.local"
   -- mod_init_admin
   init_admin_jid = "prose-pod-api@admin.prose.org.local"
   init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
+  init_admin_default_password = "bootstrap"

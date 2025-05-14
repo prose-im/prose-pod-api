@@ -66,6 +66,10 @@ pub fn log_timer() -> LogTimer {
     }
 }
 
+pub fn bootstrap_prose_pod_api_xmpp_password() -> SecretString {
+    "bootstrap".into()
+}
+
 pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
     ConfigServiceAccount {
         xmpp_node: JidNode::from_str("prose-pod-api").unwrap(),

@@ -207,7 +207,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                 "rest",
                                 "http_oauth2",
                                 "admin_rest",
-                                // "init_admin",
                             ]
                             .into_iter()
                             .map(ToString::to_string)
