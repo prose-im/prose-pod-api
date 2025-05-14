@@ -42,7 +42,7 @@ services:
         ipv6_address: 2001:db8::40
     env_file: "${ENV_FILE:?}"
     entrypoint: >
-      sh -c "cp /etc/prosody/prosody.initial.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
+      sh -c "cp /etc/prosody/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
     # Make sure logs are colored.
     tty: true
 

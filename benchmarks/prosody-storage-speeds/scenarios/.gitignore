@@ -13,7 +13,7 @@
 
 */prosody/data
 */prosody/config/*
-!*/prosody/config/prosody.initial.cfg.lua
+!*/prosody/config/prosody.bootstrap.cfg.lua
 */coredns
 *.zone
 *.sqlite
