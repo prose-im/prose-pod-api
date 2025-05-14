@@ -258,7 +258,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invitation
        When <remi@prose.org> requests the invitation associated to their previous accept token
-       Then the HTTP status code should be Forbidden
+       Then the HTTP status code should be Not Found
 
   Rule: Invited members can choose their nickname when joining
 

@@ -3,28 +3,19 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod get_workspace;
+mod errors;
 mod guards;
-mod patch_workspace;
-mod workspace_accent_color;
-mod workspace_icon;
-mod workspace_name;
+mod routes;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::{get, patch, put, MethodRouter};
 use axum_extra::handler::HandlerCallWithExtractors as _;
+use service::auth::IsAdmin;
 
 use crate::util::content_type_or::{with_accept, ApplictionJson};
 use crate::AppState;
 
-pub use self::get_workspace::*;
-pub use self::patch_workspace::*;
-pub use self::workspace_accent_color::*;
-pub use self::workspace_icon::*;
-pub use self::workspace_name::*;
-
-use super::auth::guards::IsAdmin;
-use super::init::init_workspace_route;
+pub use self::routes::*;
 
 pub const WORKSPACE_ROUTE: &'static str = "/v1/workspace";
 

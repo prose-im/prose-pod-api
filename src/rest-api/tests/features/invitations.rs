@@ -413,7 +413,7 @@ async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Str
 
 #[then(expr = "they should see {int} pending invitation(s)")]
 fn then_n_pending_invitations(world: &mut TestWorld, n: usize) {
-    let res: Vec<WorkspaceInvitation> = world.result().json();
+    let res: Vec<WorkspaceInvitationDto> = world.result().json();
     assert_eq!(res.len(), n)
 }
 
@@ -423,7 +423,7 @@ fn then_n_invitations_with_status(
     n: usize,
     invitation_status: parameters::InvitationStatus,
 ) {
-    let res: Vec<WorkspaceInvitation> = world.result().json();
+    let res: Vec<WorkspaceInvitationDto> = world.result().json();
     let filtered = res.iter().filter(|m| m.status == invitation_status.0);
     assert_eq!(filtered.count(), n)
 }

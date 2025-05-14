@@ -36,6 +36,7 @@ use axum::middleware::from_extractor_with_state;
 use axum::routing::get;
 use axum_extra::handler::HandlerCallWithExtractors as _;
 use lazy_static::lazy_static;
+use service::auth::IsAdmin;
 
 use crate::util::content_type_or::*;
 use crate::AppState;
@@ -46,7 +47,6 @@ pub use self::check_ip_connectivity::*;
 pub use self::check_ports_reachability::*;
 pub use self::model::*;
 
-use super::auth::guards::IsAdmin;
 use super::NETWORK_ROUTE;
 
 lazy_static! {

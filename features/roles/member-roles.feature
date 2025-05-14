@@ -18,7 +18,9 @@ Feature: Member roles
     Scenario: Valerian (admin) makes Marc an admin while it already is one
       Given Marc is an admin
        When Valerian makes Marc an admin
-       Then the HTTP status code should be No Content
+       Then the HTTP status code should be OK
+        And Marc should have the ADMIN role
+        And Marc should have the "prosody:admin" role in Prosody
 
   Rule: One cannot downgrade someone with a higher role
 

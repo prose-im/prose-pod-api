@@ -4,13 +4,16 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use hickory_resolver::Name as DomainName;
-use prose_pod_api::features::init::*;
+use prose_pod_api::features::{
+    init::*, server_config::dtos::InitServerConfigRequest, workspace_details::InitWorkspaceRequest,
+};
 use service::{
     models::Url,
     pod_config::{
         NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
     },
-    workspace::Workspace,
+    server_config::server_config_controller,
+    workspace::{workspace_controller, Workspace},
 };
 
 use super::prelude::*;
@@ -55,16 +58,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         icon: None,
     };
 
-    world
-        .init_service()
-        .init_workspace(
-            Arc::new(world.app_config.clone()),
-            Arc::new(world.secrets_store.clone()),
-            Arc::new(world.xmpp_service.clone()),
-            &world.server_config().await?,
-            workspace,
-        )
-        .await?;
+    workspace_controller::init_workspace(&world.workspace_service().await, workspace).await?;
 
     Ok(())
 }
@@ -80,16 +74,15 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
         domain: JidDomain::from_str(&world.initial_server_domain).unwrap(),
     };
 
-    world
-        .init_service()
-        .init_server_config(
-            &world.server_ctl,
-            &world.app_config,
-            &world.auth_service,
-            &world.secrets_store,
-            form,
-        )
-        .await?;
+    server_config_controller::init_server_config(
+        world.db(),
+        &world.server_ctl,
+        &world.app_config,
+        &world.auth_service,
+        &world.secrets_store,
+        form,
+    )
+    .await?;
 
     world.reset_server_ctl_counts();
     Ok(())
@@ -226,7 +219,7 @@ async fn then_error_workspace_not_initialized(world: &mut TestWorld) {
     );
     res.assert_json(&json!({
         "error": "workspace_not_initialized",
-        "message": "WorkspaceServiceError: Workspace not initialized: No vCard.",
+        "message": "Workspace not initialized: No vCard.",
         "recovery_suggestions": [
             "Call `PUT /v1/workspace` to initialize it.",
         ]
@@ -240,7 +233,7 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "workspace_already_initialized",
-        "message": "InitWorkspaceError error: Workspace already initialized.",
+        "message": "Workspace already initialized.",
     }));
 }
 
@@ -268,7 +261,7 @@ async fn then_error_first_account_already_created(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "first_account_already_created",
-        "message": "InitFirstAccountError error: First account already created.",
+        "message": "First account already created.",
     }));
 }
 
@@ -279,6 +272,6 @@ async fn then_error_server_config_already_initialized(world: &mut TestWorld) {
     assert_eq!(res.header(CONTENT_TYPE), "application/json");
     res.assert_json(&json!({
         "error": "server_config_already_initialized",
-        "message": "InitServerConfigError error: Could not init server config: XMPP server already initialized.",
+        "message": "XMPP server already initialized.",
     }));
 }

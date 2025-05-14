@@ -17,7 +17,7 @@ pub mod server_config;
 pub mod workspace_details;
 
 pub(crate) mod prelude {
-    pub(crate) use std::{str::FromStr as _, sync::Arc};
+    pub(crate) use std::str::FromStr as _;
 
     pub(crate) use axum::http::{header::*, StatusCode};
     pub(crate) use axum_test::{TestResponse, TestServer};

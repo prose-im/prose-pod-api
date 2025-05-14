@@ -58,11 +58,11 @@ impl ServerConfigRepository {
         db: &impl ConnectionTrait,
         overrides: ProsodyOverrides,
     ) -> Result<server_config::Model, Either<serde_json::Error, DbErr>> {
-        let json = serde_json::to_value(overrides).map_err(Either::Left)?;
+        let json = serde_json::to_value(overrides).map_err(Either::E1)?;
         let mut model = ActiveModel::new();
         model.id = Unchanged(1);
         model.prosody_overrides = Set(Some(json));
-        model.update(db).await.map_err(Either::Right)
+        model.update(db).await.map_err(Either::E2)
     }
 
     /// - `Ok(Some(None))` => Server config initialized, no value
@@ -83,11 +83,11 @@ impl ServerConfigRepository {
             .into_tuple::<Option<Json>>()
             .one(db)
             .await
-            .map_err(Either::Left)?;
+            .map_err(Either::E1)?;
         match json {
             Some(Some(json)) => match serde_json::from_value::<ProsodyOverrides>(json) {
                 Ok(v) => Ok(Some(Some(v))),
-                Err(e) => Err(Either::Right(e)),
+                Err(e) => Err(Either::E2(e)),
             },
             Some(None) => Ok(Some(None)),
             None => Ok(None),

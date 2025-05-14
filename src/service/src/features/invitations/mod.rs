@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod entities;
+pub mod invitation_controller;
 pub mod invitation_repository;
 pub mod invitation_service;
 pub(crate) mod migrations;

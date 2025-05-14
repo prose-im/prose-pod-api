@@ -5,7 +5,22 @@
 
 pub(crate) mod migrations;
 pub mod models;
+pub mod workspace_controller;
 pub mod workspace_service;
 
 pub use models::*;
 pub use workspace_service::*;
+
+pub mod errors {
+    #[derive(Debug, thiserror::Error)]
+    pub enum WorkspaceNotInitialized {
+        #[error("Workspace not initialized: {0}")]
+        WithReason(&'static str),
+        #[error("Workspace not initialized")]
+        NoReason,
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("Workspace already initialized.")]
+    pub struct WorkspaceAlreadyInitialized;
+}

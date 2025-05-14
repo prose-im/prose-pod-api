@@ -6,12 +6,13 @@
 mod get_dns_records;
 
 use axum::{middleware::from_extractor_with_state, routing::get};
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
 pub use self::get_dns_records::*;
 
-use super::{auth::guards::IsAdmin, NETWORK_ROUTE};
+use super::NETWORK_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

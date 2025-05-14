@@ -3,10 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::server_config::ServerConfigRepository;
+use service::server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository};
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::ServerConfigNotInitialized, AppState};
+use crate::AppState;
 
 /// NOTE: Users need to receive PEP events when the workspace vCard changes for
 ///   Prose to update the UI automatically. For this, the Workspace needs to be
@@ -26,7 +26,10 @@ pub async fn add_workspace_to_team(
     let server_config = match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => server_config,
         Ok(None) => {
-            info!("Not adding the Workspace XMPP account to everyone’s rosters: {ServerConfigNotInitialized}");
+            info!(
+                "Not adding the Workspace XMPP account to everyone’s rosters: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {

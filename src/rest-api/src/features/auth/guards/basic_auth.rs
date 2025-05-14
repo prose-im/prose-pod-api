@@ -52,3 +52,12 @@ impl FromRequestParts<AppState> for BasicAuth {
         })
     }
 }
+
+impl From<BasicAuth> for service::auth::Credentials {
+    fn from(value: BasicAuth) -> Self {
+        Self {
+            jid: value.jid,
+            password: value.password,
+        }
+    }
+}

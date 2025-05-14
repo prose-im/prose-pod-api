@@ -8,13 +8,13 @@ mod set_member_nickname;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::put;
+use service::auth::Authenticated;
 
 use crate::AppState;
 
 pub use self::set_member_avatar::*;
 pub use self::set_member_nickname::*;
 
-use super::auth::guards::Authenticated;
 use super::members::MEMBER_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {

@@ -5,8 +5,8 @@
 
 use axum::extract::OptionalFromRequestParts;
 use service::{
-    server_config::ServerConfig,
-    workspace::{WorkspaceService, WorkspaceServiceInitError},
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
+    workspace::WorkspaceService,
 };
 
 use crate::{error::prelude::*, guards::prelude::*};
@@ -15,15 +15,16 @@ impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;
 
     async fn from_request_parts(
-        parts: &mut request::Parts,
+        _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let server_config = ServerConfig::from_request_parts(parts, state).await?;
+        let server_domain = (server_config_controller::get_server_domain(&state.db).await)?
+            .ok_or(ServerConfigNotInitialized)?;
 
         WorkspaceService::new(
             Arc::new(state.xmpp_service.clone()),
             Arc::new(state.app_config.clone()),
-            &server_config,
+            &server_domain,
             Arc::new(state.secrets_store.clone()),
         )
         .map_err(Error::from)
@@ -44,14 +45,3 @@ impl OptionalFromRequestParts<AppState> for WorkspaceService {
         )
     }
 }
-
-// ERRORS
-
-impl CustomErrorCode for WorkspaceServiceInitError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
-        }
-    }
-}
-impl_into_error!(WorkspaceServiceInitError);

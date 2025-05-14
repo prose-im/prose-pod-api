@@ -3,10 +3,13 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{server_config::ServerConfigRepository, xmpp::ServerManager};
+use service::{
+    server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository},
+    xmpp::ServerManager,
+};
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::ServerConfigNotInitialized, AppState};
+use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn create_service_accounts(
@@ -24,7 +27,10 @@ pub async fn create_service_accounts(
     let server_config = match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => server_config,
         Ok(None) => {
-            info!("Not creating service accounts: {ServerConfigNotInitialized}");
+            info!(
+                "Not creating service accounts: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {

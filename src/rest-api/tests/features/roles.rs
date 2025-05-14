@@ -31,7 +31,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
                 )
                 .await?;
 
-            let token = world.mock_auth_service.log_in_unchecked(&jid)?;
+            let token = world.mock_auth_service.log_in_unchecked(&jid);
 
             world.members.insert(name, (model, token));
         }
@@ -56,7 +56,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
         )
         .await?;
 
-    let token = world.mock_auth_service.log_in_unchecked(&jid)?;
+    let token = world.mock_auth_service.log_in_unchecked(&jid);
 
     world.members.insert(name, (model, token));
 

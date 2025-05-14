@@ -3,27 +3,19 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod forms;
-mod get_invitation;
-mod get_invitations;
+mod dtos;
+mod errors;
 mod guards;
-mod invitation_actions;
-mod invite_member;
-mod model;
+mod routes;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::*;
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
-pub use self::forms::*;
-pub use self::get_invitation::*;
-pub use self::get_invitations::*;
-pub use self::invitation_actions::*;
-pub use self::invite_member::*;
-pub use self::model::*;
-
-use super::auth::guards::IsAdmin;
+pub use self::dtos::*;
+pub use self::routes::*;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

@@ -7,11 +7,12 @@ use axum::extract::State;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::get;
 use axum::Json;
-use service::onboarding::{self, OnboardingStepsStatuses};
+use service::{
+    auth::Authenticated,
+    onboarding::{self, OnboardingStepsStatuses},
+};
 
 use crate::AppState;
-
-use super::auth::guards::Authenticated;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()

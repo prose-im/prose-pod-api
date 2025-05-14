@@ -5,10 +5,13 @@
 
 use std::sync::Arc;
 
-use service::{server_config::ServerConfigRepository, xmpp::ServerManager};
+use service::{
+    server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository},
+    xmpp::ServerManager,
+};
 use tracing::{debug, info, instrument};
 
-use crate::{features::init::ServerConfigNotInitialized, AppState};
+use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn init_server_config(
@@ -24,7 +27,10 @@ pub async fn init_server_config(
     let server_config = match ServerConfigRepository::get(db).await {
         Ok(Some(server_config)) => server_config,
         Ok(None) => {
-            info!("Not initializing the XMPP server configuration: {ServerConfigNotInitialized}");
+            info!(
+                "Not initializing the XMPP server configuration: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {

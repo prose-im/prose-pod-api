@@ -128,7 +128,7 @@ impl UnauthenticatedMemberService {
             .map_err(UserCreateError::CouldNotCreateVCard)?;
         // xmpp_service.set_own_nickname(nickname)?;
 
-        Ok(member)
+        Ok(member.into())
     }
 }
 

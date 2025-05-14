@@ -137,12 +137,15 @@ impl NetworkChecker {
 
                 Box::pin(async move {
                     let result = check.run(&network_checker).await;
-                    (check, Either::Left(result))
+                    (check, Either::E1(result))
                 })
             },
-            Some(|check: &Check| (check.clone(), Either::Right(Status::queued()))),
-            Some(|check: &Check| (check.clone(), Either::Right(Status::checking()))),
-            |(_, res)| res.left().unwrap().should_retry(),
+            Some(|check: &Check| (check.clone(), Either::E2(Status::queued()))),
+            Some(|check: &Check| (check.clone(), Either::E2(Status::checking()))),
+            |(_, res)| match res {
+                Either::E1(res) => res.should_retry(),
+                Either::E2(_) => unreachable!(),
+            },
             on_succeed,
             move || {},
         );
@@ -151,8 +154,8 @@ impl NetworkChecker {
             async move {
                 while let Some((check, result)) = rx.recv().await {
                     let status = match result {
-                        Either::Left(r) => Status::from(r),
-                        Either::Right(s) => s,
+                        Either::E1(r) => Status::from(r),
+                        Either::E2(s) => s,
                     };
                     let event = map_to_event(&check, status);
                     if let Err(err) = sender.send(event).await {

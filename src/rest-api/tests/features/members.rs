@@ -3,12 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::{features::members::Member as MemberDTO, util::detect_image_mime_type};
 use service::{
     invitations::{InvitationContact, InviteMemberForm},
-    members::*,
+    members::{entities::member, *},
     models::EmailAddress,
     sea_orm::QueryOrder as _,
+    util::detect_image_mime_type,
     xmpp::xmpp_service::Avatar,
 };
 use urlencoding::encode;
@@ -79,9 +79,9 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             joined_at: None,
         };
         let model = MemberRepository::create(db, member).await?;
-        let token = world.mock_auth_service.log_in_unchecked(&jid)?;
+        let token = world.mock_auth_service.log_in_unchecked(&jid);
 
-        world.members.insert(jid.to_string(), (model, token));
+        world.members.insert(jid.to_string(), (model.into(), token));
     }
     Ok(())
 }
@@ -127,7 +127,7 @@ async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
         .invitation_service()
         .invite_member(
             &world.app_config,
-            &world.server_config().await?,
+            &world.server_config().await?.domain,
             &world.notifcation_service(),
             &world.workspace_service().await,
             InviteMemberForm {
@@ -242,7 +242,7 @@ async fn when_member_n_deleted(
 
 #[then(expr = "they should see {int} member(s)")]
 fn then_n_members(world: &mut TestWorld, n: usize) {
-    let res: Vec<MemberDTO> = world.result().json();
+    let res: Vec<Member> = world.result().json();
     assert_eq!(res.len(), n)
 }
 

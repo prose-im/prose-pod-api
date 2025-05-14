@@ -18,7 +18,6 @@ pub mod network_checks;
 pub mod onboarding;
 pub mod pod_config;
 pub mod profile;
-pub mod roles;
 pub mod server_config;
 pub mod version;
 pub mod workspace_details;
@@ -38,7 +37,6 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(onboarding::router(app_state.clone()))
         .merge(pod_config::router(app_state.clone()))
         .merge(profile::router(app_state.clone()))
-        .merge(roles::router(app_state.clone()))
         .merge(server_config::router(app_state.clone()))
         .merge(version::router())
         .merge(workspace_details::router(app_state.clone()))

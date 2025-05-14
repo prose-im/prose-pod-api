@@ -5,13 +5,13 @@
 
 use std::sync::Arc;
 
-use service::{server_config::ServerConfigRepository, workspace::WorkspaceService};
+use service::{
+    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
+    workspace::{errors::WorkspaceNotInitialized, WorkspaceService},
+};
 use tracing::{debug, info, instrument};
 
-use crate::{
-    features::init::{ServerConfigNotInitialized, WorkspaceNotInitialized},
-    AppState,
-};
+use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(
@@ -31,32 +31,35 @@ pub async fn migrate_workspace_vcard(
         return Ok(());
     }
 
-    let server_config = match ServerConfigRepository::get(db).await {
-        Ok(Some(server_config)) => server_config,
+    let server_domain = match server_config_controller::get_server_domain(db).await {
+        Ok(Some(server_domain)) => server_domain,
         Ok(None) => {
-            info!("Not migrating the Workspace vCard: {ServerConfigNotInitialized}");
+            info!(
+                "Not migrating the Workspace vCard: {err}",
+                err = ServerConfigNotInitialized,
+            );
             return Ok(());
         }
         Err(err) => {
             return Err(format!("Could not migrate the Workspace vCard: {err}"));
         }
-    }
-    .with_default_values_from(app_config);
+    };
 
     let workspace_service = WorkspaceService::new(
         Arc::new(xmpp_service.clone()),
         Arc::new(app_config.clone()),
-        &server_config,
+        &server_domain,
         Arc::new(secrets_store.clone()),
     )
     .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?;
 
-    if !workspace_service
-        .is_workspace_initialized()
-        .await
+    if !(workspace_service.is_workspace_initialized().await)
         .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?
     {
-        info!("Not migrating the Workspace vCard: {WorkspaceNotInitialized}");
+        info!(
+            "Not migrating the Workspace vCard: {err}",
+            err = WorkspaceNotInitialized::NoReason,
+        );
         return Ok(());
     }
 

@@ -7,11 +7,63 @@ use axum::http::header::InvalidHeaderValue;
 use service::{
     notifications::notification_service,
     sea_orm,
-    xmpp::{server_ctl, server_manager, xmpp_service, CreateServiceAccountError},
+    xmpp::{server_ctl, xmpp_service, CreateServiceAccountError},
     MutationError,
 };
 
 use super::prelude::*;
+
+impl HttpApiError for anyhow::Error {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INTERNAL_SERVER_ERROR
+    }
+    fn message(&self) -> String {
+        format!("{self:#}")
+    }
+    fn debug_info(&self) -> Option<serde_json::Value> {
+        Some(serde_json::Value::String(format!("{self:#?}")))
+    }
+}
+
+macro_rules! impl_error_for_either {
+    ($t:ident<$case1:ident$(, $cases:ident)+>) => {
+        impl<$case1: HttpApiError$(, $cases: HttpApiError)+> HttpApiError for service::util::$t<$case1$(, $cases)+> {
+            fn code(&self) -> ErrorCode {
+                match self {
+                    Self::$case1(err) => err.code(),
+                    $(Self::$cases(err) => err.code(),)+
+                }
+            }
+            fn message(&self) -> String {
+                match self {
+                    Self::$case1(err) => err.message(),
+                    $(Self::$cases(err) => err.message(),)+
+                }
+            }
+            fn debug_info(&self) -> Option<serde_json::Value> {
+                match self {
+                    Self::$case1(err) => err.debug_info(),
+                    $(Self::$cases(err) => err.debug_info(),)+
+                }
+            }
+            fn recovery_suggestions(&self) -> Vec<String> {
+                match self {
+                    Self::$case1(err) => err.recovery_suggestions(),
+                    $(Self::$cases(err) => err.recovery_suggestions(),)+
+                }
+            }
+            fn http_headers(&self) -> Vec<(String, String)> {
+                match self {
+                    Self::$case1(err) => err.http_headers(),
+                    $(Self::$cases(err) => err.http_headers(),)+
+                }
+            }
+        }
+    };
+}
+
+impl_error_for_either!(Either<E1, E2>);
+impl_error_for_either!(Either3<E1, E2, E3>);
 
 impl ErrorCode {
     pub const NOT_IMPLEMENTED: Self = Self {
@@ -266,17 +318,6 @@ impl CustomErrorCode for MutationError {
 }
 impl_into_error!(MutationError);
 
-impl CustomErrorCode for server_manager::Error {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::ServerConfigAlreadyInitialized => ErrorCode::SERVER_CONFIG_ALREADY_INITIALIZED,
-            Self::ServerCtl(err) => err.code(),
-            Self::DbErr(err) => err.code(),
-        }
-    }
-}
-impl_into_error!(server_manager::Error);
-
 impl CustomErrorCode for CreateServiceAccountError {
     fn error_code(&self) -> ErrorCode {
         match self {
@@ -304,3 +345,9 @@ impl HttpApiError for service::errors::UnexpectedHttpResponse {
 }
 
 impl_into_error!(InvalidHeaderValue, ErrorCode::INTERNAL_SERVER_ERROR);
+
+impl HttpApiError for service::errors::NotImplemented {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::NOT_IMPLEMENTED
+    }
+}

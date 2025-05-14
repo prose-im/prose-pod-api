@@ -10,7 +10,7 @@ use prose_xmpp::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::xmpp::xmpp_service::Avatar;
+use crate::{workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Workspace {
@@ -19,18 +19,14 @@ pub struct Workspace {
     pub accent_color: Option<String>,
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("Workspace name not initialized.")]
-pub struct WorkspaceNameNotInitialized;
-
 const ACCENT_COLOR_EXTENSION_KEY: &'static str = "x-accent-color";
 
 impl TryFrom<VCard4> for Workspace {
-    type Error = WorkspaceNameNotInitialized;
+    type Error = WorkspaceNotInitialized;
 
     fn try_from(vcard: VCard4) -> Result<Self, Self::Error> {
         let Some(name) = vcard.fn_.first() else {
-            return Err(WorkspaceNameNotInitialized);
+            return Err(WorkspaceNotInitialized::WithReason("Missing name."));
         };
         Ok(Self {
             name: name.value.to_owned(),

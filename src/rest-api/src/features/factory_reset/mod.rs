@@ -3,35 +3,24 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fs::{self, File};
-use std::io::Write;
-
-use axum::extract::Request;
+use axum::extract::{Request, State};
 use axum::http::StatusCode;
-use axum::middleware::Next;
+use axum::middleware::{from_extractor_with_state, Next};
 use axum::response::Response;
-use axum::{extract::State, middleware::from_extractor_with_state};
-use axum::{routing::*, Json};
+use axum::routing::*;
+use axum::Json;
 use axum_extra::either::Either;
-use lazy_static::lazy_static;
-use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use serde::{Deserialize, Serialize};
-use service::app_config::CONFIG_FILE_PATH;
-use service::auth::{AuthService, UserInfo};
+use service::auth::errors::InvalidCredentials;
+use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
+use service::factory_reset::factory_reset_controller::{self, InvalidConfirmationCode};
 use service::models::SerializableSecretString;
 use service::secrets::SecretsStore;
-use service::xmpp::{ServerCtl, ServerManager};
-use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use service::xmpp::ServerCtl;
+use tracing::info;
 
-use crate::error::{self, Error, ErrorCode};
+use crate::error::Error;
 use crate::AppState;
-
-use super::auth::guards::IsAdmin;
-
-lazy_static! {
-    static ref FACTORY_RESET_CONFIRMATION_CODE: RwLock<Option<String>> = RwLock::default();
-}
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
@@ -63,102 +52,43 @@ async fn factory_reset_route(
     secrets_store: SecretsStore,
     user_info: UserInfo,
     auth_service: AuthService,
-    req: Json<FactoryResetRequest>,
+    Json(req): Json<FactoryResetRequest>,
 ) -> Result<Either<(StatusCode, Json<FactoryResetConfirmation>), StatusCode>, Error> {
     match req {
-        Json(FactoryResetRequest::PasswordConfirmation { password }) => {
-            // Test password.
-            // NOTE: This cannot be used to brute-force a user’s password since
-            //   the request is already authenticated using a valid OAuth 2.0
-            //   token for that user.
-            // TODO: Use a method that does not create a new token.
-            if auth_service
-                .log_in(&user_info.jid, &password.into_secret_string())
-                .await
-                .is_err()
+        FactoryResetRequest::PasswordConfirmation { password } => {
+            let credentials = Credentials {
+                jid: user_info.jid,
+                password: password.into_secret_string(),
+            };
+            match factory_reset_controller::get_confirmation_code(&credentials, &auth_service).await
             {
-                return Err(Error::from(error::BadRequest {
-                    reason: "Invalid password.".to_owned(),
-                }));
+                Ok(confirmation) => Ok(Either::E1((
+                    StatusCode::ACCEPTED,
+                    Json(FactoryResetConfirmation { confirmation }),
+                ))),
+                Err(err @ InvalidCredentials) => Err(Error::from(err)),
             }
-
-            // Generate a new 16-characters long string.
-            let confirmation = thread_rng()
-                .sample_iter(&Alphanumeric)
-                .take(16)
-                .map(char::from)
-                .collect::<String>();
-            // Store the code for later confirmation.
-            // WARN: This means two people can’t ask for a factory reset concurrently… but who cares?
-            *FACTORY_RESET_CONFIRMATION_CODE.write().await = Some(confirmation.clone());
-            // Return the code to the user.
-            return Ok(Either::E1((
-                StatusCode::ACCEPTED,
-                Json(FactoryResetConfirmation { confirmation }),
-            )));
         }
-        Json(FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation {
-            confirmation: validation,
-        })) => {
-            if Some(validation) != *FACTORY_RESET_CONFIRMATION_CODE.read().await {
-                return Err(Error::new(
-                    ErrorCode::BAD_REQUEST,
-                    "Invalid confirmation code".to_owned(),
-                    None,
-                    vec![format!(
-                        "Call `DELETE /` to get a new confirmation code."
-                    )],
-                    vec![],
-                ));
-            }
+        FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation { confirmation }) => {
+            factory_reset_controller::perform_factory_reset(
+                confirmation,
+                db,
+                &server_ctl,
+                &app_config,
+                &secrets_store,
+            )
+            .await
+            .map_err(|err| match err {
+                service::util::Either::E1(err @ InvalidConfirmationCode) => Error::from(err),
+                service::util::Either::E2(err) => Error::from(err),
+            })?;
+
+            info!("Restarting the API…");
+            lifecycle_manager.set_restarting();
+
+            Ok(Either::E2(StatusCode::RESET_CONTENT))
         }
     }
-
-    warn!("Doing factory reset…");
-
-    debug!("Resetting the server…");
-    ServerManager::reset_server_config(&db, &server_ctl, &app_config, &secrets_store).await?;
-
-    debug!("Erasing user data from the server…");
-    server_ctl.delete_all_data().await?;
-
-    debug!("Resetting the API’s database…");
-    // Close the database connection to make sure SeaORM
-    // doesn’t write to it after we empty the file.
-    db.close().await?;
-    // Then empty the database file.
-    // NOTE: We don’t just revert database migrations to ensure nothing remains.
-    let database_url = (app_config.databases.main.url)
-        .strip_prefix("sqlite://")
-        .expect("Database URL should start with `sqlite://`");
-    // NOTE: `File::create` truncates the file if it exists.
-    File::create(database_url).expect(&format!("Could not reset API database at <{database_url}>"));
-
-    debug!("Resetting the API’s configuration file…");
-    let config_file_path = CONFIG_FILE_PATH.as_path();
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .open(config_file_path)
-        .expect(&format!(
-            "Could not reset API config file at <{}>: Cannot open",
-            config_file_path.display(),
-        ));
-    let bootstrap_config = r#"# Prose Pod API configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
-# All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
-"#;
-    file.write_all(bootstrap_config.as_bytes()).expect(&format!(
-        "Could not reset API config file at <{}>: Cannot write",
-        config_file_path.display(),
-    ));
-
-    info!("Factory reset done.");
-
-    info!("Restarting the API…");
-    lifecycle_manager.set_restarting();
-
-    Ok(Either::E2(StatusCode::RESET_CONTENT))
 }
 
 pub async fn restart_guard(
@@ -177,4 +107,20 @@ pub async fn restart_guard(
             .unwrap();
     }
     next.run(request).await
+}
+
+// BOILERPLATE
+
+mod error {
+    use crate::error::prelude::*;
+
+    impl HttpApiError for service::factory_reset::factory_reset_controller::InvalidConfirmationCode {
+        fn code(&self) -> ErrorCode {
+            ErrorCode {
+                value: "invalid_confirmation_code",
+                http_status: StatusCode::BAD_REQUEST,
+                log_level: LogLevel::Info,
+            }
+        }
+    }
 }

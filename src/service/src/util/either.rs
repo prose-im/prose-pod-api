@@ -3,33 +3,58 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
-pub enum Either<A, B> {
-    Left(A),
-    Right(B),
+macro_rules! gen {
+    ($t:ident<$case1:ident$(, $case:ident)+>) => {
+        pub enum $t<$case1$(, $case)+> {
+            $case1($case1),
+            $($case($case),)+
+        }
+
+        impl<$case1: Debug$(, $case: Debug)+> Debug for $t<$case1$(, $case)+> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    Self::$case1(v) => Debug::fmt(&v, f),
+                    $(Self::$case(v) => Debug::fmt(&v, f),)+
+                }
+            }
+        }
+
+        impl<$case1: Display$(, $case: Display)+> Display for $t<$case1$(, $case)+> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    Self::$case1(v) => Display::fmt(&v, f),
+                    $(Self::$case(v) => Display::fmt(&v, f),)+
+                }
+            }
+        }
+    };
 }
 
-impl<A, B> Either<A, B> {
-    pub fn left(&self) -> Option<&A> {
-        match self {
-            Self::Left(v) => Some(v),
-            _ => None,
-        }
+gen!(Either<E1, E2>);
+gen!(Either3<E1, E2, E3>);
+
+// MARK: USEFUL (OPINIONATED) IMPLEMENTATIONS
+
+impl<E1> From<anyhow::Error> for Either<E1, anyhow::Error> {
+    fn from(value: anyhow::Error) -> Self {
+        Self::E2(value)
     }
-    pub fn right(&self) -> Option<&B> {
-        match self {
-            Self::Right(v) => Some(v),
-            _ => None,
-        }
+}
+impl<E1> From<sea_orm::DbErr> for Either<E1, anyhow::Error> {
+    fn from(value: sea_orm::DbErr) -> Self {
+        Self::E2(anyhow::Error::new(value).context("Database error"))
     }
 }
 
-impl<A: Display, B: Display> Display for Either<A, B> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Either::Left(v) => Display::fmt(&v, f),
-            Either::Right(v) => Display::fmt(&v, f),
-        }
+impl<E1, E2> From<anyhow::Error> for Either3<E1, E2, anyhow::Error> {
+    fn from(value: anyhow::Error) -> Self {
+        Self::E3(value)
+    }
+}
+impl<E1, E2> From<sea_orm::DbErr> for Either3<E1, E2, anyhow::Error> {
+    fn from(value: sea_orm::DbErr) -> Self {
+        Self::E3(anyhow::Error::new(value).context("Database error"))
     }
 }

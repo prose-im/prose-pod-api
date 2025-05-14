@@ -12,14 +12,13 @@ mod util;
 use axum::middleware::from_extractor_with_state;
 use axum::routing::head;
 use axum::routing::MethodRouter;
+use service::auth::IsAdmin;
 
 use crate::AppState;
 
 pub use self::dashboard_url::*;
 pub use self::pod_address::*;
 pub use self::pod_config::*;
-
-use super::auth::guards::IsAdmin;
 
 pub const POD_CONFIG_ROUTE: &'static str = "/v1/pod/config";
 pub const POD_ADDRESS_ROUTE: &'static str = "/v1/pod/config/address";

@@ -18,7 +18,6 @@ use service::{
     auth::{AuthService, AuthToken},
     dependencies,
     errors::DbErr,
-    init::InitService,
     invitations::{Invitation, InvitationService},
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
@@ -115,21 +114,13 @@ impl TestWorld {
         )
     }
 
-    pub fn init_service(&self) -> InitService {
-        let db = self.db();
-        InitService {
-            db: Arc::new(db.clone()),
-        }
-    }
-
     pub async fn workspace_service(&self) -> WorkspaceService {
         WorkspaceService::new(
             Arc::new(self.xmpp_service.clone()),
             Arc::new(self.app_config.clone()),
-            &self
-                .server_config()
-                .await
-                .expect("Error getting server config"),
+            &(self.server_config().await)
+                .expect("Error getting server config")
+                .domain,
             Arc::new(self.secrets_store.clone()),
         )
         .expect("Workspace not initialized")
