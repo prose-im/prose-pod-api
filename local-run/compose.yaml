@@ -27,6 +27,7 @@ services:
     volumes:
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
       - "${VAR_LIB_PROSODY_DIR:?}:/var/lib/prosody/"
+      # - "${ETC_PROSODY_DIR:?}/prosody.bootstrap.cfg.lua:/usr/share/prose/prosody.bootstrap.cfg.lua"
     ports:
       - "5222:5222"
       - "5269:5269"
@@ -42,7 +43,7 @@ services:
         ipv6_address: 2001:db8::40
     env_file: "${ENV_FILE:?}"
     entrypoint: >
-      sh -c "cp /etc/prosody/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
+      sh -c "cp /usr/share/prose/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
     # Make sure logs are colored.
     tty: true
 
