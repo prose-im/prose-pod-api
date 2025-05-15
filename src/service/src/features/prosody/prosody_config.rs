@@ -169,11 +169,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     modules_disabled: Some(
                         vec!["s2s"].into_iter().map(ToString::to_string).collect(),
                     ),
-                    ssl: Some(SSLConfig {
-                        key: Some("/etc/prosody/certs/prose.org.local.key".into()),
-                        certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
-                        ..Default::default()
-                    }),
                     c2s_require_encryption: Some(true),
                     c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
                     limits: Some(
