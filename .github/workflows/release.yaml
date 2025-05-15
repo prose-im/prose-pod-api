@@ -39,7 +39,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.current_tag.outputs.tag }}
-          body: "⚠️ Changelog not yet provided."
+          body: "See [CHANGELOG.md](https://github.com/prose-im/prose-pod-api/blob/master/CHANGELOG.md)."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
