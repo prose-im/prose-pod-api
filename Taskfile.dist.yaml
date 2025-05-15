@@ -79,6 +79,10 @@ tasks:
     desc: Creates a release (bumps the version number, then adds and pushes a tag).
     cmd: "{{.ROOT_DIR}}/scripts/release {{.CLI_ARGS}}"
 
+  changelog:prepare:
+    desc: Prepares changelog entries for the next release.
+    cmd: "{{.ROOT_DIR}}/scripts/changelog-prepare {{.CLI_ARGS}}"
+
   local:run:
     desc: Runs a Prose Pod API.
     cmd: "{{.ROOT_DIR}}/local-run/scripts/run {{.CLI_ARGS}}"
