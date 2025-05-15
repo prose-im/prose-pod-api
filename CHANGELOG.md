@@ -11,6 +11,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.13.0...HEAD
 
+### Removed
+
+- chore(server-config): Remove hard-coded `ssl` Prosody config (in `cd3c053`)
+- feat(local-run)!: Remove `--no-update` from `task local:run` (in `34c7290`)
+
+### Changed
+
+Breaking:
+
+- feat(app-config)!: Rename `server.prosody_config_file_path` into `prosody.config_file_path` (in `ec4beff`)
+- chore(local-run)!: Rename `prosody.initial.cfg.lua` into `prosody.bootstrap.cfg.lua` (in `49cb15d`)
+- feat(server-config)!: Use `default_storage` instead of `storage` (in `6e1914c`, `9bde5b7`)
+- feat(init)!: Change `HEAD /v1/init/first-account`’s semantics from `PUT` to `GET` (in `0ccc2e7`)
+- feat(factory-reset)!: Require a password confirmation on first step of a factory reset (in `7ca76ab`)
+- feat(workspace-details)!: Accept content types when setting and getting the Workspace icon (in `30401bd`)
+
+Non-breaking:
+
+- feat(network-checks): Add a default timeout of 5 minutes for SSE streams (in `d607603`)
+- feat(members): Return content type along with base64 member avatars (in `235d67a`)
+- feat(errors): Return code `cannot_remove_self` when a member tries to remove themselves (in `8d73945`)
+- feat(errors): Create error codes `cannot_change_own_role` and `cannot_assign_role` (in `a6043c7`)
+- chore: Move a ton of logic from `rest-api` to `service`
+- chore: Refactor and simplify a lot of code
+- chore(observability): Greatly improve how errors are propagated internally
+- chore(observability): Improve logging of errors debug info when developing the API
+- chore(observability): Improve observability
+- chore(run): Switch from `panic = "abort"` to `panic = "unwind"` (in `02daf87`)
+- feat(local-run): Delete all ephemeral scenarios instead of just the last one in `task local:stop` (in `f84274c`)
+- chore(local-run): Use bootstrap Prosody configuration now packaged in the Server (in `0d0d186`)
+
+### Added
+
+- `Prose.toml` additions:
+  - Add `prosody.*` which supports a lot of Prosody keys (in `0b672b4`, `eea7608`)
+  - Add `prosody_ext.additional_modules_enabled` (in `e563c54`, `001dddd`)
+  - Add `prosody_ext.config_file_path`
+  - Allow configuring log levels in a target-agnostic manner (in `085e362`)
+    - Add `log.level`
+  - Allow configuring log format (in `0bc28a2`, `e2cb6b5`, `d102e11`)
+    - Add `log.format`, `log.timer`, `log.with_ansi`, `log.with_file`, `log.with_level`, `log.with_target`, `log.with_thread_ids`, `log.with_line_number`, `log.with_span_events`, `log.with_thread_names`
+- `prosody-config` improvements:
+  - Add support for `mod_storage_sql` (in `d3a661f`, `565555f`)
+  - Add support for `mod_reload_modules` (in `6d911dd`)
+  - Derive `Serialize` and `Deserialize` for `ProsodySettings` (not all keys) (in `4a33424`, `14d5bbe`)
+  - Allow merging two `ProsodySettings` (in `42b12a4`)
+- Members-related improvements:
+  - Allow searching for members using the `q` and `until` query parameters (in `b1ed8a1`, `e2d2bd2`)
+  - Add support for `HEAD /v1/members` without authentication (in `68b4105`)
+  - Cache values when enriching members (in `66e855c`, `59bf4fb`, `da8a0be`)
+- New routes:
+  - Unauthenticated `GET /v1/server/config` now returns the Server domain (in `a1a5445`)
+  - Add `GET /v1/onboarding-steps` (in `8662d2c`)
+- chore(run): Declare `VOLUME`s in the Dockerfile (in `ca6d6cd`)
+- feat(run): Implement the 100 members limit
+- feat(run): Provide a default bootstrap password (in `ef18583`)
+- chore: Create a global key/value store (in `b6f2a55`)
+- feat(benchmarks): Add benchmark of Prosody storages (in `13d5e9c`)
+- feat(scripts): Create `task changelog:prepare` (in `9b4d492`)
+
+### Fixed
+
+- fix(network-checks): Fix API crash when client closes network checks SSE (in `71d7b3c`)
+- fix(run): Fix `ConcurrentTaskRunner` so it doesn’t panic when passed 0 elements (in `23b251e`)
+- fix(auth): Fix API returning 500 instead of 401 when logging in with a bad password (in `10c4c16`)
+- fix(network-checks): Fix network checks not stopping after the SSE connection is closed (in `c528791`)
+- fix(local-run): Fix uncommitted change when running a scenario without `--no-update` (in `70849a9`)
+- fix(run): Fix API being broken after being suspended for too long (in `9b11d89`)
+- fix(members): Make adding members a O(1) operation (≈150ms) (in `229fb4d`)
+- fix(prosody-config): Fix (de)serialization of `StorageBackend` and support custom values (in `e4fb9f1`)
+- fix(members): Remove member from Prosody team when deleting it (in `8a50e91`)
+
 ## [0.13.0] - 2025-04-10
 
 [0.13.0]: https://github.com/prose-im/prose-pod-api/compare/v0.12.0...v0.13.0
