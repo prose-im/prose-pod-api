@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.14.0...HEAD
 
+### Changed
+
+- chore(local-run): Improve logs when running locally (in `3e05670`, `d7b7fde`, `2152a00`)
+- feat(errors): Return error code `invalid_auth_token` when auth token is invalid (in `41d47dc`)
+- chore(auth): Improve `AuthService` errors (in `41d47dc`)
+
+### Fixed
+
+- fix: Fix #248 and #249 (in `71b0ee4`)
+
 ## [0.14.0] - 2025-05-15
 
 [0.14.0]: https://github.com/prose-im/prose-pod-api/compare/v0.13.0...v0.14.0
