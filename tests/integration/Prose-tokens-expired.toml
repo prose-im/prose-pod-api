@@ -4,9 +4,6 @@
 # Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
-[log]
-level = "trace"
-
 [branding]
 company_name = "Prose Test"
 
@@ -20,10 +17,5 @@ smtp_encrypt = false
 # Expire tokens immediately, allowing successful log in but not subsequent requests.
 oauth2_access_token_ttl = 0
 
-[debug_use_at_your_own_risk]
-log_config_at_startup = false
-detailed_error_responses = true
-
 [debug_only]
-insecure_password_on_auto_accept_invitation = true
 skip_startup_actions = ["migrate_workspace_vcard"]
