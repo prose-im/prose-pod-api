@@ -12,7 +12,7 @@ use tracing::Instrument as _;
 
 use crate::{
     models::{Paginated, Pagination, PaginationForm},
-    util::{ConcurrentTaskRunner, Either},
+    util::{either::Either, ConcurrentTaskRunner},
     xmpp::BareJid,
     AppConfig,
 };

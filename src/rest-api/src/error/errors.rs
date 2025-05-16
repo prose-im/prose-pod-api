@@ -27,7 +27,7 @@ impl HttpApiError for anyhow::Error {
 
 macro_rules! impl_error_for_either {
     ($t:ident<$case1:ident$(, $cases:ident)+>) => {
-        impl<$case1: HttpApiError$(, $cases: HttpApiError)+> HttpApiError for service::util::$t<$case1$(, $cases)+> {
+        impl<$case1: HttpApiError$(, $cases: HttpApiError)+> HttpApiError for service::util::either::$t<$case1$(, $cases)+> {
             fn code(&self) -> ErrorCode {
                 match self {
                     Self::$case1(err) => err.code(),

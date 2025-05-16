@@ -13,7 +13,7 @@ use service::{
     },
     members::{MemberRole, MemberService},
     models::SerializableSecretString,
-    util::Either,
+    util::either::Either,
     xmpp::BareJid,
 };
 

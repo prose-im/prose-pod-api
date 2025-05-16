@@ -37,9 +37,26 @@ gen!(Either3<E1, E2, E3>);
 
 // MARK: USEFUL (OPINIONATED) IMPLEMENTATIONS
 
+pub trait Context {
+    fn context<C>(self, context: C) -> Self
+    where
+        C: Display + Send + Sync + 'static;
+}
+
 impl<E1> From<anyhow::Error> for Either<E1, anyhow::Error> {
     fn from(value: anyhow::Error) -> Self {
         Self::E2(value)
+    }
+}
+impl<E1> Context for Either<E1, anyhow::Error> {
+    fn context<C>(self, context: C) -> Self
+    where
+        C: Display + Send + Sync + 'static,
+    {
+        match self {
+            Self::E2(err) => Self::E2(err.context(context)),
+            err => err,
+        }
     }
 }
 impl<E1> From<sea_orm::DbErr> for Either<E1, anyhow::Error> {
@@ -53,8 +70,31 @@ impl<E1, E2> From<anyhow::Error> for Either3<E1, E2, anyhow::Error> {
         Self::E3(value)
     }
 }
+impl<E1, E2> Context for Either3<E1, E2, anyhow::Error> {
+    fn context<C>(self, context: C) -> Self
+    where
+        C: Display + Send + Sync + 'static,
+    {
+        match self {
+            Self::E3(err) => Self::E3(err.context(context)),
+            err => err,
+        }
+    }
+}
 impl<E1, E2> From<sea_orm::DbErr> for Either3<E1, E2, anyhow::Error> {
     fn from(value: sea_orm::DbErr) -> Self {
         Self::E3(anyhow::Error::new(value).context("Database error"))
+    }
+}
+
+impl<T, E: Context> Context for Result<T, E> {
+    fn context<C>(self, context: C) -> Self
+    where
+        C: Display + Send + Sync + 'static,
+    {
+        match self {
+            Ok(val) => Ok(val),
+            Err(err) => Err(err.context(context)),
+        }
     }
 }

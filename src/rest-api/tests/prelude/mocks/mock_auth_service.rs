@@ -7,10 +7,14 @@ use anyhow::anyhow;
 use base64::engine::{general_purpose::STANDARD_NO_PAD as Base64, Engine as _};
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
-    auth::{auth_service, errors::InvalidCredentials, AuthServiceImpl, AuthToken, UserInfo},
+    auth::{
+        errors::{InvalidAuthToken, InvalidCredentials},
+        AuthServiceImpl, AuthToken, UserInfo,
+    },
     models::BareJid,
-    util::Either,
+    util::either::Either,
 };
+use tracing::debug;
 
 use std::sync::{Arc, RwLock};
 
@@ -84,20 +88,26 @@ impl AuthServiceImpl for MockAuthService {
         Ok(self.log_in_unchecked(jid))
     }
 
-    async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, auth_service::Error> {
+    async fn get_user_info(
+        &self,
+        token: AuthToken,
+    ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
         let base64 = token.expose_secret();
-        let json = Base64.decode(base64).map_err(|err| {
-            auth_service::Error::Other(format!("Could Base64-decode test token: {err}"))
+        let json = (Base64.decode(base64)).map_err(|err| {
+            debug!("Could not Base64-decode test token: {err}");
+            Either::E1(InvalidAuthToken)
         })?;
         let json = String::from_utf8(json).map_err(|err| {
-            auth_service::Error::Other(format!("Test token is not valid UTF-8: {err}"))
+            debug!("Test token is not valid UTF-8: {err}");
+            Either::E1(InvalidAuthToken)
         })?;
         serde_json::from_str(&json).map_err(|err| {
-            auth_service::Error::Other(format!("Could not parse data from test token: {err}"))
+            debug!("Could not parse data from test token: {err}");
+            Either::E1(InvalidAuthToken)
         })
     }
 
-    async fn register_oauth2_client(&self) -> Result<(), auth_service::Error> {
+    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
         // NOTE: Nothing to do in tests
         Ok(())
     }

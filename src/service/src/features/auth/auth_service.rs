@@ -10,9 +10,9 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::{models::BareJid, prosody::ProsodyOAuth2Error, util::Either};
+use crate::{models::BareJid, util::either::Either};
 
-use super::errors::InvalidCredentials;
+use super::errors::{InvalidAuthToken, InvalidCredentials};
 
 #[derive(Debug, Clone)]
 pub struct AuthService {
@@ -28,7 +28,7 @@ impl AuthService {
 impl AuthService {
     // TODO: Allow passing `Credentials`.
     /// Generates a token from a username and password.
-    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()), err)]
+    #[instrument(level = "trace", skip_all, fields(jid = jid.to_string()))]
     pub async fn log_in(
         &self,
         jid: &BareJid,
@@ -36,12 +36,15 @@ impl AuthService {
     ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
         self.implem.log_in(jid, password).await
     }
-    #[instrument(level = "trace", skip_all, ret, err)]
-    pub async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError> {
+    #[instrument(level = "trace", skip_all)]
+    pub async fn get_user_info(
+        &self,
+        token: AuthToken,
+    ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
         self.implem.get_user_info(token).await
     }
     #[instrument(level = "trace", skip_all, err)]
-    pub async fn register_oauth2_client(&self) -> Result<(), AuthError> {
+    pub async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
         self.implem.register_oauth2_client().await
     }
 }
@@ -71,18 +74,9 @@ pub trait AuthServiceImpl: Debug + Sync + Send {
         jid: &BareJid,
         password: &SecretString,
     ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>>;
-    async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError>;
-    async fn register_oauth2_client(&self) -> Result<(), AuthError>;
-}
-
-pub type Error = AuthError;
-
-#[derive(Debug, thiserror::Error)]
-pub enum AuthError {
-    #[error("`{t}` error: {0}", t = stringify!(ProsodyOAuth2))]
-    ProsodyOAuth2Err(#[from] ProsodyOAuth2Error),
-    #[error("Invalid credentials")]
-    InvalidCredentials,
-    #[error("{0}")]
-    Other(String),
+    async fn get_user_info(
+        &self,
+        token: AuthToken,
+    ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>>;
+    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error>;
 }

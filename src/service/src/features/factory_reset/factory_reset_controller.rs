@@ -17,7 +17,7 @@ use crate::app_config::CONFIG_FILE_PATH;
 use crate::auth::errors::InvalidCredentials;
 use crate::auth::{AuthService, Credentials};
 use crate::secrets::SecretsStore;
-use crate::util::Either;
+use crate::util::either::Either;
 use crate::xmpp::{ServerCtl, ServerManager};
 use crate::AppConfig;
 

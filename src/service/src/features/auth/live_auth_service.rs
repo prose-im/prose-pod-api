@@ -5,20 +5,20 @@
 
 use std::sync::Arc;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 
 use crate::{
     models::BareJid,
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
-    util::Either,
+    util::either::Either,
 };
 
 use super::{
     auth_service::{AuthToken, UserInfo},
-    errors::InvalidCredentials,
-    AuthError, AuthServiceImpl,
+    errors::{InvalidAuthToken, InvalidCredentials},
+    AuthServiceImpl,
 };
 
 #[derive(Debug, Clone)]
@@ -47,8 +47,11 @@ impl AuthServiceImpl for LiveAuthService {
         }
     }
 
-    async fn get_user_info(&self, token: AuthToken) -> Result<UserInfo, AuthError> {
-        let response = self
+    async fn get_user_info(
+        &self,
+        token: AuthToken,
+    ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
+        let result = self
             .prosody_oauth2
             .call(
                 |client| {
@@ -58,19 +61,25 @@ impl AuthServiceImpl for LiveAuthService {
                 },
                 |res| res.status.is_success(),
             )
-            .await?;
+            .await;
+        let response = match result {
+            Ok(response) => response,
+            Err(ProsodyOAuth2Error::Forbidden(_)) => return Err(Either::E1(InvalidAuthToken)),
+            Err(err) => return Err(Either::E2(anyhow!(err).context("Prosody OAuth 2.0 error"))),
+        };
 
         let body = response.text();
-        let res: UserInfoResponse = serde_json::from_str(&body)?;
+        let res: UserInfoResponse =
+            serde_json::from_str(&body).context("Invalid JSON response body")?;
 
         Ok(UserInfo::from(res))
     }
 
-    async fn register_oauth2_client(&self) -> Result<(), AuthError> {
-        self.prosody_oauth2
-            .register()
-            .await
-            .map_err(AuthError::from)
+    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
+        match self.prosody_oauth2.register().await {
+            Ok(()) => Ok(()),
+            Err(err) => Err(anyhow!(err).context("Prosody OAuth 2.0 error")),
+        }
     }
 }
 
@@ -93,17 +102,5 @@ impl From<UserInfoResponse> for UserInfo {
         // NOTE: This JID is returned by prosody so we can assume it's well formatted.
         let jid = BareJid::new(jid_str).unwrap();
         Self { jid }
-    }
-}
-
-impl From<reqwest::Error> for AuthError {
-    fn from(err: reqwest::Error) -> Self {
-        Self::Other(format!("reqwest::Error: {err}"))
-    }
-}
-
-impl From<serde_json::Error> for AuthError {
-    fn from(err: serde_json::Error) -> Self {
-        Self::Other(format!("serde_json::Error: {err}"))
     }
 }

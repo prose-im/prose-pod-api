@@ -156,8 +156,8 @@ pub async fn get_server_config(
     is_admin: Option<IsAdmin>,
 ) -> Result<Either<Json<ServerConfig>, Json<PublicServerConfig>>, Error> {
     match server_config_controller::get_server_config_public(db, app_config, is_admin).await? {
-        Some(service::util::Either::E1(config)) => Ok(Either::E1(Json(config))),
-        Some(service::util::Either::E2(config)) => Ok(Either::E2(Json(config))),
+        Some(service::util::either::Either::E1(config)) => Ok(Either::E1(Json(config))),
+        Some(service::util::either::Either::E2(config)) => Ok(Either::E2(Json(config))),
         None => Err(Error::from(ServerConfigNotInitialized)),
     }
 }

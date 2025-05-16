@@ -10,7 +10,7 @@ use crate::{
     models::JidDomain,
     prosody::ProsodyOverrides,
     server_config::entities::server_config::{self, ActiveModel, Column, Entity},
-    util::Either,
+    util::either::Either,
 };
 
 pub enum ServerConfigRepository {}

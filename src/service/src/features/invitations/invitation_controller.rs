@@ -11,7 +11,7 @@ use crate::{
     members::MemberRole,
     models::{Paginated, Pagination, PaginationForm},
     notifications::NotificationService,
-    util::{to_bare_jid, Either},
+    util::{either::Either, to_bare_jid},
     workspace::WorkspaceService,
     AppConfig,
 };

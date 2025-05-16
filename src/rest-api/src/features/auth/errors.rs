@@ -17,6 +17,16 @@ impl HttpApiError for InvalidCredentials {
     }
 }
 
+impl HttpApiError for InvalidAuthToken {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "invalid_auth_token",
+            http_status: StatusCode::UNAUTHORIZED,
+            log_level: LogLevel::Info,
+        }
+    }
+}
+
 impl HttpApiError for CannotChangeOwnRole {
     fn code(&self) -> ErrorCode {
         ErrorCode {

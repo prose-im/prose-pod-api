@@ -11,7 +11,7 @@ use linked_hash_set::LinkedHashSet;
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, error, instrument, trace_span, Instrument as _};
 
-use crate::util::{ConcurrentTaskRunner, Either};
+use crate::util::{either::Either, ConcurrentTaskRunner};
 
 use super::models::{dns::*, network_checks::*};
 

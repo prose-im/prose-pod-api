@@ -9,7 +9,7 @@ use mime::Mime;
 use tracing::info;
 
 use crate::{
-    util::{detect_image_mime_type, Either},
+    util::{detect_image_mime_type, either::Either},
     xmpp::{xmpp_service::Avatar, VCard},
 };
 

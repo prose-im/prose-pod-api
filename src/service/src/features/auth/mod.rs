@@ -10,7 +10,7 @@ pub mod auth_service;
 pub mod errors;
 pub mod live_auth_service;
 
-pub use auth_service::{AuthError, AuthService, AuthServiceImpl, AuthToken, UserInfo};
+pub use auth_service::{AuthService, AuthServiceImpl, AuthToken, UserInfo};
 pub use live_auth_service::LiveAuthService;
 
 pub use self::models::*;

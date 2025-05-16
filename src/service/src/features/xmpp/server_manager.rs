@@ -23,7 +23,7 @@ use crate::{
         entities::server_config, errors::ServerConfigAlreadyInitialized, ServerConfig,
         ServerConfigCreateForm, ServerConfigRepository, TlsProfile,
     },
-    util::Either,
+    util::either::Either,
     AppConfig,
 };
 

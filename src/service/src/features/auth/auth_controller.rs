@@ -10,7 +10,7 @@ use tracing::instrument;
 
 use crate::{
     members::{MemberRepository, MemberRole, MemberService},
-    util::{Either, Either3},
+    util::either::{Either, Either3},
 };
 
 use super::{

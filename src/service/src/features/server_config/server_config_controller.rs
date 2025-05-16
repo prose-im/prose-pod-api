@@ -17,7 +17,7 @@ use crate::{
     prosody::ProsodyOverrides,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
-    util::Either,
+    util::either::Either,
     xmpp::{JidDomain, ServerCtl, ServerManager},
     AppConfig, LinkedHashSet,
 };

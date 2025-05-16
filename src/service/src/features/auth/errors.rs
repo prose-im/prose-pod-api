@@ -8,6 +8,10 @@
 pub struct InvalidCredentials;
 
 #[derive(Debug, thiserror::Error)]
+#[error("Invalid auth token.")]
+pub struct InvalidAuthToken;
+
+#[derive(Debug, thiserror::Error)]
 #[error("Cannot change your own role.")]
 pub struct CannotChangeOwnRole;
 

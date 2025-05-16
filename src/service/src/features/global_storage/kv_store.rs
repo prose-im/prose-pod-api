@@ -12,7 +12,7 @@ use sea_orm::{
 use serde_json::Value as Json;
 use tracing::{instrument, warn};
 
-use crate::{global_storage::entity::ActiveModel, util::Either};
+use crate::{global_storage::entity::ActiveModel, util::either::Either};
 
 use super::entity::{Column, Entity};
 
@@ -181,7 +181,7 @@ macro_rules! gen_scoped_kv_store {
             use sea_orm::ConnectionTrait;
             use serde_json::Value as Json;
 
-            use crate::{global_storage, util::Either};
+            use crate::{global_storage, util::either::Either};
 
             const NAMESPACE: &'static str = $namespace;
 

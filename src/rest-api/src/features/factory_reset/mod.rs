@@ -13,7 +13,7 @@ use axum_extra::either::Either;
 use serde::{Deserialize, Serialize};
 use service::auth::errors::InvalidCredentials;
 use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
-use service::factory_reset::factory_reset_controller::{self, InvalidConfirmationCode};
+use service::factory_reset::factory_reset_controller;
 use service::models::SerializableSecretString;
 use service::secrets::SecretsStore;
 use service::xmpp::ServerCtl;
@@ -77,11 +77,7 @@ async fn factory_reset_route(
                 &app_config,
                 &secrets_store,
             )
-            .await
-            .map_err(|err| match err {
-                service::util::Either::E1(err @ InvalidConfirmationCode) => Error::from(err),
-                service::util::Either::E2(err) => Error::from(err),
-            })?;
+            .await?;
 
             info!("Restarting the API…");
             lifecycle_manager.set_restarting();
