@@ -120,7 +120,7 @@ info "Current version: $(to-tag "${VERSION:?}")"
 info "New version: $(to-tag "${NEW_VERSION:?}")"
 info "New commits:"
 log_as_info_ git --no-pager log --reverse --no-merges \
-  --format="- %C(auto)%h %s %C(green)(%ad)" --date=short --color \
+  --format="- %C(auto)%h %s %C(green)(%ad)%C(reset)" --date=short --color \
   "$(to-tag "${VERSION:?}")"..HEAD
 
 # Update version numbers in files.
