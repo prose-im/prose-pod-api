@@ -171,6 +171,7 @@ macro_rules! kv_store_scoped_get_set {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! gen_scoped_kv_store {
     ($namespace:literal) => {
@@ -220,6 +221,35 @@ macro_rules! gen_scoped_kv_store {
             impl KvStore {
                 crate::kv_store_scoped_get_set!(bool, get_bool, set_bool);
                 crate::kv_store_scoped_get_set!(String, get_string, set_string);
+            }
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! gen_kv_store_get_set {
+    ($val:ident: bool) => {
+        pub mod $val {
+            use sea_orm::ConnectionTrait;
+
+            use super::KvStore;
+
+            #[tracing::instrument(level = "trace", skip_all)]
+            pub async fn get_opt(db: &impl ConnectionTrait) -> Option<bool> {
+                (KvStore::get_bool(db, stringify!($val)).await).unwrap_or(None)
+            }
+
+            #[tracing::instrument(level = "trace", skip_all)]
+            pub async fn get(db: &impl ConnectionTrait) -> bool {
+                (KvStore::get_bool(db, stringify!($val)).await)
+                    .unwrap_or(None)
+                    .unwrap_or(false)
+            }
+
+            #[tracing::instrument(level = "trace", skip_all, fields(new_value))]
+            pub async fn set(db: &impl ConnectionTrait, new_value: bool) -> anyhow::Result<()> {
+                KvStore::set_bool(db, stringify!($val), new_value).await
             }
         }
     };

@@ -24,33 +24,5 @@ pub async fn get_steps_statuses(db: &impl sea_orm::ConnectionTrait) -> Onboardin
 
 crate::gen_scoped_kv_store!("onboarding");
 
-#[doc(hidden)]
-macro_rules! get_set {
-    ($val:ident: bool) => {
-        pub mod $val {
-            use sea_orm::ConnectionTrait;
-
-            use super::KvStore;
-
-            #[tracing::instrument(level = "trace", skip_all)]
-            pub async fn get_opt(db: &impl ConnectionTrait) -> Option<bool> {
-                (KvStore::get_bool(db, stringify!($val)).await).unwrap_or(None)
-            }
-
-            #[tracing::instrument(level = "trace", skip_all)]
-            pub async fn get(db: &impl ConnectionTrait) -> bool {
-                (KvStore::get_bool(db, stringify!($val)).await)
-                    .unwrap_or(None)
-                    .unwrap_or(false)
-            }
-
-            #[tracing::instrument(level = "trace", skip_all, fields(new_value))]
-            pub async fn set(db: &impl ConnectionTrait, new_value: bool) -> anyhow::Result<()> {
-                KvStore::set_bool(db, stringify!($val), new_value).await
-            }
-        }
-    };
-}
-
-get_set!(all_dns_checks_passed_once: bool);
-get_set!(at_least_one_invitation_sent: bool);
+crate::gen_kv_store_get_set!(all_dns_checks_passed_once: bool);
+crate::gen_kv_store_get_set!(at_least_one_invitation_sent: bool);
