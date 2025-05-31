@@ -6,8 +6,6 @@
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use jid::DomainRef;
-#[cfg(debug_assertions)]
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{
     DatabaseConnection, DbConn, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _,
 };
@@ -168,13 +166,7 @@ impl InvitationService {
                 // Use JID as password to make password predictable
                 invitation.jid.to_string().into()
             } else {
-                // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-                thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(32)
-                    .map(char::from)
-                    .collect::<String>()
-                    .into()
+                crate::auth::util::strong_random_password(32)
             };
             self.accept_by_token(
                 invitation.accept_token.into(),

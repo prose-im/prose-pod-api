@@ -8,8 +8,8 @@ use std::io::Write;
 
 use anyhow::Context;
 use lazy_static::lazy_static;
-use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use sea_orm::DatabaseConnection;
+use secrecy::ExposeSecret;
 use tokio::sync::RwLock;
 use tracing::{debug, info, instrument, warn};
 
@@ -48,11 +48,9 @@ pub async fn get_confirmation_code(
     }
 
     // Generate a random 16-characters-long string.
-    let confirmation = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(16)
-        .map(char::from)
-        .collect::<String>();
+    let confirmation = crate::auth::util::strong_random_password(16)
+        .expose_secret()
+        .to_owned();
 
     {
         // Store the code for later confirmation.

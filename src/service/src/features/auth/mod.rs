@@ -9,6 +9,7 @@ pub mod auth_controller;
 pub mod auth_service;
 pub mod errors;
 pub mod live_auth_service;
+pub mod util;
 
 pub use auth_service::{AuthService, AuthServiceImpl, AuthToken, UserInfo};
 pub use live_auth_service::LiveAuthService;
