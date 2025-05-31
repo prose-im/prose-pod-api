@@ -111,29 +111,52 @@ lazy_static! {
     static ref SEMICOLON_SPACE_REGEX: Regex = Regex::new(r"(?m)(^.*:)\s").unwrap();
 }
 
-#[then(expr = "one SSE event is {string}")]
-async fn then_sse_event(world: &mut TestWorld, value: String) {
-    let res = world.result();
-    let events = res
-        .text()
+fn received_events(world: &mut TestWorld) -> Vec<HashSet<String>> {
+    (world.result().text())
         .split("\n\n")
         // Remove spaces after semicolons (`:`)
         .map(|s| SEMICOLON_SPACE_REGEX.replace_all(&s, "$1").to_string())
-        .collect::<Vec<String>>();
-    let events = events
-        .iter()
-        .map(|s| s.lines().collect::<HashSet<_>>())
-        .collect::<Vec<_>>();
+        .map(|s| s.lines().map(ToOwned::to_owned).collect::<HashSet<_>>())
+        .collect::<Vec<_>>()
+}
+
+#[then(expr = "one SSE event is {string}")]
+async fn then_sse_event(world: &mut TestWorld, value: String) {
+    let events = received_events(world);
 
     let expected = value
         // Unescape double quotes
         .replace(r#"\""#, r#"""#)
         // Unescape newlines
         .replace("\\n", "\n");
-    let expected = expected.lines().collect::<HashSet<_>>();
+    let expected = (expected.lines())
+        .map(ToOwned::to_owned)
+        .collect::<HashSet<String>>();
 
     assert!(
         events.iter().any(|set| set == &expected),
+        "events: {events:#?}\nexpected: {expected:#?}"
+    );
+}
+
+#[then(expr = "at least one SSE event has id {string}")]
+async fn then_sse_event_id(world: &mut TestWorld, id: String) {
+    let events = received_events(world);
+    let expected = format!("id:{id}");
+
+    assert!(
+        events.iter().any(|set| set.contains(&expected)),
+        "events: {events:#?}\nexpected: {expected:#?}"
+    );
+}
+
+#[then(expr = "no SSE event has id {string}")]
+async fn then_no_sse_event_id(world: &mut TestWorld, id: String) {
+    let events = received_events(world);
+    let expected = format!("id:{id}");
+
+    assert!(
+        !events.iter().any(|set| set.contains(&expected)),
         "events: {events:#?}\nexpected: {expected:#?}"
     );
 }

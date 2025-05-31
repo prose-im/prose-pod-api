@@ -39,8 +39,6 @@ tests:
               $.[1].data.status: VALID
               $.[2].id: SRV-c2s
               $.[2].data.status: VALID
-              $.[3].id: SRV-s2s
-              $.[3].data.status: VALID
   checkPortsReachability:
     name: Check ports reachability
     steps:
@@ -62,11 +60,9 @@ tests:
             jsonpath:
               $.[0].id: TCP-c2s
               $.[0].data.status: OPEN
-              $.[1].id: TCP-s2s
-              $.[1].data.status: OPEN
-              $.[2].id: TCP-HTTPS
+              $.[1].id: TCP-HTTPS
               # NOTE: We didn't setup HTTPS in integration tests.
-              $.[2].data.status: CLOSED
+              $.[1].data.status: CLOSED
   checkIpConnectivity:
     name: Check IP connectivity
     steps:
@@ -90,7 +86,3 @@ tests:
               $.[0].data.status: SUCCESS
               $.[1].id: IPv6-c2s
               $.[1].data.status: SUCCESS
-              $.[2].id: IPv4-s2s
-              $.[2].data.status: SUCCESS
-              $.[3].id: IPv6-s2s
-              $.[3].data.status: SUCCESS

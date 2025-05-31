@@ -9,6 +9,7 @@ use crate::AppState;
 pub async fn backfill_database(
     AppState {
         db,
+        app_config,
         network_checker,
         uuid_gen,
         ..
@@ -16,7 +17,7 @@ pub async fn backfill_database(
 ) -> Result<(), String> {
     tracing::debug!("Backfilling database…");
 
-    service::onboarding::backfill(db, network_checker, uuid_gen).await;
+    service::onboarding::backfill(db, app_config, network_checker, uuid_gen).await;
 
     Ok(())
 }
