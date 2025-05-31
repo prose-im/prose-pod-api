@@ -64,6 +64,7 @@ macro_rules! impl_error_for_either {
 
 impl_error_for_either!(Either<E1, E2>);
 impl_error_for_either!(Either3<E1, E2, E3>);
+impl_error_for_either!(Either4<E1, E2, E3, E4>);
 
 impl ErrorCode {
     pub const NOT_IMPLEMENTED: Self = Self {
