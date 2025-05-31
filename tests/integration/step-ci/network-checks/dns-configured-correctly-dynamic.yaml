@@ -35,8 +35,6 @@ tests:
             jsonpath:
               $.[0].id: SRV-c2s
               $.[0].data.status: VALID
-              $.[1].id: SRV-s2s
-              $.[1].data.status: VALID
   checkPortsReachability:
     $ref: "network-checks/dns-configured-correctly-static.yaml#/tests/checkPortsReachability"
   checkIpConnectivity:

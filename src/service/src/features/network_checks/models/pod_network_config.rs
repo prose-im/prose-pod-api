@@ -22,6 +22,7 @@ use crate::{
 pub struct PodNetworkConfig {
     pub server_domain: JidDomain,
     pub pod_address: NetworkAddress,
+    pub federation_enabled: bool,
 }
 
 // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
@@ -35,6 +36,7 @@ impl PodNetworkConfig {
         let Self {
             server_domain,
             pod_address,
+            ..
         } = self;
 
         // === Helpers to create DNS records ===
@@ -80,15 +82,25 @@ impl PodNetworkConfig {
         // === Main logic ===
 
         match pod_address {
-            NetworkAddress::Static { ipv4, ipv6 } => vec![
-                step_static_ip(ipv4, ipv6),
-                step_c2s(format!("xmpp.{server_domain}.")),
-                step_s2s(format!("xmpp.{server_domain}.")),
-            ],
-            NetworkAddress::Dynamic { hostname } => vec![
-                step_c2s(format!("{hostname}.")),
-                step_s2s(format!("{hostname}.")),
-            ],
+            NetworkAddress::Static { ipv4, ipv6 } => {
+                let mut entries = vec![
+                    step_static_ip(ipv4, ipv6),
+                    step_c2s(format!("xmpp.{server_domain}.")),
+                ];
+                if self.federation_enabled {
+                    entries.push(step_s2s(format!("xmpp.{server_domain}.")));
+                }
+                entries
+            }
+            NetworkAddress::Dynamic { hostname } => {
+                let mut entries = vec![step_c2s(
+                    format!("{hostname}."),
+                )];
+                if self.federation_enabled {
+                    entries.push(step_s2s(format!("{hostname}.")));
+                }
+                entries
+            }
         }
     }
 
@@ -127,19 +139,23 @@ impl PodNetworkConfig {
         let server_domain = &DomainName::from_str(server_domain)
             .expect(&format!("Invalid domain name: {server_domain}"));
 
-        vec![
+        let mut checks = vec![
             PortReachabilityCheck::Xmpp {
                 hostname: server_domain.clone(),
                 conn_type: XmppConnectionType::C2S,
             },
-            PortReachabilityCheck::Xmpp {
+        ];
+        if self.federation_enabled {
+            checks.push(PortReachabilityCheck::Xmpp {
                 hostname: server_domain.clone(),
                 conn_type: XmppConnectionType::S2S,
-            },
-            PortReachabilityCheck::Https {
-                hostname: server_domain.clone(),
-            },
-        ]
+            });
+        }
+        checks.push(PortReachabilityCheck::Https {
+            hostname: server_domain.clone(),
+        });
+
+        checks
     }
 
     /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
@@ -148,6 +164,7 @@ impl PodNetworkConfig {
         let Self {
             server_domain,
             pod_address,
+            ..
         } = self;
         // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
         let server_domain = &DomainName::from_str(server_domain)
@@ -158,7 +175,7 @@ impl PodNetworkConfig {
             NetworkAddress::Dynamic { hostname } => hostname,
         };
 
-        vec![
+        let mut checks = vec![
             IpConnectivityCheck::XmppServer {
                 hostname: hostname.clone(),
                 conn_type: XmppConnectionType::C2S,
@@ -169,16 +186,20 @@ impl PodNetworkConfig {
                 conn_type: XmppConnectionType::C2S,
                 ip_version: IpVersion::V6,
             },
-            IpConnectivityCheck::XmppServer {
+        ];
+        if self.federation_enabled {
+            checks.push(IpConnectivityCheck::XmppServer {
                 hostname: hostname.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V4,
-            },
-            IpConnectivityCheck::XmppServer {
+            });
+            checks.push(IpConnectivityCheck::XmppServer {
                 hostname: hostname.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V6,
-            },
-        ]
+            });
+        }
+
+        checks
     }
 }

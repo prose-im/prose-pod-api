@@ -172,6 +172,7 @@ async fn given_srv_record(
 }
 
 #[given(expr = "{domain_name}'s port {int} is {open_or_not}")]
+#[given(expr = "{domain_name}’s port {int} is {open_or_not}")]
 async fn given_port_open_or_not(
     world: &mut TestWorld,
     host: DomainName,

@@ -24,6 +24,7 @@ Feature: DNS setup instructions
     Scenario Outline: IPv4 only
       Given the Prose Pod is publicly accessible via an IPv4
         And the XMPP server domain is <domain>
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain 3 steps
@@ -41,6 +42,7 @@ Feature: DNS setup instructions
     Scenario Outline: IPv6 only
       Given the Prose Pod is publicly accessible via an IPv6
         And the XMPP server domain is <domain>
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain 3 steps
@@ -59,6 +61,7 @@ Feature: DNS setup instructions
       Given the Prose Pod is publicly accessible via an IPv4
         And the Prose Pod is publicly accessible via an IPv6
         And the XMPP server domain is <domain>
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain 3 steps
@@ -78,6 +81,7 @@ Feature: DNS setup instructions
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a hostname
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain 2 steps
@@ -91,6 +95,7 @@ Feature: DNS setup instructions
       Given the Prose Pod is publicly accessible via an IPv4
         And the Prose Pod is publicly accessible via an IPv6
         And the Prose Pod is publicly accessible via a hostname
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain 2 steps
@@ -101,6 +106,7 @@ Feature: DNS setup instructions
 
     Scenario: Prose Pod accessible via an IP address
       Given the Prose Pod is publicly accessible via an IPv4
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain a SRV record for port 5222
@@ -108,6 +114,7 @@ Feature: DNS setup instructions
 
     Scenario: Prose Pod accessible via a hostname
       Given the Prose Pod is publicly accessible via a hostname
+        And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain a SRV record for port 5222
@@ -138,6 +145,16 @@ Feature: DNS setup instructions
       | domain         |
       | prose.org      |
       | chat.prose.org |
+
+  Rule: No SRV record is given for port 5269 if federation is disabled
+
+    Scenario: Prose Pod accessible via a hostname
+      Given the Prose Pod is publicly accessible via a hostname
+        And federation is disabled
+       When Valerian requests DNS setup instructions
+       Then the call should succeed
+        And DNS setup instructions should contain a SRV record for port 5222
+        And DNS setup instructions should not contain a SRV record for port 5269
 
   Rule: The Prose Pod address needs to be initialized in order to get DNS setup instructions
 

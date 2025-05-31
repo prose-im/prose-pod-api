@@ -5,7 +5,7 @@
 
 use sea_orm::DatabaseConnection;
 
-use crate::{dependencies, network_checks::NetworkChecker};
+use crate::{dependencies, network_checks::NetworkChecker, AppConfig};
 
 use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 
@@ -15,6 +15,7 @@ use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 #[tracing::instrument(level = "trace", skip_all)]
 pub async fn backfill(
     db: &DatabaseConnection,
+    app_config: &AppConfig,
     network_checker: &NetworkChecker,
     uuid_gen: &dependencies::Uuid,
 ) {
@@ -22,7 +23,8 @@ pub async fn backfill(
 
     // Backfill `all_dns_checks_passed_once` if necessary.
     if all_dns_checks_passed_once::get_opt(db).await.is_none() {
-        if let Err(err) = backfill_all_dns_checks_passed_once(db, network_checker).await {
+        if let Err(err) = backfill_all_dns_checks_passed_once(db, app_config, network_checker).await
+        {
             warn!("Could not backfill `all_dns_checks_passed_once`: {err}");
         }
     }
@@ -37,6 +39,7 @@ pub async fn backfill(
 
 async fn backfill_all_dns_checks_passed_once(
     db: &DatabaseConnection,
+    app_config: &AppConfig,
     network_checker: &NetworkChecker,
 ) -> anyhow::Result<()> {
     use futures::{stream::FuturesOrdered, StreamExt};
@@ -68,9 +71,21 @@ async fn backfill_all_dns_checks_passed_once(
         }
     };
 
+    let federation_enabled = match ServerConfigRepository::get(db).await? {
+        Some(model) => {
+            let server_config = model.with_default_values_from(app_config);
+            server_config.federation_enabled
+        }
+        None => {
+            info!("Not backfilling `{KEY}`: Server config not initalized.");
+            return Ok(());
+        }
+    };
+
     let pod_network_config = PodNetworkConfig {
         server_domain,
         pod_address,
+        federation_enabled,
     };
 
     trace!("Backfilling `{KEY}`…");
