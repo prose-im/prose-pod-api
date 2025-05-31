@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{auth::auth_service::AuthToken, util::either::Context};
+use service::{auth::AuthToken, util::either::Context};
 
 use crate::guards::prelude::*;
 
@@ -16,7 +16,7 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let token = AuthToken::from_request_parts(parts, state).await?;
-        (state.auth_service.get_user_info(token).await)
+        (state.auth_service.get_user_info(token, &state.db).await)
             .context("Could not get user info from token")
             .map_err(Error::from)
     }

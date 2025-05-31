@@ -30,18 +30,19 @@ pub async fn run(
         ref auth_service,
     }: Context,
 ) {
-    let oauth2_tokens_ttl = app_config.server.oauth2_access_token_ttl;
+    let oauth2_tokens_ttl = (app_config.auth.token_ttl.num_seconds())
+        .expect("`app_config.auth.token_ttl` contains years or months. Not supported.");
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
-    if oauth2_tokens_ttl == 0 {
+    if oauth2_tokens_ttl == 0. {
         return;
     }
 
-    let refresh_interval = Duration::from_secs_f64(
+    let refresh_interval = Duration::from_secs_f32(
         // NOTE: We cannot refresh tokens after the TTL as they would
         //   be expired for some time (leading to unexpected scenarios)
         //   therefore we set the refresh interval to $0.9 * TTL$.
-        (oauth2_tokens_ttl as f64) * 0.9,
+        oauth2_tokens_ttl * 0.9,
     );
 
     let ticker_interval = Duration::from_secs(10);
@@ -75,10 +76,10 @@ pub async fn run(
             continue;
         }
 
-        if lifetime.as_secs_f32() > oauth2_tokens_ttl as f32 {
+        if lifetime.as_secs_f32() > oauth2_tokens_ttl {
             warn!(
                 "Service accounts tokens were invalid for some time (TTL exceeded for {secs_since_expiry}s). This was likely caused by the API being suspended. Will refresh all tokens now to recover from this unexpected state.",
-                secs_since_expiry = lifetime.as_secs_f32() - oauth2_tokens_ttl as f32,
+                secs_since_expiry = lifetime.as_secs_f32() - oauth2_tokens_ttl,
             );
         }
 

@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use jid::BareJid;
+
 #[derive(Debug, thiserror::Error)]
 #[error("Invalid credentials.")]
 pub struct InvalidCredentials;
@@ -16,5 +18,21 @@ pub struct InvalidAuthToken;
 pub struct CannotChangeOwnRole;
 
 #[derive(Debug, thiserror::Error)]
-#[error("Cannot give a role you don't have.")]
+#[error("Cannot give a role you don’t have.")]
 pub struct CannotAssignRole;
+
+#[derive(Debug, thiserror::Error)]
+#[error("Cannot reset someone else’s password (unless you’re an admin).")]
+pub struct CannotResetPassword;
+
+#[derive(Debug, thiserror::Error)]
+#[error("Missing email address for {jid}.", jid = 0.to_string())]
+pub struct MissingEmailAddress(pub BareJid);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Token not found.")]
+pub struct PasswordResetTokenNotFound;
+
+#[derive(Debug, thiserror::Error)]
+#[error("Token expired.")]
+pub struct PasswordResetTokenExpired;

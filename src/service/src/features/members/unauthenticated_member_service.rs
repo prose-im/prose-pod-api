@@ -49,9 +49,9 @@ impl UnauthenticatedMemberService {
         ),
         err,
     )]
-    pub async fn create_user<DB: ConnectionTrait + TransactionTrait>(
+    pub async fn create_user<Db: ConnectionTrait + TransactionTrait>(
         &self,
-        db: &DB,
+        db: &Db,
         jid: &BareJid,
         password: &SecretString,
         nickname: &str,
@@ -90,30 +90,21 @@ impl UnauthenticatedMemberService {
         let server_ctl = self.server_ctl.clone();
 
         // Create the user
-        server_ctl
-            .add_user(jid, &password)
-            .await
+        (server_ctl.add_user(jid, &password).await)
             .map_err(UserCreateError::XmppServerCannotCreateUser)?;
         // Add the user to everyone's roster
-        server_ctl
-            .add_team_member(jid)
-            .await
+        (server_ctl.add_team_member(jid).await)
             .map_err(UserCreateError::XmppServerCannotAddTeamMember)?;
         if let Some(role) = role {
             // Set the user's role for servers which support it
-            server_ctl
-                .set_user_role(jid, &role)
-                .await
+            (server_ctl.set_user_role(jid, &role).await)
                 .map_err(UserCreateError::XmppServerCannotSetUserRole)?;
         }
 
         // NOTE: We need to log the user in to get a Prosody authentication token
         //   in order to set the user's vCard.
-        let auth_token = self
-            .auth_service
-            .log_in(jid, &password)
-            .await
-            .expect("User was created with credentials which doesn't work.");
+        let auth_token = (self.auth_service.log_in(jid, &password).await)
+            .expect("User was created with credentials which don’t work.");
 
         let ctx = XmppServiceContext {
             bare_jid: jid.to_owned(),
@@ -122,9 +113,7 @@ impl UnauthenticatedMemberService {
         let xmpp_service = XmppService::new(self.xmpp_service_inner.clone(), ctx);
 
         // TODO: Create the vCard using a display name instead of the nickname
-        xmpp_service
-            .create_own_vcard(nickname)
-            .await
+        (xmpp_service.create_own_vcard(nickname).await)
             .map_err(UserCreateError::CouldNotCreateVCard)?;
         // xmpp_service.set_own_nickname(nickname)?;
 

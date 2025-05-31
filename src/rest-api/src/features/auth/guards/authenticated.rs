@@ -62,8 +62,7 @@ impl FromRequestParts<AppState> for Authenticated {
         parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        UserInfo::from_request_parts(parts, state).await?;
-        // NOTE: If `UserInfo` could be extracted, it means a user is logged in.
-        Ok(Self)
+        let user_info = UserInfo::from_request_parts(parts, state).await?;
+        Ok(Self::from(user_info))
     }
 }

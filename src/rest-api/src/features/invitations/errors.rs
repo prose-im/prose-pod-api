@@ -7,7 +7,7 @@ use service::{
     app_config::MissingConfiguration,
     invitations::{
         invitation_controller::InvitationNotFound, CannotAcceptInvitation, InvitationAcceptError,
-        InvitationResendError, InviteMemberError, SendWorkspaceInvitationError,
+        InvitationResendError, InviteMemberError,
     },
     notifications::notifier::email::EmailNotificationCreateError,
     pod_config::PodConfigField,
@@ -70,26 +70,11 @@ impl HttpApiError for EmailNotificationCreateError {
     }
 }
 
-impl HttpApiError for SendWorkspaceInvitationError {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::CouldNotCreateEmailNotification(err) => err.code(),
-            Self::NotificationService(err) => err.code(),
-        }
-    }
-}
-
 impl HttpApiError for InvitationResendError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
-            Self::CouldNotSendInvitation(err) => err.code(),
-            Self::PodConfigMissing(PodConfigField::PodAddress) => {
-                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
-            }
-            Self::PodConfigMissing(PodConfigField::DashboardUrl) => {
-                ErrorCode::DASHBOARD_URL_NOT_INITIALIZED
-            }
+            Self::PodConfigMissing(err) => err.code(),
             Self::Internal(err) => err.code(),
         }
     }

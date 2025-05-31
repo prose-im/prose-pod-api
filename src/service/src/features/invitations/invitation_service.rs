@@ -16,13 +16,9 @@ use crate::{
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{
-        notification_service,
-        notifier::email::{EmailNotification, EmailNotificationCreateError},
-        NotificationService,
-    },
+    notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
-    pod_config::{PodConfigField, PodConfigRepository},
+    pod_config::{errors::PodConfigMissing, PodConfigField, PodConfigRepository},
     util::bare_jid_from_username,
     workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
@@ -188,26 +184,17 @@ impl NotificationService {
         contact: InvitationContact,
         payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
-    ) -> Result<(), SendWorkspaceInvitationError> {
+    ) -> Result<(), anyhow::Error> {
         match contact {
             InvitationContact::Email { email_address } => {
-                self.send_email(EmailNotification::from(
-                    email_address.into(),
-                    payload,
-                    app_config,
-                )?)?;
+                let email =
+                    EmailNotification::for_workspace_invitation(email_address, payload, app_config)
+                        .context("Could not create email")?;
+                self.send_email(email)?;
             }
         }
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SendWorkspaceInvitationError {
-    #[error("Could not create e-mail: {0}")]
-    CouldNotCreateEmailNotification(#[from] EmailNotificationCreateError),
-    #[error("`NotificationService` error: {0}")]
-    NotificationService(#[from] notification_service::Error),
 }
 
 #[derive(Debug)]
@@ -407,9 +394,7 @@ impl InvitationService {
 
         let dashboard_url = (PodConfigRepository::get_dashboard_url(&self.db).await)
             .context("Database error")?
-            .ok_or(InvitationResendError::PodConfigMissing(
-                PodConfigField::DashboardUrl,
-            ))?;
+            .ok_or(PodConfigMissing(PodConfigField::DashboardUrl))?;
 
         notification_service
             .send_workspace_invitation(
@@ -424,7 +409,8 @@ impl InvitationService {
                 },
                 app_config,
             )
-            .await?;
+            .await
+            .context("Could not send invitation")?;
 
         Ok(())
     }
@@ -434,10 +420,8 @@ impl InvitationService {
 pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
-    #[error("Could not send invitation: {0}")]
-    CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
-    #[error("Pod configuration missing: {0}")]
-    PodConfigMissing(PodConfigField),
+    #[error("{0}")]
+    PodConfigMissing(#[from] PodConfigMissing),
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }

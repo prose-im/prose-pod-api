@@ -3,9 +3,10 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use anyhow::Context;
 use tracing::instrument;
 
-use super::notifier::{email::EmailNotification, Notifier, NotifierError};
+use super::notifier::{email::EmailNotification, Notifier};
 
 #[derive(Debug, Clone)]
 pub struct NotificationService {
@@ -18,16 +19,8 @@ impl NotificationService {
     }
 
     #[instrument(level = "trace", skip_all, err)]
-    pub fn send_email(&self, notification: EmailNotification) -> Result<(), self::Error> {
-        self.email_notifier.dispatch(&notification)?;
+    pub fn send_email(&self, email: EmailNotification) -> Result<(), anyhow::Error> {
+        (self.email_notifier.dispatch(&email)).context("Could not dispatch notification")?;
         Ok(())
     }
-}
-
-pub type Error = NotificationServiceError;
-
-#[derive(Debug, thiserror::Error)]
-pub enum NotificationServiceError {
-    #[error("Could not dispatch notification: {0}")]
-    CouldNotDispatch(#[from] NotifierError),
 }

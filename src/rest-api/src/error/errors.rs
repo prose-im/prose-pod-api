@@ -5,7 +5,6 @@
 
 use axum::http::header::InvalidHeaderValue;
 use service::{
-    notifications::notification_service,
     sea_orm,
     xmpp::{server_ctl, xmpp_service, CreateServiceAccountError},
     MutationError,
@@ -303,11 +302,6 @@ impl HttpApiError for server_ctl::Error {
 }
 
 impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
-
-impl_into_error!(
-    notification_service::Error,
-    ErrorCode::INTERNAL_SERVER_ERROR
-);
 
 impl CustomErrorCode for MutationError {
     fn error_code(&self) -> ErrorCode {

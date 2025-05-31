@@ -6,19 +6,21 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Context};
+use sea_orm::DatabaseConnection;
 use secrecy::{ExposeSecret as _, SecretString};
 use serde::Deserialize;
 
 use crate::{
+    members::MemberRepository,
     models::BareJid,
     prosody::{ProsodyOAuth2, ProsodyOAuth2Error},
     util::either::Either,
 };
 
 use super::{
-    auth_service::{AuthToken, UserInfo},
+    auth_service::AuthServiceImpl,
     errors::{InvalidAuthToken, InvalidCredentials},
-    AuthServiceImpl,
+    AuthToken, UserInfo,
 };
 
 #[derive(Debug, Clone)]
@@ -50,6 +52,7 @@ impl AuthServiceImpl for LiveAuthService {
     async fn get_user_info(
         &self,
         token: AuthToken,
+        db: &DatabaseConnection,
     ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
         let result = self
             .prosody_oauth2
@@ -69,10 +72,16 @@ impl AuthServiceImpl for LiveAuthService {
         };
 
         let body = response.text();
-        let res: UserInfoResponse =
-            serde_json::from_str(&body).context("Invalid JSON response body")?;
+        let jid = serde_json::from_str::<UserInfoResponse>(&body)
+            .context("Invalid JSON response body")?
+            .jid();
 
-        Ok(UserInfo::from(res))
+        let model = (MemberRepository::get(db, &jid).await?).context("Member not found")?;
+
+        Ok(UserInfo {
+            jid,
+            role: model.role,
+        })
     }
 
     async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
@@ -96,11 +105,10 @@ struct UserInfoResponse {
     sub: String,
 }
 
-impl From<UserInfoResponse> for UserInfo {
-    fn from(res: UserInfoResponse) -> Self {
-        let jid_str = res.sub.strip_prefix("xmpp:").unwrap();
-        // NOTE: This JID is returned by prosody so we can assume it's well formatted.
-        let jid = BareJid::new(jid_str).unwrap();
-        Self { jid }
+impl UserInfoResponse {
+    fn jid(&self) -> BareJid {
+        let jid_str = self.sub.strip_prefix("xmpp:").unwrap();
+        // NOTE: This JID is returned by Prosody so we can assume it's well formatted.
+        BareJid::new(jid_str).unwrap()
     }
 }

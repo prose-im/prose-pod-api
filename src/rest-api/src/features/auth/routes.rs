@@ -5,16 +5,19 @@
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     Json,
 };
 use service::{
     auth::{
-        auth_controller, auth_service::AuthToken, errors::InvalidCredentials, AuthService, UserInfo,
+        auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
+        UserInfo,
     },
     members::{MemberRole, MemberService},
     models::SerializableSecretString,
+    notifications::NotificationService,
     util::either::Either,
-    xmpp::BareJid,
+    xmpp::{BareJid, ServerCtl},
 };
 
 use crate::{error::Error, AppState};
@@ -57,6 +60,39 @@ pub async fn set_member_role_route(
     match auth_controller::set_member_role(db, member_service, user_info, jid, role).await? {
         () => Ok(Json(role)),
     }
+}
+
+// MARK: PASSWORD RESET / CHANGE
+
+pub async fn request_password_reset_route(
+    State(AppState {
+        ref db,
+        ref app_config,
+        ..
+    }): State<AppState>,
+    ref notification_service: NotificationService,
+    ref caller: UserInfo,
+    Path(ref jid): Path<BareJid>,
+) -> Result<StatusCode, Error> {
+    auth_controller::request_password_reset(db, notification_service, app_config, caller, jid)
+        .await?;
+    Ok(StatusCode::ACCEPTED)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ResetPasswordRequest {
+    pub password: SerializableSecretString,
+}
+
+pub async fn reset_password_route(
+    State(AppState { ref db, .. }): State<AppState>,
+    ref server_ctl: ServerCtl,
+    Path(ref token): Path<PasswordResetToken>,
+    Json(ResetPasswordRequest { password }): Json<ResetPasswordRequest>,
+) -> Result<(), Error> {
+    let password = password.into_secret_string();
+    auth_controller::reset_password(db, server_ctl, token, &password).await?;
+    Ok(())
 }
 
 // MARK: BOILERPLATE
