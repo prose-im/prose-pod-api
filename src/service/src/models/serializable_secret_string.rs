@@ -17,6 +17,11 @@ impl Zeroize for SerializableSecretString {
     }
 }
 impl SerializableSecret for SerializableSecretString {}
+impl From<String> for SerializableSecretString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
 impl From<SecretString> for SerializableSecretString {
     fn from(value: SecretString) -> Self {
         Self(value.expose_secret().to_owned())
