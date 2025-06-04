@@ -22,7 +22,7 @@ pub async fn get_steps_statuses(db: &impl sea_orm::ConnectionTrait) -> Onboardin
     }
 }
 
-crate::gen_scoped_kv_store!("onboarding");
+crate::gen_scoped_kv_store!("onboarding"; get/set: bool);
 
 crate::gen_kv_store_get_set!(all_dns_checks_passed_once: bool);
 crate::gen_kv_store_get_set!(at_least_one_invitation_sent: bool);

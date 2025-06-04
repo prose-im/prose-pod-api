@@ -144,6 +144,12 @@ impl KvStore {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! kv_store_scoped_get_set {
+    (bool) => {
+        crate::kv_store_scoped_get_set!(bool, get_bool, set_bool);
+    };
+    (string) => {
+        crate::kv_store_scoped_get_set!(String, get_string, set_string);
+    };
     (
         $t:ty,
         $get_fn:ident,
@@ -161,6 +167,7 @@ macro_rules! kv_store_scoped_get_set {
             key: &str,
             value: $t,
         ) -> anyhow::Result<()> {
+            use crate::util::either::Either;
             (global_storage::KvStore::$set_fn(db, NAMESPACE, key, value).await).map_err(|err| {
                 match err {
                     Either::E1(err) => anyhow::anyhow!("JSON error: {err}"),
@@ -174,7 +181,7 @@ macro_rules! kv_store_scoped_get_set {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! gen_scoped_kv_store {
-    ($namespace:literal) => {
+    ($namespace:literal$(; get/set: $($impl:ident)+)?) => {
         #[doc(hidden)]
         mod kv_store {
             use std::collections::HashMap;
@@ -182,7 +189,7 @@ macro_rules! gen_scoped_kv_store {
             use sea_orm::ConnectionTrait;
             use serde_json::Value as Json;
 
-            use crate::{global_storage, util::either::Either};
+            use crate::global_storage;
 
             const NAMESPACE: &'static str = $namespace;
 
@@ -218,10 +225,9 @@ macro_rules! gen_scoped_kv_store {
                 }
             }
 
-            impl KvStore {
-                crate::kv_store_scoped_get_set!(bool, get_bool, set_bool);
-                crate::kv_store_scoped_get_set!(String, get_string, set_string);
-            }
+            $(impl KvStore {
+                $(crate::kv_store_scoped_get_set!($impl);)+
+            })?
         }
     };
 }
