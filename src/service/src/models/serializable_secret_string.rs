@@ -22,6 +22,11 @@ impl From<String> for SerializableSecretString {
         Self(value)
     }
 }
+impl<'a> From<&'a str> for SerializableSecretString {
+    fn from(value: &'a str) -> Self {
+        Self(value.to_owned())
+    }
+}
 impl From<SecretString> for SerializableSecretString {
     fn from(value: SecretString) -> Self {
         Self(value.expose_secret().to_owned())
