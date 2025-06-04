@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, PaginatorTrait,
-    QueryFilter, Set, Unchanged,
+    prelude::Expr, ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
+    PaginatorTrait, QueryFilter, Set, Unchanged,
 };
 use serde_json::Value as Json;
 use tracing::{instrument, warn};
@@ -87,6 +87,35 @@ impl KvStore {
         let select = Entity::find_by_id(primary_key);
         match select.one(db).await {
             Ok(Some(kv)) => Ok(Some(kv.value)),
+            Ok(None) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Returns a key/value pair as JSON, filtering on a key/value pair present
+    /// in the `KvRecord::value`.
+    ///
+    /// This is particularly useful to perform an inverse search, like when
+    /// searching for the JID associated to a certain password reset token.
+    #[instrument(
+        name = "store::get_by_value_entry",
+        level = "trace",
+        skip_all,
+        fields(namespace, value_entry_key)
+    )]
+    pub async fn get_by_value_entry(
+        db: &impl ConnectionTrait,
+        namespace: &str,
+        entry: (&str, impl Into<sea_orm::Value>),
+    ) -> Result<Option<KvRecord>, DbErr> {
+        let select = Entity::find()
+            .filter(Column::Namespace.eq(namespace))
+            .filter(Expr::cust_with_values(
+                format!("json_extract(value, '$.{key}') = ?", key = entry.0),
+                vec![entry.1],
+            ));
+        match select.one(db).await {
+            Ok(Some(model)) => Ok(Some(model)),
             Ok(None) => Ok(None),
             Err(err) => Err(err),
         }
@@ -240,6 +269,15 @@ macro_rules! gen_scoped_kv_store {
                     key: &str,
                 ) -> anyhow::Result<Option<Json>> {
                     (global_storage::KvStore::get(db, NAMESPACE, key).await)
+                        .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+                }
+
+                #[allow(unused)]
+                pub async fn get_by_value_entry(
+                    db: &impl ConnectionTrait,
+                    entry: (&str, impl Into<sea_orm::Value>),
+                ) -> anyhow::Result<Option<crate::global_storage::KvRecord>> {
+                    (global_storage::KvStore::get_by_value_entry(db, NAMESPACE, entry).await)
                         .map_err(|err| anyhow::anyhow!("Database error: {err}"))
                 }
             }
