@@ -12,9 +12,28 @@ use sea_orm::{
 use serde_json::Value as Json;
 use tracing::{instrument, warn};
 
-use crate::{global_storage::entity::ActiveModel, util::either::Either};
+use crate::util::either::Either;
 
-use super::entity::{Column, Entity};
+use self::entity::{ActiveModel, Column, Entity};
+
+mod entity {
+    use sea_orm::entity::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+    #[sea_orm(table_name = "kv_store")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub namespace: String,
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub key: String,
+        pub value: Json,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
 
 #[derive(Debug)]
 pub struct KvStore;
