@@ -14,6 +14,7 @@ use tracing::{instrument, warn};
 
 use crate::util::either::Either;
 
+pub use self::entity::Model as KvRecord;
 use self::entity::{ActiveModel, Column, Entity};
 
 mod entity {
@@ -65,6 +66,11 @@ impl KvStore {
             .await
         }
         .map(|_| ())
+    }
+
+    #[inline]
+    pub async fn set_record(db: &impl ConnectionTrait, record: KvRecord) -> Result<(), DbErr> {
+        Self::set(db, &record.namespace, &record.key, record.value).await
     }
 
     #[instrument(name = "store::get_all", level = "trace", skip_all, fields(namespace))]
@@ -256,6 +262,15 @@ macro_rules! gen_scoped_kv_store {
                 }
 
                 #[allow(unused)]
+                pub async fn set_record(
+                    db: &impl ConnectionTrait,
+                    record: Record
+                ) -> anyhow::Result<()> {
+                    (global_storage::KvStore::set_record(db, record.into()).await)
+                        .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+                }
+
+                #[allow(unused)]
                 pub async fn get_all(
                     db: &impl ConnectionTrait,
                 ) -> anyhow::Result<HashMap<String, Json>> {
@@ -285,6 +300,22 @@ macro_rules! gen_scoped_kv_store {
             $(impl KvStore {
                 $(crate::kv_store_scoped_get_set!($impl);)+
             })?
+
+            pub struct Record {
+                pub key: String,
+                pub value: Json,
+                pub metadata: Option<Json>,
+            }
+
+            impl From<Record> for crate::global_storage::KvRecord {
+                fn from(record: Record) -> Self {
+                    Self {
+                        namespace: NAMESPACE.to_owned(),
+                        key: record.key,
+                        value: record.value,
+                    }
+                }
+            }
         }
     };
 }
