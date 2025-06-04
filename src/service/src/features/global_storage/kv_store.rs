@@ -126,6 +126,27 @@ impl KvStore {
             Err(err) => Err(err),
         }
     }
+
+    /// Returns whether or not a record was deleted.
+    #[instrument(
+        name = "store::delete",
+        level = "trace",
+        skip_all,
+        fields(namespace, key)
+    )]
+    pub async fn delete(
+        db: &impl ConnectionTrait,
+        namespace: &str,
+        key: &str,
+    ) -> Result<bool, DbErr> {
+        let primary_key = (namespace.to_owned(), key.to_owned());
+        let select = Entity::delete_by_id(primary_key);
+        match select.exec(db).await {
+            Ok(sea_orm::DeleteResult { rows_affected: 0 }) => Ok(false),
+            Ok(_) => Ok(true),
+            Err(err) => Err(err),
+        }
+    }
 }
 
 // MARK: Typed getters/setters
@@ -293,6 +314,16 @@ macro_rules! gen_scoped_kv_store {
                     entry: (&str, impl Into<sea_orm::Value>),
                 ) -> anyhow::Result<Option<crate::global_storage::KvRecord>> {
                     (global_storage::KvStore::get_by_value_entry(db, NAMESPACE, entry).await)
+                        .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+                }
+
+                /// Returns whether or not a record was deleted.
+                #[allow(unused)]
+                pub async fn delete(
+                    db: &impl ConnectionTrait,
+                    key: &str,
+                ) -> anyhow::Result<bool> {
+                    (global_storage::KvStore::delete(db, NAMESPACE, key).await)
                         .map_err(|err| anyhow::anyhow!("Database error: {err}"))
                 }
             }
