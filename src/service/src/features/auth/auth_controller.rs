@@ -11,7 +11,6 @@ use secrecy::SecretString;
 use tracing::instrument;
 
 use crate::{
-    auth::PasswordResetRecord,
     members::{entities::member, MemberRepository, MemberRole, MemberService},
     notifications::{notifier::email::EmailNotification, NotificationService},
     pod_config::{errors::PodConfigMissing, PodConfigField, PodConfigRepository},
@@ -22,7 +21,7 @@ use crate::{
 
 use super::{
     errors::*, password_reset_notification::PasswordResetNotificationPayload, AuthService,
-    AuthToken, Credentials, PasswordResetToken, UserInfo,
+    AuthToken, Credentials, PasswordResetRecord, PasswordResetToken, UserInfo,
 };
 
 /// Log user in and return an authentication token.
@@ -115,10 +114,9 @@ pub async fn request_password_reset(
     // Store password reset token.
     let record = PasswordResetRecord {
         jid: jid.to_owned(),
-        token: token.to_owned(),
         expires_at,
     };
-    super::password_reset_tokens::KvStore::set_token(db, record.into()).await?;
+    super::password_reset_tokens::KvStore::set_token(db, &token, record).await?;
 
     // Send email.
     let notification_payload = PasswordResetNotificationPayload {
@@ -141,22 +139,23 @@ pub async fn reset_password(
     token: &PasswordResetToken,
     password: &SecretString,
 ) -> Result<(), Either3<PasswordResetTokenNotFound, PasswordResetTokenExpired, anyhow::Error>> {
-    let record = match super::password_reset_tokens::KvStore::get_record(db, token).await? {
+    let record = match super::password_reset_tokens::KvStore::get_token_data(db, token).await? {
         Some(model) => model,
         None => return Err(Either3::E1(PasswordResetTokenNotFound)),
     };
+    let jid = record.jid;
 
-    tracing::Span::current().record("jid", record.jid.to_string());
+    tracing::Span::current().record("jid", jid.to_string());
 
     // Check password expiry.
     if Utc::now() > record.expires_at {
         return Err(Either3::E2(PasswordResetTokenExpired));
     }
 
-    (server_ctl.set_user_password(&record.jid, password).await).context("ServerCtl error")?;
+    (server_ctl.set_user_password(&jid, password).await).context("ServerCtl error")?;
 
     // Delete record from database.
-    super::password_reset_tokens::KvStore::delete(db, record.jid.as_str()).await?;
+    super::password_reset_tokens::KvStore::delete(db, jid.as_str()).await?;
 
     Ok(())
 }

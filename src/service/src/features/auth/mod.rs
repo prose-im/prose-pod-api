@@ -22,39 +22,41 @@ pub mod password_reset_tokens {
     use anyhow::Context;
     use sea_orm::ConnectionTrait;
 
+    use crate::auth::PasswordResetRecord;
+
     pub use self::kv_store::KvStore;
 
-    use super::{PasswordResetKvRecord, PasswordResetRecord, PasswordResetToken};
+    use super::PasswordResetToken;
 
     crate::gen_scoped_kv_store!("auth::password_reset_tokens");
 
     impl KvStore {
         pub(crate) async fn set_token(
             db: &impl ConnectionTrait,
-            record: PasswordResetRecord,
+            key: &PasswordResetToken,
+            value: PasswordResetRecord,
         ) -> anyhow::Result<()> {
-            let record = PasswordResetKvRecord::from(record);
+            use secrecy::ExposeSecret;
 
-            let key = record.key.to_string();
+            let key = key.expose_secret();
             // NOTE: Unwrapping is safe here since we’re only serializing a
             //   UUID, a date and two Rust variable names.
-            let value = serde_json::to_value(&record.value).unwrap();
+            let value = serde_json::to_value(&value).unwrap();
 
-            Self::set(db, &key, value).await
+            Self::set(db, key, value).await
         }
 
-        pub(crate) async fn get_record(
+        pub(crate) async fn get_token_data(
             db: &impl ConnectionTrait,
             token: &PasswordResetToken,
         ) -> anyhow::Result<Option<PasswordResetRecord>> {
             use secrecy::ExposeSecret;
 
-            let entry = ("token", token.expose_secret());
-            match Self::get_by_value_entry(db, entry).await? {
-                Some(model) => {
-                    let record = PasswordResetKvRecord::try_from(model.to_owned())
+            match Self::get(db, &token.expose_secret()).await? {
+                Some(json) => {
+                    let data = serde_json::from_value::<PasswordResetRecord>(json)
                         .context("Invalid record stored")?;
-                    Ok(Some(record.into()))
+                    Ok(Some(data))
                 }
                 None => Ok(None),
             }

@@ -3,9 +3,8 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{ops::Deref, str::FromStr};
+use std::ops::Deref;
 
-use anyhow::Context;
 use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
@@ -56,23 +55,11 @@ pub struct IsAdmin;
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
-pub(crate) struct PasswordResetRecord {
-    pub jid: BareJid,
-    pub token: PasswordResetToken,
-    pub expires_at: DateTime<Utc>,
-}
-
 /// A [`PasswordResetRecord`], but serializable to JSON to store in the global
 /// key/value store.
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct PasswordResetKvRecord {
-    pub key: BareJid,
-    pub value: PasswordResetRecordData,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct PasswordResetRecordData {
-    pub token: PasswordResetToken,
+pub(crate) struct PasswordResetRecord {
+    pub jid: BareJid,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -100,44 +87,5 @@ where
 {
     fn from(value: T) -> Self {
         Self(value.into())
-    }
-}
-
-impl Into<SecretString> for PasswordResetToken {
-    fn into(self) -> SecretString {
-        self.0.into_secret_string()
-    }
-}
-
-impl From<PasswordResetKvRecord> for PasswordResetRecord {
-    fn from(record: PasswordResetKvRecord) -> Self {
-        Self {
-            jid: record.key,
-            token: record.value.token,
-            expires_at: record.value.expires_at,
-        }
-    }
-}
-
-impl From<PasswordResetRecord> for PasswordResetKvRecord {
-    fn from(record: PasswordResetRecord) -> Self {
-        Self {
-            key: record.jid,
-            value: PasswordResetRecordData {
-                token: record.token,
-                expires_at: record.expires_at,
-            },
-        }
-    }
-}
-
-impl TryFrom<crate::global_storage::KvRecord> for PasswordResetKvRecord {
-    type Error = anyhow::Error;
-
-    fn try_from(record: crate::global_storage::KvRecord) -> Result<Self, Self::Error> {
-        let key = BareJid::from_str(&record.key).context("Invalid key")?;
-        let value = serde_json::from_value::<PasswordResetRecordData>(record.value)
-            .context("Invalid value")?;
-        Ok(Self { key, value })
     }
 }
