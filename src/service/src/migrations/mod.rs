@@ -31,6 +31,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250404_193000_add_prosody_overrides::Migration),
             Box::new(m20250407_014800_add_prosody_overrides_raw::Migration),
             Box::new(m20250512_131300_create_kv_store::Migration),
+            Box::new(m20250531_231100_add_email_address::Migration),
         ]
     }
 }

@@ -14,7 +14,7 @@ use crate::{
         entities::member::{ActiveModel, Column, Entity, Model},
         MemberRole,
     },
-    models::BareJid,
+    models::{BareJid, EmailAddress},
 };
 
 #[derive(Debug, Clone)]
@@ -172,6 +172,48 @@ impl MemberRepository {
         member.update(db).await?;
 
         Ok(Some(member_role))
+    }
+
+    /// Updates a member’s email address in database.
+    ///
+    /// Returns `None` if the email address hasn’t changed.
+    ///
+    /// Returns the **old** value if the email address has changed.
+    #[instrument(
+        name = "db::member::set_email_address", level = "trace",
+        skip_all, fields(
+            jid = jid.to_string(),
+            email_address = email_address.as_ref().map(ToString::to_string)
+        ),
+        err
+    )]
+    pub async fn set_email_address(
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+        email_address: Option<EmailAddress>,
+    ) -> Result<Option<Option<EmailAddress>>, DbErr> {
+        let old_email = Entity::find_by_jid(jid)
+            .select_only()
+            .columns([Column::EmailAddress])
+            .into_tuple::<Option<EmailAddress>>()
+            .one(db)
+            .await?;
+
+        let Some(old_email) = old_email else {
+            return Err(DbErr::RecordNotFound(format!("No member with id '{jid}'.")));
+        };
+
+        // Abort if no change needed.
+        if old_email == email_address {
+            return Ok(None);
+        }
+
+        let mut member = <ActiveModel as ActiveModelTrait>::default();
+        member.set_jid(jid);
+        member.email_address = Set(email_address);
+        member.update(db).await?;
+
+        Ok(Some(old_email))
     }
 }
 

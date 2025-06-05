@@ -1,26 +1,23 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use sea_orm_migration::{prelude::*, schema::*};
 
+use super::m20240220_171150_create_member::Member;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
-
-const DEFAULT_MEMBER_ROLE: &'static str = "MEMBER";
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
-                Table::create()
+            .alter_table(
+                Table::alter()
                     .table(Member::Table)
-                    .if_not_exists()
-                    .col(string(Member::Id).primary_key())
-                    .col(string_len(Member::Role, 6).default(DEFAULT_MEMBER_ROLE))
-                    .col(timestamp_with_time_zone(Member::JoinedAt))
+                    .add_column(string_null(NewFields::EmailAddress))
                     .to_owned(),
             )
             .await
@@ -28,15 +25,17 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Member::Table).to_owned())
+            .alter_table(
+                Table::alter()
+                    .table(Member::Table)
+                    .drop_column(NewFields::EmailAddress)
+                    .to_owned(),
+            )
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub(super) enum Member {
-    Table,
-    Id,
-    Role,
-    JoinedAt,
+enum NewFields {
+    EmailAddress,
 }

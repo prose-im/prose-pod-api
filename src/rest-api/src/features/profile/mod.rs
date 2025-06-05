@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod set_member_avatar;
+mod set_member_email_address;
 mod set_member_nickname;
 
 use axum::middleware::from_extractor_with_state;
@@ -13,6 +14,7 @@ use service::auth::Authenticated;
 use crate::AppState;
 
 pub use self::set_member_avatar::*;
+pub use self::set_member_email_address::*;
 pub use self::set_member_nickname::*;
 
 use super::members::MEMBER_ROUTE;
@@ -23,7 +25,8 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             MEMBER_ROUTE,
             axum::Router::new()
                 .route("/avatar", put(set_member_avatar_route))
-                .route("/nickname", put(set_member_nickname_route)),
+                .route("/nickname", put(set_member_nickname_route))
+                .route("/email-address", put(set_member_email_address_route)),
         )
         .route_layer(from_extractor_with_state::<Authenticated, _>(
             app_state.clone(),
