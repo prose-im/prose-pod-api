@@ -23,21 +23,21 @@ pub mod password_reset_tokens {
 
     use super::{PasswordResetRecord, PasswordResetToken};
 
-    pub(crate) use self::kv_store::{delete, get_all};
+    pub use self::kv_store::{delete, get_all};
 
     crate::gen_scoped_kv_store!(pub(super) auth::password_reset_tokens);
 
     pub async fn set(
         db: &impl sea_orm::ConnectionTrait,
         key: &PasswordResetToken,
-        value: PasswordResetRecord,
+        value: &PasswordResetRecord,
     ) -> anyhow::Result<()> {
         use secrecy::ExposeSecret;
 
         let key = key.expose_secret();
         // NOTE: Unwrapping is safe here since we’re only serializing a
         //   UUID, a date and two Rust variable names.
-        let value = serde_json::to_value(&value).unwrap();
+        let value = serde_json::to_value(value).unwrap();
 
         self::kv_store::set(db, key, value).await
     }

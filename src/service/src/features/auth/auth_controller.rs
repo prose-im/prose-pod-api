@@ -117,7 +117,7 @@ pub async fn request_password_reset(
         jid: jid.to_owned(),
         expires_at,
     };
-    password_reset_tokens::set(db, &token, record).await?;
+    password_reset_tokens::set(db, &token, &record).await?;
 
     // Send email.
     let notification_payload = PasswordResetNotificationPayload {
