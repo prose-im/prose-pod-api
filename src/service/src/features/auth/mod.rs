@@ -20,18 +20,15 @@ pub use self::models::*;
 
 pub mod password_reset_tokens {
     use anyhow::Context;
-    use sea_orm::ConnectionTrait;
 
-    use crate::auth::PasswordResetRecord;
-
-    use super::PasswordResetToken;
+    use super::{PasswordResetRecord, PasswordResetToken};
 
     pub(crate) use self::kv_store::{delete, get_all};
 
     crate::gen_scoped_kv_store!(pub(super) auth::password_reset_tokens);
 
     pub async fn set(
-        db: &impl ConnectionTrait,
+        db: &impl sea_orm::ConnectionTrait,
         key: &PasswordResetToken,
         value: PasswordResetRecord,
     ) -> anyhow::Result<()> {
@@ -46,7 +43,7 @@ pub mod password_reset_tokens {
     }
 
     pub async fn get(
-        db: &impl ConnectionTrait,
+        db: &impl sea_orm::ConnectionTrait,
         token: &PasswordResetToken,
     ) -> anyhow::Result<Option<PasswordResetRecord>> {
         use secrecy::ExposeSecret;
