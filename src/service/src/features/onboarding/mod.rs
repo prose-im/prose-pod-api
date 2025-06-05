@@ -6,7 +6,7 @@
 mod backfill;
 
 pub use self::backfill::backfill;
-pub use self::kv_store::KvStore;
+pub use self::kv_store::{get_bool, set_bool};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct OnboardingStepsStatuses {
@@ -22,7 +22,8 @@ pub async fn get_steps_statuses(db: &impl sea_orm::ConnectionTrait) -> Onboardin
     }
 }
 
-crate::gen_scoped_kv_store!("onboarding"; get/set: bool);
+crate::gen_scoped_kv_store!(pub(super), "onboarding"; get/set: bool);
 
-crate::gen_kv_store_get_set!(all_dns_checks_passed_once: bool);
-crate::gen_kv_store_get_set!(at_least_one_invitation_sent: bool);
+// TODO: Remove `pub,` once network checks logic has been moved to `service`.
+crate::gen_kv_store_get_set!(pub, all_dns_checks_passed_once: bool);
+crate::gen_kv_store_get_set!(pub, at_least_one_invitation_sent: bool);

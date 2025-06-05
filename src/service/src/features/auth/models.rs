@@ -58,7 +58,7 @@ pub struct PasswordResetToken(pub SerializableSecretString);
 /// A [`PasswordResetRecord`], but serializable to JSON to store in the global
 /// key/value store.
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct PasswordResetRecord {
+pub struct PasswordResetRecord {
     pub jid: BareJid,
     pub expires_at: DateTime<Utc>,
 }

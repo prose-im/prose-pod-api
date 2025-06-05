@@ -9,7 +9,7 @@ use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
 use crate::{
-    auth::{password_reset_tokens::KvStore, PasswordResetRecord},
+    auth::{password_reset_tokens, PasswordResetRecord},
     AppConfig,
 };
 
@@ -51,7 +51,7 @@ pub async fn run(
 
         debug!("Deleting expired password reset tokens…");
 
-        let tokens = match KvStore::get_all(db).await {
+        let tokens = match password_reset_tokens::get_all(db).await {
             Ok(tokens) if tokens.is_empty() => continue,
             Ok(tokens) => tokens,
             Err(err) => {
@@ -64,7 +64,7 @@ pub async fn run(
             match serde_json::from_value::<PasswordResetRecord>(value) {
                 Ok(record) => {
                     if Utc::now() > record.expires_at {
-                        if let Err(err) = KvStore::delete(db, key.as_str()).await {
+                        if let Err(err) = password_reset_tokens::delete(db, key.as_str()).await {
                             error!("Could not delete expired password reset token record from database: {err}");
                         }
                     }

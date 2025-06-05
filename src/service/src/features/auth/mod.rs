@@ -24,42 +24,40 @@ pub mod password_reset_tokens {
 
     use crate::auth::PasswordResetRecord;
 
-    pub use self::kv_store::KvStore;
-
     use super::PasswordResetToken;
 
-    crate::gen_scoped_kv_store!("auth::password_reset_tokens");
+    pub(crate) use self::kv_store::{delete, get_all};
 
-    impl KvStore {
-        pub(crate) async fn set_token(
-            db: &impl ConnectionTrait,
-            key: &PasswordResetToken,
-            value: PasswordResetRecord,
-        ) -> anyhow::Result<()> {
-            use secrecy::ExposeSecret;
+    crate::gen_scoped_kv_store!(pub(super), "auth::password_reset_tokens");
 
-            let key = key.expose_secret();
-            // NOTE: Unwrapping is safe here since we’re only serializing a
-            //   UUID, a date and two Rust variable names.
-            let value = serde_json::to_value(&value).unwrap();
+    pub async fn set_token(
+        db: &impl ConnectionTrait,
+        key: &PasswordResetToken,
+        value: PasswordResetRecord,
+    ) -> anyhow::Result<()> {
+        use secrecy::ExposeSecret;
 
-            Self::set(db, key, value).await
-        }
+        let key = key.expose_secret();
+        // NOTE: Unwrapping is safe here since we’re only serializing a
+        //   UUID, a date and two Rust variable names.
+        let value = serde_json::to_value(&value).unwrap();
 
-        pub(crate) async fn get_token_data(
-            db: &impl ConnectionTrait,
-            token: &PasswordResetToken,
-        ) -> anyhow::Result<Option<PasswordResetRecord>> {
-            use secrecy::ExposeSecret;
+        self::kv_store::set(db, key, value).await
+    }
 
-            match Self::get(db, &token.expose_secret()).await? {
-                Some(json) => {
-                    let data = serde_json::from_value::<PasswordResetRecord>(json)
-                        .context("Invalid record stored")?;
-                    Ok(Some(data))
-                }
-                None => Ok(None),
+    pub async fn get_token_data(
+        db: &impl ConnectionTrait,
+        token: &PasswordResetToken,
+    ) -> anyhow::Result<Option<PasswordResetRecord>> {
+        use secrecy::ExposeSecret;
+
+        match self::kv_store::get(db, &token.expose_secret()).await? {
+            Some(json) => {
+                let data = serde_json::from_value::<PasswordResetRecord>(json)
+                    .context("Invalid record stored")?;
+                Ok(Some(data))
             }
+            None => Ok(None),
         }
     }
 }
