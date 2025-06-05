@@ -20,8 +20,9 @@ use crate::{
 };
 
 use super::{
-    errors::*, password_reset_notification::PasswordResetNotificationPayload, AuthService,
-    AuthToken, Credentials, PasswordResetRecord, PasswordResetToken, UserInfo,
+    errors::*, password_reset_notification::PasswordResetNotificationPayload,
+    password_reset_tokens, AuthService, AuthToken, Credentials, PasswordResetRecord,
+    PasswordResetToken, UserInfo,
 };
 
 /// Log user in and return an authentication token.
@@ -116,7 +117,7 @@ pub async fn request_password_reset(
         jid: jid.to_owned(),
         expires_at,
     };
-    super::password_reset_tokens::set_token(db, &token, record).await?;
+    password_reset_tokens::set(db, &token, record).await?;
 
     // Send email.
     let notification_payload = PasswordResetNotificationPayload {
@@ -139,7 +140,7 @@ pub async fn reset_password(
     token: &PasswordResetToken,
     password: &SecretString,
 ) -> Result<(), Either3<PasswordResetTokenNotFound, PasswordResetTokenExpired, anyhow::Error>> {
-    let record = match super::password_reset_tokens::get_token_data(db, token).await? {
+    let record = match password_reset_tokens::get(db, token).await? {
         Some(model) => model,
         None => return Err(Either3::E1(PasswordResetTokenNotFound)),
     };
@@ -155,7 +156,7 @@ pub async fn reset_password(
     (server_ctl.set_user_password(&jid, password).await).context("ServerCtl error")?;
 
     // Delete record from database.
-    super::password_reset_tokens::delete(db, jid.as_str()).await?;
+    password_reset_tokens::delete(db, jid.as_str()).await?;
 
     Ok(())
 }

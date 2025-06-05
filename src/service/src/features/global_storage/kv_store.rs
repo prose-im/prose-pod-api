@@ -174,12 +174,12 @@ get_set!(
 
 #[macro_export]
 #[doc(hidden)]
-macro_rules! kv_store_scoped_get_set {
+macro_rules! gen_scoped_kv_store_get_set {
     (bool) => {
-        crate::kv_store_scoped_get_set!(bool, get_bool, set_bool);
+        crate::gen_scoped_kv_store_get_set!(bool, get_bool, set_bool);
     };
     (string) => {
-        crate::kv_store_scoped_get_set!(String, get_string, set_string);
+        crate::gen_scoped_kv_store_get_set!(String, get_string, set_string);
     };
     (
         $t:ty,
@@ -215,8 +215,8 @@ macro_rules! kv_store_scoped_get_set {
 #[macro_export]
 macro_rules! gen_scoped_kv_store {
     (
-        $vis:vis,
-        $namespace:literal
+        $vis:vis
+        $namespace:path
         $(; get/set: $($impl:ident)+)?
     ) => {
         #[doc(hidden)]
@@ -228,7 +228,7 @@ macro_rules! gen_scoped_kv_store {
 
             use crate::global_storage;
 
-            const NAMESPACE: &'static str = $namespace;
+            const NAMESPACE: &'static str = stringify!($namespace);
 
             #[allow(unused)]
             #[inline]
@@ -271,18 +271,18 @@ macro_rules! gen_scoped_kv_store {
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
-            $($(crate::kv_store_scoped_get_set!($impl);)+)?
+            $($(crate::gen_scoped_kv_store_get_set!($impl);)+)?
         }
     };
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! gen_kv_store_get_set {
-    ($val:ident: bool) => {
-        crate::gen_kv_store_get_set!(pub(super), $val: bool);
+macro_rules! gen_kv_store_scoped_get_set {
+    ($val:ident: $t:ident) => {
+        crate::gen_kv_store_scoped_get_set!(pub(super) $val: $t);
     };
-    ($vis:vis, $val:ident: bool) => {
+    ($vis:vis $val:ident: bool) => {
         $vis mod $val {
             use sea_orm::ConnectionTrait;
 

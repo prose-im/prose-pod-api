@@ -28,9 +28,9 @@ pub mod password_reset_tokens {
 
     pub(crate) use self::kv_store::{delete, get_all};
 
-    crate::gen_scoped_kv_store!(pub(super), "auth::password_reset_tokens");
+    crate::gen_scoped_kv_store!(pub(super) auth::password_reset_tokens);
 
-    pub async fn set_token(
+    pub async fn set(
         db: &impl ConnectionTrait,
         key: &PasswordResetToken,
         value: PasswordResetRecord,
@@ -45,7 +45,7 @@ pub mod password_reset_tokens {
         self::kv_store::set(db, key, value).await
     }
 
-    pub async fn get_token_data(
+    pub async fn get(
         db: &impl ConnectionTrait,
         token: &PasswordResetToken,
     ) -> anyhow::Result<Option<PasswordResetRecord>> {
