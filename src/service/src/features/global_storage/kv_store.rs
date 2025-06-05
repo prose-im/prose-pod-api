@@ -279,22 +279,6 @@ macro_rules! gen_scoped_kv_store {
             $(impl KvStore {
                 $(crate::kv_store_scoped_get_set!($impl);)+
             })?
-
-            pub struct Record {
-                pub key: String,
-                pub value: Json,
-                pub metadata: Option<Json>,
-            }
-
-            impl From<Record> for crate::global_storage::KvRecord {
-                fn from(record: Record) -> Self {
-                    Self {
-                        namespace: NAMESPACE.to_owned(),
-                        key: record.key,
-                        value: record.value,
-                    }
-                }
-            }
         }
     };
 }
