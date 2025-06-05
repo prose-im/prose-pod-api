@@ -55,8 +55,7 @@ pub struct IsAdmin;
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
-/// A [`PasswordResetRecord`], but serializable to JSON to store in the global
-/// key/value store.
+/// The JSON value stored in the global key/value store.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PasswordResetRecord {
     pub jid: BareJid,
