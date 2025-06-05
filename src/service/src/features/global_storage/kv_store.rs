@@ -68,11 +68,6 @@ impl KvStore {
         .map(|_| ())
     }
 
-    #[inline]
-    pub async fn set_record(db: &impl ConnectionTrait, record: KvRecord) -> Result<(), DbErr> {
-        Self::set(db, &record.namespace, &record.key, record.value).await
-    }
-
     #[instrument(name = "store::get_all", level = "trace", skip_all, fields(namespace))]
     pub async fn get_all(
         db: &impl ConnectionTrait,
@@ -279,15 +274,6 @@ macro_rules! gen_scoped_kv_store {
                     value: Json,
                 ) -> anyhow::Result<()> {
                     (global_storage::KvStore::set(db, NAMESPACE, key, value).await)
-                        .map_err(|err| anyhow::anyhow!("Database error: {err}"))
-                }
-
-                #[allow(unused)]
-                pub async fn set_record(
-                    db: &impl ConnectionTrait,
-                    record: Record
-                ) -> anyhow::Result<()> {
-                    (global_storage::KvStore::set_record(db, record.into()).await)
                         .map_err(|err| anyhow::anyhow!("Database error: {err}"))
                 }
 
