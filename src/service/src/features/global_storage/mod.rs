@@ -5,5 +5,3 @@
 
 pub mod kv_store;
 pub(crate) mod migrations;
-
-pub use kv_store::KvRecord;

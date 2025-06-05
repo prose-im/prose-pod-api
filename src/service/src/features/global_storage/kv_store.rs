@@ -16,7 +16,6 @@ use tracing::{instrument, warn};
 
 use crate::util::either::Either;
 
-pub use self::entity::Model as KvRecord;
 use self::entity::{ActiveModel, Column, Entity};
 
 mod entity {
