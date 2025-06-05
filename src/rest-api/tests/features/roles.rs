@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::error::Error;
-use service::members::*;
+use service::{members::*, models::EmailAddress};
 
 use super::prelude::*;
 
@@ -27,6 +27,7 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
                     &"password".into(),
                     &name,
                     &Some(MemberRole::Admin),
+                    Some(EmailAddress::from_str(jid.as_str()).unwrap()),
                 )
                 .await?;
 
@@ -51,6 +52,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
             &"password".into(),
             &name,
             &Some(MemberRole::Member),
+            Some(EmailAddress::from_str(jid.as_str()).unwrap()),
         )
         .await?;
 

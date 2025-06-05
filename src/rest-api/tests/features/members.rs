@@ -77,6 +77,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             jid: jid.clone(),
             role: None,
             joined_at: None,
+            email_address: Some(EmailAddress::from_str(jid.as_str()).unwrap()),
         };
         let model = MemberRepository::create(db, member).await?;
         let token = world.mock_auth_service.log_in_unchecked(&jid).await?;

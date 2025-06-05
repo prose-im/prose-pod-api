@@ -11,6 +11,7 @@ use tracing::instrument;
 
 use crate::{
     auth::AuthService,
+    models::EmailAddress,
     xmpp::{
         BareJid, ServerCtl, ServerCtlError, XmppService, XmppServiceContext, XmppServiceError,
         XmppServiceInner,
@@ -56,6 +57,7 @@ impl UnauthenticatedMemberService {
         password: &SecretString,
         nickname: &str,
         role: &Option<MemberRole>,
+        email_address: Option<EmailAddress>,
     ) -> Result<Member, UserCreateError> {
         // Start a database transaction so we can roll back
         // if the member limit is reached.
@@ -68,6 +70,7 @@ impl UnauthenticatedMemberService {
                 jid: jid.to_owned(),
                 role: role.to_owned(),
                 joined_at: None,
+                email_address,
             },
         )
         .await?;

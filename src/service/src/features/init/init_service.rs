@@ -46,6 +46,8 @@ impl InitService {
                 &form.password,
                 &form.nickname,
                 &Some(MemberRole::Admin),
+                // TODO: See [First admin account has no email address · Issue #256 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/256).
+                None,
             )
             .await
             .map_err(InitFirstAccountError::CouldNotCreateFirstAccount)?;

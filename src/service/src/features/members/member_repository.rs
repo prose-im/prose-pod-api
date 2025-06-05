@@ -222,14 +222,16 @@ pub struct MemberCreateForm {
     pub jid: BareJid,
     pub role: Option<MemberRole>,
     pub joined_at: Option<DateTime<Utc>>,
+    pub email_address: Option<EmailAddress>,
 }
 
 impl MemberCreateForm {
     fn into_active_model(self) -> ActiveModel {
         let mut res = ActiveModel {
+            id: NotSet,
             role: self.role.map(Set).unwrap_or(NotSet),
             joined_at: Set(self.joined_at.unwrap_or_else(Utc::now)),
-            ..Default::default()
+            email_address: Set(self.email_address),
         };
         res.set_jid(&self.jid);
         res

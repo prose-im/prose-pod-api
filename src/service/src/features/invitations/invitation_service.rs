@@ -251,6 +251,10 @@ impl InvitationService {
     ) -> Result<(), InvitationAcceptError> {
         let txn = db.begin().await.context("Database error")?;
 
+        let email_address = match invitation.contact() {
+            InvitationContact::Email { email_address } => Some(email_address),
+        };
+
         // Create the user
         self.member_service
             .create_user(
@@ -259,6 +263,7 @@ impl InvitationService {
                 &form.password,
                 &form.nickname,
                 &Some(invitation.pre_assigned_role),
+                email_address,
             )
             .await?;
 
