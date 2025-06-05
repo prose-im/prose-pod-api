@@ -146,12 +146,12 @@ pub async fn reset_password(
         None => return Err(Either3::E1(PasswordResetTokenNotFound)),
     };
 
+    tracing::Span::current().record("jid", record.jid.to_string());
+
     // Check password expiry.
     if Utc::now() > record.expires_at {
         return Err(Either3::E2(PasswordResetTokenExpired));
     }
-
-    tracing::Span::current().record("jid", record.jid.to_string());
 
     (server_ctl.set_user_password(&record.jid, password).await).context("ServerCtl error")?;
 
