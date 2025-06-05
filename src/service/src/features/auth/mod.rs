@@ -8,7 +8,7 @@
 pub mod auth_controller;
 pub mod auth_service;
 pub mod errors;
-pub mod live_auth_service;
+mod live_auth_service;
 mod models;
 mod password_reset_notification;
 pub mod util;
