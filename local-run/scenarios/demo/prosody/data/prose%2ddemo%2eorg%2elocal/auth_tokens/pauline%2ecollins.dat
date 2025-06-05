@@ -1,0 +1,20 @@
+return {
+	["T4OQtHuf8fHk"] = {
+		["id"] = "T4OQtHuf8fHk";
+		["accessed"] = 1749129353;
+		["created"] = 1749128878;
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["jid"] = "pauline.collins@prose-demo.org.local";
+		["tokens"] = {
+			["sha256:0a00caa20e78e29663d6eb8c3401d6e422938c05ee94fe4973d824b27584427a"] = {
+				["role"] = "prosody:admin";
+				["purpose"] = "oauth2";
+				["created"] = 1749128878;
+				["expires"] = 1749139678;
+			};
+		};
+		["owner"] = "pauline.collins@prose-demo.org.local";
+	};
+};
