@@ -66,7 +66,7 @@ fn pw_reset_link(reset_token: &PasswordResetToken, dashboard_url: &url::Url) -> 
     // NOTE: `join` erases the fragment and query.
     dashboard_url
         .join(&format!(
-            "password-reset/{token}",
+            "start/recover/{token}",
             token = reset_token.expose_secret(),
         ))
         .expect("Invalid accept link")
