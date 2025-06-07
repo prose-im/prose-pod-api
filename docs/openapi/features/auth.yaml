@@ -2,7 +2,7 @@ paths:
   login:
     tags: [Auth]
     summary: Log in
-    description: Logs a user in and returns an authentication token (using the JWT format).
+    description: Logs a user in and returns an authentication token.
     operationId: login
     security:
       - BasicAuth: []
@@ -13,6 +13,61 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LoginResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+  request_password_reset:
+    tags: [Auth]
+    summary: Request password reset
+    description: Sends a password reset link to a member (via email).
+    operationId: request_password_reset
+    security:
+      - BasicAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    responses:
+      "202":
+        description: Success (password reset link sent)
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  reset_password:
+    tags: [Auth]
+    summary: Reset password
+    description: Uses a password reset token to reset someone’s password.
+    operationId: reset_password
+    security: []
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/PasswordResetToken" }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ResetPasswordRequest" }
+    responses:
+      "200":
+        description: Success
+      "404":
+        description: Token not found (expired or already used)
+        content:
+          application/json:
+            schema:
+              $ref: "../shared.yaml#/components/schemas/Error"
+              properties:
+                error:
+                  const: password_reset_token_expired
+            example:
+              error: password_reset_token_expired
+      "410":
+        description: Token expired not long ago (rare)
+        content:
+          application/json:
+            schema:
+              $ref: "../shared.yaml#/components/schemas/Error"
+              properties:
+                error:
+                  const: password_reset_token_expired
+            example:
+              error: password_reset_token_expired
 components:
   schemas:
     LoginResponse:
@@ -25,3 +80,13 @@ components:
           type: string
           format: jwt
           example: eyJhbGciOiJIUzI1NiJ9.eyJqaWQiOiJleGFtcGxlQHByb3NlLm9yZy5sb2NhbCJ9.y88lyu9q0dFx9zYxllJo3XUtNnyc3Z_ad3w1hsfTJQ0
+    PasswordResetToken:
+      type: string
+      format: uuid
+      example: e52300f9-6a0a-4bab-9ed2-eb30f6de888d
+    ResetPasswordRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password: { $ref: "../shared.yaml#/components/schemas/Password" }

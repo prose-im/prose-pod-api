@@ -26,6 +26,10 @@ paths:
   # ===== Auth =====
   "/v1/login":
     post: { $ref: "features/auth.yaml#/paths/login" }
+  "/v1/members/{memberId}/password":
+    delete: { $ref: "features/auth.yaml#/paths/request_password_reset" }
+  "/v1/password-reset-tokens/{token}/use":
+    put: { $ref: "features/auth.yaml#/paths/reset_password" }
 
   # ===== Server config =====
   "/v1/server/config":
