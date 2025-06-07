@@ -15,7 +15,7 @@ use cucumber::*;
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
-    auth::{AuthService, AuthToken},
+    auth::{AuthService, AuthToken, PasswordResetToken},
     dependencies,
     errors::DbErr,
     invitations::{Invitation, InvitationService},
@@ -27,7 +27,7 @@ use service::{
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{entities::server_config, ServerConfig, ServerConfigRepository},
     workspace::WorkspaceService,
-    xmpp::{JidDomain, ServerCtl, ServerManager, XmppServiceInner},
+    xmpp::{BareJid, JidDomain, ServerCtl, ServerManager, XmppServiceInner},
 };
 use uuid::Uuid;
 
@@ -41,7 +41,7 @@ pub const DEFAULT_DOMAIN: &'static str = "prose.test.org";
 #[derive(Debug, World)]
 #[world(init = Self::new)]
 pub struct TestWorld {
-    pub app_config: AppConfig,
+    pub app_config: RwLock<AppConfig>,
     pub db: DatabaseConnection,
     pub mock_server_ctl: MockServerCtl,
     pub server_ctl: ServerCtl,
@@ -65,6 +65,7 @@ pub struct TestWorld {
     pub scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
     pub previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
     pub initial_server_domain: JidDomain,
+    pub password_reset_tokens: HashMap<BareJid, Vec<PasswordResetToken>>,
 }
 
 impl TestWorld {
@@ -85,6 +86,14 @@ impl TestWorld {
         &self.db
     }
 
+    pub fn app_config(&self) -> RwLockReadGuard<AppConfig> {
+        self.app_config.read().unwrap()
+    }
+
+    pub fn app_config_mut(&self) -> RwLockWriteGuard<AppConfig> {
+        self.app_config.write().unwrap()
+    }
+
     /// Sometimes we need to use the `ServerCtl` from "Given" steps,
     /// to avoid rewriting all of its logic in tests.
     /// However, using the mock attached to the API will cause counters to increase
@@ -100,7 +109,7 @@ impl TestWorld {
         };
         Ok(Some(ServerManager::new(
             Arc::new(self.db().clone()),
-            Arc::new(self.app_config.clone()),
+            Arc::new(self.app_config.read().unwrap().clone()),
             Arc::new(self.server_ctl.clone()),
             server_config,
         )))
@@ -117,7 +126,7 @@ impl TestWorld {
     pub async fn workspace_service(&self) -> WorkspaceService {
         WorkspaceService::new(
             Arc::new(self.xmpp_service.clone()),
-            Arc::new(self.app_config.clone()),
+            Arc::new(self.app_config.read().unwrap().clone()),
             &(self.server_config().await)
                 .expect("Error getting server config")
                 .domain,
@@ -151,7 +160,7 @@ impl TestWorld {
 
     pub async fn opt_server_config(&self) -> Result<Option<ServerConfig>, DbErr> {
         let config = self.opt_server_config_model().await?;
-        Ok(config.map(|model| model.with_default_values_from(&self.app_config)))
+        Ok(config.map(|model| model.with_default_values_from(&self.app_config.read().unwrap())))
     }
 
     pub async fn server_config(&self) -> Result<ServerConfig, DbErr> {
@@ -253,7 +262,7 @@ impl TestWorld {
         }
 
         Self {
-            app_config: config.clone(),
+            app_config: RwLock::new(config.clone()),
             db,
             api: None,
             result: None,
@@ -275,6 +284,7 @@ impl TestWorld {
             mock_network_checker,
             uuid_gen,
             initial_server_domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
+            password_reset_tokens: HashMap::new(),
         }
     }
 }

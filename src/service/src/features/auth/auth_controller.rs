@@ -156,7 +156,7 @@ pub async fn reset_password(
     (server_ctl.set_user_password(&jid, password).await).context("ServerCtl error")?;
 
     // Delete record from database.
-    password_reset_tokens::delete(db, jid.as_str()).await?;
+    password_reset_tokens::delete(db, token).await?;
 
     Ok(())
 }

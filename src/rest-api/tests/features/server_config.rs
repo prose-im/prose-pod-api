@@ -20,7 +20,7 @@ async fn given_server_config(
         &mut <<server_config::Model as ModelTrait>::Entity as EntityTrait>::ActiveModel,
     ) -> (),
 ) -> Result<(), Error> {
-    let app_config = &world.app_config;
+    let app_config = &world.app_config();
 
     let mut server_config = world.server_config_model().await?.into_active_model();
     update(&mut server_config);

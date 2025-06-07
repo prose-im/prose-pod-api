@@ -20,10 +20,11 @@ pub use self::models::*;
 
 pub mod password_reset_tokens {
     use anyhow::Context;
+    use jid::BareJid;
 
-    use super::{PasswordResetRecord, PasswordResetToken};
+    use super::{PasswordResetKvRecord, PasswordResetRecord, PasswordResetToken};
 
-    pub use self::kv_store::{delete, get_all};
+    pub use self::kv_store::{delete as kv_store_delete, get_all};
 
     crate::gen_scoped_kv_store!(pub(super) auth::password_reset_tokens);
 
@@ -56,5 +57,27 @@ pub mod password_reset_tokens {
             }
             None => Ok(None),
         }
+    }
+
+    /// Returns whether or not a record was deleted.
+    pub async fn delete(
+        db: &impl sea_orm::ConnectionTrait,
+        token: &PasswordResetToken,
+    ) -> anyhow::Result<bool> {
+        use secrecy::ExposeSecret;
+        self::kv_store::delete(db, &token.expose_secret().as_str()).await
+    }
+
+    #[tracing::instrument(skip(db), ret)]
+    pub async fn get_by_jid(
+        db: &impl sea_orm::ConnectionTrait,
+        jid: &BareJid,
+    ) -> anyhow::Result<Vec<PasswordResetToken>> {
+        let mut records =
+            self::kv_store::get_by_value_entry::<PasswordResetKvRecord>(db, ("jid", jid.as_str()))
+                .await?;
+        records.sort_by_key(|r| r.value.expires_at);
+        let tokens = records.into_iter().map(|r| r.key).collect::<Vec<_>>();
+        Ok(tokens)
     }
 }

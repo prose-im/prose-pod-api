@@ -5,8 +5,6 @@
 
 pub mod server_config;
 
-use crate::sea_orm_string_enum;
-
 use super::TlsProfile;
 
-sea_orm_string_enum!(TlsProfile);
+crate::sea_orm_string!(TlsProfile; enum);

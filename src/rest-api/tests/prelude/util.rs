@@ -54,9 +54,7 @@ pub fn assert_defined_if<T: PartialEq + Debug>(condition: bool, value: Option<T>
 #[macro_export]
 macro_rules! user_token {
     ($world:expr, $name:expr) => {
-        $world
-            .members
-            .get(&$name)
+        ($world.members.get(&$name))
             .expect("User must be created first")
             .1
             .clone()
@@ -68,16 +66,22 @@ macro_rules! api_call_fn {
     (
         $fn:ident,
         unauthenticated: $method:ident,
-        $route:literal $(; path: $($route_param_name:tt=$route_param:ty)*)?
+        $route:literal $(; $route_param_name:tt=$route_param:ty)*
         $(, accept: $accept:literal)?
+        $(, payload: $payload_type:ty)?
         $(, content_type: $content_type:literal)?
         $(,)?
     ) => {
-        async fn $fn(api: &axum_test::TestServer $(, $route_param_name: $route_param)*) -> axum_test::TestResponse {
+        async fn $fn(
+            api: &axum_test::TestServer,
+            $($route_param_name: $route_param,)*
+            $(payload: $payload_type,)?
+        ) -> axum_test::TestResponse {
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     $( .add_header(axum::http::header::ACCEPT, $accept) )?
+                    $(.json(&serde_json::json!(payload as $payload_type)))?
                     $( .content_type($content_type) )?,
             )
             .await
@@ -87,7 +91,7 @@ macro_rules! api_call_fn {
     (
         $fn:ident,
         $method:ident,
-        $route:literal
+        $route:literal $(; $route_param_name:tt=$route_param:ty)*
         $(, accept: $accept:literal)?
         $(, content_type: $content_type:literal)?
         $(,)?
@@ -95,11 +99,12 @@ macro_rules! api_call_fn {
         async fn $fn(
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
+            $( $route_param_name: $route_param, )*
         ) -> axum_test::TestResponse {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_secs(2),
-                api.method(axum::http::Method::$method, $route)
+                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     $( .add_header(axum::http::header::ACCEPT, $accept) )?
                     $( .content_type($content_type) )?
                     .add_header(

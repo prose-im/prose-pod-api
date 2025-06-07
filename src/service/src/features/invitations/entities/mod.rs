@@ -5,9 +5,7 @@
 
 pub mod workspace_invitation;
 
-use crate::sea_orm_string_enum;
-
 use super::{InvitationChannel, InvitationStatus};
 
-sea_orm_string_enum!(InvitationStatus);
-sea_orm_string_enum!(InvitationChannel);
+crate::sea_orm_string!(InvitationStatus; enum);
+crate::sea_orm_string!(InvitationChannel; enum);

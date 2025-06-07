@@ -51,12 +51,18 @@ impl From<UserInfo> for Authenticated {
 /// but it'll do for now.
 pub struct IsAdmin;
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
+#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromQueryResult)]
+pub struct PasswordResetKvRecord {
+    pub key: PasswordResetToken,
+    pub value: PasswordResetRecord,
+}
+
 /// The JSON value stored in the global key/value store.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromJsonQueryResult)]
 pub struct PasswordResetRecord {
     pub jid: BareJid,
     pub expires_at: DateTime<Utc>,
@@ -88,3 +94,5 @@ where
         Self(value.into())
     }
 }
+
+crate::sea_orm_string!(PasswordResetToken; secret);

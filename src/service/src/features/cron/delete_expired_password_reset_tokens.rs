@@ -32,6 +32,7 @@ pub async fn run(
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
     if tokens_ttl == 0. {
+        info!("Not deleting expired password reset tokens: TTL is zero.");
         return;
     }
 
@@ -64,7 +65,7 @@ pub async fn run(
             match serde_json::from_value::<PasswordResetRecord>(value) {
                 Ok(record) => {
                     if Utc::now() > record.expires_at {
-                        if let Err(err) = password_reset_tokens::delete(db, key.as_str()).await {
+                        if let Err(err) = password_reset_tokens::kv_store_delete(db, &key).await {
                             error!("Could not delete expired password reset token record from database: {err}");
                         }
                     }

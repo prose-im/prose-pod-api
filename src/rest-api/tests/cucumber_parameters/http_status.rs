@@ -37,6 +37,8 @@ impl FromStr for HTTPStatus {
             "NotFound" | "Not Found" => StatusCode::NOT_FOUND,
             "InternalServerError" | "Internal Server Error" => StatusCode::INTERNAL_SERVER_ERROR,
             "UnprocessableEntity" | "Unprocessable Entity" => StatusCode::UNPROCESSABLE_ENTITY,
+            "Accepted" => StatusCode::ACCEPTED,
+            "Gone" => StatusCode::GONE,
             s => {
                 let code = s.parse::<u16>().map_err(|_| {
                     format!("Invalid `HTTPStatus` (use a number if unsupported): {s}")

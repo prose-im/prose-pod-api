@@ -102,22 +102,19 @@ pub async fn get(
     skip_all,
     fields(namespace, value_entry_key)
 )]
-pub async fn get_by_value_entry(
+pub async fn get_by_value_entry<T: sea_orm::FromQueryResult>(
     db: &impl ConnectionTrait,
     namespace: &str,
     entry: (&str, impl Into<sea_orm::Value>),
-) -> Result<Option<KvRecord>, DbErr> {
+) -> Result<Vec<T>, DbErr> {
     let select = Entity::find()
         .filter(Column::Namespace.eq(namespace))
         .filter(Expr::cust_with_values(
             format!("json_extract(value, '$.{key}') = ?", key = entry.0),
             vec![entry.1],
-        ));
-    match select.one(db).await {
-        Ok(Some(model)) => Ok(Some(model)),
-        Ok(None) => Ok(None),
-        Err(err) => Err(err),
-    }
+        ))
+        .into_model();
+    select.all(db).await
 }
 
 /// Returns whether or not a record was deleted.
@@ -292,10 +289,10 @@ macro_rules! gen_scoped_kv_store {
 
             #[allow(unused)]
             #[inline]
-            pub async fn get_by_value_entry(
+            pub async fn get_by_value_entry<T: sea_orm::FromQueryResult>(
                 db: &impl ConnectionTrait,
                 entry: (&str, impl Into<sea_orm::Value>),
-            ) -> anyhow::Result<Option<crate::global_storage::KvRecord>> {
+            ) -> anyhow::Result<Vec<T>> {
                 (global_storage::kv_store::get_by_value_entry(db, NAMESPACE, entry).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }

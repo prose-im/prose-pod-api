@@ -35,6 +35,7 @@ pub async fn run(
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
     if oauth2_tokens_ttl == 0. {
+        info!("Not refreshing service accounts tokens: TTL is zero.");
         return;
     }
 

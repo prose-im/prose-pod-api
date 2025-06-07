@@ -30,6 +30,13 @@ impl Duration {
             Self::Infinite => panic!("Could not get seconds from infinite duration."),
         }
     }
+
+    pub fn iso(self) -> Option<ISODuration> {
+        match self {
+            Duration::Finite(duration) => Some(duration),
+            Duration::Infinite => None,
+        }
+    }
 }
 
 impl FromStr for Duration {
