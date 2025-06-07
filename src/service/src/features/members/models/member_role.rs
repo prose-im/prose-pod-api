@@ -8,8 +8,6 @@ use std::cmp::Ordering;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{EnumIter, EnumString};
 
-use crate::sea_orm_string_enum;
-
 // NOTE: When adding a new case to this enum, make sure to
 //   add a new migration to update the column size.
 #[repr(u8)]
@@ -35,4 +33,4 @@ impl PartialOrd for MemberRole {
     }
 }
 
-sea_orm_string_enum!(MemberRole);
+crate::sea_orm_string!(MemberRole; enum);

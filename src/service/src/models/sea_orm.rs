@@ -61,10 +61,10 @@ impl<T: Display + FromStr> sea_orm::TryGetable for SeaOrmAsString<T>
 where
     <T as FromStr>::Err: Debug,
 {
-    crate::sea_orm_try_get_by_string!();
+    crate::sea_orm_try_get_by_string!(using: FromStr);
 }
 impl<T: Display + FromStr> sea_orm::sea_query::ValueType for SeaOrmAsString<T> {
-    crate::sea_orm_string_value_type_impl!(SeaOrmAsString<T>, None);
+    crate::sea_orm_string_value_type_impl!(SeaOrmAsString<T>, None, using: FromStr);
 }
 impl<T: Display + FromStr> sea_orm::sea_query::Nullable for SeaOrmAsString<T> {
     crate::sea_orm_string_nullable_impl!();

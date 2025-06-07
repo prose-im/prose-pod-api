@@ -77,9 +77,10 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             jid: jid.clone(),
             role: None,
             joined_at: None,
+            email_address: Some(EmailAddress::from_str(jid.as_str()).unwrap()),
         };
         let model = MemberRepository::create(db, member).await?;
-        let token = world.mock_auth_service.log_in_unchecked(&jid);
+        let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
 
         world.members.insert(jid.to_string(), (model.into(), token));
     }
@@ -126,7 +127,7 @@ async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
     let invitation = world
         .invitation_service()
         .invite_member(
-            &world.app_config,
+            &world.app_config(),
             &world.server_config().await?.domain,
             &world.notifcation_service(),
             &world.workspace_service().await,

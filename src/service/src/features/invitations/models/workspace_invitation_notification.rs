@@ -5,12 +5,11 @@
 
 use std::fmt::Display;
 
-use email_address::EmailAddress;
 use secrecy::ExposeSecret as _;
 
 use crate::{
     invitations::InvitationToken,
-    models::Url,
+    models::{EmailAddress, Url},
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
     AppConfig,
 };
@@ -27,16 +26,16 @@ pub struct WorkspaceInvitationPayload {
 }
 
 impl EmailNotification {
-    pub fn from(
-        email_recipient: EmailAddress,
-        invitation_payload: WorkspaceInvitationPayload,
+    pub fn for_workspace_invitation(
+        recipient: EmailAddress,
+        payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
-            email_recipient,
-            notification_subject(&invitation_payload),
-            notification_message_plain(&invitation_payload),
-            notification_message_html(&invitation_payload),
+            recipient,
+            notification_subject(&payload),
+            notification_message_plain(&payload),
+            notification_message_html(&payload),
             app_config,
         )
     }

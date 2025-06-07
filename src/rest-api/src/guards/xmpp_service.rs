@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    auth::{auth_service::AuthToken, UserInfo},
+    auth::{AuthToken, UserInfo},
     xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
 };
 

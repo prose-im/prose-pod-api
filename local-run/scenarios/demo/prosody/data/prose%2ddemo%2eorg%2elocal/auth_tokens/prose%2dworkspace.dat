@@ -1,20 +1,20 @@
 return {
-	["aIFGV-R5U2Dn"] = {
+	["dei3MQMxjNOy"] = {
+		["id"] = "dei3MQMxjNOy";
+		["accessed"] = 1749128873;
+		["created"] = 1749128873;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
 		};
-		["id"] = "aIFGV-R5U2Dn";
 		["jid"] = "prose-workspace@prose-demo.org.local";
-		["created"] = 1747070909;
-		["owner"] = "prose-workspace@prose-demo.org.local";
 		["tokens"] = {
-			["sha256:4cabe8c1e92eb86cca64224616a68956d539d67db33ccce5adbdf753a0820262"] = {
-				["created"] = 1747070909;
-				["purpose"] = "oauth2";
+			["sha256:a81449a3474b88fe192d26f26985facac6bdef0f181d471616a653ea5940997b"] = {
 				["role"] = "prosody:registered";
-				["expires"] = 1747081709;
+				["purpose"] = "oauth2";
+				["created"] = 1749128873;
+				["expires"] = 1749139673;
 			};
 		};
-		["accessed"] = 1747070909;
+		["owner"] = "prose-workspace@prose-demo.org.local";
 	};
 };

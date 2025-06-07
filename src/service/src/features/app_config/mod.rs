@@ -67,6 +67,8 @@ pub struct AppConfig {
     #[serde(default)]
     pub server: ConfigServer,
     #[serde(default)]
+    pub auth: ConfigAuth,
+    #[serde(default)]
     pub prosody_ext: ConfigProsodyExt,
     #[serde(default)]
     pub prosody: ProsodySettings,
@@ -267,10 +269,6 @@ pub struct ConfigServer {
     pub local_hostname_admin: String,
     #[serde(default = "defaults::server_http_port")]
     pub http_port: u16,
-    #[serde(default = "defaults::server_oauth2_registration_key")]
-    pub oauth2_registration_key: SecretString,
-    #[serde(default = "defaults::server_oauth2_access_token_ttl")]
-    pub oauth2_access_token_ttl: u32,
     #[serde(default = "defaults::server_log_level")]
     pub log_level: ServerLogLevel,
     #[serde(default)]
@@ -304,10 +302,28 @@ impl Default for ConfigServer {
             local_hostname: defaults::server_local_hostname(),
             local_hostname_admin: defaults::server_local_hostname_admin(),
             http_port: defaults::server_http_port(),
-            oauth2_registration_key: defaults::server_oauth2_registration_key(),
-            oauth2_access_token_ttl: defaults::server_oauth2_access_token_ttl(),
             log_level: defaults::server_log_level(),
             defaults: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConfigAuth {
+    #[serde(default = "defaults::auth_token_ttl")]
+    pub token_ttl: iso8601_duration::Duration,
+    #[serde(default = "defaults::auth_password_reset_token_ttl")]
+    pub password_reset_token_ttl: iso8601_duration::Duration,
+    #[serde(default = "defaults::auth_oauth2_registration_key")]
+    pub oauth2_registration_key: SecretString,
+}
+
+impl Default for ConfigAuth {
+    fn default() -> Self {
+        Self {
+            token_ttl: defaults::auth_token_ttl(),
+            password_reset_token_ttl: defaults::auth_password_reset_token_ttl(),
+            oauth2_registration_key: defaults::auth_oauth2_registration_key(),
         }
     }
 }

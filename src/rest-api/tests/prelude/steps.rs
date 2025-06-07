@@ -23,6 +23,12 @@ async fn given_api_run_state(world: &mut TestWorld, state: parameters::StateVerb
     }
 }
 
+#[given(expr = "the Prose Pod API has restarted")]
+async fn given_api_restarted(world: &mut TestWorld) {
+    world.api = Some(test_server(&world).await.unwrap());
+    world.reset_server_ctl_counts();
+}
+
 #[when("the Prose Pod API starts")]
 async fn when_api_starts(world: &mut TestWorld) {
     assert!(world.api.is_none());
@@ -64,6 +70,11 @@ fn then_response_success(world: &mut TestWorld) {
 #[then("the call should fail")]
 fn then_response_failure(world: &mut TestWorld) {
     world.result().assert_status_failure();
+}
+
+#[then("the response body should be empty")]
+fn then_response_body_empty(world: &mut TestWorld) {
+    world.result().as_bytes().is_empty();
 }
 
 #[then("the response content type should be JSON")]

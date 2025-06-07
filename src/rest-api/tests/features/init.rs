@@ -77,7 +77,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
     server_config_controller::init_server_config(
         world.db(),
         &world.server_ctl,
-        &world.app_config,
+        &world.app_config(),
         &world.auth_service,
         &world.secrets_store,
         form,

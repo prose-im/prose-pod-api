@@ -106,7 +106,7 @@ impl PodNetworkConfig {
 
     /// Configuration steps shown in the "DNS setup instructions" of the Prose Pod Dashboard.
     ///
-    /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
+    /// They are derived from the recommended DNS configuration.
     #[instrument(level = "trace", skip_all)]
     pub fn dns_setup_steps(&self) -> impl Iterator<Item = DnsSetupStep<DnsRecordWithStringRepr>> {
         self.dns_entries().into_iter().map(|step| DnsSetupStep {
@@ -122,7 +122,7 @@ impl PodNetworkConfig {
 
     /// "DNS records" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     ///
-    /// They are derived from the recommended DNS configuration (from [`PodNetworkConfig::dns_entries`]).
+    /// They are derived from the recommended DNS configuration.
     #[instrument(level = "trace", skip_all)]
     pub fn dns_record_checks(&self) -> impl Iterator<Item = DnsRecordCheck> + Clone {
         self.dns_entries()

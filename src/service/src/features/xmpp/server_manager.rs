@@ -8,7 +8,6 @@ use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use anyhow::{anyhow, Context as _};
 use jid::BareJid;
 use linked_hash_set::LinkedHashSet;
-use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use sea_orm::IntoActiveModel as _;
 use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, trace};
@@ -115,14 +114,8 @@ impl ServerManager {
 
     /// Generates a very strong random password.
     fn strong_random_password() -> SecretString {
-        // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            // 256 characters because why not
-            .take(256)
-            .map(char::from)
-            .collect::<String>()
-            .into()
+        // 256 characters because why not
+        crate::auth::util::strong_random_password(256)
     }
 }
 

@@ -7,7 +7,6 @@
 
 use std::{fmt::Display, time::Duration};
 
-use email_address::EmailAddress;
 use lettre::{
     address::AddressError,
     message::{Mailbox, Message, MultiPart, SinglePart},
@@ -22,6 +21,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
     app_config::{ConfigBranding, MissingConfiguration},
+    models::EmailAddress,
     AppConfig,
 };
 

@@ -13,9 +13,9 @@ pod_address = "pod@prose.org.local"
 smtp_host = "mailpit"
 smtp_encrypt = false
 
-[server]
+[auth]
 # Expire tokens immediately, allowing successful log in but not subsequent requests.
-oauth2_access_token_ttl = 0
+token_ttl = "PT0S"
 
 [debug_only]
 skip_startup_actions = ["migrate_workspace_vcard"]

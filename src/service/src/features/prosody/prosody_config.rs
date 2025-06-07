@@ -122,6 +122,9 @@ impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
         let api_jid = app_config.api_jid();
         let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+        let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
+            .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
+            .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
 
         Self {
             global_settings: (app_config.prosody)
@@ -221,15 +224,12 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                                             "password",
                                         ],
                                     ),
-                                    def(
-                                        "oauth2_access_token_ttl",
-                                        app_config.server.oauth2_access_token_ttl,
-                                    ),
+                                    def("oauth2_access_token_ttl", oauth2_access_token_ttl),
                                     // We don't want tokens to be refreshed
                                     def("oauth2_refresh_token_ttl", 0),
                                     def(
                                         "oauth2_registration_key",
-                                        app_config.server.oauth2_registration_key.expose_secret(),
+                                        app_config.auth.oauth2_registration_key.expose_secret(),
                                     ),
                                 ],
                             ),

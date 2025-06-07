@@ -11,7 +11,9 @@ use service::{
         errors::{InvalidAuthToken, InvalidCredentials},
         AuthServiceImpl, AuthToken, UserInfo,
     },
+    members::MemberRole,
     models::BareJid,
+    sea_orm::DatabaseConnection,
     util::either::Either,
 };
 use tracing::debug;
@@ -50,12 +52,24 @@ impl MockAuthService {
         }
     }
 
-    pub fn log_in_unchecked(&self, jid: &BareJid) -> AuthToken {
-        let json = serde_json::to_string(&UserInfo { jid: jid.clone() }).unwrap();
+    pub async fn log_in_unchecked(&self, jid: &BareJid) -> Result<AuthToken, anyhow::Error> {
+        let role = {
+            let state = self.mock_server_ctl_state.read().unwrap();
+            (state.users.get(jid)).map_or(MemberRole::Member, |member| match member.role.as_str() {
+                "prosody:admin" => MemberRole::Admin,
+                "prosody:member" => MemberRole::Member,
+                role => unreachable!("role={role}"),
+            })
+        };
+        let json = serde_json::to_string(&UserInfo {
+            jid: jid.to_owned(),
+            role,
+        })
+        .unwrap();
         let base64 = Base64.encode(json);
         let token = SecretString::from(base64);
 
-        AuthToken(token)
+        Ok(AuthToken(token))
     }
 }
 
@@ -72,26 +86,30 @@ impl AuthServiceImpl for MockAuthService {
         jid: &BareJid,
         password: &SecretString,
     ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
-        self.check_online().map_err(Either::E2)?;
+        self.check_online()?;
 
-        let state = self.mock_server_ctl_state.read().unwrap();
-        let valid_credentials = state
-            .users
-            .get(jid)
-            .map(|user| user.password.expose_secret() == password.expose_secret())
-            .expect("User must be created first");
+        let valid_credentials = {
+            let state = self.mock_server_ctl_state.read().unwrap();
+            (state.users.get(jid))
+                .map(|user| user.password.expose_secret() == password.expose_secret())
+                .expect("User must be created first")
+        };
 
         if !valid_credentials {
             return Err(Either::E1(InvalidCredentials));
         }
 
-        Ok(self.log_in_unchecked(jid))
+        let token = self.log_in_unchecked(jid).await?;
+        Ok(token)
     }
 
     async fn get_user_info(
         &self,
         token: AuthToken,
+        _db: &DatabaseConnection,
     ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
+        self.check_online()?;
+
         let base64 = token.expose_secret();
         let json = (Base64.decode(base64)).map_err(|err| {
             debug!("Could not Base64-decode test token: {err}");
@@ -108,6 +126,8 @@ impl AuthServiceImpl for MockAuthService {
     }
 
     async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
+        self.check_online()?;
+
         // NOTE: Nothing to do in tests
         Ok(())
     }

@@ -10,7 +10,7 @@ company_name = "Prose (test)"
 [databases.main]
 url = "sqlite::memory:"
 
-[server]
+[auth]
 oauth2_registration_key = "dummy-test-key"
 
 [notify.email]

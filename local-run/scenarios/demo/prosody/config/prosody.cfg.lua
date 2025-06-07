@@ -88,10 +88,12 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
+-- mod_reload_modules
+reload_modules = { "saslauth" }
+
 -- Debug config: c2s_unencrypted
 c2s_require_encryption = false
 allow_unencrypted_plain_auth = true
-reload_modules = { "saslauth" }
 
 -- Server hosts and components
 VirtualHost "prose-demo.org.local"
@@ -115,7 +117,7 @@ VirtualHost "prose-demo.org.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "fLCk0sLvmtGiKZDt-gKdr7fP2SzN3zGDf52aKBBbLxQKliJYKGAZ_FT90dgiKqQnoFboohyihk8KHS03MtqD-ik847YgZne5Na8LeQLrWnNZxU_iaZITjmj5E9NFmTE7bCmMzhTnkXfR0MpouqkVxO-j0wpk3W9_rybIOmluPsf2_X2RuJJNy4k2nFl2xEnFqgvQo-u6tqKNe-EPnOMoDnombr8U1eyXgzQVXbh4OuJxk6Gq1otVr3CdDPiHQOAapARfd7HaBiZvvEDTQp5NInQv2YPJB3Dz7Y4gTuxYYCJrQ8phPt1fcUFd_Axt8ZPRzl9HqF1QOey4OzukHkU0RQ"
+  oauth2_registration_key = "LMBr7cUmWv_X7KT5jXkx6a8sml9FQ4-Ao6dmkGDnesQ1o9Xlq9ePHFQ29M1aHejMKXiGGrMA5atJvGDZ1oIkd8QgenrnUu-sh_upWGaIcBZAITWwtILz9E10oBboWjmWNxJ6_fO2a4Jma_men-tCFoUop4W_mqVJY5EvoRMky2WGTOeKOmFfVAFDnE9HYaF-5BAksk8PSDLtgmUIZJAG1p0MwE037qj9qS5p7LTO3n_sY2Kf9td4Mz5AnvgyiJNF5o_ga-IDNlUF0n9TZHh5uBF-skzUCKfDf85rA1ZCxS_dqKyBTj8xLIIb4RY65NCKSen49g8S1kCwQZ4zK2IaQQ"
 
 VirtualHost "admin.prose.org.local"
   admins = { "prose-pod-api@admin.prose.org.local" }

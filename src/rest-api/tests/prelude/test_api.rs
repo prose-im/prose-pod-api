@@ -15,7 +15,7 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
     let lifecycle_manager = LifecycleManager::new();
     let app_state = AppState::new(
         world.db.clone(),
-        world.app_config.clone(),
+        world.app_config.read().unwrap().to_owned(),
         world.server_ctl.clone(),
         world.xmpp_service.clone(),
         world.auth_service.clone(),

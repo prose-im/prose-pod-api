@@ -3,8 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref as _;
-
 use axum::{extract::Path, Json};
 use serde::{Deserialize, Serialize};
 use service::{
@@ -28,20 +26,20 @@ pub struct SetMemberNicknameResponse {
 /// Change a member's nickname.
 pub async fn set_member_nickname_route(
     Path(member_id): Path<BareJid>,
-    UserInfo { jid }: UserInfo,
+    UserInfo { jid, .. }: UserInfo,
     xmpp_service: XmppService,
     Json(req): Json<SetMemberNicknameRequest>,
 ) -> Result<Json<SetMemberNicknameResponse>, Error> {
-    if jid.deref() != member_id.deref() {
+    if jid != member_id {
         Err(error::Forbidden(
-            "You can't change someone else's nickname.".to_string(),
+            "You can’t change someone else’s nickname.".to_string(),
         ))?
     }
 
     xmpp_service.set_own_nickname(&req.nickname).await?;
 
     Ok(Json(SetMemberNicknameResponse {
-        jid: jid.to_owned(),
-        nickname: req.nickname.to_owned(),
+        jid,
+        nickname: req.nickname,
     }))
 }

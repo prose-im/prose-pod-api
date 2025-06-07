@@ -6,8 +6,6 @@
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use jid::DomainRef;
-#[cfg(debug_assertions)]
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sea_orm::{
     DatabaseConnection, DbConn, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _,
 };
@@ -18,13 +16,9 @@ use crate::{
     dependencies,
     invitations::{Invitation, InvitationRepository},
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
-    notifications::{
-        notification_service,
-        notifier::email::{EmailNotification, EmailNotificationCreateError},
-        NotificationService,
-    },
+    notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
-    pod_config::{PodConfigField, PodConfigRepository},
+    pod_config::{errors::PodConfigMissing, PodConfigField, PodConfigRepository},
     util::bare_jid_from_username,
     workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
@@ -168,13 +162,7 @@ impl InvitationService {
                 // Use JID as password to make password predictable
                 invitation.jid.to_string().into()
             } else {
-                // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-                thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(32)
-                    .map(char::from)
-                    .collect::<String>()
-                    .into()
+                crate::auth::util::strong_random_password(32)
             };
             self.accept_by_token(
                 invitation.accept_token.into(),
@@ -196,26 +184,17 @@ impl NotificationService {
         contact: InvitationContact,
         payload: WorkspaceInvitationPayload,
         app_config: &AppConfig,
-    ) -> Result<(), SendWorkspaceInvitationError> {
+    ) -> Result<(), anyhow::Error> {
         match contact {
             InvitationContact::Email { email_address } => {
-                self.send_email(EmailNotification::from(
-                    email_address.into(),
-                    payload,
-                    app_config,
-                )?)?;
+                let email =
+                    EmailNotification::for_workspace_invitation(email_address, payload, app_config)
+                        .context("Could not create email")?;
+                self.send_email(email)?;
             }
         }
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SendWorkspaceInvitationError {
-    #[error("Could not create e-mail: {0}")]
-    CouldNotCreateEmailNotification(#[from] EmailNotificationCreateError),
-    #[error("`NotificationService` error: {0}")]
-    NotificationService(#[from] notification_service::Error),
 }
 
 #[derive(Debug)]
@@ -272,6 +251,10 @@ impl InvitationService {
     ) -> Result<(), InvitationAcceptError> {
         let txn = db.begin().await.context("Database error")?;
 
+        let email_address = match invitation.contact() {
+            InvitationContact::Email { email_address } => Some(email_address),
+        };
+
         // Create the user
         self.member_service
             .create_user(
@@ -280,6 +263,7 @@ impl InvitationService {
                 &form.password,
                 &form.nickname,
                 &Some(invitation.pre_assigned_role),
+                email_address,
             )
             .await?;
 
@@ -415,9 +399,7 @@ impl InvitationService {
 
         let dashboard_url = (PodConfigRepository::get_dashboard_url(&self.db).await)
             .context("Database error")?
-            .ok_or(InvitationResendError::PodConfigMissing(
-                PodConfigField::DashboardUrl,
-            ))?;
+            .ok_or(PodConfigMissing(PodConfigField::DashboardUrl))?;
 
         notification_service
             .send_workspace_invitation(
@@ -432,7 +414,8 @@ impl InvitationService {
                 },
                 app_config,
             )
-            .await?;
+            .await
+            .context("Could not send invitation")?;
 
         Ok(())
     }
@@ -442,10 +425,8 @@ impl InvitationService {
 pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
-    #[error("Could not send invitation: {0}")]
-    CouldNotSendInvitation(#[from] SendWorkspaceInvitationError),
-    #[error("Pod configuration missing: {0}")]
-    PodConfigMissing(PodConfigField),
+    #[error("{0}")]
+    PodConfigMissing(#[from] PodConfigMissing),
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }

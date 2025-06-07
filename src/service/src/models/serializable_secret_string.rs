@@ -5,7 +5,7 @@
 
 use std::fmt::Debug;
 
-use secrecy::{zeroize::Zeroize, ExposeSecret as _, SecretString, SerializableSecret};
+use secrecy::{zeroize::Zeroize, ExposeSecret, SecretString, SerializableSecret};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -17,9 +17,24 @@ impl Zeroize for SerializableSecretString {
     }
 }
 impl SerializableSecret for SerializableSecretString {}
+impl From<String> for SerializableSecretString {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+impl<'a> From<&'a str> for SerializableSecretString {
+    fn from(value: &'a str) -> Self {
+        Self(value.to_owned())
+    }
+}
 impl From<SecretString> for SerializableSecretString {
     fn from(value: SecretString) -> Self {
         Self(value.expose_secret().to_owned())
+    }
+}
+impl ExposeSecret<String> for SerializableSecretString {
+    fn expose_secret(&self) -> &String {
+        &self.0
     }
 }
 impl SerializableSecretString {

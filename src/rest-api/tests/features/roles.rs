@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::error::Error;
-use service::members::*;
+use service::{members::*, models::EmailAddress};
 
 use super::prelude::*;
 
@@ -20,18 +20,18 @@ async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
             MemberRepository::set_role(db, &jid, MemberRole::Admin).await?;
         }
         None => {
-            let model = world
-                .member_service()
+            let model = (world.member_service())
                 .create_user(
                     db,
                     &jid,
                     &"password".into(),
                     &name,
                     &Some(MemberRole::Admin),
+                    Some(EmailAddress::from_str(jid.as_str()).unwrap()),
                 )
                 .await?;
 
-            let token = world.mock_auth_service.log_in_unchecked(&jid);
+            let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
 
             world.members.insert(name, (model, token));
         }
@@ -45,18 +45,18 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     let db = world.db();
 
     let jid = name_to_jid(world, &name).await?;
-    let model = world
-        .member_service()
+    let model = (world.member_service())
         .create_user(
             db,
             &jid,
             &"password".into(),
             &name,
             &Some(MemberRole::Member),
+            Some(EmailAddress::from_str(jid.as_str()).unwrap()),
         )
         .await?;
 
-    let token = world.mock_auth_service.log_in_unchecked(&jid);
+    let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
 
     world.members.insert(name, (model, token));
 

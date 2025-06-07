@@ -8,28 +8,76 @@
 pub mod auth_controller;
 pub mod auth_service;
 pub mod errors;
-pub mod live_auth_service;
+mod live_auth_service;
+mod models;
+mod password_reset_notification;
+pub mod util;
 
-pub use auth_service::{AuthService, AuthServiceImpl, AuthToken, UserInfo};
+pub use auth_service::{AuthService, AuthServiceImpl};
 pub use live_auth_service::LiveAuthService;
 
 pub use self::models::*;
 
-mod models {
+pub mod password_reset_tokens {
+    use anyhow::Context;
     use jid::BareJid;
-    use secrecy::SecretString;
 
-    pub struct Credentials {
-        pub jid: BareJid,
-        pub password: SecretString,
+    use super::{PasswordResetKvRecord, PasswordResetRecord, PasswordResetToken};
+
+    pub use self::kv_store::{delete as kv_store_delete, get_all};
+
+    crate::gen_scoped_kv_store!(pub(super) auth::password_reset_tokens);
+
+    pub async fn set(
+        db: &impl sea_orm::ConnectionTrait,
+        key: &PasswordResetToken,
+        value: &PasswordResetRecord,
+    ) -> anyhow::Result<()> {
+        use secrecy::ExposeSecret;
+
+        let key = key.expose_secret();
+        // NOTE: Unwrapping is safe here since we’re only serializing a
+        //   UUID, a date and two Rust variable names.
+        let value = serde_json::to_value(value).unwrap();
+
+        self::kv_store::set(db, key, value).await
     }
 
-    /// Ensures a user is logged in.
-    pub struct Authenticated;
+    pub async fn get(
+        db: &impl sea_orm::ConnectionTrait,
+        token: &PasswordResetToken,
+    ) -> anyhow::Result<Option<PasswordResetRecord>> {
+        use secrecy::ExposeSecret;
 
-    /// Ensures the logged in user is an admin.
-    ///
-    /// It's not perfect, one day we'll replace it with scopes and permissions,
-    /// but it'll do for now.
-    pub struct IsAdmin;
+        match self::kv_store::get(db, &token.expose_secret()).await? {
+            Some(json) => {
+                let data = serde_json::from_value::<PasswordResetRecord>(json)
+                    .context("Invalid record stored")?;
+                Ok(Some(data))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Returns whether or not a record was deleted.
+    pub async fn delete(
+        db: &impl sea_orm::ConnectionTrait,
+        token: &PasswordResetToken,
+    ) -> anyhow::Result<bool> {
+        use secrecy::ExposeSecret;
+        self::kv_store::delete(db, &token.expose_secret().as_str()).await
+    }
+
+    #[tracing::instrument(skip(db), ret)]
+    pub async fn get_by_jid(
+        db: &impl sea_orm::ConnectionTrait,
+        jid: &BareJid,
+    ) -> anyhow::Result<Vec<PasswordResetToken>> {
+        let mut records =
+            self::kv_store::get_by_value_entry::<PasswordResetKvRecord>(db, ("jid", jid.as_str()))
+                .await?;
+        records.sort_by_key(|r| r.value.expires_at);
+        let tokens = records.into_iter().map(|r| r.key).collect::<Vec<_>>();
+        Ok(tokens)
+    }
 }

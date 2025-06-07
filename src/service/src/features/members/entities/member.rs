@@ -8,7 +8,7 @@ use std::str::FromStr as _;
 use jid::BareJid;
 use sea_orm::{entity::prelude::*, Set};
 
-use crate::members::MemberRole;
+use crate::{members::MemberRole, models::EmailAddress};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "member")]
@@ -17,6 +17,7 @@ pub struct Model {
     id: String,
     pub role: MemberRole,
     pub joined_at: DateTimeUtc,
+    pub email_address: Option<EmailAddress>,
 }
 
 impl Model {

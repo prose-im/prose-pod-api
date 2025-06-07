@@ -3,16 +3,18 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt::Debug, ops::Deref, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
+use sea_orm::DatabaseConnection;
 use secrecy::SecretString;
-#[cfg(debug_assertions)]
-use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::{models::BareJid, util::either::Either};
 
-use super::errors::{InvalidAuthToken, InvalidCredentials};
+use super::{
+    errors::{InvalidAuthToken, InvalidCredentials},
+    AuthToken, UserInfo,
+};
 
 #[derive(Debug, Clone)]
 pub struct AuthService {
@@ -40,31 +42,14 @@ impl AuthService {
     pub async fn get_user_info(
         &self,
         token: AuthToken,
+        db: &DatabaseConnection,
     ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>> {
-        self.implem.get_user_info(token).await
+        self.implem.get_user_info(token, db).await
     }
     #[instrument(level = "trace", skip_all, err)]
     pub async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
         self.implem.register_oauth2_client().await
     }
-}
-
-/// An OAuth 2.0 token (provided by Prosody).
-#[derive(Debug)]
-pub struct AuthToken(pub SecretString);
-
-impl Deref for AuthToken {
-    type Target = SecretString;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug)]
-#[cfg_attr(debug_assertions, derive(Serialize, Deserialize))]
-pub struct UserInfo {
-    pub jid: BareJid,
 }
 
 #[async_trait::async_trait]
@@ -77,6 +62,7 @@ pub trait AuthServiceImpl: Debug + Sync + Send {
     async fn get_user_info(
         &self,
         token: AuthToken,
+        db: &DatabaseConnection,
     ) -> Result<UserInfo, Either<InvalidAuthToken, anyhow::Error>>;
     async fn register_oauth2_client(&self) -> Result<(), anyhow::Error>;
 }

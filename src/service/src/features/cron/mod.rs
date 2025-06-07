@@ -3,6 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod delete_expired_password_reset_tokens;
 mod refresh_service_accounts_tokens;
 
 use futures::future::join_all;
@@ -35,7 +36,10 @@ pub fn start_cron_tasks(ctx: CronContext) {
 
     tokio::spawn(async move {
         tokio::select! {
-            _ = join_all(vec![spawn!(refresh_service_accounts_tokens)]) => {},
+            _ = join_all(vec![
+                spawn!(refresh_service_accounts_tokens),
+                spawn!(delete_expired_password_reset_tokens),
+            ]) => {},
             _ = ctx.cancellation_token.cancelled() => {},
         }
     });

@@ -10,7 +10,7 @@ use crate::guards::prelude::*;
 
 const PREFIX: &'static str = "Bearer ";
 
-impl FromRequestParts<AppState> for service::auth::auth_service::AuthToken {
+impl FromRequestParts<AppState> for service::auth::AuthToken {
     type Rejection = error::Error;
 
     #[tracing::instrument(name = "req::auth::authenticate::bearer", level = "trace", skip_all)]

@@ -2,35 +2,35 @@ item({
 	{
 		{
 			"Prose (demo)";
-			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
+			["name"] = "text";
 		};
-		["name"] = "fn";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
+		["name"] = "fn";
 	};
 	{
 		{
 			"application";
-			["name"] = "text";
 			["attr"] = {
 				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 			};
+			["name"] = "text";
 		};
-		["name"] = "kind";
 		["attr"] = {
 			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		};
+		["name"] = "kind";
 	};
+	["name"] = "vcard";
+	["when"] = 1749128873;
+	["key"] = "prose-workspace@prose-demo.org.local";
 	["with"] = "prose-workspace@prose-demo.org.local";
 	["attr"] = {
-		["stamp"] = "2025-05-12T17:28:29Z";
+		["stamp"] = "2025-06-05T13:07:53Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
-	["when"] = 1747070909;
-	["name"] = "vcard";
-	["key"] = "prose-workspace@prose-demo.org.local";
 });

@@ -98,7 +98,17 @@ pub fn server_http_port() -> u16 {
     5280
 }
 
-pub fn server_oauth2_registration_key() -> SecretString {
+/// 3 hours.
+pub fn auth_token_ttl() -> iso8601_duration::Duration {
+    iso8601_duration::Duration::new(0., 0., 0., 3., 0., 0.)
+}
+
+/// 15 minutes.
+pub fn auth_password_reset_token_ttl() -> iso8601_duration::Duration {
+    iso8601_duration::Duration::new(0., 0., 0., 0., 15., 0.)
+}
+
+pub fn auth_oauth2_registration_key() -> SecretString {
     let mut key = [0u8; 256];
     rand::thread_rng().fill_bytes(&mut key);
 
@@ -111,10 +121,6 @@ pub fn server_oauth2_registration_key() -> SecretString {
     }
 
     SecretString::from(bytes_to_base64(&key))
-}
-
-pub fn server_oauth2_access_token_ttl() -> u32 {
-    10800
 }
 
 pub fn server_log_level() -> ServerLogLevel {

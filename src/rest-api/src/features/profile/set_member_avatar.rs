@@ -3,8 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref as _;
-
 use axum::{extract::Path, Json};
 use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
@@ -28,18 +26,18 @@ pub struct SetMemberAvatarResponse {
 /// Change a member's avatar.
 pub async fn set_member_avatar_route(
     Path(member_id): Path<BareJid>,
-    UserInfo { jid }: UserInfo,
+    UserInfo { jid, .. }: UserInfo,
     xmpp_service: XmppService,
     Json(req): Json<SetMemberAvatarRequest>,
 ) -> Result<Json<SetMemberAvatarResponse>, Error> {
-    if jid.deref() != member_id.deref() {
+    if jid != member_id {
         Err(error::Forbidden(
-            "You can't change someone else's avatar.".to_string(),
+            "You can’t change someone else’s avatar.".to_string(),
         ))?
     }
 
     let image_data = general_purpose::STANDARD
-        .decode(req.image.to_owned())
+        .decode(req.image.clone())
         .map_err(|err| error::BadRequest {
             reason: format!("Invalid `image` field: data should be base64-encoded. Error: {err}"),
         })?;
@@ -49,7 +47,7 @@ pub async fn set_member_avatar_route(
         .await?;
 
     Ok(Json(SetMemberAvatarResponse {
-        jid: jid.to_owned(),
-        image: req.image.to_owned(),
+        jid,
+        image: req.image,
     }))
 }

@@ -111,7 +111,7 @@ where
     <Content as TryFrom<ISODuration>>::Error: Debug,
     <Content as FromStr>::Err: Debug,
 {
-    sea_orm_try_get_by_string!();
+    sea_orm_try_get_by_string!(using: FromStr);
 }
 
 impl<Content: DurationContent> sea_query::ValueType for Duration<Content>

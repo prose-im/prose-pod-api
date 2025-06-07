@@ -15,7 +15,10 @@ use hickory_resolver::Name as DomainName;
 use serde::{Deserialize, Serialize};
 use service::{
     models::Url,
-    pod_config::{NetworkAddressCreateForm, PodConfig, PodConfigCreateForm, PodConfigRepository},
+    pod_config::{
+        errors::PodConfigMissing, NetworkAddressCreateForm, PodConfig, PodConfigCreateForm,
+        PodConfigField, PodConfigRepository,
+    },
 };
 
 use crate::{
@@ -140,6 +143,15 @@ pub struct PodConfigNotInitialized;
 impl HttpApiError for PodConfigNotInitialized {
     fn code(&self) -> ErrorCode {
         ErrorCode::POD_CONFIG_NOT_INITIALIZED
+    }
+}
+
+impl HttpApiError for PodConfigMissing {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self(PodConfigField::PodAddress) => ErrorCode::POD_ADDRESS_NOT_INITIALIZED,
+            Self(PodConfigField::DashboardUrl) => ErrorCode::DASHBOARD_URL_NOT_INITIALIZED,
+        }
     }
 }
 

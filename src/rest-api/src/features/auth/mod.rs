@@ -19,7 +19,15 @@ use super::members::MEMBER_ROUTE;
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
         .route(&format!("{MEMBER_ROUTE}/role"), put(set_member_role_route))
+        .route(
+            &format!("{MEMBER_ROUTE}/password"),
+            delete(request_password_reset_route),
+        )
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .route("/v1/login", post(login_route))
+        .route(
+            "/v1/password-reset-tokens/{token}/use",
+            put(reset_password_route),
+        )
         .with_state(app_state)
 }
