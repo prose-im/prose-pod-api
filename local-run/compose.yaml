@@ -15,7 +15,10 @@ services:
       #   override it when doing a factory reset (and only then).
       - "${PROSE_CONFIG_FILE:?}:/etc/prose-pod-api/Prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
-    networks: [prose-network]
+    networks:
+      prose-network:
+        aliases:
+          - prose-pod-api
     env_file: "${ENV_FILE:?}"
     dns: 172.20.0.42
     # Make sure logs are colored.
@@ -46,6 +49,16 @@ services:
       sh -c "cp /usr/share/prose/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
     # Make sure logs are colored.
     tty: true
+
+  # # https://github.com/prose-im/prose-pod-dashboard
+  # dashboard:
+  #   # TODO: Use Docker Hub once supported.
+  #   image: "${PROSE_POD_DASHBOARD_IMAGE:-ghcr.io/prose-im/prose-pod-dashboard:${PROSE_POD_DASHBOARD_IMAGE_TAG:-unknown}}"
+  #   depends_on: [api]
+  #   ports:
+  #     - "3030:3030"
+  #   networks: [prose-network]
+  #   tty: "${PROSE_POD_DASHBOARD_IS_TTY:-${PROSE_POD_IS_TTY:-false}}"
 
   # https://github.com/coredns/coredns
   coredns:

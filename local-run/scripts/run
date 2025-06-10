@@ -47,6 +47,9 @@ $(format_title 'Options:')
       Choose which version of the Prose Pod API to run (default: $(format_code "${PROSE_POD_API_IMAGE_TAG:?}")).
     $(format_flag --server=DOCKER_TAG)
       Choose which version of the Prose Pod Server to run (default: $(format_code "${PROSE_POD_SERVER_IMAGE_TAG:?}")).
+    $(format_flag --dashboard=DOCKER_TAG)
+      Choose which version of the Prose Pod Dashboard to run (default: $(format_code "${PROSE_POD_DASHBOARD_IMAGE_TAG:?}")).
+      $(format_secondary "The Prose Pod Dashboard doesn’t run by default, you must edit $(format_hyperlink 'compose.yaml' file:"${REPOSITORY_ROOT:?}"/local-run/compose.yaml).")
     $(format_flag --scenario=SCENARIO_NAME)
       Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
       $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
@@ -54,8 +57,8 @@ $(format_title 'Options:')
       Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
       $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
     $(format_flag --ephemeral-name=EPHEMERAL_SCENARIO_NAME)
-      Choose a custom name for the ephemeral scenario (default: scenario name with an
-      auto-generated incrementing suffix).
+      Choose a custom name for the ephemeral scenario (default: scenario name
+      with an auto-generated incrementing suffix).
       $(format_secondary 'This can be used when you need a predictable name.')
     $(format_flag --detach)
       Run containers in the background. Check logs with $(format_code 'task local:logs').
@@ -107,6 +110,11 @@ for arg in "$@"; do
 			# Regenerate image name.
 			unset PROSE_POD_SERVER_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
 			;;
+		--dashboard=*)
+			PROSE_POD_DASHBOARD_IMAGE_TAG="${arg#'--dashboard='}"
+			# Regenerate image name.
+			unset PROSE_POD_DASHBOARD_IMAGE && source "${SCRIPTS_ROOT:?}"/image-names.sh
+			;;
 		--scenario=*) SCENARIO_NAME="${arg#'--scenario='}" ;;
 		--ephemeral) EPHEMERAL=1 ;;
 		--ephemeral-name=*) EPHEMERAL_SCENARIO_NAME="${arg#'--ephemeral-name='}" ;;
@@ -153,6 +161,7 @@ info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
 info 'Selected versions:'
 info "- API: $(format_code "${PROSE_POD_API_IMAGE:?}")"
 info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
+info "- Dashboard: $(format_code "${PROSE_POD_DASHBOARD_IMAGE:?}")"
 
 # NOTE: The database doesn't exist yet in integration tests.
 [ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
