@@ -9,11 +9,7 @@ use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use secrecy::ExposeSecret;
 use utils::def;
 
-use crate::{
-    app_config::{AppConfig, ServerLogLevel},
-    server_config::ServerConfig,
-    ProseDefault,
-};
+use crate::{app_config::AppConfig, server_config::ServerConfig, ProseDefault};
 
 use super::prosody_bootstrap_config;
 
@@ -130,7 +126,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             global_settings: (app_config.prosody)
                 .shallow_merged_with(ProsodySettings {
                     log: Some(LogConfig::Map(
-                        vec![(LogLevel::Info, LogLevelValue::Console)]
+                        vec![(app_config.server.log_level, LogLevelValue::Console)]
                             .into_iter()
                             .collect(),
                     )),
@@ -255,17 +251,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     },
                 },
             ],
-        }
-    }
-}
-
-impl From<ServerLogLevel> for prosody_config::LogLevel {
-    fn from(value: ServerLogLevel) -> Self {
-        match value {
-            ServerLogLevel::Debug => Self::Debug,
-            ServerLogLevel::Info => Self::Info,
-            ServerLogLevel::Warn => Self::Warn,
-            ServerLogLevel::Error => Self::Error,
         }
     }
 }

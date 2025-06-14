@@ -252,15 +252,6 @@ impl Default for ConfigBootstrap {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum ServerLogLevel {
-    Debug,
-    Info,
-    Warn,
-    Error,
-}
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServer {
     #[serde(default = "defaults::server_local_hostname")]
@@ -270,7 +261,7 @@ pub struct ConfigServer {
     #[serde(default = "defaults::server_http_port")]
     pub http_port: u16,
     #[serde(default = "defaults::server_log_level")]
-    pub log_level: ServerLogLevel,
+    pub log_level: prosody_config::LogLevel,
     #[serde(default)]
     pub defaults: ConfigServerDefaults,
 }

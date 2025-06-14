@@ -21,10 +21,7 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{
-    ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, LogTimer, ServerLogLevel,
-    API_DATA_DIR,
-};
+use super::{ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, LogTimer, API_DATA_DIR};
 
 // GENERAL
 
@@ -123,8 +120,8 @@ pub fn auth_oauth2_registration_key() -> SecretString {
     SecretString::from(bytes_to_base64(&key))
 }
 
-pub fn server_log_level() -> ServerLogLevel {
-    ServerLogLevel::Info
+pub fn server_log_level() -> prosody_config::LogLevel {
+    prosody_config::LogLevel::Info
 }
 
 /// Enable message archiving by default.
