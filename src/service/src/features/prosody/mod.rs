@@ -8,7 +8,6 @@ mod prosody_bootstrap_config;
 pub mod prosody_config;
 mod prosody_config_from_db;
 mod prosody_oauth2;
-mod prosody_overrides;
 mod prosody_rest;
 
 use crate::members::MemberRole;
@@ -17,7 +16,6 @@ pub use prosody_bootstrap_config::prosody_bootstrap_config;
 pub use prosody_config::ProsodyConfig;
 pub use prosody_config_from_db::{prosody_config_from_db, IntoProsody};
 pub use prosody_oauth2::{ProsodyOAuth2, ProsodyOAuth2Error};
-pub use prosody_overrides::ProsodyOverrides;
 pub use prosody_rest::ProsodyRest;
 
 // ===== Mapping to Prosody =====

@@ -20,6 +20,10 @@ paths:
     description: |
       Set overrides to apply when generating Prosody configuration files.
       This can be very dangerous, so make sure you know what you’re doing.
+
+      See [Configuring Prosody – Prosody IM](https://prosody.im/doc/configure).
+
+      Not all keys are supported, see [prose-pod-api/src/prosody-config/src/prosody_config/mod.rs](https://github.com/prose-im/prose-pod-api/blob/master/src/prosody-config/src/prosody_config/mod.rs). If you miss support for a key, tell us and we’ll add it in a future release!
     operationId: set_prosody_overrides
     security:
       - BasicAuth: []
@@ -128,11 +132,13 @@ components:
   schemas:
     ProsodyOverrides:
       type: object
-      required: []
-      properties:
-        c2s_require_encryption:
-          type: [boolean, "null"]
-          example: false
+      additionalProperties: true
+      description: |
+        Prosody settings. See [Configuring Prosody – Prosody IM](https://prosody.im/doc/configure).
+
+        Not all keys are supported, see [prose-pod-api/src/prosody-config/src/prosody_config/mod.rs](https://github.com/prose-im/prose-pod-api/blob/master/src/prosody-config/src/prosody_config/mod.rs). If you miss support for a key, tell us and we’ll add it in a future release!
+      example:
+        c2s_require_encryption: false
     RawProsodyOverrides:
       type: string
       description: |

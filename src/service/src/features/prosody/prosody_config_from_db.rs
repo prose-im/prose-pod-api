@@ -13,7 +13,7 @@ use crate::{
     ProseDefault,
 };
 
-use super::{prosody_config::util::*, prosody_overrides::ProsodyOverrides, ProsodyConfig};
+use super::{prosody_config::util::*, ProsodyConfig};
 
 pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> ProsodyConfig {
     let mut config = prosody_config::ProsodyConfig::prose_default(&model, app_config);
@@ -97,19 +97,10 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     }
 
     if let Some(overrides) = model.prosody_overrides {
-        match serde_json::from_value::<ProsodyOverrides>(overrides) {
-            Ok(ProsodyOverrides {
-                c2s_require_encryption,
-            }) => {
+        match serde_json::from_value::<ProsodySettings>(overrides) {
+            Ok(overrides) => {
                 info!("Applying overrides to the generated Prosody configuration file…");
-                macro_rules! override_global_setting {
-                    ($var:ident) => {
-                        if let Some($var) = $var {
-                            config.global_settings.$var = Some($var);
-                        }
-                    };
-                }
-                override_global_setting!(c2s_require_encryption);
+                config.global_settings.shallow_merge(overrides, MergeStrategy::KeepOther);
             },
             Err(err) => warn!("Prosody overrides stored in database cannot be read, they won’t be applied. To fix this, call `PUT /v1/server/config/prosody-overrides` with a new value. You can `GET /v1/server/config/prosody-overrides` first to see what the stored value was. Error: {err}"),
         }

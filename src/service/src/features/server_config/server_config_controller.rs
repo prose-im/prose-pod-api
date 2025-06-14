@@ -6,6 +6,7 @@
 use std::{fs::File, io::Read as _};
 
 use anyhow::Context;
+use prosody_config::ProsodySettings;
 use sea_orm::DatabaseConnection;
 
 use crate::{
@@ -14,7 +15,6 @@ use crate::{
         durations::{DateLike, Duration, PossiblyInfinite},
         Lua,
     },
-    prosody::ProsodyOverrides,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigRepository, TlsProfile},
     util::either::Either,
@@ -264,8 +264,8 @@ pub async fn get_prosody_config_lua(app_config: &AppConfig) -> anyhow::Result<Lu
 
 pub async fn set_prosody_overrides(
     server_manager: &ServerManager,
-    overrides: ProsodyOverrides,
-) -> anyhow::Result<Option<ProsodyOverrides>> {
+    overrides: ProsodySettings,
+) -> anyhow::Result<Option<ProsodySettings>> {
     let res = match server_manager.set_prosody_overrides(overrides).await? {
         // NOTE: It’s safe enough to force unwrap here as the
         //   JSON data should be exactly the user’s request.
@@ -279,7 +279,7 @@ pub async fn set_prosody_overrides(
 
 pub async fn get_prosody_overrides(
     server_manager: &ServerManager,
-) -> anyhow::Result<Option<Option<ProsodyOverrides>>> {
+) -> anyhow::Result<Option<Option<ProsodySettings>>> {
     (server_manager.get_prosody_overrides().await)
         .context("Prosody overrides stored in database cannot be read. To fix this, call `PUT /v1/server/config/prosody-overrides` with a new value. You can `GET /v1/server/config/prosody-overrides` first to see what the stored value was.")
 }

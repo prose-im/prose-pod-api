@@ -124,73 +124,79 @@ impl ProseDefault for prosody_config::ProsodyConfig {
 
         Self {
             global_settings: (app_config.prosody)
-                .shallow_merged_with(ProsodySettings {
-                    log: Some(LogConfig::Map(
-                        vec![(app_config.server.log_level, LogLevelValue::Console)]
+                .shallow_merged_with(
+                    ProsodySettings {
+                        log: Some(LogConfig::Map(
+                            vec![(app_config.server.log_level, LogLevelValue::Console)]
+                                .into_iter()
+                                .collect(),
+                        )),
+                        c2s_ports: Some(vec![5222]),
+                        http_ports: Some(vec![app_config.server.http_port]),
+                        modules_enabled: Some(
+                            vec![
+                                "auto_activate_hosts",
+                                "roster",
+                                "groups_internal",
+                                "saslauth",
+                                "tls",
+                                "dialback",
+                                "disco",
+                                "posix",
+                                "smacks",
+                                "private",
+                                "vcard_legacy",
+                                "vcard4",
+                                "version",
+                                "uptime",
+                                "time",
+                                "ping",
+                                "lastactivity",
+                                "pep",
+                                "blocklist",
+                                "limits",
+                                "carbons",
+                                "csi",
+                                "server_contact_info",
+                                "websocket",
+                                "cloud_notify",
+                                "register",
+                            ]
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect(),
+                        ),
+                        modules_disabled: Some(
+                            vec!["s2s"].into_iter().map(ToString::to_string).collect(),
+                        ),
+                        c2s_require_encryption: Some(true),
+                        c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
+                        limits: Some(
+                            vec![(
+                                ConnectionType::ClientToServer,
+                                ConnectionLimits {
+                                    rate: Some(DataRate::KiloBytesPerSec(50)),
+                                    burst: Some(Duration(TimeLike::Seconds(2))),
+                                },
+                            )]
                             .into_iter()
                             .collect(),
-                    )),
-                    c2s_ports: Some(vec![5222]),
-                    http_ports: Some(vec![app_config.server.http_port]),
-                    modules_enabled: Some(
-                        vec![
-                            "auto_activate_hosts",
-                            "roster",
-                            "groups_internal",
-                            "saslauth",
-                            "tls",
-                            "dialback",
-                            "disco",
-                            "posix",
-                            "smacks",
-                            "private",
-                            "vcard_legacy",
-                            "vcard4",
-                            "version",
-                            "uptime",
-                            "time",
-                            "ping",
-                            "lastactivity",
-                            "pep",
-                            "blocklist",
-                            "limits",
-                            "carbons",
-                            "csi",
-                            "server_contact_info",
-                            "websocket",
-                            "cloud_notify",
-                            "register",
-                        ]
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect(),
-                    ),
-                    modules_disabled: Some(
-                        vec!["s2s"].into_iter().map(ToString::to_string).collect(),
-                    ),
-                    c2s_require_encryption: Some(true),
-                    c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
-                    limits: Some(
-                        vec![(
-                            ConnectionType::ClientToServer,
-                            ConnectionLimits {
-                                rate: Some(DataRate::KiloBytesPerSec(50)),
-                                burst: Some(Duration(TimeLike::Seconds(2))),
-                            },
-                        )]
-                        .into_iter()
-                        .collect(),
-                    ),
-                    consider_websocket_secure: Some(true),
-                    cross_domain_websocket: None,
-                    contact_info: Some(ContactInfo {
-                        admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                        ),
+                        consider_websocket_secure: Some(true),
+                        cross_domain_websocket: None,
+                        contact_info: Some(ContactInfo {
+                            admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                            ..Default::default()
+                        }),
+                        upgrade_legacy_vcards: Some(true),
                         ..Default::default()
-                    }),
-                    upgrade_legacy_vcards: Some(true),
-                    ..Default::default()
-                })
-                .shallow_merged_with(prosody_bootstrap_config::global_settings()),
+                    },
+                    MergeStrategy::KeepSelf,
+                )
+                .shallow_merged_with(
+                    prosody_bootstrap_config::global_settings(),
+                    MergeStrategy::KeepSelf,
+                ),
             additional_sections: vec![
                 ProsodyConfigSection::VirtualHost {
                     hostname: server_config.domain.to_string(),

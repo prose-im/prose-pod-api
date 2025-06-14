@@ -14,7 +14,7 @@ use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 use service::{
     auth::{AuthService, IsAdmin},
     models::durations::{DateLike, Duration, PossiblyInfinite},
-    prosody::ProsodyOverrides,
+    prosody_config::ProsodySettings,
     secrets::SecretsStore,
     server_config::{
         errors::ServerConfigNotInitialized,
@@ -276,8 +276,8 @@ pub async fn get_prosody_config_lua_route(ref app_config: AppConfig) -> Result<L
 
 pub async fn set_prosody_overrides_route(
     ref server_manager: ServerManager,
-    Json(overrides): Json<ProsodyOverrides>,
-) -> Result<Json<Option<ProsodyOverrides>>, Error> {
+    Json(overrides): Json<ProsodySettings>,
+) -> Result<Json<Option<ProsodySettings>>, Error> {
     match server_config_controller::set_prosody_overrides(server_manager, overrides).await? {
         overrides => Ok(Json(overrides)),
     }
@@ -285,7 +285,7 @@ pub async fn set_prosody_overrides_route(
 
 pub async fn get_prosody_overrides_route(
     ref server_manager: ServerManager,
-) -> Result<Either<Json<ProsodyOverrides>, NoContent>, Error> {
+) -> Result<Either<Json<ProsodySettings>, NoContent>, Error> {
     match server_config_controller::get_prosody_overrides(server_manager).await? {
         Some(Some(overrides)) => Ok(Either::E1(Json(overrides))),
         Some(None) => Ok(Either::E2(NoContent)),

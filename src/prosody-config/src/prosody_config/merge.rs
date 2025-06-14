@@ -5,19 +5,25 @@
 
 use super::ProsodySettings;
 
+#[derive(Debug, Clone, Copy)]
+pub enum MergeStrategy {
+    KeepSelf,
+    KeepOther,
+}
+
 impl ProsodySettings {
     /// Merge two [`ProsodySettings`], where values in `self` take precedence
     /// over values in `other`.
-    pub fn shallow_merged_with(&self, other: Self) -> Self {
+    pub fn shallow_merged_with(&self, other: Self, strategy: MergeStrategy) -> Self {
         let mut res = self.clone();
-        res.shallow_merge(other);
+        res.shallow_merge(other, strategy);
         res
     }
 
     // TODO: Find a way to use a macro instead…
     /// Merge two [`ProsodySettings`], where values in `self` take precedence
     /// over values in `other`.
-    pub fn shallow_merge(&mut self, other: Self) {
+    pub fn shallow_merge(&mut self, other: Self, strategy: MergeStrategy) {
         // NOTE: Destructuring `other` ensures we don’t forget to merge one key.
         let Self {
             pidfile,
@@ -73,64 +79,66 @@ impl ProsodySettings {
             custom_settings,
         } = other;
 
-        macro_rules! replace_if_none {
+        macro_rules! merge {
             ($key:ident) => {
-                if self.$key == None {
-                    self.$key = $key;
+                match (strategy, &self.$key, $key) {
+                    (MergeStrategy::KeepSelf, None, b @ Some(_)) => self.$key = b,
+                    (MergeStrategy::KeepOther, Some(_), b @ Some(_)) => self.$key = b,
+                    _ => {}
                 }
             };
         }
 
-        replace_if_none!(pidfile);
-        replace_if_none!(admins);
-        replace_if_none!(authentication);
-        replace_if_none!(default_storage);
-        replace_if_none!(storage);
-        replace_if_none!(storage_archive_item_limit);
-        replace_if_none!(storage_archive_item_limit_cache_size);
-        replace_if_none!(sql);
-        replace_if_none!(sql_manage_tables);
-        replace_if_none!(sqlite_tune);
-        replace_if_none!(log);
-        replace_if_none!(interfaces);
-        replace_if_none!(c2s_ports);
-        replace_if_none!(s2s_ports);
-        replace_if_none!(http_ports);
-        replace_if_none!(http_interfaces);
-        replace_if_none!(https_ports);
-        replace_if_none!(https_interfaces);
-        replace_if_none!(plugin_paths);
-        replace_if_none!(modules_enabled);
-        replace_if_none!(modules_disabled);
-        replace_if_none!(ssl);
-        replace_if_none!(allow_registration);
-        replace_if_none!(c2s_require_encryption);
-        replace_if_none!(s2s_require_encryption);
-        replace_if_none!(s2s_secure_auth);
-        replace_if_none!(c2s_stanza_size_limit);
-        replace_if_none!(s2s_stanza_size_limit);
-        replace_if_none!(s2s_whitelist);
-        replace_if_none!(limits);
-        replace_if_none!(consider_websocket_secure);
-        replace_if_none!(cross_domain_websocket);
-        replace_if_none!(contact_info);
-        replace_if_none!(archive_expires_after);
-        replace_if_none!(default_archive_policy);
-        replace_if_none!(max_archive_query_results);
-        replace_if_none!(upgrade_legacy_vcards);
-        replace_if_none!(groups_file);
-        replace_if_none!(http_file_share_size_limit);
-        replace_if_none!(http_file_share_daily_quota);
-        replace_if_none!(http_file_share_expires_after);
-        replace_if_none!(http_host);
-        replace_if_none!(http_external_url);
-        replace_if_none!(restrict_room_creation);
-        replace_if_none!(muc_log_all_rooms);
-        replace_if_none!(muc_log_by_default);
-        replace_if_none!(muc_log_expires_after);
-        replace_if_none!(reload_modules);
-        replace_if_none!(reload_global_modules);
-        replace_if_none!(tls_profile);
+        merge!(pidfile);
+        merge!(admins);
+        merge!(authentication);
+        merge!(default_storage);
+        merge!(storage);
+        merge!(storage_archive_item_limit);
+        merge!(storage_archive_item_limit_cache_size);
+        merge!(sql);
+        merge!(sql_manage_tables);
+        merge!(sqlite_tune);
+        merge!(log);
+        merge!(interfaces);
+        merge!(c2s_ports);
+        merge!(s2s_ports);
+        merge!(http_ports);
+        merge!(http_interfaces);
+        merge!(https_ports);
+        merge!(https_interfaces);
+        merge!(plugin_paths);
+        merge!(modules_enabled);
+        merge!(modules_disabled);
+        merge!(ssl);
+        merge!(allow_registration);
+        merge!(c2s_require_encryption);
+        merge!(s2s_require_encryption);
+        merge!(s2s_secure_auth);
+        merge!(c2s_stanza_size_limit);
+        merge!(s2s_stanza_size_limit);
+        merge!(s2s_whitelist);
+        merge!(limits);
+        merge!(consider_websocket_secure);
+        merge!(cross_domain_websocket);
+        merge!(contact_info);
+        merge!(archive_expires_after);
+        merge!(default_archive_policy);
+        merge!(max_archive_query_results);
+        merge!(upgrade_legacy_vcards);
+        merge!(groups_file);
+        merge!(http_file_share_size_limit);
+        merge!(http_file_share_daily_quota);
+        merge!(http_file_share_expires_after);
+        merge!(http_host);
+        merge!(http_external_url);
+        merge!(restrict_room_creation);
+        merge!(muc_log_all_rooms);
+        merge!(muc_log_by_default);
+        merge!(muc_log_expires_after);
+        merge!(reload_modules);
+        merge!(reload_global_modules);
+        merge!(tls_profile);
 
         // NOTE: We cannot simply use `Vec::extend`, as it would make values
         //   in `other` take precedence over values in `self` (which is the

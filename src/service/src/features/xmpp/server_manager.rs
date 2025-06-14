@@ -8,6 +8,7 @@ use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use anyhow::{anyhow, Context as _};
 use jid::BareJid;
 use linked_hash_set::LinkedHashSet;
+use prosody_config::ProsodySettings;
 use sea_orm::IntoActiveModel as _;
 use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, trace};
@@ -15,7 +16,6 @@ use tracing::{debug, trace};
 use crate::{
     auth::{errors::InvalidCredentials, AuthService},
     models::{sea_orm::LinkedStringSet, DateLike, Duration, JidDomain, PossiblyInfinite},
-    prosody::ProsodyOverrides,
     sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
     secrets::{SecretsStore, ServiceAccountSecrets},
     server_config::{
@@ -448,7 +448,7 @@ impl ServerManager {
 impl ServerManager {
     pub async fn set_prosody_overrides(
         &self,
-        new_state: ProsodyOverrides,
+        new_state: ProsodySettings,
     ) -> anyhow::Result<ServerConfig> {
         let new_state = serde_json::to_value(new_state).context("serde_json error")?;
         trace!("Setting prosody_overrides to {new_state}…");
@@ -458,7 +458,7 @@ impl ServerManager {
 
     /// - `Ok(Some(None))` => Server config initialized, no value
     /// - `Ok(None)` => Server config not initialized
-    pub async fn get_prosody_overrides(&self) -> anyhow::Result<Option<Option<ProsodyOverrides>>> {
+    pub async fn get_prosody_overrides(&self) -> anyhow::Result<Option<Option<ProsodySettings>>> {
         trace!("Getting prosody_overrides…");
         match ServerConfigRepository::get_prosody_overrides(self.db.as_ref()).await {
             Ok(overrides) => Ok(overrides),

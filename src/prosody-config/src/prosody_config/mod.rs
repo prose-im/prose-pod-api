@@ -17,6 +17,8 @@ use std::path::PathBuf;
 use crate::prosody_config_file::{Group, LuaDefinition};
 use crate::{model::*, LuaValue};
 
+pub use merge::MergeStrategy;
+
 /// Prosody configuration.
 ///
 /// This data structure represents a Prosody configuration file in a type-safe way.

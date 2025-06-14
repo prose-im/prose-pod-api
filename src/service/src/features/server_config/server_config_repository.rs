@@ -3,12 +3,12 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use prosody_config::ProsodySettings;
 use sea_orm::{prelude::*, IntoActiveModel, QueryOrder as _, QuerySelect, Set, Unchanged};
 use tracing::instrument;
 
 use crate::{
     models::JidDomain,
-    prosody::ProsodyOverrides,
     server_config::entities::server_config::{self, ActiveModel, Column, Entity},
     util::either::Either,
 };
@@ -56,7 +56,7 @@ impl ServerConfigRepository {
     )]
     pub(crate) async fn set_prosody_overrides(
         db: &impl ConnectionTrait,
-        overrides: ProsodyOverrides,
+        overrides: ProsodySettings,
     ) -> Result<server_config::Model, Either<serde_json::Error, DbErr>> {
         let json = serde_json::to_value(overrides).map_err(Either::E1)?;
         let mut model = ActiveModel::new();
@@ -75,7 +75,7 @@ impl ServerConfigRepository {
     )]
     pub(crate) async fn get_prosody_overrides(
         db: &impl ConnectionTrait,
-    ) -> Result<Option<Option<ProsodyOverrides>>, Either<DbErr, serde_json::Error>> {
+    ) -> Result<Option<Option<ProsodySettings>>, Either<DbErr, serde_json::Error>> {
         let json = Entity::find()
             .order_by_asc(Column::Id)
             .select_only()
@@ -85,7 +85,7 @@ impl ServerConfigRepository {
             .await
             .map_err(Either::E1)?;
         match json {
-            Some(Some(json)) => match serde_json::from_value::<ProsodyOverrides>(json) {
+            Some(Some(json)) => match serde_json::from_value::<ProsodySettings>(json) {
                 Ok(v) => Ok(Some(Some(v))),
                 Err(e) => Err(Either::E2(e)),
             },
