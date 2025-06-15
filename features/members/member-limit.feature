@@ -1,5 +1,5 @@
 # As [Prose’s pricing page](https://prose.org/pricing) states,
-# the Community version of Prose is limited to 100 users.
+# the Community version of Prose is limited to 20 users.
 # The API therefore needs to have a way to limit account creation.
 #
 # NOTE: We need `@serial` for this feature since it heavily depends on a static
