@@ -17,7 +17,7 @@ use hickory_resolver::{
     config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
     error::ResolveError,
     lookup::NsLookup,
-    Name as DomainName, Resolver,
+    Name as DomainName, TokioAsyncResolver,
 };
 use lazy_static::lazy_static;
 use parking_lot::RwLock;
@@ -28,7 +28,7 @@ use super::{DnsLookupError, DnsRecord, NetworkCheckerImpl, SrvLookupResponse};
 lazy_static! {
     /// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
     ///   so we use [`Resolver::from_system_conf`] explicitly.
-    static ref SYSTEM_RESOLVER: Arc<Resolver> = Arc::new(Resolver::from_system_conf().unwrap());
+    static ref SYSTEM_RESOLVER: Arc<TokioAsyncResolver> = Arc::new(TokioAsyncResolver::tokio_from_system_conf().unwrap());
 
     /// When querying DNS records, we query the authoritative name servers directly.
     /// To avoid unnecessary DNS queries, we cache the IP addresses of these servers.
@@ -44,11 +44,11 @@ lazy_static! {
 pub struct LiveNetworkChecker {
     /// Caches non-recursive DNS resolvers by domain name, along with the time it was cached at
     /// to allow cache expiry. See [`DNS_CACHE_TTL`].
-    direct_resolvers: Arc<RwLock<HashMap<DomainName, (Instant, Arc<Resolver>)>>>,
+    direct_resolvers: Arc<RwLock<HashMap<DomainName, (Instant, Arc<TokioAsyncResolver>)>>>,
 }
 
 impl LiveNetworkChecker {
-    async fn direct_resolver(&self, domain: &DomainName) -> Arc<Resolver> {
+    async fn direct_resolver(&self, domain: &DomainName) -> Arc<TokioAsyncResolver> {
         // Read the cache to avoid unnecessary DNS queries.
         {
             let mut resolvers_guard = self.direct_resolvers.upgradable_read();
@@ -63,25 +63,30 @@ impl LiveNetworkChecker {
         }
 
         /// Creates a DNS resolver which queries the name servers directly and stores no cache.
-        fn create_direct_resolver(domain: &DomainName) -> Arc<Resolver> {
+        async fn create_direct_resolver(domain: &DomainName) -> Arc<TokioAsyncResolver> {
             /// Recursively queries the authoritative name servers for the domain.
-            fn recursive_ns_lookup(resolver: &Resolver, domain: DomainName) -> Option<NsLookup> {
-                match resolver.ns_lookup(domain.clone()) {
-                    Ok(res) => {
-                        trace!("Found NS records for `{domain}`.");
-                        Some(res)
-                    }
-                    Err(_) => {
-                        if domain.is_root() {
-                            // Break potentially infinite cycle
-                            None
-                        } else {
-                            recursive_ns_lookup(resolver, domain.base_name())
+            async fn recursive_ns_lookup(
+                resolver: &TokioAsyncResolver,
+                mut domain: DomainName,
+            ) -> Result<NsLookup, ResolveError> {
+                let mut first_error: Option<ResolveError> = None;
+                loop {
+                    match resolver.ns_lookup(domain.clone()).await {
+                        Ok(res) => {
+                            trace!("Found NS records for `{domain}`.");
+                            return Ok(res);
+                        }
+                        Err(err) => {
+                            let first_error = first_error.get_or_insert(err);
+                            domain = domain.base_name();
+                            if domain.is_root() {
+                                return Err(first_error.clone());
+                            }
                         }
                     }
                 }
             }
-            let Some(ns_response) = recursive_ns_lookup(&SYSTEM_RESOLVER, domain.base_name())
+            let Ok(ns_response) = recursive_ns_lookup(&SYSTEM_RESOLVER, domain.base_name()).await
             else {
                 warn!("No authoritative name server found for `{domain}` (reached `.`). Will use the system-defined DNS name servers to run DNS checks.");
                 // NOTE: This scenario should never happen, because the TLD should always have an authoritative
@@ -107,7 +112,7 @@ impl LiveNetworkChecker {
             );
             let mut name_servers: Vec<IpAddr> = Vec::with_capacity(ns_response.iter().count());
             for ns in ns_response.iter() {
-                match SYSTEM_RESOLVER.lookup_ip(ns.0.clone()) {
+                match SYSTEM_RESOLVER.lookup_ip(ns.0.clone()).await {
                     Ok(ips) => name_servers.extend(ips.iter()),
                     Err(_) => {}
                 }
@@ -122,12 +127,10 @@ impl LiveNetworkChecker {
             let mut options = ResolverOpts::default();
             options.recursion_desired = false;
             options.cache_size = 0;
-            Arc::new(Resolver::new(config, options).unwrap())
+            Arc::new(TokioAsyncResolver::tokio(config, options))
         }
         let domain_clone = domain.clone();
-        let resolver = tokio::task::spawn_blocking(move || create_direct_resolver(&domain_clone))
-            .await
-            .expect("Join error");
+        let resolver = create_direct_resolver(&domain_clone).await;
 
         // Cache the resolver for faster query next time.
         self.direct_resolvers
@@ -153,11 +156,8 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
         let direct_resolver = self.direct_resolver(&domain).await;
 
         let domain = domain.to_string();
-        let ipv4_lookup = tokio::task::spawn_blocking(move || direct_resolver.ipv4_lookup(domain))
-            .await
-            .expect("Join error")?;
-        Ok(ipv4_lookup
-            .as_lookup()
+        let ipv4_lookup = direct_resolver.ipv4_lookup(domain).await?;
+        Ok((ipv4_lookup.as_lookup())
             .record_iter()
             .flat_map(|r| DnsRecord::try_from(r).ok())
             .collect())
@@ -168,11 +168,8 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
         let direct_resolver = self.direct_resolver(&domain).await;
 
         let domain = domain.to_string();
-        let ipv6_lookup = tokio::task::spawn_blocking(move || direct_resolver.ipv6_lookup(domain))
-            .await
-            .expect("Join error")?;
-        Ok(ipv6_lookup
-            .as_lookup()
+        let ipv6_lookup = direct_resolver.ipv6_lookup(domain).await?;
+        Ok((ipv6_lookup.as_lookup())
             .record_iter()
             .flat_map(|r| DnsRecord::try_from(r).ok())
             .collect())
@@ -183,12 +180,9 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
         let direct_resolver = self.direct_resolver(&domain).await;
 
         let domain = domain.to_string();
-        let srv_lookup = tokio::task::spawn_blocking(move || direct_resolver.srv_lookup(domain))
-            .await
-            .expect("Join error")?;
+        let srv_lookup = direct_resolver.srv_lookup(domain).await?;
         Ok(SrvLookupResponse {
-            records: srv_lookup
-                .as_lookup()
+            records: (srv_lookup.as_lookup())
                 .record_iter()
                 .map(DnsRecord::try_from)
                 .flatten()
@@ -206,32 +200,24 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
 
     async fn is_ipv4_available(&self, host: &str) -> bool {
         let host = host.to_string();
-        let ipv4_lookup =
-            match tokio::task::spawn_blocking(move || SYSTEM_RESOLVER.ipv4_lookup(host))
-                .await
-                .expect("Join error")
-            {
-                Ok(ipv4_lookup) => ipv4_lookup,
-                Err(err) => {
-                    debug!("IPv4 lookup failed: {err}");
-                    return false;
-                }
-            };
+        let ipv4_lookup = match SYSTEM_RESOLVER.ipv4_lookup(host).await {
+            Ok(ipv4_lookup) => ipv4_lookup,
+            Err(err) => {
+                debug!("IPv4 lookup failed: {err}");
+                return false;
+            }
+        };
         !ipv4_lookup.as_lookup().records().is_empty()
     }
     async fn is_ipv6_available(&self, host: &str) -> bool {
         let host = host.to_string();
-        let ipv6_lookup =
-            match tokio::task::spawn_blocking(move || SYSTEM_RESOLVER.ipv6_lookup(host))
-                .await
-                .expect("Join error")
-            {
-                Ok(ipv6_lookup) => ipv6_lookup,
-                Err(err) => {
-                    debug!("IPv6 lookup failed: {err}");
-                    return false;
-                }
-            };
+        let ipv6_lookup = match SYSTEM_RESOLVER.ipv6_lookup(host).await {
+            Ok(ipv6_lookup) => ipv6_lookup,
+            Err(err) => {
+                debug!("IPv6 lookup failed: {err}");
+                return false;
+            }
+        };
         !ipv6_lookup.as_lookup().records().is_empty()
     }
 }
