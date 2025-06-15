@@ -86,6 +86,10 @@ contact_info = {
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
+-- mod_cloud_notify
+push_notification_with_body = true
+push_notification_with_sender = true
+
 -- Server hosts and components
 VirtualHost "prose.test.org"
   admins = { "prose-pod-api@admin.prose.org.local" }

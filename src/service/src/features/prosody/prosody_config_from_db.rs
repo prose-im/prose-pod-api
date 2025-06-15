@@ -18,6 +18,30 @@ use super::{prosody_config::util::*, ProsodyConfig};
 pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> ProsodyConfig {
     let mut config = prosody_config::ProsodyConfig::prose_default(&model, app_config);
 
+    // NOTE: Deconstruct to ensure no value is unused.
+    let ServerConfig {
+        // NOTE: Used in `prose_default`.
+        domain: _,
+        message_archive_enabled,
+        message_archive_retention,
+        file_upload_allowed,
+        file_storage_encryption_scheme: _file_storage_encryption_scheme,
+        file_storage_retention,
+        mfa_required: _mfa_required,
+        tls_profile: _tls_profile,
+        federation_enabled,
+        federation_whitelist_enabled,
+        federation_friendly_servers,
+        settings_backup_interval: _settings_backup_interval,
+        user_data_backup_interval: _user_data_backup_interval,
+        push_notification_with_body,
+        push_notification_with_sender,
+        c2s_unencrypted,
+        prosody_overrides,
+        // NOTE: Used in `live_server_ctl::save_config`.
+        prosody_overrides_raw: _,
+    } = model;
+
     let global_settings = &mut config.global_settings;
     let muc_settings = config
         .additional_sections
@@ -30,16 +54,29 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
         })
         .expect("The 'Chatrooms' section should always be present.");
 
-    if model.message_archive_enabled {
+    global_settings.custom_settings.push(
+        // See <https://modules.prosody.im/mod_cloud_notify>
+        Group::new(
+            "mod_cloud_notify",
+            vec![
+                def("push_notification_with_body", push_notification_with_body),
+                def(
+                    "push_notification_with_sender",
+                    push_notification_with_sender,
+                ),
+            ],
+        ),
+    );
+
+    if message_archive_enabled {
         add_enabled_module(global_settings, "mam");
-        global_settings.archive_expires_after =
-            Some(model.message_archive_retention.into_prosody());
+        global_settings.archive_expires_after = Some(message_archive_retention.into_prosody());
         global_settings.default_archive_policy = Some(ArchivePolicy::Always);
         global_settings.max_archive_query_results = Some(100);
         add_enabled_module(muc_settings, "muc_mam");
     }
 
-    if model.file_upload_allowed {
+    if file_upload_allowed {
         config
             .additional_sections
             .push(ProsodyConfigSection::Component {
@@ -49,9 +86,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
                 settings: ProsodySettings {
                     http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
                     http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
-                    http_file_share_expires_after: Some(
-                        model.file_storage_retention.into_prosody(),
-                    ),
+                    http_file_share_expires_after: Some(file_storage_retention.into_prosody()),
                     http_host: Some("localhost".into()),
                     http_external_url: Some("http://localhost:5280".into()),
                     ..Default::default()
@@ -59,8 +94,8 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
             })
     }
 
-    if model.federation_enabled {
-        global_settings.unmark_disabled("s2s");
+    if federation_enabled {
+        global_settings.enable_module("s2s".to_owned());
         global_settings.enable_module("s2s_bidi".to_owned());
         global_settings.s2s_ports = Some(vec![5269]);
         global_settings.s2s_require_encryption = Some(true);
@@ -73,13 +108,13 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
             },
         );
 
-        if model.federation_whitelist_enabled {
+        if federation_whitelist_enabled {
             global_settings.enable_module("s2s_whitelist".to_owned());
-            global_settings.s2s_whitelist = Some(model.federation_friendly_servers);
+            global_settings.s2s_whitelist = Some(federation_friendly_servers);
         }
     }
 
-    if model.c2s_unencrypted {
+    if c2s_unencrypted {
         warn!("Debug config `c2s_unencrypted` is enabled.");
         global_settings.enable_module("reload_modules".to_owned());
         (global_settings.reload_modules.get_or_insert_default()).insert("saslauth".to_owned());
@@ -96,7 +131,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
         config.global_settings.enable_module(module.clone());
     }
 
-    if let Some(overrides) = model.prosody_overrides {
+    if let Some(overrides) = prosody_overrides {
         match serde_json::from_value::<ProsodySettings>(overrides) {
             Ok(overrides) => {
                 info!("Applying overrides to the generated Prosody configuration file…");
