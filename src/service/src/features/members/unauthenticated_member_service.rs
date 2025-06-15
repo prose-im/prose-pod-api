@@ -137,8 +137,8 @@ lazy_static::lazy_static! {
     #[doc(hidden)]
     static ref MEMBER_LIMIT: MemberLimit = {
         const MARKER: u128 = u128::from_be(0x128A21444f5f4e4f545f4d4f44494659u128);
-        // Prevent `100` from appearing in the binary to prevent tampering.
-        static VALUE: u128 = 100u128 | MARKER;
+        // Prevent `20` from appearing in the binary to prevent tampering.
+        static VALUE: u128 = 20u128 | MARKER;
         // NOTE: `read_volatile` prevents `MARKER` from being optimized away.
         let value: u128 = unsafe { std::ptr::read_volatile(&VALUE as *const u128) };
         // Remove `MARKER`.
@@ -162,7 +162,7 @@ pub struct MemberLimit(pub std::sync::atomic::AtomicU32);
 lazy_static::lazy_static! {
     #[doc(hidden)]
     pub static ref MEMBER_LIMIT: MemberLimit = {
-        MemberLimit(std::sync::atomic::AtomicU32::new(100))
+        MemberLimit(std::sync::atomic::AtomicU32::new(20))
     };
 }
 
