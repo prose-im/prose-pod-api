@@ -187,11 +187,11 @@ pub fn server_defaults_user_data_backup_interval() -> String {
 }
 
 pub fn server_defaults_push_notification_with_body() -> bool {
-    false
+    true
 }
 
 pub fn server_defaults_push_notification_with_sender() -> bool {
-    false
+    true
 }
 
 pub fn prosody_config_file_path() -> PathBuf {
