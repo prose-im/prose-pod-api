@@ -23,7 +23,7 @@ pub async fn migrate_workspace_vcard(
 
     let workspace_jid = app_config.read().unwrap().workspace_jid();
     let workspace_service = WorkspaceService::new(
-        Arc::new(xmpp_service.clone()),
+        xmpp_service.clone(),
         workspace_jid,
         Arc::new(secrets_store.clone()),
     )

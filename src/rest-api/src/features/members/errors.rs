@@ -21,7 +21,7 @@ impl CustomErrorCode for UserCreateError {
     fn error_code(&self) -> ErrorCode {
         match self {
             Self::LimitReached => ErrorCode {
-                value: "member_limit_reached",
+                value: "user_limit_reached",
                 http_status: StatusCode::FORBIDDEN,
                 log_level: LogLevel::Error,
             },

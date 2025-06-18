@@ -17,7 +17,7 @@ impl FromRequestParts<AppState> for WorkspaceService {
     ) -> Result<Self, Self::Rejection> {
         let workspace_jid = state.app_config_frozen().workspace_jid();
         WorkspaceService::new(
-            Arc::new(state.xmpp_service.clone()),
+            state.xmpp_service.clone(),
             workspace_jid,
             Arc::new(state.secrets_store.clone()),
         )

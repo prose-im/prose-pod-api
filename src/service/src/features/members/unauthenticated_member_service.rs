@@ -3,14 +3,13 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
-
 use sea_orm::{ConnectionTrait, DbErr, TransactionTrait};
 use secrecy::SecretString;
 use tracing::instrument;
 
 use crate::{
     auth::AuthService,
+    licensing::LicenseService,
     models::EmailAddress,
     xmpp::{
         BareJid, ServerCtl, ServerCtlError, XmppService, XmppServiceContext, XmppServiceError,
@@ -22,20 +21,23 @@ use super::{entities::member, Member, MemberCreateForm, MemberRepository, Member
 
 #[derive(Debug, Clone)]
 pub struct UnauthenticatedMemberService {
-    server_ctl: Arc<ServerCtl>,
-    auth_service: Arc<AuthService>,
-    xmpp_service_inner: Arc<XmppServiceInner>,
+    server_ctl: ServerCtl,
+    auth_service: AuthService,
+    license_service: LicenseService,
+    xmpp_service_inner: XmppServiceInner,
 }
 
 impl UnauthenticatedMemberService {
     pub fn new(
-        server_ctl: Arc<ServerCtl>,
-        auth_service: Arc<AuthService>,
-        xmpp_service_inner: Arc<XmppServiceInner>,
+        server_ctl: ServerCtl,
+        auth_service: AuthService,
+        license_service: LicenseService,
+        xmpp_service_inner: XmppServiceInner,
     ) -> Self {
         Self {
             server_ctl,
             auth_service,
+            license_service,
             xmpp_service_inner,
         }
     }
@@ -142,8 +144,9 @@ impl UnauthenticatedMemberService {
         .await?;
 
         // Check if the member limit is reached.
-        let count = MemberRepository::count(&txn).await?;
-        if count > MEMBER_LIMIT.as_u64() {
+        let count: u64 = MemberRepository::count(&txn).await?;
+        let count: u32 = count.clamp(u32::MIN as u64, u32::MAX as u64) as u32;
+        if !self.license_service.allows_user_count(count) {
             txn.rollback().await?;
             return Err(UserCreateError::LimitReached);
         }
@@ -153,55 +156,6 @@ impl UnauthenticatedMemberService {
         txn.commit().await?;
 
         Ok(member)
-    }
-}
-
-#[cfg(not(feature = "test"))]
-#[doc(hidden)]
-#[repr(transparent)]
-struct MemberLimit(u32);
-
-#[cfg(not(feature = "test"))]
-lazy_static::lazy_static! {
-    /// WARNING: Any attempt to reverse-engineer the Prose Pod API
-    ///   for the purpose of bypassing or removing the member limit,
-    ///   is strictly prohibited and may expose you to legal action.
-    #[doc(hidden)]
-    static ref MEMBER_LIMIT: MemberLimit = {
-        const MARKER: u128 = u128::from_be(0x228a21444f5f4e4f545f4d4f44494659u128);
-        // Prevent `20` from appearing in the binary to prevent tampering.
-        static VALUE: u128 = 20u128 | MARKER;
-        // NOTE: `read_volatile` prevents `MARKER` from being optimized away.
-        let value: u128 = unsafe { std::ptr::read_volatile(&VALUE as *const u128) };
-        // Remove `MARKER`.
-        MemberLimit((value ^ MARKER) as u32)
-    };
-}
-
-#[cfg(not(feature = "test"))]
-impl MemberLimit {
-    fn as_u64(&self) -> u64 {
-        self.0 as u64
-    }
-}
-
-#[cfg(feature = "test")]
-#[doc(hidden)]
-#[repr(transparent)]
-pub struct MemberLimit(pub std::sync::atomic::AtomicU32);
-
-#[cfg(feature = "test")]
-lazy_static::lazy_static! {
-    #[doc(hidden)]
-    pub static ref MEMBER_LIMIT: MemberLimit = {
-        MemberLimit(std::sync::atomic::AtomicU32::new(20))
-    };
-}
-
-#[cfg(feature = "test")]
-impl MemberLimit {
-    fn as_u64(&self) -> u64 {
-        self.0.load(std::sync::atomic::Ordering::Relaxed) as u64
     }
 }
 

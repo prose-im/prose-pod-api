@@ -107,14 +107,6 @@ async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Erro
     Ok(())
 }
 
-#[cfg(feature = "test")]
-#[given(expr = "the member limit is {int}")]
-async fn given_member_limit(_world: &mut TestWorld, limit: u32) -> Result<(), Error> {
-    use service::members::unauthenticated_member_service::MEMBER_LIMIT;
-    (MEMBER_LIMIT.0).store(limit, std::sync::atomic::Ordering::Relaxed);
-    Ok(())
-}
-
 #[when("a new member joins the Workspace")]
 async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
     let db = world.db();

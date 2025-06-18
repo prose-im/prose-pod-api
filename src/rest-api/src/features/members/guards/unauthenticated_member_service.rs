@@ -20,9 +20,10 @@ impl FromRequestParts<AppState> for service::members::UnauthenticatedMemberServi
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         Ok(Self::new(
-            Arc::new(state.server_ctl.clone()),
-            Arc::new(state.auth_service.clone()),
-            Arc::new(state.xmpp_service.clone()),
+            state.server_ctl.clone(),
+            state.auth_service.clone(),
+            state.license_service.clone(),
+            state.xmpp_service.clone(),
         ))
     }
 }

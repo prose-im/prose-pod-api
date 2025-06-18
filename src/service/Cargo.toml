@@ -10,6 +10,7 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 base64 = { workspace = true }
+biscuit-auth = { workspace = true }
 chrono = { workspace = true }
 email_address = { workspace = true, features = ["serde_support"] }
 figment = { workspace = true, features = ["env", "toml"] }
@@ -56,6 +57,7 @@ sea-orm-migration = { workspace = true, features = [
     "sqlx-sqlite",
 ] }
 secrecy = { workspace = true, features = ["serde"] }
+semver = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true, features = ["macros", "alloc"] }

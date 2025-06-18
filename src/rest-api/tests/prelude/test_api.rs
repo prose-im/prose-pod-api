@@ -25,6 +25,7 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
         Some(world.email_notifier.clone()),
         world.secrets_store.clone(),
         world.network_checker.clone(),
+        world.license_service.clone(),
     );
 
     let router = prose_pod_api::make_router(&app_state);

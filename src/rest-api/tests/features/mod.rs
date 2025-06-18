@@ -13,6 +13,8 @@ pub mod onboarding;
 pub mod profiles;
 pub mod roles;
 pub mod server_config;
+#[cfg(feature = "test")]
+pub mod user_limit;
 pub mod workspace_details;
 
 pub(crate) mod prelude {

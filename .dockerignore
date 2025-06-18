@@ -5,3 +5,4 @@
 !src/*/static/
 !docs/
 docs/tutorials/
+!prose.lic

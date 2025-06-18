@@ -18,6 +18,7 @@ use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
+    licensing::LicenseService,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
     sea_orm::DatabaseConnection,
@@ -42,6 +43,7 @@ pub struct AppState {
     email_notifier: Option<Notifier<EmailNotification>>,
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
+    license_service: LicenseService,
     uuid_gen: Uuid,
 }
 
@@ -56,6 +58,7 @@ impl AppState {
         email_notifier: Option<Notifier<EmailNotification>>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
+        license_service: LicenseService,
     ) -> Self {
         let uuid_gen = Uuid::from_config(&app_config.read().unwrap());
         Self {
@@ -69,6 +72,7 @@ impl AppState {
             email_notifier,
             secrets_store,
             network_checker,
+            license_service,
         }
     }
 

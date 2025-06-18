@@ -51,6 +51,7 @@ WORKDIR /usr/share/prose-pod-api
 
 COPY --from=build /usr/local/cargo/bin/prose-pod-api /usr/local/bin/prose-pod-api
 COPY --from=api-docs /usr/share/prose-pod-api/static /usr/share/prose-pod-api/static
+COPY prose.lic /usr/share/prose/prose.lic
 
 VOLUME /etc/prose/
 VOLUME /var/lib/prose-pod-api/
