@@ -12,6 +12,7 @@ PROSE_POD_SERVER_IMAGE_TAG="${LOCAL_DOCKER_TAG:?}"
 source "${SCRIPTS_ROOT:?}"/image-names.sh
 
 # Build the Prose Pod API image.
+export DOCKERFILE_PATH=local-run/Dockerfile
 edo task build-image -- --profile=dev --locked
 
 if [ -n "${PROSE_POD_SERVER_DIR}" ] && [ -d "${PROSE_POD_SERVER_DIR:?}" ]; then

@@ -148,4 +148,5 @@ edo docker buildx build \
 	--build-arg VERSION="${PROSE_POD_API_IMAGE_TAG:?}" \
 	--build-arg COMMIT="${COMMIT:-}" \
 	${NO_PULL:+--pull=false} \
+	${DOCKERFILE_PATH:+-f "${DOCKERFILE_PATH:?}"} \
 	"${PROSE_POD_API_DIR:?}"
