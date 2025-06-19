@@ -22,8 +22,6 @@ image_name_full_() {
 : ${PROSE_POD_API_IMAGE_TAG:=${DEFAULT_DOCKER_TAG:?}}
 : ${PROSE_POD_API_IMAGE:=$(image_name_full_ "${PROSE_POD_API_IMAGE_NAME:?}" "${PROSE_POD_API_IMAGE_TAG}")}
 
-# : ${PROSE_POD_DASHBOARD_IMAGE_NAME:=$(image_name_ prose-pod-dashboard)}
-# TODO: Remove override once Docker Hub is supported.
-: ${PROSE_POD_DASHBOARD_IMAGE_NAME:=ghcr.io/prose-im/prose-pod-dashboard}
+: ${PROSE_POD_DASHBOARD_IMAGE_NAME:=$(image_name_ prose-pod-dashboard)}
 : ${PROSE_POD_DASHBOARD_IMAGE_TAG:=${DEFAULT_DOCKER_TAG:?}}
 : ${PROSE_POD_DASHBOARD_IMAGE:=$(image_name_full_ "${PROSE_POD_DASHBOARD_IMAGE_NAME:?}" "${PROSE_POD_DASHBOARD_IMAGE_TAG}")}
