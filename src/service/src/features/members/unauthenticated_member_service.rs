@@ -136,7 +136,7 @@ lazy_static::lazy_static! {
     ///   is strictly prohibited and may expose you to legal action.
     #[doc(hidden)]
     static ref MEMBER_LIMIT: MemberLimit = {
-        const MARKER: u128 = u128::from_be(0x128A21444f5f4e4f545f4d4f44494659u128);
+        const MARKER: u128 = u128::from_be(0x228a21444f5f4e4f545f4d4f44494659u128);
         // Prevent `20` from appearing in the binary to prevent tampering.
         static VALUE: u128 = 20u128 | MARKER;
         // NOTE: `read_volatile` prevents `MARKER` from being optimized away.
