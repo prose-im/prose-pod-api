@@ -72,8 +72,8 @@ macro_rules! wrapper_type {
         }
 
         impl From<$t> for $wrapper {
-            fn from(bare_jid: $t) -> Self {
-                Self(bare_jid)
+            fn from(inner: $t) -> Self {
+                Self(inner)
             }
         }
 

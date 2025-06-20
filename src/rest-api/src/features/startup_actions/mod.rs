@@ -36,8 +36,9 @@ use self::wait_for_server::*;
 pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 
+    let ref app_config = app_state.app_config_frozen();
     DETAILED_ERROR_REPONSES.store(
-        app_state.app_config.debug.detailed_error_responses,
+        app_config.debug.detailed_error_responses,
         std::sync::atomic::Ordering::Relaxed,
     );
 
@@ -62,7 +63,7 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         if let Err(err) = run_remaining(&app_state).await {
             warn!("{}", crate::StartupError(err));
         }
-        app_state.lifecycle_manager.set_startup_actions_finished();
+        (app_state.base.lifecycle_manager).set_startup_actions_finished();
     });
 
     Ok(())

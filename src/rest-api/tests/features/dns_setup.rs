@@ -11,7 +11,7 @@ use service::{
     network_checks::{DnsRecord, DnsRecordDiscriminants},
     pod_config::{entities::pod_config, PodConfigRepository},
     sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set},
-    server_config::{entities::server_config, ServerConfigRepository},
+    server_config,
 };
 
 use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
@@ -24,20 +24,6 @@ async fn given_pod_config(
 ) -> Result<(), Error> {
     let db = world.db();
     let mut model = PodConfigRepository::get(db)
-        .await?
-        .map(IntoActiveModel::into_active_model)
-        .unwrap_or_default();
-    update(&mut model);
-    model.save(world.db()).await?;
-    Ok(())
-}
-
-async fn given_server_config(
-    world: &mut TestWorld,
-    update: impl FnOnce(&mut server_config::ActiveModel) -> (),
-) -> Result<(), Error> {
-    let db = world.db();
-    let mut model = ServerConfigRepository::get(db)
         .await?
         .map(IntoActiveModel::into_active_model)
         .unwrap_or_default();
@@ -72,10 +58,7 @@ async fn given_pod_has_hostname(world: &mut TestWorld) -> Result<(), Error> {
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
-    given_server_config(world, |model| {
-        model.federation_enabled = Set(Some(enabled.as_bool()))
-    })
-    .await?;
+    server_config::federation_enabled::set(world.db(), enabled.as_bool()).await?;
     Ok(())
 }
 

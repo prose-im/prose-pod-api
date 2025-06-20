@@ -45,7 +45,7 @@ pub fn run_checks_stream<Check, Status>(
     network_checker: NetworkChecker,
     map_to_event: impl Fn(&Check, Status) -> Event + Copy + Send + Sync + 'static,
     retry_interval: Option<iso8601_duration::Duration>,
-    app_config: AppConfig,
+    app_config: &AppConfig,
     on_succeed: impl FnOnce() -> () + Send + 'static,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>
 where
@@ -60,7 +60,7 @@ where
 
     let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
-    let runner = ConcurrentTaskRunner::default(&app_config)
+    let runner = ConcurrentTaskRunner::default(app_config)
         .with_timeout(*SSE_TIMEOUT)
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();

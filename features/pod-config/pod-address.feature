@@ -3,7 +3,7 @@ Feature: Setting the Prose Pod address
 
   Background:
     Given the Prose Pod API has started
-      And the server config has been initialized
+      And the XMPP server has been initialized
       And the Pod config has been initialized
       And Valerian is an admin
 

@@ -16,7 +16,7 @@ pub use live_server_ctl::*;
 pub use live_xmpp_service::*;
 pub use models::*;
 pub use server_ctl::{ServerCtl, ServerCtlError, ServerCtlImpl};
-pub use server_manager::{CreateServiceAccountError, ServerManager};
+pub use server_manager::CreateServiceAccountError;
 pub use xmpp_service::{
     VCard, XmppService, XmppServiceContext, XmppServiceError, XmppServiceImpl, XmppServiceInner,
 };

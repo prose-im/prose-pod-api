@@ -33,8 +33,6 @@ paths:
 
   # ===== Server config =====
   "/v1/server/config":
-    put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
-    head: { $ref: "features/server-config.yaml#/paths/is_server_initialized" }
     get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
   # === File upload ===
   "/v1/server/config/files":
@@ -164,6 +162,8 @@ paths:
   # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
+  "/reload":
+    post: { $ref: "features/reload.yaml#/paths/reload" }
 
   # ===== Miscellaneous =====
   "/version":

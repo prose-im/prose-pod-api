@@ -8,7 +8,6 @@ mod lua;
 mod notification_service;
 mod secrets_store;
 mod server_ctl;
-mod server_manager;
 mod uuid_generator;
 mod xmpp_service;
 

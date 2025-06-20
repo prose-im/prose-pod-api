@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use jid::DomainRef;
+use jid::BareJid;
 use prose_xmpp::stanza::VCard4;
 use tracing::instrument;
 
@@ -14,7 +14,6 @@ use crate::{
     secrets::SecretsStore,
     workspace::Workspace,
     xmpp::{xmpp_service::Avatar, XmppService, XmppServiceContext, XmppServiceInner},
-    AppConfig,
 };
 
 use super::errors::WorkspaceNotInitialized;
@@ -27,11 +26,9 @@ pub struct WorkspaceService {
 impl WorkspaceService {
     pub fn new(
         xmpp_service: Arc<XmppServiceInner>,
-        app_config: Arc<AppConfig>,
-        server_domain: &DomainRef,
+        workspace_jid: BareJid,
         secrets_store: Arc<SecretsStore>,
     ) -> Result<Self, WorkspaceServiceInitError> {
-        let workspace_jid = app_config.workspace_jid(server_domain);
         let prosody_token = secrets_store
             .get_service_account_prosody_token(&workspace_jid)
             .ok_or(WorkspaceServiceInitError::WorkspaceXmppAccountNotInitialized)?;

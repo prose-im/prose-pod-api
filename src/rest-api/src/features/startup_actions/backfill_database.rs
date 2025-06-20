@@ -17,6 +17,7 @@ pub async fn backfill_database(
 ) -> Result<(), String> {
     tracing::debug!("Backfilling database…");
 
+    let ref app_config = app_config.read().unwrap().clone();
     service::onboarding::backfill(db, app_config, network_checker, uuid_gen).await;
 
     Ok(())

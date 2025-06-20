@@ -3,19 +3,23 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, RwLock},
+};
 
 use axum::Router;
 use prose_pod_api::{
-    make_router, run_startup_actions,
+    factory_reset_router, make_router, run_startup_actions,
     util::{
         database::db_conn,
         tracing_subscriber_ext::{self, init_subscribers, TracingReloadHandles},
         LifecycleManager,
     },
-    AppState,
+    AppState, MinimalAppState,
 };
 use service::{
+    app_config::defaults,
     auth::{AuthService, LiveAuthService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
@@ -85,15 +89,39 @@ async fn run(
         impl Subscriber,
     >,
 ) {
-    let app_config = AppConfig::from_default_figment();
-    if app_config.debug.log_config_at_startup {
-        dbg!(&app_config);
-    }
-    let addr = SocketAddr::new(app_config.address, app_config.port);
+    let (addr, app) = match AppConfig::from_default_figment() {
+        Ok(app_config) => {
+            if app_config.debug.log_config_at_startup {
+                dbg!(&app_config);
+            }
+            let addr = SocketAddr::new(app_config.address, app_config.port);
 
-    tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
+            tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
 
-    let app = startup(app_config, lifecycle_manager).await;
+            let app = startup(app_config, lifecycle_manager).await;
+
+            (addr, app)
+        }
+        // Server a subset of routes if the API is broken while restarting.
+        Err(_) if lifecycle_manager.is_restarting() => {
+            warn!("The Prose Pod API is missing some static configuration. Serving only utility routes.");
+
+            let addr = SocketAddr::new(defaults::address(), defaults::port());
+
+            let app_state = MinimalAppState {
+                lifecycle_manager: lifecycle_manager.clone(),
+            };
+            let app = factory_reset_router(&app_state);
+
+            (addr, app)
+        }
+        // Panic if the API is just starting up.
+        Err(err) => {
+            panic!("{err}");
+        }
+    };
+
+    lifecycle_manager.stop_previous_instance().await;
     lifecycle_manager.set_restart_finished();
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
@@ -115,17 +143,13 @@ async fn run(
 async fn startup(app_config: AppConfig, lifecycle_manager: &LifecycleManager) -> Router {
     let app_state = init_dependencies(app_config, lifecycle_manager).await;
 
-    let app = run_startup_actions(make_router(&app_state), app_state)
-        .await
-        .map_err(|err| panic!("{err}"))
-        .unwrap();
-
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
     //   doesn’t keep caches which would leak data.
-    lifecycle_manager.stop_previous_instance().await;
-
-    app
+    run_startup_actions(make_router(&app_state), app_state)
+        .await
+        .map_err(|err| panic!("{err}"))
+        .unwrap()
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -137,6 +161,11 @@ async fn init_dependencies(
         .await
         .expect("Could not connect to the database.");
 
+    // FIXME: Pass a dynamic `AppConfig` to dependencies?
+
+    let base = MinimalAppState {
+        lifecycle_manager: lifecycle_manager.clone(),
+    };
     let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::from_config(&app_config)));
     let http_client = HttpClient::new();
     let prosody_admin_rest = Arc::new(ProsodyAdminRest::from_config(
@@ -162,14 +191,14 @@ async fn init_dependencies(
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
 
     AppState::new(
+        base,
         db,
-        app_config,
+        Arc::new(RwLock::new(app_config)),
         server_ctl,
         xmpp_service,
         auth_service,
         email_notifier,
         secrets_store,
         network_checker,
-        lifecycle_manager.clone(),
     )
 }

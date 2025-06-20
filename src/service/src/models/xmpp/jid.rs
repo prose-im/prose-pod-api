@@ -40,7 +40,8 @@ wrapper_type!(JidNode, jid::NodePart);
 
 impl From<EmailAddress> for JidNode {
     fn from(value: EmailAddress) -> Self {
-        // NOTE: Email adresses are already parsed, and their local part are equivalent to a JID node part.
+        // NOTE: Email adresses are already parsed, and their local part are
+        //   equivalent to a JID node part.
         Self::from_str(value.local_part()).unwrap()
     }
 }
@@ -50,5 +51,13 @@ sea_orm_string!(JidNode);
 // ===== JID NODE =====
 
 wrapper_type!(JidDomain, jid::DomainPart);
+
+impl From<hickory_proto::rr::Name> for JidDomain {
+    fn from(value: hickory_proto::rr::Name) -> Self {
+        // NOTE: Domain names are already parsed, and they are equivalent to a
+        //   JID domain part.
+        Self::from_str(&value.to_string()).unwrap()
+    }
+}
 
 sea_orm_string!(JidDomain);

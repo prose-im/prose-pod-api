@@ -5,20 +5,17 @@
 
 mod prosody;
 
-use std::{path::Path, str::FromStr as _};
+use std::path::Path;
 
 use cucumber::World;
 use sea_orm::*;
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
-    models::JidDomain,
     prosody::ProsodyConfig,
-    server_config::{entities::server_config, ServerConfigCreateForm, ServerConfigRepository},
     MigratorTrait as _,
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
-pub const DEFAULT_DOMAIN: &'static str = "prose.test.org";
 
 #[tokio::main]
 async fn main() {
@@ -36,14 +33,15 @@ async fn main() {
 struct TestWorld {
     db: DatabaseConnection,
     app_config: AppConfig,
-    server_config: server_config::Model,
     prosody_config: Option<ProsodyConfig>,
 }
 
 impl TestWorld {
     async fn new() -> Self {
         let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let app_config = AppConfig::from_path(crate_root.join("tests").join(CONFIG_FILE_NAME));
+        let config_path = crate_root.join("tests").join(CONFIG_FILE_NAME);
+        let app_config = AppConfig::from_path(&config_path)
+            .expect(&format!("Invalid config file at {}", config_path.display()));
 
         // Connecting SQLite
         let db = match Database::connect(&app_config.databases.main.url).await {
@@ -56,19 +54,9 @@ impl TestWorld {
             panic!("Could not setup test database schema: {e}");
         }
 
-        // Init server config
-        let server_config = ServerConfigCreateForm {
-            domain: JidDomain::from_str(DEFAULT_DOMAIN).unwrap(),
-        };
-        let server_config = match ServerConfigRepository::create(&db, server_config).await {
-            Ok(conf) => conf,
-            Err(e) => panic!("Could not create server config: {e}"),
-        };
-
         Self {
             db,
             app_config,
-            server_config,
             prosody_config: None,
         }
     }

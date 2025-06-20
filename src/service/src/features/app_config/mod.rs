@@ -15,6 +15,7 @@ use std::{
     str::FromStr as _,
 };
 
+use anyhow::Context;
 use email_address::EmailAddress;
 use figment::{
     providers::{Env, Format, Toml},
@@ -30,12 +31,12 @@ use crate::{
     invitations::InvitationChannel,
     models::{
         durations::{DateLike, Duration, PossiblyInfinite},
-        xmpp::jid::{BareJid, DomainPart, DomainRef, JidNode},
+        xmpp::jid::{BareJid, DomainPart, JidNode},
         TimeLike,
     },
 };
 
-use super::server_config::TlsProfile;
+use super::{server_config::TlsProfile, xmpp::JidDomain};
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose-pod-api";
@@ -64,7 +65,6 @@ pub struct AppConfig {
     pub service_accounts: ConfigServiceAccounts,
     #[serde(default)]
     pub bootstrap: ConfigBootstrap,
-    #[serde(default)]
     pub server: ConfigServer,
     #[serde(default)]
     pub auth: ConfigAuth,
@@ -109,18 +109,18 @@ impl AppConfig {
             .merge(Env::prefixed("PROSE_").split("__"))
     }
 
-    pub fn from_figment(figment: Figment) -> Self {
+    pub fn from_figment(figment: Figment) -> anyhow::Result<Self> {
         figment
             .extract()
-            .unwrap_or_else(|e| panic!("Invalid '{CONFIG_FILE_NAME}' configuration file: {e}"))
+            .context("Invalid '{CONFIG_FILE_NAME}' configuration file")
         // TODO: Check values intervals (e.g. `default_response_timeout`).
     }
 
-    pub fn from_path(path: impl AsRef<Path>) -> Self {
+    pub fn from_path(path: impl AsRef<Path>) -> anyhow::Result<Self> {
         Self::from_figment(Self::figment_at_path(path))
     }
 
-    pub fn from_default_figment() -> Self {
+    pub fn from_default_figment() -> anyhow::Result<Self> {
         Self::from_figment(Self::figment())
     }
 
@@ -131,11 +131,15 @@ impl AppConfig {
         )
     }
 
-    pub fn workspace_jid(&self, domain: &DomainRef) -> BareJid {
+    pub fn workspace_jid(&self) -> BareJid {
         BareJid::from_parts(
             Some(&self.service_accounts.prose_workspace.xmpp_node),
-            domain,
+            &self.server.domain,
         )
+    }
+
+    pub fn server_domain(&self) -> &JidDomain {
+        &self.server.domain
     }
 }
 
@@ -254,6 +258,7 @@ impl Default for ConfigBootstrap {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigServer {
+    pub domain: JidDomain,
     #[serde(default = "defaults::server_local_hostname")]
     pub local_hostname: String,
     #[serde(default = "defaults::server_local_hostname_admin")]
@@ -284,18 +289,6 @@ impl ConfigServer {
             "http://{}:{}/admin_rest",
             self.local_hostname, self.http_port
         )
-    }
-}
-
-impl Default for ConfigServer {
-    fn default() -> Self {
-        Self {
-            local_hostname: defaults::server_local_hostname(),
-            local_hostname_admin: defaults::server_local_hostname_admin(),
-            http_port: defaults::server_http_port(),
-            log_level: defaults::server_log_level(),
-            defaults: Default::default(),
-        }
     }
 }
 

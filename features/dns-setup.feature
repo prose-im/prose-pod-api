@@ -2,7 +2,7 @@
 Feature: DNS setup instructions
 
   Background:
-    Given the server config has been initialized
+    Given the XMPP server has been initialized
       And Valerian is an admin
       And the Prose Pod API has started
 

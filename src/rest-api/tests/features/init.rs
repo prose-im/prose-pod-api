@@ -3,17 +3,15 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use hickory_resolver::Name as DomainName;
-use prose_pod_api::features::{
-    init::*, server_config::dtos::InitServerConfigRequest, workspace_details::InitWorkspaceRequest,
-};
+use anyhow::Context as _;
+use prose_pod_api::features::{init::*, workspace_details::InitWorkspaceRequest};
 use service::{
     models::Url,
     pod_config::{
         NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
     },
-    server_config::server_config_controller,
     workspace::{workspace_controller, Workspace},
+    xmpp::server_manager,
 };
 
 use super::prelude::*;
@@ -23,12 +21,12 @@ pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 #[given("the Prose Pod has not been initialized")]
 fn given_pod_not_initialized(world: &mut TestWorld) {
     given_workspace_not_initialized(world);
-    given_server_config_not_initialized(world);
+    given_xmpp_server_not_initialized(world);
 }
 
 #[given("the Prose Pod has been initialized")]
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    given_server_config_initialized(world).await?;
+    given_xmpp_server_initialized(world).await?;
     given_workspace_initialized(world).await?;
     given_pod_config_initialized(world).await?;
     Ok(())
@@ -63,26 +61,35 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
     Ok(())
 }
 
-#[given("the server config has not been initialized")]
-fn given_server_config_not_initialized(_world: &mut TestWorld) {
+#[given("the XMPP server has not been initialized")]
+fn given_xmpp_server_not_initialized(_world: &mut TestWorld) {
     // Do nothing, as a new test client is always empty
 }
 
-#[given("the server config has been initialized")]
-async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let form = ServerConfigCreateForm {
-        domain: JidDomain::from_str(&world.initial_server_domain).unwrap(),
-    };
+#[given("the XMPP server has been initialized")]
+async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<()> {
+    // Initialize XMPP server configuration.
+    world.server_config_manager().reload().await?;
 
-    server_config_controller::init_server_config(
-        world.db(),
+    // Register OAuth 2.0 client.
+    (world.auth_service.register_oauth2_client().await)
+        .context("Could not register OAuth 2.0 client")?;
+
+    // Create service XMPP accounts.
+    server_manager::create_service_accounts(
         &world.server_ctl,
-        &world.app_config(),
+        &world.app_config().clone(),
         &world.auth_service,
         &world.secrets_store,
-        form,
     )
-    .await?;
+    .await
+    .context("Could not create service XMPP account")?;
+
+    // Add the Workspace XMPP account to everyone’s rosters so they receive
+    // Workspace icon updates.
+    let workspace_jid = world.app_config().workspace_jid();
+    (world.server_ctl.add_team_member(&workspace_jid).await)
+        .context("Could not add the Workspace to the team")?;
 
     world.reset_server_ctl_counts();
     Ok(())
@@ -90,10 +97,7 @@ async fn given_server_config_initialized(world: &mut TestWorld) -> Result<(), Er
 
 #[given("the Pod config has been initialized")]
 async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let base_domain: DomainName = world
-        .initial_server_domain
-        .parse()
-        .expect("Invalid server domain");
+    let base_domain: JidDomain = world.app_config().server_domain().clone();
     PodConfigRepository::create(
         world.db(),
         PodConfigCreateForm {
@@ -115,13 +119,9 @@ async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error
 async fn given_server_domain(
     world: &mut TestWorld,
     domain: parameters::DomainName,
-) -> Result<(), Error> {
-    let domain = JidDomain::from_str(&domain.to_string()).expect("Invalid domain");
-    if let Some(server_manager) = world.server_manager().await? {
-        server_manager.set_domain(&domain).await?;
-    }
-    world.initial_server_domain = domain;
-
+) -> anyhow::Result<()> {
+    world.app_config_mut().server.domain = domain.0.into();
+    world.server_config_manager().reload().await?;
     Ok(())
 }
 
@@ -162,13 +162,6 @@ async fn init_workspace(api: &TestServer, name: &str) -> TestResponse {
         .await
 }
 
-async fn init_server_config(api: &TestServer, domain: &str) -> TestResponse {
-    let domain = JidDomain::from_str(&domain).expect("Invalid domain");
-    api.put("/v1/server/config")
-        .json(&json!(InitServerConfigRequest { domain }))
-        .await
-}
-
 async fn init_first_account(api: &TestServer, node: &JidNode, nickname: &String) -> TestResponse {
     api.put("/v1/init/first-account")
         .add_header(CONTENT_TYPE, "application/json")
@@ -183,12 +176,6 @@ async fn init_first_account(api: &TestServer, node: &JidNode, nickname: &String)
 #[when(expr = "someone initializes a workspace named {string}")]
 async fn when_init_workspace(world: &mut TestWorld, name: String) {
     let res = init_workspace(world.api(), &name).await;
-    world.result = Some(res);
-}
-
-#[when(expr = "someone initializes the server at <{}>")]
-async fn when_init_server_config(world: &mut TestWorld, domain: String) {
-    let res = init_server_config(world.api(), &domain).await;
     world.result = Some(res);
 }
 
@@ -237,23 +224,6 @@ async fn then_error_workspace_already_initialized(world: &mut TestWorld) {
     }));
 }
 
-#[then("the user should receive 'Server config not initialized'")]
-async fn then_error_server_config_not_initialized(world: &mut TestWorld) {
-    let res = world.result();
-    res.assert_status(StatusCode::PRECONDITION_FAILED);
-    assert_eq!(
-        res.header(CONTENT_TYPE),
-        "application/json",
-        "Content type (body: {:#?})",
-        res.text()
-    );
-    res.assert_json(&json!({
-        "error": "server_config_not_initialized",
-        "message": "XMPP server not initialized.",
-        "recovery_suggestions": ["Call `PUT /v1/server/config` to initialize it."],
-    }));
-}
-
 #[then("the user should receive 'First account already created'")]
 async fn then_error_first_account_already_created(world: &mut TestWorld) {
     let res = world.result();
@@ -262,16 +232,5 @@ async fn then_error_first_account_already_created(world: &mut TestWorld) {
     res.assert_json(&json!({
         "error": "first_account_already_created",
         "message": "First account already created.",
-    }));
-}
-
-#[then("the user should receive 'Server config already initialized'")]
-async fn then_error_server_config_already_initialized(world: &mut TestWorld) {
-    let res = world.result();
-    res.assert_status(StatusCode::CONFLICT);
-    assert_eq!(res.header(CONTENT_TYPE), "application/json");
-    res.assert_json(&json!({
-        "error": "server_config_already_initialized",
-        "message": "XMPP server already initialized.",
     }));
 }

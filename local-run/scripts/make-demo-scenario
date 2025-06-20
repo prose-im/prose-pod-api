@@ -33,10 +33,6 @@ while ! xh :8080/v1/version -q; do
   sleep 1
 done
 
-info 'Initialize XMPP server'
-xh PUT :8080/v1/server/config -q \
-	domain="${DOMAIN:?}"
-
 info 'Create first admin account'
 xh PUT :8080/v1/init/first-account -q \
 	username="${MEMBER_USERNAMES[0]}" \

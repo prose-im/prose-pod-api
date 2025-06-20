@@ -92,15 +92,17 @@ table-empty() {
   WHEN EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='${table_name}')
   THEN (SELECT COUNT(*) FROM ${table_name})
   ELSE 0
-END;")"
-	if [ ${row_count:-1} -ne 0 ]; then
-		die "API database table $(format_code "${table_name}") isn’t empty. It contains ${row_count:-NaN} row(s). Database path: $(format_url "${DATABASE_PATH:?}")."
+END;" 2>&1)"
+	if [[ "${row_count:?}" != "0" ]]; then
+		if [[ "${row_count:?}" != *"no such table"* ]]; then
+			die "API database table $(format_code "${table_name}") isn’t empty. It contains ${row_count:-NaN} row(s). Database path: $(format_url "${DATABASE_PATH:?}")."
+		fi
 	fi
 }
 table-empty member
 table-empty pod_config
-table-empty server_config
 table-empty workspace_invitation
+table-empty kv_store
 success API database reset
 
 if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/Prose-empty.toml)" ]; then
@@ -118,6 +120,14 @@ wait-until-restarted() {
 		fi
 	done
 }
+
+info Initializing static config and reloading…
+cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
+[server]
+domain = "prose-demo.org.local"
+
+EOF
+edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
 info Waiting for the API to restart…
 wait-until-restarted
@@ -143,6 +153,14 @@ retry() {
 	edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" \
 		-A bearer -a "${TOKEN:?}" \
 		confirmation="${CONFIRMATION:?}" || abort
+	cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
+[server]
+domain = "prose-demo.org.local"
+
+EOF
+	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
+	wait-until-restarted
+	success It worked!
 }
 
 info 'Trying a second factory reset…'
@@ -153,8 +171,6 @@ retry
 
 info 'Trying a third factory reset (because why not?)…'
 wait-until-restarted
-edo xh PUT -Iq "${INTEGRATION_TEST_HOST:?}"/v1/server/config \
-	domain=prose-demo.org.local
 edo xh PUT -Iq "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \

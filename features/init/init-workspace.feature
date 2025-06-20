@@ -5,7 +5,7 @@ Feature: Initializing the Prose Workspace
     Given the Prose Pod API has started
 
   Scenario: Initializing the workspace
-    Given the server config has been initialized
+    Given the XMPP server has been initialized
       And the workspace has not been initialized
      When someone initializes a workspace named "Prose"
      Then the call should succeed

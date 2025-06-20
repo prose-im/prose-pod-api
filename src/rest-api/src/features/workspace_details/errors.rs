@@ -69,7 +69,7 @@ impl HttpApiError for SetWorkspaceIconError {
 impl HttpApiError for WorkspaceServiceInitError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::SERVER_CONFIG_NOT_INITIALIZED,
+            Self::WorkspaceXmppAccountNotInitialized => ErrorCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

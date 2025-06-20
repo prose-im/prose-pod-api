@@ -31,7 +31,6 @@ pub(crate) mod prelude {
         errors::DbErr,
         models::xmpp::*,
         sea_orm::{prelude::*, IntoActiveModel as _, Set},
-        server_config::ServerConfigCreateForm,
         MutationError,
     };
 

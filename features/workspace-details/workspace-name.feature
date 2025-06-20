@@ -6,13 +6,8 @@ Feature: Workspace name
 
   Rule: The API should warn if the workspace has not been initialized when getting the workspace name
 
-    Scenario: XMPP server and workspace not initialized
-      Given the server config has not been initialized
-       When an unauthenticated user gets the workspace name
-       Then the user should receive 'Server config not initialized'
-
     Scenario: XMPP server initialized but not the workspace
-      Given the server config has been initialized
+      Given the XMPP server has been initialized
         And the workspace has not been initialized
        When an unauthenticated user gets the workspace name
        Then the user should receive 'Workspace not initialized: No vCard'

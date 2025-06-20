@@ -10,6 +10,9 @@
 [branding]
 company_name = "Prose (local)"
 
+[server]
+domain = "prose.org.local"
+
 [notify.email]
 pod_address = "pod@prose.org.local"
 

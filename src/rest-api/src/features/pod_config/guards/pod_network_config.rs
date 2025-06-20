@@ -4,9 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    auth::IsAdmin,
-    pod_config::PodConfigRepository,
-    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
+    auth::IsAdmin, pod_config::PodConfigRepository, server_config::server_config_controller,
 };
 
 use crate::{features::pod_config::PodAddressNotInitialized, guards::prelude::*};
@@ -26,11 +24,11 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     ) -> Result<Self, Self::Rejection> {
         let is_admin = IsAdmin::from_request_parts(parts, state).await?;
 
-        let AppState { db, app_config, .. } = state;
+        let AppState { db, .. } = state;
+        let ref app_config = state.app_config_frozen();
 
-        let server_config = server_config_controller::get_server_config(db, app_config, &is_admin)
-            .await?
-            .ok_or(ServerConfigNotInitialized)?;
+        let server_config =
+            server_config_controller::get_server_config(db, app_config, &is_admin).await?;
 
         let Some(pod_config) = PodConfigRepository::get(db).await? else {
             // NOTE: We return `PodAddressNotInitialized` and not `PodConfigNotInitialized`
