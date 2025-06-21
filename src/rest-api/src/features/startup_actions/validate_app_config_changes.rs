@@ -3,9 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    members::MemberRepository, server_config::server_config_controller::get_prosody_config_lua,
-};
+use service::members::MemberRepository;
 use tracing::{debug, instrument};
 
 use crate::AppState;
