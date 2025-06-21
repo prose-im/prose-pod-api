@@ -99,7 +99,7 @@ Feature: Inviting members
       Given <marc@prose.org> has been invited via email
         And Valerian is an admin
        When Valerian cancels the invitation
-       Then the HTTP status code should be NoContent
+       Then the HTTP status code should be No Content
         And there should not be any invitation for <marc@prose.org> in the database
 
     Scenario: Rémi (not admin) tries to cancel an invitation
@@ -140,7 +140,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And the invitation has already expired
        When <remi@prose.org> accepts their invitation
-       Then the HTTP status code should be Not Found
+       Then the HTTP status code should be Gone
         And the error code should be "invitation_not_found"
 
   """
@@ -161,7 +161,7 @@ Feature: Inviting members
         And the invitation did not go through
         And Valerian is an admin
        When Valerian resends the invitation
-       Then the HTTP status code should be NoContent
+       Then the HTTP status code should be No Content
         And 1 email should have been sent
 
     Scenario: Rémi (not admin) tries to resend an invitation
@@ -182,7 +182,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invitation
        When <remi@prose.org> uses the previous invitation accept link they received
-       Then the HTTP status code should be Not Found
+       Then the HTTP status code should be Gone
         And the error code should be "invitation_not_found"
 
   """
@@ -260,7 +260,7 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invitation
        When <remi@prose.org> requests the invitation associated to their previous accept token
-       Then the HTTP status code should be Not Found
+       Then the HTTP status code should be Gone
         And the error code should be "invitation_not_found"
 
   Rule: Invited members can choose their nickname when joining

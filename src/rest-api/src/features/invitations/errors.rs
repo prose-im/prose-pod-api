@@ -17,7 +17,7 @@ use crate::error::prelude::*;
 impl ErrorCode {
     const INVITATION_NOT_FOUND: Self = Self {
         value: "invitation_not_found",
-        http_status: StatusCode::NOT_FOUND,
+        http_status: StatusCode::GONE,
         log_level: LogLevel::Info,
     };
     const INVITATION_ALREADY_EXISTS: Self = Self {

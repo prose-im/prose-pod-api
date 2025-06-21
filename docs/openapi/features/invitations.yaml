@@ -128,7 +128,7 @@ paths:
             schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "404": { $ref: "#/components/responses/InvitationNotFound" }
+      "410": { $ref: "#/components/responses/InvitationNotFound" }
   invitation_cancel:
     tags: [Invitations]
     summary: Cancel an invitation
@@ -162,7 +162,7 @@ paths:
             schema: { $ref: "#/components/schemas/WorkspaceInvitationBasicDetails" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "404": { $ref: "#/components/responses/InvitationNotFound" }
+      "410": { $ref: "#/components/responses/InvitationNotFound" }
   invitation_accept:
     tags: [Invitations]
     summary: Accept an invitation
@@ -185,7 +185,7 @@ paths:
               password: { $ref: "../shared.yaml#/components/schemas/Password" }
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "404": { $ref: "#/components/responses/InvitationNotFound" }
+      "410": { $ref: "#/components/responses/InvitationNotFound" }
   invitation_reject:
     tags: [Invitations]
     summary: Reject an invitation
@@ -196,7 +196,7 @@ paths:
       - $ref: "#/components/parameters/InvitationRejectToken"
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "404": { $ref: "#/components/responses/InvitationNotFound" }
+      "410": { $ref: "#/components/responses/InvitationNotFound" }
   invitation_resend:
     tags: [Invitations]
     summary: Resend an invitation
@@ -210,7 +210,7 @@ paths:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "404": { $ref: "#/components/responses/InvitationNotFound" }
+      "410": { $ref: "#/components/responses/InvitationNotFound" }
 components:
   schemas:
     InvitationToken:
