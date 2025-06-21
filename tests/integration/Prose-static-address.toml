@@ -5,17 +5,17 @@
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
-company_name = "Prose"
+company_name = "Prose Test"
 
 [server]
 domain = "prose-demo.org.local"
 
 [pod]
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
-dashboard_url = "http://localhost:3030/"
+dashboard_url = "http://admin.prose-demo.org.local"
 
 [notify.email]
-pod_address = "pod@prose-demo.org.local"
+pod_address = "pod@prose.org.local"
 
 smtp_host = "mailpit"
 smtp_encrypt = false

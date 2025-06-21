@@ -38,11 +38,10 @@ async fn backfill_all_dns_checks_passed_once(
     network_checker: &NetworkChecker,
 ) -> anyhow::Result<()> {
     use futures::{stream::FuturesOrdered, StreamExt};
-    use tracing::{info, trace};
+    use tracing::trace;
 
     use crate::network_checks::PodNetworkConfig;
     use crate::network_checks::{NetworkCheck as _, RetryableNetworkCheckResult as _};
-    use crate::pod_config::PodConfigRepository;
 
     use self::all_dns_checks_passed_once as store;
 
@@ -55,16 +54,7 @@ async fn backfill_all_dns_checks_passed_once(
 
     let server_domain = app_config.server_domain().clone();
 
-    let pod_address = match (PodConfigRepository::get(db).await?)
-        .map(|config| config.network_address())
-        .flatten()
-    {
-        Some(address) => address,
-        None => {
-            info!("Not backfilling `{KEY}`: Pod address not initalized.");
-            return Ok(());
-        }
-    };
+    let pod_address = app_config.pod.network_address();
 
     let federation_enabled = (server_config::federation_enabled::get_opt(db).await?)
         .unwrap_or(app_config.server.defaults.federation_enabled);

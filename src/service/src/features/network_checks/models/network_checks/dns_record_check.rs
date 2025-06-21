@@ -99,7 +99,12 @@ impl NetworkCheck for DnsRecordCheck {
     fn id(&self) -> Self::CheckId {
         <Self as NetworkCheck>::CheckId::from(self)
     }
-    #[instrument(name = "DnsRecordCheck::run", level = "trace", skip_all, fields(check = format!("{self:?}")), ret)]
+    #[instrument(
+        name = "DnsRecordCheck::run",
+        level = "trace",
+        skip_all, fields(check = self.dns_entry.clone().into_dns_record().to_string()),
+        ret,
+    )]
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         network_checker
             .check_dns_entry(self.dns_entry.clone())

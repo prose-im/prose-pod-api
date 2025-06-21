@@ -11,6 +11,7 @@ Feature: Port reachability checks
     Scenario: IPv4 + IPv6
       Given the Prose Pod is publicly accessible via an IPv4
         And the Prose Pod is publicly accessible via an IPv6
+        And the Prose Pod isn’t publicly accessible via a domain
         And federation is enabled
         And the XMPP server domain is test.prose.org
         And test.prose.org’s port 5222 is open
@@ -27,7 +28,7 @@ Feature: Port reachability checks
         And one SSE event is ":End of stream\nid:end\nevent:end"
 
     Scenario: Hostname
-      Given the Prose Pod is publicly accessible via a hostname
+      Given the Prose Pod is publicly accessible via a domain
         And federation is enabled
         And the XMPP server domain is test.prose.org
         And test.prose.org’s port 5222 is open
@@ -46,7 +47,7 @@ Feature: Port reachability checks
   Rule: Standard hosts are checked too
 
     Scenario: Standard XMPP hostnames
-      Given the Prose Pod is publicly accessible via a hostname
+      Given the Prose Pod is publicly accessible via a domain
         And federation is enabled
         And the XMPP server domain is test.prose.org
         And test.prose.org’s port 5222 is closed
@@ -64,7 +65,7 @@ Feature: Port reachability checks
   Rule: Server-to-server checks are ran only if federation is enabled
 
     Scenario: Hostname
-      Given the Prose Pod is publicly accessible via a hostname
+      Given the Prose Pod is publicly accessible via a domain
         And federation is disabled
         And the XMPP server domain is test.prose.org
         And test.prose.org’s port 5222 is open

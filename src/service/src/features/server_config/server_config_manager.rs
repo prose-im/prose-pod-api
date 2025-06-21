@@ -11,12 +11,7 @@ use std::{
 use anyhow::Context as _;
 use tracing::trace;
 
-use crate::{
-    sea_orm::DatabaseConnection,
-    server_config::{self, ServerConfig},
-    xmpp::ServerCtl,
-    AppConfig,
-};
+use crate::{sea_orm::DatabaseConnection, server_config, xmpp::ServerCtl, AppConfig, ServerConfig};
 
 use super::DynamicServerConfig;
 

@@ -1,47 +1,4 @@
 paths:
-  init_pod_config:
-    tags: [Init, "Pod / Configuration"]
-    summary: Init Pod config
-    description: Initialize the configuration of the Prose Pod.
-    operationId: init_pod_config
-    security:
-      - BearerAuth: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/InitPodConfigRequest" }
-    responses:
-      "201":
-        description: Created
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PodConfig" }
-        headers:
-          Location:
-            $ref: "../shared.yaml#/components/headers/Location"
-            example: /v1/pod/config
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "409": { $ref: "#/components/responses/PodConfigAlreadyInitialized" }
-      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
-  is_pod_config_initialized:
-    tags: [Init, "Pod / Configuration"]
-    summary: Is the Pod config initialized?
-    description: Returns whether or not the Pod config has already been initialized.
-    operationId: is_pod_config_initialized
-    security: []
-    parameters:
-      - in: header
-        name: If-Match
-        schema:
-          type: string
-          const: "*"
-        required: true
-    responses:
-      "204": { description: Pod config already initialized }
-      "412": { description: Pod config not initialized }
-      "428": { $ref: "../shared.yaml#/components/responses/PreconditionRequired" }
   get_pod_config:
     tags: ["Pod / Configuration"]
     summary: Get Pod config
@@ -57,53 +14,6 @@ paths:
             schema: { $ref: "#/components/schemas/PodConfig" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  set_pod_address:
-    tags: ["Pod / Configuration"]
-    summary: Set Pod address
-    description: |
-      Tells the API how the Pod is publicly accessible.
-
-      If a key is missing, it will be considered `null` and will erase an existing value.
-    operationId: set_pod_address
-    security: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/SetPodAddressRequest" }
-    responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
-  patch_pod_address:
-    tags: ["Pod / Configuration"]
-    summary: Patch Pod address
-    description: |
-      Tells the API how the Pod is publicly accessible.
-
-      If a key is missing, it will not set an existing value to `null`.
-      To erase an existing value, use `null` explicitly.
-    operationId: patch_pod_address
-    security: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/PatchPodAddressRequest" }
-    responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
   get_pod_address:
     tags: ["Pod / Configuration"]
     summary: Get Pod address
@@ -113,34 +23,12 @@ paths:
       - BearerAuth: []
     responses:
       "200":
-        description: Pod address has a value
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
-      "204":
-        description: Pod address has no value
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  set_dashboard_url:
-    tags: ["Pod / Configuration"]
-    summary: Set Dashboard URL
-    description: Tells the API how the Dashboard is publicly accessible.
-    operationId: set_dashboard_url
-    security: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
-    responses:
-      "200":
         description: Success
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PodConfig/properties/dashboard_url" }
+            schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-      "422": { $ref: "../shared.yaml#/components/responses/UnprocessableEntity" }
   get_dashboard_url:
     tags: ["Pod / Configuration"]
     summary: Get Dashboard URL
@@ -150,26 +38,16 @@ paths:
       - BearerAuth: []
     responses:
       "200":
-        description: Dashboard URL has a value
+        description: Success
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/PodConfig/properties/dashboard_url"
               type: string
-      "204":
-        description: Dashboard URL has no value
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
   schemas:
-    InitPodConfigRequest:
-      type: object
-      required:
-        - address
-        - dashboard_url
-      properties:
-        address: { $ref: "#/components/schemas/SetPodAddressRequest" }
-        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
     PodConfig:
       type: object
       required:
@@ -177,113 +55,32 @@ components:
         - dashboard_url
       properties:
         address: { $ref: "#/components/schemas/PodAddress" }
-        dashboard_url: { $ref: "#/components/schemas/DashboardUrl" }
-    SetPodAddressRequest:
+        dashboard_url:
+          type: [string, "null"]
+          format: uri
+          example: https://admin.prose.crisp.chat/
+    PodAddress:
       anyOf:
+        - title: Domain
+          type: object
+          required: [domain]
+          properties:
+            domain:
+              type: string
+              example: crisp.chat
         - title: IPv4
           type: object
           required: [ipv4]
           properties:
             ipv4:
-              $ref: "#/components/schemas/PodAddress/properties/ipv4"
               type: string
+              example: 104.18.28.104
         - title: IPv6
           type: object
           required: [ipv6]
           properties:
             ipv6:
-              $ref: "#/components/schemas/PodAddress/properties/ipv6"
               type: string
-        - title: Hostname
-          type: object
-          required: [hostname]
-          properties:
-            hostname:
-              $ref: "#/components/schemas/PodAddress/properties/hostname"
-              type: string
-    PatchPodAddressRequest:
-      anyOf:
-        - title: IPv4
-          type: object
-          required: [ipv4]
-          properties:
-            ipv4: { $ref: "#/components/schemas/PodAddress/properties/ipv4" }
-        - title: IPv6
-          type: object
-          required: [ipv6]
-          properties:
-            ipv6: { $ref: "#/components/schemas/PodAddress/properties/ipv6" }
-        - title: Hostname
-          type: object
-          required: [hostname]
-          properties:
-            hostname: { $ref: "#/components/schemas/PodAddress/properties/hostname" }
-    PodAddress:
-      type: object
-      required:
-        - ipv4
-        - ipv6
-        - hostname
-      properties:
-        ipv4:
-          type: [string, "null"]
-          example: 104.18.28.104
-        ipv6:
-          type: [string, "null"]
-          example: 2606:4700::6812:1c68
-        hostname:
-          type: [string, "null"]
-          example: crisp.chat
+              example: 2606:4700::6812:1c68
       example:
-        hostname: crisp.chat
-        ipv4: null
-        ipv6: null
-    DashboardUrl:
-      type: [string, "null"]
-      format: uri
-      example: https://admin.prose.crisp.chat/
-  responses:
-    PodConfigNotInitialized:
-      description: Pod config not initialized
-      content:
-        application/json:
-          schema:
-            $ref: "../shared.yaml#/components/schemas/Error"
-            properties:
-              error:
-                const: pod_config_not_initialized
-          example:
-            error: pod_config_not_initialized
-    PodConfigAlreadyInitialized:
-      description: Pod config already initialized
-      content:
-        application/json:
-          schema:
-            $ref: "../shared.yaml#/components/schemas/Error"
-            properties:
-              error:
-                const: pod_config_already_initialized
-          example:
-            error: pod_config_already_initialized
-    PodAddressNotInitialized:
-      description: Pod address not initialized
-      content:
-        application/json:
-          schema:
-            $ref: "../shared.yaml#/components/schemas/Error"
-            properties:
-              error:
-                const: pod_address_not_initialized
-          example:
-            error: pod_address_not_initialized
-    DashboardUrlNotInitialized:
-      description: Dashboard URL not initialized
-      content:
-        application/json:
-          schema:
-            $ref: "../shared.yaml#/components/schemas/Error"
-            properties:
-              error:
-                const: dashboard_url_not_initialized
-          example:
-            error: dashboard_url_not_initialized
+        hostname: crisp.chat.

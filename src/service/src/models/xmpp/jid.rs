@@ -52,11 +52,21 @@ sea_orm_string!(JidNode);
 
 wrapper_type!(JidDomain, jid::DomainPart);
 
-impl From<hickory_proto::rr::Name> for JidDomain {
-    fn from(value: hickory_proto::rr::Name) -> Self {
-        // NOTE: Domain names are already parsed, and they are equivalent to a
-        //   JID domain part.
-        Self::from_str(&value.to_string()).unwrap()
+impl From<&hickory_proto::rr::Name> for JidDomain {
+    #[inline]
+    fn from(value: &hickory_proto::rr::Name) -> Self {
+        // NOTE: Domain names are already parsed, and
+        //   they are equivalent to a JID domain part.
+        Self::from_str(value.to_string().as_str()).unwrap()
+    }
+}
+impl JidDomain {
+    pub fn as_fqdn(&self) -> hickory_proto::rr::Name {
+        // NOTE: JID domain parts are already parsed,
+        //   and they are equivalent to a domain name.
+        let mut name = hickory_proto::rr::Name::from_str(self.to_string().as_str()).unwrap();
+        name.set_fqdn(true);
+        name
     }
 }
 

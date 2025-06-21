@@ -10,6 +10,10 @@ company_name = "Prose Test"
 [server]
 domain = "prose-demo.org.local"
 
+[pod]
+address = { domain = "prose-demo.org.local" }
+dashboard_url = "http://admin.prose-demo.org.local"
+
 [notify.email]
 pod_address = "pod@prose.org.local"
 

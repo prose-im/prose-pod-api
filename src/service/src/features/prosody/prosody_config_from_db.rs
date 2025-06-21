@@ -9,8 +9,7 @@ use tracing::{info, warn};
 use crate::{
     app_config::{AppConfig, FILE_SHARE_HOST},
     models::{self as db},
-    server_config::ServerConfig,
-    ProseDefault,
+    ProseDefault, ServerConfig,
 };
 
 use super::{prosody_config::util::*, ProsodyConfig};

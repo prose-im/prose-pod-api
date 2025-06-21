@@ -8,7 +8,11 @@
 company_name = "Prose (test)"
 
 [server]
-domain = "prose.test.org"
+domain = "test.org"
+
+[pod]
+address = { domain = "prose.test.org" }
+dashboard_url = "http://admin.prose.test.org"
 
 [databases.main]
 url = "sqlite::memory:"

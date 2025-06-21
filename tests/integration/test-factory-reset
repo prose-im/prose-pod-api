@@ -126,6 +126,10 @@ cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
 [server]
 domain = "prose-demo.org.local"
 
+[pod]
+address = { domain = "prose-demo.org.local" }
+dashboard_url = "http://admin.prose-demo.org.local"
+
 EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
@@ -156,6 +160,10 @@ retry() {
 	cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
 [server]
 domain = "prose-demo.org.local"
+
+[pod]
+address = { domain = "prose-demo.org.local" }
+dashboard_url = "http://admin.prose-demo.org.local"
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort

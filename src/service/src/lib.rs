@@ -18,7 +18,7 @@ pub mod util;
 
 pub use features::app_config::AppConfig;
 pub use features::prosody;
-use features::server_config::ServerConfig;
+pub use features::server_config::ServerConfig;
 pub use features::*;
 pub use linked_hash_set::LinkedHashSet;
 pub use migrations::Migrator;

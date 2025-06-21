@@ -10,7 +10,6 @@ pub mod invitations;
 pub mod members;
 pub mod network_checks;
 pub mod onboarding;
-pub mod pod_config;
 pub mod profiles;
 pub mod roles;
 pub mod server_config;

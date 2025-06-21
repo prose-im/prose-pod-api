@@ -9,7 +9,7 @@ use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use secrecy::ExposeSecret;
 use utils::def;
 
-use crate::{app_config::AppConfig, server_config::ServerConfig, ProseDefault};
+use crate::{AppConfig, ProseDefault, ServerConfig};
 
 use super::prosody_bootstrap_config;
 

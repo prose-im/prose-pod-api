@@ -13,9 +13,8 @@ use tracing::instrument;
 use crate::{
     members::MemberRole,
     prosody::{prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest},
-    server_config::ServerConfig,
     xmpp::{server_ctl, BareJid, ServerCtlImpl},
-    AppConfig,
+    AppConfig, ServerConfig,
 };
 
 #[derive(Debug, Clone)]

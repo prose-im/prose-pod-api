@@ -10,7 +10,6 @@ use service::{
         InvitationResendError, InviteMemberError,
     },
     notifications::notifier::email::EmailNotificationCreateError,
-    pod_config::PodConfigField,
 };
 
 use crate::error::prelude::*;
@@ -74,7 +73,6 @@ impl HttpApiError for InvitationResendError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
-            Self::PodConfigMissing(err) => err.code(),
             Self::Internal(err) => err.code(),
         }
     }
@@ -86,12 +84,6 @@ impl HttpApiError for InviteMemberError {
             Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
             Self::InvitationConfict => ErrorCode::INVITATION_ALREADY_EXISTS,
             Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
-            Self::PodConfigMissing(PodConfigField::PodAddress) => {
-                ErrorCode::POD_ADDRESS_NOT_INITIALIZED
-            }
-            Self::PodConfigMissing(PodConfigField::DashboardUrl) => {
-                ErrorCode::DASHBOARD_URL_NOT_INITIALIZED
-            }
             #[cfg(debug_assertions)]
             Self::CouldNotAutoAcceptInvitation(err) => err.code(),
             Self::Internal(err) => err.code(),

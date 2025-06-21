@@ -23,7 +23,7 @@ use figment::{
 };
 use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
-use prosody_config::ProsodySettings;
+pub use prosody_config::ProsodySettings as ProsodyConfig;
 use secrecy::SecretString;
 use serde::Deserialize;
 
@@ -36,6 +36,7 @@ use crate::{
     },
 };
 
+pub use super::pod_config::PodConfig;
 use super::{server_config::TlsProfile, xmpp::JidDomain};
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
@@ -66,12 +67,13 @@ pub struct AppConfig {
     #[serde(default)]
     pub bootstrap: BootstrapConfig,
     pub server: ServerConfig,
+    pub pod: PodConfig,
     #[serde(default)]
     pub auth: AuthConfig,
     #[serde(default)]
     pub prosody_ext: ProsodyExtConfig,
     #[serde(default)]
-    pub prosody: ProsodySettings,
+    pub prosody: ProsodyConfig,
     #[serde(default)]
     pub branding: BrandingConfig,
     #[serde(default)]

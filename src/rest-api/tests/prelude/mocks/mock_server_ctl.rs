@@ -10,9 +10,8 @@ use service::{
     members::MemberRole,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
-    server_config::ServerConfig,
     xmpp::{server_ctl::Error, BareJid},
-    AppConfig, ProsodyConfigSection,
+    AppConfig, ProsodyConfigSection, ServerConfig,
 };
 
 use std::sync::{Arc, RwLock};

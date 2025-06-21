@@ -23,6 +23,7 @@ Feature: DNS setup instructions
 
     Scenario Outline: IPv4 only
       Given the Prose Pod is publicly accessible via an IPv4
+        And the Prose Pod isn’t publicly accessible via a domain
         And the XMPP server domain is <domain>
         And federation is enabled
        When Valerian requests DNS setup instructions
@@ -41,6 +42,7 @@ Feature: DNS setup instructions
 
     Scenario Outline: IPv6 only
       Given the Prose Pod is publicly accessible via an IPv6
+        And the Prose Pod isn’t publicly accessible via a domain
         And the XMPP server domain is <domain>
         And federation is enabled
        When Valerian requests DNS setup instructions
@@ -60,6 +62,7 @@ Feature: DNS setup instructions
     Scenario Outline: IPv4 + IPv6
       Given the Prose Pod is publicly accessible via an IPv4
         And the Prose Pod is publicly accessible via an IPv6
+        And the Prose Pod isn’t publicly accessible via a domain
         And the XMPP server domain is <domain>
         And federation is enabled
        When Valerian requests DNS setup instructions
@@ -77,10 +80,10 @@ Feature: DNS setup instructions
       | prose.org      |
       | chat.prose.org |
 
-  Rule: If the Prose Pod is publicly accessible via a hostname, `SRV` records point to it
+  Rule: If the Prose Pod is publicly accessible via a domain, `SRV` records point to it
 
     Scenario: Hostname
-      Given the Prose Pod is publicly accessible via a hostname
+      Given the Prose Pod is publicly accessible via a domain
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
@@ -94,7 +97,7 @@ Feature: DNS setup instructions
     Scenario: IPv4 + IPv6 + hostname
       Given the Prose Pod is publicly accessible via an IPv4
         And the Prose Pod is publicly accessible via an IPv6
-        And the Prose Pod is publicly accessible via a hostname
+        And the Prose Pod is publicly accessible via a domain
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
@@ -112,8 +115,8 @@ Feature: DNS setup instructions
         And DNS setup instructions should contain a SRV record for port 5222
         And DNS setup instructions should contain a SRV record for port 5269
 
-    Scenario: Prose Pod accessible via a hostname
-      Given the Prose Pod is publicly accessible via a hostname
+    Scenario: Prose Pod accessible via a domain
+      Given the Prose Pod is publicly accessible via a domain
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
@@ -134,9 +137,9 @@ Feature: DNS setup instructions
       | prose.org      |
       | chat.prose.org |
 
-    Scenario Outline: Prose Pod accessible via a hostname
+    Scenario Outline: Prose Pod accessible via a domain
       Given the XMPP server domain is <domain>
-        And the Prose Pod is publicly accessible via a hostname
+        And the Prose Pod is publicly accessible via a domain
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And SRV records hostnames should be <domain>
@@ -148,18 +151,10 @@ Feature: DNS setup instructions
 
   Rule: No SRV record is given for port 5269 if federation is disabled
 
-    Scenario: Prose Pod accessible via a hostname
-      Given the Prose Pod is publicly accessible via a hostname
+    Scenario: Prose Pod accessible via a domain
+      Given the Prose Pod is publicly accessible via a domain
         And federation is disabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
         And DNS setup instructions should contain a SRV record for port 5222
         And DNS setup instructions should not contain a SRV record for port 5269
-
-  Rule: The Prose Pod address needs to be initialized in order to get DNS setup instructions
-
-    Scenario: Prose Pod address not initialized
-      Given the Prose Pod address has not been initialized
-       When Valerian requests DNS setup instructions
-       Then the HTTP status code should be Precondition Failed
-        And the error code should be "pod_address_not_initialized"

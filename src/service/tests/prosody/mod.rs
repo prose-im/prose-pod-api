@@ -5,10 +5,7 @@
 
 use cucumber::{given, then, when};
 use insta::assert_snapshot;
-use service::{
-    prosody_config_from_db,
-    server_config::{self, ServerConfig},
-};
+use service::{prosody_config_from_db, server_config, ServerConfig};
 
 use crate::TestWorld;
 

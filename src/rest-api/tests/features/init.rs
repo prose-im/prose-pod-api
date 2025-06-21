@@ -3,13 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::ops::Deref;
+
 use anyhow::Context as _;
 use prose_pod_api::features::{init::*, workspace_details::InitWorkspaceRequest};
 use service::{
     models::Url,
-    pod_config::{
-        NetworkAddressCreateForm, PodConfigCreateForm, PodConfigRepository, PodConfigUpdateForm,
-    },
     workspace::{workspace_controller, Workspace},
     xmpp::server_manager,
 };
@@ -28,7 +27,6 @@ fn given_pod_not_initialized(world: &mut TestWorld) {
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
     given_xmpp_server_initialized(world).await?;
     given_workspace_initialized(world).await?;
-    given_pod_config_initialized(world).await?;
     Ok(())
 }
 
@@ -95,52 +93,22 @@ async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<
     Ok(())
 }
 
-#[given("the Pod config has been initialized")]
-async fn given_pod_config_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let base_domain: JidDomain = world.app_config().server_domain().clone();
-    PodConfigRepository::create(
-        world.db(),
-        PodConfigCreateForm {
-            dashboard_url: Some(
-                Url::parse(&format!("https://admin.{base_domain}")).expect("Invalid dashboard URL"),
-            ),
-            address: NetworkAddressCreateForm {
-                hostname: Some(base_domain.to_string()),
-                ..Default::default()
-            },
-        },
-    )
-    .await?;
-
-    Ok(())
-}
-
 #[given(expr = "the XMPP server domain is {domain_name}")]
 async fn given_server_domain(
     world: &mut TestWorld,
     domain: parameters::DomainName,
 ) -> anyhow::Result<()> {
-    world.app_config_mut().server.domain = domain.0.into();
+    world.app_config_mut().server.domain = domain.deref().into();
     world.server_config_manager().reload().await?;
     Ok(())
 }
 
 #[given(expr = "the dashboard URL is {domain_name}")]
-async fn given_dashboard_url(
-    world: &mut TestWorld,
-    domain: parameters::DomainName,
-) -> Result<(), Error> {
-    PodConfigRepository::set(
-        world.db(),
-        PodConfigUpdateForm {
-            dashboard_url: Some(Some(
-                Url::parse(&domain.to_string()).expect("Invalid dashboard URL"),
-            )),
-            ..Default::default()
-        },
-    )
-    .await?;
-    Ok(())
+async fn given_dashboard_url(world: &mut TestWorld, domain: parameters::DomainName) {
+    use service::pod_config::DashboardUrl;
+
+    let url = Url::parse(&domain.to_string()).expect("Invalid dashboard URL");
+    world.app_config_mut().pod.dashboard_url = DashboardUrl::new(url).unwrap();
 }
 
 #[given("nothing has changed since the initialization of the workspace")]
