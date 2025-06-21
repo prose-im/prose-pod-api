@@ -5,16 +5,16 @@
 
 use std::time::Duration;
 
-use service::{app_config::ConfigDatabase, sea_orm};
+use service::{app_config::DatabaseConfig, sea_orm};
 
 pub async fn db_conn(
-    config: &ConfigDatabase,
+    config: &DatabaseConfig,
 ) -> Result<sea_orm::DatabaseConnection, sea_orm::DbErr> {
     db_conn_with(config, |_| {}).await
 }
 
 pub async fn db_conn_with(
-    config: &ConfigDatabase,
+    config: &DatabaseConfig,
     additional_options: impl FnOnce(&mut sea_orm::ConnectOptions) -> (),
 ) -> Result<sea_orm::DatabaseConnection, sea_orm::DbErr> {
     let mut options = sea_orm::ConnectOptions::new(config.url.clone());

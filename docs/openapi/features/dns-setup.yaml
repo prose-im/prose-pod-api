@@ -14,7 +14,6 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/GetDnsRecordsResponse" }
-      "412": { $ref: "pod-config.yaml#/components/responses/PodAddressNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:
@@ -47,7 +46,7 @@ components:
           value:
             type: string
         example:
-          hostname: xmpp.crisp.chat
+          hostname: xmpp.crisp.chat.
           type: A
           ttl: 600
           value: 90.105.205.180
@@ -68,7 +67,7 @@ components:
           value:
             type: string
         example:
-          hostname: xmpp.crisp.chat
+          hostname: xmpp.crisp.chat.
           type: AAAA
           ttl: 600
           value: 2a01:cb05:899c:c200::1
@@ -95,7 +94,7 @@ components:
           target:
             type: string
         example:
-          hostname: crisp.chat
+          hostname: crisp.chat.
           type: SRV
           ttl: 3600
           priority: 0
@@ -114,7 +113,7 @@ components:
         steps:
           - purpose: specify your server IP address
             records:
-              - hostname: xmpp.crisp.chat
+              - hostname: xmpp.crisp.chat.
                 type: A
                 ttl: 600
                 value: 90.105.205.180
@@ -126,7 +125,7 @@ components:
                 string_repr: xmpp.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
           - purpose: let clients connect to your server
             records:
-              - hostname: crisp.chat
+              - hostname: crisp.chat.
                 type: SRV
                 ttl: 3600
                 priority: 0
@@ -136,7 +135,7 @@ components:
                 string_repr: crisp.chat 3600 IN SRV 0 5 5222 xmpp.crisp.chat.
           - purpose: let servers connect to your server
             records:
-              - hostname: crisp.chat
+              - hostname: crisp.chat.
                 type: SRV
                 ttl: 3600
                 priority: 0

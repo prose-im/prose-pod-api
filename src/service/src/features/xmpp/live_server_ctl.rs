@@ -13,9 +13,8 @@ use tracing::instrument;
 use crate::{
     members::MemberRole,
     prosody::{prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest},
-    server_config::ServerConfig,
     xmpp::{server_ctl, BareJid, ServerCtlImpl},
-    AppConfig,
+    AppConfig, ServerConfig,
 };
 
 #[derive(Debug, Clone)]
@@ -70,7 +69,7 @@ impl ServerCtlImpl for LiveServerCtl {
         let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
         file.write_all(
             prosody_config
-                .to_string(server_config.prosody_overrides_raw.clone())
+                .to_string(server_config.prosody_overrides_raw.as_deref().cloned())
                 .as_bytes(),
         )
         .map_err(|e| server_ctl::Error::CannotWriteConfigFile(self.config_file_path.clone(), e))?;

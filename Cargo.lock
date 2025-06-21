@@ -3723,9 +3723,14 @@ version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6b6f7f2fcb69f747921f79f3926bd1e203fce4fef62c268dd3abfb6d86029aa"
 dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "hex",
  "serde",
  "serde_derive",
+ "serde_json",
  "serde_with_macros",
+ "time",
 ]
 
 [[package]]
@@ -3735,6 +3740,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d00caa5193a3c8362ac2b73be6b9e768aa5a4b2f721d8f4b339600c3cb51f8e"
 dependencies = [
  "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serdev"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04d3bf61b4d80fddb7984d8e610eaf55eaba9d0e7d8d6c238c6790244d9404d8"
+dependencies = [
+ "serde",
+ "serdev_derive",
+]
+
+[[package]]
+name = "serdev_derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc03d4e38cf459d729bc0d4cf4833a5b6be60516279f57d31a1af1354ab836f6"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -3775,6 +3801,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "serdev",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",

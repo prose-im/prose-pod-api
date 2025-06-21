@@ -1,0 +1,16 @@
+paths:
+  reload:
+    tags: [Administration]
+    summary: Reload static configuration
+    description: |
+      Reload the static API configuration without restarting the whole Prose Pod (keeps connections
+      alive). Useful when changing configuration while a lot of users are chatting or in calls.
+
+      Only admins can trigger a reload, unless the API is broken; in which case anyone can do it.
+    operationId: reload
+    security:
+      - {}
+      - BasicAuth: []
+    responses:
+      "202":
+        description: Success

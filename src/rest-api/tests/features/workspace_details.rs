@@ -74,9 +74,8 @@ api_call_fn!(
 
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
-    let server_config = world.server_config().await?;
     world.mock_xmpp_service.set_avatar(
-        &world.app_config().workspace_jid(&server_config.domain),
+        &world.app_config().workspace_jid(),
         Some(Avatar {
             base64,
             mime: mime::IMAGE_PNG,

@@ -11,7 +11,7 @@ use init_tracing_opentelemetry::{
     Error,
 };
 use service::{
-    app_config::{ConfigLog, LogFormat, LogLevel, LogTimer},
+    app_config::{LogConfig, LogFormat, LogLevel, LogTimer},
     AppConfig,
 };
 use tracing::{info, warn, Subscriber};
@@ -26,7 +26,7 @@ const LOG_LEVELS_ENV_VAR: &'static str = "_PROSE_LOG";
 
 #[must_use]
 fn build_logger_layer<S>(
-    ConfigLog {
+    LogConfig {
         level: _level,
         format,
         timer,
@@ -38,7 +38,7 @@ fn build_logger_layer<S>(
         with_line_number,
         with_span_events,
         with_thread_names,
-    }: &ConfigLog,
+    }: &LogConfig,
 ) -> Box<dyn Layer<S> + Send + Sync + 'static>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -108,7 +108,7 @@ where
 }
 
 #[must_use]
-fn build_filter_layer(log_config: &ConfigLog) -> EnvFilter {
+fn build_filter_layer(log_config: &LogConfig) -> EnvFilter {
     // NOTE: Last values take precedence in `RUST_LOG` (i.e. `trace,info` logs
     //   >`info`, while `info,trace` logs >`trace`), so important values must be
     //   added last.
@@ -214,7 +214,7 @@ pub fn init_subscribers() -> Result<
     ),
     Error,
 > {
-    let log_config = ConfigLog::default();
+    let log_config = LogConfig::default();
 
     // Setup a temporary subscriber to log output during setup.
     let subscriber = tracing_subscriber::registry()

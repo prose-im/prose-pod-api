@@ -13,6 +13,7 @@ mod rotate_api_xmpp_password;
 mod run_migrations;
 mod start_cron_tasks;
 mod test_services_reachability;
+mod validate_app_config_changes;
 mod wait_for_server;
 
 use tracing::warn;
@@ -30,14 +31,16 @@ use self::rotate_api_xmpp_password::*;
 use self::run_migrations::*;
 use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
+use self::validate_app_config_changes::*;
 use self::wait_for_server::*;
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 
+    let ref app_config = app_state.app_config_frozen();
     DETAILED_ERROR_REPONSES.store(
-        app_state.app_config.debug.detailed_error_responses,
+        app_config.debug.detailed_error_responses,
         std::sync::atomic::Ordering::Relaxed,
     );
 
@@ -45,6 +48,7 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     test_services_reachability(&app_state).await?;
     wait_for_server(&app_state).await?;
     rotate_api_xmpp_password(&app_state).await?;
+    validate_app_config_changes(&app_state).await?;
     init_server_config(&app_state).await?;
     register_oauth2_client(&app_state).await?;
     create_service_accounts(&app_state).await?;
@@ -62,7 +66,7 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         if let Err(err) = run_remaining(&app_state).await {
             warn!("{}", crate::StartupError(err));
         }
-        app_state.lifecycle_manager.set_startup_actions_finished();
+        (app_state.base.lifecycle_manager).set_startup_actions_finished();
     });
 
     Ok(())

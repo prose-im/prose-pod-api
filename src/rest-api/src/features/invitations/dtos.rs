@@ -11,7 +11,6 @@ use service::{
     invitations::{self, InvitationContact, InvitationStatus},
     members::MemberRole,
     models::BareJid,
-    util::to_bare_jid,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -33,7 +32,7 @@ impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvit
             invitation_id: value.id,
             created_at: value.created_at,
             status: value.status,
-            jid: to_bare_jid(&value.jid).unwrap(),
+            jid: value.jid.clone().into(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,

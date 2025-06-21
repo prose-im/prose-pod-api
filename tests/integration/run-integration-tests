@@ -126,7 +126,7 @@ for arg in "$@"; do
 		*dns-configured-correctly-dynamic)
 			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-dynamic.zone stepci_run "$test_file" ;;
 		*dns-configured-correctly-static)
-			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone stepci_run "$test_file" ;;
+			DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone stepci_run "$test_file" 'static-address' ;;
 		auth-expired)
 			stepci_run "$test_file" 'tokens-expired' ;;
 		init)

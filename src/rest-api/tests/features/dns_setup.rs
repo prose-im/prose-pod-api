@@ -3,79 +3,51 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr as _,
+};
 
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, features::dns_setup::GetDnsRecordsResponse};
 use service::{
     network_checks::{DnsRecord, DnsRecordDiscriminants},
-    pod_config::{entities::pod_config, PodConfigRepository},
-    sea_orm::{ActiveModelTrait as _, IntoActiveModel, Set},
-    server_config::{entities::server_config, ServerConfigRepository},
+    server_config,
 };
 
 use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
 
 api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
 
-async fn given_pod_config(
-    world: &mut TestWorld,
-    update: impl FnOnce(&mut pod_config::ActiveModel) -> (),
-) -> Result<(), Error> {
-    let db = world.db();
-    let mut model = PodConfigRepository::get(db)
-        .await?
-        .map(IntoActiveModel::into_active_model)
-        .unwrap_or_default();
-    update(&mut model);
-    model.save(world.db()).await?;
-    Ok(())
-}
-
-async fn given_server_config(
-    world: &mut TestWorld,
-    update: impl FnOnce(&mut server_config::ActiveModel) -> (),
-) -> Result<(), Error> {
-    let db = world.db();
-    let mut model = ServerConfigRepository::get(db)
-        .await?
-        .map(IntoActiveModel::into_active_model)
-        .unwrap_or_default();
-    update(&mut model);
-    model.save(world.db()).await?;
-    Ok(())
-}
-
 #[given("the Prose Pod is publicly accessible via an IPv4")]
-async fn given_pod_has_ipv4(world: &mut TestWorld) -> Result<(), Error> {
+async fn given_pod_ipv4(world: &mut TestWorld) {
     // We don't care about the value so we can leave it unspecified.
     let ipv4 = Ipv4Addr::UNSPECIFIED;
-    given_pod_config(world, |model| model.ipv4 = Set(Some(ipv4.into()))).await?;
-    Ok(())
+    world.app_config_mut().pod.address.ipv4 = Some(ipv4.into());
 }
 
 #[given("the Prose Pod is publicly accessible via an IPv6")]
-async fn given_pod_has_ipv6(world: &mut TestWorld) -> Result<(), Error> {
+async fn given_pod_ipv6(world: &mut TestWorld) {
     // We don't care about the value so we can leave it unspecified.
     let ipv6 = Ipv6Addr::UNSPECIFIED;
-    given_pod_config(world, |model| model.ipv6 = Set(Some(ipv6.into()))).await?;
-    Ok(())
+    world.app_config_mut().pod.address.ipv6 = Some(ipv6.into());
 }
 
-#[given("the Prose Pod is publicly accessible via a hostname")]
-async fn given_pod_has_hostname(world: &mut TestWorld) -> Result<(), Error> {
-    // A random hostname, as we don't care about the value.
-    let hostname = "test.prose.org".to_string();
-    given_pod_config(world, |model| model.hostname = Set(Some(hostname))).await?;
-    Ok(())
+#[given("the Prose Pod is publicly accessible via a domain")]
+async fn given_pod_domain(world: &mut TestWorld) {
+    // A random domain, as we don't care about the value.
+    let domain = DomainName::from_str("test.prose.org").unwrap();
+    world.app_config_mut().pod.address.domain = Some(domain.0);
+}
+
+#[given("the Prose Pod isn’t publicly accessible via a domain")]
+async fn given_pod_no_domain(world: &mut TestWorld) {
+    world.app_config_mut().pod.address.domain = None;
 }
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
-    given_server_config(world, |model| {
-        model.federation_enabled = Set(Some(enabled.as_bool()))
-    })
-    .await?;
+    server_config::federation_enabled::set(world.db(), enabled.as_bool()).await?;
     Ok(())
 }
 
@@ -89,7 +61,7 @@ async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
 #[then(expr = "DNS setup instructions should contain {int} steps")]
 async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {
     let res: GetDnsRecordsResponse = world.result().json();
-    assert_eq!(res.steps.len(), n);
+    assert_eq!(res.steps.len(), n, "given: {:#?}", res.steps);
 }
 
 /// NOTE: Step numbers start at 1.

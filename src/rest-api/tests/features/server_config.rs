@@ -3,34 +3,34 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::future::Future;
+
+use cucumber::gherkin::Step;
 use service::{
+    global_storage,
     models::{DateLike, Duration, PossiblyInfinite},
     prosody::IntoProsody as _,
     prosody_config::linked_hash_set::LinkedHashSet,
-    prosody_config_from_db,
-    sea_orm::{ActiveModelTrait as _, EntityTrait, IntoActiveModel as _, ModelTrait, Set},
-    server_config::entities::server_config,
+    server_config,
 };
 
 use super::prelude::*;
 
-async fn given_server_config(
-    world: &mut TestWorld,
-    update: impl FnOnce(
-        &mut <<server_config::Model as ModelTrait>::Entity as EntityTrait>::ActiveModel,
-    ) -> (),
-) -> Result<(), Error> {
-    let app_config = &world.app_config();
-
-    let mut server_config = world.server_config_model().await?.into_active_model();
-    update(&mut server_config);
-    let model = server_config.update(world.db()).await?;
-    let server_config = model.with_default_values_from(app_config);
-
-    world.server_ctl_state_mut().applied_config =
-        Some(prosody_config_from_db(server_config, app_config));
-
+#[given(regex = "the server config is")]
+async fn given_server_config_in_db(world: &mut TestWorld, step: &Step) -> anyhow::Result<()> {
+    let json = step.docstring().unwrap().trim();
+    let map = serde_json::from_str(json)?;
+    global_storage::kv_store::set_map(world.db(), "server_config", map).await?;
     Ok(())
+}
+
+api_call_fn!(get_server_config, GET, "/v1/server/config");
+
+#[when(expr = "{} queries the server configuration")]
+async fn when_get_server_config(world: &mut TestWorld, name: String) {
+    let token = user_token!(world, name);
+    let res = get_server_config(world.api(), token).await;
+    world.result = Some(res.into());
 }
 
 #[then("the server should have been reconfigured")]
@@ -41,6 +41,19 @@ fn then_server_reconfigured(world: &mut TestWorld) {
 #[then("the server should not have been reconfigured")]
 fn then_server_not_reconfigured(world: &mut TestWorld) {
     assert_eq!(world.server_ctl_state().conf_reload_count, 0);
+}
+
+async fn given_server_config<F, R>(
+    world: &mut TestWorld,
+    update: impl FnOnce(DatabaseConnection) -> F,
+) -> anyhow::Result<()>
+where
+    F: Future<Output = anyhow::Result<R>> + 'static,
+{
+    update(world.db.clone()).await?;
+    world.server_config_manager().reload().await?;
+    world.reset_server_ctl_counts();
+    Ok(())
 }
 
 // MESSAGE ARCHIVING
@@ -72,9 +85,9 @@ api_call_fn!(
 async fn given_message_archiving(
     world: &mut TestWorld,
     state: parameters::ToggleState,
-) -> Result<(), Error> {
-    given_server_config(world, |model| {
-        model.message_archive_enabled = Set(Some(state.into()));
+) -> anyhow::Result<()> {
+    given_server_config(world, |db| async move {
+        server_config::message_archive_enabled::set(&db, state.into()).await
     })
     .await
 }
@@ -83,9 +96,9 @@ async fn given_message_archiving(
 async fn given_message_archive_retention(
     world: &mut TestWorld,
     duration: parameters::Duration,
-) -> Result<(), Error> {
-    given_server_config(world, |model| {
-        model.message_archive_retention = Set(Some(duration.into()));
+) -> anyhow::Result<()> {
+    given_server_config(world, |db| async move {
+        server_config::message_archive_retention::set(&db, duration.into()).await
     })
     .await
 }
@@ -159,19 +172,20 @@ async fn then_message_archiving(
 async fn then_message_archive_retention(
     world: &mut TestWorld,
     duration: parameters::Duration,
-) -> Result<(), DbErr> {
+) -> anyhow::Result<()> {
     let duration = duration.into();
 
     // Check in database
     let server_config = world.server_config().await?;
-    assert_eq!(server_config.message_archive_retention, duration);
+    assert_eq!(server_config.message_archive_retention, duration, "db");
 
     // Check applied Prosody configuration
     let prosody_config = world.server_ctl_state().applied_config.unwrap();
     let global_settings = prosody_config.global_settings.to_owned();
     assert_eq!(
         global_settings.archive_expires_after,
-        Some(duration.into_prosody())
+        Some(duration.into_prosody()),
+        "prosody",
     );
 
     Ok(())
@@ -197,10 +211,8 @@ api_call_fn!(
 async fn given_file_uploading(
     world: &mut TestWorld,
     state: parameters::ToggleState,
-) -> Result<(), DbErr> {
-    let mut server_config = world.server_config_model().await?.into_active_model();
-    server_config.file_upload_allowed = Set(Some(state.into()));
-    server_config.update(world.db()).await?;
+) -> anyhow::Result<()> {
+    server_config::file_upload_allowed::set(world.db(), state.into()).await?;
     Ok(())
 }
 
@@ -208,10 +220,8 @@ async fn given_file_uploading(
 async fn given_file_retention(
     world: &mut TestWorld,
     duration: parameters::Duration,
-) -> Result<(), DbErr> {
-    let mut server_config = world.server_config_model().await?.into_active_model();
-    server_config.file_storage_retention = Set(Some(duration.into()));
-    server_config.update(world.db()).await?;
+) -> anyhow::Result<()> {
+    server_config::file_storage_retention::set(world.db(), duration.into()).await?;
     Ok(())
 }
 
@@ -248,7 +258,7 @@ async fn when_set_file_retention(
 async fn then_file_uploading(
     world: &mut TestWorld,
     state: parameters::ToggleState,
-) -> Result<(), DbErr> {
+) -> anyhow::Result<()> {
     let server_config = world.server_config().await?;
 
     assert_eq!(server_config.file_upload_allowed, state.as_bool());
@@ -260,7 +270,7 @@ async fn then_file_uploading(
 async fn then_file_retention(
     world: &mut TestWorld,
     duration: parameters::Duration,
-) -> Result<(), DbErr> {
+) -> anyhow::Result<()> {
     let server_config = world.server_config().await?;
 
     assert_eq!(server_config.file_storage_retention, duration.into());

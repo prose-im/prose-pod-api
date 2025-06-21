@@ -5,10 +5,7 @@
 
 use std::sync::Arc;
 
-use service::{
-    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
-    workspace::{errors::WorkspaceNotInitialized, WorkspaceService},
-};
+use service::workspace::{errors::WorkspaceNotInitialized, WorkspaceService};
 use tracing::{debug, info, instrument};
 
 use crate::AppState;
@@ -16,7 +13,6 @@ use crate::AppState;
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(
     AppState {
-        db,
         app_config,
         xmpp_service,
         secrets_store,
@@ -26,29 +22,17 @@ pub async fn migrate_workspace_vcard(
     debug!("Migrating the Workspace vCard…");
 
     #[cfg(debug_assertions)]
-    if (app_config.debug_only.skip_startup_actions).contains("migrate_workspace_vcard") {
+    if (app_config.read().unwrap().debug_only.skip_startup_actions)
+        .contains("migrate_workspace_vcard")
+    {
         info!("Not migrating the Workspace vCard: Step marked to skip in the app configuration.");
         return Ok(());
     }
 
-    let server_domain = match server_config_controller::get_server_domain(db).await {
-        Ok(Some(server_domain)) => server_domain,
-        Ok(None) => {
-            info!(
-                "Not migrating the Workspace vCard: {err}",
-                err = ServerConfigNotInitialized,
-            );
-            return Ok(());
-        }
-        Err(err) => {
-            return Err(format!("Could not migrate the Workspace vCard: {err}"));
-        }
-    };
-
+    let workspace_jid = app_config.read().unwrap().workspace_jid();
     let workspace_service = WorkspaceService::new(
         Arc::new(xmpp_service.clone()),
-        Arc::new(app_config.clone()),
-        &server_domain,
+        workspace_jid,
         Arc::new(secrets_store.clone()),
     )
     .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?;
@@ -63,9 +47,7 @@ pub async fn migrate_workspace_vcard(
         return Ok(());
     }
 
-    workspace_service
-        .migrate_workspace_vcard()
-        .await
+    (workspace_service.migrate_workspace_vcard().await)
         .map_err(|err| format!("Could not migrate the Workspace vCard: {err}"))?;
 
     Ok(())

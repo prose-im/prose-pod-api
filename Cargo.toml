@@ -48,6 +48,7 @@ secrecy = { version = "0.10", default-features = false }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
 serde_with = { version = "3", default-features = false }
+serdev = { version = "0.2", default-features = false }
 service = { path = "src/service" }
 strum = { version = "0.26", default-features = false }
 thiserror = { version = "2", default-features = false }

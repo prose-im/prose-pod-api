@@ -10,7 +10,9 @@ pub mod guards;
 pub mod responders;
 pub mod util;
 
-use axum::{http::StatusCode, middleware, routing::get_service, Router};
+use std::sync::{Arc, RwLock};
+
+use axum::{extract::FromRef, middleware, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use features::{factory_reset::restart_guard, startup_actions};
 use service::{
@@ -24,7 +26,6 @@ use service::{
     AppConfig,
 };
 use tower::ServiceBuilder;
-use tower_http::services::ServeDir;
 use tracing::{error, instrument};
 use util::{error_catcher, LifecycleManager};
 
@@ -32,8 +33,9 @@ pub trait AxumState: Clone + Send + Sync + 'static {}
 
 #[derive(Debug, Clone)]
 pub struct AppState {
+    base: MinimalAppState,
     db: DatabaseConnection,
-    app_config: AppConfig,
+    app_config: Arc<RwLock<AppConfig>>,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
@@ -41,24 +43,25 @@ pub struct AppState {
     secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     uuid_gen: Uuid,
-    lifecycle_manager: LifecycleManager,
 }
 
 impl AppState {
     pub fn new(
+        base: MinimalAppState,
         db: DatabaseConnection,
-        app_config: AppConfig,
+        app_config: Arc<RwLock<AppConfig>>,
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
         email_notifier: Option<Notifier<EmailNotification>>,
         secrets_store: SecretsStore,
         network_checker: NetworkChecker,
-        lifecycle_manager: LifecycleManager,
     ) -> Self {
+        let uuid_gen = Uuid::from_config(&app_config.read().unwrap());
         Self {
+            base,
             db,
-            uuid_gen: Uuid::from_config(&app_config),
+            uuid_gen,
             app_config,
             server_ctl,
             xmpp_service,
@@ -66,12 +69,31 @@ impl AppState {
             email_notifier,
             secrets_store,
             network_checker,
-            lifecycle_manager,
         }
+    }
+
+    /// An immutable version of the global app configuration.
+    pub fn app_config_frozen(&self) -> AppConfig {
+        self.app_config.read().unwrap().clone()
     }
 }
 
 impl AxumState for AppState {}
+
+/// App state available even if the static configuration file is empty (useful)
+/// on factory resets.
+#[derive(Debug, Clone)]
+pub struct MinimalAppState {
+    pub lifecycle_manager: LifecycleManager,
+}
+
+impl AxumState for MinimalAppState {}
+
+impl FromRef<AppState> for MinimalAppState {
+    fn from_ref(input: &AppState) -> Self {
+        input.base.clone()
+    }
+}
 
 pub struct PreStartupRouter(Router);
 
@@ -85,15 +107,6 @@ pub struct PreStartupRouter(Router);
 pub fn make_router(app_state: &AppState) -> PreStartupRouter {
     let router = Router::new()
         .merge(features::router(app_state.clone()))
-        .nest_service(
-            "/api-docs",
-            get_service(ServeDir::new("static/api-docs")).handle_error(|error| async move {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Unhandled internal error: {error}"),
-                )
-            }),
-        )
         // Include trace context as header into the response.
         .layer(OtelInResponseLayer::default())
         // Start OpenTelemetry trace on incoming request.
@@ -106,6 +119,27 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
         ));
 
     PreStartupRouter(router)
+}
+
+/// A router used only sfter a factory reset, when the static configuration file
+/// is empty and the API cannot start. Call `POST /reload` after editing this
+/// file to (re)start the API.
+#[instrument(level = "trace", skip_all)]
+pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
+    Router::new()
+        .merge(features::api_docs::router())
+        .merge(features::reload::factory_reset_router(app_state.clone()))
+        .merge(features::version::router())
+        // Include trace context as header into the response.
+        .layer(OtelInResponseLayer::default())
+        // Start OpenTelemetry trace on incoming request.
+        .layer(OtelAxumLayer::default())
+        // See <https://github.com/prose-im/prose-pod-api/blob/c95e95677160ca5c27452bb0d68641a3bf2edff7/crates/rest-api/src/lib.rs#L70-L73>.
+        .layer(ServiceBuilder::new().map_response(error_catcher))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            restart_guard,
+        ))
 }
 
 #[derive(Debug, thiserror::Error)]

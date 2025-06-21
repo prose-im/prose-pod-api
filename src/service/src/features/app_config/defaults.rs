@@ -21,7 +21,7 @@ use crate::{
     server_config::TlsProfile,
 };
 
-use super::{ConfigDatabase, ConfigServiceAccount, LogFormat, LogLevel, LogTimer, API_DATA_DIR};
+use super::*;
 
 // GENERAL
 
@@ -67,14 +67,14 @@ pub fn bootstrap_prose_pod_api_xmpp_password() -> SecretString {
     "bootstrap".into()
 }
 
-pub fn service_accounts_prose_pod_api() -> ConfigServiceAccount {
-    ConfigServiceAccount {
+pub fn service_accounts_prose_pod_api() -> ServiceAccountConfig {
+    ServiceAccountConfig {
         xmpp_node: JidNode::from_str("prose-pod-api").unwrap(),
     }
 }
 
-pub fn service_accounts_prose_workspace() -> ConfigServiceAccount {
-    ConfigServiceAccount {
+pub fn service_accounts_prose_workspace() -> ServiceAccountConfig {
+    ServiceAccountConfig {
         xmpp_node: JidNode::from_str("prose-workspace").unwrap(),
     }
 }
@@ -218,8 +218,8 @@ pub fn notify_email_smtp_encrypt() -> bool {
     true
 }
 
-pub fn databases_main() -> ConfigDatabase {
-    ConfigDatabase {
+pub fn databases_main() -> DatabaseConfig {
+    DatabaseConfig {
         url: format!("sqlite://{API_DATA_DIR}/database.sqlite"),
         min_connections: Default::default(),
         max_connections: database_max_connections(),

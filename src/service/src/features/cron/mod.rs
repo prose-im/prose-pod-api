@@ -6,6 +6,8 @@
 mod delete_expired_password_reset_tokens;
 mod refresh_service_accounts_tokens;
 
+use std::sync::{Arc, RwLock};
+
 use futures::future::join_all;
 use sea_orm::DatabaseConnection;
 use tokio_util::sync::CancellationToken;
@@ -18,14 +20,14 @@ use super::{auth::AuthService, secrets::SecretsStore};
 #[derive(Debug, Clone)]
 pub struct CronContext {
     pub cancellation_token: CancellationToken,
-    pub app_config: AppConfig,
+    pub app_config: Arc<RwLock<AppConfig>>,
     pub db: DatabaseConnection,
     pub secrets_store: SecretsStore,
     pub auth_service: AuthService,
 }
 
 pub fn start_cron_tasks(ctx: CronContext) {
-    info!("Staring periodic tasks…");
+    info!("Starting periodic tasks…");
 
     macro_rules! spawn {
         ($task:ident) => {{

@@ -74,6 +74,7 @@ pub async fn request_password_reset_route(
     ref caller: UserInfo,
     Path(ref jid): Path<BareJid>,
 ) -> Result<StatusCode, Error> {
+    let ref app_config = app_config.read().unwrap().clone();
     auth_controller::request_password_reset(db, notification_service, app_config, caller, jid)
         .await?;
     Ok(StatusCode::ACCEPTED)

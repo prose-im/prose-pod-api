@@ -18,7 +18,6 @@ use crate::{
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
     notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
-    pod_config::{errors::PodConfigMissing, PodConfigField, PodConfigRepository},
     util::bare_jid_from_username,
     workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
@@ -62,7 +61,7 @@ impl InvitationService {
         #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
-        let jid = form.jid(server_domain)?;
+        let jid = form.jid(server_domain);
 
         if (InvitationRepository::get_by_jid(&self.db, &jid).await)
             .as_ref()
@@ -97,12 +96,6 @@ impl InvitationService {
         let workspace_name = (workspace_service.get_workspace_name().await)
             .context("Could not get workspace details (to build the notification)")?;
 
-        let dashboard_url = (PodConfigRepository::get_dashboard_url(&self.db).await)
-            .context("Database error")?
-            .ok_or(InviteMemberError::PodConfigMissing(
-                PodConfigField::DashboardUrl,
-            ))?;
-
         if let Err(err) = notification_service
             .send_workspace_invitation(
                 form.contact,
@@ -110,7 +103,7 @@ impl InvitationService {
                     accept_token: invitation.accept_token.into(),
                     reject_token: invitation.reject_token.into(),
                     workspace_name,
-                    dashboard_url,
+                    dashboard_url: app_config.pod.dashboard_url(),
                     api_app_name: app_config.branding.page_title.clone(),
                     organization_name: app_config.branding.company_name.clone(),
                 },
@@ -205,15 +198,13 @@ pub struct InviteMemberForm {
 }
 
 impl InviteMemberForm {
-    fn jid(&self, server_domain: &DomainRef) -> Result<BareJid, InviteMemberError> {
-        bare_jid_from_username(&self.username, server_domain).map_err(InviteMemberError::InvalidJid)
+    fn jid(&self, server_domain: &DomainRef) -> BareJid {
+        bare_jid_from_username(&self.username, server_domain)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum InviteMemberError {
-    #[error("Invalid JID: {0}")]
-    InvalidJid(String),
     #[error("Invitation already exists (choose a different username).")]
     InvitationConfict,
     #[error("Username already taken.")]
@@ -221,8 +212,6 @@ pub enum InviteMemberError {
     #[cfg(debug_assertions)]
     #[error("Could not auto-accept the invitation: {0}")]
     CouldNotAutoAcceptInvitation(#[from] CannotAcceptInvitation),
-    #[error("Pod configuration missing: {0}")]
-    PodConfigMissing(PodConfigField),
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }
@@ -397,10 +386,6 @@ impl InvitationService {
         let workspace = (workspace_service.get_workspace().await)
             .context("Could not get workspace details (to build the notification)")?;
 
-        let dashboard_url = (PodConfigRepository::get_dashboard_url(&self.db).await)
-            .context("Database error")?
-            .ok_or(PodConfigMissing(PodConfigField::DashboardUrl))?;
-
         notification_service
             .send_workspace_invitation(
                 invitation.contact(),
@@ -408,7 +393,7 @@ impl InvitationService {
                     accept_token: invitation.accept_token.into(),
                     reject_token: invitation.reject_token.into(),
                     workspace_name: workspace.name.clone(),
-                    dashboard_url,
+                    dashboard_url: app_config.pod.dashboard_url().clone(),
                     api_app_name: app_config.branding.page_title.clone(),
                     organization_name: app_config.branding.company_name.clone(),
                 },
@@ -425,8 +410,6 @@ impl InvitationService {
 pub enum InvitationResendError {
     #[error("Could not find the invitation with id '{0}'.")]
     InvitationNotFound(i32),
-    #[error("{0}")]
-    PodConfigMissing(#[from] PodConfigMissing),
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }

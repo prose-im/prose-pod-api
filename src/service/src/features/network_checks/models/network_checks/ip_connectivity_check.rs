@@ -16,12 +16,13 @@ use crate::{
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
 
-/// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
-///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
+/// NOTE: This is an `enum` so we can derive a SSE ID from concrete values.
+///   If it was a `struct`, we wouldn’t be sure all cases are mapped 1:1 to a
+///   SSE (without keeping concerns separate).
 #[derive(Clone)]
 pub enum IpConnectivityCheck {
     XmppServer {
-        hostname: DomainName,
+        server_domain: DomainName,
         conn_type: XmppConnectionType,
         ip_version: IpVersion,
     },
@@ -34,6 +35,21 @@ impl Debug for IpConnectivityCheck {
 }
 
 impl IpConnectivityCheck {
+    fn debug_description(&self) -> String {
+        match self {
+            IpConnectivityCheck::XmppServer {
+                server_domain,
+                conn_type,
+                ip_version,
+            } => format!(
+                "{server_domain}:{port} ({ip_version})",
+                port = conn_type.standard_port(),
+            ),
+        }
+    }
+}
+
+impl IpConnectivityCheck {
     pub fn ip_version(&self) -> IpVersion {
         match self {
             Self::XmppServer { ip_version, .. } => ip_version.clone(),
@@ -42,14 +58,14 @@ impl IpConnectivityCheck {
     pub fn hostnames(&self) -> Vec<DomainName> {
         match self {
             Self::XmppServer {
-                hostname,
+                server_domain,
                 conn_type,
                 ..
             } => vec![
                 // Check the standard domain first
-                conn_type.standard_domain(hostname.clone()),
+                conn_type.standard_domain(server_domain.clone()),
                 // Then the XMPP server's domain
-                hostname.clone(),
+                server_domain.clone(),
             ],
         }
     }
@@ -142,7 +158,12 @@ impl NetworkCheck for IpConnectivityCheck {
     fn id(&self) -> Self::CheckId {
         <Self as NetworkCheck>::CheckId::from(self)
     }
-    #[instrument(name = "IpConnectivityCheck::run", level = "trace", skip_all, fields(check = format!("{self:?}")), ret)]
+    #[instrument(
+        name = "IpConnectivityCheck::run",
+        level = "trace",
+        skip_all, fields(check = self.debug_description()),
+        ret,
+    )]
     async fn run(&self, network_checker: &NetworkChecker) -> Self::CheckResult {
         let mut status = IpConnectivityCheckResult::Failure;
         for hostname in self.hostnames().iter() {
