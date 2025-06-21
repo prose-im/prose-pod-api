@@ -8,7 +8,7 @@ use sea_orm_migration::prelude::*;
 
 use crate::features::{
     global_storage::migrations::*, invitations::migrations::*, members::migrations::*,
-    pod_config::migrations::*, workspace::migrations::*,
+    pod_config::migrations::*,
 };
 
 pub struct Migrator;
@@ -19,9 +19,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20240220_171150_create_member::Migration),
             Box::new(m20240320_095326_create_workspace_invitation::Migration),
-            Box::new(m20240506_080027_create_workspace::Migration),
             Box::new(m20240830_080808_create_pod_config::Migration),
-            Box::new(m20250323_222400_delete_workspace::Migration),
             Box::new(m20250326_095800_add_dashboard_address::Migration),
             Box::new(m20250331_222300_dashboard_address_to_url::Migration),
             Box::new(m20250512_131300_create_kv_store::Migration),
