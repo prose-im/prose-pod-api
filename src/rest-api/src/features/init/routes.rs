@@ -8,7 +8,6 @@ use service::{
     init::{InitFirstAccountForm, InitService},
     members::{Member, MemberRepository, UnauthenticatedMemberService},
     models::SerializableSecretString,
-    server_config::{errors::ServerConfigNotInitialized, server_config_controller},
     xmpp::JidNode,
 };
 
@@ -24,16 +23,16 @@ pub struct InitFirstAccountRequest {
 }
 
 pub async fn init_first_account_route(
-    State(AppState { ref db, .. }): State<AppState>,
+    State(ref app_state): State<AppState>,
     init_service: InitService,
-    member_service: UnauthenticatedMemberService,
+    ref member_service: UnauthenticatedMemberService,
     Json(req): Json<InitFirstAccountRequest>,
 ) -> Result<Created<Member>, Error> {
-    let server_domain = (server_config_controller::get_server_domain(db).await)?
-        .ok_or(ServerConfigNotInitialized)?;
+    let ref app_config = app_state.app_config_frozen();
+    let ref server_domain = app_config.server_domain();
 
     let member = init_service
-        .init_first_account(&server_domain, &member_service, req)
+        .init_first_account(server_domain, member_service, req)
         .await?;
 
     let resource_uri = format!("/v1/members/{jid}", jid = member.jid);

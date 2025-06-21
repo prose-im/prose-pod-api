@@ -91,7 +91,7 @@ push_notification_with_body = true
 push_notification_with_sender = true
 
 -- Server hosts and components
-VirtualHost "prose.test.org"
+VirtualHost "test.org"
   admins = { "prose-pod-api@admin.prose.org.local" }
 
   -- Modules
@@ -126,7 +126,7 @@ VirtualHost "admin.prose.org.local"
   -- HTTP settings
   http_host = "prose-pod-server-admin"
 
-Component "groups.prose.test.org" "muc"
+Component "groups.test.org" "muc"
   name = "Chatrooms"
 
   -- MAM settings

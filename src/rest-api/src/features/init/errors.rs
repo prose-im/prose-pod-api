@@ -19,7 +19,6 @@ impl HttpApiError for InitFirstAccountError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::FirstAccountAlreadyCreated => ErrorCode::FIRST_ACCOUNT_ALREADY_CREATED,
-            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
             Self::CouldNotCreateFirstAccount(err) => err.code(),
             Self::DbErr(err) => err.code(),
         }

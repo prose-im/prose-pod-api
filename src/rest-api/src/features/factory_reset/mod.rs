@@ -20,7 +20,7 @@ use service::xmpp::ServerCtl;
 use tracing::info;
 
 use crate::error::Error;
-use crate::AppState;
+use crate::{AppState, MinimalAppState};
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
@@ -42,16 +42,17 @@ enum FactoryResetRequest {
 }
 
 async fn factory_reset_route(
-    State(AppState {
-        db,
-        app_config,
-        lifecycle_manager,
+    State(MinimalAppState {
+        ref lifecycle_manager,
         ..
+    }): State<MinimalAppState>,
+    State(AppState {
+        db, ref app_config, ..
     }): State<AppState>,
-    server_ctl: ServerCtl,
-    secrets_store: SecretsStore,
+    ref server_ctl: ServerCtl,
+    ref secrets_store: SecretsStore,
     user_info: UserInfo,
-    auth_service: AuthService,
+    ref auth_service: AuthService,
     Json(req): Json<FactoryResetRequest>,
 ) -> Result<Either<(StatusCode, Json<FactoryResetConfirmation>), StatusCode>, Error> {
     match req {
@@ -60,7 +61,7 @@ async fn factory_reset_route(
                 jid: user_info.jid,
                 password: password.into_secret_string(),
             };
-            match factory_reset_controller::get_confirmation_code(&credentials, &auth_service).await
+            match factory_reset_controller::get_confirmation_code(&credentials, auth_service).await
             {
                 Ok(confirmation) => Ok(Either::E1((
                     StatusCode::ACCEPTED,
@@ -70,12 +71,13 @@ async fn factory_reset_route(
             }
         }
         FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation { confirmation }) => {
+            let ref app_config = app_config.read().unwrap().clone();
             factory_reset_controller::perform_factory_reset(
                 confirmation,
                 db,
-                &server_ctl,
-                &app_config,
-                &secrets_store,
+                server_ctl,
+                app_config,
+                secrets_store,
             )
             .await?;
 
@@ -88,9 +90,9 @@ async fn factory_reset_route(
 }
 
 pub async fn restart_guard(
-    State(AppState {
+    State(MinimalAppState {
         lifecycle_manager, ..
-    }): State<AppState>,
+    }): State<MinimalAppState>,
     request: Request,
     next: Next,
 ) -> Response {

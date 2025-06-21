@@ -12,6 +12,6 @@ impl FromRequestParts<AppState> for service::AppConfig {
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        Ok(state.app_config.clone())
+        Ok(state.app_config_frozen())
     }
 }

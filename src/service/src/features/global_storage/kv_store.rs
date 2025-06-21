@@ -5,8 +5,6 @@
 
 //! A global persisted key/value storage.
 
-use std::collections::HashMap;
-
 use sea_orm::{
     prelude::Expr, ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
     PaginatorTrait, QueryFilter, Set, Unchanged,
@@ -70,10 +68,26 @@ pub async fn set(
 pub async fn get_all(
     db: &impl ConnectionTrait,
     namespace: &str,
-) -> Result<HashMap<String, Json>, DbErr> {
+) -> Result<serde_json::Map<String, Json>, DbErr> {
     let select = Entity::find().filter(Column::Namespace.eq(namespace));
     let models = select.all(db).await?;
     Ok(models.into_iter().map(|kv| (kv.key, kv.value)).collect())
+}
+
+#[instrument(
+    name = "store::has_key",
+    level = "trace",
+    skip_all,
+    fields(namespace, key)
+)]
+pub async fn has_key(db: &impl ConnectionTrait, namespace: &str, key: &str) -> Result<bool, DbErr> {
+    let primary_key = (namespace.to_owned(), key.to_owned());
+    let select = Entity::find_by_id(primary_key);
+    match select.count(db).await {
+        Ok(0) => Ok(false),
+        Ok(_) => Ok(true),
+        Err(err) => Err(err),
+    }
 }
 
 #[instrument(name = "store::get", level = "trace", skip_all, fields(namespace, key))]
@@ -134,7 +148,72 @@ pub async fn delete(db: &impl ConnectionTrait, namespace: &str, key: &str) -> Re
     }
 }
 
+#[instrument(name = "store::delete", level = "trace", skip_all, fields(namespace))]
+pub async fn delete_all(
+    db: &impl ConnectionTrait,
+    namespace: &str,
+) -> Result<sea_orm::DeleteResult, DbErr> {
+    let delete = Entity::delete_many().filter(Column::Namespace.eq(namespace));
+    delete.exec(db).await
+}
+
 // MARK: Typed getters/setters
+
+#[tracing::instrument(
+    name = "store::get_typed",
+    level = "trace",
+    skip_all,
+    fields(namespace, key)
+)]
+pub async fn get_typed<T: for<'de> serde::Deserialize<'de>>(
+    db: &impl ConnectionTrait,
+    namespace: &str,
+    key: &str,
+) -> Result<Option<T>, DbErr> {
+    match self::get(db, namespace, key).await {
+        Ok(Some(json)) => Ok(serde_json::from_value(json)
+            .inspect_err(|err| {
+                warn!(
+                    "JSON value for `{namespace}`/`{key}` could not be parsed to `{type}`: {err}",
+                    type = std::any::type_name::<T>(),
+                )
+            })
+            .ok()),
+        Ok(None) => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
+#[tracing::instrument(
+    name = "store::set_typed",
+    level = "trace",
+    skip_all,
+    fields(namespace, key)
+)]
+pub async fn set_typed<T: serde::Serialize>(
+    db: &impl ConnectionTrait,
+    namespace: &str,
+    key: &str,
+    value: T,
+) -> Result<(), Either<serde_json::Error, DbErr>> {
+    let json = serde_json::to_value(value).map_err(Either::E1)?;
+    (self::set(db, namespace, key, json).await).map_err(Either::E2)
+}
+
+// MARK: Test helpers
+
+#[cfg(debug_assertions)]
+#[tracing::instrument(name = "store::set_map", level = "trace", skip_all, fields(namespace))]
+pub async fn set_map(
+    db: &impl ConnectionTrait,
+    namespace: &str,
+    value: serde_json::Map<String, serde_json::Value>,
+) -> Result<(), DbErr> {
+    for (key, value) in value.into_iter() {
+        self::set(db, namespace, &key, value).await?;
+    }
+    Ok(())
+}
 
 macro_rules! get_set {
     (
@@ -143,37 +222,16 @@ macro_rules! get_set {
         $set_fn:ident as $set_fn_span:literal
         $(,)?
     ) => {
-        #[tracing::instrument(
-            name = $get_fn_span,
-            level = "trace",
-            skip_all,
-            fields(namespace, key),
-        )]
+        #[tracing::instrument(name = $get_fn_span, level = "trace", skip_all, fields(namespace, key))]
         pub async fn $get_fn(
             db: &impl ConnectionTrait,
             namespace: &str,
             key: &str,
         ) -> Result<Option<$t>, DbErr> {
-            match self::get(db, namespace, key).await {
-                Ok(Some(json)) => Ok(serde_json::from_value(json)
-                    .inspect_err(|err| {
-                        warn!(
-                            "JSON value for `{namespace}`/`{key}` could not be parsed to `{type}`: {err}",
-                            type = stringify!($t),
-                        )
-                    })
-                    .ok()),
-                Ok(None) => Ok(None),
-                Err(err) => Err(err),
-            }
+            self::get_typed::<$t>(db, namespace, key).await
         }
 
-        #[tracing::instrument(
-            name = $set_fn_span,
-            level = "trace",
-            skip_all,
-            fields(namespace, key),
-        )]
+        #[tracing::instrument(name = $set_fn_span, level = "trace", skip_all, fields(namespace, key))]
         pub async fn $set_fn(
             db: &impl ConnectionTrait,
             namespace: &str,
@@ -248,14 +306,12 @@ macro_rules! gen_scoped_kv_store {
     ) => {
         #[doc(hidden)]
         $vis mod kv_store {
-            use std::collections::HashMap;
-
             use sea_orm::ConnectionTrait;
             use serde_json::Value as Json;
 
             use crate::global_storage;
 
-            const NAMESPACE: &'static str = stringify!($namespace);
+            pub const NAMESPACE: &'static str = stringify!($namespace);
 
             #[allow(unused)]
             #[inline]
@@ -270,10 +326,31 @@ macro_rules! gen_scoped_kv_store {
 
             #[allow(unused)]
             #[inline]
+            pub async fn set_typed<T: serde::Serialize>(
+                db: &impl ConnectionTrait,
+                key: &str,
+                value: T,
+            ) -> anyhow::Result<()> {
+                (global_storage::kv_store::set_typed::<T>(db, NAMESPACE, key, value).await)
+                    .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+            }
+
+            #[allow(unused)]
+            #[inline]
             pub async fn get_all(
                 db: &impl ConnectionTrait,
-            ) -> anyhow::Result<HashMap<String, Json>> {
+            ) -> anyhow::Result<serde_json::Map<String, Json>> {
                 (global_storage::kv_store::get_all(db, NAMESPACE).await)
+                    .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+            }
+
+            #[allow(unused)]
+            #[inline]
+            pub async fn has_key(
+                db: &impl ConnectionTrait,
+                key: &str,
+            ) -> anyhow::Result<bool> {
+                (global_storage::kv_store::has_key(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -284,6 +361,16 @@ macro_rules! gen_scoped_kv_store {
                 key: &str,
             ) -> anyhow::Result<Option<Json>> {
                 (global_storage::kv_store::get(db, NAMESPACE, key).await)
+                    .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+            }
+
+            #[allow(unused)]
+            #[inline]
+            pub async fn get_typed<T: for<'de> serde::Deserialize<'de>>(
+                db: &impl ConnectionTrait,
+                key: &str,
+            ) -> anyhow::Result<Option<T>> {
+                (global_storage::kv_store::get_typed::<T>(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -308,6 +395,15 @@ macro_rules! gen_scoped_kv_store {
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
+            #[allow(unused)]
+            #[inline]
+            pub async fn delete_all(
+                db: &impl ConnectionTrait,
+            ) -> anyhow::Result<sea_orm::DeleteResult> {
+                (global_storage::kv_store::delete_all(db, NAMESPACE).await)
+                    .map_err(|err| anyhow::anyhow!("Database error: {err}"))
+            }
+
             $($(crate::gen_scoped_kv_store_get_set!($impl);)+)?
         }
     };
@@ -319,27 +415,46 @@ macro_rules! gen_kv_store_scoped_get_set {
     ($val:ident: $t:ident) => {
         crate::gen_kv_store_scoped_get_set!(pub(super) $val: $t);
     };
-    ($vis:vis $val:ident: bool) => {
+    ($vis:vis $val:ident: $t:ty $([+$option:ident])*) => {
         $vis mod $val {
-            use sea_orm::ConnectionTrait;
+            use super::*;
 
-            use super::kv_store;
-
-            #[tracing::instrument(level = "trace", skip_all)]
-            pub async fn get_opt(db: &impl ConnectionTrait) -> Option<bool> {
-                (kv_store::get_bool(db, stringify!($val)).await).unwrap_or(None)
-            }
+            pub const KEY: &'static str = stringify!($val);
 
             #[tracing::instrument(level = "trace", skip_all)]
-            pub async fn get(db: &impl ConnectionTrait) -> bool {
-                (kv_store::get_bool(db, stringify!($val)).await)
-                    .unwrap_or(None)
-                    .unwrap_or(false)
+            pub async fn get_opt(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<Option<$t>> {
+                (kv_store::get_typed::<$t>(db, KEY).await)
             }
+
+            $(crate::gen_kv_store_scoped_get_set!($vis $val: $t => $option);)*
 
             #[tracing::instrument(level = "trace", skip_all, fields(new_value))]
-            pub async fn set(db: &impl ConnectionTrait, new_value: bool) -> anyhow::Result<()> {
-                kv_store::set_bool(db, stringify!($val), new_value).await
+            pub async fn set(db: &impl sea_orm::ConnectionTrait, new_value: $t) -> anyhow::Result<()> {
+                kv_store::set_typed::<$t>(db, KEY, new_value).await
+            }
+        }
+    };
+    // NOTE: Internal.
+    ($vis:vis $val:ident: $t:ty => default) => {
+        #[tracing::instrument(level = "trace", skip_all)]
+        pub async fn get(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<$t> {
+            (kv_store::get_typed::<$t>(db, KEY).await)
+                .map(Option::unwrap_or_default)
+        }
+        #[tracing::instrument(level = "trace", skip_all)]
+        pub async fn get_or_default(db: &impl sea_orm::ConnectionTrait) -> $t {
+            (kv_store::get_typed::<$t>(db, KEY).await)
+                .unwrap_or_default()
+                .unwrap_or_default()
+        }
+    };
+    // NOTE: Internal.
+    ($vis:vis $val:ident: $t:ty => delete) => {
+        #[tracing::instrument(level = "trace", skip_all)]
+        pub async fn delete(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<()> {
+            match kv_store::delete(db, KEY).await {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err),
             }
         }
     };

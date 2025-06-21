@@ -86,6 +86,18 @@ fn then_content_type_json(world: &mut TestWorld) {
     );
 }
 
+#[then(expr = "the response JSON should contain key {string}")]
+fn then_response_json_has_key(world: &mut TestWorld, key: String) {
+    let map: serde_json::Map<String, serde_json::Value> = world.result().json();
+    assert!(map.keys().any(|k| k == &key), "{map:#?}")
+}
+
+#[then(expr = "the response JSON should not contain key {string}")]
+fn then_response_json_no_key(world: &mut TestWorld, key: String) {
+    let map: serde_json::Map<String, serde_json::Value> = world.result().json();
+    assert!(!map.keys().any(|k| k == &key), "{map:#?}")
+}
+
 #[then(expr = "the response content type should be {string}")]
 fn then_content_type(world: &mut TestWorld, content_type: String) {
     let res = world.result();

@@ -4,122 +4,44 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prosody_config::ProsodySettings;
-use sea_orm::{prelude::*, IntoActiveModel, QueryOrder as _, QuerySelect, Set, Unchanged};
-use tracing::instrument;
 
 use crate::{
-    models::JidDomain,
-    server_config::entities::server_config::{self, ActiveModel, Column, Entity},
-    util::either::Either,
+    models::{durations::*, sea_orm::LinkedStringSet, Lua},
+    server_config::TlsProfile,
 };
 
-pub enum ServerConfigRepository {}
+use super::DynamicServerConfig;
 
-impl ServerConfigRepository {
-    #[instrument(
-        name = "db::server_config::is_initialized",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub async fn is_initialized(db: &impl ConnectionTrait) -> Result<bool, DbErr> {
-        Ok(Entity::find().count(db).await? > 0)
-    }
+crate::gen_scoped_kv_store!(pub(super) server_config);
 
-    #[instrument(name = "db::server_config::create", level = "trace", skip_all, err)]
-    pub async fn create(
-        db: &impl ConnectionTrait,
-        form: impl Into<ServerConfigCreateForm>,
-    ) -> Result<server_config::Model, DbErr> {
-        form.into().into_active_model().insert(db).await
-    }
+crate::gen_kv_store_scoped_get_set!(pub message_archive_enabled: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub message_archive_retention: PossiblyInfinite<Duration<DateLike>> [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub file_upload_allowed: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub file_storage_encryption_scheme: String [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub file_storage_retention: PossiblyInfinite<Duration<DateLike>> [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub mfa_required: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub tls_profile: TlsProfile [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub federation_enabled: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub federation_whitelist_enabled: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub federation_friendly_servers: LinkedStringSet [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub settings_backup_interval: String [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub user_data_backup_interval: String [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub push_notification_with_body: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub push_notification_with_sender: bool [+delete]);
+crate::gen_kv_store_scoped_get_set!(pub prosody_overrides: ProsodySettings [+delete] [+default]);
+crate::gen_kv_store_scoped_get_set!(pub prosody_overrides_raw: Lua [+delete]);
 
-    #[instrument(name = "db::server_config::get", level = "trace", skip_all, err)]
-    pub async fn get(db: &impl ConnectionTrait) -> Result<Option<server_config::Model>, DbErr> {
-        Entity::find().order_by_asc(Column::Id).one(db).await
-    }
-
-    #[instrument(name = "db::server_config::reset", level = "trace", skip_all, err)]
-    pub async fn reset(db: &impl ConnectionTrait) -> Result<(), DbErr> {
-        let Some(model) = Self::get(db).await? else {
-            return Ok(());
-        };
-        model.into_active_model().reset_all().update(db).await?;
-        Ok(())
-    }
-
-    #[instrument(
-        name = "db::server_config::set_prosody_overrides",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub(crate) async fn set_prosody_overrides(
-        db: &impl ConnectionTrait,
-        overrides: ProsodySettings,
-    ) -> Result<server_config::Model, Either<serde_json::Error, DbErr>> {
-        let json = serde_json::to_value(overrides).map_err(Either::E1)?;
-        let mut model = ActiveModel::new();
-        model.id = Unchanged(1);
-        model.prosody_overrides = Set(Some(json));
-        model.update(db).await.map_err(Either::E2)
-    }
-
-    /// - `Ok(Some(None))` => Server config initialized, no value
-    /// - `Ok(None)` => Server config not initialized
-    #[instrument(
-        name = "db::server_config::get_prosody_overrides",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub(crate) async fn get_prosody_overrides(
-        db: &impl ConnectionTrait,
-    ) -> Result<Option<Option<ProsodySettings>>, Either<DbErr, serde_json::Error>> {
-        let json = Entity::find()
-            .order_by_asc(Column::Id)
-            .select_only()
-            .column(Column::ProsodyOverrides)
-            .into_tuple::<Option<Json>>()
-            .one(db)
-            .await
-            .map_err(Either::E1)?;
-        match json {
-            Some(Some(json)) => match serde_json::from_value::<ProsodySettings>(json) {
-                Ok(v) => Ok(Some(Some(v))),
-                Err(e) => Err(Either::E2(e)),
-            },
-            Some(None) => Ok(Some(None)),
-            None => Ok(None),
-        }
-    }
-
-    #[instrument(
-        name = "db::server_config::delete_prosody_overrides",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub(crate) async fn delete_prosody_overrides(
-        db: &impl ConnectionTrait,
-    ) -> Result<server_config::Model, DbErr> {
-        let mut model = ActiveModel::new();
-        model.id = Unchanged(1);
-        model.prosody_overrides = Set(None);
-        model.update(db).await
-    }
+pub async fn get(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<DynamicServerConfig> {
+    use anyhow::Context;
+    let kv = self::kv_store::get_all(db).await?;
+    let json = serde_json::Value::Object(kv);
+    serde_json::from_value::<DynamicServerConfig>(json)
+        .context("Could not parse `DynamicServerConfig` from key/value data.")
 }
 
-#[derive(Debug, Clone)]
-pub struct ServerConfigCreateForm {
-    pub domain: JidDomain,
-}
-
-impl ServerConfigCreateForm {
-    fn into_active_model(self) -> ActiveModel {
-        ActiveModel {
-            domain: Set(self.domain),
-            ..Default::default()
-        }
+pub async fn reset(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<()> {
+    match self::kv_store::delete_all(db).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
     }
 }

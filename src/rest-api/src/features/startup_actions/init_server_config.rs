@@ -5,11 +5,8 @@
 
 use std::sync::Arc;
 
-use service::{
-    server_config::{errors::ServerConfigNotInitialized, ServerConfigRepository},
-    xmpp::ServerManager,
-};
-use tracing::{debug, info, instrument};
+use service::server_config::{self, ServerConfigManager};
+use tracing::{debug, instrument};
 
 use crate::AppState;
 
@@ -24,30 +21,16 @@ pub async fn init_server_config(
 ) -> Result<(), String> {
     debug!("Initializing the XMPP server configuration…");
 
-    let server_config = match ServerConfigRepository::get(db).await {
-        Ok(Some(server_config)) => server_config,
-        Ok(None) => {
-            info!(
-                "Not initializing the XMPP server configuration: {err}",
-                err = ServerConfigNotInitialized,
-            );
-            return Ok(());
-        }
-        Err(err) => {
-            return Err(format!(
-                "Could not initialize the XMPP server configuration: {err}"
-            ));
-        }
-    };
+    let server_config = (server_config::get(db).await)
+        .map_err(|err| format!("Could not initialize the XMPP server configuration: {err}"))?;
 
     // Apply the server configuration stored in the database
-    let server_manager = ServerManager::new(
+    let server_config_manager = ServerConfigManager::new(
         Arc::new(db.clone()),
-        Arc::new(app_config.clone()),
+        app_config.clone(),
         Arc::new(server_ctl.clone()),
-        server_config.clone(),
     );
-    if let Err(err) = server_manager.reload_current().await {
+    if let Err(err) = server_config_manager.apply(&server_config).await {
         return Err(format!(
             "Could not initialize the XMPP server configuration: {err}"
         ));

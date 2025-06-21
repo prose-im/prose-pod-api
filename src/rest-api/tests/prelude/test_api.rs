@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum_test::TestServer;
-use prose_pod_api::{util::LifecycleManager, AppState};
+use prose_pod_api::{util::LifecycleManager, AppState, MinimalAppState};
 use tracing::*;
 
 use super::test_world::TestWorld;
@@ -14,15 +14,17 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
 
     let lifecycle_manager = LifecycleManager::new();
     let app_state = AppState::new(
+        MinimalAppState {
+            lifecycle_manager: lifecycle_manager.clone(),
+        },
         world.db.clone(),
-        world.app_config.read().unwrap().to_owned(),
+        world.app_config.clone(),
         world.server_ctl.clone(),
         world.xmpp_service.clone(),
         world.auth_service.clone(),
         Some(world.email_notifier.clone()),
         world.secrets_store.clone(),
         world.network_checker.clone(),
-        lifecycle_manager.clone(),
     );
 
     let router = prose_pod_api::make_router(&app_state);

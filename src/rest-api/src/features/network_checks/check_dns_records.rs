@@ -52,6 +52,7 @@ pub async fn check_dns_records_stream_route(
     Query(forms::Interval { interval }): Query<forms::Interval>,
     State(AppState { app_config, db, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    let ref app_config = app_config.read().unwrap().clone();
     run_checks_stream(
         pod_network_config.dns_record_checks(),
         network_checker,

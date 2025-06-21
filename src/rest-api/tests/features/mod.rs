@@ -10,7 +10,6 @@ pub mod invitations;
 pub mod members;
 pub mod network_checks;
 pub mod onboarding;
-pub mod pod_config;
 pub mod profiles;
 pub mod roles;
 pub mod server_config;
@@ -31,7 +30,6 @@ pub(crate) mod prelude {
         errors::DbErr,
         models::xmpp::*,
         sea_orm::{prelude::*, IntoActiveModel as _, Set},
-        server_config::ServerConfigCreateForm,
         MutationError,
     };
 

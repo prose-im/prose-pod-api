@@ -3,318 +3,128 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
-
-use anyhow::{anyhow, Context as _};
+use anyhow::Context as _;
 use jid::BareJid;
-use linked_hash_set::LinkedHashSet;
-use prosody_config::ProsodySettings;
-use sea_orm::IntoActiveModel as _;
 use secrecy::{ExposeSecret, SecretString};
-use tracing::{debug, trace};
+use tracing::debug;
 
 use crate::{
     auth::{errors::InvalidCredentials, AuthService},
-    models::{sea_orm::LinkedStringSet, DateLike, Duration, JidDomain, PossiblyInfinite},
-    sea_orm::{ActiveModelTrait as _, DatabaseConnection, Set, TransactionTrait as _},
+    sea_orm::DatabaseConnection,
     secrets::{SecretsStore, ServiceAccountSecrets},
-    server_config::{
-        entities::server_config, errors::ServerConfigAlreadyInitialized, ServerConfig,
-        ServerConfigCreateForm, ServerConfigRepository, TlsProfile,
-    },
+    server_config,
     util::either::Either,
     AppConfig,
 };
 
 use super::{server_ctl, ServerCtl};
 
-#[derive(Clone)]
-pub struct ServerManager {
-    db: Arc<DatabaseConnection>,
-    app_config: Arc<AppConfig>,
-    server_ctl: Arc<ServerCtl>,
-    server_config: Arc<RwLock<server_config::Model>>,
+/// Generates a very strong random password.
+fn strong_random_password() -> SecretString {
+    // 256 characters because why not
+    crate::auth::util::strong_random_password(256)
 }
 
-impl ServerManager {
-    pub fn new(
-        db: Arc<DatabaseConnection>,
-        app_config: Arc<AppConfig>,
-        server_ctl: Arc<ServerCtl>,
-        server_config: server_config::Model,
-    ) -> Self {
-        Self {
-            db,
-            app_config,
-            server_ctl,
-            server_config: Arc::new(RwLock::new(server_config)),
-        }
-    }
+async fn set_api_xmpp_password(
+    server_ctl: &ServerCtl,
+    app_config: &AppConfig,
+    secrets_store: &SecretsStore,
+    password: SecretString,
+) -> anyhow::Result<()> {
+    let api_jid = app_config.api_jid();
 
-    fn server_config_mut(&self) -> RwLockWriteGuard<server_config::Model> {
-        self.server_config
-            .write()
-            .expect("`server_config::Model` lock poisonned")
-    }
+    (server_ctl.set_user_password(&api_jid, &password).await).context("ServerCtl error")?;
+    secrets_store.set_prose_pod_api_xmpp_password(password);
 
-    fn server_config(&self) -> server_config::Model {
-        self.server_config
-            .read()
-            .expect("`server_config::Model` lock poisonned")
-            .to_owned()
-    }
+    Ok(())
 }
 
-impl ServerManager {
-    async fn update<U>(&self, update: U) -> anyhow::Result<ServerConfig>
-    where
-        U: FnOnce(&mut server_config::ActiveModel) -> (),
-    {
-        let old_server_config = self.server_config();
+pub async fn reset_server_config(
+    db: &DatabaseConnection,
+    server_ctl: &ServerCtl,
+    app_config: &AppConfig,
+    secrets_store: &SecretsStore,
+) -> anyhow::Result<()> {
+    server_config::reset(db).await?;
 
-        let mut active: server_config::ActiveModel = old_server_config.clone().into_active_model();
-        update(&mut active);
-        trace!("Updating config in database…");
-        let new_server_config = active.update(self.db.as_ref()).await?;
-        *self.server_config_mut() = new_server_config.clone();
+    // Write the bootstrap configuration.
+    let password = self::strong_random_password();
+    server_ctl.reset_config(&password).await?;
 
-        if new_server_config != old_server_config {
-            trace!("Server config has changed, reloading…");
-            self.reload(&new_server_config).await?;
-        } else {
-            trace!("Server config hasn't changed, no need to reload.");
-        }
+    // Update the API user password to match the new one specified in the bootstrap configuration.
+    self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone()).await?;
 
-        Ok(new_server_config.with_default_values_from(&self.app_config))
-    }
+    // Store the new password in the environment variables to the next API instance
+    // can access it (the screts store will be dropped efore next run).
+    std::env::set_var(
+        "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
+        password.expose_secret(),
+    );
 
-    /// Reload the XMPP server using the server configuration stored in `self`.
-    pub async fn reload_current(&self) -> anyhow::Result<()> {
-        self.reload(&self.server_config()).await
-    }
+    // Apply the bootstrap configuration.
+    server_ctl.reload().await?;
 
-    /// Reload the XMPP server using the server configuration passed as an argument.
-    async fn reload(&self, server_config: &server_config::Model) -> anyhow::Result<()> {
-        let server_ctl = self.server_ctl.as_ref();
-
-        // Save new server config
-        trace!("Saving server config…");
-        server_ctl
-            .save_config(
-                &server_config.with_default_values_from(&self.app_config),
-                &self.app_config,
-            )
-            .await?;
-        // Reload server config
-        trace!("Reloading XMPP server…");
-        server_ctl.reload().await?;
-
-        Ok(())
-    }
-
-    /// Generates a very strong random password.
-    fn strong_random_password() -> SecretString {
-        // 256 characters because why not
-        crate::auth::util::strong_random_password(256)
-    }
+    Ok(())
 }
 
-impl ServerManager {
-    pub async fn init_server_config(
-        db: &DatabaseConnection,
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        server_config: impl Into<ServerConfigCreateForm>,
-    ) -> Result<ServerConfig, Either<ServerConfigAlreadyInitialized, anyhow::Error>> {
-        let None = (ServerConfigRepository::get(db).await)? else {
-            return Err(Either::E1(ServerConfigAlreadyInitialized));
-        };
-
-        let txn = db.begin().await?;
-
-        // Initialize the server config in a transaction,
-        // to rollback if subsequent operations fail.
-        let model = ServerConfigRepository::create(&txn, server_config).await?;
-        let server_config = model.with_default_values_from(app_config);
-
-        // NOTE: We can't rollback changes made to the XMPP server so let's do it
-        //   after "rollbackable" DB changes in case they fail. It's not perfect
-        //   but better than nothing.
-        // TODO: Find a way to rollback XMPP server changes.
-        {
-            (server_ctl.save_config(&server_config, app_config).await)
-                .context("ServerCtl error")?;
-            server_ctl.reload().await.context("ServerCtl error")?;
-        }
-
-        // Commit the transaction only if the admin user was
-        // successfully created, to prevent inconsistent states.
-        txn.commit().await?;
-
-        Ok(server_config)
-    }
-
-    async fn set_api_xmpp_password(
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        secrets_store: &SecretsStore,
-        password: SecretString,
-    ) -> anyhow::Result<()> {
-        let api_jid = app_config.api_jid();
-
-        (server_ctl.set_user_password(&api_jid, &password).await).context("ServerCtl error")?;
-        secrets_store.set_prose_pod_api_xmpp_password(password);
-
-        Ok(())
-    }
-
-    pub async fn reset_server_config(
-        db: &DatabaseConnection,
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        secrets_store: &SecretsStore,
-    ) -> anyhow::Result<()> {
-        ServerConfigRepository::reset(db).await?;
-
-        // Write the bootstrap configuration.
-        let password = Self::strong_random_password();
-        server_ctl.reset_config(&password).await?;
-
-        // Update the API user password to match the new one specified in the bootstrap configuration.
-        Self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone())
-            .await?;
-
-        // Store the new password in the environment variables to the next API instance
-        // can access it (the screts store will be dropped efore next run).
-        std::env::set_var(
-            "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
-            password.expose_secret(),
-        );
-
-        // Apply the bootstrap configuration.
-        server_ctl.reload().await?;
-
-        Ok(())
-    }
-
-    pub async fn rotate_api_xmpp_password(
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        secrets_store: &SecretsStore,
-    ) -> anyhow::Result<()> {
-        Self::set_api_xmpp_password(
-            server_ctl,
-            app_config,
-            secrets_store,
-            Self::strong_random_password(),
-        )
-        .await
-    }
-
-    /// NOTE: Used only in tests.
-    #[cfg(debug_assertions)]
-    pub async fn set_domain(&self, domain: &JidDomain) -> anyhow::Result<ServerConfig> {
-        trace!("Setting XMPP server domain to {domain}…");
-        self.update(|active| {
-            active.domain = Set(domain.to_owned());
-        })
-        .await
-    }
+pub async fn rotate_api_xmpp_password(
+    server_ctl: &ServerCtl,
+    app_config: &AppConfig,
+    secrets_store: &SecretsStore,
+) -> anyhow::Result<()> {
+    self::set_api_xmpp_password(
+        server_ctl,
+        app_config,
+        secrets_store,
+        self::strong_random_password(),
+    )
+    .await
 }
 
-macro_rules! reset_fn {
-    ($fn:ident, $display:literal, $($field:ident),*,) => {
-        pub async fn $fn(&self) -> anyhow::Result<ServerConfig> {
-            trace!(concat!("Resetting ", $display, "…"));
-            self.update(|active| {
-                $( active.$field = Set(None); )*
-            })
-            .await
-        }
+pub async fn create_service_accounts(
+    server_ctl: &ServerCtl,
+    app_config: &AppConfig,
+    auth_service: &AuthService,
+    secrets_store: &SecretsStore,
+) -> Result<(), CreateServiceAccountError> {
+    // NOTE: No need to create Prose Pod API's XMPP account as it's already created
+    //   automatically when the XMPP server starts (using `mod_init_admin` in Prosody).
+
+    // Create workspace XMPP account
+    self::create_service_account(
+        app_config.workspace_jid(),
+        server_ctl,
+        auth_service,
+        secrets_store,
+    )
+    .await?;
+
+    Ok(())
+}
+
+async fn create_service_account(
+    jid: BareJid,
+    server_ctl: &ServerCtl,
+    auth_service: &AuthService,
+    secrets_store: &SecretsStore,
+) -> Result<(), CreateServiceAccountError> {
+    debug!("Creating service account '{jid}'…");
+
+    // Create the XMPP user account
+    let password = self::strong_random_password();
+    server_ctl.add_user(&jid, &password).await?;
+
+    // Log in as the service account (to get a JWT with access tokens)
+    let auth_token = auth_service.log_in(&jid, &password).await?;
+
+    // Store the secrets
+    let secrets = ServiceAccountSecrets {
+        password,
+        prosody_token: auth_token.clone(),
     };
-}
+    secrets_store.set_service_account_secrets(jid, secrets);
 
-impl ServerManager {
-    reset_fn!(
-        reset_messaging_config,
-        "messaging configuration",
-        message_archive_enabled,
-        message_archive_retention,
-    );
-    reset_fn!(
-        reset_files_config,
-        "files configuration",
-        file_upload_allowed,
-        file_storage_encryption_scheme,
-        file_storage_retention,
-    );
-    reset_fn!(
-        reset_push_notifications_config,
-        "notifications configuration",
-        push_notification_with_body,
-        push_notification_with_sender,
-    );
-    reset_fn!(
-        reset_network_encryption_config,
-        "network encryption configuration",
-        tls_profile,
-    );
-    reset_fn!(
-        reset_server_federation_config,
-        "server federation configuration",
-        federation_enabled,
-        federation_whitelist_enabled,
-        federation_friendly_servers,
-    );
-}
-
-impl ServerManager {
-    pub async fn create_service_accounts(
-        domain: &JidDomain,
-        server_ctl: &ServerCtl,
-        app_config: &AppConfig,
-        auth_service: &AuthService,
-        secrets_store: &SecretsStore,
-    ) -> Result<(), CreateServiceAccountError> {
-        // NOTE: No need to create Prose Pod API's XMPP account as it's already created
-        //   automatically when the XMPP server starts (using `mod_init_admin` in Prosody).
-
-        // Create workspace XMPP account
-        Self::create_service_account(
-            app_config.workspace_jid(domain),
-            server_ctl,
-            auth_service,
-            secrets_store,
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    async fn create_service_account(
-        jid: BareJid,
-        server_ctl: &ServerCtl,
-        auth_service: &AuthService,
-        secrets_store: &SecretsStore,
-    ) -> Result<(), CreateServiceAccountError> {
-        debug!("Creating service account '{jid}'…");
-
-        // Create the XMPP user account
-        let password = Self::strong_random_password();
-        server_ctl.add_user(&jid, &password).await?;
-
-        // Log in as the service account (to get a JWT with access tokens)
-        let auth_token = auth_service.log_in(&jid, &password).await?;
-
-        // Store the secrets
-        let secrets = ServiceAccountSecrets {
-            password,
-            prosody_token: auth_token.clone(),
-        };
-        secrets_store.set_service_account_secrets(jid, secrets);
-
-        Ok(())
-    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -329,152 +139,4 @@ impl From<Either<InvalidCredentials, anyhow::Error>> for CreateServiceAccountErr
     fn from(error: Either<InvalidCredentials, anyhow::Error>) -> Self {
         Self::CouldNotLogIn(error)
     }
-}
-
-macro_rules! set {
-    ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self, new_state: $t) -> anyhow::Result<ServerConfig> {
-            $(let new_state = <$db_type>::from(new_state);)?
-            trace!("Setting {} to {new_state}…", stringify!($var));
-            self.update(|active| active.$var = Set(Some(new_state))).await
-        }
-    };
-}
-macro_rules! get {
-    ($t:ty $(as $db_type:ty)?, $fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self) -> anyhow::Result<Option<$t>> {
-            trace!("Getting {}…", stringify!($var));
-            let $var = self.server_config().$var;
-            $(let $var = <$t>::from(<$var as $db_type>);)?
-            Ok($var)
-        }
-    };
-}
-macro_rules! reset {
-    ($fn:ident, $var:ident $(,)?) => {
-        pub async fn $fn(&self) -> anyhow::Result<ServerConfig> {
-            trace!("Resetting {}…", stringify!($var));
-            self.update(|active| active.$var = Set(None)).await
-        }
-    };
-}
-macro_rules! property_helpers {
-    (
-        $var:ident, type: $t:ty
-        $(, set: $set_fn:ident)?
-        $(, get: $get_fn:ident)?
-        $(, reset: $reset_fn:ident)?
-        $(,)?
-    ) => {
-        $(set!($t, $set_fn, $var);)?
-        $(get!($t, $get_fn, $var);)?
-        $(reset!($reset_fn, $var);)?
-    };
-    (
-        $var:ident, type: $t:ty as $db_type:ty
-        $(, set: $set_fn:ident)?
-        $(, get: $get_fn:ident)?
-        $(, reset: $reset_fn:ident)?
-        $(,)?
-    ) => {
-        $(set!($t as $db_type, $set_fn, $var);)?
-        $(get!($t as $db_type, $get_fn, $var);)?
-        $(reset!($reset_fn, $var);)?
-    };
-}
-
-impl ServerManager {
-    // File upload
-    property_helpers!(
-        file_upload_allowed, type: bool,
-        set: set_file_upload_allowed,
-        reset: reset_file_upload_allowed,
-    );
-    property_helpers!(
-        file_storage_retention, type: PossiblyInfinite<Duration<DateLike>>,
-        set: set_file_storage_retention,
-        reset: reset_file_storage_retention,
-    );
-
-    // Message archive
-    property_helpers!(
-        message_archive_enabled, type: bool,
-        set: set_message_archive_enabled,
-        reset: reset_message_archive_enabled,
-    );
-    property_helpers!(
-        message_archive_retention, type: PossiblyInfinite<Duration<DateLike>>,
-        set: set_message_archive_retention,
-        reset: reset_message_archive_retention,
-    );
-
-    // Push notifications
-    property_helpers!(
-        push_notification_with_body, type: bool,
-        set: set_push_notification_with_body,
-        reset: reset_push_notification_with_body,
-    );
-    property_helpers!(
-        push_notification_with_sender, type: bool,
-        set: set_push_notification_with_sender,
-        reset: reset_push_notification_with_sender,
-    );
-
-    // Network encryption
-    property_helpers!(
-        tls_profile, type: TlsProfile,
-        set: set_tls_profile,
-        reset: reset_tls_profile,
-    );
-
-    // Server federation
-    property_helpers!(
-        federation_enabled, type: bool,
-        set: set_federation_enabled,
-        reset: reset_federation_enabled,
-    );
-    property_helpers!(
-        federation_whitelist_enabled, type: bool,
-        set: set_federation_whitelist_enabled,
-        reset: reset_federation_whitelist_enabled,
-    );
-    property_helpers!(
-        federation_friendly_servers, type: LinkedHashSet<String> as LinkedStringSet,
-        set: set_federation_friendly_servers,
-        reset: reset_federation_friendly_servers,
-    );
-}
-
-impl ServerManager {
-    pub async fn set_prosody_overrides(
-        &self,
-        new_state: ProsodySettings,
-    ) -> anyhow::Result<ServerConfig> {
-        let new_state = serde_json::to_value(new_state).context("serde_json error")?;
-        trace!("Setting prosody_overrides to {new_state}…");
-        self.update(|active| active.prosody_overrides = Set(Some(new_state)))
-            .await
-    }
-
-    /// - `Ok(Some(None))` => Server config initialized, no value
-    /// - `Ok(None)` => Server config not initialized
-    pub async fn get_prosody_overrides(&self) -> anyhow::Result<Option<Option<ProsodySettings>>> {
-        trace!("Getting prosody_overrides…");
-        match ServerConfigRepository::get_prosody_overrides(self.db.as_ref()).await {
-            Ok(overrides) => Ok(overrides),
-            Err(Either::E1(err)) => Err(anyhow!(err).context("Database error")),
-            Err(Either::E2(err)) => Err(anyhow!(err).context("serde_json error")),
-        }
-    }
-
-    reset!(reset_prosody_overrides, prosody_overrides);
-}
-
-impl ServerManager {
-    property_helpers!(
-        prosody_overrides_raw, type: String,
-        set: set_prosody_overrides_raw,
-        get: get_prosody_overrides_raw,
-        reset: reset_prosody_overrides_raw,
-    );
 }

@@ -102,8 +102,11 @@ pub struct SrvLookupResponse {
 }
 
 #[derive(Debug, Clone)]
+#[derive(strum::Display)]
 pub enum IpVersion {
+    #[strum(to_string = "IPv4")]
     V4,
+    #[strum(to_string = "IPv6")]
     V6,
 }
 

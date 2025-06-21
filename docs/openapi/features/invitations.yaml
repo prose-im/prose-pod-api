@@ -66,7 +66,6 @@ paths:
             schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
         headers:
           Location: { $ref: "../shared.yaml#/components/headers/Location" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   get_invitations:
@@ -127,7 +126,6 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/WorkspaceInvitation" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
       "404": { $ref: "../shared.yaml#/components/responses/NotFound" }
@@ -142,7 +140,6 @@ paths:
       - $ref: "#/components/parameters/InvitationId"
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   get_invitation_token_details:
@@ -163,7 +160,6 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/WorkspaceInvitationBasicDetails" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   invitation_accept:
@@ -188,7 +184,6 @@ paths:
               password: { $ref: "../shared.yaml#/components/schemas/Password" }
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "410": { $ref: "../shared.yaml#/components/responses/Gone" }
   invitation_reject:
     tags: [Invitations]
@@ -200,7 +195,6 @@ paths:
       - $ref: "#/components/parameters/InvitationRejectToken"
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "410": { $ref: "../shared.yaml#/components/responses/Gone" }
   invitation_resend:
     tags: [Invitations]
@@ -213,7 +207,6 @@ paths:
       - $ref: "#/components/parameters/InvitationId"
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
-      "412": { $ref: "server-config.yaml#/components/responses/ServerConfigNotInitialized" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 components:

@@ -10,6 +10,13 @@
 [branding]
 company_name = "Prose (local)"
 
+[server]
+domain = "prose.org.local"
+
+[pod]
+address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
+dashboard_url = "http://localhost:3030/"
+
 [notify.email]
 pod_address = "pod@prose.org.local"
 

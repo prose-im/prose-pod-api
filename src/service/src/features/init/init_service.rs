@@ -31,8 +31,7 @@ impl InitService {
         form: impl Into<InitFirstAccountForm>,
     ) -> Result<Member, InitFirstAccountError> {
         let form = form.into();
-        let jid = bare_jid_from_username(&form.username, server_domain)
-            .map_err(InitFirstAccountError::InvalidJid)?;
+        let jid = bare_jid_from_username(&form.username, server_domain);
 
         if MemberRepository::count(self.db.as_ref()).await? > 0 {
             return Err(InitFirstAccountError::FirstAccountAlreadyCreated);
@@ -68,8 +67,6 @@ pub struct InitFirstAccountForm {
 pub enum InitFirstAccountError {
     #[error("First account already created.")]
     FirstAccountAlreadyCreated,
-    #[error("Invalid JID: {0}")]
-    InvalidJid(String),
     #[error("Could not create first account: {0}")]
     CouldNotCreateFirstAccount(UserCreateError),
     #[error("Database error: {0}")]

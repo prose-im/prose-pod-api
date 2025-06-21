@@ -13,8 +13,7 @@ use tracing::instrument;
 use crate::{
     members::{entities::member, MemberRepository, MemberRole, MemberService},
     notifications::{notifier::email::EmailNotification, NotificationService},
-    pod_config::{errors::PodConfigMissing, PodConfigField, PodConfigRepository},
-    util::either::{Either, Either3, Either4},
+    util::either::{Either, Either3},
     xmpp::ServerCtl,
     AppConfig,
 };
@@ -78,27 +77,21 @@ pub async fn request_password_reset(
     app_config: &AppConfig,
     caller: &UserInfo,
     jid: &BareJid,
-) -> Result<(), Either4<PodConfigMissing, MissingEmailAddress, CannotResetPassword, anyhow::Error>>
-{
-    let dashboard_url = (PodConfigRepository::get_dashboard_url(db).await)
-        .context("Database error")?
-        .ok_or(PodConfigMissing(PodConfigField::DashboardUrl))
-        .map_err(Either4::E1)?;
-
+) -> Result<(), Either3<MissingEmailAddress, CannotResetPassword, anyhow::Error>> {
     // Find member email address.
     let email_address = match MemberRepository::get(db, jid).await? {
         Some(member::Model {
             email_address: Some(email_address),
             ..
         }) => email_address,
-        _ => return Err(Either4::E2(MissingEmailAddress(jid.clone()))),
+        _ => return Err(Either3::E1(MissingEmailAddress(jid.clone()))),
     };
 
     // Authorize action (or not).
     // NOTE: One can only reset their own password or trigger a reset for
     //   someone else if they are an admin.
     if !(caller.is(jid) || caller.is_admin()) {
-        return Err(Either4::E3(CannotResetPassword));
+        return Err(Either3::E2(CannotResetPassword));
     }
 
     // Generate a random token.
@@ -123,7 +116,7 @@ pub async fn request_password_reset(
     let notification_payload = PasswordResetNotificationPayload {
         reset_token: token,
         expires_at,
-        dashboard_url,
+        dashboard_url: app_config.pod.dashboard_url().clone(),
     };
     let email =
         EmailNotification::for_password_reset(email_address, notification_payload, app_config)

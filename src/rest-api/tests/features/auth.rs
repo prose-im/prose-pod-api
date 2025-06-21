@@ -206,7 +206,7 @@ async fn then_prosody_token_expires_after(
     world: &mut TestWorld,
     duration: parameters::Duration,
 ) -> Result<(), DbErr> {
-    let domain = world.server_config().await?.domain;
+    let domain = world.app_config().server_domain().clone();
 
     let prosody_config = world
         .server_ctl_state()

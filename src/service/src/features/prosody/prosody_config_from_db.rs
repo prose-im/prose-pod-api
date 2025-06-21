@@ -9,8 +9,7 @@ use tracing::{info, warn};
 use crate::{
     app_config::{AppConfig, FILE_SHARE_HOST},
     models::{self as db},
-    server_config::ServerConfig,
-    ProseDefault,
+    ProseDefault, ServerConfig,
 };
 
 use super::{prosody_config::util::*, ProsodyConfig};
@@ -132,13 +131,8 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     }
 
     if let Some(overrides) = prosody_overrides {
-        match serde_json::from_value::<ProsodySettings>(overrides) {
-            Ok(overrides) => {
-                info!("Applying overrides to the generated Prosody configuration file…");
-                config.global_settings.shallow_merge(overrides, MergeStrategy::KeepOther);
-            },
-            Err(err) => warn!("Prosody overrides stored in database cannot be read, they won’t be applied. To fix this, call `PUT /v1/server/config/prosody-overrides` with a new value. You can `GET /v1/server/config/prosody-overrides` first to see what the stored value was. Error: {err}"),
-        }
+        info!("Applying overrides to the generated Prosody configuration file…");
+        (config.global_settings).shallow_merge(overrides, MergeStrategy::KeepOther);
     }
 
     ProsodyConfig(config)

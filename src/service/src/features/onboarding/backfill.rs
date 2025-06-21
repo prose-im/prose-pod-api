@@ -5,7 +5,7 @@
 
 use sea_orm::DatabaseConnection;
 
-use crate::{dependencies, network_checks::NetworkChecker, AppConfig};
+use crate::{dependencies, network_checks::NetworkChecker, server_config, AppConfig};
 
 use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 
@@ -22,18 +22,13 @@ pub async fn backfill(
     use tracing::warn;
 
     // Backfill `all_dns_checks_passed_once` if necessary.
-    if all_dns_checks_passed_once::get_opt(db).await.is_none() {
-        if let Err(err) = backfill_all_dns_checks_passed_once(db, app_config, network_checker).await
-        {
-            warn!("Could not backfill `all_dns_checks_passed_once`: {err}");
-        }
+    if let Err(err) = backfill_all_dns_checks_passed_once(db, app_config, network_checker).await {
+        warn!("Could not backfill `all_dns_checks_passed_once`: {err}");
     }
 
     // Backfill `at_least_one_invitation_sent` if necessary.
-    if at_least_one_invitation_sent::get_opt(db).await.is_none() {
-        if let Err(err) = backfill_at_least_one_invitation_sent(db, uuid_gen).await {
-            warn!("Could not backfill `at_least_one_invitation_sent`: {err}");
-        }
+    if let Err(err) = backfill_at_least_one_invitation_sent(db, uuid_gen).await {
+        warn!("Could not backfill `at_least_one_invitation_sent`: {err}");
     }
 }
 
@@ -43,44 +38,26 @@ async fn backfill_all_dns_checks_passed_once(
     network_checker: &NetworkChecker,
 ) -> anyhow::Result<()> {
     use futures::{stream::FuturesOrdered, StreamExt};
-    use tracing::{info, trace};
+    use tracing::trace;
 
     use crate::network_checks::PodNetworkConfig;
     use crate::network_checks::{NetworkCheck as _, RetryableNetworkCheckResult as _};
-    use crate::pod_config::PodConfigRepository;
-    use crate::server_config::ServerConfigRepository;
+
+    use self::all_dns_checks_passed_once as store;
 
     const KEY: &'static str = "all_dns_checks_passed_once";
 
-    let server_domain = match ServerConfigRepository::get(db).await? {
-        Some(config) => config.domain,
-        None => {
-            info!("Not backfilling `{KEY}`: Server config not initalized.");
-            return Ok(());
-        }
-    };
+    if store::get_opt(db).await?.is_some() {
+        trace!("Not backfilling `{KEY}`: Already set.");
+        return Ok(());
+    }
 
-    let pod_address = match (PodConfigRepository::get(db).await?)
-        .map(|config| config.network_address())
-        .flatten()
-    {
-        Some(address) => address,
-        None => {
-            info!("Not backfilling `{KEY}`: Pod address not initalized.");
-            return Ok(());
-        }
-    };
+    let server_domain = app_config.server_domain().clone();
 
-    let federation_enabled = match ServerConfigRepository::get(db).await? {
-        Some(model) => {
-            let server_config = model.with_default_values_from(app_config);
-            server_config.federation_enabled
-        }
-        None => {
-            info!("Not backfilling `{KEY}`: Server config not initalized.");
-            return Ok(());
-        }
-    };
+    let pod_address = app_config.pod.network_address();
+
+    let federation_enabled = (server_config::federation_enabled::get_opt(db).await?)
+        .unwrap_or(app_config.server.defaults.federation_enabled);
 
     let pod_network_config = PodNetworkConfig {
         server_domain,
@@ -90,8 +67,7 @@ async fn backfill_all_dns_checks_passed_once(
 
     trace!("Backfilling `{KEY}`…");
 
-    let all_dns_checks_passed = pod_network_config
-        .dns_record_checks()
+    let all_dns_checks_passed = (pod_network_config.dns_record_checks())
         .map(|check| async move { !check.run(network_checker).await.is_failure() })
         .collect::<FuturesOrdered<_>>()
         .all(|is_success| async move { is_success })
@@ -101,7 +77,7 @@ async fn backfill_all_dns_checks_passed_once(
     // data as it might be temporary.
     if all_dns_checks_passed {
         trace!("Backfilling `{KEY}` to {all_dns_checks_passed}…");
-        return self::all_dns_checks_passed_once::set(db, all_dns_checks_passed).await;
+        return store::set(db, all_dns_checks_passed).await;
     }
 
     Ok(())
@@ -120,7 +96,14 @@ async fn backfill_at_least_one_invitation_sent(
     use crate::invitations::{InvitationContact, InvitationCreateForm, InvitationRepository};
     use crate::models::EmailAddress;
 
+    use self::at_least_one_invitation_sent as store;
+
     const KEY: &'static str = "at_least_one_invitation_sent";
+
+    if store::get_opt(db).await?.is_some() {
+        trace!("Not backfilling `{KEY}`: Already set.");
+        return Ok(());
+    }
 
     trace!("Backfilling `{KEY}`…");
 
@@ -151,5 +134,5 @@ async fn backfill_at_least_one_invitation_sent(
     transaction.rollback().await?;
 
     trace!("Backfilling `{KEY}` to {at_least_one_invitation_sent}…");
-    self::at_least_one_invitation_sent::set(db, at_least_one_invitation_sent).await
+    store::set(db, at_least_one_invitation_sent).await
 }

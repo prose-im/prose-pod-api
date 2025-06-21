@@ -81,11 +81,12 @@ pub async fn check_network_configuration_stream_route(
     Query(forms::Interval { interval }): Query<forms::Interval>,
     State(AppState { app_config, db, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
+    let ref app_config = app_config.read().unwrap().clone();
     let retry_interval = interval.map_or_else(
         || Ok(app_config.default_retry_interval.into_std_duration()),
         validate_retry_interval,
     )?;
-    let runner = ConcurrentTaskRunner::default(&app_config)
+    let runner = ConcurrentTaskRunner::default(app_config)
         .with_timeout(*SSE_TIMEOUT)
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();

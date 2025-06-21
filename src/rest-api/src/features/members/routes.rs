@@ -112,9 +112,10 @@ pub async fn enrich_members_route(
 pub async fn enrich_members_stream_route(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
-    State(AppState { app_config, .. }): State<AppState>,
+    State(ref app_state): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let rx = member_controller::enrich_members_stream(member_service, jids, &app_config);
+    let ref app_config = app_state.app_config_frozen();
+    let rx = member_controller::enrich_members_stream(member_service, jids, app_config);
 
     let sse_rx = ReceiverStream::new(rx).filter_map(|e| match e {
         Ok(Some(member)) => Some(Ok(Event::default()

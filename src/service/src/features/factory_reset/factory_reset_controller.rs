@@ -18,7 +18,7 @@ use crate::auth::errors::InvalidCredentials;
 use crate::auth::{AuthService, Credentials};
 use crate::secrets::SecretsStore;
 use crate::util::either::Either;
-use crate::xmpp::{ServerCtl, ServerManager};
+use crate::xmpp::{server_manager, ServerCtl};
 use crate::AppConfig;
 
 lazy_static! {
@@ -85,7 +85,7 @@ pub async fn perform_factory_reset(
     warn!("Performing a factory reset…");
 
     debug!("Resetting the server…");
-    (ServerManager::reset_server_config(&db, server_ctl, app_config, secrets_store).await)
+    (server_manager::reset_server_config(&db, server_ctl, app_config, secrets_store).await)
         .context("Could not reset server config")
         .map_err(Either::E2)?;
 

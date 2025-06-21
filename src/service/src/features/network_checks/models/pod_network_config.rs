@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use hickory_proto::rr::domain::Name as DomainName;
+use hickory_proto::rr::domain::{Name as DomainName, Name as HostName};
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
@@ -14,7 +14,7 @@ use crate::{
     network_checks::{
         models::network_checks::*, DnsEntry, DnsRecordWithStringRepr, DnsSetupStep, IpVersion,
     },
-    pod_config::NetworkAddress,
+    pod_config::{PodAddress, PodConfig},
     xmpp::{JidDomain, XmppConnectionType},
 };
 
@@ -25,11 +25,6 @@ pub struct PodNetworkConfig {
     pub federation_enabled: bool,
 }
 
-// NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
-fn domain_name_unchecked(str: &str) -> DomainName {
-    DomainName::from_str(str).expect(&format!("Invalid domain name: {str}"))
-}
-
 impl PodNetworkConfig {
     #[instrument(level = "trace", skip_all)]
     fn dns_entries(&self) -> Vec<DnsSetupStep<DnsEntry>> {
@@ -38,24 +33,36 @@ impl PodNetworkConfig {
             pod_address,
             ..
         } = self;
+        let ref server_domain = server_domain.as_fqdn();
+
+        let ref pod_fqdn = match pod_address {
+            NetworkAddress::Static { .. } => (HostName::from_str("xmpp").unwrap())
+                .append_domain(server_domain)
+                .expect("Domain name too long when adding `xmpp` prefix"),
+            NetworkAddress::Dynamic { domain } => {
+                let mut fqdn = domain.clone();
+                fqdn.set_fqdn(true);
+                fqdn
+            }
+        };
 
         // === Helpers to create DNS records ===
 
         let a = |ipv4: Ipv4Addr| DnsEntry::Ipv4 {
-            hostname: domain_name_unchecked(&format!("xmpp.{server_domain}")),
+            hostname: pod_fqdn.clone(),
             ipv4,
         };
         let aaaa = |ipv6: Ipv6Addr| DnsEntry::Ipv6 {
-            hostname: domain_name_unchecked(&format!("xmpp.{server_domain}")),
+            hostname: pod_fqdn.clone(),
             ipv6,
         };
-        let srv_c2s = |target: String| DnsEntry::SrvC2S {
-            hostname: domain_name_unchecked(&server_domain),
-            target: domain_name_unchecked(&target),
+        let srv_c2s = |target: DomainName| DnsEntry::SrvC2S {
+            hostname: server_domain.clone(),
+            target,
         };
-        let srv_s2s = |target: String| DnsEntry::SrvS2S {
-            hostname: domain_name_unchecked(&server_domain),
-            target: domain_name_unchecked(&target),
+        let srv_s2s = |target: DomainName| DnsEntry::SrvS2S {
+            hostname: server_domain.clone(),
+            target,
         };
 
         // === Helpers to create DNS setup steps ===
@@ -70,34 +77,36 @@ impl PodNetworkConfig {
             .flatten()
             .collect(),
         };
-        let step_c2s = |target: String| DnsSetupStep {
+        let step_c2s = |target: &DomainName| DnsSetupStep {
             purpose: "let clients connect to your server".to_string(),
-            records: vec![srv_c2s(target)],
+            records: vec![srv_c2s(
+                target.clone(),
+            )],
         };
-        let step_s2s = |target: String| DnsSetupStep {
+        let step_s2s = |target: &DomainName| DnsSetupStep {
             purpose: "let servers connect to your server".to_string(),
-            records: vec![srv_s2s(target)],
+            records: vec![srv_s2s(
+                target.clone(),
+            )],
         };
 
         // === Main logic ===
 
         match pod_address {
             NetworkAddress::Static { ipv4, ipv6 } => {
-                let mut entries = vec![
-                    step_static_ip(ipv4, ipv6),
-                    step_c2s(format!("xmpp.{server_domain}.")),
-                ];
+                let mut entries = Vec::with_capacity(3);
+                entries.push(step_static_ip(ipv4, ipv6));
+                entries.push(step_c2s(pod_fqdn));
                 if self.federation_enabled {
-                    entries.push(step_s2s(format!("xmpp.{server_domain}.")));
+                    entries.push(step_s2s(pod_fqdn));
                 }
                 entries
             }
-            NetworkAddress::Dynamic { hostname } => {
-                let mut entries = vec![step_c2s(
-                    format!("{hostname}."),
-                )];
+            NetworkAddress::Dynamic { .. } => {
+                let mut entries = Vec::with_capacity(2);
+                entries.push(step_c2s(pod_fqdn));
                 if self.federation_enabled {
-                    entries.push(step_s2s(format!("{hostname}.")));
+                    entries.push(step_s2s(pod_fqdn));
                 }
                 entries
             }
@@ -134,10 +143,7 @@ impl PodNetworkConfig {
     /// "Ports reachability" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     #[instrument(level = "trace", skip_all)]
     pub fn port_reachability_checks(&self) -> Vec<PortReachabilityCheck> {
-        let Self { server_domain, .. } = self;
-        // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
-        let server_domain = &DomainName::from_str(server_domain)
-            .expect(&format!("Invalid domain name: {server_domain}"));
+        let server_domain = self.server_domain.as_fqdn();
 
         let mut checks = vec![
             PortReachabilityCheck::Xmpp {
@@ -161,45 +167,80 @@ impl PodNetworkConfig {
     /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     #[instrument(level = "trace", skip_all)]
     pub fn ip_connectivity_checks(&self) -> Vec<IpConnectivityCheck> {
-        let Self {
-            server_domain,
-            pod_address,
-            ..
-        } = self;
-        // NOTE: Because of how data is modeled, sometimes we are sure this will never fail.
-        let server_domain = &DomainName::from_str(server_domain)
-            .expect(&format!("Invalid domain name: {server_domain}"));
+        let ref server_domain = self.server_domain.as_fqdn();
 
-        let hostname = match pod_address {
-            NetworkAddress::Static { .. } => server_domain,
-            NetworkAddress::Dynamic { hostname } => hostname,
-        };
-
-        let mut checks = vec![
-            IpConnectivityCheck::XmppServer {
-                hostname: hostname.clone(),
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V4,
-            },
-            IpConnectivityCheck::XmppServer {
-                hostname: hostname.clone(),
-                conn_type: XmppConnectionType::C2S,
-                ip_version: IpVersion::V6,
-            },
-        ];
+        let mut checks: Vec<IpConnectivityCheck> = Vec::with_capacity(4);
+        checks.push(IpConnectivityCheck::XmppServer {
+            server_domain: server_domain.clone(),
+            conn_type: XmppConnectionType::C2S,
+            ip_version: IpVersion::V4,
+        });
+        checks.push(IpConnectivityCheck::XmppServer {
+            server_domain: server_domain.clone(),
+            conn_type: XmppConnectionType::C2S,
+            ip_version: IpVersion::V6,
+        });
         if self.federation_enabled {
             checks.push(IpConnectivityCheck::XmppServer {
-                hostname: hostname.clone(),
+                server_domain: server_domain.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V4,
             });
             checks.push(IpConnectivityCheck::XmppServer {
-                hostname: hostname.clone(),
+                server_domain: server_domain.clone(),
                 conn_type: XmppConnectionType::S2S,
                 ip_version: IpVersion::V6,
             });
         }
 
         checks
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NetworkAddress {
+    Static {
+        ipv4: Option<Ipv4Addr>,
+        ipv6: Option<Ipv6Addr>,
+    },
+    Dynamic {
+        domain: DomainName,
+    },
+}
+
+impl From<PodAddress> for NetworkAddress {
+    fn from(address: PodAddress) -> Self {
+        match (address.domain, address.ipv4, address.ipv6) {
+            (Some(domain), _, _) => Self::Dynamic { domain },
+            (None, None, None) => unreachable!("`PodAddress`es shouldn’t be constructed manually"),
+            (None, ipv4, ipv6) => Self::Static { ipv4, ipv6 },
+        }
+    }
+}
+
+impl PodConfig {
+    pub fn network_address(&self) -> NetworkAddress {
+        NetworkAddress::from(self.address.clone())
+    }
+}
+
+impl ToString for NetworkAddress {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Dynamic { domain } => domain.to_string(),
+
+            Self::Static {
+                ipv6: Some(ipv6), ..
+            } => ipv6.to_string(),
+
+            Self::Static {
+                ipv4: Some(ipv4), ..
+            } => ipv4.to_string(),
+
+            Self::Static {
+                ipv4: None,
+                ipv6: None,
+            } => unreachable!("IPv4 or IPv6 must be defined by this point."),
+        }
     }
 }

@@ -33,8 +33,6 @@ paths:
 
   # ===== Server config =====
   "/v1/server/config":
-    put: { $ref: "features/server-config.yaml#/paths/init_server_config" }
-    head: { $ref: "features/server-config.yaml#/paths/is_server_initialized" }
     get: { $ref: "features/server-config.yaml#/paths/get_server_config" }
   # === File upload ===
   "/v1/server/config/files":
@@ -96,14 +94,10 @@ paths:
 
   # ===== Pod config =====
   "/v1/pod/config":
-    put: { $ref: "features/pod-config.yaml#/paths/init_pod_config" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":
-    put: { $ref: "features/pod-config.yaml#/paths/set_pod_address" }
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
-    patch: { $ref: "features/pod-config.yaml#/paths/patch_pod_address" }
   "/v1/pod/config/dashboard-url":
-    put: { $ref: "features/pod-config.yaml#/paths/set_dashboard_url" }
     get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }
 
   # ===== Workspace =====
@@ -164,6 +158,8 @@ paths:
   # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
+  "/reload":
+    post: { $ref: "features/reload.yaml#/paths/reload" }
 
   # ===== Miscellaneous =====
   "/version":

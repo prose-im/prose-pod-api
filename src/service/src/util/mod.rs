@@ -12,7 +12,7 @@ pub mod either;
 mod sea_orm;
 mod unaccent;
 
-use crate::models::jid::{self, BareJid, DomainRef, NodePart, JID};
+use crate::models::jid::{BareJid, DomainRef, NodeRef};
 
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
@@ -21,18 +21,8 @@ pub use self::deserialize_some::*;
 pub use self::detect_mime_type::*;
 pub use self::unaccent::*;
 
-pub fn to_bare_jid(jid: &JID) -> Result<BareJid, jid::Error> {
-    BareJid::new(jid.to_string().as_str())
-}
-
-pub fn bare_jid_from_username(
-    username: &str,
-    server_domain: &DomainRef,
-) -> Result<BareJid, String> {
-    Ok(BareJid::from_parts(
-        Some(&NodePart::new(username).map_err(|err| format!("Invalid username: {err}"))?),
-        &server_domain,
-    ))
+pub fn bare_jid_from_username(username: &NodeRef, server_domain: &DomainRef) -> BareJid {
+    BareJid::from_parts(Some(username), server_domain)
 }
 
 #[macro_export]
@@ -72,8 +62,8 @@ macro_rules! wrapper_type {
         }
 
         impl From<$t> for $wrapper {
-            fn from(bare_jid: $t) -> Self {
-                Self(bare_jid)
+            fn from(inner: $t) -> Self {
+                Self(inner)
             }
         }
 

@@ -20,7 +20,7 @@ use lettre::{
 use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
-    app_config::{ConfigBranding, MissingConfiguration},
+    app_config::{BrandingConfig, MissingConfiguration},
     models::EmailAddress,
     AppConfig,
 };
@@ -177,11 +177,11 @@ impl EmailNotification {
     }
 }
 
-impl crate::app_config::ConfigNotifyEmail {
+impl crate::app_config::NotifyEmailConfig {
     pub fn pod_address(&self) -> Address {
         self.pod_address.email().parse().expect("`pod_address` was parsed to a valid `email_address::EmailAddress` but it's invalid according to `lettre`.")
     }
-    pub fn pod_mailbox(&self, branding: &ConfigBranding) -> Mailbox {
+    pub fn pod_mailbox(&self, branding: &BrandingConfig) -> Mailbox {
         Mailbox::new(Some(branding.page_title.clone()), self.pod_address())
     }
 }

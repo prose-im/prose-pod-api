@@ -19,7 +19,7 @@ lazy_static! {
     );
 }
 
-pub(super) fn router() -> axum::Router {
+pub(crate) fn router() -> axum::Router {
     axum::Router::new()
         .route("/version", get(get_api_version_route))
         .route("/v1/version", get(get_api_version_route))

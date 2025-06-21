@@ -3,20 +3,19 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::time::SystemTime;
+use std::{
+    sync::{Arc, RwLock},
+    time::SystemTime,
+};
 
-use sea_orm::DatabaseConnection;
 use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
-use crate::{
-    auth::AuthService, secrets::SecretsStore, server_config::ServerConfigRepository, AppConfig,
-};
+use crate::{auth::AuthService, secrets::SecretsStore, AppConfig};
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    pub app_config: AppConfig,
-    pub db: DatabaseConnection,
+    pub app_config: Arc<RwLock<AppConfig>>,
     pub secrets_store: SecretsStore,
     pub auth_service: AuthService,
 }
@@ -25,12 +24,11 @@ pub struct Context {
 pub async fn run(
     Context {
         ref app_config,
-        ref db,
         ref secrets_store,
         ref auth_service,
     }: Context,
 ) {
-    let oauth2_tokens_ttl = (app_config.auth.token_ttl.num_seconds())
+    let oauth2_tokens_ttl = (app_config.read().unwrap().auth.token_ttl.num_seconds())
         .expect("`app_config.auth.token_ttl` contains years or months. Not supported.");
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
@@ -86,20 +84,7 @@ pub async fn run(
 
         info!("Refreshing service accounts tokens…");
 
-        let server_config = match ServerConfigRepository::get(db).await {
-            Ok(Some(server_config)) => server_config,
-            Ok(None) => {
-                info!("Not refreshing service accounts tokens: Server config not initialized.");
-                continue;
-            }
-            Err(err) => {
-                error!("Could not refresh service accounts tokens: {err}");
-                continue;
-            }
-        };
-        let domain = server_config.domain;
-
-        let service_accounts = vec![app_config.workspace_jid(&domain)];
+        let service_accounts = vec![app_config.read().unwrap().workspace_jid()];
 
         for jid in service_accounts.iter() {
             let Some(password) = secrets_store.get_service_account_password(jid) else {
@@ -136,7 +121,6 @@ impl From<super::CronContext> for Context {
     fn from(value: super::CronContext) -> Self {
         Self {
             app_config: value.app_config,
-            db: value.db,
             secrets_store: value.secrets_store,
             auth_service: value.auth_service,
         }

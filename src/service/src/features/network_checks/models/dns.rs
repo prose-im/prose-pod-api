@@ -77,7 +77,13 @@ impl ToString for DnsRecord {
                 weight,
                 port,
                 target,
-            } => format!("{hostname} {ttl} IN SRV {priority} {weight} {port} {target}"),
+            } => {
+                let mut target = target.to_string();
+                if target.as_bytes().last() != Some(&b'.') {
+                    target.push('.');
+                }
+                format!("{hostname} {ttl} IN SRV {priority} {weight} {port} {target}")
+            }
         }
     }
 }

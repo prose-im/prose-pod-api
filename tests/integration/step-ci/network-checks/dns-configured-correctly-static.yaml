@@ -11,7 +11,6 @@ before:
   name: "Before all (not a test)"
   steps:
     - $ref: "init.yaml#/components/steps/log_admin_in"
-    - $ref: "pod-config.yaml#/components/steps/init_pod_address_static"
 
 tests:
   checkDnsRecords:

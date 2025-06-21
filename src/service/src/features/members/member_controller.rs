@@ -153,7 +153,7 @@ pub fn enrich_members_stream(
     app_config: &AppConfig,
 ) -> Receiver<Result<Option<EnrichedMember>, anyhow::Error>> {
     let member_service = Arc::new(member_service);
-    let runner = ConcurrentTaskRunner::default(&app_config);
+    let runner = ConcurrentTaskRunner::default(app_config);
 
     let cancellation_token = member_service.cancellation_token.clone();
     runner.run(

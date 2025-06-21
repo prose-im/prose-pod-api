@@ -3,6 +3,8 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::{Arc, RwLock};
+
 use chrono::Utc;
 use sea_orm::DatabaseConnection;
 use tokio::time::{interval, Duration, MissedTickBehavior};
@@ -15,7 +17,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    pub app_config: AppConfig,
+    pub app_config: Arc<RwLock<AppConfig>>,
     pub db: DatabaseConnection,
 }
 
@@ -26,9 +28,11 @@ pub async fn run(
         ref db,
     }: Context,
 ) {
-    let tokens_ttl = (app_config.auth.password_reset_token_ttl.num_seconds()).expect(
-        "`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.",
-    );
+    let tokens_ttl = (app_config.read().unwrap().auth.password_reset_token_ttl)
+        .num_seconds()
+        .expect(
+            "`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.",
+        );
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
     if tokens_ttl == 0. {

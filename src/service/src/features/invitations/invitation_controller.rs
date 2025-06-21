@@ -11,7 +11,7 @@ use crate::{
     members::MemberRole,
     models::{Paginated, Pagination, PaginationForm},
     notifications::NotificationService,
-    util::{either::Either, to_bare_jid},
+    util::either::Either,
     workspace::WorkspaceService,
     AppConfig,
 };
@@ -111,7 +111,7 @@ pub struct WorkspaceInvitationBasicDetails {
 impl From<workspace_invitation::Model> for WorkspaceInvitationBasicDetails {
     fn from(value: workspace_invitation::Model) -> Self {
         Self {
-            jid: to_bare_jid(&value.jid).unwrap(),
+            jid: value.jid.into(),
             pre_assigned_role: value.pre_assigned_role,
         }
     }
