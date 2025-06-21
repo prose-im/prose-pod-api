@@ -4,7 +4,7 @@
 
 **Prose Pod API server. REST API used for administration and management.**
 
-Copyright 2022-2024, Prose Foundation - Released under the [Mozilla Public License 2.0](./LICENSE.md).
+Copyright 2022-2025, Prose Foundation - Released under the [Mozilla Public License 2.0](./LICENSE.md).
 
 _Tested at Rust version: `rustc 1.87.0 (17067e9ac 2025-05-09)`_
 
