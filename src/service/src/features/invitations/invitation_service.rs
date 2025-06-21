@@ -61,7 +61,7 @@ impl InvitationService {
         #[cfg(debug_assertions)] auto_accept: bool,
     ) -> Result<Invitation, InviteMemberError> {
         let form = form.into();
-        let jid = form.jid(server_domain)?;
+        let jid = form.jid(server_domain);
 
         if (InvitationRepository::get_by_jid(&self.db, &jid).await)
             .as_ref()
@@ -198,15 +198,13 @@ pub struct InviteMemberForm {
 }
 
 impl InviteMemberForm {
-    fn jid(&self, server_domain: &DomainRef) -> Result<BareJid, InviteMemberError> {
-        bare_jid_from_username(&self.username, server_domain).map_err(InviteMemberError::InvalidJid)
+    fn jid(&self, server_domain: &DomainRef) -> BareJid {
+        bare_jid_from_username(&self.username, server_domain)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum InviteMemberError {
-    #[error("Invalid JID: {0}")]
-    InvalidJid(String),
     #[error("Invitation already exists (choose a different username).")]
     InvitationConfict,
     #[error("Username already taken.")]

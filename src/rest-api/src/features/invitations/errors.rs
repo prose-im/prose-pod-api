@@ -81,7 +81,6 @@ impl HttpApiError for InvitationResendError {
 impl HttpApiError for InviteMemberError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::InvalidJid(_) => ErrorCode::BAD_REQUEST,
             Self::InvitationConfict => ErrorCode::INVITATION_ALREADY_EXISTS,
             Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
             #[cfg(debug_assertions)]
