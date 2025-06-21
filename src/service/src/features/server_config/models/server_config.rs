@@ -8,7 +8,7 @@ use prosody_config::ProsodySettings;
 use serde_with::{serde_as, DefaultOnError};
 
 use crate::{
-    app_config::ConfigServerDefaults,
+    app_config::ServerConfigDefaults,
     models::{durations::*, sea_orm::LinkedStringSet, JidDomain, Lua},
     AppConfig,
 };
@@ -125,7 +125,7 @@ impl ServerConfig {
         let ref static_server_config = app_config.server;
 
         // NOTE: Destructure so the compiler ensures we will never miss using a field.
-        let ConfigServerDefaults {
+        let ServerConfigDefaults {
             message_archive_enabled,
             message_archive_retention,
             file_upload_allowed,

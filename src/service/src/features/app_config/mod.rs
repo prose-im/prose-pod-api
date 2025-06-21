@@ -60,24 +60,24 @@ pub type Config = AppConfig;
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
-    pub log: ConfigLog,
+    pub log: LogConfig,
     #[serde(default)]
-    pub service_accounts: ConfigServiceAccounts,
+    pub service_accounts: ServiceAccountsConfig,
     #[serde(default)]
-    pub bootstrap: ConfigBootstrap,
-    pub server: ConfigServer,
+    pub bootstrap: BootstrapConfig,
+    pub server: ServerConfig,
     #[serde(default)]
-    pub auth: ConfigAuth,
+    pub auth: AuthConfig,
     #[serde(default)]
-    pub prosody_ext: ConfigProsodyExt,
+    pub prosody_ext: ProsodyExtConfig,
     #[serde(default)]
     pub prosody: ProsodySettings,
     #[serde(default)]
-    pub branding: ConfigBranding,
+    pub branding: BrandingConfig,
     #[serde(default)]
-    pub notify: ConfigNotify,
+    pub notify: NotifyConfig,
     #[serde(default)]
-    pub databases: ConfigDatabases,
+    pub databases: DatabasesConfig,
     /// IP address to serve on.
     #[serde(default = "defaults::address")]
     pub address: IpAddr,
@@ -91,10 +91,10 @@ pub struct AppConfig {
     #[serde(default = "defaults::default_retry_interval")]
     pub default_retry_interval: Duration<TimeLike>,
     #[serde(default, rename = "debug_use_at_your_own_risk")]
-    pub debug: ConfigDebug,
+    pub debug: DebugConfig,
     #[cfg(debug_assertions)]
     #[serde(default)]
-    pub debug_only: ConfigDebugOnly,
+    pub debug_only: DebugOnlyConfig,
 }
 
 impl AppConfig {
@@ -144,7 +144,7 @@ impl AppConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigLog {
+pub struct LogConfig {
     #[serde(default = "defaults::log_level")]
     pub level: LogLevel,
     #[serde(default = "defaults::log_format")]
@@ -169,7 +169,7 @@ pub struct ConfigLog {
     pub with_thread_names: bool,
 }
 
-impl Default for ConfigLog {
+impl Default for LogConfig {
     fn default() -> Self {
         Self {
             level: defaults::log_level(),
@@ -221,14 +221,14 @@ pub enum LogTimer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigServiceAccounts {
+pub struct ServiceAccountsConfig {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
-    pub prose_pod_api: ConfigServiceAccount,
+    pub prose_pod_api: ServiceAccountConfig,
     #[serde(default = "defaults::service_accounts_prose_workspace")]
-    pub prose_workspace: ConfigServiceAccount,
+    pub prose_workspace: ServiceAccountConfig,
 }
 
-impl Default for ConfigServiceAccounts {
+impl Default for ServiceAccountsConfig {
     fn default() -> Self {
         Self {
             prose_pod_api: defaults::service_accounts_prose_pod_api(),
@@ -238,17 +238,17 @@ impl Default for ConfigServiceAccounts {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigServiceAccount {
+pub struct ServiceAccountConfig {
     pub xmpp_node: JidNode,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigBootstrap {
+pub struct BootstrapConfig {
     #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
     pub prose_pod_api_xmpp_password: SecretString,
 }
 
-impl Default for ConfigBootstrap {
+impl Default for BootstrapConfig {
     fn default() -> Self {
         Self {
             prose_pod_api_xmpp_password: defaults::bootstrap_prose_pod_api_xmpp_password(),
@@ -257,7 +257,7 @@ impl Default for ConfigBootstrap {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigServer {
+pub struct ServerConfig {
     pub domain: JidDomain,
     #[serde(default = "defaults::server_local_hostname")]
     pub local_hostname: String,
@@ -268,10 +268,10 @@ pub struct ConfigServer {
     #[serde(default = "defaults::server_log_level")]
     pub log_level: prosody_config::LogLevel,
     #[serde(default)]
-    pub defaults: ConfigServerDefaults,
+    pub defaults: ServerConfigDefaults,
 }
 
-impl ConfigServer {
+impl ServerConfig {
     pub fn oauth2_api_url(&self) -> String {
         format!("http://{}:{}/oauth2", self.local_hostname, self.http_port)
     }
@@ -293,7 +293,7 @@ impl ConfigServer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigAuth {
+pub struct AuthConfig {
     #[serde(default = "defaults::auth_token_ttl")]
     pub token_ttl: iso8601_duration::Duration,
     #[serde(default = "defaults::auth_password_reset_token_ttl")]
@@ -302,7 +302,7 @@ pub struct ConfigAuth {
     pub oauth2_registration_key: SecretString,
 }
 
-impl Default for ConfigAuth {
+impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             token_ttl: defaults::auth_token_ttl(),
@@ -316,7 +316,7 @@ impl Default for ConfigAuth {
 ///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
 ///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigProsodyExt {
+pub struct ProsodyExtConfig {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
     /// NOTE: Those modules will be added to `modules_enabled` after everything
@@ -326,7 +326,7 @@ pub struct ConfigProsodyExt {
     pub additional_modules_enabled: Vec<String>,
 }
 
-impl Default for ConfigProsodyExt {
+impl Default for ProsodyExtConfig {
     fn default() -> Self {
         Self {
             config_file_path: defaults::prosody_config_file_path(),
@@ -336,7 +336,7 @@ impl Default for ConfigProsodyExt {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigServerDefaults {
+pub struct ServerConfigDefaults {
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
     pub file_upload_allowed: bool,
@@ -353,7 +353,7 @@ pub struct ConfigServerDefaults {
     pub push_notification_with_sender: bool,
 }
 
-impl Default for ConfigServerDefaults {
+impl Default for ServerConfigDefaults {
     fn default() -> Self {
         Self {
             message_archive_enabled: defaults::server_defaults_message_archive_enabled(),
@@ -377,14 +377,14 @@ impl Default for ConfigServerDefaults {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigBranding {
+pub struct BrandingConfig {
     #[serde(default = "defaults::branding_page_title")]
     pub page_title: String,
     #[serde(default)]
     pub company_name: Option<String>,
 }
 
-impl Default for ConfigBranding {
+impl Default for BrandingConfig {
     fn default() -> Self {
         Self {
             page_title: defaults::branding_page_title(),
@@ -400,15 +400,15 @@ impl Default for InvitationChannel {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct ConfigNotify {
+pub struct NotifyConfig {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
     pub workspace_invitation_channel: InvitationChannel,
     #[serde(default)]
-    pub email: Option<ConfigNotifyEmail>,
+    pub email: Option<NotifyEmailConfig>,
 }
 
-impl ConfigNotify {
-    pub fn email<'a>(&'a self) -> Result<&'a ConfigNotifyEmail, MissingConfiguration> {
+impl NotifyConfig {
+    pub fn email<'a>(&'a self) -> Result<&'a NotifyEmailConfig, MissingConfiguration> {
         match self.email {
             Some(ref conf) => Ok(conf),
             None => Err(MissingConfiguration("notify.email")),
@@ -417,7 +417,7 @@ impl ConfigNotify {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigNotifyEmail {
+pub struct NotifyEmailConfig {
     pub pod_address: EmailAddress,
 
     #[serde(default = "defaults::notify_email_smtp_host")]
@@ -434,12 +434,12 @@ pub struct ConfigNotifyEmail {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigDatabases {
+pub struct DatabasesConfig {
     #[serde(default = "defaults::databases_main")]
-    pub main: ConfigDatabase,
+    pub main: DatabaseConfig,
 }
 
-impl Default for ConfigDatabases {
+impl Default for DatabasesConfig {
     fn default() -> Self {
         Self {
             main: defaults::databases_main(),
@@ -449,7 +449,7 @@ impl Default for ConfigDatabases {
 
 /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigDatabase {
+pub struct DatabaseConfig {
     pub url: String,
     #[serde(default)]
     pub min_connections: Option<u32>,
@@ -464,7 +464,7 @@ pub struct ConfigDatabase {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ConfigDebug {
+pub struct DebugConfig {
     #[serde(default = "defaults::true_in_debug")]
     pub log_config_at_startup: bool,
     #[serde(default = "defaults::true_in_debug")]
@@ -473,7 +473,7 @@ pub struct ConfigDebug {
     pub c2s_unencrypted: bool,
 }
 
-impl Default for ConfigDebug {
+impl Default for DebugConfig {
     fn default() -> Self {
         Self {
             log_config_at_startup: defaults::true_in_debug(),
@@ -485,13 +485,13 @@ impl Default for ConfigDebug {
 
 #[cfg(debug_assertions)]
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct ConfigDebugOnly {
+pub struct DebugOnlyConfig {
     /// When automatically accepting invitations during testing, one might want to authenticate
     /// the created member. With this flag turned on, the member's password will be their JID.
     #[serde(default)]
     pub insecure_password_on_auto_accept_invitation: bool,
     #[serde(default)]
-    pub dependency_modes: ConfigDependencyModes,
+    pub dependency_modes: DependencyModesConfig,
     #[serde(default)]
     pub skip_startup_actions: HashSet<String>,
 }
@@ -528,7 +528,7 @@ impl Default for NotifierDependencyMode {
 
 #[cfg(debug_assertions)]
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct ConfigDependencyModes {
+pub struct DependencyModesConfig {
     #[serde(default)]
     pub uuid: UuidDependencyMode,
     #[serde(default)]
