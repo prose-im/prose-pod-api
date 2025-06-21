@@ -11,20 +11,20 @@ use crate::{
     members::MemberRole,
     models::{Paginated, Pagination, PaginationForm},
     notifications::NotificationService,
-    util::either::Either,
+    util::either::{Either, Either3},
     workspace::WorkspaceService,
     AppConfig,
 };
 
 use super::{
     entities::workspace_invitation, CannotAcceptInvitation, Invitation, InvitationAcceptForm,
-    InvitationId, InvitationRejectError, InvitationResendError, InvitationService, InvitationToken,
-    InvitationTokenType, InviteMemberError, InviteMemberForm,
+    InvitationExpired, InvitationId, InvitationResendError, InvitationService, InvitationToken,
+    InvitationTokenType, InviteMemberError, InviteMemberForm, NoInvitationForToken,
 };
 
 #[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct InvitationNotFound(String);
+#[error("No invitation with id '{0}'.")]
+pub struct InvitationNotFound(InvitationId);
 
 // MARK: CREATE
 
@@ -95,9 +95,7 @@ pub async fn get_invitation(
 ) -> Result<Invitation, Either<InvitationNotFound, anyhow::Error>> {
     match invitation_service.get(&invitation_id).await {
         Ok(Some(invitation)) => Ok(invitation),
-        Ok(None) => Err(Either::E1(InvitationNotFound(format!(
-            "No invitation with id '{invitation_id}'.",
-        )))),
+        Ok(None) => Err(Either::E1(InvitationNotFound(invitation_id))),
         Err(err) => Err(Either::E2(anyhow!(err).context("Database error"))),
     }
 }
@@ -124,18 +122,18 @@ pub async fn get_invitation_by_token(
     token: InvitationToken,
     token_type: InvitationTokenType,
     invitation_service: &InvitationService,
-) -> Result<WorkspaceInvitationBasicDetails, Either<InvitationNotFound, anyhow::Error>> {
+) -> Result<
+    WorkspaceInvitationBasicDetails,
+    Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>,
+> {
     let res = match token_type {
         InvitationTokenType::Accept => invitation_service.get_by_accept_token(token).await,
         InvitationTokenType::Reject => invitation_service.get_by_reject_token(token).await,
     };
 
     match res {
-        Ok(Some(invitation)) => Ok(invitation.into()),
-        Ok(None) => Err(Either::E1(InvitationNotFound(
-            "No invitation found for provided token.".to_string(),
-        ))),
-        Err(err) => Err(Either::E2(err)),
+        Ok(invitation) => Ok(invitation.into()),
+        Err(err) => Err(err),
     }
 }
 
@@ -199,8 +197,9 @@ pub async fn invitation_reject(
 ) -> anyhow::Result<()> {
     match invitation_service.reject_by_token(token).await {
         Ok(()) => Ok(()),
-        Err(InvitationRejectError::InvitationNotFound) => Ok(()),
-        Err(InvitationRejectError::Internal(err)) => Err(err),
+        Err(Either3::E1(NoInvitationForToken)) => Ok(()),
+        Err(Either3::E2(InvitationExpired)) => Ok(()),
+        Err(Either3::E3(err)) => Err(err),
     }
 }
 

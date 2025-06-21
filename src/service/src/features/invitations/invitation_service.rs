@@ -18,7 +18,7 @@ use crate::{
     members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
     notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
-    util::bare_jid_from_username,
+    util::{bare_jid_from_username, either::Either3},
     workspace::WorkspaceService,
     xmpp::{BareJid, JidNode},
     AppConfig,
@@ -279,14 +279,22 @@ impl InvitationService {
     pub async fn get_by_accept_token(
         &self,
         token: InvitationToken,
-    ) -> anyhow::Result<Option<Invitation>> {
-        (InvitationRepository::get_by_accept_token(&self.db, token).await).context("Database error")
+    ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
+        match InvitationRepository::get_by_accept_token(&self.db, token).await? {
+            Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
+            Some(invitation) => Ok(invitation),
+            None => Err(Either3::E1(NoInvitationForToken)),
+        }
     }
     pub async fn get_by_reject_token(
         &self,
         token: InvitationToken,
-    ) -> anyhow::Result<Option<Invitation>> {
-        (InvitationRepository::get_by_reject_token(&self.db, token).await).context("Database error")
+    ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
+        match InvitationRepository::get_by_reject_token(&self.db, token).await? {
+            Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
+            Some(invitation) => Ok(invitation),
+            None => Err(Either3::E1(NoInvitationForToken)),
+        }
     }
 }
 
@@ -298,13 +306,12 @@ impl InvitationService {
     ) -> Result<(), CannotAcceptInvitation> {
         // NOTE: We don't check that the invitation status is "SENT"
         //   because it would cause a lot of useless edge cases.
-        let invitation = (self.get_by_accept_token(token.clone()).await)?
-            .ok_or(CannotAcceptInvitation::InvitationNotFound)?;
+        let invitation = self.get_by_accept_token(token.clone()).await?;
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.accept_token);
 
         if invitation.is_expired() {
-            return Err(CannotAcceptInvitation::ExpiredAcceptToken);
+            return Err(CannotAcceptInvitation::from(InvitationExpired));
         }
 
         // Check if JID is already taken (in which case the member cannot be created).
@@ -330,11 +337,19 @@ pub struct InvitationAcceptForm {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[error("Invitation expired.")]
+pub struct InvitationExpired;
+
+#[derive(Debug, thiserror::Error)]
+#[error("No invitation found for provided token.")]
+pub struct NoInvitationForToken;
+
+#[derive(Debug, thiserror::Error)]
 pub enum CannotAcceptInvitation {
-    #[error("No invitation found for provided token.")]
-    InvitationNotFound,
-    #[error("Invitation accept token has expired.")]
-    ExpiredAcceptToken,
+    #[error("{0}")]
+    InvitationNotFound(#[from] NoInvitationForToken),
+    #[error("{0}")]
+    InvitationExpired(#[from] InvitationExpired),
     #[error("Member already exists (JID already taken).")]
     MemberAlreadyExists,
     #[error("{0}")]
@@ -347,13 +362,10 @@ impl InvitationService {
     pub async fn reject_by_token(
         &self,
         token: InvitationToken,
-    ) -> Result<(), InvitationRejectError> {
+    ) -> Result<(), Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
         // NOTE: We don't check that the invitation status is "SENT"
         //   because it would cause a lot of useless edge cases.
-        let invitation = self
-            .get_by_reject_token(token.clone())
-            .await?
-            .ok_or(InvitationRejectError::InvitationNotFound)?;
+        let invitation = self.get_by_reject_token(token.clone()).await?;
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.reject_token);
 
@@ -361,14 +373,6 @@ impl InvitationService {
 
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum InvitationRejectError {
-    #[error("No invitation found for provided token.")]
-    InvitationNotFound,
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
 }
 
 impl InvitationService {
@@ -420,5 +424,20 @@ impl InvitationService {
             .context("Database error")?;
 
         Ok(())
+    }
+}
+
+// MARK: - Boilerplate
+
+impl<E1, E2, E3> From<Either3<E1, E2, E3>> for CannotAcceptInvitation
+where
+    CannotAcceptInvitation: From<E1> + From<E2> + From<E3>,
+{
+    fn from(value: Either3<E1, E2, E3>) -> Self {
+        match value {
+            Either3::E1(val) => Self::from(val),
+            Either3::E2(val) => Self::from(val),
+            Either3::E3(val) => Self::from(val),
+        }
     }
 }

@@ -7,7 +7,7 @@ use service::{
     app_config::MissingConfiguration,
     invitations::{
         invitation_controller::InvitationNotFound, CannotAcceptInvitation, InvitationAcceptError,
-        InvitationResendError, InviteMemberError,
+        InvitationExpired, InvitationResendError, InviteMemberError, NoInvitationForToken,
     },
     notifications::notifier::email::EmailNotificationCreateError,
 };
@@ -15,6 +15,11 @@ use service::{
 use crate::error::prelude::*;
 
 impl ErrorCode {
+    const INVITATION_NOT_FOUND: Self = Self {
+        value: "invitation_not_found",
+        http_status: StatusCode::NOT_FOUND,
+        log_level: LogLevel::Info,
+    };
     const INVITATION_ALREADY_EXISTS: Self = Self {
         value: "invitation_already_exists",
         http_status: StatusCode::CONFLICT,
@@ -29,11 +34,7 @@ impl ErrorCode {
 
 impl HttpApiError for InvitationNotFound {
     fn code(&self) -> ErrorCode {
-        ErrorCode {
-            value: "invitation_not_found",
-            http_status: StatusCode::NOT_FOUND,
-            log_level: LogLevel::Info,
-        }
+        ErrorCode::INVITATION_NOT_FOUND
     }
 }
 
@@ -49,12 +50,24 @@ impl HttpApiError for InvitationAcceptError {
 impl HttpApiError for CannotAcceptInvitation {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound => ErrorCode::UNAUTHORIZED,
-            Self::ExpiredAcceptToken => ErrorCode::NOT_FOUND,
+            Self::InvitationNotFound(err) => err.code(),
+            Self::InvitationExpired(err) => err.code(),
             Self::MemberAlreadyExists => ErrorCode::MEMBER_ALREADY_EXISTS,
             Self::AcceptError(err) => err.code(),
             Self::Internal(err) => err.code(),
         }
+    }
+}
+
+impl HttpApiError for NoInvitationForToken {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INVITATION_NOT_FOUND
+    }
+}
+
+impl HttpApiError for InvitationExpired {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INVITATION_NOT_FOUND
     }
 }
 
@@ -72,7 +85,7 @@ impl HttpApiError for EmailNotificationCreateError {
 impl HttpApiError for InvitationResendError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound(_) => ErrorCode::NOT_FOUND,
+            Self::InvitationNotFound(_) => ErrorCode::INVITATION_NOT_FOUND,
             Self::Internal(err) => err.code(),
         }
     }

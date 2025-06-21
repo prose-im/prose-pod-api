@@ -141,6 +141,7 @@ Feature: Inviting members
         And the invitation has already expired
        When <remi@prose.org> accepts their invitation
        Then the HTTP status code should be Not Found
+        And the error code should be "invitation_not_found"
 
   """
   By default, an invitation is valid for 3 days.
@@ -181,7 +182,8 @@ Feature: Inviting members
       Given <remi@prose.org> has been invited via email
         And an admin resent the invitation
        When <remi@prose.org> uses the previous invitation accept link they received
-       Then the HTTP status code should be Unauthorized
+       Then the HTTP status code should be Not Found
+        And the error code should be "invitation_not_found"
 
   """
   Access logs already store this kind of operation,
@@ -259,6 +261,7 @@ Feature: Inviting members
         And an admin resent the invitation
        When <remi@prose.org> requests the invitation associated to their previous accept token
        Then the HTTP status code should be Not Found
+        And the error code should be "invitation_not_found"
 
   Rule: Invited members can choose their nickname when joining
 
