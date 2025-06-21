@@ -3,6 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use chrono::Utc;
 use sea_orm::{entity::prelude::*, ActiveValue::NotSet, Set};
 use uuid::Uuid;
 
@@ -43,6 +44,9 @@ impl Model {
                 email_address: self.email_address.clone().unwrap(),
             },
         }
+    }
+    pub fn is_expired(&self) -> bool {
+        self.accept_token_expires_at < Utc::now()
     }
 }
 

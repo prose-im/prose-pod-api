@@ -237,6 +237,7 @@ components:
         - pre_assigned_role
         - contact
         - accept_token_expires_at
+        - is_expired
       properties:
         accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
         contact: { $ref: "#/components/schemas/InvitationContact" }
@@ -245,14 +246,19 @@ components:
         jid: { $ref: "../shared.yaml#/components/schemas/JID" }
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
         status: { $ref: "#/components/schemas/InvitationStatus" }
+        is_expired:
+          type: boolean
     WorkspaceInvitationBasicDetails:
       type: object
       required:
         - jid
         - pre_assigned_role
+        - is_expired
       properties:
         jid: { $ref: "../shared.yaml#/components/schemas/JID" }
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+        is_expired:
+          type: boolean
     InvitationId:
       description: The unique identifier of an invitation.
       type: integer

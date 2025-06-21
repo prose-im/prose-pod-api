@@ -22,6 +22,7 @@ pub struct WorkspaceInvitationDto {
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
     pub accept_token_expires_at: DateTime<Utc>,
+    pub is_expired: bool,
 }
 
 // BOILERPLATE
@@ -36,6 +37,7 @@ impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvit
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
             accept_token_expires_at: value.accept_token_expires_at,
+            is_expired: value.is_expired(),
         }
     }
 }

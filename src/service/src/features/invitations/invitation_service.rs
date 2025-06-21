@@ -303,7 +303,7 @@ impl InvitationService {
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.accept_token);
 
-        if invitation.accept_token_expires_at < Utc::now() {
+        if invitation.is_expired() {
             return Err(CannotAcceptInvitation::ExpiredAcceptToken);
         }
 

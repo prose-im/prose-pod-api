@@ -106,11 +106,13 @@ pub async fn get_invitation(
 pub struct WorkspaceInvitationBasicDetails {
     pub jid: BareJid,
     pub pre_assigned_role: MemberRole,
+    pub is_expired: bool,
 }
 
 impl From<workspace_invitation::Model> for WorkspaceInvitationBasicDetails {
     fn from(value: workspace_invitation::Model) -> Self {
         Self {
+            is_expired: value.is_expired(),
             jid: value.jid.into(),
             pre_assigned_role: value.pre_assigned_role,
         }
