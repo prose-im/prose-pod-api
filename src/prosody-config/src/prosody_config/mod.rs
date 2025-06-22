@@ -88,7 +88,6 @@ impl ProsodyConfigSection {
 )]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub log: Option<LogConfig>,
     pub admins: Option<LinkedHashSet<BareJid>>,
     pub authentication: Option<AuthenticationProvider>,
@@ -441,6 +440,7 @@ pub enum Interface {
 
 /// See <https://prosody.im/doc/logging>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
 pub enum LogConfig {
     /// One value (file path, `"*syslog"` or `"*console"`).
     Raw(LogLevelValue),
