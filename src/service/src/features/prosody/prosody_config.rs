@@ -130,8 +130,8 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     .into_iter()
                     .collect(),
             )),
-            c2s_ports: Some(vec![5222]),
-            http_ports: Some(vec![app_config.server.http_port]),
+            c2s_ports: Some(vec![5222].into_iter().collect()),
+            http_ports: Some(vec![app_config.server.http_port].into_iter().collect()),
             modules_enabled: Some(
                 vec![
                     "auto_activate_hosts",

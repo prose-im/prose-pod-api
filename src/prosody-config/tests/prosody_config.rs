@@ -25,13 +25,13 @@ fn test_prose_default_config() {
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
             )),
-            interfaces: Some(vec![Interface::AllIPv4]),
-            c2s_ports: Some(vec![5222]),
-            s2s_ports: Some(vec![5269]),
-            http_ports: Some(vec![5280]),
-            http_interfaces: Some(vec![Interface::AllIPv4]),
-            https_ports: Some(vec![]),
-            https_interfaces: Some(vec![]),
+            interfaces: Some(vec![Interface::AllIPv4].into_iter().collect()),
+            c2s_ports: Some(vec![5222].into_iter().collect()),
+            s2s_ports: Some(vec![5269].into_iter().collect()),
+            http_ports: Some(vec![5280].into_iter().collect()),
+            http_interfaces: Some(vec![Interface::AllIPv4].into_iter().collect()),
+            https_ports: Some(Default::default()),
+            https_interfaces: Some(Default::default()),
             admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
             modules_enabled: Some(
                 vec![

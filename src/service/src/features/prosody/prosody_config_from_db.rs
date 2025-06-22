@@ -96,7 +96,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     if federation_enabled {
         global_settings.enable_module("s2s".to_owned());
         global_settings.enable_module("s2s_bidi".to_owned());
-        global_settings.s2s_ports = Some(vec![5269]);
+        global_settings.s2s_ports = Some(vec![5269].into_iter().collect());
         global_settings.s2s_require_encryption = Some(true);
         global_settings.s2s_secure_auth = Some(false);
         global_settings.limits.get_or_insert_default().insert(

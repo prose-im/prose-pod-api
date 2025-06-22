@@ -8,6 +8,7 @@ mod conversion;
 mod merge;
 
 use std::hash::Hash;
+use std::net::IpAddr;
 use std::path::PathBuf;
 
 use linked_hash_map::LinkedHashMap;
@@ -85,57 +86,87 @@ impl ProsodyConfigSection {
 )]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub log: Option<LogConfig>,
     pub admins: Option<LinkedHashSet<BareJid>>,
     pub authentication: Option<AuthenticationProvider>,
+
     pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,
-    pub storage_archive_item_limit: Option<u32>,
     pub storage_archive_item_limit_cache_size: Option<u32>,
     pub sql: Option<SqlConfig>,
     pub sql_manage_tables: Option<bool>,
     pub sqlite_tune: Option<SqliteTune>,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub log: Option<LogConfig>,
-    pub interfaces: Option<Vec<Interface>>,
-    pub c2s_ports: Option<Vec<u16>>,
-    pub s2s_ports: Option<Vec<u16>>,
-    pub http_ports: Option<Vec<u16>>,
-    pub http_interfaces: Option<Vec<Interface>>,
-    pub https_ports: Option<Vec<u16>>,
-    pub https_interfaces: Option<Vec<Interface>>,
+
     pub plugin_paths: Option<LinkedHashSet<String>>,
     pub modules_enabled: Option<LinkedHashSet<String>>,
     pub modules_disabled: Option<LinkedHashSet<String>>,
-    pub ssl: Option<SSLConfig>,
-    /// See <https://prosody.im/doc/creating_accounts#in-band_registration>.
-    pub allow_registration: Option<bool>,
+
+    pub interfaces: Option<LinkedHashSet<Interface>>,
+
+    pub c2s_direct_tls_ports: Option<LinkedHashSet<u16>>,
+    pub c2s_ports: Option<LinkedHashSet<u16>>,
+    pub c2s_timeout: Option<Duration<TimeLike>>,
+    pub c2s_close_timeout: Option<Duration<TimeLike>>,
     pub c2s_require_encryption: Option<bool>,
-    pub s2s_require_encryption: Option<bool>,
-    pub s2s_secure_auth: Option<bool>,
     pub c2s_stanza_size_limit: Option<Bytes>,
+    pub c2s_tcp_keepalives: Option<bool>,
+
+    pub s2s_ports: Option<LinkedHashSet<u16>>,
+    pub s2s_direct_tls_ports: Option<LinkedHashSet<u16>>,
+    pub s2s_secure_auth: Option<bool>,
+    pub s2s_allow_encryption: Option<bool>,
+    pub s2s_require_encryption: Option<bool>,
+    pub s2s_timeout: Option<Duration<TimeLike>>,
+    pub s2s_close_timeout: Option<Duration<TimeLike>>,
+    pub s2s_secure_domains: Option<LinkedHashSet<String>>,
+    pub s2s_insecure_domains: Option<LinkedHashSet<String>>,
     pub s2s_stanza_size_limit: Option<Bytes>,
+    pub s2s_send_queue_size: Option<Bytes>,
+    pub s2s_tcp_keepalives: Option<bool>,
+
     /// See <https://modules.prosody.im/mod_s2s_whitelist>.
     pub s2s_whitelist: Option<LinkedHashSet<String>>,
+
+    /// See <https://prosody.im/doc/advanced_ssl_config>.
+    pub ssl: Option<SSLConfig>,
+    /// See <https://prosody.im/doc/advanced_ssl_config#options>.
+    pub ssl_compression: Option<bool>,
+    pub ssl_ports: Option<LinkedHashSet<u16>>,
+
+    /// See <https://prosody.im/doc/creating_accounts#in-band_registration>.
+    pub allow_registration: Option<bool>,
+
+    pub http_default_host: Option<String>,
+    pub http_max_content_size: Option<Bytes>,
+    pub http_max_buffer_size: Option<Bytes>,
+    // TODO: pub http_cors_override: Option<LinkedHashMap<String, CorsConfig>>,
+    pub access_control_allow_methods: Option<LinkedHashSet<String>>,
+    pub access_control_allow_headers: Option<LinkedHashSet<String>>,
+    pub access_control_allow_origins: Option<LinkedHashSet<String>>,
+    pub access_control_allow_credentials: Option<bool>,
+    pub access_control_max_age: Option<Duration<TimeLike>>,
+    pub http_default_cors_enabled: Option<bool>,
+    pub http_paths: Option<LinkedHashSet<String>>,
+    pub http_host: Option<String>,
+    pub http_external_url: Option<String>,
+    pub http_ports: Option<LinkedHashSet<u16>>,
+    pub http_interfaces: Option<LinkedHashSet<Interface>>,
+    pub https_ports: Option<LinkedHashSet<u16>>,
+    pub https_interfaces: Option<LinkedHashSet<Interface>>,
+    pub trusted_proxies: Option<LinkedHashSet<IpAddr>>,
+    pub http_legacy_x_forwarded: Option<bool>,
+
+    /// See <https://prosody.im/doc/modules/mod_limits>.
     pub limits: Option<LinkedHashMap<ConnectionType, ConnectionLimits>>,
+    pub limits_resolution: Option<Duration<TimeLike>>,
+    pub unlimited_jids: Option<LinkedHashSet<BareJid>>,
+
     pub consider_websocket_secure: Option<bool>,
     pub cross_domain_websocket: Option<bool>,
     pub contact_info: Option<ContactInfo>,
-    pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
-    /// Controls whether messages are archived by default.
-    ///
-    /// See <https://prosody.im/doc/modules/mod_mam>.
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub default_archive_policy: Option<ArchivePolicy>,
-    /// The maxiumum number of messages returned to a client at a time.
-    /// Too low will cause excessive queries when clients try to fetch all messages,
-    /// too high may consume more resources on the server.
-    ///
-    /// See <https://prosody.im/doc/modules/mod_mam>.
-    pub max_archive_query_results: Option<u32>,
     pub upgrade_legacy_vcards: Option<bool>,
     pub groups_file: Option<PathBuf>,
-    pub http_host: Option<String>,
-    pub http_external_url: Option<String>,
     /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub restrict_room_creation: Option<RoomCreationRestriction>,
@@ -173,6 +204,40 @@ pub struct ProsodySettings {
     pub http_file_share_global_quota: Option<Bytes>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_access: Option<LinkedHashSet<BareJid>>,
+
+    /// The maxiumum number of messages returned to a client at a time.
+    /// Too low will cause excessive queries when clients try to fetch all messages,
+    /// too high may consume more resources on the server.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub max_archive_query_results: Option<u32>,
+    /// A list of XMPP namespaces that should not be archived.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub dont_archive_namespaces: Option<LinkedHashSet<String>>,
+    /// The name of the store that messages will be archived in. This should
+    /// **not** be changed unless you are upgrading from an earlier version.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub archive_store: Option<String>,
+    /// How long messages are stored in the archive for.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
+    pub storage_archive_item_limit: Option<u32>,
+    pub mam_include_total: Option<bool>,
+    pub archive_cleanup_date_cache_size: Option<u32>,
+    /// Controls whether messages are archived by default.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub default_archive_policy: Option<ArchivePolicy>,
+    /// Only enable archiving for users that have queried the archive. This can
+    /// be used to prevent archiving for users with legacy clients that don’t
+    /// use it.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_mam>.
+    pub mam_smart_enable: Option<bool>,
 
     /// See <https://prosody.im/doc/libevent>.
     pub use_libevent: Option<bool>,
@@ -342,7 +407,7 @@ pub enum SqliteTune {
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -611,6 +676,9 @@ pub enum ConnectionType {
     /// "s2sout"
     #[cfg_attr(feature = "serde", strum(serialize = "s2sout"))]
     ServerToServerOutbounds,
+    /// "component"
+    #[cfg_attr(feature = "serde", strum(serialize = "component"))]
+    Component,
 }
 
 /// See <https://prosody.im/doc/modules/mod_limits>.
@@ -654,7 +722,7 @@ pub enum ArchivePolicy {
     /// Always archive messages.
     Always,
     /// Only archive messages if the user enables it.
-    OnlyIfEnabled,
+    OnlyIfUserEnabled,
     /// Only archive messages for contacts.
     ContactsOnly,
 }

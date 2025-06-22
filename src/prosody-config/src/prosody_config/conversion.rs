@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use linked_hash_map::LinkedHashMap;
 
 use super::*;
@@ -29,24 +31,54 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             sqlite_tune,
             log,
             interfaces,
+            plugin_paths,
+            modules_enabled,
+            modules_disabled,
+            c2s_direct_tls_ports,
             c2s_ports,
+            c2s_timeout,
+            c2s_close_timeout,
+            c2s_require_encryption,
+            c2s_stanza_size_limit,
+            c2s_tcp_keepalives,
             s2s_ports,
+            s2s_direct_tls_ports,
+            s2s_secure_auth,
+            s2s_allow_encryption,
+            s2s_require_encryption,
+            s2s_timeout,
+            s2s_close_timeout,
+            s2s_secure_domains,
+            s2s_insecure_domains,
+            s2s_stanza_size_limit,
+            s2s_send_queue_size,
+            s2s_tcp_keepalives,
+            s2s_whitelist,
+            ssl,
+            ssl_compression,
+            ssl_ports,
+            allow_registration,
+            http_default_host,
+            http_max_content_size,
+            http_max_buffer_size,
+            access_control_allow_methods,
+            access_control_allow_headers,
+            access_control_allow_origins,
+            access_control_allow_credentials,
+            access_control_max_age,
+            http_default_cors_enabled,
+            http_paths,
+            http_host,
+            http_external_url,
             http_ports,
             http_interfaces,
             https_ports,
             https_interfaces,
-            plugin_paths,
-            modules_enabled,
-            modules_disabled,
-            ssl,
-            allow_registration,
-            c2s_require_encryption,
-            s2s_require_encryption,
-            s2s_secure_auth,
-            c2s_stanza_size_limit,
-            s2s_stanza_size_limit,
-            s2s_whitelist,
+            trusted_proxies,
+            http_legacy_x_forwarded,
             limits,
+            limits_resolution,
+            unlimited_jids,
             consider_websocket_secure,
             cross_domain_websocket,
             contact_info,
@@ -55,17 +87,13 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             max_archive_query_results,
             upgrade_legacy_vcards,
             groups_file,
-            http_host,
-            http_external_url,
             restrict_room_creation,
             muc_log_all_rooms,
             muc_log_by_default,
             muc_log_expires_after,
-            custom_settings,
+            tls_profile,
             reload_modules,
             reload_global_modules,
-            tls_profile,
-            use_libevent,
             http_file_share_secret,
             http_file_share_base_url,
             http_file_share_size_limit,
@@ -75,6 +103,13 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             http_file_share_daily_quota,
             http_file_share_global_quota,
             http_file_share_access,
+            use_libevent,
+            custom_settings,
+            dont_archive_namespaces,
+            archive_store,
+            mam_include_total,
+            archive_cleanup_date_cache_size,
+            mam_smart_enable,
         } = self;
 
         fn push_if_some<T: Into<U>, U>(vec: &mut Vec<U>, value: Option<T>) {
@@ -117,11 +152,14 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "interfaces", interfaces),
                     option_def(None, "c2s_ports", c2s_ports),
+                    option_def(None, "c2s_direct_tls_ports", c2s_direct_tls_ports),
                     option_def(None, "s2s_ports", s2s_ports),
+                    option_def(None, "s2s_direct_tls_ports", s2s_direct_tls_ports),
                     option_def(None, "http_ports", http_ports),
                     option_def(None, "http_interfaces", http_interfaces),
                     option_def(None, "https_ports", https_ports),
                     option_def(None, "https_interfaces", https_interfaces),
+                    option_def(None, "ssl_ports", ssl_ports),
                 ],
             ),
         );
@@ -138,10 +176,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         );
         push_if_some(
             &mut res,
-            option_def(
-                Some("Path to SSL key and certificate for all server domains"),
-                "ssl",
-                ssl,
+            Group::flattened(
+                None,
+                vec![
+                    option_def(
+                        Some("Path to SSL key and certificate for all server domains"),
+                        "ssl",
+                        ssl,
+                    ),
+                    option_def(None, "ssl_compression", ssl_compression),
+                ],
             ),
         );
         push_if_some(&mut res, option_def(None, "tls_profile", tls_profile));
@@ -160,7 +204,10 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "c2s_require_encryption", c2s_require_encryption),
                     option_def(None, "s2s_require_encryption", s2s_require_encryption),
+                    option_def(None, "s2s_allow_encryption", s2s_allow_encryption),
                     option_def(None, "s2s_secure_auth", s2s_secure_auth),
+                    option_def(None, "s2s_secure_domains", s2s_secure_domains),
+                    option_def(None, "s2s_insecure_domains", s2s_insecure_domains),
                 ],
             ),
         );
@@ -171,6 +218,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "c2s_stanza_size_limit", c2s_stanza_size_limit),
                     option_def(None, "s2s_stanza_size_limit", s2s_stanza_size_limit),
+                    option_def(None, "s2s_send_queue_size", s2s_send_queue_size),
                     option_def(
                         Some("Avoid federating with the whole XMPP network and only federate with specific servers"),
                         "s2s_whitelist",
@@ -179,7 +227,18 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 ],
             ),
         );
-        push_if_some(&mut res, option_def(None, "limits", limits));
+
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                None,
+                vec![
+                    option_def(None, "limits", limits),
+                    option_def(None, "limits_resolution", limits_resolution),
+                    option_def(None, "unlimited_jids", unlimited_jids),
+                ],
+            ),
+        );
         push_if_some(
             &mut res,
             Group::flattened(
@@ -187,6 +246,20 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "consider_websocket_secure", consider_websocket_secure),
                     option_def(None, "cross_domain_websocket", cross_domain_websocket),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                Some("Timeouts and keepalives"),
+                vec![
+                    option_def(None, "c2s_timeout", c2s_timeout),
+                    option_def(None, "c2s_close_timeout", c2s_close_timeout),
+                    option_def(None, "c2s_tcp_keepalives", c2s_tcp_keepalives),
+                    option_def(None, "s2s_timeout", s2s_timeout),
+                    option_def(None, "s2s_close_timeout", s2s_close_timeout),
+                    option_def(None, "s2s_tcp_keepalives", s2s_tcp_keepalives),
                 ],
             ),
         );
@@ -206,6 +279,15 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "archive_expires_after", archive_expires_after),
                     option_def(None, "default_archive_policy", default_archive_policy),
                     option_def(None, "max_archive_query_results", max_archive_query_results),
+                    option_def(None, "dont_archive_namespaces", dont_archive_namespaces),
+                    option_def(None, "archive_store", archive_store),
+                    option_def(None, "mam_include_total", mam_include_total),
+                    option_def(
+                        None,
+                        "archive_cleanup_date_cache_size",
+                        archive_cleanup_date_cache_size,
+                    ),
+                    option_def(None, "mam_smart_enable", mam_smart_enable),
                 ],
             ),
         );
@@ -233,6 +315,34 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 vec![
                     option_def(None, "http_host", http_host),
                     option_def(None, "http_external_url", http_external_url),
+                    option_def(None, "http_default_host", http_default_host),
+                    option_def(None, "http_max_content_size", http_max_content_size),
+                    option_def(None, "http_max_buffer_size", http_max_buffer_size),
+                    option_def(
+                        None,
+                        "access_control_allow_methods",
+                        access_control_allow_methods,
+                    ),
+                    option_def(
+                        None,
+                        "access_control_allow_headers",
+                        access_control_allow_headers,
+                    ),
+                    option_def(
+                        None,
+                        "access_control_allow_origins",
+                        access_control_allow_origins,
+                    ),
+                    option_def(
+                        None,
+                        "access_control_allow_credentials",
+                        access_control_allow_credentials,
+                    ),
+                    option_def(None, "access_control_max_age", access_control_max_age),
+                    option_def(None, "http_default_cors_enabled", http_default_cors_enabled),
+                    option_def(None, "http_paths", http_paths),
+                    option_def(None, "trusted_proxies", trusted_proxies),
+                    option_def(None, "http_legacy_x_forwarded", http_legacy_x_forwarded),
                 ],
             ),
         );
@@ -487,6 +597,27 @@ impl Into<LuaValue> for Interface {
     }
 }
 
+impl From<Ipv4Addr> for LuaValue {
+    fn from(value: Ipv4Addr) -> Self {
+        Self::String(value.to_string())
+    }
+}
+
+impl From<Ipv6Addr> for LuaValue {
+    fn from(value: Ipv6Addr) -> Self {
+        Self::String(value.to_string())
+    }
+}
+
+impl From<IpAddr> for LuaValue {
+    fn from(value: IpAddr) -> Self {
+        match value {
+            IpAddr::V4(ip) => Self::from(ip),
+            IpAddr::V6(ip) => Self::from(ip),
+        }
+    }
+}
+
 impl Into<LuaValue> for SSLConfig {
     fn into(self) -> LuaValue {
         let Self {
@@ -634,13 +765,25 @@ where
     }
 }
 
+impl Into<LuaValue> for TimeLike {
+    /// Format defined in <https://hg.prosody.im/trunk/file/d7e907830260/spec/util_human_io_spec.lua>.
+    fn into(self) -> LuaValue {
+        match self {
+            Self::Seconds(n) => format!("{n}s"),
+            Self::Minutes(n) => format!("{n}min"),
+            Self::Hours(n) => format!("{n}h"),
+        }
+        .into()
+    }
+}
+
 impl Into<LuaValue> for DateLike {
     /// Format defined in <https://prosody.im/doc/modules/mod_mam#archive_expiry>.
     fn into(self) -> LuaValue {
         match self {
             Self::Days(n) => format!("{n}d"),
             Self::Weeks(n) => format!("{n}w"),
-            Self::Months(n) => format!("{n}m"),
+            Self::Months(n) => format!("{n}month"),
             Self::Years(n) => format!("{n}y"),
         }
         .into()
@@ -666,6 +809,7 @@ impl Into<String> for ConnectionType {
             Self::ClientToServer => "c2s",
             Self::ServerToServerInbounds => "s2sin",
             Self::ServerToServerOutbounds => "s2sout",
+            Self::Component => "component",
         }
         .to_string()
     }
@@ -715,7 +859,7 @@ impl Into<LuaValue> for ArchivePolicy {
     fn into(self) -> LuaValue {
         match self {
             Self::Always => true.into(),
-            Self::OnlyIfEnabled => false.into(),
+            Self::OnlyIfUserEnabled => false.into(),
             Self::ContactsOnly => "roster".into(),
         }
     }

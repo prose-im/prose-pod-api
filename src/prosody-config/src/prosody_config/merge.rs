@@ -26,64 +26,97 @@ impl ProsodySettings {
     pub fn shallow_merge(&mut self, other: Self, strategy: MergeStrategy) {
         // NOTE: Destructuring `other` ensures we don’t forget to merge one key.
         let Self {
-            pidfile,
+            access_control_allow_credentials,
+            access_control_allow_headers,
+            access_control_allow_methods,
+            access_control_allow_origins,
+            access_control_max_age,
             admins,
-            authentication,
-            default_storage,
-            storage,
-            storage_archive_item_limit,
-            storage_archive_item_limit_cache_size,
-            sql,
-            sql_manage_tables,
-            sqlite_tune,
-            log,
-            interfaces,
-            c2s_ports,
-            s2s_ports,
-            http_ports,
-            http_interfaces,
-            https_ports,
-            https_interfaces,
-            plugin_paths,
-            modules_enabled,
-            modules_disabled,
-            ssl,
             allow_registration,
-            c2s_require_encryption,
-            s2s_require_encryption,
-            s2s_secure_auth,
-            c2s_stanza_size_limit,
-            s2s_stanza_size_limit,
-            s2s_whitelist,
-            limits,
-            consider_websocket_secure,
-            cross_domain_websocket,
-            contact_info,
+            archive_cleanup_date_cache_size,
             archive_expires_after,
+            archive_store,
+            authentication,
+            c2s_close_timeout,
+            c2s_direct_tls_ports,
+            c2s_ports,
+            c2s_require_encryption,
+            c2s_stanza_size_limit,
+            c2s_tcp_keepalives,
+            c2s_timeout,
+            consider_websocket_secure,
+            contact_info,
+            cross_domain_websocket,
+            custom_settings,
             default_archive_policy,
-            max_archive_query_results,
-            upgrade_legacy_vcards,
+            default_storage,
+            dont_archive_namespaces,
             groups_file,
-            http_host,
+            http_default_cors_enabled,
+            http_default_host,
             http_external_url,
-            restrict_room_creation,
+            http_file_share_access,
+            http_file_share_allowed_file_types,
+            http_file_share_base_url,
+            http_file_share_daily_quota,
+            http_file_share_expires_after,
+            http_file_share_global_quota,
+            http_file_share_safe_file_types,
+            http_file_share_secret,
+            http_file_share_size_limit,
+            http_host,
+            http_interfaces,
+            http_legacy_x_forwarded,
+            http_max_buffer_size,
+            http_max_content_size,
+            http_paths,
+            http_ports,
+            https_interfaces,
+            https_ports,
+            interfaces,
+            limits,
+            limits_resolution,
+            log,
+            mam_include_total,
+            mam_smart_enable,
+            max_archive_query_results,
+            modules_disabled,
+            modules_enabled,
             muc_log_all_rooms,
             muc_log_by_default,
             muc_log_expires_after,
-            tls_profile,
-            reload_modules,
+            pidfile,
+            plugin_paths,
             reload_global_modules,
-            custom_settings,
+            reload_modules,
+            restrict_room_creation,
+            s2s_allow_encryption,
+            s2s_close_timeout,
+            s2s_direct_tls_ports,
+            s2s_insecure_domains,
+            s2s_ports,
+            s2s_require_encryption,
+            s2s_secure_auth,
+            s2s_secure_domains,
+            s2s_send_queue_size,
+            s2s_stanza_size_limit,
+            s2s_tcp_keepalives,
+            s2s_timeout,
+            s2s_whitelist,
+            sql,
+            sql_manage_tables,
+            sqlite_tune,
+            ssl,
+            ssl_compression,
+            ssl_ports,
+            storage,
+            storage_archive_item_limit,
+            storage_archive_item_limit_cache_size,
+            tls_profile,
+            trusted_proxies,
+            unlimited_jids,
+            upgrade_legacy_vcards,
             use_libevent,
-            http_file_share_secret,
-            http_file_share_base_url,
-            http_file_share_size_limit,
-            http_file_share_allowed_file_types,
-            http_file_share_safe_file_types,
-            http_file_share_expires_after,
-            http_file_share_daily_quota,
-            http_file_share_global_quota,
-            http_file_share_access,
         } = other;
 
         macro_rules! merge {
@@ -96,63 +129,96 @@ impl ProsodySettings {
             };
         }
 
-        merge!(pidfile);
+        merge!(access_control_allow_credentials);
+        merge!(access_control_allow_headers);
+        merge!(access_control_allow_methods);
+        merge!(access_control_allow_origins);
+        merge!(access_control_max_age);
         merge!(admins);
-        merge!(authentication);
-        merge!(default_storage);
-        merge!(storage);
-        merge!(storage_archive_item_limit);
-        merge!(storage_archive_item_limit_cache_size);
-        merge!(sql);
-        merge!(sql_manage_tables);
-        merge!(sqlite_tune);
-        merge!(log);
-        merge!(interfaces);
-        merge!(c2s_ports);
-        merge!(s2s_ports);
-        merge!(http_ports);
-        merge!(http_interfaces);
-        merge!(https_ports);
-        merge!(https_interfaces);
-        merge!(plugin_paths);
-        merge!(modules_enabled);
-        merge!(modules_disabled);
-        merge!(ssl);
         merge!(allow_registration);
-        merge!(c2s_require_encryption);
-        merge!(s2s_require_encryption);
-        merge!(s2s_secure_auth);
-        merge!(c2s_stanza_size_limit);
-        merge!(s2s_stanza_size_limit);
-        merge!(s2s_whitelist);
-        merge!(limits);
-        merge!(consider_websocket_secure);
-        merge!(cross_domain_websocket);
-        merge!(contact_info);
+        merge!(archive_cleanup_date_cache_size);
         merge!(archive_expires_after);
+        merge!(archive_store);
+        merge!(authentication);
+        merge!(c2s_close_timeout);
+        merge!(c2s_direct_tls_ports);
+        merge!(c2s_ports);
+        merge!(c2s_require_encryption);
+        merge!(c2s_stanza_size_limit);
+        merge!(c2s_tcp_keepalives);
+        merge!(c2s_timeout);
+        merge!(consider_websocket_secure);
+        merge!(contact_info);
+        merge!(cross_domain_websocket);
         merge!(default_archive_policy);
-        merge!(max_archive_query_results);
-        merge!(upgrade_legacy_vcards);
+        merge!(default_storage);
+        merge!(dont_archive_namespaces);
         merge!(groups_file);
-        merge!(http_host);
+        merge!(http_default_cors_enabled);
+        merge!(http_default_host);
         merge!(http_external_url);
-        merge!(restrict_room_creation);
+        merge!(http_file_share_access);
+        merge!(http_file_share_allowed_file_types);
+        merge!(http_file_share_base_url);
+        merge!(http_file_share_daily_quota);
+        merge!(http_file_share_expires_after);
+        merge!(http_file_share_global_quota);
+        merge!(http_file_share_safe_file_types);
+        merge!(http_file_share_secret);
+        merge!(http_file_share_size_limit);
+        merge!(http_host);
+        merge!(http_interfaces);
+        merge!(http_legacy_x_forwarded);
+        merge!(http_max_buffer_size);
+        merge!(http_max_content_size);
+        merge!(http_paths);
+        merge!(http_ports);
+        merge!(https_interfaces);
+        merge!(https_ports);
+        merge!(interfaces);
+        merge!(limits);
+        merge!(limits_resolution);
+        merge!(log);
+        merge!(mam_include_total);
+        merge!(mam_smart_enable);
+        merge!(max_archive_query_results);
+        merge!(modules_disabled);
+        merge!(modules_enabled);
         merge!(muc_log_all_rooms);
         merge!(muc_log_by_default);
         merge!(muc_log_expires_after);
-        merge!(reload_modules);
+        merge!(pidfile);
+        merge!(plugin_paths);
         merge!(reload_global_modules);
+        merge!(reload_modules);
+        merge!(restrict_room_creation);
+        merge!(s2s_allow_encryption);
+        merge!(s2s_close_timeout);
+        merge!(s2s_direct_tls_ports);
+        merge!(s2s_insecure_domains);
+        merge!(s2s_ports);
+        merge!(s2s_require_encryption);
+        merge!(s2s_secure_auth);
+        merge!(s2s_secure_domains);
+        merge!(s2s_send_queue_size);
+        merge!(s2s_stanza_size_limit);
+        merge!(s2s_tcp_keepalives);
+        merge!(s2s_timeout);
+        merge!(s2s_whitelist);
+        merge!(sql);
+        merge!(sql_manage_tables);
+        merge!(sqlite_tune);
+        merge!(ssl);
+        merge!(ssl_compression);
+        merge!(ssl_ports);
+        merge!(storage);
+        merge!(storage_archive_item_limit);
+        merge!(storage_archive_item_limit_cache_size);
         merge!(tls_profile);
+        merge!(trusted_proxies);
+        merge!(unlimited_jids);
+        merge!(upgrade_legacy_vcards);
         merge!(use_libevent);
-        merge!(http_file_share_secret);
-        merge!(http_file_share_base_url);
-        merge!(http_file_share_size_limit);
-        merge!(http_file_share_allowed_file_types);
-        merge!(http_file_share_safe_file_types);
-        merge!(http_file_share_expires_after);
-        merge!(http_file_share_daily_quota);
-        merge!(http_file_share_global_quota);
-        merge!(http_file_share_access);
 
         // NOTE: We cannot simply use `Vec::extend`, as it would make values
         //   in `other` take precedence over values in `self` (which is the
