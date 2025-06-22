@@ -242,6 +242,20 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/libevent>.
     pub use_libevent: Option<bool>,
 
+    /// The extra items to add to service discovery.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_disco>.
+    pub disco_items: Option<LinkedHashSet<DiscoItem>>,
+    /// Whether the host/component should be hidden from its parent’s discovery
+    /// list by default.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_disco>.
+    pub disco_hidden: Option<bool>,
+    /// Whether admin accounts can be identified as such by non-contacts.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_disco>.
+    pub disco_expose_admins: Option<bool>,
+
     #[cfg_attr(feature = "serde", serde(skip))]
     pub custom_settings: Vec<Group<LuaDefinition>>,
 }
@@ -750,6 +764,13 @@ pub enum TlsProfile {
     ///
     /// See <https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility>.
     Old,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DiscoItem {
+    pub address: String,
+    pub name: String,
 }
 
 // ===== DEFAULT =====

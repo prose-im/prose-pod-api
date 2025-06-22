@@ -110,6 +110,9 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             mam_include_total,
             archive_cleanup_date_cache_size,
             mam_smart_enable,
+            disco_items,
+            disco_hidden,
+            disco_expose_admins,
         } = self;
 
         fn push_if_some<T: Into<U>, U>(vec: &mut Vec<U>, value: Option<T>) {
@@ -405,6 +408,17 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "muc_log_all_rooms", muc_log_all_rooms),
                     option_def(None, "muc_log_by_default", muc_log_by_default),
                     option_def(None, "muc_log_expires_after", muc_log_expires_after),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                "XEP-0030: Service Discovery".into(),
+                vec![
+                    option_def(None, "disco_items", disco_items),
+                    option_def(None, "disco_hidden", disco_hidden),
+                    option_def(None, "disco_expose_admins", disco_expose_admins),
                 ],
             ),
         );
@@ -878,6 +892,16 @@ impl Into<LuaValue> for TlsProfile {
 impl Into<LuaValue> for Mime {
     fn into(self) -> LuaValue {
         LuaValue::String(self.to_string())
+    }
+}
+
+impl Into<LuaValue> for DiscoItem {
+    fn into(self) -> LuaValue {
+        LuaValue::Map(
+            vec![(self.address.into(), self.name.into())]
+                .into_iter()
+                .collect(),
+        )
     }
 }
 

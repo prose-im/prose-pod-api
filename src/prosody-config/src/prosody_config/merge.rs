@@ -50,6 +50,9 @@ impl ProsodySettings {
             custom_settings,
             default_archive_policy,
             default_storage,
+            disco_expose_admins,
+            disco_hidden,
+            disco_items,
             dont_archive_namespaces,
             groups_file,
             http_default_cors_enabled,
@@ -152,6 +155,9 @@ impl ProsodySettings {
         merge!(cross_domain_websocket);
         merge!(default_archive_policy);
         merge!(default_storage);
+        merge!(disco_expose_admins);
+        merge!(disco_hidden);
+        merge!(disco_items);
         merge!(dont_archive_namespaces);
         merge!(groups_file);
         merge!(http_default_cors_enabled);
