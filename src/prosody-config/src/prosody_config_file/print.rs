@@ -141,7 +141,7 @@ impl Print for LuaValue {
             Self::String(s) => acc.push_str(&format!("{s:?}")),
             Self::List(list) => match list.len() {
                 0 => acc.push_str("{}"),
-                1 => {
+                1 if list[0].is_scalar() => {
                     acc.push_str("{ ");
                     list[0].print(acc, indent);
                     acc.push_str(" }");

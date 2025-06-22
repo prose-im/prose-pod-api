@@ -148,6 +148,15 @@ pub enum LuaValue {
     Map(LinkedHashMap<String, LuaValue>),
 }
 
+impl LuaValue {
+    pub fn is_scalar(&self) -> bool {
+        match self {
+            Self::Bool(_) | Self::Number(_) | Self::String(_) => true,
+            Self::List(_) | Self::Map(_) => false,
+        }
+    }
+}
+
 impl From<bool> for LuaValue {
     fn from(value: bool) -> Self {
         Self::Bool(value)
