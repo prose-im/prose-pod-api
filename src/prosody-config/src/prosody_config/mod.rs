@@ -112,9 +112,7 @@ pub struct ProsodySettings {
     pub c2s_require_encryption: Option<bool>,
     pub s2s_require_encryption: Option<bool>,
     pub s2s_secure_auth: Option<bool>,
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub c2s_stanza_size_limit: Option<Bytes>,
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub s2s_stanza_size_limit: Option<Bytes>,
     /// See <https://modules.prosody.im/mod_s2s_whitelist>.
     pub s2s_whitelist: Option<LinkedHashSet<String>>,
@@ -163,7 +161,6 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_base_url: Option<String>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_size_limit: Option<Bytes>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_allowed_file_types: Option<LinkedHashSet<Mime>>,
@@ -175,10 +172,8 @@ pub struct ProsodySettings {
     #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_daily_quota: Option<Bytes>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_global_quota: Option<Bytes>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_access: Option<LinkedHashSet<BareJid>>,

@@ -9,6 +9,7 @@ pub extern crate linked_hash_set;
 mod model;
 mod prosody_config;
 mod prosody_config_file;
+mod util;
 
 pub use model::*;
 pub use prosody_config::*;

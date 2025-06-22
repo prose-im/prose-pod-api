@@ -1,9 +1,13 @@
 // prosody-config
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
+use std::{fmt::Display, num::ParseIntError, ops::Deref, str::FromStr};
+
+use strum::Display;
+
+use crate::util::split_leading_digits;
 
 // ===== Data =====
 
@@ -11,12 +15,51 @@ use std::ops::Deref;
 ///
 /// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub enum Bytes {
     Bytes(u32),
     KiloBytes(u32),
     KibiBytes(u32),
     MegaBytes(u32),
     MebiBytes(u32),
+}
+
+#[derive(Debug, Display)]
+pub enum ParseBytesError {
+    InvalidQuantity(ParseIntError),
+    InvalidUnit,
+}
+
+impl FromStr for Bytes {
+    type Err = ParseBytesError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (n, unit) = split_leading_digits(s);
+        let n = u32::from_str(n).map_err(ParseBytesError::InvalidQuantity)?;
+        match unit {
+            "B" => Ok(Self::Bytes(n)),
+            "kB" => Ok(Self::KiloBytes(n)),
+            "KiB" => Ok(Self::KibiBytes(n)),
+            "MB" => Ok(Self::MegaBytes(n)),
+            "MiB" => Ok(Self::MebiBytes(n)),
+            _ => Err(ParseBytesError::InvalidUnit),
+        }
+    }
+}
+
+impl Display for Bytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bytes(n) => write!(f, "{n}B"),
+            Self::KiloBytes(n) => write!(f, "{n}kB"),
+            Self::KibiBytes(n) => write!(f, "{n}KiB"),
+            Self::MegaBytes(n) => write!(f, "{n}MB"),
+            Self::MebiBytes(n) => write!(f, "{n}MiB"),
+        }
+    }
 }
 
 /// Data-transfer rate (kB/s, MB/s…).
