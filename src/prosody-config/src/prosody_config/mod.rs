@@ -6,15 +6,17 @@
 mod conversion;
 #[cfg(feature = "merge")]
 mod merge;
+#[cfg(feature = "serde")]
+mod serde;
 
 use std::hash::Hash;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
+#[cfg(feature = "serde")]
+use ::serde::{Deserialize, Serialize};
 use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
 use crate::prosody_config_file::{Group, LuaDefinition};
 use crate::{model::*, LuaValue};
@@ -168,7 +170,6 @@ pub struct ProsodySettings {
     pub upgrade_legacy_vcards: Option<bool>,
     pub groups_file: Option<PathBuf>,
     /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub restrict_room_creation: Option<RoomCreationRestriction>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_all_rooms: Option<bool>,
@@ -723,6 +724,8 @@ pub struct ContactInfo {
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RoomCreationRestriction {
+    /// Do not restrict room creation.
+    NotRestricted,
     /// Restrict room creation to server admins defined in the Prosody config.
     AdminsOnly,
     /// Restrict the creation of rooms to users on the main domain only
@@ -767,7 +770,7 @@ pub enum TlsProfile {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DiscoItem {
     pub address: String,
     pub name: String,

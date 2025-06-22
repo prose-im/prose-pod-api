@@ -863,6 +863,7 @@ impl Into<LuaValue> for ContactInfo {
 impl Into<LuaValue> for RoomCreationRestriction {
     fn into(self) -> LuaValue {
         match self {
+            Self::NotRestricted => false.into(),
             Self::AdminsOnly => true.into(),
             Self::DomainOnly => "local".into(),
         }
