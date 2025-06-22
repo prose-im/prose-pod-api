@@ -117,7 +117,9 @@ async fn run(
         }
         // Panic if the API is just starting up.
         Err(err) => {
-            panic!("{err}");
+            // NOTE: `panic`s are unwound therefore we need to exit manually.
+            tracing::error!("Startup error: {err:#}");
+            std::process::exit(1);
         }
     };
 
