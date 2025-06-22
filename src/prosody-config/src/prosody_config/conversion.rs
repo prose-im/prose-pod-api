@@ -363,7 +363,7 @@ macro_rules! struct_to_lua_map {
     };
 }
 
-impl Into<LuaValue> for JID {
+impl Into<LuaValue> for BareJid {
     fn into(self) -> LuaValue {
         self.to_string().into()
     }

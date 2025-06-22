@@ -83,7 +83,7 @@ impl ProsodyConfigSection {
 )]
 pub struct ProsodySettings {
     pub pidfile: Option<PathBuf>,
-    pub admins: Option<LinkedHashSet<JID>>,
+    pub admins: Option<LinkedHashSet<BareJid>>,
     pub authentication: Option<AuthenticationProvider>,
     pub default_storage: Option<StorageBackend>,
     pub storage: Option<StorageConfig>,

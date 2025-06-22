@@ -9,7 +9,7 @@ use prosody_config::{utils::def, *};
 /// (with slight modifications for style consistency)
 #[test]
 fn test_prose_default_config() {
-    let api_jid = JID::new("prose-pod-api", "admin.prose.org.local");
+    let api_jid = BareJid::new("prose-pod-api", "admin.prose.org.local");
     let default_config = ProsodyConfig {
         global_settings: ProsodySettings {
             pidfile: Some("/var/run/prosody/prosody.pid".into()),

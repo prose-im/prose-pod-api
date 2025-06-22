@@ -11,12 +11,12 @@ use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
-pub struct JID {
+pub struct BareJid {
     pub node: String,
     pub domain: String,
 }
 
-impl JID {
+impl BareJid {
     pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Self {
         Self {
             node: node.to_string(),
@@ -25,13 +25,13 @@ impl JID {
     }
 }
 
-impl Display for JID {
+impl Display for BareJid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}@{}", self.node, self.domain)
     }
 }
 
-impl FromStr for JID {
+impl FromStr for BareJid {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

@@ -48,7 +48,7 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
 }
 
 pub fn admin_virtual_host(
-    api_jid: &JID,
+    api_jid: &prosody_config::BareJid,
     local_hostname_admin: String,
 ) -> prosody_config::ProsodyConfigSection {
     ProsodyConfigSection::VirtualHost {
@@ -75,7 +75,10 @@ pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyCo
         Some(&app_config::defaults::service_accounts_prose_pod_api().xmpp_node),
         &DomainPart::from_str(ADMIN_HOST).unwrap(),
     );
-    let api_jid = JID::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+    let api_jid = prosody_config::BareJid::new(
+        (api_jid.node()).expect(&format!("Invalid API JID: {api_jid}")),
+        api_jid.domain(),
+    );
 
     let mut admin_virtual_host = admin_virtual_host(
         &api_jid,
