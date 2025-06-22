@@ -7,16 +7,18 @@ mod conversion;
 #[cfg(feature = "merge")]
 mod merge;
 
-#[cfg(feature = "serde")]
-use ::serde::{Deserialize, Serialize};
-use linked_hash_map::LinkedHashMap;
-use linked_hash_set::LinkedHashSet;
 use std::hash::Hash;
 use std::path::PathBuf;
+
+use linked_hash_map::LinkedHashMap;
+use linked_hash_set::LinkedHashSet;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::prosody_config_file::{Group, LuaDefinition};
 use crate::{model::*, LuaValue};
 
+#[cfg(feature = "merge")]
 pub use merge::MergeStrategy;
 
 /// Prosody configuration.
@@ -264,10 +266,10 @@ pub enum StorageConfig {
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
-    derive(strum::Display, strum::EnumString)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum StorageBackend {
     /// Default file-based storage.
     Internal,
@@ -318,15 +320,15 @@ pub struct SqlConfig {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
-    derive(strum::Display, strum::EnumString)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
+#[derive(strum::Display, strum::EnumString)]
 pub enum SqlDriver {
-    #[cfg_attr(feature = "serde", strum(serialize = "PostgreSQL"))]
+    #[strum(serialize = "PostgreSQL")]
     PostgreSql,
-    #[cfg_attr(feature = "serde", strum(serialize = "SQLite3"))]
+    #[strum(serialize = "SQLite3")]
     Sqlite3,
-    #[cfg_attr(feature = "serde", strum(serialize = "MySQL"))]
+    #[strum(serialize = "MySQL")]
     MySql,
 }
 
@@ -334,10 +336,10 @@ pub enum SqlDriver {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(
     feature = "serde",
-    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
-    derive(strum::Display, strum::EnumString)
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
 )]
-#[cfg_attr(feature = "serde", strum(serialize_all = "snake_case"))]
+#[derive(strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum SqliteTune {
     Default,
     Normal,

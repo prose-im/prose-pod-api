@@ -23,7 +23,7 @@ serde_with = { version = "3", default-features = false, features = [
 strum = { version = "0.27", default-features = false, features = [
     "std",
     "derive",
-], optional = true }
+] }
 
 [dev-dependencies]
 insta = { version = "1", default-features = false }
@@ -35,7 +35,6 @@ merge = []
 serde = [
     "dep:serde",
     "dep:serde_with",
-    "dep:strum",
     "secrecy/serde",
     "linked-hash-map/serde_impl",
     "linked_hash_set/serde",
