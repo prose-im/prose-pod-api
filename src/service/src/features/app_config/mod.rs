@@ -114,7 +114,7 @@ impl AppConfig {
     pub fn from_figment(figment: Figment) -> anyhow::Result<Self> {
         figment
             .extract()
-            .context("Invalid '{CONFIG_FILE_NAME}' configuration file")
+            .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))
         // TODO: Check values intervals (e.g. `default_response_timeout`).
     }
 
