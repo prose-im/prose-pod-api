@@ -121,7 +121,6 @@ pub struct ProsodySettings {
     pub consider_websocket_secure: Option<bool>,
     pub cross_domain_websocket: Option<bool>,
     pub contact_info: Option<ContactInfo>,
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub archive_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     /// Controls whether messages are archived by default.
     ///
@@ -146,7 +145,6 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
     pub muc_log_by_default: Option<bool>,
     /// See <https://prosody.im/doc/modules/mod_muc_mam>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub muc_log_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub tls_profile: Option<TlsProfile>,
     /// See <https://modules.prosody.im/mod_reload_modules>.
@@ -169,7 +167,6 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_safe_file_types: Option<LinkedHashSet<Mime>>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub http_file_share_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_daily_quota: Option<Bytes>,

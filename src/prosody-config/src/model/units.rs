@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{fmt::Display, num::ParseIntError, ops::Deref, str::FromStr};
+use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use strum::Display;
 
@@ -69,9 +69,17 @@ pub enum DataRate {
 
 // ===== Durations =====
 
+#[cfg(not(feature = "serde"))]
 pub trait DurationContent {}
+#[cfg(feature = "serde")]
+pub trait DurationContent: serde::Serialize + for<'de> serde::Deserialize<'de> {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct Duration<Content: DurationContent>(pub Content);
 
 impl<Content: DurationContent> Deref for Duration<Content> {
@@ -82,11 +90,57 @@ impl<Content: DurationContent> Deref for Duration<Content> {
     }
 }
 
+impl<Content: DurationContent + FromStr> FromStr for Duration<Content> {
+    type Err = <Content as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Content::from_str(s).map(Self)
+    }
+}
+
+impl<Content: DurationContent + Display> Display for Duration<Content> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub enum TimeLike {
     Seconds(u32),
     Minutes(u32),
     Hours(u32),
+}
+
+impl FromStr for TimeLike {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let Some(s) = s.strip_prefix("PT") else {
+            return Err("Expected ISO 8601 duration format (missing `PT`).");
+        };
+        let (n, unit) = split_leading_digits(s);
+        let n = u32::from_str(n).map_err(|_| "Invalid quantity.")?;
+        match unit {
+            "S" => Ok(Self::Seconds(n)),
+            "M" => Ok(Self::Minutes(n)),
+            "H" => Ok(Self::Hours(n)),
+            _ => Err("Invalid unit."),
+        }
+    }
+}
+
+impl Display for TimeLike {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Seconds(n) => write!(f, "PT{n}S"),
+            Self::Minutes(n) => write!(f, "PT{n}M"),
+            Self::Hours(n) => write!(f, "PT{n}H"),
+        }
+    }
 }
 
 impl TimeLike {
@@ -102,6 +156,10 @@ impl TimeLike {
 impl DurationContent for TimeLike {}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub enum DateLike {
     Days(u32),
     Weeks(u32),
@@ -109,12 +167,66 @@ pub enum DateLike {
     Years(u32),
 }
 
+impl FromStr for DateLike {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let Some(s) = s.strip_prefix("P") else {
+            return Err("Expected ISO 8601 duration format (missing `P`).");
+        };
+        let (n, unit) = split_leading_digits(s);
+        let n = u32::from_str(n).map_err(|_| "Invalid quantity.")?;
+        match unit {
+            "D" => Ok(Self::Days(n)),
+            "W" => Ok(Self::Weeks(n)),
+            "M" => Ok(Self::Months(n)),
+            "Y" => Ok(Self::Years(n)),
+            _ => Err("Invalid unit."),
+        }
+    }
+}
+
+impl Display for DateLike {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Days(n) => write!(f, "P{n}D"),
+            Self::Weeks(n) => write!(f, "P{n}W"),
+            Self::Months(n) => write!(f, "P{n}M"),
+            Self::Years(n) => write!(f, "P{n}Y"),
+        }
+    }
+}
+
 impl DurationContent for DateLike {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub enum PossiblyInfinite<D> {
     Infinite,
     Finite(D),
+}
+
+impl<D: FromStr> FromStr for PossiblyInfinite<D> {
+    type Err = <D as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "infinite" => Ok(Self::Infinite),
+            s => D::from_str(s).map(Self::Finite),
+        }
+    }
+}
+
+impl<D: Display> Display for PossiblyInfinite<D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Infinite => write!(f, "infinite"),
+            Self::Finite(d) => Display::fmt(d, f),
+        }
+    }
 }
 
 impl<D> PossiblyInfinite<D> {
@@ -139,6 +251,6 @@ impl<D> Into<Option<D>> for PossiblyInfinite<D> {
 
 #[derive(Debug, Display)]
 pub enum ParseMeasurementError {
-    InvalidQuantity(ParseIntError),
+    InvalidQuantity(std::num::ParseIntError),
     InvalidUnit,
 }
