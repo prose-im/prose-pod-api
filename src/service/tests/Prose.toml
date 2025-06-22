@@ -21,7 +21,8 @@ url = "sqlite::memory:"
 oauth2_registration_key = "dummy-test-key"
 
 [notify.email]
-pod_address = "pod@prose.org.local"
+pod_address = "pod@prose.test.org"
+smtp_host = "prose.test.org"
 
 [debug_only.dependency_modes]
 notifier = "logging"

@@ -81,7 +81,7 @@ consider_websocket_secure = true
 
 -- Specify server administrator
 contact_info = {
-  admin = { "mailto:hostmaster@prose.org.local" };
+  admin = { "mailto:hostmaster@prose.test.org" };
 }
 
 -- MAM settings

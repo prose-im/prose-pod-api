@@ -123,6 +123,12 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
+        let hostmaster_email = match app_config.notify.email {
+            Some(ref email_config) => {
+                format!("hostmaster@{domain}", domain = email_config.smtp_host)
+            }
+            None => format!("hostmaster@{domain}", domain = app_config.server.domain),
+        };
 
         let global_settings = ProsodySettings {
             log: Some(LogConfig::Map(
@@ -182,7 +188,10 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             consider_websocket_secure: Some(true),
             cross_domain_websocket: None,
             contact_info: Some(ContactInfo {
-                admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                // TODO: After resolving [First admin account has no email address · Issue #256 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/256), replace this by the first admin email.
+                admin: vec![format!(
+                    "mailto:{hostmaster_email}"
+                )],
                 ..Default::default()
             }),
             upgrade_legacy_vcards: Some(true),
