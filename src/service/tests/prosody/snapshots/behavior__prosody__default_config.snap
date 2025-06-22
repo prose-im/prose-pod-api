@@ -54,6 +54,7 @@ modules_enabled = {
   "csi";
   "server_contact_info";
   "websocket";
+  "reload_modules";
   "cloud_notify";
   "register";
   "mam";
@@ -91,6 +92,9 @@ max_archive_query_results = 100
 
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
+
+-- mod_reload_modules
+reload_modules = { "tls" }
 
 -- mod_cloud_notify
 push_notification_with_body = true

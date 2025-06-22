@@ -164,6 +164,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "csi",
                     "server_contact_info",
                     "websocket",
+                    "reload_modules",
                     "cloud_notify",
                     "register",
                 ]
@@ -185,6 +186,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 .into_iter()
                 .collect(),
             ),
+            reload_modules: Some(vec!["tls"].into_iter().map(ToString::to_string).collect()),
             consider_websocket_secure: Some(true),
             cross_domain_websocket: None,
             contact_info: Some(ContactInfo {
