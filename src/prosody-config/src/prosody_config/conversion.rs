@@ -898,11 +898,10 @@ impl Into<LuaValue> for Mime {
 
 impl Into<LuaValue> for DiscoItem {
     fn into(self) -> LuaValue {
-        LuaValue::Map(
-            vec![(self.address.into(), self.name.into())]
-                .into_iter()
-                .collect(),
-        )
+        LuaValue::List(vec![
+            LuaValue::from(self.address),
+            LuaValue::from(self.name),
+        ])
     }
 }
 
