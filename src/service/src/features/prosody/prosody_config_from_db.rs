@@ -41,8 +41,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     } = model;
 
     let global_settings = &mut config.global_settings;
-    let muc_settings = config
-        .additional_sections
+    let muc_settings = (config.additional_sections)
         .iter_mut()
         .find_map(|section| match section {
             ProsodyConfigSection::Component {
@@ -76,6 +75,21 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
 
     if file_upload_allowed {
         let host = FILE_SHARE_HOST;
+        let main_host_settings = (config.additional_sections)
+            .iter_mut()
+            .find_map(|section| match section {
+                ProsodyConfigSection::VirtualHost {
+                    hostname, settings, ..
+                } if *hostname == domain.to_string() => Some(settings),
+                _ => None,
+            })
+            .expect(&format!(
+                "The '{domain}' virtual host should always be present."
+            ));
+        (main_host_settings.disco_items.get_or_insert_default()).insert(DiscoItem {
+            address: host.to_owned(),
+            name: "HTTP File Upload".to_owned(),
+        });
         (config.additional_sections).push(ProsodyConfigSection::Component {
             hostname: host.to_owned(),
             plugin: "http_file_share".to_owned(),

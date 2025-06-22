@@ -110,6 +110,14 @@ VirtualHost "test.org"
   -- HTTP settings
   http_host = "prose-pod-server"
 
+  -- XEP-0030: Service Discovery
+  disco_items = {
+    {
+      "upload.prose.org.local";
+      "HTTP File Upload";
+    };
+  }
+
   -- mod_http_oauth2
   allowed_oauth2_grant_types = {
     "authorization_code";
