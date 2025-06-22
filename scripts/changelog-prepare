@@ -52,29 +52,6 @@ to-tag() {
 	echo "v${1:?"Must pass a version number"}"
 }
 
-# A simplified `sed` command that works on both macOS and Linux.
-replace() {
-	local find="${1:?}"
-	local replace="${2:?}"
-	# Escape newlines.
-	replace="${replace//$'\n'/\\n}"
-	# Escape separator used for sed.
-	local SED_PATTERN='@' SED_PATTERN_ESCAPE='#######'
-	find="${find//"${SED_PATTERN}"/"${SED_PATTERN_ESCAPE}"}"
-	replace="${replace//"${SED_PATTERN}"/"${SED_PATTERN_ESCAPE}"}"
-	local pattern="s@${find}@${replace//$'\n'/\\n}@" file="${3:?}"
-
-	if [[ "$(uname)" == "Darwin" ]]; then
-		edo sed -i '' -E "$pattern" "$file"
-		# Unescape separator used for sed.
-		edo sed -i '' -E "s/${SED_PATTERN_ESCAPE}/${SED_PATTERN}/g" "$file"
-	else
-		edo sed -i "$pattern" "$file"
-		# Unescape separator used for sed.
-		edo sed -i "s/${SED_PATTERN_ESCAPE}/${SED_PATTERN}/g" "$file"
-	fi
-}
-
 git-log() {
 	git --no-pager log --reverse --no-merges \
 		--format="${1:?"Format expected"}" --date=short --color \
@@ -99,7 +76,8 @@ if ! grep -zq '...HEAD\n\n## \['"${VERSION:?}"'\]' "${CHANGELOG_FILE:?}"; then
 	die
 fi
 
-replace "## \[${VERSION:?}\]" "$(git-log '- %s (in `%h`)')
+edo cat <<EOF > temp
+$(git-log '- %s (in `%h`)')
 
 ### Removed
 
@@ -117,7 +95,16 @@ replace "## \[${VERSION:?}\]" "$(git-log '- %s (in `%h`)')
 
 - TODO
 
-## [${VERSION:?}]" "${CHANGELOG_FILE:?}"
+EOF
+
+# Source: <https://unix.stackexchange.com/a/193498/632020>.
+edo ed -s "${CHANGELOG_FILE:?}" <<EOF
+/## \[${VERSION:?}\]/-r temp
+w
+q
+EOF
+
+rm temp
 
 success Successfully prepared next changelog entries.
 
