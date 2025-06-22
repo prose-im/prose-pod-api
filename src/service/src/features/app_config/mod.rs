@@ -10,6 +10,7 @@ pub mod defaults;
 #[cfg(debug_assertions)]
 use std::collections::HashSet;
 use std::{
+    collections::HashMap,
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
@@ -73,7 +74,7 @@ pub struct AppConfig {
     #[serde(default)]
     pub prosody_ext: ProsodyExtConfig,
     #[serde(default)]
-    pub prosody: ProsodyConfig,
+    pub prosody: HashMap<String, ProsodyHostConfig>,
     #[serde(default)]
     pub branding: BrandingConfig,
     #[serde(default)]
@@ -312,6 +313,14 @@ impl Default for AuthConfig {
             oauth2_registration_key: defaults::auth_oauth2_registration_key(),
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProsodyHostConfig {
+    #[serde(default)]
+    pub defaults: Option<ProsodyConfig>,
+    #[serde(default)]
+    pub overrides: Option<ProsodyConfig>,
 }
 
 /// NOTE: We cannot include [`ProsodySettings`] as a flattened field because

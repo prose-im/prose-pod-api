@@ -76,21 +76,21 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
     }
 
     if file_upload_allowed {
-        config
-            .additional_sections
-            .push(ProsodyConfigSection::Component {
-                hostname: FILE_SHARE_HOST.into(),
-                plugin: "http_file_share".into(),
-                name: "HTTP File Upload".into(),
-                settings: ProsodySettings {
-                    http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
-                    http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
-                    http_file_share_expires_after: Some(file_storage_retention.into_prosody()),
-                    http_file_share_access: None,
-                    http_external_url: Some(app_config.pod.dashboard_url.to_string()),
-                    ..Default::default()
-                },
-            })
+        let host = FILE_SHARE_HOST;
+        (config.additional_sections).push(ProsodyConfigSection::Component {
+            hostname: host.to_owned(),
+            plugin: "http_file_share".to_owned(),
+            name: "HTTP File Upload".to_owned(),
+            settings: ProsodySettings {
+                http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
+                http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
+                http_file_share_expires_after: Some(file_storage_retention.into_prosody()),
+                http_file_share_access: None,
+                http_external_url: Some(app_config.pod.dashboard_url.to_string()),
+                ..Default::default()
+            }
+            .with_defaults_and_overrides_from(app_config, host),
+        })
     }
 
     if federation_enabled {

@@ -7,6 +7,7 @@ use std::{ops::Deref, str::FromStr};
 
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use secrecy::ExposeSecret;
+use util::{ApplyDefaultsAndOverrides, WithDefaultsAndOverrides};
 use utils::def;
 
 use crate::{AppConfig, ProseDefault, ServerConfig};
@@ -117,146 +118,155 @@ impl ProsodyConfig {
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
         let api_jid = app_config.api_jid();
-        let api_jid = BareJid::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+        let api_jid =
+            BareJid::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
 
-        Self {
-            global_settings: (app_config.prosody)
-                .shallow_merged_with(
-                    ProsodySettings {
-                        log: Some(LogConfig::Map(
-                            vec![(app_config.server.log_level, LogLevelValue::Console)]
-                                .into_iter()
-                                .collect(),
-                        )),
-                        c2s_ports: Some(vec![5222]),
-                        http_ports: Some(vec![app_config.server.http_port]),
-                        modules_enabled: Some(
-                            vec![
-                                "auto_activate_hosts",
-                                "roster",
-                                "groups_internal",
-                                "saslauth",
-                                "tls",
-                                "dialback",
-                                "disco",
-                                "posix",
-                                "smacks",
-                                "private",
-                                "vcard_legacy",
-                                "vcard4",
-                                "version",
-                                "uptime",
-                                "time",
-                                "ping",
-                                "lastactivity",
-                                "pep",
-                                "blocklist",
-                                "limits",
-                                "carbons",
-                                "csi",
-                                "server_contact_info",
-                                "websocket",
-                                "cloud_notify",
-                                "register",
-                            ]
-                            .into_iter()
-                            .map(ToString::to_string)
-                            .collect(),
-                        ),
-                        modules_disabled: Some(
-                            vec!["s2s"].into_iter().map(ToString::to_string).collect(),
-                        ),
-                        c2s_require_encryption: Some(true),
-                        c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
-                        limits: Some(
-                            vec![(
-                                ConnectionType::ClientToServer,
-                                ConnectionLimits {
-                                    rate: Some(DataRate::KiloBytesPerSec(50)),
-                                    burst: Some(Duration(TimeLike::Seconds(2))),
-                                },
-                            )]
-                            .into_iter()
-                            .collect(),
-                        ),
-                        consider_websocket_secure: Some(true),
-                        cross_domain_websocket: None,
-                        contact_info: Some(ContactInfo {
-                            admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
-                            ..Default::default()
-                        }),
-                        upgrade_legacy_vcards: Some(true),
-                        ..Default::default()
+        let global_settings = ProsodySettings {
+            log: Some(LogConfig::Map(
+                vec![(app_config.server.log_level, LogLevelValue::Console)]
+                    .into_iter()
+                    .collect(),
+            )),
+            c2s_ports: Some(vec![5222]),
+            http_ports: Some(vec![app_config.server.http_port]),
+            modules_enabled: Some(
+                vec![
+                    "auto_activate_hosts",
+                    "roster",
+                    "groups_internal",
+                    "saslauth",
+                    "tls",
+                    "dialback",
+                    "disco",
+                    "posix",
+                    "smacks",
+                    "private",
+                    "vcard_legacy",
+                    "vcard4",
+                    "version",
+                    "uptime",
+                    "time",
+                    "ping",
+                    "lastactivity",
+                    "pep",
+                    "blocklist",
+                    "limits",
+                    "carbons",
+                    "csi",
+                    "server_contact_info",
+                    "websocket",
+                    "cloud_notify",
+                    "register",
+                ]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+            ),
+            modules_disabled: Some(vec!["s2s"].into_iter().map(ToString::to_string).collect()),
+            c2s_require_encryption: Some(true),
+            c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
+            limits: Some(
+                vec![(
+                    ConnectionType::ClientToServer,
+                    ConnectionLimits {
+                        rate: Some(DataRate::KiloBytesPerSec(50)),
+                        burst: Some(Duration(TimeLike::Seconds(2))),
                     },
-                    MergeStrategy::KeepSelf,
-                )
-                .shallow_merged_with(
-                    prosody_bootstrap_config::global_settings(),
-                    MergeStrategy::KeepSelf,
+                )]
+                .into_iter()
+                .collect(),
+            ),
+            consider_websocket_secure: Some(true),
+            cross_domain_websocket: None,
+            contact_info: Some(ContactInfo {
+                admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                ..Default::default()
+            }),
+            upgrade_legacy_vcards: Some(true),
+            ..Default::default()
+        }
+        .with_defaults_and_overrides_from(app_config, "global")
+        .shallow_merged_with(
+            prosody_bootstrap_config::global_settings(),
+            MergeStrategy::KeepSelf,
+        );
+
+        let main_virtual_host = ProsodyConfigSection::VirtualHost {
+            hostname: server_config.domain.to_string(),
+            settings: ProsodySettings {
+                admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
+                modules_enabled: Some(
+                    vec![
+                        "rest",
+                        "http_oauth2",
+                        "admin_rest",
+                    ]
+                    .into_iter()
+                    .map(ToString::to_string)
+                    .collect(),
                 ),
-            additional_sections: vec![
-                ProsodyConfigSection::VirtualHost {
-                    hostname: server_config.domain.to_string(),
-                    settings: ProsodySettings {
-                        admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
-                        modules_enabled: Some(
-                            vec![
-                                "rest",
-                                "http_oauth2",
-                                "admin_rest",
-                            ]
-                            .into_iter()
-                            .map(ToString::to_string)
-                            .collect(),
-                        ),
-                        http_host: Some(app_config.server.local_hostname.to_owned()),
-                        custom_settings: vec![
-                            // See <https://modules.prosody.im/mod_http_oauth2>
-                            Group::new(
-                                "mod_http_oauth2",
+                http_host: Some(app_config.server.local_hostname.to_owned()),
+                custom_settings: vec![
+                    // See <https://modules.prosody.im/mod_http_oauth2>
+                    Group::new(
+                        "mod_http_oauth2",
+                        vec![
+                            def(
+                                "allowed_oauth2_grant_types",
                                 vec![
-                                    def(
-                                        "allowed_oauth2_grant_types",
-                                        vec![
-                                            "authorization_code",
-                                            "refresh_token",
-                                            "password",
-                                        ],
-                                    ),
-                                    def("oauth2_access_token_ttl", oauth2_access_token_ttl),
-                                    // We don't want tokens to be refreshed
-                                    def("oauth2_refresh_token_ttl", 0),
-                                    def(
-                                        "oauth2_registration_key",
-                                        app_config.auth.oauth2_registration_key.expose_secret(),
-                                    ),
+                                    "authorization_code",
+                                    "refresh_token",
+                                    "password",
                                 ],
                             ),
+                            def("oauth2_access_token_ttl", oauth2_access_token_ttl),
+                            // We don't want tokens to be refreshed
+                            def("oauth2_refresh_token_ttl", 0),
+                            def(
+                                "oauth2_registration_key",
+                                app_config.auth.oauth2_registration_key.expose_secret(),
+                            ),
                         ],
-                        ..Default::default()
-                    },
-                },
-                prosody_bootstrap_config::admin_virtual_host(
-                    &api_jid,
-                    app_config.server.local_hostname_admin.to_owned(),
-                ),
-                ProsodyConfigSection::Component {
-                    hostname: format!("groups.{}", server_config.domain),
-                    plugin: "muc".into(),
-                    name: "Chatrooms".into(),
-                    settings: ProsodySettings {
-                        restrict_room_creation: Some(RoomCreationRestriction::DomainOnly),
-                        max_archive_query_results: Some(100),
-                        muc_log_all_rooms: Some(true),
-                        muc_log_expires_after: Some(PossiblyInfinite::Infinite),
-                        muc_log_by_default: Some(true),
-                        ..Default::default()
-                    },
-                },
-            ],
+                    ),
+                ],
+                ..Default::default()
+            },
+        };
+        let admin_virtual_host = prosody_bootstrap_config::admin_virtual_host(
+            &api_jid,
+            app_config.server.local_hostname_admin.to_owned(),
+        );
+        let groups_virtual_host = ProsodyConfigSection::Component {
+            hostname: format!("groups.{}", server_config.domain),
+            plugin: "muc".into(),
+            name: "Chatrooms".into(),
+            settings: ProsodySettings {
+                restrict_room_creation: Some(RoomCreationRestriction::DomainOnly),
+                max_archive_query_results: Some(100),
+                muc_log_all_rooms: Some(true),
+                muc_log_expires_after: Some(PossiblyInfinite::Infinite),
+                muc_log_by_default: Some(true),
+                ..Default::default()
+            },
+        };
+
+        let mut additional_sections = vec![
+            main_virtual_host,
+            admin_virtual_host,
+            groups_virtual_host,
+        ];
+
+        for section in additional_sections.iter_mut() {
+            let ref host = section.hostname().clone();
+            section.apply_defaults_and_overrides_from(app_config, host);
+        }
+
+        Self {
+            global_settings,
+            additional_sections,
         }
     }
 }
@@ -266,6 +276,47 @@ impl ProseDefault for prosody_config::ProsodyConfig {
 // TODO: Remove unused code
 pub mod util {
     use prosody_config::*;
+
+    use crate::AppConfig;
+
+    pub(in crate::features::prosody) trait WithDefaultsAndOverrides {
+        fn with_defaults_and_overrides_from(self, app_config: &AppConfig, host: &str) -> Self;
+    }
+
+    impl WithDefaultsAndOverrides for ProsodySettings {
+        fn with_defaults_and_overrides_from(self, app_config: &AppConfig, host: &str) -> Self {
+            if let Some(host_config) = app_config.prosody.get(host) {
+                let mut res = self;
+                if let Some(ref defaults) = host_config.defaults {
+                    res = defaults.shallow_merged_with(res, MergeStrategy::KeepOther);
+                };
+                if let Some(ref overrides) = host_config.overrides {
+                    res = overrides.shallow_merged_with(res, MergeStrategy::KeepSelf);
+                };
+                res
+            } else {
+                self
+            }
+        }
+    }
+
+    pub(in crate::features::prosody) trait ApplyDefaultsAndOverrides {
+        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &str);
+    }
+
+    impl ApplyDefaultsAndOverrides for ProsodyConfigSection {
+        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &str) {
+            if let Some(host_config) = app_config.prosody.get(host) {
+                let settings = self.settings_mut();
+                if let Some(ref defaults) = host_config.defaults {
+                    settings.shallow_merge(defaults.clone(), MergeStrategy::KeepSelf);
+                };
+                if let Some(ref overrides) = host_config.overrides {
+                    settings.shallow_merge(overrides.clone(), MergeStrategy::KeepOther);
+                };
+            }
+        }
+    }
 
     // pub fn add_admin(settings: &mut ProsodySettings, jid: JID) {
     //     settings
