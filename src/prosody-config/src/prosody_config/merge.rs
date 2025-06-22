@@ -74,6 +74,7 @@ impl ProsodySettings {
             reload_modules,
             reload_global_modules,
             custom_settings,
+            use_libevent,
             http_file_share_secret,
             http_file_share_base_url,
             http_file_share_size_limit,
@@ -142,6 +143,7 @@ impl ProsodySettings {
         merge!(reload_modules);
         merge!(reload_global_modules);
         merge!(tls_profile);
+        merge!(use_libevent);
         merge!(http_file_share_secret);
         merge!(http_file_share_base_url);
         merge!(http_file_share_size_limit);

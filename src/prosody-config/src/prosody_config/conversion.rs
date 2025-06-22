@@ -65,6 +65,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             reload_modules,
             reload_global_modules,
             tls_profile,
+            use_libevent,
             http_file_share_secret,
             http_file_share_base_url,
             http_file_share_size_limit,
@@ -235,6 +236,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 ],
             ),
         );
+        push_if_some(&mut res, option_def(None, "use_libevent", use_libevent));
         push_if_some(
             &mut res,
             Group::flattened(

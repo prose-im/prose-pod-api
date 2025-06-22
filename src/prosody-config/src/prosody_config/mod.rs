@@ -174,6 +174,9 @@ pub struct ProsodySettings {
     /// See <https://prosody.im/doc/modules/mod_http_file_share>.
     pub http_file_share_access: Option<LinkedHashSet<BareJid>>,
 
+    /// See <https://prosody.im/doc/libevent>.
+    pub use_libevent: Option<bool>,
+
     #[cfg_attr(feature = "serde", serde(skip))]
     pub custom_settings: Vec<Group<LuaDefinition>>,
 }
