@@ -153,8 +153,12 @@ Component "upload.prose.org.local" "http_file_share"
 
   -- HTTP settings
   http_external_url = "http://admin.prose.test.org/"
+  http_paths = {
+    file_share = "/upload";
+  }
 
   -- XEP-0363: HTTP File Upload
   http_file_share_size_limit = 20 * 1024 * 1024
   http_file_share_expires_after = "never"
-  http_file_share_daily_quota = 250 * 1024 * 1024
+  http_file_share_daily_quota = 100 * 1024 * 1024
+  http_file_share_access = { "test.org" }

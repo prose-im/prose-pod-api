@@ -19,8 +19,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
 
     // NOTE: Deconstruct to ensure no value is unused.
     let ServerConfig {
-        // NOTE: Used in `prose_default`.
-        domain: _,
+        domain,
         message_archive_enabled,
         message_archive_retention,
         file_upload_allowed,
@@ -83,10 +82,21 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
             name: "HTTP File Upload".to_owned(),
             settings: ProsodySettings {
                 http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
-                http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
+                http_file_share_daily_quota: Some(Bytes::MebiBytes(100)),
                 http_file_share_expires_after: Some(file_storage_retention.into_prosody()),
-                http_file_share_access: None,
+                http_file_share_access: Some(
+                    vec![BareJid::domain(
+                        domain,
+                    )]
+                    .into_iter()
+                    .collect(),
+                ),
                 http_external_url: Some(app_config.pod.dashboard_url.to_string()),
+                http_paths: Some(
+                    vec![("file_share".to_owned(), "/upload".to_owned())]
+                        .into_iter()
+                        .collect(),
+                ),
                 ..Default::default()
             }
             .with_defaults_and_overrides_from(app_config, host),
