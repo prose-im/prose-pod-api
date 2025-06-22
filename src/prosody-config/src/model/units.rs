@@ -27,25 +27,19 @@ pub enum Bytes {
     MebiBytes(u32),
 }
 
-#[derive(Debug, Display)]
-pub enum ParseBytesError {
-    InvalidQuantity(ParseIntError),
-    InvalidUnit,
-}
-
 impl FromStr for Bytes {
-    type Err = ParseBytesError;
+    type Err = ParseMeasurementError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (n, unit) = split_leading_digits(s);
-        let n = u32::from_str(n).map_err(ParseBytesError::InvalidQuantity)?;
+        let n = u32::from_str(n).map_err(ParseMeasurementError::InvalidQuantity)?;
         match unit {
             "B" => Ok(Self::Bytes(n)),
             "kB" => Ok(Self::KiloBytes(n)),
             "KiB" => Ok(Self::KibiBytes(n)),
             "MB" => Ok(Self::MegaBytes(n)),
             "MiB" => Ok(Self::MebiBytes(n)),
-            _ => Err(ParseBytesError::InvalidUnit),
+            _ => Err(ParseMeasurementError::InvalidUnit),
         }
     }
 }
@@ -139,4 +133,12 @@ impl<D> Into<Option<D>> for PossiblyInfinite<D> {
             Self::Finite(d) => Some(d),
         }
     }
+}
+
+// ===== Errors =====
+
+#[derive(Debug, Display)]
+pub enum ParseMeasurementError {
+    InvalidQuantity(ParseIntError),
+    InvalidUnit,
 }
