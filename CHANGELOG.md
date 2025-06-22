@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.14.1...HEAD
 
+### Removed
+
+- feat(app-config)!: Replace server config initialization step by a static configuration key (in `44ac2f1`)
+- feat(app-config)!: Replace pod config initialization step by static configuration keys (in `f469a60`)
+
+### Changed
+
+- feat: Set `push_notification_with_*` to `true` by default (in `5449ac5`)
+- feat!: Lower the 100 members limit to 20 (in `2838a6e`)
+- feat(local-run): Speed up local builds by using a different Dockerfile (in `02c3263`)
+- feat(invitations): Do not return 200 OK when getting details for an expired invitation token (in `df09f8a`)
+- feat(invitations)!: Return 410 Gone instead of 404 Not Found on `invitation_not_found` (in `a9d9653`)
+- A ton of improvements to the code.
+
+### Added
+
+- feat(profile): Add `PUT /v1/members/{jid}/email-address` (in `2709119`)
+- feat(auth): Implement password reset (in `dd2ebcd`)
+- feat(invitations): Store email addresses when accepting invitations (in `0a401e8`)
+- feat(local-run): Allow running the Dashboard locally too (in `8347293`)
+- feat: Add support for all keys from `ProsodySettings` in `PUT /v1/server/config/prosody-overrides` (in `bfac9a7`)
+- feat(invitations): Return whether or not a Workspace invitation is expired when getting its details (in `2b581d0`)
+
+### Fixed
+
+- fix(network-checks): Do not generate S2S DNS record if federation is disabled (in `a5163be`)
+- fix(dns-setup): Do not check S2S network config if federation is disabled (in `a5163be`)
+- fix(app-config): Fix `server.log_level` config not being taken into account (in `a77d07d`)
+- fix(network-checks): Fix tokio panic by using hickory’s `TokioAsyncResolver` (in `fb2598f`)
+
 ## [0.14.1] - 2025-05-16
 
 [0.14.1]: https://github.com/prose-im/prose-pod-api/compare/v0.14.0...v0.14.1
