@@ -61,10 +61,40 @@ impl Display for Bytes {
 /// See <https://en.wikipedia.org/wiki/Data-rate_units>
 /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub enum DataRate {
     BytesPerSec(u32),
     KiloBytesPerSec(u32),
     MegaBytesPerSec(u32),
+}
+
+impl FromStr for DataRate {
+    type Err = ParseMeasurementError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (n, unit) = split_leading_digits(s);
+        let n = u32::from_str(n).map_err(ParseMeasurementError::InvalidQuantity)?;
+        let unit = unit.replacen("bps", "bit/s", 1).replacen("Bps", "B/s", 1);
+        match unit.as_str() {
+            "B/s" => Ok(Self::BytesPerSec(n)),
+            "kB/s" => Ok(Self::KiloBytesPerSec(n)),
+            "MB/s" => Ok(Self::MegaBytesPerSec(n)),
+            _ => Err(ParseMeasurementError::InvalidUnit),
+        }
+    }
+}
+
+impl Display for DataRate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BytesPerSec(n) => write!(f, "{n}B/s"),
+            Self::KiloBytesPerSec(n) => write!(f, "{n}kB/s"),
+            Self::MegaBytesPerSec(n) => write!(f, "{n}MB/s"),
+        }
+    }
 }
 
 // ===== Durations =====

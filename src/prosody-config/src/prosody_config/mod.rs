@@ -116,7 +116,6 @@ pub struct ProsodySettings {
     pub s2s_stanza_size_limit: Option<Bytes>,
     /// See <https://modules.prosody.im/mod_s2s_whitelist>.
     pub s2s_whitelist: Option<LinkedHashSet<String>>,
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub limits: Option<LinkedHashMap<ConnectionType, ConnectionLimits>>,
     pub consider_websocket_secure: Option<bool>,
     pub cross_domain_websocket: Option<bool>,
@@ -613,6 +612,12 @@ pub enum ConnectionType {
 
 /// See <https://prosody.im/doc/modules/mod_limits>.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[cfg_attr(
+    feature = "serde",
+    serde_with::skip_serializing_none,
+    derive(Serialize, Deserialize),
+    serde(deny_unknown_fields)
+)]
 pub struct ConnectionLimits {
     pub rate: Option<DataRate>,
     pub burst: Option<Duration<TimeLike>>,
