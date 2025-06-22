@@ -148,7 +148,7 @@ pub struct ProsodySettings {
     pub access_control_allow_credentials: Option<bool>,
     pub access_control_max_age: Option<Duration<TimeLike>>,
     pub http_default_cors_enabled: Option<bool>,
-    pub http_paths: Option<LinkedHashSet<String>>,
+    pub http_paths: Option<LinkedHashMap<String, String>>,
     pub http_host: Option<String>,
     pub http_external_url: Option<String>,
     pub http_ports: Option<LinkedHashSet<u16>>,
