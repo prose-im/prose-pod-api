@@ -64,9 +64,6 @@ impl ProsodySettings {
             max_archive_query_results,
             upgrade_legacy_vcards,
             groups_file,
-            http_file_share_size_limit,
-            http_file_share_daily_quota,
-            http_file_share_expires_after,
             http_host,
             http_external_url,
             restrict_room_creation,
@@ -77,6 +74,15 @@ impl ProsodySettings {
             reload_modules,
             reload_global_modules,
             custom_settings,
+            http_file_share_secret,
+            http_file_share_base_url,
+            http_file_share_size_limit,
+            http_file_share_allowed_file_types,
+            http_file_share_safe_file_types,
+            http_file_share_expires_after,
+            http_file_share_daily_quota,
+            http_file_share_global_quota,
+            http_file_share_access,
         } = other;
 
         macro_rules! merge {
@@ -127,9 +133,6 @@ impl ProsodySettings {
         merge!(max_archive_query_results);
         merge!(upgrade_legacy_vcards);
         merge!(groups_file);
-        merge!(http_file_share_size_limit);
-        merge!(http_file_share_daily_quota);
-        merge!(http_file_share_expires_after);
         merge!(http_host);
         merge!(http_external_url);
         merge!(restrict_room_creation);
@@ -139,6 +142,15 @@ impl ProsodySettings {
         merge!(reload_modules);
         merge!(reload_global_modules);
         merge!(tls_profile);
+        merge!(http_file_share_secret);
+        merge!(http_file_share_base_url);
+        merge!(http_file_share_size_limit);
+        merge!(http_file_share_allowed_file_types);
+        merge!(http_file_share_safe_file_types);
+        merge!(http_file_share_expires_after);
+        merge!(http_file_share_daily_quota);
+        merge!(http_file_share_global_quota);
+        merge!(http_file_share_access);
 
         // NOTE: We cannot simply use `Vec::extend`, as it would make values
         //   in `other` take precedence over values in `self` (which is the

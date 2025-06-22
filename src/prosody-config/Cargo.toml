@@ -12,6 +12,7 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 lazy_static = { version = "1", default-features = false }
 linked-hash-map = { version = "0.5", default-features = false }
 linked_hash_set = { version = "0.1", default-features = false }
+mime = { version = "0.3", default-features = false }
 secrecy = { version = "0.10", default-features = false }
 serde = { version = "1", default-features = false, features = [
     "derive",

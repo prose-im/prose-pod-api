@@ -86,8 +86,8 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
                     http_file_share_size_limit: Some(Bytes::MebiBytes(20)),
                     http_file_share_daily_quota: Some(Bytes::MebiBytes(250)),
                     http_file_share_expires_after: Some(file_storage_retention.into_prosody()),
-                    http_host: Some("localhost".into()),
-                    http_external_url: Some("http://localhost:5280".into()),
+                    http_file_share_access: None,
+                    http_external_url: Some(app_config.pod.dashboard_url.to_string()),
                     ..Default::default()
                 },
             })

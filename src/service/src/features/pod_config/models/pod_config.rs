@@ -43,6 +43,14 @@ impl DashboardUrl {
     }
 }
 
+impl std::ops::Deref for DashboardUrl {
+    type Target = Url;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 // MARK: - Helpers
 
 fn url_has_no_path(url: &Url) -> bool {

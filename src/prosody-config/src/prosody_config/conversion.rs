@@ -55,9 +55,6 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             max_archive_query_results,
             upgrade_legacy_vcards,
             groups_file,
-            http_file_share_size_limit,
-            http_file_share_daily_quota,
-            http_file_share_expires_after,
             http_host,
             http_external_url,
             restrict_room_creation,
@@ -68,6 +65,15 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             reload_modules,
             reload_global_modules,
             tls_profile,
+            http_file_share_secret,
+            http_file_share_base_url,
+            http_file_share_size_limit,
+            http_file_share_allowed_file_types,
+            http_file_share_safe_file_types,
+            http_file_share_expires_after,
+            http_file_share_daily_quota,
+            http_file_share_global_quota,
+            http_file_share_access,
         } = self;
 
         fn push_if_some<T: Into<U>, U>(vec: &mut Vec<U>, value: Option<T>) {
@@ -218,15 +224,47 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                 groups_file,
             ),
         );
+
         push_if_some(
             &mut res,
             Group::flattened(
                 "HTTP settings".into(),
                 vec![
+                    option_def(None, "http_host", http_host),
+                    option_def(None, "http_external_url", http_external_url),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                "XEP-0363: HTTP File Upload".into(),
+                vec![
+                    option_def(
+                        Some("Base URL of external upload service"),
+                        "http_file_share_base_url",
+                        http_file_share_base_url,
+                    ),
+                    option_def(None, "http_file_share_secret", http_file_share_secret),
                     option_def(
                         None,
                         "http_file_share_size_limit",
                         http_file_share_size_limit,
+                    ),
+                    option_def(
+                        None,
+                        "http_file_share_allowed_file_types",
+                        http_file_share_allowed_file_types,
+                    ),
+                    option_def(
+                        Some("Safe to show in-line in e.g. browsers"),
+                        "http_file_share_safe_file_types",
+                        http_file_share_safe_file_types,
+                    ),
+                    option_def(
+                        None,
+                        "http_file_share_expires_after",
+                        http_file_share_expires_after,
                     ),
                     option_def(
                         None,
@@ -235,14 +273,10 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     ),
                     option_def(
                         None,
-                        "http_file_share_expires_after",
-                        http_file_share_expires_after
-                            // `http_file_share_expires_after` is defined as a number of seconds.
-                            // See <https://prosody.im/doc/modules/mod_http_file_share#retention>.
-                            .map(|d| d.seconds_as_lua_number()),
+                        "http_file_share_global_quota",
+                        http_file_share_global_quota,
                     ),
-                    option_def(None, "http_host", http_host),
-                    option_def(None, "http_external_url", http_external_url),
+                    option_def(None, "http_file_share_access", http_file_share_access),
                 ],
             ),
         );
@@ -692,6 +726,12 @@ impl Into<LuaValue> for TlsProfile {
             Self::Intermediate => "intermediate".into(),
             Self::Old => "old".into(),
         }
+    }
+}
+
+impl Into<LuaValue> for Mime {
+    fn into(self) -> LuaValue {
+        LuaValue::String(self.to_string())
     }
 }
 

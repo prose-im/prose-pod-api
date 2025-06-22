@@ -136,12 +136,6 @@ pub struct ProsodySettings {
     pub max_archive_query_results: Option<u32>,
     pub upgrade_legacy_vcards: Option<bool>,
     pub groups_file: Option<PathBuf>,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub http_file_share_size_limit: Option<Bytes>,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub http_file_share_daily_quota: Option<Bytes>,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub http_file_share_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
     pub http_host: Option<String>,
     pub http_external_url: Option<String>,
     /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
@@ -159,6 +153,33 @@ pub struct ProsodySettings {
     pub reload_modules: Option<LinkedHashSet<String>>,
     /// See <https://modules.prosody.im/mod_reload_modules>.
     pub reload_global_modules: Option<LinkedHashSet<String>>,
+
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    pub http_file_share_secret: Option<SecretString>,
+    /// Base URL of external upload service.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    pub http_file_share_base_url: Option<String>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub http_file_share_size_limit: Option<Bytes>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    pub http_file_share_allowed_file_types: Option<LinkedHashSet<Mime>>,
+    /// Safe to show in-line in e.g. browsers.
+    ///
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    pub http_file_share_safe_file_types: Option<LinkedHashSet<Mime>>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub http_file_share_expires_after: Option<PossiblyInfinite<Duration<DateLike>>>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub http_file_share_daily_quota: Option<Bytes>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub http_file_share_global_quota: Option<Bytes>,
+    /// See <https://prosody.im/doc/modules/mod_http_file_share>.
+    pub http_file_share_access: Option<LinkedHashSet<BareJid>>,
 
     #[cfg_attr(feature = "serde", serde(skip))]
     pub custom_settings: Vec<Group<LuaDefinition>>,
