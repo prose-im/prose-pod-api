@@ -129,6 +129,9 @@ VirtualHost "admin.prose.org.local"
 Component "groups.test.org" "muc"
   name = "Chatrooms"
 
+  -- Modules
+  modules_enabled = { "muc_public_affiliations" }
+
   -- MAM settings
   max_archive_query_results = 100
 

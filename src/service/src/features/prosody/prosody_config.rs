@@ -249,6 +249,12 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 muc_log_all_rooms: Some(true),
                 muc_log_expires_after: Some(PossiblyInfinite::Infinite),
                 muc_log_by_default: Some(true),
+                modules_enabled: Some(
+                    vec!["muc_public_affiliations"]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                ),
                 ..Default::default()
             },
         };

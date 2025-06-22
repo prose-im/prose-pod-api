@@ -136,7 +136,10 @@ Component "groups.test.org" "muc"
   name = "Chatrooms"
 
   -- Modules
-  modules_enabled = { "muc_mam" }
+  modules_enabled = {
+    "muc_public_affiliations";
+    "muc_mam";
+  }
 
   -- MAM settings
   max_archive_query_results = 100
