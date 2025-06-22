@@ -231,7 +231,6 @@ pub struct ProsodySettings {
     /// Controls whether messages are archived by default.
     ///
     /// See <https://prosody.im/doc/modules/mod_mam>.
-    #[cfg_attr(feature = "serde", serde(skip))]
     pub default_archive_policy: Option<ArchivePolicy>,
     /// Only enable archiving for users that have queried the archive. This can
     /// be used to prevent archiving for users with legacy clients that don’t
