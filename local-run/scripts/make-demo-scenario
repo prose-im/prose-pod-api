@@ -10,23 +10,95 @@ source "${SCRIPTS_ROOT:?}"/util.sh
 # ===== CONSTANTS =====
 
 : ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
-DEMO_DATA_DIR="${REPOSITORY_ROOT:?}"/local-run/demo-data
-: ${SCENARIOS_DIR:="${REPOSITORY_ROOT:?}"/local-run/scenarios}
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+DEMO_DATA_DIR="${LOCAL_RUN_DIR:?}"/demo-data
+: ${SCENARIOS_DIR:="${LOCAL_RUN_DIR:?}"/scenarios}
+: ${LOCAL_RUN_SCRIPTS_DIR:="${LOCAL_RUN_DIR:?}"/scripts}
 
 : ${SCENARIO_NAME:=demo}
 
 source "${DEMO_DATA_DIR:?}/constants.sh"
+source "${LOCAL_RUN_SCRIPTS_DIR:?}/scenario-files.sh"
 
 # ===== MAIN LOGIC =====
 
 # Create demo scenario.
-if [ -d "${SCENARIOS_DIR:?}/${SCENARIO_NAME:?}" ]; then
+if [ -d "${SCENARIO_DIR:?}" ]; then
 	edo task local:scenarios:reset -y -- "${SCENARIO_NAME:?}"
 else
-	edo task local:scenarios:create -- "${SCENARIO_NAME:?}"
+	edo task local:scenarios:create -- "${SCENARIO_NAME:?}" --based-on=fresh
+fi
+
+echo '' > "${SCENARIO_DIR:?}"/NO_RUN
+echo '' > "${SCENARIO_DIR:?}"/NO_DELETE
+
+if [[ "$*" == *'--pod-address-dynamic'* ]]; then
+	ADDRESS_CFG='address = { domain = "'"${DOMAIN:?}"'" }'
+else
+	ADDRESS_CFG='address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }'
+fi
+
+mkdir -p "$(dirname "${PROSE_CONFIG_FILE:?}")"
+cat <<EOF > "${PROSE_CONFIG_FILE:?}"
+# Prose Pod API
+# REST API for administrating a Prose Pod
+# Configuration file
+# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
+
+[branding]
+company_name = "Prose"
+
+[server]
+domain = "prose-demo.org.local"
+
+[pod]
+${ADDRESS_CFG:?}
+dashboard_url = "http://localhost:3030/"
+
+[notify.email]
+pod_address = "pod@prose-demo.org.local"
+
+smtp_host = "mailpit"
+smtp_encrypt = false
+EOF
+
+mkdir -p "$(dirname "${COREDNS_COREFILE:?}")"
+cat <<EOF > "${COREDNS_COREFILE:?}"
+.:53 {
+  file /etc/coredns/zones.db
+  errors         # show errors
+  log            # enable query logs
+}
+EOF
+
+mkdir -p "$(dirname "${DNS_ZONE_FILE:?}")"
+cat <<EOF > "${DNS_ZONE_FILE:?}"
+@ IN SOA ns.prose-demo.org.local. admin.prose-demo.org.local. (
+  2024101701 ; serial
+  3600       ; refresh (1 hour)
+  600        ; retry (10 minutes)
+  86400      ; expire (1 day)
+  3600       ; minimum (1 hour)
+)
+EOF
+
+if [[ "$*" == *'--pod-address-dynamic'* ]]; then
+	cat <<EOF >> "${DNS_ZONE_FILE:?}"
+prose-demo.org.local 3600 IN SRV 0 5 5222 prose-demo.org.local.
+prose-demo.org.local 3600 IN SRV 0 5 5269 prose-demo.org.local.
+EOF
+else
+	cat <<EOF >> "${DNS_ZONE_FILE:?}"
+xmpp.prose-demo.org.local 600 IN A 172.20.0.40
+xmpp.prose-demo.org.local 600 IN AAAA 2001:db8::40
+prose-demo.org.local 3600 IN SRV 0 5 5222 xmpp.prose-demo.org.local.
+prose-demo.org.local 3600 IN SRV 0 5 5269 xmpp.prose-demo.org.local.
+EOF
 fi
 
 # Run the API.
+export ENV_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/make-demo-scenario.env
 # NOTE: We need to run `local` so we can auto-accept invitations.
 edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
 while ! xh :8080/v1/version -q; do
@@ -47,32 +119,17 @@ log-in-member-n() {
 	local n="${1:?}"
 	local res="$(xh POST :8080/v1/login -a "${MEMBER_JIDS[n]}:${MEMBER_PASSWORDS[n]}" -b)"
 	if [ $? -eq 0 ]; then
-		jq -r '.token' <<< "${res:?}"
+		MEMBER_TOKENS[n]="$(jq -r '.token' <<< "${res:?}")"
 	else
-		debug 'Retrying…'
+		debug 'Retrying (debug)…'
 		log_as_debug_ xh POST :8080/v1/login -a "${MEMBER_JIDS[n]}:${MEMBER_PASSWORDS[n]}" -b
 		return 1
 	fi
 }
 
 info 'Log first admin in'
-MEMBER_TOKENS[0]="$(log-in-member-n 0)"
+log-in-member-n 0
 ADMIN_TOKEN="${MEMBER_TOKENS[0]}"
-
-if [[ "$*" == *'--pod-address-dynamic'* ]]; then
-	info 'Initialize Pod address (dynamic address)'
-	xh PUT :8080/v1/pod/config -q \
-		address[hostname]="${DOMAIN:?}" \
-		dashboard_url=http://localhost:3030 \
-		-A bearer -a "${ADMIN_TOKEN:?}"
-else
-	info 'Initialize Pod address (static address)'
-	xh PUT :8080/v1/pod/config -q \
-		address[ipv4]=172.20.0.40 \
-		address[ipv6]=2001:db8::40 \
-		dashboard_url=http://localhost:3030 \
-		-A bearer -a "${ADMIN_TOKEN:?}"
-fi
 
 info 'Set Workspace icon'
 xh PUT :8080/v1/workspace/icon -q \
@@ -86,7 +143,7 @@ update-member-n() {
 	local nickname="${MEMBER_NICKNAMES[n]}"
 	if [ -n "${nickname?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s nickname"
-		xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/nickname -q \
+		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/nickname -q \
 			nickname="${nickname:?}" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 	else
@@ -96,7 +153,7 @@ update-member-n() {
 	local avatar="${MEMBER_AVATARS[n]}"
 	if [ -n "${avatar?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s avatar"
-		xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/avatar -q \
+		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/avatar -q \
 			image="${avatar:?}" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 	else
@@ -106,7 +163,7 @@ update-member-n() {
 	local email="${MEMBER_EMAILS[n]}"
 	if [ -n "${email?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s email address"
-		xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/email-address -q \
+		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/email-address -q \
 			--raw "\"${email:?}\"" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 	else
@@ -126,7 +183,7 @@ add-member-n() {
 		-A bearer -a "${ADMIN_TOKEN:?}"
 
 	info "Log ${MEMBER_JIDS[n]} in"
-	MEMBER_TOKENS[n]="$(log-in-member-n "${n:?}")"
+	log-in-member-n "${n:?}"
 
 	update-member-n "${n:?}"
 }
