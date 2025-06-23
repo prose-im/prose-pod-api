@@ -36,7 +36,7 @@ impl TryFrom<&AppConfig> for EmailNotifier {
     type Error = EmailNotifierCreateError;
 
     fn try_from(app_config: &AppConfig) -> Result<Self, Self::Error> {
-        let email_config = app_config.notify.email()?;
+        let email_config = app_config.notifiers.email()?;
 
         let smtp_transport = acquire_transport(
             &email_config.smtp_host,
@@ -160,7 +160,7 @@ impl EmailNotification {
         message_html: String,
         app_config: &AppConfig,
     ) -> Result<Self, EmailNotificationCreateError> {
-        let email_config = app_config.notify.email()?;
+        let email_config = app_config.notifiers.email()?;
 
         Ok(Self {
             from: email_config.pod_mailbox(&app_config.branding),
@@ -177,12 +177,12 @@ impl EmailNotification {
     }
 }
 
-impl crate::app_config::NotifyEmailConfig {
+impl crate::app_config::EmailNotifierConfig {
     pub fn pod_address(&self) -> Address {
         self.pod_address.email().parse().expect("`pod_address` was parsed to a valid `email_address::EmailAddress` but it's invalid according to `lettre`.")
     }
     pub fn pod_mailbox(&self, branding: &BrandingConfig) -> Mailbox {
-        Mailbox::new(Some(branding.page_title.clone()), self.pod_address())
+        Mailbox::new(Some(branding.api_app_name.clone()), self.pod_address())
     }
 }
 

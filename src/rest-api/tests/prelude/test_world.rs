@@ -232,7 +232,7 @@ impl TestWorld {
             panic!("Could not create API XMPP account: {}", err);
         }
 
-        let db = db_conn(&config.databases.main).await;
+        let db = db_conn(&config.api.databases.main).await;
         // NOTE: We need to run migrations here before they run in the API because we need to perform actions on the database before the API starts (it's not started by default, since we also test the behavior at startup)
         if let Err(err) = run_migrations(&db).await {
             panic!("Could not run migrations in tests: {err}");

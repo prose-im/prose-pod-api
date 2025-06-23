@@ -102,7 +102,7 @@ pub async fn perform_factory_reset(
         .map_err(Either::E2)?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
-    let database_url = (app_config.databases.main.url)
+    let database_url = (app_config.api.databases.main.url)
         .strip_prefix("sqlite://")
         .context("Database URL should start with `sqlite://`")
         .map_err(Either::E2)?;

@@ -122,7 +122,7 @@ pub async fn can_invite_member_route(
 ) -> StatusCode {
     if is_admin.is_none() {
         StatusCode::FORBIDDEN
-    } else if app_config.notify.email.is_some() {
+    } else if app_config.notifiers.email.is_some() {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::PRECONDITION_FAILED

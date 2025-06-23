@@ -116,7 +116,7 @@ pub async fn request_password_reset(
     let notification_payload = PasswordResetNotificationPayload {
         reset_token: token,
         expires_at,
-        dashboard_url: app_config.pod.dashboard_url().clone(),
+        dashboard_url: app_config.dashboard_url().clone(),
     };
     let email =
         EmailNotification::for_password_reset(email_address, notification_payload, app_config)

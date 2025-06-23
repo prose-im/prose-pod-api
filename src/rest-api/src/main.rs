@@ -94,7 +94,7 @@ async fn run(
             if app_config.debug.log_config_at_startup {
                 dbg!(&app_config);
             }
-            let addr = SocketAddr::new(app_config.address, app_config.port);
+            let addr = SocketAddr::new(app_config.api.address, app_config.api.port);
 
             tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
 
@@ -106,7 +106,7 @@ async fn run(
         Err(_) if lifecycle_manager.is_restarting() => {
             warn!("The Prose Pod API is missing some static configuration. Serving only utility routes.");
 
-            let addr = SocketAddr::new(defaults::address(), defaults::port());
+            let addr = SocketAddr::new(defaults::api_address(), defaults::api_port());
 
             let app_state = MinimalAppState {
                 lifecycle_manager: lifecycle_manager.clone(),
@@ -159,7 +159,7 @@ async fn init_dependencies(
     app_config: AppConfig,
     lifecycle_manager: &LifecycleManager,
 ) -> AppState {
-    let db = db_conn(&app_config.databases.main)
+    let db = db_conn(&app_config.api.databases.main)
         .await
         .expect("Could not connect to the database.");
 

@@ -11,10 +11,10 @@ use std::{
 use tracing::instrument;
 
 use crate::{
+    app_config::{PodAddress, PodConfig},
     network_checks::{
         models::network_checks::*, DnsEntry, DnsRecordWithStringRepr, DnsSetupStep, IpVersion,
     },
-    pod_config::{PodAddress, PodConfig},
     xmpp::{JidDomain, XmppConnectionType},
 };
 

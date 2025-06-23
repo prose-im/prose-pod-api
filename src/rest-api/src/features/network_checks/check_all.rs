@@ -83,7 +83,7 @@ pub async fn check_network_configuration_stream_route(
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let ref app_config = app_config.read().unwrap().clone();
     let retry_interval = interval.map_or_else(
-        || Ok(app_config.default_retry_interval.into_std_duration()),
+        || Ok(app_config.api.default_retry_interval.into_std_duration()),
         validate_retry_interval,
     )?;
     let runner = ConcurrentTaskRunner::default(app_config)

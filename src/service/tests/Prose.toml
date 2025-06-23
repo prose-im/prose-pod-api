@@ -11,18 +11,20 @@ company_name = "Prose (test)"
 domain = "test.org"
 
 [pod]
-address = { domain = "test.org" }
-dashboard_url = "http://admin.test.org"
+address = { domain = "prose.test.org" }
 
-[databases.main]
+[dashboard]
+url = "https://admin.prose.test.org"
+
+[notifiers.email]
+pod_address = "prose@test.org"
+smtp_host = "test.org"
+
+[api.databases.main]
 url = "sqlite::memory:"
 
 [auth]
 oauth2_registration_key = "dummy-test-key"
-
-[notify.email]
-pod_address = "prose@test.org"
-smtp_host = "test.org"
 
 [debug_only.dependency_modes]
 notifier = "logging"

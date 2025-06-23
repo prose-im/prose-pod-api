@@ -11,15 +11,17 @@ company_name = "Prose (test)"
 domain = "test.org"
 
 [pod]
-address = { domain = "test.org" }
-dashboard_url = "http://admin.test.org"
+address = { domain = "prose.test.org" }
 
-[databases.main]
+[dashboard]
+url = "https://admin.prose.test.org"
+
+[notifiers.email]
+pod_address = "prose@example.org"
+
+[api.databases.main]
 url = "sqlite::memory:"
 sqlx_logging = true
-
-[notify.email]
-pod_address = "prose@example.org"
 
 [debug_only.dependency_modes]
 notifier = "logging"

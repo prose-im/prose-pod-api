@@ -5,16 +5,18 @@
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
-company_name = "Prose Test"
+company_name = "Prose (test)"
 
 [server]
 domain = "example.org"
 
 [pod]
-address = { domain = "example.org" }
-dashboard_url = "http://admin.example.org"
+address = { domain = "prose.example.org" }
 
-[notify.email]
+[dashboard]
+url = "https://prose.admin.example.org"
+
+[notifiers.email]
 pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false

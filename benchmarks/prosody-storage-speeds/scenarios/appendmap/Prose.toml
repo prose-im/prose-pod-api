@@ -14,7 +14,7 @@ additional_modules_enabled = ["storage_appendmap"]
 [branding]
 company_name = "Prose (demo)"
 
-[notify.email]
+[notifiers.email]
 pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false

@@ -15,12 +15,11 @@ domain = "example.org"
 
 [pod]
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
-dashboard_url = "http://localhost:3030/"
 
-[notify.email]
+[dashboard]
+url = "http://localhost:3030"
+
+[notifiers.email]
 pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false
-
-[debug_only.dependency_modes]
-# notifier = "logging"

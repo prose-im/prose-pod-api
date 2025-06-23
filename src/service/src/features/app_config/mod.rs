@@ -16,7 +16,6 @@ use std::{
     str::FromStr as _,
 };
 
-use anyhow::Context;
 use email_address::EmailAddress;
 use figment::{
     providers::{Env, Format, Toml},
@@ -30,15 +29,12 @@ use serde::Deserialize;
 
 use crate::{
     invitations::InvitationChannel,
-    models::{
-        durations::{DateLike, Duration, PossiblyInfinite},
-        xmpp::jid::{BareJid, DomainPart, JidNode},
-        TimeLike,
-    },
+    models::{durations::*, xmpp::jid::*, TimeLike, Url},
 };
 
-pub use super::pod_config::PodConfig;
 use super::{server_config::TlsProfile, xmpp::JidDomain};
+
+pub use self::pod_config::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose-pod-api";
@@ -53,6 +49,7 @@ lazy_static! {
         (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
 }
 
+// TODO: Validate values intervals (e.g. `default_response_timeout`).
 /// Prose Pod configuration.
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
@@ -60,39 +57,34 @@ lazy_static! {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
-    pub log: LogConfig,
-    #[serde(default)]
-    pub service_accounts: ServiceAccountsConfig,
-    #[serde(default)]
-    pub bootstrap: BootstrapConfig,
-    pub server: ServerConfig,
-    pub pod: PodConfig,
-    #[serde(default)]
-    pub auth: AuthConfig,
-    #[serde(default)]
-    pub prosody_ext: ProsodyExtConfig,
-    #[serde(default)]
-    pub prosody: HashMap<String, ProsodyHostConfig>,
-    #[serde(default)]
     pub branding: BrandingConfig,
     #[serde(default)]
-    pub notify: NotifyConfig,
+    pub notifiers: NotifiersConfig,
     #[serde(default)]
-    pub databases: DatabasesConfig,
-    /// IP address to serve on.
-    #[serde(default = "defaults::address")]
-    pub address: IpAddr,
-    /// Port to serve on.
-    #[serde(default = "defaults::port")]
-    pub port: u16,
-    /// Some requests may take a long time to execute. Sometimes we support
-    /// response timeouts, but don't want to hardcode a value.
-    #[serde(default = "defaults::default_response_timeout")]
-    pub default_response_timeout: Duration<TimeLike>,
-    #[serde(default = "defaults::default_retry_interval")]
-    pub default_retry_interval: Duration<TimeLike>,
+    pub log: LogConfig,
+    pub pod: PodConfig,
+    pub server: ServerConfig,
+    #[serde(default)]
+    pub api: ApiConfig,
+    pub dashboard: DashboardConfig,
+    #[serde(default)]
+    pub auth: AuthConfig,
+    /// Advanced config, use only if needed.
+    #[serde(default)]
+    pub prosody_ext: ProsodyExtConfig,
+    /// Advanced config, use only if needed.
+    #[serde(default)]
+    pub prosody: HashMap<String, ProsodyHostConfig>,
+    /// Advanced config, use only if needed.
+    #[serde(default)]
+    pub bootstrap: BootstrapConfig,
+    /// Advanced config, use only if needed.
+    #[serde(default)]
+    pub service_accounts: ServiceAccountsConfig,
+    /// Advanced config, use only if needed.
     #[serde(default, rename = "debug_use_at_your_own_risk")]
     pub debug: DebugConfig,
+    /// Advanced config, use only if needed.
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub debug_only: DebugOnlyConfig,
@@ -111,10 +103,10 @@ impl AppConfig {
     }
 
     pub fn from_figment(figment: Figment) -> anyhow::Result<Self> {
+        use anyhow::Context as _;
         figment
             .extract()
             .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))
-        // TODO: Check values intervals (e.g. `default_response_timeout`).
     }
 
     pub fn from_path(path: impl AsRef<Path>) -> anyhow::Result<Self> {
@@ -141,6 +133,10 @@ impl AppConfig {
 
     pub fn server_domain(&self) -> &JidDomain {
         &self.server.domain
+    }
+
+    pub fn dashboard_url(&self) -> &Url {
+        &self.dashboard.url.0
     }
 }
 
@@ -222,6 +218,41 @@ pub enum LogTimer {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct ApiConfig {
+    /// IP address to serve on.
+    #[serde(default = "defaults::api_address")]
+    pub address: IpAddr,
+    /// Port to serve on.
+    #[serde(default = "defaults::api_port")]
+    pub port: u16,
+    /// Some requests may take a long time to execute. Sometimes we support
+    /// response timeouts, but don't want to hardcode a value.
+    #[serde(default = "defaults::api_default_response_timeout")]
+    pub default_response_timeout: Duration<TimeLike>,
+    #[serde(default = "defaults::api_default_retry_interval")]
+    pub default_retry_interval: Duration<TimeLike>,
+    #[serde(default)]
+    pub databases: DatabasesConfig,
+}
+
+impl Default for ApiConfig {
+    fn default() -> Self {
+        Self {
+            address: defaults::api_address(),
+            port: defaults::api_port(),
+            default_response_timeout: defaults::api_default_response_timeout(),
+            default_retry_interval: defaults::api_default_retry_interval(),
+            databases: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DashboardConfig {
+    pub url: DashboardUrl,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ServiceAccountsConfig {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
     pub prose_pod_api: ServiceAccountConfig,
@@ -253,6 +284,39 @@ impl Default for BootstrapConfig {
     fn default() -> Self {
         Self {
             prose_pod_api_xmpp_password: defaults::bootstrap_prose_pod_api_xmpp_password(),
+        }
+    }
+}
+
+mod pod_config {
+    use hickory_proto::rr::Name as DomainName;
+    use std::net::{Ipv4Addr, Ipv6Addr};
+
+    #[derive(Debug, Clone)]
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct PodConfig {
+        pub address: PodAddress,
+    }
+
+    #[derive(Debug, Clone)]
+    #[derive(serdev::Serialize, serdev::Deserialize)]
+    #[serde(validate = "Self::validate")]
+    pub struct PodAddress {
+        pub domain: Option<DomainName>,
+        pub ipv4: Option<Ipv4Addr>,
+        pub ipv6: Option<Ipv6Addr>,
+        /// NOTE: Here to prevent the creation of an invalid value.
+        #[serde(skip)]
+        _private: (),
+    }
+
+    impl PodAddress {
+        fn validate(&self) -> Result<(), &'static str> {
+            if (&self.domain, &self.ipv4, &self.ipv6) == (&None, &None, &None) {
+                return Err("The Pod address must contain at least an IPv4, an IPv6 or a domain.");
+            }
+
+            Ok(())
         }
     }
 }
@@ -387,17 +451,17 @@ impl Default for ServerConfigDefaults {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BrandingConfig {
-    #[serde(default = "defaults::branding_page_title")]
-    pub page_title: String,
     #[serde(default)]
     pub company_name: Option<String>,
+    #[serde(default = "defaults::branding_api_app_name")]
+    pub api_app_name: String,
 }
 
 impl Default for BrandingConfig {
     fn default() -> Self {
         Self {
-            page_title: defaults::branding_page_title(),
             company_name: None,
+            api_app_name: defaults::branding_api_app_name(),
         }
     }
 }
@@ -409,15 +473,15 @@ impl Default for InvitationChannel {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct NotifyConfig {
+pub struct NotifiersConfig {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
     pub workspace_invitation_channel: InvitationChannel,
     #[serde(default)]
-    pub email: Option<NotifyEmailConfig>,
+    pub email: Option<EmailNotifierConfig>,
 }
 
-impl NotifyConfig {
-    pub fn email<'a>(&'a self) -> Result<&'a NotifyEmailConfig, MissingConfiguration> {
+impl NotifiersConfig {
+    pub fn email<'a>(&'a self) -> Result<&'a EmailNotifierConfig, MissingConfiguration> {
         match self.email {
             Some(ref conf) => Ok(conf),
             None => Err(MissingConfiguration("notify.email")),
@@ -426,19 +490,19 @@ impl NotifyConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct NotifyEmailConfig {
+pub struct EmailNotifierConfig {
     pub pod_address: EmailAddress,
 
-    #[serde(default = "defaults::notify_email_smtp_host")]
+    #[serde(default = "defaults::smtp_host")]
     pub smtp_host: String,
 
-    #[serde(default = "defaults::notify_email_smtp_port")]
+    #[serde(default = "defaults::smtp_port")]
     pub smtp_port: u16,
 
     pub smtp_username: Option<String>,
     pub smtp_password: Option<SecretString>,
 
-    #[serde(default = "defaults::notify_email_smtp_encrypt")]
+    #[serde(default = "defaults::smtp_encrypt")]
     pub smtp_encrypt: bool,
 }
 
@@ -549,3 +613,42 @@ pub struct DependencyModesConfig {
     "Missing key `{0}` the app configuration. Add it to `Prose.toml` or use environment variables."
 )]
 pub struct MissingConfiguration(pub &'static str);
+
+// MARK: Dashboard URL
+
+#[derive(Debug, Clone)]
+#[derive(serdev::Serialize, serdev::Deserialize)]
+#[serde(validate = "Self::validate")]
+pub struct DashboardUrl(Url);
+
+impl DashboardUrl {
+    pub fn new(url: Url) -> anyhow::Result<Self> {
+        let res = Self(url);
+        res.validate().map_err(|str| anyhow::Error::msg(str))?;
+        Ok(res)
+    }
+
+    fn validate(&self) -> Result<(), &'static str> {
+        if url_has_no_path(&self.0) {
+            Ok(())
+        } else {
+            Err("The Dashboard URL contains a fragment or query.")
+        }
+    }
+}
+
+impl std::ops::Deref for DashboardUrl {
+    type Target = Url;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+// MARK: - Helpers
+
+fn url_has_no_path(url: &Url) -> bool {
+    // NOTE: `make_relative` when called on the same URL returns only the fragment and query.
+    let relative_part = url.make_relative(&url);
+    relative_part.is_some_and(|s| s.is_empty())
+}
