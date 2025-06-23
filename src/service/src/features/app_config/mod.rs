@@ -53,8 +53,6 @@ lazy_static! {
         (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
 }
 
-pub type Config = AppConfig;
-
 /// Prose Pod configuration.
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
