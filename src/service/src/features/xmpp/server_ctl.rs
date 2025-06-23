@@ -63,6 +63,9 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
     /// Remove a user from everyone's roster.
     async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+    /// Rosters synchronization is debounced, but sometimes one needs to force
+    /// a re-sync (e.g. after a termination).
+    async fn force_rosters_sync(&self) -> Result<(), Error>;
 
     async fn delete_all_data(&self) -> Result<(), Error>;
 }

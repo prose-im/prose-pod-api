@@ -217,6 +217,9 @@ impl ServerCtlImpl for LiveServerCtl {
             .await?;
         Ok(())
     }
+    async fn force_rosters_sync(&self) -> Result<(), server_ctl::Error> {
+        self.admin_rest.update_rosters().await
+    }
 
     #[instrument(name = "server_ctl::delete_all_data", level = "trace", skip_all, err)]
     async fn delete_all_data(&self) -> Result<(), server_ctl::Error> {

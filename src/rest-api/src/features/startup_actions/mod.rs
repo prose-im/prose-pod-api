@@ -13,6 +13,7 @@ mod rotate_api_xmpp_password;
 mod run_migrations;
 mod start_cron_tasks;
 mod test_services_reachability;
+mod update_rosters;
 mod validate_app_config_changes;
 mod wait_for_server;
 
@@ -31,6 +32,7 @@ use self::rotate_api_xmpp_password::*;
 use self::run_migrations::*;
 use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
+use self::update_rosters::*;
 use self::validate_app_config_changes::*;
 use self::wait_for_server::*;
 
@@ -59,6 +61,7 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     // Some actions won’t prevent the API from running properly so let’s not
     // make startup longer because of it.
     async fn run_remaining(app_state: &AppState) -> Result<(), String> {
+        update_rosters(&app_state).await?;
         backfill_database(&app_state).await?;
         Ok(())
     }

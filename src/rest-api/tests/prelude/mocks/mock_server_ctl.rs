@@ -174,6 +174,12 @@ impl ServerCtlImpl for MockServerCtl {
         // We don't care in tests for now
         Ok(())
     }
+    async fn force_rosters_sync(&self) -> Result<(), Error> {
+        self.check_online()?;
+
+        // We don't care in tests for now
+        Ok(())
+    }
 
     async fn delete_all_data(&self) -> Result<(), Error> {
         self.check_online()?;

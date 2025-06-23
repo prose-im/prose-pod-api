@@ -183,7 +183,7 @@ impl ProsodyAdminRest {
         Ok(())
     }
 
-    async fn update_rosters(&self) -> Result<(), server_ctl::Error> {
+    pub(crate) async fn update_rosters(&self) -> Result<(), server_ctl::Error> {
         tracing::debug!("Synchronizing rosters…");
         self.call(|client| {
             client.post(format!(
