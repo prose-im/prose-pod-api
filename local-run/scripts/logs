@@ -24,8 +24,8 @@ source "${SELF_SCRIPTS:?}"/scenario-files-fallback.sh
 source "${SCENARIO_CONSTANTS_FILE:?}"
 source "${SELF_SCRIPTS:?}"/compose-exports.sh
 
-if [ $# == 0 ]; then
-	edo docker compose -f "${COMPOSE_FILE:?}" logs
-else
-	edo docker compose -f "${COMPOSE_FILE:?}" logs "$@"
-fi
+case $# in
+	0) edo docker compose -f "${COMPOSE_FILE:?}" logs ;;
+	1) edo docker compose -f "${COMPOSE_FILE:?}" logs "$@" --no-log-prefix ;;
+	*) edo docker compose -f "${COMPOSE_FILE:?}" logs "$@" ;;
+esac
