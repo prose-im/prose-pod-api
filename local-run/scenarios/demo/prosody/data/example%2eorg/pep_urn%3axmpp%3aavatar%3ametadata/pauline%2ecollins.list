@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "8405";
+			["id"] = "80d87639a9c3306d8ad1e02e70fea15dad91aee1";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710758;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:38Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "pauline.collins@example.org";
+	["name"] = "metadata";
+	["key"] = "80d87639a9c3306d8ad1e02e70fea15dad91aee1";
+});

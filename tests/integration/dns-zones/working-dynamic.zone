@@ -1,9 +1,9 @@
-@ IN SOA ns.prose-demo.org.local. admin.prose-demo.org.local. (
+@ IN SOA ns.example.org. admin.example.org. (
   2024101701 ; serial
   3600       ; refresh (1 hour)
   600        ; retry (10 minutes)
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-prose-demo.org.local 3600 IN SRV 0 5 5222 prose-demo.org.local.
-prose-demo.org.local 3600 IN SRV 0 5 5269 prose-demo.org.local.
+example.org 3600 IN SRV 0 5 5222 example.org.
+example.org 3600 IN SRV 0 5 5269 example.org.

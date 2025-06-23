@@ -81,7 +81,7 @@ consider_websocket_secure = true
 
 -- Specify server administrator
 contact_info = {
-  admin = { "mailto:hostmaster@prose.test.org" };
+  admin = { "mailto:hostmaster@test.org" };
 }
 
 -- Enable vCard legacy compatibility layer
@@ -96,7 +96,7 @@ push_notification_with_sender = true
 
 -- Server hosts and components
 VirtualHost "test.org"
-  admins = { "prose-pod-api@admin.prose.org.local" }
+  admins = { "prose-pod-api@admin.prose.local" }
 
   -- Modules
   modules_enabled = {
@@ -118,8 +118,8 @@ VirtualHost "test.org"
   oauth2_refresh_token_ttl = 0
   oauth2_registration_key = "dummy-test-key"
 
-VirtualHost "admin.prose.org.local"
-  admins = { "prose-pod-api@admin.prose.org.local" }
+VirtualHost "admin.prose.local"
+  admins = { "prose-pod-api@admin.prose.local" }
 
   -- Modules
   modules_enabled = {

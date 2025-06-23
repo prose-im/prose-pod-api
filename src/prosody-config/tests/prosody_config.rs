@@ -9,7 +9,7 @@ use prosody_config::{utils::def, *};
 /// (with slight modifications for style consistency)
 #[test]
 fn test_prose_default_config() {
-    let api_jid = BareJid::new("prose-pod-api", "admin.prose.org.local");
+    let api_jid = BareJid::new("prose-pod-api", "admin.prose.local");
     let default_config = ProsodyConfig {
         global_settings: ProsodySettings {
             pidfile: Some("/var/run/prosody/prosody.pid".into()),
@@ -66,8 +66,8 @@ fn test_prose_default_config() {
                 .collect(),
             ),
             ssl: Some(SSLConfig {
-                certificate: Some("/etc/prosody/certs/prose.org.local.crt".into()),
-                key: Some("/etc/prosody/certs/prose.org.local.key".into()),
+                certificate: Some("/etc/prosody/certs/prose.local.crt".into()),
+                key: Some("/etc/prosody/certs/prose.local.key".into()),
                 ..Default::default()
             }),
             allow_registration: Some(false),
@@ -99,7 +99,7 @@ fn test_prose_default_config() {
             consider_websocket_secure: Some(true),
             contact_info: Some(ContactInfo {
                 abuse: vec![],
-                admin: vec!["mailto:hostmaster@prose.org.local".to_string()],
+                admin: vec!["mailto:hostmaster@prose.local".to_string()],
                 feedback: vec![],
                 sales: vec![],
                 security: vec![],
@@ -126,15 +126,15 @@ fn test_prose_default_config() {
         },
         additional_sections: vec![
             ProsodyConfigSection::VirtualHost {
-                hostname: "admin.prose.org.local".into(),
+                hostname: "admin.prose.local".into(),
                 settings: ProsodySettings::default(),
             },
             ProsodyConfigSection::VirtualHost {
-                hostname: "prose.org.local".into(),
+                hostname: "prose.local".into(),
                 settings: ProsodySettings::default(),
             },
             ProsodyConfigSection::Component {
-                hostname: "groups.prose.org.local".into(),
+                hostname: "groups.prose.local".into(),
                 plugin: "muc".into(),
                 name: "Chatrooms".into(),
                 settings: ProsodySettings {
@@ -150,7 +150,7 @@ fn test_prose_default_config() {
                 },
             },
             ProsodyConfigSection::Component {
-                hostname: "upload.prose.org.local".into(),
+                hostname: "upload.prose.local".into(),
                 plugin: "http_file_share".into(),
                 name: "HTTP File Upload".into(),
                 settings: ProsodySettings {

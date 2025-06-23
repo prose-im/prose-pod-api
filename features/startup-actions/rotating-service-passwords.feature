@@ -5,7 +5,7 @@ Feature: Rotating service account passwords
 
     Scenario: At API startup
        When the Prose Pod API starts
-       Then <prose-pod-api@admin.prose.org.local>'s password is changed
+       Then <prose-pod-api@admin.prose.local>'s password is changed
 
   Rule: The workspace account password is rotated
 

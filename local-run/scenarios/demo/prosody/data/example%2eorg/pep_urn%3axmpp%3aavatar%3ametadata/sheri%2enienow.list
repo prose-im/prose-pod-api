@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5424";
+			["id"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710759;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:39Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "sheri.nienow@example.org";
+	["name"] = "metadata";
+	["key"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
+});

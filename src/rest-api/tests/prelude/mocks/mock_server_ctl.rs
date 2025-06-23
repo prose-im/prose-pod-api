@@ -100,7 +100,7 @@ impl ServerCtlImpl for MockServerCtl {
         // Check that the domain exists in the Prosody configuration. If it's not the case,
         // Prosody won't add the user. This happens if the server config wasn't initialized
         // and Prosody wasn't reloaded with a full configuration.
-        let domain_exists = jid.domain().as_str() == "admin.prose.org.local"
+        let domain_exists = jid.domain().as_str() == "admin.prose.local"
             || state.applied_config.as_ref().is_some_and(|config| {
                 config
                     .additional_sections

@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "15398";
+			["id"] = "c068efb85867dfb992f274e289f7a8263e2e3a27";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710757;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:37Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "prose-workspace@example.org";
+	["name"] = "metadata";
+	["key"] = "c068efb85867dfb992f274e289f7a8263e2e3a27";
+});

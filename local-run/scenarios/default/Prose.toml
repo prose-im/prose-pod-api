@@ -11,15 +11,14 @@
 company_name = "Prose (local)"
 
 [server]
-domain = "prose.org.local"
+domain = "example.org"
 
 [pod]
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 dashboard_url = "http://localhost:3030/"
 
 [notify.email]
-pod_address = "pod@prose.org.local"
-
+pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false
 

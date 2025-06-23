@@ -82,7 +82,7 @@ test-storage() {
 		fi
 	fi
 
-	ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@prose-demo.org.local:demo' -b | jq -r '.token')"
+	ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@example.org:demo' -b | jq -r '.token')"
 
 	add-member-n() {
 		local n="${1:?}"
@@ -96,7 +96,7 @@ test-storage() {
 	}
 	delete-member-n() {
 		local n="${1:?}"
-		xh DELETE :8080/v1/members/"member.${n}@prose-demo.org.local" -q \
+		xh DELETE :8080/v1/members/"member.${n}@example.org" -q \
 			-A bearer -a "${ADMIN_TOKEN:?}"
 	}
 

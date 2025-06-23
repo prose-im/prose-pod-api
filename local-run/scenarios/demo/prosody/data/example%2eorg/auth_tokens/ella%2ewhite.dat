@@ -1,0 +1,38 @@
+return {
+	["B0LRzYglU4VA"] = {
+		["owner"] = "ella.white@example.org";
+		["id"] = "B0LRzYglU4VA";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710762;
+		["tokens"] = {
+			["sha256:32c54f796928cdaab6ba2d65d2e9bd4673a036f9ec45f41befe9f45b9c228529"] = {
+				["expires"] = 1750721562;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710762;
+			};
+		};
+		["jid"] = "ella.white@example.org";
+		["accessed"] = 1750710762;
+	};
+	["ctKqMae7wGJV"] = {
+		["owner"] = "ella.white@example.org";
+		["id"] = "ctKqMae7wGJV";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710762;
+		["tokens"] = {
+			["sha256:436a17af59ef81d1fcfbb58b99f1dbe12fd89e6faf9841bd7e826f5f7d9bdc40"] = {
+				["expires"] = 1750721562;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710762;
+			};
+		};
+		["jid"] = "ella.white@example.org";
+		["accessed"] = 1750710762;
+	};
+};

@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Sheri N.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1750710759;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:39Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "sheri.nienow@example.org";
+	["name"] = "vcard";
+	["key"] = "sheri.nienow@example.org";
+});

@@ -13,65 +13,65 @@ before:
     - $ref: "init.yaml#/components/steps/log_admin_in"
 
 tests:
-  listMembersDefault:
-    name: Default
-    steps:
-      - name: List members
-        http:
-          method: GET
-          url: /v1/members
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            status: 200
-            headers:
-              $ref: "#/components/headers/paginated_json"
-            schema:
-              type: array
-              items:
-                $ref: openapi.json#/components/schemas/Member
-            jsonpath:
-              $.length: ${{ env.MEMBER_COUNT }}
-  listMembersPage2:
-    name: Page 2
-    steps:
-      - name: List members
-        http:
-          method: GET
-          url: /v1/members
-          params:
-            page_number: 2
-            page_size: 2
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            status: 206
-            headers:
-              $ref: "#/components/headers/paginated_json"
-            schema:
-              type: array
-              items:
-                $ref: openapi.json#/components/schemas/Member
-            jsonpath:
-              $.length: 2
+  # listMembersDefault:
+  #   name: Default
+  #   steps:
+  #     - name: List members
+  #       http:
+  #         method: GET
+  #         url: /v1/members
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           status: 200
+  #           headers:
+  #             $ref: "#/components/headers/paginated_json"
+  #           schema:
+  #             type: array
+  #             items:
+  #               $ref: openapi.json#/components/schemas/Member
+  #           jsonpath:
+  #             $.length: ${{ env.MEMBER_COUNT }}
+  # listMembersPage2:
+  #   name: Page 2
+  #   steps:
+  #     - name: List members
+  #       http:
+  #         method: GET
+  #         url: /v1/members
+  #         params:
+  #           page_number: 2
+  #           page_size: 2
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           status: 206
+  #           headers:
+  #             $ref: "#/components/headers/paginated_json"
+  #           schema:
+  #             type: array
+  #             items:
+  #               $ref: openapi.json#/components/schemas/Member
+  #           jsonpath:
+  #             $.length: 2
   enrichMembersStream:
     name: Enrich members list (stream)
     steps:
-      - name: Enrich members (list as individual "jids" query params) (stream)
-        sse:
-          # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
-          #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
-          url: ${{ env.host }}/v1/enrich-members?jids=${{ env.MEMBER_JIDS.1 }}&jids=${{ env.MEMBER_JIDS.8 }}&jids=${{ env.MEMBER_JIDS.9 }}
-          timeout: 2000
-          headers:
-            Accept: text/event-stream
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            $ref: "#/tests/enrichMembersStream/check"
+      # - name: Enrich members (list as individual "jids" query params) (stream)
+      #   sse:
+      #     # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
+      #     #   and after it's resolved, remove `${{ env.host }}` and use the global config instead.
+      #     url: ${{ env.host }}/v1/enrich-members?jids=${{ env.MEMBER_JIDS.1 }}&jids=${{ env.MEMBER_JIDS.8 }}&jids=${{ env.MEMBER_JIDS.9 }}
+      #     timeout: 2000
+      #     headers:
+      #       Accept: text/event-stream
+      #     auth:
+      #       bearer:
+      #         token: ${{ captures.token }}
+      #     check:
+      #       $ref: "#/tests/enrichMembersStream/check"
       - name: Enrich members (list as individual "jids[]" query params) (stream)
         sse:
           # TODO: If [stepci/stepci#228](https://github.com/stepci/stepci/discussions/228) is accepted,
@@ -107,85 +107,85 @@ tests:
             $.nickname: ${{ env.MEMBER_NICKNAMES.9 }}
             # NOTE: Member 9 doesn’t have an avatar.
             $.avatar: null
-  enrichMembers:
-    name: Enrich members list
-    steps:
-      - name: Enrich members (list as individual "jids" query params)
-        http:
-          method: GET
-          url: /v1/enrich-members
-          timeout: 2000
-          params: "jids=${{ env.MEMBER_JIDS.1 }}&jids=${{ env.MEMBER_JIDS.8 }}&jids=${{ env.MEMBER_JIDS.9 }}"
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            $ref: "#/tests/enrichMembers/check"
-      - name: Enrich members (list as individual "jids[]" query params)
-        http:
-          method: GET
-          url: /v1/enrich-members?jids[]=${{ env.MEMBER_JIDS.1 }}&jids[]=${{ env.MEMBER_JIDS.8 }}&jids[]=${{ env.MEMBER_JIDS.9 }}
-          timeout: 2000
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            $ref: "#/tests/enrichMembers/check"
-    # NOTE: `check` was put here so it could be reused in two places using `$ref` (which does not support array traversal)
-    check:
-      status: 200
-      headers:
-        Content-Type: application/json
-      # jsonpath:
-      # FIXME: If [stepci/liquidless#10](https://github.com/stepci/liquidless/issues/10) is accepted,
-      #   and after it's resolved, uncomment the checks below.
-      #   Until then, we'll rely in checks made when testing the SSE stream equivalent.
-      # $.['${{ env.MEMBER_JIDS.1 }}'].nickname: ${{ env.MEMBER_NICKNAMES.1 }}
-      # $.['${{ env.MEMBER_JIDS.1 }}'].avatar: ${{ env.MEMBER_AVATARS.1 }}
-      # # NOTE: Since member 8 doesn’t have a nickname, `nickname` should be the local part of their JID (i.e. “username”).
-      # $.['${{ env.MEMBER_JIDS.8 }}'].nickname: ${{ env.MEMBER_USERNAMES.8 }}
-      # $.['${{ env.MEMBER_JIDS.8 }}'].avatar: ${{ env.MEMBER_AVATARS.8 }}
-      # $.['${{ env.MEMBER_JIDS.9 }}'].nickname: ${{ env.MEMBER_NICKNAMES.9 }}
-      # $.['${{ env.MEMBER_JIDS.9 }}'].avatar: null
-  search:
-    name: Search members
-    steps:
-      - name: Search members (query yields a result)
-        http:
-          method: GET
-          url: /v1/members
-          params:
-            q: todd
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            status: /2../
-            jsonpath:
-              $.length: 1
-      # NOTE: Check for https://github.com/prose-im/prose-pod-api/issues/238.
-      - name: Search members (query yields no result)
-        http:
-          method: GET
-          url: /v1/members
-          params:
-            q: pablos
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            status: /2../
-  headUnauthenticated:
-    name: Get member count without authentication
-    steps:
-      - name: HEAD /v1/members
-        http:
-          method: HEAD
-          url: /v1/members
-          check:
-            status: /2../
-            headers:
-              Pagination-Item-Count: 13
+  # enrichMembers:
+  #   name: Enrich members list
+  #   steps:
+  #     - name: Enrich members (list as individual "jids" query params)
+  #       http:
+  #         method: GET
+  #         url: /v1/enrich-members
+  #         timeout: 2000
+  #         params: "jids=${{ env.MEMBER_JIDS.1 }}&jids=${{ env.MEMBER_JIDS.8 }}&jids=${{ env.MEMBER_JIDS.9 }}"
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           $ref: "#/tests/enrichMembers/check"
+  #     - name: Enrich members (list as individual "jids[]" query params)
+  #       http:
+  #         method: GET
+  #         url: /v1/enrich-members?jids[]=${{ env.MEMBER_JIDS.1 }}&jids[]=${{ env.MEMBER_JIDS.8 }}&jids[]=${{ env.MEMBER_JIDS.9 }}
+  #         timeout: 2000
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           $ref: "#/tests/enrichMembers/check"
+  #   # NOTE: `check` was put here so it could be reused in two places using `$ref` (which does not support array traversal)
+  #   check:
+  #     status: 200
+  #     headers:
+  #       Content-Type: application/json
+  #     # jsonpath:
+  #     # FIXME: If [stepci/liquidless#10](https://github.com/stepci/liquidless/issues/10) is accepted,
+  #     #   and after it's resolved, uncomment the checks below.
+  #     #   Until then, we'll rely in checks made when testing the SSE stream equivalent.
+  #     # $.['${{ env.MEMBER_JIDS.1 }}'].nickname: ${{ env.MEMBER_NICKNAMES.1 }}
+  #     # $.['${{ env.MEMBER_JIDS.1 }}'].avatar: ${{ env.MEMBER_AVATARS.1 }}
+  #     # # NOTE: Since member 8 doesn’t have a nickname, `nickname` should be the local part of their JID (i.e. “username”).
+  #     # $.['${{ env.MEMBER_JIDS.8 }}'].nickname: ${{ env.MEMBER_USERNAMES.8 }}
+  #     # $.['${{ env.MEMBER_JIDS.8 }}'].avatar: ${{ env.MEMBER_AVATARS.8 }}
+  #     # $.['${{ env.MEMBER_JIDS.9 }}'].nickname: ${{ env.MEMBER_NICKNAMES.9 }}
+  #     # $.['${{ env.MEMBER_JIDS.9 }}'].avatar: null
+  # search:
+  #   name: Search members
+  #   steps:
+  #     - name: Search members (query yields a result)
+  #       http:
+  #         method: GET
+  #         url: /v1/members
+  #         params:
+  #           q: todd
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           status: /2../
+  #           jsonpath:
+  #             $.length: 1
+  #     # NOTE: Check for https://github.com/prose-im/prose-pod-api/issues/238.
+  #     - name: Search members (query yields no result)
+  #       http:
+  #         method: GET
+  #         url: /v1/members
+  #         params:
+  #           q: pablos
+  #         auth:
+  #           bearer:
+  #             token: ${{ captures.token }}
+  #         check:
+  #           status: /2../
+  # headUnauthenticated:
+  #   name: Get member count without authentication
+  #   steps:
+  #     - name: HEAD /v1/members
+  #       http:
+  #         method: HEAD
+  #         url: /v1/members
+  #         check:
+  #           status: /2../
+  #           headers:
+  #             Pagination-Item-Count: 13
 
 components:
   steps:

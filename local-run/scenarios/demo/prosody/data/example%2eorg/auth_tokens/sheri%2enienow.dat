@@ -1,0 +1,38 @@
+return {
+	["n-Miv_Q1snPQ"] = {
+		["owner"] = "sheri.nienow@example.org";
+		["id"] = "n-Miv_Q1snPQ";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710759;
+		["tokens"] = {
+			["sha256:28b512868a84641b8a0777fdfd103523fd9fa5dfb24374217420aa7decf9d219"] = {
+				["expires"] = 1750721559;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710759;
+			};
+		};
+		["jid"] = "sheri.nienow@example.org";
+		["accessed"] = 1750710759;
+	};
+	["HkTf1PcQbnTS"] = {
+		["owner"] = "sheri.nienow@example.org";
+		["id"] = "HkTf1PcQbnTS";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710759;
+		["tokens"] = {
+			["sha256:3b8d34c7f19c4455132cef474ef138fdea9af0c4c9451fefd2de2f28eccbb1a8"] = {
+				["expires"] = 1750721559;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710759;
+			};
+		};
+		["jid"] = "sheri.nienow@example.org";
+		["accessed"] = 1750710759;
+	};
+};

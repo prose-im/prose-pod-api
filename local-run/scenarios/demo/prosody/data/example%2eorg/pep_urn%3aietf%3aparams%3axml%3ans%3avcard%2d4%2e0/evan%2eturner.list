@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Evan T.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1750710760;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:40Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "evan.turner@example.org";
+	["name"] = "vcard";
+	["key"] = "evan.turner@example.org";
+});

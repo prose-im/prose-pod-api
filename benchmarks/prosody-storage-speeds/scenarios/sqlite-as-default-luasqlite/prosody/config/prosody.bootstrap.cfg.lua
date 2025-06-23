@@ -40,8 +40,8 @@ s2s_require_encryption = true
 s2s_secure_auth = false
 
 -- Server hosts and components
-VirtualHost "admin.prose.org.local"
-  admins = { "prose-pod-api@admin.prose.org.local" }
+VirtualHost "admin.prose.local"
+  admins = { "prose-pod-api@admin.prose.local" }
 
   -- Modules
   modules_enabled = {
@@ -53,5 +53,5 @@ VirtualHost "admin.prose.org.local"
   http_host = "prose-pod-server-admin"
 
   -- mod_init_admin
-  init_admin_jid = "prose-pod-api@admin.prose.org.local"
+  init_admin_jid = "prose-pod-api@admin.prose.local"
   init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
