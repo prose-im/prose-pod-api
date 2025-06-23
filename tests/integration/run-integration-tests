@@ -64,7 +64,7 @@ start() {
 			sleep 1
 			xh :8080/v1/version -q && return 0 || :
 		done
-		return 1
+		abort
 	fi
 }
 
