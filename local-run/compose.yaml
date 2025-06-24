@@ -56,7 +56,7 @@ services:
   #   image: "${PROSE_POD_DASHBOARD_IMAGE:-ghcr.io/prose-im/prose-pod-dashboard:${PROSE_POD_DASHBOARD_IMAGE_TAG:-unknown}}"
   #   depends_on: [api]
   #   ports:
-  #     - "3030:3030"
+  #     - "8081:8080"
   #   networks: [prose-network]
   #   tty: "${PROSE_POD_DASHBOARD_IS_TTY:-${PROSE_POD_IS_TTY:-false}}"
 

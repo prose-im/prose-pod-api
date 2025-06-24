@@ -56,7 +56,7 @@ domain = "example.org"
 ${ADDRESS_CFG:?}
 
 [dashboard]
-url = "http://localhost:3030"
+url = "http://localhost:8081"
 
 [notifiers.email]
 smtp_host = "mailpit"

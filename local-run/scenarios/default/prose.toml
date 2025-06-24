@@ -17,7 +17,7 @@ domain = "example.org"
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 
 [dashboard]
-url = "http://localhost:3030"
+url = "http://localhost:8081"
 
 [notifiers.email]
 smtp_host = "mailpit"
