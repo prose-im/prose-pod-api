@@ -37,7 +37,7 @@ use super::{server_config::TlsProfile, xmpp::JidDomain};
 pub use self::pod_config::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
-pub const API_CONFIG_DIR: &'static str = "/etc/prose-pod-api";
+pub const API_CONFIG_DIR: &'static str = "/etc/prose";
 pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
