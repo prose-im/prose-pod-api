@@ -21,14 +21,6 @@ pub async fn migrate_workspace_vcard(
 ) -> Result<(), String> {
     debug!("Migrating the Workspace vCard…");
 
-    #[cfg(debug_assertions)]
-    if (app_config.read().unwrap().debug_only.skip_startup_actions)
-        .contains("migrate_workspace_vcard")
-    {
-        info!("Not migrating the Workspace vCard: Step marked to skip in the app configuration.");
-        return Ok(());
-    }
-
     let workspace_jid = app_config.read().unwrap().workspace_jid();
     let workspace_service = WorkspaceService::new(
         Arc::new(xmpp_service.clone()),
