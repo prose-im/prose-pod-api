@@ -102,11 +102,15 @@ start() {
 	# NOTE: We need to run `local` so we can auto-accept invitations.
 	edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
 	for _ in $(seq 1 5); do
+		trace 'Waiting a second…'
 		sleep 1
-		xh :8080/v1/version -q && return 0 || :
+		local error="$(edo xh :8080/v1/version -q)" && return 0 || :
 	done
+	error 'API still unreachable after 5s:'
+	error "${error-}"
 	return 1
 }
+info 'Starting the API…'
 start
 
 info 'Create first admin account'
