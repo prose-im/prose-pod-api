@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.0...HEAD
 
+### Changed
+
+- ci: Create GitHub release AFTER the image is released (in `5db36736`)
+
+### Added
+
+- chore(app-config)!: Make `skip_startup_actions` available in release builds (in `1304bb6b`)
+
 ## [0.16.0] - 2025-06-24
 
 [0.16.0]: https://github.com/prose-im/prose-pod-api/compare/v0.15.0...v0.16.0
