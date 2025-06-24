@@ -7,7 +7,7 @@ set -e
 DEMO_DATA_DIR="${REPOSITORY_ROOT:?}/local-run/demo-data"
 AVATARS_DIR="${DEMO_DATA_DIR:?}/avatars"
 
-DOMAIN='prose-demo.org.local'
+DOMAIN='example.org'
 WORKSPACE_NAME='Prose (demo)'
 PASSWORD='demo'
 

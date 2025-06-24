@@ -1,0 +1,16 @@
+return {
+	["prose-workspace"] = {};
+	["charlie.schmitt"] = {};
+	["pablo.bartoletti"] = {};
+	["taylor.cartwright"] = {};
+	["drew.howell"] = {};
+	["todd.schultz"] = {};
+	["meghan.donnelly"] = {};
+	["barbara.mante"] = {};
+	["evan.turner"] = {};
+	["dianna.hermann"] = {};
+	["jake.lang"] = {};
+	["sheri.nienow"] = {};
+	["pauline.collins"] = {};
+	["ella.white"] = {};
+};

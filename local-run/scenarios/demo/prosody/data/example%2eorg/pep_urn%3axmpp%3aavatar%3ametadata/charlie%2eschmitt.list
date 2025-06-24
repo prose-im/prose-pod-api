@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "8045";
+			["id"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710761;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:41Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "charlie.schmitt@example.org";
+	["name"] = "metadata";
+	["key"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+});

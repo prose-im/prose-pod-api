@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5130";
+			["id"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710765;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:45Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "pablo.bartoletti@example.org";
+	["name"] = "metadata";
+	["key"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+});

@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Jake L.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1750710765;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:45Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "jake.lang@example.org";
+	["name"] = "vcard";
+	["key"] = "jake.lang@example.org";
+});

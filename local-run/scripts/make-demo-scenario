@@ -50,15 +50,14 @@ cat <<EOF > "${PROSE_CONFIG_FILE:?}"
 company_name = "Prose"
 
 [server]
-domain = "prose-demo.org.local"
+domain = "example.org"
 
 [pod]
 ${ADDRESS_CFG:?}
 dashboard_url = "http://localhost:3030/"
 
 [notify.email]
-pod_address = "pod@prose-demo.org.local"
-
+pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false
 EOF
@@ -74,7 +73,7 @@ EOF
 
 mkdir -p "$(dirname "${DNS_ZONE_FILE:?}")"
 cat <<EOF > "${DNS_ZONE_FILE:?}"
-@ IN SOA ns.prose-demo.org.local. admin.prose-demo.org.local. (
+@ IN SOA ns.example.org. admin.example.org. (
   2024101701 ; serial
   3600       ; refresh (1 hour)
   600        ; retry (10 minutes)
@@ -85,25 +84,34 @@ EOF
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-prose-demo.org.local 3600 IN SRV 0 5 5222 prose-demo.org.local.
-prose-demo.org.local 3600 IN SRV 0 5 5269 prose-demo.org.local.
+example.org 3600 IN SRV 0 5 5222 example.org.
+example.org 3600 IN SRV 0 5 5269 example.org.
 EOF
 else
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-xmpp.prose-demo.org.local 600 IN A 172.20.0.40
-xmpp.prose-demo.org.local 600 IN AAAA 2001:db8::40
-prose-demo.org.local 3600 IN SRV 0 5 5222 xmpp.prose-demo.org.local.
-prose-demo.org.local 3600 IN SRV 0 5 5269 xmpp.prose-demo.org.local.
+xmpp.example.org 600 IN A 172.20.0.40
+xmpp.example.org 600 IN AAAA 2001:db8::40
+example.org 3600 IN SRV 0 5 5222 xmpp.example.org.
+example.org 3600 IN SRV 0 5 5269 xmpp.example.org.
 EOF
 fi
 
 # Run the API.
-export ENV_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/make-demo-scenario.env
-# NOTE: We need to run `local` so we can auto-accept invitations.
-edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
-while ! xh :8080/v1/version -q; do
-  sleep 1
-done
+start() {
+	export ENV_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/make-demo-scenario.env
+	# NOTE: We need to run `local` so we can auto-accept invitations.
+	edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
+	for _ in $(seq 1 5); do
+		trace 'Waiting a second…'
+		sleep 1
+		local error="$(edo xh :8080/v1/version -q)" && return 0 || :
+	done
+	error 'API still unreachable after 5s:'
+	error "${error-}"
+	return 1
+}
+info 'Starting the API…'
+start
 
 info 'Create first admin account'
 xh PUT :8080/v1/init/first-account -q \
@@ -156,6 +164,20 @@ update-member-n() {
 		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/avatar -q \
 			image="${avatar:?}" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
+		local avatar_set="$(xh GET :8080/v1/members/"${MEMBER_JIDS[n]}" -b \
+			-A bearer -a "${MEMBER_TOKENS[n]}" | jq -r '.avatar.base64')"
+		if [ "$avatar_set" != "$avatar" ]; then
+			info "avatar_set: $avatar_set"
+			info "avatar: $avatar"
+			die
+		fi
+		local avatar_set="$(xh GET :8080/v1/enrich-members?jids="${MEMBER_JIDS[n]}" -b \
+			-A bearer -a "${MEMBER_TOKENS[n]}" | jq -r ".[\"${MEMBER_JIDS[n]}\"].avatar.base64")"
+		if [ "$avatar_set" != "$avatar" ]; then
+			info "avatar_set2: $avatar_set"
+			info "avatar: $avatar"
+			die
+		fi
 	else
 		warn "Member ${n:?} (${MEMBER_JIDS[n]}) has no avatar"
 	fi
@@ -193,6 +215,14 @@ update-member-n 0
 for n in $(seq 1 $(( ${#MEMBER_USERNAMES[@]} - 1 ))); do
 	add-member-n "${n:?}"
 done
+
+# NOTE: While we could restart the API to trigger its `update_rosters` startup
+#   action, Docker takes a long time to stop and restart the containers so we’re
+#   better off just waiting a bit.
+# NOTE: `TEAM_ROSTERS_SYNC_DEBOUNCE` is set to 10s, but it takes some time (see
+#   the benchmarks) so we wait a bit more to ensure it has finished.
+info Waiting
+sleep 11
 
 success 'Done'
 

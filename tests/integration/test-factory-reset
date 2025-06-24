@@ -38,7 +38,7 @@ sleep 1
 
 info Logging an admin in…
 TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
-	-a 'pauline.collins@prose-demo.org.local:demo' \
+	-a 'pauline.collins@example.org:demo' \
 	content-type: \
 	| jq -r '.token')"
 [ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
@@ -57,7 +57,7 @@ edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" \
 
 info Checking if factory reset deleted everything…
 
-PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2eorg%2elocal'
+PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2elocal'
 if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v "^${PROSODY_ADMIN_DATA_DIR_NAME:?}$")" ]; then
 	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
 fi
@@ -124,11 +124,11 @@ wait-until-restarted() {
 info Initializing static config and reloading…
 cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
 [server]
-domain = "prose-demo.org.local"
+domain = "example.org"
 
 [pod]
-address = { domain = "prose-demo.org.local" }
-dashboard_url = "http://admin.prose-demo.org.local"
+address = { domain = "example.org" }
+dashboard_url = "http://admin.example.org"
 
 EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
@@ -145,7 +145,7 @@ success The API still works!
 retry() {
 	unset TOKEN CONFIRMATION
 	TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
-		-a 'pauline.collins@prose-demo.org.local:demo' \
+		-a 'pauline.collins@example.org:demo' \
 		content-type: \
 		| jq -r '.token')"
 	[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
@@ -159,11 +159,11 @@ retry() {
 		confirmation="${CONFIRMATION:?}" || abort
 	cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
 [server]
-domain = "prose-demo.org.local"
+domain = "example.org"
 
 [pod]
-address = { domain = "prose-demo.org.local" }
-dashboard_url = "http://admin.prose-demo.org.local"
+address = { domain = "example.org" }
+dashboard_url = "http://admin.example.org"
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort

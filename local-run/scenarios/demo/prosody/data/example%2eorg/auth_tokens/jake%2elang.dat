@@ -1,0 +1,38 @@
+return {
+	["peVAkwrt57KT"] = {
+		["owner"] = "jake.lang@example.org";
+		["id"] = "peVAkwrt57KT";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710764;
+		["tokens"] = {
+			["sha256:29b005ea5f57315070d28d62451cb7334e06c4c62b92b3e71be9d39ff051ee8c"] = {
+				["expires"] = 1750721564;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710764;
+			};
+		};
+		["jid"] = "jake.lang@example.org";
+		["accessed"] = 1750710764;
+	};
+	["ZDMivoyBeAP7"] = {
+		["owner"] = "jake.lang@example.org";
+		["id"] = "ZDMivoyBeAP7";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710764;
+		["tokens"] = {
+			["sha256:ed21673a34d2a620b19676c3e6e42b1892e6a70df7c97451a9c136ff745b44c3"] = {
+				["expires"] = 1750721564;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710764;
+			};
+		};
+		["jid"] = "jake.lang@example.org";
+		["accessed"] = 1750710764;
+	};
+};

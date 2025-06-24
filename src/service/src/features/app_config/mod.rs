@@ -45,8 +45,8 @@ pub const API_CONFIG_DIR: &'static str = "/etc/prose-pod-api";
 pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
-pub const ADMIN_HOST: &'static str = "admin.prose.org.local";
-pub const FILE_SHARE_HOST: &'static str = "upload.prose.org.local";
+pub const ADMIN_HOST: &'static str = "admin.prose.local";
+pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
 
 lazy_static! {
     pub static ref CONFIG_FILE_PATH: PathBuf =

@@ -10,7 +10,7 @@ expression: result
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
 
-admins = { "prose-pod-api@admin.prose.org.local" }
+admins = { "prose-pod-api@admin.prose.local" }
 
 authentication = "internal_hashed"
 
@@ -62,8 +62,8 @@ modules_enabled = {
 
 -- Path to SSL key and certificate for all server domains
 ssl = {
-  certificate = "/etc/prosody/certs/prose.org.local.crt";
-  key = "/etc/prosody/certs/prose.org.local.key";
+  certificate = "/etc/prosody/certs/prose.local.crt";
+  key = "/etc/prosody/certs/prose.local.key";
 }
 
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
@@ -94,7 +94,7 @@ consider_websocket_secure = true
 
 -- Specify server administrator
 contact_info = {
-  admin = { "mailto:hostmaster@prose.org.local" };
+  admin = { "mailto:hostmaster@prose.local" };
 }
 
 -- MAM settings
@@ -113,15 +113,15 @@ http_host = "prose-pod-server"
 http_external_url = "http://prose-pod-server:5280"
 
 -- mod_init_admin
-init_admin_jid = "prose-pod-api@admin.prose.org.local"
+init_admin_jid = "prose-pod-api@admin.prose.local"
 init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
 
 -- Server hosts and components
-VirtualHost "admin.prose.org.local"
+VirtualHost "admin.prose.local"
 
-VirtualHost "prose.org.local"
+VirtualHost "prose.local"
 
-Component "groups.prose.org.local" "muc"
+Component "groups.prose.local" "muc"
   name = "Chatrooms"
 
   -- Modules
@@ -137,7 +137,7 @@ Component "groups.prose.org.local" "muc"
   muc_log_by_default = true
   muc_log_expires_after = "never"
 
-Component "upload.prose.org.local" "http_file_share"
+Component "upload.prose.local" "http_file_share"
   name = "HTTP File Upload"
 
   -- HTTP settings

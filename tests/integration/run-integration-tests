@@ -60,11 +60,14 @@ start() {
 	else
 		trace 'Starting the Prose Pod…'
 		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral
-		for _ in $(seq 1 2); do
+		for _ in $(seq 1 5); do
+			trace 'Waiting a second…'
 			sleep 1
-			xh :8080/v1/version -q && return 0 || :
+			local error="$(edo xh :8080/v1/version -q)" && return 0 || :
 		done
-		return 1
+		error 'API still unreachable after 5s:'
+		error "${error-}"
+		abort
 	fi
 }
 

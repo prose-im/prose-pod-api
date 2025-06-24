@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Barbara M.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1750710766;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:46Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "barbara.mante@example.org";
+	["name"] = "vcard";
+	["key"] = "barbara.mante@example.org";
+});

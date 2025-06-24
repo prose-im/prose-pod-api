@@ -82,7 +82,7 @@ consider_websocket_secure = true
 
 -- Specify server administrator
 contact_info = {
-  admin = { "mailto:hostmaster@prose.test.org" };
+  admin = { "mailto:hostmaster@test.org" };
 }
 
 -- MAM settings
@@ -102,7 +102,7 @@ push_notification_with_sender = true
 
 -- Server hosts and components
 VirtualHost "test.org"
-  admins = { "prose-pod-api@admin.prose.org.local" }
+  admins = { "prose-pod-api@admin.prose.local" }
 
   -- Modules
   modules_enabled = {
@@ -117,7 +117,7 @@ VirtualHost "test.org"
   -- XEP-0030: Service Discovery
   disco_items = {
     {
-      "upload.prose.org.local";
+      "upload.prose.local";
       "HTTP File Upload";
     };
   }
@@ -132,8 +132,8 @@ VirtualHost "test.org"
   oauth2_refresh_token_ttl = 0
   oauth2_registration_key = "dummy-test-key"
 
-VirtualHost "admin.prose.org.local"
-  admins = { "prose-pod-api@admin.prose.org.local" }
+VirtualHost "admin.prose.local"
+  admins = { "prose-pod-api@admin.prose.local" }
 
   -- Modules
   modules_enabled = {
@@ -163,11 +163,11 @@ Component "groups.test.org" "muc"
   muc_log_by_default = true
   muc_log_expires_after = "never"
 
-Component "upload.prose.org.local" "http_file_share"
+Component "upload.prose.local" "http_file_share"
   name = "HTTP File Upload"
 
   -- HTTP settings
-  http_external_url = "http://admin.prose.test.org/"
+  http_external_url = "http://admin.test.org/"
   http_paths = {
     file_share = "/upload";
   }

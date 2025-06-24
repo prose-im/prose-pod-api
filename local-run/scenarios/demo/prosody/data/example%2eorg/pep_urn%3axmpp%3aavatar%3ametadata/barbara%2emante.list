@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5814";
+			["id"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710766;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:46Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "barbara.mante@example.org";
+	["name"] = "metadata";
+	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+});

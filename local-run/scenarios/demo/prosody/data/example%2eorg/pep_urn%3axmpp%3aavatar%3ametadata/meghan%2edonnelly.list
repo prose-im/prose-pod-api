@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "4419";
+			["id"] = "439e22855d7283bf6157d308736a79ff27411822";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710762;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:42Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "meghan.donnelly@example.org";
+	["name"] = "metadata";
+	["key"] = "439e22855d7283bf6157d308736a79ff27411822";
+});

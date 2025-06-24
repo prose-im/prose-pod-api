@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Charlie S.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["when"] = 1750710761;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:41Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+	["with"] = "charlie.schmitt@example.org";
+	["name"] = "vcard";
+	["key"] = "charlie.schmitt@example.org";
+});

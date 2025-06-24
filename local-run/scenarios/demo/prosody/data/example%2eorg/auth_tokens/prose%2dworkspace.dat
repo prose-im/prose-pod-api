@@ -1,0 +1,20 @@
+return {
+	["CiAQID2db27V"] = {
+		["owner"] = "prose-workspace@example.org";
+		["id"] = "CiAQID2db27V";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710756;
+		["tokens"] = {
+			["sha256:3b0d1efbb25eab510d0bfc9f02a2ba39bdf1c5884cf8dfe360274c9679d305b3"] = {
+				["expires"] = 1750721556;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:registered";
+				["created"] = 1750710756;
+			};
+		};
+		["jid"] = "prose-workspace@example.org";
+		["accessed"] = 1750710756;
+	};
+};

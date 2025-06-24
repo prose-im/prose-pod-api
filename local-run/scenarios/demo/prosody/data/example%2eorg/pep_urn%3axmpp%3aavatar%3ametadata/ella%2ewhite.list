@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5121";
+			["id"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710762;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:42Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "ella.white@example.org";
+	["name"] = "metadata";
+	["key"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+});

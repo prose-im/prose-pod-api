@@ -1,0 +1,38 @@
+return {
+	["444YVnBSKtY1"] = {
+		["owner"] = "todd.schultz@example.org";
+		["id"] = "444YVnBSKtY1";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710758;
+		["tokens"] = {
+			["sha256:94d30c0c46e2571602a0388b580f2b17c8c1eca88bd1e006fee8cf5e5053048f"] = {
+				["expires"] = 1750721558;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710758;
+			};
+		};
+		["jid"] = "todd.schultz@example.org";
+		["accessed"] = 1750710758;
+	};
+	["bmJMm_KXKXGi"] = {
+		["owner"] = "todd.schultz@example.org";
+		["id"] = "bmJMm_KXKXGi";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710758;
+		["tokens"] = {
+			["sha256:c6397893f645dd91457f2ce7db9f312f28ff1b5bbf7da34351809e27b9cfb474"] = {
+				["expires"] = 1750721558;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710758;
+			};
+		};
+		["jid"] = "todd.schultz@example.org";
+		["accessed"] = 1750710758;
+	};
+};

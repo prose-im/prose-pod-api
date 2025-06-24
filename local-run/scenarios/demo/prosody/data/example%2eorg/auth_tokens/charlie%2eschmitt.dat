@@ -1,0 +1,38 @@
+return {
+	["BLIaaBwJ8V27"] = {
+		["owner"] = "charlie.schmitt@example.org";
+		["id"] = "BLIaaBwJ8V27";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710760;
+		["tokens"] = {
+			["sha256:3f4c71a7ff8bd6fe3648358d4c1500b17cbaf5f89460f315f7d59078bf3b87f4"] = {
+				["expires"] = 1750721560;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710760;
+			};
+		};
+		["jid"] = "charlie.schmitt@example.org";
+		["accessed"] = 1750710760;
+	};
+	["60vk1Z_mXLYQ"] = {
+		["owner"] = "charlie.schmitt@example.org";
+		["id"] = "60vk1Z_mXLYQ";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["created"] = 1750710761;
+		["tokens"] = {
+			["sha256:4f44ceb9ec71727e9831c4e8aca7f7a19e0cebb0e1dc4704975fad7f7c5d1d1a"] = {
+				["expires"] = 1750721561;
+				["purpose"] = "oauth2";
+				["role"] = "prosody:member";
+				["created"] = 1750710761;
+			};
+		};
+		["jid"] = "charlie.schmitt@example.org";
+		["accessed"] = 1750710761;
+	};
+};

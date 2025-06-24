@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "6085";
+			["id"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710758;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:38Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "todd.schultz@example.org";
+	["name"] = "metadata";
+	["key"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+});

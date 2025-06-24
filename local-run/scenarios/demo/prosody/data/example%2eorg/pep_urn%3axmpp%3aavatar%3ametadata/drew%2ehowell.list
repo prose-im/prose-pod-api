@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5229";
+			["id"] = "c89150f7702bf303602e0e20db0854623ee4d9b3";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["when"] = 1750710767;
+	["attr"] = {
+		["stamp"] = "2025-06-23T20:32:47Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+	["with"] = "drew.howell@example.org";
+	["name"] = "metadata";
+	["key"] = "c89150f7702bf303602e0e20db0854623ee4d9b3";
+});

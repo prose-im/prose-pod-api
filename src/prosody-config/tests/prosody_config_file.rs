@@ -19,7 +19,7 @@ fn test_prose_default_config() {
         ].into()),
         global_settings: vec![
             def("pidfile", "/var/run/prosody/prosody.pid").into(),
-            def("admins", vec!["prose-pod-api@admin.prose.org.local"]).into(),
+            def("admins", vec!["prose-pod-api@admin.prose.local"]).into(),
             vec![
                 def("authentication", "internal_hashed"),
                 def("storage", "internal"),
@@ -77,8 +77,8 @@ fn test_prose_default_config() {
                 ],
             ),
             def("ssl", vec![
-                ("certificate", "/etc/prosody/certs/prose.org.local.crt"),
-                ("key", "/etc/prosody/certs/prose.org.local.key"),
+                ("certificate", "/etc/prosody/certs/prose.local.crt"),
+                ("key", "/etc/prosody/certs/prose.local.key"),
             ])
             .comment("Path to SSL key and certificate for all server domains")
             .into(),
@@ -117,7 +117,7 @@ fn test_prose_default_config() {
                 ],
             ),
             def("contact_info", vec![
-                ("admin", vec!["mailto:hostmaster@prose.org.local"]),
+                ("admin", vec!["mailto:hostmaster@prose.local"]),
             ])
             .comment("Specify server administrator")
             .into(),
@@ -145,7 +145,7 @@ fn test_prose_default_config() {
             Group::new(
                 "mod_init_admin",
                 vec![
-                    def("init_admin_jid", "prose-pod-api@admin.prose.org.local"),
+                    def("init_admin_jid", "prose-pod-api@admin.prose.local"),
                     def("init_admin_password_env_var_name", "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"),
                 ],
             ),
@@ -153,17 +153,17 @@ fn test_prose_default_config() {
         additional_sections: vec![
             ProsodyConfigFileSection::VirtualHost {
                 comments: vec![],
-                hostname: "admin.prose.org.local".to_string(),
+                hostname: "admin.prose.local".to_string(),
                 settings: vec![],
             },
             ProsodyConfigFileSection::VirtualHost {
                 comments: vec![],
-                hostname: "prose.org.local".to_string(),
+                hostname: "prose.local".to_string(),
                 settings: vec![],
             },
             ProsodyConfigFileSection::Component {
                 comments: vec![],
-                hostname: "groups.prose.org.local".to_string(),
+                hostname: "groups.prose.local".to_string(),
                 plugin: "muc".to_string(),
                 name: "Chatrooms".to_string(),
                 settings: vec![
@@ -192,7 +192,7 @@ fn test_prose_default_config() {
             },
             ProsodyConfigFileSection::Component {
                 comments: vec![],
-                hostname: "upload.prose.org.local".to_string(),
+                hostname: "upload.prose.local".to_string(),
                 plugin: "http_file_share".to_string(),
                 name: "HTTP File Upload".to_string(),
                 settings: vec![
