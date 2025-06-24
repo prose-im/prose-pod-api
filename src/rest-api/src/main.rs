@@ -91,9 +91,6 @@ async fn run(
 ) {
     let (addr, app) = match AppConfig::from_default_figment() {
         Ok(app_config) => {
-            if app_config.debug.log_config_at_startup {
-                dbg!(&app_config);
-            }
             let addr = SocketAddr::new(app_config.api.address, app_config.api.port);
 
             tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);

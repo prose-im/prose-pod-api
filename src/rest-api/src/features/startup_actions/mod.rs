@@ -17,7 +17,7 @@ mod update_rosters;
 mod validate_app_config_changes;
 mod wait_for_server;
 
-use tracing::warn;
+use tracing::{info, warn};
 use tracing::{instrument, trace};
 
 use crate::{error::DETAILED_ERROR_REPONSES, AppState};
@@ -45,6 +45,9 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         app_config.debug.detailed_error_responses,
         std::sync::atomic::Ordering::Relaxed,
     );
+    if app_config.debug.log_config_at_startup {
+        info!("app_config: {app_config:#?}");
+    }
 
     run_migrations(&app_state).await?;
     test_services_reachability(&app_state).await?;
