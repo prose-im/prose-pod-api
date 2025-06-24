@@ -11,6 +11,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.15.0...HEAD
 
+### Changed
+
+- feat!: Change `prose.org.local` for `prose.local` (in `c7bd0ea5`)
+- chore(app-config)!: Rename some configuration keys (in `a1e92e72`):
+
+  | Before | After |
+  | --- | --- |
+  | `dashboard_url` | `dashboard.url` |
+  | `address` | `api.address` |
+  | `port` | `api.port` |
+  | `default_response_timeout` | `api.default_response_timeout` |
+  | `default_retry_interval` | `api.default_retry_interval` |
+  | `notify.*` | `notifiers.*` |
+  | `database.*` | `api.databases.*` |
+  | `branding.app_name` | `branding.api_app_name` |
+- feat(app-config): Provide defaults for more config keys (in `cb558ab9`)
+  - `dashboard.url` (`dashboard_url`) is now optional
+  - `pod.address.domain` is now optional
+  - `notifiers.email.pod_address` (`motify.email.pod_addess`) is now optional if `pod.address.ipv4` and `pod.address.ipv6` are undefined
+- chore(app-config)!: Move app config from `/etc/prose-pod-api` to `/etc/prose` (in `84c0d03d`)
+- chore(app-config)!: Rename `Prose.toml` to `prose.toml` (in `240810f9`)
+  - `/etc/prose-pod-api/Prose.toml` is now `/etc/prose/prose.toml`
+- feat(local-run): Update `prose-pod-dashboard` (in `dd117278`)
+
+### Added
+
+- feat(app-config)!: Add support for more keys
+  - ```diff
+    + log
+    + use_libevent
+    + restrict_room_creation
+    + default_archive_policy
+    - prosody
+    + prosody.*.defaults
+    + prosody.*.overrides
+    ```
+  - All keys for `mod_c2s`, `mod_s2s`, `mod_http_file_upload`, `mod_disco`
+  - More keys for timeouts and limits (in `26a2480f`)
+  - Allow deserializing `Bytes` (in `50edb36a`)
+  - Allow deserializing durations (in `226870be`)
+  - Allow deserializing `DataRate` (in `6b0973d1`)
+  - Allow per-host defaults and overrides for Prosody (in `3e986bf7`)
+- feat(server-config): Enable `muc_public_affiliations` in `muc` component (in `e217343b`)
+- feat(server-config): Add `disco_items` in main host (in `9e47b8dc`)
+- feat(server-config): Enable `reload_modules` (in `d9595285`)
+- feat(startup): Add `update_rosters` startup action (in `27acbb97`)
+- feat(tests): Allow logging app config in smoke tests (in `7f02bd4d`)
+
+### Fixed
+
+- fix(server-config): Fix `http_file_share` component (in `c429b0c2`)
+- fix(server-config): Fix `contact_info` (in `7948b28a`)
+- fix(local-run): Fix `make-demo-scenario` (in `3ee725d3`)
+- fix(tests): Make tests more consistent (in `f2f105f9`)
+- fix(app-config): Allow skipping any startup action using `debug_only.skip_startup_actions` (in `52b0e7a8`)
+
 ## [0.15.0] - 2025-06-22
 
 [0.15.0]: https://github.com/prose-im/prose-pod-api/compare/v0.14.1...v0.15.0
