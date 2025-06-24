@@ -17,6 +17,5 @@ address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 url = "http://localhost:3030"
 
 [notifiers.email]
-pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false

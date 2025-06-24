@@ -102,8 +102,65 @@ impl AppConfig {
             .merge(Env::prefixed("PROSE_").split("__"))
     }
 
-    pub fn from_figment(figment: Figment) -> anyhow::Result<Self> {
+    pub fn from_figment(mut figment: Figment) -> anyhow::Result<Self> {
         use anyhow::Context as _;
+
+        #[derive(Deserialize)]
+        pub struct RequiredConfig {
+            #[serde(default)]
+            pub pod: PodConfig,
+            pub server: ServerConfig,
+        }
+        #[derive(Deserialize, Default)]
+        pub struct PodConfig {
+            #[serde(default)]
+            pub address: PodAddress,
+        }
+        #[derive(Deserialize, Default)]
+        pub struct PodAddress {
+            #[serde(default)]
+            pub domain: Option<String>,
+            #[serde(default)]
+            pub ipv4: Option<String>,
+            #[serde(default)]
+            pub ipv6: Option<String>,
+        }
+        #[derive(Deserialize)]
+        pub struct ServerConfig {
+            #[serde(rename = "domain")]
+            pub server_domain: String,
+        }
+
+        let RequiredConfig {
+            server: ServerConfig { server_domain },
+            pod:
+                PodConfig {
+                    address:
+                        PodAddress {
+                            domain: pod_domain,
+                            ipv4: pod_ipv4,
+                            ipv6: pod_ipv6,
+                        },
+                },
+        } = (figment.extract())
+            .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))?;
+
+        // If an email notifier is defined, add a default for the Pod address.
+        figment = figment.join((
+            "notifiers.email.pod_address",
+            format!("prose@{server_domain}"),
+        ));
+
+        if (pod_ipv4, pod_ipv6) == (None, None) {
+            // If no static address has been defined, add a default for the Pod domain.
+            let default_server_domain = format!("prose.{server_domain}");
+            figment = figment.join(("pod.address.domain", &default_server_domain));
+
+            // If possible, add a default for the Dashboard URL.
+            let pod_domain = pod_domain.unwrap_or(default_server_domain);
+            figment = figment.join(("dashboard.url", format!("https://admin.{pod_domain}")));
+        }
+
         figment
             .extract()
             .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))

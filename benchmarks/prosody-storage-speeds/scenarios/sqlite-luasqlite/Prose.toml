@@ -14,10 +14,9 @@ sqlite_tune = "normal"
 additional_modules_enabled = ["storage_sql"]
 
 [branding]
-company_name = "Prose (demo)"
+company_name = "Prose (benchmark)"
 
 [notifiers.email]
-pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false
 

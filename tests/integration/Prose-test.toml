@@ -10,13 +10,6 @@ company_name = "Prose (test)"
 [server]
 domain = "example.org"
 
-[pod]
-address = { domain = "prose.example.org" }
-
-[dashboard]
-url = "https://prose.admin.example.org"
-
 [notifiers.email]
-pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false

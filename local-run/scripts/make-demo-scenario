@@ -59,7 +59,6 @@ ${ADDRESS_CFG:?}
 url = "http://localhost:3030"
 
 [notifiers.email]
-pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false
 EOF

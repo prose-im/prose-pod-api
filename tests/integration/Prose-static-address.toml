@@ -17,6 +17,5 @@ address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 url = "https://admin.prose.example.org"
 
 [notifiers.email]
-pod_address = "prose@example.org"
 smtp_host = "mailpit"
 smtp_encrypt = false

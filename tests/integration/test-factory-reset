@@ -122,15 +122,13 @@ wait-until-restarted() {
 }
 
 info Initializing static config and reloading…
-cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
+cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
 domain = "example.org"
 
-[pod]
-address = { domain = "prose.example.org" }
-
-[dashboard]
-url = "https://admin.prose.example.org"
+[notifiers.email]
+smtp_host = "mailpit"
+smtp_encrypt = false
 
 EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
@@ -159,15 +157,13 @@ retry() {
 	edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" \
 		-A bearer -a "${TOKEN:?}" \
 		confirmation="${CONFIRMATION:?}" || abort
-	cat <<'EOF' >> "${PROSE_CONFIG_FILE:?}"
+	cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
 domain = "example.org"
 
-[pod]
-address = { domain = "prose.example.org" }
-
-[dashboard]
-url = "https://admin.prose.example.org"
+[notifiers.email]
+smtp_host = "mailpit"
+smtp_encrypt = false
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
