@@ -54,7 +54,7 @@ where
     Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
 {
     let retry_interval = retry_interval.map_or_else(
-        || Ok(app_config.default_retry_interval.into_std_duration()),
+        || Ok(app_config.api.default_retry_interval.into_std_duration()),
         validate_retry_interval,
     )?;
 

@@ -17,8 +17,7 @@ mod update_rosters;
 mod validate_app_config_changes;
 mod wait_for_server;
 
-use tracing::warn;
-use tracing::{instrument, trace};
+use tracing::{info, instrument, trace, warn};
 
 use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
@@ -36,6 +35,24 @@ use self::update_rosters::*;
 use self::validate_app_config_changes::*;
 use self::wait_for_server::*;
 
+macro_rules! run_step_macro {
+    ($app_state:ident, $app_config:ident) => {
+        macro_rules! run_step {
+            ($step:ident) => {
+                #[cfg(debug_assertions)]
+                if ($app_config.debug_only.skip_startup_actions).contains(stringify!($step)) {
+                    tracing::warn!(
+                        "Not running startup step '{}': Step marked to skip in the app configuration.",
+                        stringify!($step),
+                    );
+                    return Ok(());
+                }
+                $step(&$app_state).await?;
+            };
+        }
+    };
+}
+
 #[instrument(level = "trace", skip_all, err)]
 pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     trace!("Running startup actions…");
@@ -45,24 +62,36 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         app_config.debug.detailed_error_responses,
         std::sync::atomic::Ordering::Relaxed,
     );
+    if app_config.debug.log_config_at_startup {
+        info!("app_config: {app_config:#?}");
+    }
 
-    run_migrations(&app_state).await?;
-    test_services_reachability(&app_state).await?;
-    wait_for_server(&app_state).await?;
-    rotate_api_xmpp_password(&app_state).await?;
-    validate_app_config_changes(&app_state).await?;
-    init_server_config(&app_state).await?;
-    register_oauth2_client(&app_state).await?;
-    create_service_accounts(&app_state).await?;
-    migrate_workspace_vcard(&app_state).await?;
-    add_workspace_to_team(&app_state).await?;
-    start_cron_tasks(&app_state).await?;
+    {
+        run_step_macro!(app_state, app_config);
+
+        run_step!(run_migrations);
+        run_step!(test_services_reachability);
+        run_step!(wait_for_server);
+        run_step!(rotate_api_xmpp_password);
+        run_step!(validate_app_config_changes);
+        run_step!(init_server_config);
+        run_step!(register_oauth2_client);
+        run_step!(create_service_accounts);
+        run_step!(migrate_workspace_vcard);
+        run_step!(add_workspace_to_team);
+        run_step!(start_cron_tasks);
+    }
 
     // Some actions won’t prevent the API from running properly so let’s not
     // make startup longer because of it.
     async fn run_remaining(app_state: &AppState) -> Result<(), String> {
-        update_rosters(&app_state).await?;
-        backfill_database(&app_state).await?;
+        let ref app_config = app_state.app_config_frozen();
+
+        run_step_macro!(app_state, app_config);
+
+        run_step!(update_rosters);
+        run_step!(backfill_database);
+
         Ok(())
     }
     tokio::spawn(async move {

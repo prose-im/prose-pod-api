@@ -123,7 +123,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
-        let hostmaster_email = match app_config.notify.email {
+        let hostmaster_email = match app_config.notifiers.email {
             Some(ref email_config) => {
                 format!("hostmaster@{domain}", domain = email_config.smtp_host)
             }

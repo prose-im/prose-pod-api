@@ -40,12 +40,12 @@ pub struct ConcurrentTaskRunner {
 
 impl ConcurrentTaskRunner {
     pub fn default(app_config: &AppConfig) -> Self {
-        let default_reponse_timeout = app_config.default_response_timeout.into_std_duration();
+        let default_reponse_timeout = app_config.api.default_response_timeout.into_std_duration();
         Self {
             timeout: default_reponse_timeout,
             ordered: false,
             cancellation_token: CancellationToken::new(),
-            retry_interval: app_config.default_retry_interval.into_std_duration(),
+            retry_interval: app_config.api.default_retry_interval.into_std_duration(),
             retry_timeout: default_reponse_timeout,
         }
     }

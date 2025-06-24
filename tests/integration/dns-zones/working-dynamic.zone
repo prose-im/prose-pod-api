@@ -5,5 +5,5 @@
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-example.org 3600 IN SRV 0 5 5222 example.org.
-example.org 3600 IN SRV 0 5 5269 example.org.
+example.org 3600 IN SRV 0 5 5222 prose.example.org.
+example.org 3600 IN SRV 0 5 5269 prose.example.org.

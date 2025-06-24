@@ -1,0 +1,22 @@
+# Prose Pod API
+# REST API for administrating a Prose Pod
+# Configuration file
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
+# All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
+
+[prosody]
+default_storage = "internal"
+storage = { roster = "appendmap" }
+
+[prosody_ext]
+additional_modules_enabled = ["storage_appendmap"]
+
+[branding]
+company_name = "Prose (benchmark)"
+
+[notifiers.email]
+smtp_host = "mailpit"
+smtp_encrypt = false
+
+[debug_only]
+insecure_password_on_auto_accept_invitation = true

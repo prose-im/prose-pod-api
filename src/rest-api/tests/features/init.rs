@@ -105,10 +105,10 @@ async fn given_server_domain(
 
 #[given(expr = "the dashboard URL is {domain_name}")]
 async fn given_dashboard_url(world: &mut TestWorld, domain: parameters::DomainName) {
-    use service::pod_config::DashboardUrl;
+    use service::app_config::DashboardUrl;
 
     let url = Url::parse(&domain.to_string()).expect("Invalid dashboard URL");
-    world.app_config_mut().pod.dashboard_url = DashboardUrl::new(url).unwrap();
+    world.app_config_mut().dashboard.url = DashboardUrl::new(url).unwrap();
 }
 
 #[given("nothing has changed since the initialization of the workspace")]

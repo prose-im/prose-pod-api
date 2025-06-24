@@ -1,3 +1,3 @@
 # Prose Pod API configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs

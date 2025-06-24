@@ -14,7 +14,6 @@ pub mod members;
 pub mod network_checks;
 pub mod notifications;
 pub mod onboarding;
-pub mod pod_config;
 pub mod prosody;
 pub mod secrets;
 pub mod server_config;

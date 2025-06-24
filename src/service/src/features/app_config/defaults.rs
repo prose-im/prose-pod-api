@@ -198,7 +198,7 @@ pub fn prosody_config_file_path() -> PathBuf {
     PathBuf::from("/etc/prosody/prosody.cfg.lua")
 }
 
-pub fn branding_page_title() -> String {
+pub fn branding_api_app_name() -> String {
     "Prose Pod API".to_string()
 }
 
@@ -206,15 +206,15 @@ pub fn notify_workspace_invitation_channel() -> InvitationChannel {
     InvitationChannel::Email
 }
 
-pub fn notify_email_smtp_host() -> String {
+pub fn smtp_host() -> String {
     "localhost".to_string()
 }
 
-pub fn notify_email_smtp_port() -> u16 {
+pub fn smtp_port() -> u16 {
     587
 }
 
-pub fn notify_email_smtp_encrypt() -> bool {
+pub fn smtp_encrypt() -> bool {
     true
 }
 
@@ -239,19 +239,19 @@ pub fn database_connect_timeout() -> u64 {
     5
 }
 
-pub fn address() -> IpAddr {
+pub fn api_address() -> IpAddr {
     IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
 }
 
-pub fn port() -> u16 {
+pub fn api_port() -> u16 {
     8080
 }
 
 /// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
-pub fn default_response_timeout() -> Duration<TimeLike> {
+pub fn api_default_response_timeout() -> Duration<TimeLike> {
     Duration(TimeLike::Seconds(10))
 }
 
-pub fn default_retry_interval() -> Duration<TimeLike> {
+pub fn api_default_retry_interval() -> Duration<TimeLike> {
     Duration(TimeLike::Seconds(5))
 }

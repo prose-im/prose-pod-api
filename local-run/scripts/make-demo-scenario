@@ -33,7 +33,7 @@ echo '' > "${SCENARIO_DIR:?}"/NO_RUN
 echo '' > "${SCENARIO_DIR:?}"/NO_DELETE
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then
-	ADDRESS_CFG='address = { domain = "'"${DOMAIN:?}"'" }'
+	ADDRESS_CFG="address = { domain = \"prose.${DOMAIN:?}\" }"
 else
 	ADDRESS_CFG='address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }'
 fi
@@ -43,21 +43,22 @@ cat <<EOF > "${PROSE_CONFIG_FILE:?}"
 # Prose Pod API
 # REST API for administrating a Prose Pod
 # Configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
-company_name = "Prose"
+company_name = "Prose (demo)"
 
 [server]
 domain = "example.org"
 
 [pod]
 ${ADDRESS_CFG:?}
-dashboard_url = "http://localhost:3030/"
 
-[notify.email]
-pod_address = "prose@example.org"
+[dashboard]
+url = "http://localhost:3030"
+
+[notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
 EOF
@@ -84,8 +85,8 @@ EOF
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-example.org 3600 IN SRV 0 5 5222 example.org.
-example.org 3600 IN SRV 0 5 5269 example.org.
+example.org 3600 IN SRV 0 5 5222 prose.example.org.
+example.org 3600 IN SRV 0 5 5269 prose.example.org.
 EOF
 else
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"

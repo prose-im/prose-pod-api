@@ -167,7 +167,7 @@ Component "upload.prose.local" "http_file_share"
   name = "HTTP File Upload"
 
   -- HTTP settings
-  http_external_url = "http://admin.test.org/"
+  http_external_url = "https://admin.prose.test.org/"
   http_paths = {
     file_share = "/upload";
   }

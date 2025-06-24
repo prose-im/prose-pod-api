@@ -13,6 +13,6 @@ use-default() {
 
 use-default ENV_FILE local-run.env
 use-default SCENARIO_CONSTANTS_FILE constants.sh
-use-default PROSE_CONFIG_FILE Prose.toml
+use-default PROSE_CONFIG_FILE prose.toml
 use-default COREDNS_COREFILE coredns/Corefile
 use-default DNS_ZONE_FILE dns-zone.zone

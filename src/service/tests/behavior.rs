@@ -44,7 +44,7 @@ impl TestWorld {
             .expect(&format!("Invalid config file at {}", config_path.display()));
 
         // Connecting SQLite
-        let db = match Database::connect(&app_config.databases.main.url).await {
+        let db = match Database::connect(&app_config.api.databases.main.url).await {
             Ok(conn) => conn,
             Err(e) => panic!("Could not connect to test database: {e}"),
         };

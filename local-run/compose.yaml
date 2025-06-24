@@ -11,9 +11,9 @@ services:
       - "8080:8080"
     volumes:
       - "${DATABASE_PATH:?}:/var/lib/prose-pod-api/database.sqlite"
-      # NOTE: `Prose.toml` cannot be read-only because we ne to
+      # NOTE: `prose.toml` cannot be read-only because we ne to
       #   override it when doing a factory reset (and only then).
-      - "${PROSE_CONFIG_FILE:?}:/etc/prose-pod-api/Prose.toml"
+      - "${PROSE_CONFIG_FILE:?}:/etc/prose/prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
     networks:
       prose-network:

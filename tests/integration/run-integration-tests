@@ -95,7 +95,7 @@ stepci_run() {
 	info "$(fg-blue "Running '$(sed "s#${STEPCI_DIR:?}/##" <<< "${test_file}")' with config '${config_options}'…")"
 	info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
 
-	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/Prose-${config_options:?}.toml"
+	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/prose-${config_options:?}.toml"
 	[ -f "${PROSE_CONFIG_FILE:?}" ] || die "File $(format_url "${PROSE_CONFIG_FILE:?}") doesn't exist."
 	# NOTE: We have to `cd $STEPCI_DIR` because transitive `$ref`s are not processed correctly otherwise.
 	start && \

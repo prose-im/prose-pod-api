@@ -43,6 +43,13 @@ async fn main() {
                     LevelFilter::WARN
                 };
 
+                if debug {
+                    std::env::set_var(
+                        "PROSE_DEBUG_USE_AT_YOUR_OWN_RISK__LOG_CONFIG_AT_STARTUP",
+                        "true",
+                    );
+                }
+
                 tracing_subscriber::registry().with(
                     filter::Targets::new()
                         .with_default(default_level)

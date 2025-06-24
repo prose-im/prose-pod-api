@@ -102,7 +102,7 @@ pub async fn perform_factory_reset(
         .map_err(Either::E2)?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
-    let database_url = (app_config.databases.main.url)
+    let database_url = (app_config.api.databases.main.url)
         .strip_prefix("sqlite://")
         .context("Database URL should start with `sqlite://`")
         .map_err(Either::E2)?;
@@ -123,7 +123,7 @@ pub async fn perform_factory_reset(
         ))
         .map_err(Either::E2)?;
     let bootstrap_config = r#"# Prose Pod API configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 "#;
     file.write_all(bootstrap_config.as_bytes())

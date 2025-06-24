@@ -1,20 +1,24 @@
 # Prose Pod API
 # REST API for administrating a Prose Pod
 # Configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
+# NOTE: Some configuration keys have been defined via `local-run.env`, so it
+#   persists across factory resets.
+
 [branding]
-company_name = "Prose"
+company_name = "Prose (local)"
 
 [server]
 domain = "example.org"
 
 [pod]
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
-dashboard_url = "http://localhost:3030/"
 
-[notify.email]
-pod_address = "prose@example.org"
+[dashboard]
+url = "http://localhost:3030"
+
+[notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
