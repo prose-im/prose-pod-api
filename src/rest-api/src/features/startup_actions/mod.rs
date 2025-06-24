@@ -39,9 +39,8 @@ macro_rules! run_step_macro {
     ($app_state:ident, $app_config:ident) => {
         macro_rules! run_step {
             ($step:ident) => {
-                #[cfg(debug_assertions)]
-                if ($app_config.debug_only.skip_startup_actions).contains(stringify!($step)) {
-                    tracing::warn!(
+                if ($app_config.debug.skip_startup_actions).contains(stringify!($step)) {
+                    warn!(
                         "Not running startup step '{}': Step marked to skip in the app configuration.",
                         stringify!($step),
                     );

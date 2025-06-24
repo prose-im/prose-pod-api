@@ -7,10 +7,8 @@
 
 pub mod defaults;
 
-#[cfg(debug_assertions)]
-use std::collections::HashSet;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
@@ -601,6 +599,10 @@ pub struct DebugConfig {
     pub detailed_error_responses: bool,
     #[serde(default = "defaults::always_false")]
     pub c2s_unencrypted: bool,
+    // NOTE: Needs to be available in release builds so we can run the CI in
+    //   `prose-pod-system` without having to start live notifiers.
+    #[serde(default)]
+    pub skip_startup_actions: HashSet<String>,
 }
 
 impl Default for DebugConfig {
@@ -609,6 +611,7 @@ impl Default for DebugConfig {
             log_config_at_startup: defaults::true_in_debug(),
             detailed_error_responses: defaults::true_in_debug(),
             c2s_unencrypted: defaults::always_false(),
+            skip_startup_actions: Default::default(),
         }
     }
 }
@@ -622,8 +625,6 @@ pub struct DebugOnlyConfig {
     pub insecure_password_on_auto_accept_invitation: bool,
     #[serde(default)]
     pub dependency_modes: DependencyModesConfig,
-    #[serde(default)]
-    pub skip_startup_actions: HashSet<String>,
 }
 
 #[cfg(debug_assertions)]
