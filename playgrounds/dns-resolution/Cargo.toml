@@ -13,3 +13,7 @@ hickory-resolver = { version = "0.24", default-features = false, features = [
     "tokio-runtime",
     "system-config",
 ] }
+
+[[bin]]
+name = "dns-resolution"
+path = "main.rs"
