@@ -18,15 +18,51 @@ Feature: IP connectivity checks
         And prose.org’s DNS zone has a AAAA record for test.prose.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
-        And one SSE event is "id:IPv4-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv4\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv4-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "IPv4-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv4","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv6-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv6","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv4-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv4","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv6-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv6","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv4-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv4-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a domain
@@ -36,15 +72,51 @@ Feature: IP connectivity checks
         And prose.org’s DNS zone has a AAAA record for test.prose.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
-        And one SSE event is "id:IPv4-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv4\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:IPv4-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "IPv4-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv4","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv6-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv6","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv4-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv4","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv6-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv6","status":"CHECKING"}
+            """
+        And one SSE event with id "IPv4-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv4-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
   Rule: Standard hosts are checked too
 
@@ -60,11 +132,31 @@ Feature: IP connectivity checks
         And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.test.prose.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
-        And one SSE event is "id:IPv4-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-c2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Client-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv4-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv4\",\"status\":\"SUCCESS\"}"
-        And one SSE event is "id:IPv6-s2s\nevent:ip-connectivity-check-result\ndata:{\"description\":\"Server-to-server connectivity over IPv6\",\"status\":\"SUCCESS\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "IPv4-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-c2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Client-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv4-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv4","status":"SUCCESS"}
+            """
+        And one SSE event with id "IPv6-s2s" is
+            """
+            event:ip-connectivity-check-result
+            data:{"description":"Server-to-server connectivity over IPv6","status":"SUCCESS"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
   Rule: Server-to-server checks are ran only if federation is enabled
 

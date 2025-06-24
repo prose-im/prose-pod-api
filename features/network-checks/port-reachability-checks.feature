@@ -19,13 +19,41 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "TCP-c2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Client-to-server port at TCP 5222","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-s2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Server-to-server port at TCP 5269","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-HTTPS" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"HTTP server port at TCP 443","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-c2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-s2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-HTTPS" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
     Scenario: Hostname
       Given the Prose Pod is publicly accessible via a domain
@@ -36,13 +64,41 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"CHECKING\"}"
-        And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "TCP-c2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Client-to-server port at TCP 5222","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-s2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Server-to-server port at TCP 5269","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-HTTPS" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"HTTP server port at TCP 443","status":"CHECKING"}
+            """
+        And one SSE event with id "TCP-c2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-s2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-HTTPS" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
   Rule: Standard hosts are checked too
 
@@ -57,10 +113,26 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event is "id:TCP-c2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Client-to-server port at TCP 5222\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-s2s\nevent:port-reachability-check-result\ndata:{\"description\":\"Server-to-server port at TCP 5269\",\"status\":\"OPEN\"}"
-        And one SSE event is "id:TCP-HTTPS\nevent:port-reachability-check-result\ndata:{\"description\":\"HTTP server port at TCP 443\",\"status\":\"OPEN\"}"
-        And one SSE event is ":End of stream\nid:end\nevent:end"
+        And one SSE event with id "TCP-c2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-s2s" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
+            """
+        And one SSE event with id "TCP-HTTPS" is
+            """
+            event:port-reachability-check-result
+            data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
+            """
+        And one SSE event with id "end" is
+            """
+            :End of stream
+            event:end
+            """
 
   Rule: Server-to-server checks are ran only if federation is enabled
 
