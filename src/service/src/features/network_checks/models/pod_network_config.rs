@@ -46,32 +46,19 @@ impl PodNetworkConfig {
             }
         };
 
-        // === Helpers to create DNS records ===
-
-        let a = |ipv4: Ipv4Addr| DnsEntry::Ipv4 {
-            hostname: pod_fqdn.clone(),
-            ipv4,
-        };
-        let aaaa = |ipv6: Ipv6Addr| DnsEntry::Ipv6 {
-            hostname: pod_fqdn.clone(),
-            ipv6,
-        };
-        let srv_c2s = |target: DomainName| DnsEntry::SrvC2S {
-            hostname: server_domain.clone(),
-            target,
-        };
-        let srv_s2s = |target: DomainName| DnsEntry::SrvS2S {
-            hostname: server_domain.clone(),
-            target,
-        };
-
         // === Helpers to create DNS setup steps ===
 
         let step_static_ip = |ipv4: &Option<Ipv4Addr>, ipv6: &Option<Ipv6Addr>| DnsSetupStep {
             purpose: "specify your server IP address".to_string(),
             records: vec![
-                ipv4.to_owned().map(a),
-                ipv6.to_owned().map(aaaa),
+                ipv4.to_owned().map(|ipv4: Ipv4Addr| DnsEntry::Ipv4 {
+                    hostname: pod_fqdn.clone(),
+                    ipv4,
+                }),
+                ipv6.to_owned().map(|ipv6: Ipv6Addr| DnsEntry::Ipv6 {
+                    hostname: pod_fqdn.clone(),
+                    ipv6,
+                }),
             ]
             .into_iter()
             .flatten()
@@ -79,15 +66,21 @@ impl PodNetworkConfig {
         };
         let step_c2s = |target: &DomainName| DnsSetupStep {
             purpose: "let clients connect to your server".to_string(),
-            records: vec![srv_c2s(
-                target.clone(),
-            )],
+            records: vec![
+                DnsEntry::SrvC2S {
+                    hostname: server_domain.clone(),
+                    target: target.clone(),
+                },
+            ],
         };
         let step_s2s = |target: &DomainName| DnsSetupStep {
             purpose: "let servers connect to your server".to_string(),
-            records: vec![srv_s2s(
-                target.clone(),
-            )],
+            records: vec![
+                DnsEntry::SrvS2S {
+                    hostname: server_domain.clone(),
+                    target: target.clone(),
+                },
+            ],
         };
 
         // === Main logic ===
