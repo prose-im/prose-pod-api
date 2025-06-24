@@ -101,7 +101,7 @@ start() {
 	export ENV_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/make-demo-scenario.env
 	# NOTE: We need to run `local` so we can auto-accept invitations.
 	edo FORCE_RUN=1 task local:run -- --api=local --scenario="${SCENARIO_NAME:?}" --detach
-	for _ in $(seq 1 2); do
+	for _ in $(seq 1 5); do
 		sleep 1
 		xh :8080/v1/version -q && return 0 || :
 	done
