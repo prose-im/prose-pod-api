@@ -49,7 +49,7 @@ pub struct ServerConfig {
 /// All fields are optional because the Prose Pod API only stores manual overrides.
 /// This way, if security defaults are raised, every Prose Pod will automatically benefit from it upon update.
 /// Those default values (from [app_config::defaults][crate::app_config::defaults]) can also be overridden
-/// by a Prose Pod administrator via the Prose Pod API configuration file (`Prose.toml`).
+/// by a Prose Pod administrator via the Prose Pod API configuration file (`prose.toml`).
 ///
 /// When returning the server configuration, the Prose Pod API replaces non-overridden (empty) values
 /// by their default. See [ServerConfig] and [ServerConfig::new].

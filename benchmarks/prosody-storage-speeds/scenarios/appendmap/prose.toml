@@ -1,16 +1,15 @@
 # Prose Pod API
 # REST API for administrating a Prose Pod
 # Configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Example: https://github.com/prose-im/prose-pod-system/blob/master/prose-example.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [prosody]
 default_storage = "internal"
-storage = { roster = "sql" }
-sql = { driver = "SQLite3", database = "prosody.sqlite" }
+storage = { roster = "appendmap" }
 
 [prosody_ext]
-additional_modules_enabled = ["storage_sql"]
+additional_modules_enabled = ["storage_appendmap"]
 
 [branding]
 company_name = "Prose (benchmark)"

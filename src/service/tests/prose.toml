@@ -1,7 +1,7 @@
 # Prose Pod API
 # REST API for administrating a Prose Pod
 # Configuration file
-# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
+# Example: https://github.com/prose-im/prose-pod-system/blob/master/prose-example.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
@@ -15,7 +15,9 @@ smtp_host = "test.org"
 
 [api.databases.main]
 url = "sqlite::memory:"
-sqlx_logging = true
+
+[auth]
+oauth2_registration_key = "dummy-test-key"
 
 [debug_only.dependency_modes]
 notifier = "logging"

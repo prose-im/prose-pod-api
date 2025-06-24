@@ -1,22 +1,21 @@
 # Prose Pod API
 # REST API for administrating a Prose Pod
 # Configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/Prose-example.toml
+# Example: https://github.com/prose-im/prose-pod-system/blob/master/prose-example.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 
 [branding]
-company_name = "Prose (test)"
+company_name = "Prose (demo)"
 
 [server]
 domain = "example.org"
 
+[pod]
+address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
+
+[dashboard]
+url = "http://localhost:3030"
+
 [notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
-
-[auth]
-# Expire tokens immediately, allowing successful log in but not subsequent requests.
-token_ttl = "PT0S"
-
-[debug_only]
-skip_startup_actions = ["migrate_workspace_vcard"]

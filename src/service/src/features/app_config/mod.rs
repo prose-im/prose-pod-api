@@ -38,7 +38,7 @@ pub use self::pod_config::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose";
-pub const CONFIG_FILE_NAME: &'static str = "Prose.toml";
+pub const CONFIG_FILE_NAME: &'static str = "prose.toml";
 // NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
 //   and cannot be changed via configuration.
 pub const ADMIN_HOST: &'static str = "admin.prose.local";
@@ -667,7 +667,7 @@ pub struct DependencyModesConfig {
 
 #[derive(Debug, thiserror::Error)]
 #[error(
-    "Missing key `{0}` the app configuration. Add it to `Prose.toml` or use environment variables."
+    "Missing key `{0}` the app configuration. Add it to `prose.toml` or use environment variables."
 )]
 pub struct MissingConfiguration(pub &'static str);
 
