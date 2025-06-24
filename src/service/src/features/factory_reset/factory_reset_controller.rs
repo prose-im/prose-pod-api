@@ -123,7 +123,7 @@ pub async fn perform_factory_reset(
         ))
         .map_err(Either::E2)?;
     let bootstrap_config = r#"# Prose Pod API configuration file
-# Example: https://github.com/prose-im/prose-pod-system/blob/master/prose-example.toml
+# Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
 "#;
     file.write_all(bootstrap_config.as_bytes())
