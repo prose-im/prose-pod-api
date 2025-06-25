@@ -19,8 +19,9 @@ use crate::{
 
 use super::{NetworkCheck, RetryableNetworkCheckResult};
 
-/// NOTE: This is an `enum` so we can derive a SSE event ID from concrete values. If it was a `struct`,
-///   we wouldn't be sure all cases are mapped 1:1 to a SSE event (without keeping concerns separate).
+/// NOTE: This is an `enum` so we can derive a SSE ID from concrete values.
+///   If it was a `struct`, we wouldn’t be sure all cases are mapped 1:1 to
+///   a SSE (without keeping concerns separate).
 #[derive(Clone)]
 pub enum PortReachabilityCheck {
     Xmpp {

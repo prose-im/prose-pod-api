@@ -19,37 +19,37 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event with id "TCP-c2s" is
+        And one SSE with id "TCP-c2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Client-to-server port at TCP 5222","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-s2s" is
+        And one SSE with id "TCP-s2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Server-to-server port at TCP 5269","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-HTTPS" is
+        And one SSE with id "TCP-HTTPS" is
             """
             event:port-reachability-check-result
             data:{"description":"HTTP server port at TCP 443","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-c2s" is
+        And one SSE with id "TCP-c2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
             """
-        And one SSE event with id "TCP-s2s" is
+        And one SSE with id "TCP-s2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
             """
-        And one SSE event with id "TCP-HTTPS" is
+        And one SSE with id "TCP-HTTPS" is
             """
             event:port-reachability-check-result
             data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
             """
-        And one SSE event with id "end" is
+        And one SSE with id "end" is
             """
             :End of stream
             event:end
@@ -64,37 +64,37 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event with id "TCP-c2s" is
+        And one SSE with id "TCP-c2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Client-to-server port at TCP 5222","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-s2s" is
+        And one SSE with id "TCP-s2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Server-to-server port at TCP 5269","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-HTTPS" is
+        And one SSE with id "TCP-HTTPS" is
             """
             event:port-reachability-check-result
             data:{"description":"HTTP server port at TCP 443","status":"CHECKING"}
             """
-        And one SSE event with id "TCP-c2s" is
+        And one SSE with id "TCP-c2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
             """
-        And one SSE event with id "TCP-s2s" is
+        And one SSE with id "TCP-s2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
             """
-        And one SSE event with id "TCP-HTTPS" is
+        And one SSE with id "TCP-HTTPS" is
             """
             event:port-reachability-check-result
             data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
             """
-        And one SSE event with id "end" is
+        And one SSE with id "end" is
             """
             :End of stream
             event:end
@@ -113,22 +113,22 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And one SSE event with id "TCP-c2s" is
+        And one SSE with id "TCP-c2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Client-to-server port at TCP 5222","status":"OPEN"}
             """
-        And one SSE event with id "TCP-s2s" is
+        And one SSE with id "TCP-s2s" is
             """
             event:port-reachability-check-result
             data:{"description":"Server-to-server port at TCP 5269","status":"OPEN"}
             """
-        And one SSE event with id "TCP-HTTPS" is
+        And one SSE with id "TCP-HTTPS" is
             """
             event:port-reachability-check-result
             data:{"description":"HTTP server port at TCP 443","status":"OPEN"}
             """
-        And one SSE event with id "end" is
+        And one SSE with id "end" is
             """
             :End of stream
             event:end
@@ -144,5 +144,5 @@ Feature: Port reachability checks
         And test.prose.org’s port 443 is open
        When Valerian checks the ports reachability
        Then the response is a SSE stream
-        And at least one SSE event has id "TCP-c2s"
-        And no SSE event has id "TCP-s2s"
+        And at least one SSE has id "TCP-c2s"
+        And no SSE has id "TCP-s2s"

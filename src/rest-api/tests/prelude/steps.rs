@@ -144,7 +144,7 @@ fn received_events(world: &mut TestWorld) -> Vec<HashSet<String>> {
         .collect::<Vec<_>>()
 }
 
-#[then(expr = "one SSE event with id {string} is")]
+#[then(expr = "one SSE with id {string} is")]
 async fn then_sse_event(world: &mut TestWorld, id: String, step: &Step) {
     let value = step.docstring().unwrap().trim().to_owned();
 
@@ -166,7 +166,7 @@ async fn then_sse_event(world: &mut TestWorld, id: String, step: &Step) {
     );
 }
 
-#[then(expr = "at least one SSE event has id {string}")]
+#[then(expr = "at least one SSE has id {string}")]
 async fn then_sse_event_id(world: &mut TestWorld, id: String) {
     let events = received_events(world);
     let expected = format!("id:{id}");
@@ -177,7 +177,7 @@ async fn then_sse_event_id(world: &mut TestWorld, id: String) {
     );
 }
 
-#[then(expr = "no SSE event has id {string}")]
+#[then(expr = "no SSE has id {string}")]
 async fn then_no_sse_event_id(world: &mut TestWorld, id: String) {
     let events = received_events(world);
     let expected = format!("id:{id}");
