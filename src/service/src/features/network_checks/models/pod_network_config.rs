@@ -68,7 +68,7 @@ impl PodNetworkConfig {
             .collect(),
         };
         let step_c2s = |target: &DomainName| DnsSetupStep {
-            purpose: "let clients connect to your server".to_string(),
+            purpose: "let users connect to your server".to_string(),
             records: vec![
                 DnsEntry::SrvC2S {
                     hostname: server_domain.clone(),

@@ -123,7 +123,7 @@ components:
                 ttl: 600
                 value: 2a01:cb05:899c:c200::1
                 string_repr: prose.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
-          - purpose: let clients connect to your server
+          - purpose: let users connect to your server
             records:
               - hostname: _xmpp-client._tcp.crisp.chat.
                 type: SRV
@@ -161,7 +161,7 @@ components:
           description: The purpose of this step. Note that it always starts with a
             lowercase letter.
           type: string
-          example: let clients connect to your server
+          example: let users connect to your server
         records:
           type: array
           items: { $ref: "#/components/schemas/DnsRecordWithStringRepr" }
