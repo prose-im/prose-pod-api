@@ -36,9 +36,9 @@ impl PodNetworkConfig {
         let ref server_domain = server_domain.as_fqdn();
 
         let ref pod_fqdn = match pod_address {
-            NetworkAddress::Static { .. } => (HostName::from_str("xmpp").unwrap())
+            NetworkAddress::Static { .. } => (HostName::from_str("prose").unwrap())
                 .append_domain(server_domain)
-                .expect("Domain name too long when adding `xmpp` prefix"),
+                .expect("Domain name too long when adding `prose` prefix"),
             NetworkAddress::Dynamic { domain } => {
                 let mut fqdn = domain.clone();
                 fqdn.set_fqdn(true);

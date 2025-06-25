@@ -28,12 +28,12 @@ paths:
               - id: IPv4
                 event: dns-record-check-result
                 data:
-                  description: IPv4 record for xmpp.crisp.chat
+                  description: IPv4 record for prose.crisp.chat
                   status: VALID
               - id: IPv6
                 event: dns-record-check-result
                 data:
-                  description: IPv6 record for xmpp.crisp.chat
+                  description: IPv6 record for prose.crisp.chat
                   status: VALID
               - id: SRV-c2s
                 event: dns-record-check-result
@@ -94,11 +94,11 @@ paths:
             example: |-
               id:IPv4
               event:dns-record-check-result
-              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"QUEUED"}
+              data:{"description":"IPv4 record for prose.crisp.chat","status":"QUEUED"}
 
               id:IPv6
               event:dns-record-check-result
-              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"QUEUED"}
+              data:{"description":"IPv6 record for prose.crisp.chat","status":"QUEUED"}
 
               id:SRV-c2s
               :
@@ -139,11 +139,11 @@ paths:
 
               id:IPv4
               event:dns-record-check-result
-              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"CHECKING"}
+              data:{"description":"IPv4 record for prose.crisp.chat","status":"CHECKING"}
 
               id:IPv6
               event:dns-record-check-result
-              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"CHECKING"}
+              data:{"description":"IPv6 record for prose.crisp.chat","status":"CHECKING"}
 
               id:SRV-c2s
               event:dns-record-check-result
@@ -183,11 +183,11 @@ paths:
 
               id:IPv4
               event:dns-record-check-result
-              data:{"description":"IPv4 record for xmpp.crisp.chat","status":"VALID"}
+              data:{"description":"IPv4 record for prose.crisp.chat","status":"VALID"}
 
               id:IPv6
               event:dns-record-check-result
-              data:{"description":"IPv6 record for xmpp.crisp.chat","status":"VALID"}
+              data:{"description":"IPv6 record for prose.crisp.chat","status":"VALID"}
 
               id:SRV-c2s
               event:dns-record-check-result

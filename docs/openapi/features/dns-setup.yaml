@@ -46,7 +46,7 @@ components:
           value:
             type: string
         example:
-          hostname: xmpp.crisp.chat.
+          hostname: prose.crisp.chat.
           type: A
           ttl: 600
           value: 90.105.205.180
@@ -67,7 +67,7 @@ components:
           value:
             type: string
         example:
-          hostname: xmpp.crisp.chat.
+          hostname: prose.crisp.chat.
           type: AAAA
           ttl: 600
           value: 2a01:cb05:899c:c200::1
@@ -100,7 +100,7 @@ components:
           priority: 0
           weight: 5
           port: 5222
-          target: xmpp.crisp.chat.
+          target: prose.crisp.chat.
     GetDnsRecordsResponse:
       type: object
       required:
@@ -113,16 +113,16 @@ components:
         steps:
           - purpose: specify your server IP address
             records:
-              - hostname: xmpp.crisp.chat.
+              - hostname: prose.crisp.chat.
                 type: A
                 ttl: 600
                 value: 90.105.205.180
-                string_repr: xmpp.crisp.chat 600 IN A 90.105.205.180
-              - hostname: xmpp.crisp.chat
+                string_repr: prose.crisp.chat 600 IN A 90.105.205.180
+              - hostname: prose.crisp.chat
                 type: AAAA
                 ttl: 600
                 value: 2a01:cb05:899c:c200::1
-                string_repr: xmpp.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
+                string_repr: prose.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
           - purpose: let clients connect to your server
             records:
               - hostname: _xmpp-client._tcp.crisp.chat.
@@ -131,8 +131,8 @@ components:
                 priority: 0
                 weight: 5
                 port: 5222
-                target: xmpp.crisp.chat.
-                string_repr: _xmpp-client._tcp.crisp.chat 3600 IN SRV 0 5 5222 xmpp.crisp.chat.
+                target: prose.crisp.chat.
+                string_repr: _xmpp-client._tcp.crisp.chat 3600 IN SRV 0 5 5222 prose.crisp.chat.
           - purpose: let servers connect to your server
             records:
               - hostname: _xmpp-server._tcp.crisp.chat.
@@ -141,8 +141,8 @@ components:
                 priority: 0
                 weight: 5
                 port: 5269
-                target: xmpp.crisp.chat.
-                string_repr: _xmpp-server._tcp.crisp.chat 3600 IN SRV 0 5 5269 xmpp.crisp.chat.
+                target: prose.crisp.chat.
+                string_repr: _xmpp-server._tcp.crisp.chat 3600 IN SRV 0 5 5269 prose.crisp.chat.
     DnsSetupStep:
       type: object
       required:

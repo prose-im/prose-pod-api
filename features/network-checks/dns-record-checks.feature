@@ -14,21 +14,21 @@ Feature: DNS record checks
         And the Prose Pod isn’t publicly accessible via a domain
         And federation is enabled
         And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a A record for xmpp.test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for xmpp.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to xmpp.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to xmpp.test.prose.org.
+        And prose.org’s DNS zone has a A record for prose.test.prose.org.
+        And prose.org’s DNS zone has a AAAA record for prose.test.prose.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to prose.test.prose.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to prose.test.prose.org.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And one SSE with id "IPv4" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv4 record for xmpp.test.prose.org.","status":"CHECKING"}
+            data:{"description":"IPv4 record for prose.test.prose.org.","status":"CHECKING"}
             """
         And one SSE with id "IPv6" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv6 record for xmpp.test.prose.org.","status":"CHECKING"}
+            data:{"description":"IPv6 record for prose.test.prose.org.","status":"CHECKING"}
             """
         And one SSE with id "SRV-c2s" is
             """
@@ -43,12 +43,12 @@ Feature: DNS record checks
         And one SSE with id "IPv4" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv4 record for xmpp.test.prose.org.","status":"VALID"}
+            data:{"description":"IPv4 record for prose.test.prose.org.","status":"VALID"}
             """
         And one SSE with id "IPv6" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv6 record for xmpp.test.prose.org.","status":"VALID"}
+            data:{"description":"IPv6 record for prose.test.prose.org.","status":"VALID"}
             """
         And one SSE with id "SRV-c2s" is
             """

@@ -264,7 +264,7 @@ pub enum DnsEntry {
 }
 
 impl DnsEntry {
-    /// e.g. "IPv4 record for xmpp.crisp.chat" or "SRV record for client-to-server connections".
+    /// e.g. "IPv4 record for prose.crisp.chat" or "SRV record for client-to-server connections".
     pub fn description(&self) -> String {
         match self {
             Self::Ipv4 { hostname, .. } => format!("IPv4 record for {hostname}"),

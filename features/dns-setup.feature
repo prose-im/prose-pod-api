@@ -19,7 +19,7 @@ Feature: DNS setup instructions
   """
   `SRV` records cannot point directly to IP addresses, we need to point it to a hostname.
   """
-  Rule: If the Prose Pod has a static IP address, `SRV` records point to `xmpp.<domain>` and `xmpp.<domain>` points to the Prose Pod
+  Rule: If the Prose Pod has a static IP address, `SRV` records point to `prose.<domain>` and `prose.<domain>` points to the Prose Pod
 
     Scenario Outline: IPv4 only
       Given the Prose Pod is publicly accessible via an IPv4
@@ -32,8 +32,8 @@ Feature: DNS setup instructions
         And step 1 should contain a single A record
         And step 2 should contain a single SRV record
         And step 3 should contain a single SRV record
-        And A records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And A records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
@@ -51,8 +51,8 @@ Feature: DNS setup instructions
         And step 1 should contain a single AAAA record
         And step 2 should contain a single SRV record
         And step 3 should contain a single SRV record
-        And AAAA records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And AAAA records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
@@ -71,9 +71,9 @@ Feature: DNS setup instructions
         And step 1 should contain A and AAAA records
         And step 2 should contain a single SRV record
         And step 3 should contain a single SRV record
-        And A records hostnames should be xmpp.<domain>
-        And AAAA records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And A records hostnames should be prose.<domain>
+        And AAAA records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
