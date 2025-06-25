@@ -21,6 +21,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct PodNetworkConfig {
     pub server_domain: JidDomain,
+    pub groups_domain: JidDomain,
     pub pod_address: NetworkAddress,
     pub federation_enabled: bool,
 }
@@ -31,9 +32,11 @@ impl PodNetworkConfig {
         let Self {
             server_domain,
             pod_address,
+            groups_domain,
             ..
         } = self;
         let ref server_domain = server_domain.as_fqdn();
+        let ref groups_domain = groups_domain.as_fqdn();
 
         let ref pod_fqdn = match pod_address {
             NetworkAddress::Static { .. } => (HostName::from_str("prose").unwrap())
@@ -74,10 +77,14 @@ impl PodNetworkConfig {
             ],
         };
         let step_s2s = |target: &DomainName| DnsSetupStep {
-            purpose: "let servers connect to your server".to_string(),
+            purpose: "let other servers connect to your server".to_string(),
             records: vec![
                 DnsEntry::SrvS2S {
                     hostname: server_domain.clone(),
+                    target: target.clone(),
+                },
+                DnsEntry::SrvS2S {
+                    hostname: groups_domain.clone(),
                     target: target.clone(),
                 },
             ],

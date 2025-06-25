@@ -55,6 +55,8 @@ pub enum DnsRecordCheckId {
     SrvC2S,
     #[strum(to_string = "SRV-s2s")]
     SrvS2S,
+    #[strum(to_string = "SRV-s2s-groups")]
+    SrvS2SGroups,
 }
 
 impl From<&DnsRecordCheck> for DnsRecordCheckId {
@@ -64,6 +66,7 @@ impl From<&DnsRecordCheck> for DnsRecordCheckId {
             DnsEntry::Ipv6 { .. } => Self::Ipv6,
             DnsEntry::SrvC2S { .. } => Self::SrvC2S,
             DnsEntry::SrvS2S { .. } => Self::SrvS2S,
+            DnsEntry::SrvS2SGroups { .. } => Self::SrvS2SGroups,
         }
     }
 }
@@ -129,6 +132,10 @@ impl NetworkChecker {
                     .await
             }
             DnsEntry::SrvS2S { .. } => {
+                self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
+                    .await
+            }
+            DnsEntry::SrvS2SGroups { .. } => {
                 self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
                     .await
             }

@@ -133,7 +133,7 @@ components:
                 port: 5222
                 target: prose.crisp.chat.
                 string_repr: _xmpp-client._tcp.crisp.chat 3600 IN SRV 0 5 5222 prose.crisp.chat.
-          - purpose: let servers connect to your server
+          - purpose: let other servers connect to your server
             records:
               - hostname: _xmpp-server._tcp.crisp.chat.
                 type: SRV
@@ -143,6 +143,14 @@ components:
                 port: 5269
                 target: prose.crisp.chat.
                 string_repr: _xmpp-server._tcp.crisp.chat 3600 IN SRV 0 5 5269 prose.crisp.chat.
+              - hostname: _xmpp-server._tcp.groups.crisp.chat.
+                type: SRV
+                ttl: 3600
+                priority: 0
+                weight: 5
+                port: 5269
+                target: prose.crisp.chat.
+                string_repr: _xmpp-server._tcp.groups.crisp.chat 3600 IN SRV 0 5 5269 prose.crisp.chat.
     DnsSetupStep:
       type: object
       required:

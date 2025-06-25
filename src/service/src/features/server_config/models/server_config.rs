@@ -44,6 +44,15 @@ pub struct ServerConfig {
     pub prosody_overrides_raw: Option<Lua>,
 }
 
+impl ServerConfig {
+    pub fn groups_domain(&self) -> JidDomain {
+        use std::str::FromStr as _;
+
+        JidDomain::from_str(&format!("groups.{}", self.domain))
+            .expect("Domain too long after adding 'groups.' prefix.")
+    }
+}
+
 /// XMPP server configuration, as stored in the database.
 ///
 /// All fields are optional because the Prose Pod API only stores manual overrides.

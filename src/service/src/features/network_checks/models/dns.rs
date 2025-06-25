@@ -261,6 +261,10 @@ pub enum DnsEntry {
         hostname: DomainName,
         target: DomainName,
     },
+    SrvS2SGroups {
+        hostname: DomainName,
+        target: DomainName,
+    },
 }
 
 impl DnsEntry {
@@ -274,6 +278,9 @@ impl DnsEntry {
             }
             Self::SrvS2S { .. } => {
                 format!("SRV record for server-to-server connections")
+            }
+            Self::SrvS2SGroups { .. } => {
+                format!("SRV record for external connections to groups")
             }
         }
     }
@@ -299,6 +306,14 @@ impl DnsEntry {
                 target,
             },
             DnsEntry::SrvS2S { hostname, target } => DnsRecord::SRV {
+                hostname: xmpp_server_domain(&hostname),
+                ttl: 3600,
+                priority: 0,
+                weight: 5,
+                port: 5269,
+                target,
+            },
+            DnsEntry::SrvS2SGroups { hostname, target } => DnsRecord::SRV {
                 hostname: xmpp_server_domain(&hostname),
                 ttl: 3600,
                 priority: 0,

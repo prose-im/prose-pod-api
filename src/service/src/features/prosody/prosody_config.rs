@@ -251,7 +251,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             app_config.server.local_hostname_admin.to_owned(),
         );
         let groups_virtual_host = ProsodyConfigSection::Component {
-            hostname: format!("groups.{}", server_config.domain),
+            hostname: server_config.groups_domain().to_string(),
             plugin: "muc".into(),
             name: "Chatrooms".into(),
             settings: ProsodySettings {

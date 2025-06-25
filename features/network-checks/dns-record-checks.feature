@@ -18,6 +18,7 @@ Feature: DNS record checks
         And prose.org’s DNS zone has a AAAA record for prose.test.prose.org.
         And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to prose.test.prose.org.
         And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to prose.test.prose.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.prose.org. redirecting port 5269 to prose.test.prose.org.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And one SSE with id "IPv4" is
@@ -72,6 +73,7 @@ Feature: DNS record checks
         And the XMPP server domain is test.prose.org
         And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to cloud-provider.com.
         And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to cloud-provider.com.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.prose.org. redirecting port 5269 to cloud-provider.com.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And one SSE with id "SRV-c2s" is

@@ -189,6 +189,12 @@ impl AppConfig {
     pub fn server_domain(&self) -> &JidDomain {
         &self.server.domain
     }
+    pub fn groups_domain(&self) -> JidDomain {
+        use std::str::FromStr as _;
+
+        JidDomain::from_str(&format!("groups.{}", self.server.domain))
+            .expect("Domain too long after adding 'groups.' prefix.")
+    }
 
     pub fn dashboard_url(&self) -> &Url {
         &self.dashboard.url.0

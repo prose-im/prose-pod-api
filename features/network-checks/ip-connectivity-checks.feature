@@ -130,6 +130,8 @@ Feature: IP connectivity checks
         And prose.org’s DNS zone has a AAAA record for _xmpp-client._tcp.test.prose.org.
         And prose.org’s DNS zone has a A record for _xmpp-server._tcp.test.prose.org.
         And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.test.prose.org.
+        And prose.org’s DNS zone has a A record for _xmpp-server._tcp.groups.test.prose.org.
+        And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.groups.test.prose.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
         And one SSE with id "IPv4-c2s" is
