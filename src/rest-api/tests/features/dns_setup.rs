@@ -153,15 +153,15 @@ async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: DomainName
     );
 }
 
-#[then(expr = "SRV records hostnames should be {domain_name}")]
-async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
+#[then(expr = "SRV record hostname should be {domain_name} for port {int}")]
+async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName, port_filter: u16) {
     let res: GetDnsRecordsResponse = world.result().json();
     let hostnames: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
         .filter_map(|r| match r.inner {
-            DnsRecord::SRV { hostname, .. } => Some(hostname),
+            DnsRecord::SRV { hostname, port, .. } if port == port_filter => Some(hostname),
             _ => None,
         })
         .collect();

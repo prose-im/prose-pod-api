@@ -125,24 +125,24 @@ components:
                 string_repr: xmpp.crisp.chat 600 IN AAAA 2a01:cb05:899c:c200::1
           - purpose: let clients connect to your server
             records:
-              - hostname: crisp.chat.
+              - hostname: _xmpp-client._tcp.crisp.chat.
                 type: SRV
                 ttl: 3600
                 priority: 0
                 weight: 5
                 port: 5222
                 target: xmpp.crisp.chat.
-                string_repr: crisp.chat 3600 IN SRV 0 5 5222 xmpp.crisp.chat.
+                string_repr: _xmpp-client._tcp.crisp.chat 3600 IN SRV 0 5 5222 xmpp.crisp.chat.
           - purpose: let servers connect to your server
             records:
-              - hostname: crisp.chat.
+              - hostname: _xmpp-server._tcp.crisp.chat.
                 type: SRV
                 ttl: 3600
                 priority: 0
                 weight: 5
                 port: 5269
                 target: xmpp.crisp.chat.
-                string_repr: crisp.chat 3600 IN SRV 0 5 5269 xmpp.crisp.chat.
+                string_repr: _xmpp-server._tcp.crisp.chat 3600 IN SRV 0 5 5269 xmpp.crisp.chat.
     DnsSetupStep:
       type: object
       required:

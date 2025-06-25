@@ -61,12 +61,21 @@ impl IpConnectivityCheck {
                 server_domain,
                 conn_type,
                 ..
-            } => vec![
-                // Check the standard domain first
-                conn_type.standard_domain(server_domain.clone()),
-                // Then the XMPP server's domain
-                server_domain.clone(),
-            ],
+            } => {
+                let mut server_domain = server_domain.clone();
+                // TODO: Refactor all of the network checks mess and get rid of this hack. See https://github.com/prose-im/prose-pod-api/issues/274.
+                if server_domain.to_string().contains("._tcp.") {
+                    server_domain =
+                        server_domain.trim_to((server_domain.num_labels() - 2u8) as usize);
+                }
+
+                vec![
+                    // Check the standard domain first
+                    conn_type.standard_domain(server_domain.clone()),
+                    // Then the XMPP server's domain
+                    server_domain.clone(),
+                ]
+            }
         }
     }
 }

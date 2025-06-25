@@ -130,7 +130,8 @@ Feature: DNS setup instructions
         And the Prose Pod is publicly accessible via an IPv4
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV records hostnames should be <domain>
+        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
 
     Examples:
       | domain         |
@@ -142,7 +143,8 @@ Feature: DNS setup instructions
         And the Prose Pod is publicly accessible via a domain
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV records hostnames should be <domain>
+        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
 
     Examples:
       | domain         |

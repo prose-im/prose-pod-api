@@ -50,12 +50,20 @@ impl PortReachabilityCheck {
             Self::Xmpp {
                 hostname,
                 conn_type,
-            } => vec![
-                // Check the standard domain first
-                conn_type.standard_domain(hostname.clone()),
-                // Then the XMPP server's domain
-                hostname.clone(),
-            ],
+            } => {
+                let mut hostname = hostname.clone();
+                // TODO: Refactor all of the network checks mess and get rid of this hack. See https://github.com/prose-im/prose-pod-api/issues/274.
+                if hostname.to_string().contains("._tcp.") {
+                    hostname = hostname.trim_to((hostname.num_labels() - 2u8) as usize);
+                }
+
+                vec![
+                    // Check the standard domain first.
+                    conn_type.standard_domain(hostname.clone()),
+                    // Then the XMPP server’s domain.
+                    hostname.clone(),
+                ]
+            }
             Self::Https { hostname } => vec![hostname.clone()],
         }
     }

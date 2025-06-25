@@ -15,6 +15,8 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::xmpp::{xmpp_client_domain, xmpp_server_domain};
+
 #[derive(Debug, Clone, Serialize, Deserialize, strum::EnumDiscriminants, Eq)]
 #[strum_discriminants(derive(strum::EnumString, strum::IntoStaticStr))]
 #[serde(tag = "type")]
@@ -288,7 +290,7 @@ impl DnsEntry {
                 value: ipv6,
             },
             DnsEntry::SrvC2S { hostname, target } => DnsRecord::SRV {
-                hostname,
+                hostname: xmpp_client_domain(&hostname),
                 ttl: 3600,
                 priority: 0,
                 weight: 5,
@@ -296,7 +298,7 @@ impl DnsEntry {
                 target,
             },
             DnsEntry::SrvS2S { hostname, target } => DnsRecord::SRV {
-                hostname,
+                hostname: xmpp_server_domain(&hostname),
                 ttl: 3600,
                 priority: 0,
                 weight: 5,

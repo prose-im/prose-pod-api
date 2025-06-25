@@ -5,7 +5,7 @@
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-xmpp.example.org 600 IN A 172.20.0.40
-xmpp.example.org 600 IN AAAA 2001:db8::40
-example.org 3600 IN SRV 0 5 5222 xmpp.example.org.
-example.org 3600 IN SRV 0 5 5269 xmpp.example.org.
+xmpp.example.org. 600 IN A 172.20.0.40
+xmpp.example.org. 600 IN AAAA 2001:db8::40
+_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 xmpp.example.org.
+_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 xmpp.example.org.
