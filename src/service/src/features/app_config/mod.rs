@@ -109,10 +109,15 @@ impl AppConfig {
         // NOTE: We have to use `Serialized::default`. See <https://github.com/SergioBenitez/Figment/issues/64#issuecomment-1493111060>.
 
         // If an email notifier is defined, add a default for the Pod address.
-        figment = figment.join(Serialized::default(
-            "notifiers.email.pod_address",
-            format!("prose@{server_domain}"),
-        ));
+        let smtp_host = figment
+            .extract_inner::<String>("notifiers.email.smtp_host")
+            .ok();
+        if smtp_host.is_some() {
+            figment = figment.join(Serialized::default(
+                "notifiers.email.pod_address",
+                format!("prose@{server_domain}"),
+            ));
+        }
 
         let PodAddress {
             domain: pod_domain,
@@ -533,7 +538,6 @@ impl NotifiersConfig {
 pub struct EmailNotifierConfig {
     pub pod_address: EmailAddress,
 
-    #[serde(default = "defaults::smtp_host")]
     pub smtp_host: String,
 
     #[serde(default = "defaults::smtp_port")]

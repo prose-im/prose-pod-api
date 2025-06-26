@@ -206,10 +206,6 @@ pub fn notify_workspace_invitation_channel() -> InvitationChannel {
     InvitationChannel::Email
 }
 
-pub fn smtp_host() -> String {
-    "localhost".to_string()
-}
-
 pub fn smtp_port() -> u16 {
     587
 }
