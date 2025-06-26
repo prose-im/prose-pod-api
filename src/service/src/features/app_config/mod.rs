@@ -104,45 +104,7 @@ impl AppConfig {
         use anyhow::Context as _;
         use figment::providers::*;
 
-        #[derive(Deserialize)]
-        pub struct RequiredConfig {
-            #[serde(default)]
-            pub pod: PodConfig,
-            pub server: ServerConfig,
-        }
-        #[derive(Deserialize, Default)]
-        pub struct PodConfig {
-            #[serde(default)]
-            pub address: PodAddress,
-        }
-        #[derive(Deserialize, Default)]
-        pub struct PodAddress {
-            #[serde(default)]
-            pub domain: Option<String>,
-            #[serde(default)]
-            pub ipv4: Option<String>,
-            #[serde(default)]
-            pub ipv6: Option<String>,
-        }
-        #[derive(Deserialize)]
-        pub struct ServerConfig {
-            #[serde(rename = "domain")]
-            pub server_domain: String,
-        }
-
-        let RequiredConfig {
-            server: ServerConfig { server_domain },
-            pod:
-                PodConfig {
-                    address:
-                        PodAddress {
-                            domain: pod_domain,
-                            ipv4: pod_ipv4,
-                            ipv6: pod_ipv6,
-                        },
-                },
-        } = (figment.extract())
-            .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))?;
+        let server_domain = figment.extract_inner::<String>("server.domain")?;
 
         // NOTE: We have to use `Serialized::default`. See <https://github.com/SergioBenitez/Figment/issues/64#issuecomment-1493111060>.
 
@@ -152,6 +114,14 @@ impl AppConfig {
             format!("prose@{server_domain}"),
         ));
 
+        let PodAddress {
+            domain: pod_domain,
+            ipv4: pod_ipv4,
+            ipv6: pod_ipv6,
+            ..
+        } = figment
+            .extract_inner::<PodAddress>("pod.address")
+            .unwrap_or_default();
         if (pod_ipv4, pod_ipv6) == (None, None) {
             // If no static address has been defined, add a default for the Pod domain.
             let default_server_domain = format!("prose.{server_domain}");
@@ -161,7 +131,7 @@ impl AppConfig {
             ));
 
             // If possible, add a default for the Dashboard URL.
-            let pod_domain = pod_domain.unwrap_or(default_server_domain);
+            let pod_domain = pod_domain.map_or(default_server_domain, |name| name.to_string());
             figment = figment.join(Serialized::default(
                 "dashboard.url",
                 format!("https://admin.{pod_domain}"),
@@ -368,7 +338,7 @@ mod pod_config {
         pub address: PodAddress,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Default)]
     #[derive(serdev::Serialize, serdev::Deserialize)]
     #[serde(validate = "Self::validate")]
     pub struct PodAddress {
