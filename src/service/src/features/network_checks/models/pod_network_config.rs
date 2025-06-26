@@ -108,7 +108,7 @@ impl PodNetworkConfig {
             step
         };
         let step_dashboard = || DnsSetupStep {
-            purpose: "let you connect to your Dashboard".to_string(),
+            purpose: "let users connect to your Dashboard".to_string(),
             records: vec![
                 DnsEntry::CnameDashboard {
                     hostname: dashboard_fqdn.clone(),
