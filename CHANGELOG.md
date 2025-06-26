@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- WARN: Do not move the next line and add changelog entries **under** it.
        It’s used by `task release` when updating the changelog. -->
-[Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.2...HEAD
+
+## [0.16.2] - 2025-06-26
+
+[0.16.2]: https://github.com/prose-im/prose-pod-api/compare/v0.16.1...v0.16.2
 
 ### Changed
 
