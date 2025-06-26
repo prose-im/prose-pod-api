@@ -53,6 +53,7 @@ async fn backfill_all_dns_checks_passed_once(
     }
 
     let server_domain = app_config.server_domain().clone();
+    let groups_domain = app_config.groups_domain();
 
     let pod_address = app_config.pod.network_address();
 
@@ -61,6 +62,7 @@ async fn backfill_all_dns_checks_passed_once(
 
     let pod_network_config = PodNetworkConfig {
         server_domain,
+        groups_domain,
         pod_address,
         federation_enabled,
     };

@@ -125,7 +125,7 @@ async fn when_password_reset_request(
     let subject_jid = name_to_jid(world, &subject).await?;
 
     let res = request_password_reset(world.api(), actor_token, subject_jid.clone()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 
     let tokens = password_reset_tokens::get_by_jid(world.db(), &subject_jid).await?;
     world.password_reset_tokens.insert(subject_jid, tokens);
@@ -164,7 +164,7 @@ async fn when_password_reset_n(
         },
     )
     .await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
     Ok(())
 }
 

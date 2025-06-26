@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 
+use cucumber::gherkin::Step;
 use lazy_static::lazy_static;
 use regex::Regex;
 use tracing::error;
@@ -143,8 +144,10 @@ fn received_events(world: &mut TestWorld) -> Vec<HashSet<String>> {
         .collect::<Vec<_>>()
 }
 
-#[then(expr = "one SSE event is {string}")]
-async fn then_sse_event(world: &mut TestWorld, value: String) {
+#[then(expr = "one SSE with id {string} is")]
+async fn then_sse_event(world: &mut TestWorld, id: String, step: &Step) {
+    let value = step.docstring().unwrap().trim().to_owned();
+
     let events = received_events(world);
 
     let expected = value
@@ -152,9 +155,10 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
         .replace(r#"\""#, r#"""#)
         // Unescape newlines
         .replace("\\n", "\n");
-    let expected = (expected.lines())
+    let mut expected = (expected.lines())
         .map(ToOwned::to_owned)
         .collect::<HashSet<String>>();
+    expected.insert(format!("id:{id}"));
 
     assert!(
         events.iter().any(|set| set == &expected),
@@ -162,7 +166,7 @@ async fn then_sse_event(world: &mut TestWorld, value: String) {
     );
 }
 
-#[then(expr = "at least one SSE event has id {string}")]
+#[then(expr = "at least one SSE has id {string}")]
 async fn then_sse_event_id(world: &mut TestWorld, id: String) {
     let events = received_events(world);
     let expected = format!("id:{id}");
@@ -173,7 +177,7 @@ async fn then_sse_event_id(world: &mut TestWorld, id: String) {
     );
 }
 
-#[then(expr = "no SSE event has id {string}")]
+#[then(expr = "no SSE has id {string}")]
 async fn then_no_sse_event_id(world: &mut TestWorld, id: String) {
     let events = received_events(world);
     let expected = format!("id:{id}");

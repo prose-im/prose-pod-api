@@ -9,8 +9,9 @@ use tracing::{instrument, trace, trace_span, Instrument as _};
 
 use crate::network_checks::NetworkChecker;
 
-/// Resolves SRV records for the host and follow them if possible, then runs the check on SRV targets.
-/// Falls back to checking on the host itself if the check didn't pass before that.
+/// Resolves `SRV` records for the host and follows them if possible, then runs
+/// the check on `SRV` targets. Falls back to checking on the host itself if the
+/// check didn’t pass before that.
 #[instrument(level = "trace", skip_all, fields(host), ret)]
 pub(super) async fn flattened_srv_lookup<Fut>(
     host: &str,
@@ -32,10 +33,8 @@ where
             );
 
         for ip in res.recursively_resolved_ips {
-            if check(&ip.to_string())
-                .instrument(trace_span!("check_ip", ip = ip.to_string()))
-                .await
-            {
+            let span = trace_span!("check_ip", ip = ip.to_string());
+            if check(&ip.to_string()).instrument(span).await {
                 return true;
             }
         }
@@ -43,12 +42,10 @@ where
         tracing::Span::current().record("srv_targets", format!("{:?}", res.srv_targets));
 
         for target in res.srv_targets {
+            let span = trace_span!("check_domain", target = target.to_string());
             // NOTE(RemiBardon): We might want to recursively call `flattened_run` here.
-            //   I just found no use case so let's call the faster `check`.
-            if check(&target.to_string())
-                .instrument(trace_span!("check_domain", target = target.to_string()))
-                .await
-            {
+            //   I just found no use case so let’s call the faster `check`.
+            if check(&target.to_string()).instrument(span).await {
                 return true;
             }
         }

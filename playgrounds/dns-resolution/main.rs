@@ -3,11 +3,10 @@ use std::{
     str::FromStr,
 };
 
-use hickory_client::rr::RecordType;
 #[allow(unused)]
 use hickory_resolver::{
     config::ResolverConfig,
-    proto::rr::{rdata, LowerName, RData, Record as HickoryRecord},
+    proto::rr::{rdata, LowerName, RData, Record as HickoryRecord, RecordType},
     Resolver,
 };
 

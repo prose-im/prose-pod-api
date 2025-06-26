@@ -13,6 +13,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use hickory_proto::rr::RecordType;
 use hickory_resolver::{
     config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
     error::ResolveError,
@@ -48,6 +49,7 @@ pub struct LiveNetworkChecker {
 }
 
 impl LiveNetworkChecker {
+    /// A DNS resolver which queries the name servers directly and stores no cache.
     async fn direct_resolver(&self, domain: &DomainName) -> Arc<TokioAsyncResolver> {
         // Read the cache to avoid unnecessary DNS queries.
         {
@@ -190,6 +192,24 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
             recursively_resolved_ips: srv_lookup.ip_iter().collect(),
             srv_targets: srv_lookup.iter().map(|rec| rec.target()).cloned().collect(),
         })
+    }
+    async fn cname_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+        let domain = DomainName::from_str(domain)
+            .map_err(|err| DnsLookupError(format!("Invalid domain name `{domain}`: {err}")))?;
+        let direct_resolver = self.direct_resolver(&domain).await;
+
+        let domain = domain.to_string();
+        let cname_lookup = direct_resolver.lookup(domain, RecordType::CNAME).await?;
+        Ok(cname_lookup
+            .record_iter()
+            .flat_map(|r| {
+                DnsRecord::try_from(r)
+                    .inspect_err(|err| {
+                        tracing::error!("Could not deserialize Hickory record: {err}")
+                    })
+                    .ok()
+            })
+            .collect())
     }
 
     fn is_port_open(&self, host: &str, port: u16) -> bool {

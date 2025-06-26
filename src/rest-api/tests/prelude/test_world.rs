@@ -19,7 +19,7 @@ use service::{
     invitations::{Invitation, InvitationService},
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
-    network_checks::NetworkChecker,
+    network_checks::{NetworkChecker, PodNetworkConfig},
     notifications::{notifier::email::EmailNotification, NotificationService, Notifier},
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore},
@@ -193,6 +193,17 @@ impl TestWorld {
             .get(email_address)
             .expect("Invitation must be created first")
             .clone()
+    }
+
+    pub async fn pod_network_config(&self) -> PodNetworkConfig {
+        let app_config = self.app_config().clone();
+        let server_config = self.server_config().await.expect("Server config missing");
+        PodNetworkConfig {
+            server_domain: app_config.server_domain().clone(),
+            groups_domain: app_config.groups_domain().clone(),
+            pod_address: app_config.pod.network_address(),
+            federation_enabled: server_config.federation_enabled,
+        }
     }
 }
 

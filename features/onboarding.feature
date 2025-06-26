@@ -10,9 +10,10 @@ Feature: Onboarding steps
 
     Scenario: All checks pass
       Given onboarding step "all_dns_checks_passed_once" is false
-        And the Prose Pod is publicly accessible via a domain
         And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a SRV record for test.prose.org. redirecting port 5222 to cloud-provider.com.
+        And the Prose Pod is publicly accessible via prose.test.prose.org
+        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.prose.org. to prose.test.prose.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to cloud-provider.com.
        When Valerian checks the DNS records configuration
         And Valerian queries onboarding steps statuses
        Then onboarding step "all_dns_checks_passed_once" should be true

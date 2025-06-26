@@ -15,7 +15,11 @@ use service::{
     server_config,
 };
 
-use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
+use crate::{
+    api_call_fn,
+    cucumber_parameters::{self as parameters, *},
+    user_token, TestWorld,
+};
 
 api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
 
@@ -34,9 +38,14 @@ async fn given_pod_ipv6(world: &mut TestWorld) {
 }
 
 #[given("the Prose Pod is publicly accessible via a domain")]
-async fn given_pod_domain(world: &mut TestWorld) {
-    // A random domain, as we don't care about the value.
-    let domain = DomainName::from_str("test.prose.org").unwrap();
+fn given_pod_domain_default(world: &mut TestWorld) {
+    let server_domain = world.app_config().server_domain().clone();
+    let domain = DomainName::from_str(&format!("prose.{server_domain}")).unwrap();
+    given_pod_domain(world, domain);
+}
+
+#[given(expr = "the Prose Pod is publicly accessible via {domain_name}")]
+fn given_pod_domain(world: &mut TestWorld, domain: parameters::DomainName) {
     world.app_config_mut().pod.address.domain = Some(domain.0);
 }
 
@@ -55,7 +64,7 @@ async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_dns_instructions(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "DNS setup instructions should contain {int} steps")]
@@ -67,12 +76,7 @@ async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {
 /// NOTE: Step numbers start at 1.
 #[then(expr = "step {int} should contain a single {dns_record_type} record")]
 async fn then_step_n_single_record(world: &mut TestWorld, n: usize, record_type: DnsRecordType) {
-    let n = n - 1;
-    let res: GetDnsRecordsResponse = world.result().json();
-    let step = res.steps.get(n).expect(&format!("No step {n}."));
-    assert_eq!(step.records.len(), 1);
-    let record_type = record_type.0;
-    assert_eq!(step.records[0].record_type(), record_type);
+    then_step_n_records(world, n, Array(vec![record_type])).await;
 }
 
 /// NOTE: Step numbers start at 1.
@@ -153,15 +157,15 @@ async fn then_aaaa_records_hostnames(world: &mut TestWorld, hostname: DomainName
     );
 }
 
-#[then(expr = "SRV records hostnames should be {domain_name}")]
-async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName) {
+#[then(expr = "SRV record hostname should be {domain_name} for port {int}")]
+async fn then_srv_records_hostnames(world: &mut TestWorld, hostname: DomainName, port_filter: u16) {
     let res: GetDnsRecordsResponse = world.result().json();
     let hostnames: Vec<_> = res
         .steps
         .into_iter()
         .flat_map(|step| step.records)
         .filter_map(|r| match r.inner {
-            DnsRecord::SRV { hostname, .. } => Some(hostname),
+            DnsRecord::SRV { hostname, port, .. } if port == port_filter => Some(hostname),
             _ => None,
         })
         .collect();

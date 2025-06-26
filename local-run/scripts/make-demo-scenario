@@ -81,19 +81,20 @@ cat <<EOF > "${DNS_ZONE_FILE:?}"
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
+admin.prose.example.org. 3600 IN CNAME prose.example.org.
 EOF
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-example.org 3600 IN SRV 0 5 5222 prose.example.org.
-example.org 3600 IN SRV 0 5 5269 prose.example.org.
+_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 prose.example.org.
+_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 prose.example.org.
 EOF
 else
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-xmpp.example.org 600 IN A 172.20.0.40
-xmpp.example.org 600 IN AAAA 2001:db8::40
-example.org 3600 IN SRV 0 5 5222 xmpp.example.org.
-example.org 3600 IN SRV 0 5 5269 xmpp.example.org.
+prose.example.org. 600 IN A 172.20.0.40
+prose.example.org. 600 IN AAAA 2001:db8::40
+_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 prose.example.org.
+_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 prose.example.org.
 EOF
 fi
 

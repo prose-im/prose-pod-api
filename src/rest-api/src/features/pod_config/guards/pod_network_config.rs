@@ -30,6 +30,7 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
 
         Ok(Self {
             server_domain: app_config.server_domain().clone(),
+            groups_domain: app_config.groups_domain(),
             pod_address: app_config.pod.network_address(),
             federation_enabled: server_config.federation_enabled,
         })

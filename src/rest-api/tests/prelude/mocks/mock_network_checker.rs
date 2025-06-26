@@ -79,6 +79,9 @@ impl NetworkCheckerImpl for MockNetworkChecker {
                 records,
             })
     }
+    async fn cname_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
+        self.lookup_(domain, DnsRecordDiscriminants::CNAME)
+    }
 
     fn is_port_open(&self, host: &str, port_number: u16) -> bool {
         trace!("Checking if port {port_number} is open for {host}…");
@@ -141,6 +144,28 @@ async fn given_aaaa_record(world: &mut TestWorld, _host: DomainName, record_host
             hostname: record_hostname.into(),
             ttl: 42,
             value: Ipv6Addr::UNSPECIFIED,
+        },
+    );
+}
+
+#[given(
+    expr = "{domain_name}'s DNS zone has a CNAME record redirecting {domain_name} to {domain_name}"
+)]
+#[given(
+    expr = "{domain_name}’s DNS zone has a CNAME record redirecting {domain_name} to {domain_name}"
+)]
+async fn given_cname_record(
+    world: &mut TestWorld,
+    _host: DomainName,
+    record_hostname: DomainName,
+    target: DomainName,
+) {
+    add_record(
+        world,
+        DnsRecord::CNAME {
+            hostname: record_hostname.into(),
+            ttl: 42,
+            target: target.into(),
         },
     );
 }

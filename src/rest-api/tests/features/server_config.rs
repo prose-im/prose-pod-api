@@ -30,7 +30,7 @@ api_call_fn!(get_server_config, GET, "/v1/server/config");
 async fn when_get_server_config(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_server_config(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then("the server should have been reconfigured")]
@@ -111,7 +111,7 @@ async fn when_set_message_archiving(
 ) {
     let token = user_token!(world, name);
     let res = set_message_archiving(world.api(), token, state.into()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} sets the message archive retention to {duration}")]
@@ -122,21 +122,21 @@ async fn when_set_message_archive_retention(
 ) {
     let token = user_token!(world, name);
     let res = set_message_archive_retention(world.api(), token, duration.into()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
 async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = reset_messaging_configuration(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the message archive retention to its default value")]
 async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = reset_message_archive_retention(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "message archiving should be {toggle}")]
@@ -233,14 +233,14 @@ async fn when_set_file_uploading(
 ) {
     let token = user_token!(world, name);
     let res = set_file_uploading(world.api(), token, state.into()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the Files configuration to its default value")]
 async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = reset_files_configuration(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} sets the file retention to {duration}")]
@@ -251,7 +251,7 @@ async fn when_set_file_retention(
 ) {
     let token = user_token!(world, name);
     let res = set_file_retention(world.api(), token, duration.into()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "file uploading should be {toggle}")]

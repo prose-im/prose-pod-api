@@ -57,7 +57,7 @@ async fn when_set_nickname(
         SetMemberNicknameRequest { nickname },
     )
     .await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
     Ok(())
 }
 

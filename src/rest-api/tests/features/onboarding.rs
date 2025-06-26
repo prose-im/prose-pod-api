@@ -24,7 +24,7 @@ async fn given_onboarding_step(
 async fn when_get_onboarding_step_statuses(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_onboarding_steps_statuses(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "onboarding step {string} should be {bool}")]

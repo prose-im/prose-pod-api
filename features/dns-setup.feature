@@ -19,7 +19,7 @@ Feature: DNS setup instructions
   """
   `SRV` records cannot point directly to IP addresses, we need to point it to a hostname.
   """
-  Rule: If the Prose Pod has a static IP address, `SRV` records point to `xmpp.<domain>` and `xmpp.<domain>` points to the Prose Pod
+  Rule: If the Prose Pod has a static IP address, `SRV` records point to `prose.<domain>` and `prose.<domain>` points to the Prose Pod
 
     Scenario Outline: IPv4 only
       Given the Prose Pod is publicly accessible via an IPv4
@@ -28,12 +28,13 @@ Feature: DNS setup instructions
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And DNS setup instructions should contain 3 steps
+        And DNS setup instructions should contain 4 steps
         And step 1 should contain a single A record
         And step 2 should contain a single SRV record
-        And step 3 should contain a single SRV record
-        And A records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And step 3 should contain a single CNAME record
+        And step 4 should contain SRV and SRV records
+        And A records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
@@ -47,12 +48,13 @@ Feature: DNS setup instructions
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And DNS setup instructions should contain 3 steps
+        And DNS setup instructions should contain 4 steps
         And step 1 should contain a single AAAA record
         And step 2 should contain a single SRV record
-        And step 3 should contain a single SRV record
-        And AAAA records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And step 3 should contain a single CNAME record
+        And step 4 should contain SRV and SRV records
+        And AAAA records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
@@ -67,13 +69,14 @@ Feature: DNS setup instructions
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And DNS setup instructions should contain 3 steps
+        And DNS setup instructions should contain 4 steps
         And step 1 should contain A and AAAA records
         And step 2 should contain a single SRV record
-        And step 3 should contain a single SRV record
-        And A records hostnames should be xmpp.<domain>
-        And AAAA records hostnames should be xmpp.<domain>
-        And SRV records targets should be xmpp.<domain>.
+        And step 3 should contain a single CNAME record
+        And step 4 should contain SRV and SRV records
+        And A records hostnames should be prose.<domain>
+        And AAAA records hostnames should be prose.<domain>
+        And SRV records targets should be prose.<domain>.
 
     Examples:
       | domain         |
@@ -87,9 +90,10 @@ Feature: DNS setup instructions
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And DNS setup instructions should contain 2 steps
+        And DNS setup instructions should contain 3 steps
         And step 1 should contain a single SRV record
-        And step 2 should contain a single SRV record
+        And step 2 should contain a single CNAME record
+        And step 3 should contain SRV and SRV records
 
     """
     This scenario should not happen but it's possible because of the database schema.
@@ -101,9 +105,10 @@ Feature: DNS setup instructions
         And federation is enabled
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And DNS setup instructions should contain 2 steps
+        And DNS setup instructions should contain 3 steps
         And step 1 should contain a single SRV record
-        And step 2 should contain a single SRV record
+        And step 2 should contain a single CNAME record
+        And step 3 should contain SRV and SRV records
 
   Rule: DNS setup instructions give SRV records for ports 5222 and 5269
 
@@ -130,7 +135,9 @@ Feature: DNS setup instructions
         And the Prose Pod is publicly accessible via an IPv4
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV records hostnames should be <domain>
+        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
+        And SRV record hostname should be _xmpp-server._tcp.groups.<domain> for port 5269
 
     Examples:
       | domain         |
@@ -142,7 +149,9 @@ Feature: DNS setup instructions
         And the Prose Pod is publicly accessible via a domain
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV records hostnames should be <domain>
+        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
+        And SRV record hostname should be _xmpp-server._tcp.groups.<domain> for port 5269
 
     Examples:
       | domain         |

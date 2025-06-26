@@ -21,96 +21,129 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct PodNetworkConfig {
     pub server_domain: JidDomain,
+    pub groups_domain: JidDomain,
     pub pod_address: NetworkAddress,
     pub federation_enabled: bool,
 }
 
 impl PodNetworkConfig {
+    /// E.g. `your-company.com.`.
+    pub fn server_fqdn(&self) -> DomainName {
+        self.server_domain.as_fqdn()
+    }
+    /// E.g. `groups.your-company.com.`.
+    pub fn groups_fqdn(&self) -> DomainName {
+        self.groups_domain.as_fqdn()
+    }
+    /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
+    pub fn pod_fqdn(&self) -> DomainName {
+        self.pod_address.as_fqdn(&self.server_fqdn())
+    }
+    /// E.g. `prose.your-company.com.`.
+    pub fn app_web_fqdn(&self) -> DomainName {
+        (HostName::from_str("prose").unwrap())
+            .append_domain(&self.server_fqdn())
+            .expect("Domain name too long when adding the `prose` prefix")
+    }
+    /// E.g. `admin.prose.your-company.com.`.
+    pub fn dashboard_fqdn(&self) -> DomainName {
+        (HostName::from_str("admin").unwrap())
+            .append_domain(&self.app_web_fqdn())
+            .expect("Domain name too long when adding the `admin` prefix")
+    }
+
     #[instrument(level = "trace", skip_all)]
     fn dns_entries(&self) -> Vec<DnsSetupStep<DnsEntry>> {
-        let Self {
-            server_domain,
-            pod_address,
-            ..
-        } = self;
-        let ref server_domain = server_domain.as_fqdn();
-
-        let ref pod_fqdn = match pod_address {
-            NetworkAddress::Static { .. } => (HostName::from_str("xmpp").unwrap())
-                .append_domain(server_domain)
-                .expect("Domain name too long when adding `xmpp` prefix"),
-            NetworkAddress::Dynamic { domain } => {
-                let mut fqdn = domain.clone();
-                fqdn.set_fqdn(true);
-                fqdn
-            }
-        };
-
-        // === Helpers to create DNS records ===
-
-        let a = |ipv4: Ipv4Addr| DnsEntry::Ipv4 {
-            hostname: pod_fqdn.clone(),
-            ipv4,
-        };
-        let aaaa = |ipv6: Ipv6Addr| DnsEntry::Ipv6 {
-            hostname: pod_fqdn.clone(),
-            ipv6,
-        };
-        let srv_c2s = |target: DomainName| DnsEntry::SrvC2S {
-            hostname: server_domain.clone(),
-            target,
-        };
-        let srv_s2s = |target: DomainName| DnsEntry::SrvS2S {
-            hostname: server_domain.clone(),
-            target,
-        };
+        // E.g. `your-company.com.`.
+        let ref server_fqdn = self.server_fqdn();
+        // E.g. `groups.your-company.com.`.
+        let ref groups_fqdn = self.groups_fqdn();
+        // E.g. `prose.your-company.com.`.
+        let ref app_web_fqdn = self.app_web_fqdn();
+        // E.g. `prose.your-company.com.` or `your-company.prose.net.`!
+        let ref pod_fqdn = self.pod_fqdn();
+        // E.g. `admin.prose.your-company.com.`.
+        let ref dashboard_fqdn = self.dashboard_fqdn();
 
         // === Helpers to create DNS setup steps ===
 
-        let step_static_ip = |ipv4: &Option<Ipv4Addr>, ipv6: &Option<Ipv6Addr>| DnsSetupStep {
-            purpose: "specify your server IP address".to_string(),
+        let step_static_ip = |ipv4: &Option<Ipv4Addr>, ipv6: &Option<Ipv6Addr>| {
+            let mut step = DnsSetupStep {
+                purpose: "specify your server IP address".to_string(),
+                records: Vec::with_capacity(2),
+            };
+            if let Some(ipv4) = *ipv4 {
+                step.records.push(DnsEntry::Ipv4 {
+                    hostname: pod_fqdn.clone(),
+                    ipv4,
+                });
+            }
+            if let Some(ipv6) = *ipv6 {
+                step.records.push(DnsEntry::Ipv6 {
+                    hostname: pod_fqdn.clone(),
+                    ipv6,
+                });
+            }
+            step
+        };
+        let step_c2s = || {
+            let mut step = DnsSetupStep {
+                purpose: "let users connect to your server".to_string(),
+                records: Vec::with_capacity(2),
+            };
+            step.records.push(DnsEntry::SrvC2S {
+                hostname: server_fqdn.clone(),
+                target: pod_fqdn.clone(),
+            });
+            // NOTE: If we’re Cloud-hosting a Prose instance, one needs to CNAME
+            //   `prose.{domain}` to the Prose-provided domain to access their
+            //   web app. Otherwise, it’s already configured externally or via
+            //   A/AAAA records.
+            if app_web_fqdn != pod_fqdn {
+                step.records.push(DnsEntry::CnameWebApp {
+                    hostname: app_web_fqdn.clone(),
+                    target: pod_fqdn.clone(),
+                });
+            }
+            step
+        };
+        let step_dashboard = || DnsSetupStep {
+            purpose: "let you connect to your Dashboard".to_string(),
             records: vec![
-                ipv4.to_owned().map(a),
-                ipv6.to_owned().map(aaaa),
-            ]
-            .into_iter()
-            .flatten()
-            .collect(),
+                DnsEntry::CnameDashboard {
+                    hostname: dashboard_fqdn.clone(),
+                    target: pod_fqdn.clone(),
+                },
+            ],
         };
-        let step_c2s = |target: &DomainName| DnsSetupStep {
-            purpose: "let clients connect to your server".to_string(),
-            records: vec![srv_c2s(
-                target.clone(),
-            )],
-        };
-        let step_s2s = |target: &DomainName| DnsSetupStep {
-            purpose: "let servers connect to your server".to_string(),
-            records: vec![srv_s2s(
-                target.clone(),
-            )],
+        let step_s2s = || DnsSetupStep {
+            purpose: "let other servers connect to your server".to_string(),
+            records: vec![
+                DnsEntry::SrvS2S {
+                    hostname: server_fqdn.clone(),
+                    target: pod_fqdn.clone(),
+                },
+                DnsEntry::SrvS2S {
+                    hostname: groups_fqdn.clone(),
+                    target: pod_fqdn.clone(),
+                },
+            ],
         };
 
         // === Main logic ===
 
-        match pod_address {
-            NetworkAddress::Static { ipv4, ipv6 } => {
-                let mut entries = Vec::with_capacity(3);
-                entries.push(step_static_ip(ipv4, ipv6));
-                entries.push(step_c2s(pod_fqdn));
-                if self.federation_enabled {
-                    entries.push(step_s2s(pod_fqdn));
-                }
-                entries
-            }
-            NetworkAddress::Dynamic { .. } => {
-                let mut entries = Vec::with_capacity(2);
-                entries.push(step_c2s(pod_fqdn));
-                if self.federation_enabled {
-                    entries.push(step_s2s(pod_fqdn));
-                }
-                entries
-            }
+        let mut entries = Vec::with_capacity(4);
+
+        if let NetworkAddress::Static { ipv4, ipv6 } = &self.pod_address {
+            entries.push(step_static_ip(ipv4, ipv6));
         }
+        entries.push(step_c2s());
+        entries.push(step_dashboard());
+        if self.federation_enabled {
+            entries.push(step_s2s());
+        }
+
+        entries
     }
 
     /// Configuration steps shown in the "DNS setup instructions" of the Prose Pod Dashboard.
@@ -206,6 +239,21 @@ pub enum NetworkAddress {
     Dynamic {
         domain: DomainName,
     },
+}
+
+impl NetworkAddress {
+    pub fn as_fqdn(&self, server_fqdn: &DomainName) -> DomainName {
+        match self {
+            NetworkAddress::Static { .. } => (HostName::from_str("prose").unwrap())
+                .append_domain(server_fqdn)
+                .expect("Domain name too long when adding `prose` prefix"),
+            NetworkAddress::Dynamic { domain } => {
+                let mut fqdn = domain.clone();
+                fqdn.set_fqdn(true);
+                fqdn
+            }
+        }
+    }
 }
 
 impl From<PodAddress> for NetworkAddress {
