@@ -139,4 +139,4 @@ components:
     sse-event-ids:
       DnsRecordCheckId:
         type: string
-        enum: [IPv4, IPv6, SRV-c2s, SRV-s2s]
+        enum: [IPv4, IPv6, SRV-c2s, SRV-s2s, CNAME-web-app, CNAME-dashboard]

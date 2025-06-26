@@ -19,7 +19,7 @@ lazy_static! {
 
 #[derive(Debug, Parameter)]
 #[param(name = "array", regex = r"((?:[^, ]+)(?:, [^, ]+)*(?: and [^ ]+)?)")]
-pub struct Array<P: Parameter>(Vec<P>);
+pub struct Array<P: Parameter>(pub Vec<P>);
 
 impl<P: Parameter> Deref for Array<P> {
     type Target = Vec<P>;

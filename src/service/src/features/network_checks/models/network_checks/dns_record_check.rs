@@ -53,6 +53,10 @@ pub enum DnsRecordCheckId {
     Ipv6,
     #[strum(to_string = "SRV-c2s")]
     SrvC2S,
+    #[strum(to_string = "CNAME-web-app")]
+    CnameWebApp,
+    #[strum(to_string = "CNAME-dashboard")]
+    CnameDashboard,
     #[strum(to_string = "SRV-s2s")]
     SrvS2S,
     #[strum(to_string = "SRV-s2s-groups")]
@@ -65,6 +69,8 @@ impl From<&DnsRecordCheck> for DnsRecordCheckId {
             DnsEntry::Ipv4 { .. } => Self::Ipv4,
             DnsEntry::Ipv6 { .. } => Self::Ipv6,
             DnsEntry::SrvC2S { .. } => Self::SrvC2S,
+            DnsEntry::CnameWebApp { .. } => Self::CnameWebApp,
+            DnsEntry::CnameDashboard { .. } => Self::CnameDashboard,
             DnsEntry::SrvS2S { .. } => Self::SrvS2S,
             DnsEntry::SrvS2SGroups { .. } => Self::SrvS2SGroups,
         }
@@ -131,6 +137,8 @@ impl NetworkChecker {
                 self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::C2S)
                     .await
             }
+            DnsEntry::CnameWebApp { .. } => self.check_cname(&dns_entry.into_dns_record()).await,
+            DnsEntry::CnameDashboard { .. } => self.check_cname(&dns_entry.into_dns_record()).await,
             DnsEntry::SrvS2S { .. } => {
                 self.check_srv(&dns_entry.into_dns_record(), XmppConnectionType::S2S)
                     .await
@@ -192,5 +200,10 @@ impl NetworkChecker {
             Err(_) => self.srv_lookup(&host.to_string()).await,
         };
         Self::to_check_result(result.map(|res| res.records), expected)
+    }
+
+    async fn check_cname(&self, expected: &DnsRecord) -> DnsRecordCheckResult {
+        let host = expected.hostname().to_string();
+        Self::to_check_result(self.cname_lookup(&host).await, expected)
     }
 }

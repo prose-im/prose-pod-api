@@ -83,6 +83,7 @@ pub trait NetworkCheckerImpl: Debug + Sync + Send {
     async fn ipv4_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn ipv6_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
     async fn srv_lookup(&self, host: &str) -> Result<SrvLookupResponse, DnsLookupError>;
+    async fn cname_lookup(&self, host: &str) -> Result<Vec<DnsRecord>, DnsLookupError>;
 
     fn is_port_open(&self, host: &str, port: u16) -> bool;
 

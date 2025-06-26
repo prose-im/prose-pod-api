@@ -81,6 +81,7 @@ cat <<EOF > "${DNS_ZONE_FILE:?}"
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
+admin.prose.example.org. 3600 IN CNAME prose.example.org.
 EOF
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then

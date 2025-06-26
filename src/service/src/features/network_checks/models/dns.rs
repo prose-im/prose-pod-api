@@ -4,9 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use hickory_proto::rr::{
-    domain::Name as DomainName,
-    rdata::{self, A, AAAA},
-    RData, Record as HickoryRecord, RecordType,
+    domain::Name as DomainName, rdata, RData, Record as HickoryRecord, RecordType,
 };
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
@@ -31,6 +29,11 @@ pub enum DnsRecord {
         ttl: u32,
         value: Ipv6Addr,
     },
+    CNAME {
+        hostname: DomainName,
+        ttl: u32,
+        target: DomainName,
+    },
     SRV {
         hostname: DomainName,
         ttl: u32,
@@ -44,9 +47,10 @@ pub enum DnsRecord {
 impl DnsRecord {
     pub fn hostname(&self) -> &DomainName {
         match self {
-            Self::A { hostname, .. } | Self::AAAA { hostname, .. } | Self::SRV { hostname, .. } => {
-                hostname
-            }
+            Self::A { hostname, .. }
+            | Self::AAAA { hostname, .. }
+            | Self::CNAME { hostname, .. }
+            | Self::SRV { hostname, .. } => hostname,
         }
     }
 }
@@ -72,6 +76,11 @@ impl ToString for DnsRecord {
                 ttl,
                 value,
             } => format!("{hostname} {ttl} IN AAAA {value}"),
+            Self::CNAME {
+                hostname,
+                ttl,
+                target,
+            } => format!("{hostname} {ttl} IN CNAME {target}"),
             Self::SRV {
                 hostname,
                 ttl,
@@ -103,6 +112,11 @@ impl DnsRecord {
                 ttl,
                 value,
             } => HickoryRecord::from_rdata(hostname, ttl, RData::AAAA(rdata::AAAA(value))),
+            Self::CNAME {
+                hostname,
+                ttl,
+                target,
+            } => HickoryRecord::from_rdata(hostname, ttl, RData::CNAME(rdata::CNAME(target))),
             Self::SRV {
                 hostname,
                 ttl,
@@ -134,12 +148,12 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
 
     fn try_from(record: &HickoryRecord) -> Result<Self, Self::Error> {
         match record.data() {
-            Some(RData::A(A(ipv4))) => Ok(Self::A {
+            Some(RData::A(rdata::A(ipv4))) => Ok(Self::A {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 value: ipv4.clone(),
             }),
-            Some(RData::AAAA(AAAA(ipv6))) => Ok(Self::AAAA {
+            Some(RData::AAAA(rdata::AAAA(ipv6))) => Ok(Self::AAAA {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 value: ipv6.clone(),
@@ -151,6 +165,11 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
                 weight: srv.weight(),
                 port: srv.port(),
                 target: srv.target().clone(),
+            }),
+            Some(RData::CNAME(rdata::CNAME(target))) => Ok(Self::CNAME {
+                hostname: record.name().clone(),
+                ttl: record.ttl(),
+                target: target.clone(),
             }),
             _ => Err(UnsupportedDnsRecordType(record.record_type())),
         }
@@ -189,6 +208,9 @@ enum PartialDnsRecord<'a> {
     AAAA {
         hostname: &'a DomainName,
     },
+    CNAME {
+        hostname: &'a DomainName,
+    },
     SRV {
         hostname: &'a DomainName,
         port: &'a u16,
@@ -200,6 +222,7 @@ impl<'a> From<&'a DnsRecord> for PartialDnsRecord<'a> {
         match record {
             DnsRecord::A { hostname, .. } => Self::A { hostname },
             DnsRecord::AAAA { hostname, .. } => Self::AAAA { hostname },
+            DnsRecord::CNAME { hostname, .. } => Self::CNAME { hostname },
             DnsRecord::SRV { hostname, port, .. } => Self::SRV { hostname, port },
         }
     }
@@ -257,6 +280,14 @@ pub enum DnsEntry {
         hostname: DomainName,
         target: DomainName,
     },
+    CnameWebApp {
+        hostname: DomainName,
+        target: DomainName,
+    },
+    CnameDashboard {
+        hostname: DomainName,
+        target: DomainName,
+    },
     SrvS2S {
         hostname: DomainName,
         target: DomainName,
@@ -275,6 +306,12 @@ impl DnsEntry {
             Self::Ipv6 { hostname, .. } => format!("IPv6 record for {hostname}"),
             Self::SrvC2S { .. } => {
                 format!("SRV record for client-to-server connections")
+            }
+            Self::CnameWebApp { .. } => {
+                format!("CNAME record for Prose’s Web app")
+            }
+            Self::CnameDashboard { .. } => {
+                format!("CNAME record for Prose’s Dashboard")
             }
             Self::SrvS2S { .. } => {
                 format!("SRV record for server-to-server connections")
@@ -296,6 +333,16 @@ impl DnsEntry {
                 hostname,
                 ttl: 600,
                 value: ipv6,
+            },
+            DnsEntry::CnameWebApp { hostname, target } => DnsRecord::CNAME {
+                hostname,
+                ttl: 600,
+                target,
+            },
+            DnsEntry::CnameDashboard { hostname, target } => DnsRecord::CNAME {
+                hostname,
+                ttl: 600,
+                target,
             },
             DnsEntry::SrvC2S { hostname, target } => DnsRecord::SRV {
                 hostname: xmpp_client_domain(&hostname),

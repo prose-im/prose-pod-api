@@ -27,6 +27,7 @@ components:
           - $ref: "#/components/schemas/DnsRecord/A"
           - $ref: "#/components/schemas/DnsRecord/AAAA"
           - $ref: "#/components/schemas/DnsRecord/SRV"
+          - $ref: "#/components/schemas/DnsRecord/CNAME"
         discriminator:
           propertyName: type
       A:
@@ -100,6 +101,27 @@ components:
           priority: 0
           weight: 5
           port: 5222
+          target: prose.crisp.chat.
+      CNAME:
+        type: object
+        required:
+          - hostname
+          - type
+          - ttl
+          - target
+        properties:
+          hostname:
+            type: string
+          type:
+            type: string
+            const: CNAME
+          ttl: { $ref: "../shared.yaml#/components/schemas/Int32" }
+          target:
+            type: string
+        example:
+          hostname: admin.prose.crisp.chat.
+          type: CNAME
+          ttl: 3600
           target: prose.crisp.chat.
     GetDnsRecordsResponse:
       type: object
