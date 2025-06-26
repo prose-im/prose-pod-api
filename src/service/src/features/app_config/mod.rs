@@ -102,6 +102,7 @@ impl AppConfig {
 
     pub fn from_figment(mut figment: Figment) -> anyhow::Result<Self> {
         use anyhow::Context as _;
+        use figment::providers::*;
 
         #[derive(Deserialize)]
         pub struct RequiredConfig {
@@ -143,8 +144,10 @@ impl AppConfig {
         } = (figment.extract())
             .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))?;
 
+        // NOTE: We have to use `Serialized::default`. See <https://github.com/SergioBenitez/Figment/issues/64#issuecomment-1493111060>.
+
         // If an email notifier is defined, add a default for the Pod address.
-        figment = figment.join((
+        figment = figment.join(Serialized::default(
             "notifiers.email.pod_address",
             format!("prose@{server_domain}"),
         ));
@@ -152,11 +155,17 @@ impl AppConfig {
         if (pod_ipv4, pod_ipv6) == (None, None) {
             // If no static address has been defined, add a default for the Pod domain.
             let default_server_domain = format!("prose.{server_domain}");
-            figment = figment.join(("pod.address.domain", &default_server_domain));
+            figment = figment.join(Serialized::default(
+                "pod.address.domain",
+                &default_server_domain,
+            ));
 
             // If possible, add a default for the Dashboard URL.
             let pod_domain = pod_domain.unwrap_or(default_server_domain);
-            figment = figment.join(("dashboard.url", format!("https://admin.{pod_domain}")));
+            figment = figment.join(Serialized::default(
+                "dashboard.url",
+                format!("https://admin.{pod_domain}"),
+            ));
         }
 
         figment
