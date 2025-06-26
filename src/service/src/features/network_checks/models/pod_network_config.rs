@@ -86,15 +86,23 @@ impl PodNetworkConfig {
             }
             step
         };
-        let step_c2s = || {
+        let step_c2s = || DnsSetupStep {
+            purpose: "let users connect to your server".to_string(),
+            records: vec![
+                DnsEntry::SrvC2S {
+                    hostname: server_fqdn.clone(),
+                    target: pod_fqdn.clone(),
+                },
+                // NOTE: Because of the way the Dashboard displays DNS records,
+                //   we can’t mix entries of different types. Therefore the
+                //   Web app CNAME can’t be here (though it’d make sense).
+            ],
+        };
+        let step_cnames = || {
             let mut step = DnsSetupStep {
-                purpose: "let users connect to your server".to_string(),
+                purpose: "let users connect to the Prose Web app and Dashboard".to_string(),
                 records: Vec::with_capacity(2),
             };
-            step.records.push(DnsEntry::SrvC2S {
-                hostname: server_fqdn.clone(),
-                target: pod_fqdn.clone(),
-            });
             // NOTE: If we’re Cloud-hosting a Prose instance, one needs to CNAME
             //   `prose.{domain}` to the Prose-provided domain to access their
             //   web app. Otherwise, it’s already configured externally or via
@@ -105,16 +113,11 @@ impl PodNetworkConfig {
                     target: pod_fqdn.clone(),
                 });
             }
+            step.records.push(DnsEntry::CnameDashboard {
+                hostname: dashboard_fqdn.clone(),
+                target: pod_fqdn.clone(),
+            });
             step
-        };
-        let step_dashboard = || DnsSetupStep {
-            purpose: "let users connect to your Dashboard".to_string(),
-            records: vec![
-                DnsEntry::CnameDashboard {
-                    hostname: dashboard_fqdn.clone(),
-                    target: pod_fqdn.clone(),
-                },
-            ],
         };
         let step_s2s = || DnsSetupStep {
             purpose: "let other servers connect to your server".to_string(),
@@ -138,7 +141,7 @@ impl PodNetworkConfig {
             entries.push(step_static_ip(ipv4, ipv6));
         }
         entries.push(step_c2s());
-        entries.push(step_dashboard());
+        entries.push(step_cnames());
         if self.federation_enabled {
             entries.push(step_s2s());
         }
