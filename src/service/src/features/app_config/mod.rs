@@ -529,7 +529,7 @@ impl NotifiersConfig {
     pub fn email<'a>(&'a self) -> Result<&'a EmailNotifierConfig, MissingConfiguration> {
         match self.email {
             Some(ref conf) => Ok(conf),
-            None => Err(MissingConfiguration("notify.email")),
+            None => Err(MissingConfiguration("notifiers.email")),
         }
     }
 }
