@@ -145,10 +145,14 @@ async fn startup(app_config: AppConfig, lifecycle_manager: &LifecycleManager) ->
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
     //   doesn’t keep caches which would leak data.
-    run_startup_actions(make_router(&app_state), app_state)
-        .await
-        .map_err(|err| panic!("{err}"))
-        .unwrap()
+    match run_startup_actions(make_router(&app_state), app_state).await {
+        Ok(router) => router,
+        Err(err) => {
+            // NOTE: `panic`s are unwound therefore we need to exit manually.
+            tracing::error!("Startup error: {err:#}");
+            std::process::exit(1);
+        }
+    }
 }
 
 #[instrument(level = "trace", skip_all)]
