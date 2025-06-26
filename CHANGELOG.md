@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.1...HEAD
 
+### Changed
+
+- feat(dns-setup): Rename `xmpp.{domain}` to `prose.{domain}` (in `3a86e811`)
+- chore(dns-setup): “let servers connect” -> “let other servers connect” (in `043d7621`)
+- chore(dns-setup): “let clients connect” -> “let users connect” (in `23bada88`)
+
+### Added
+
+- feat(dns-setup): Provide standard SRV records (e.g. `_xmpp-client._tcp.{domain}`) (in `3e36d360`)
+- feat(dns-setup): Provide `CNAME` records for the Web app and Dashboard (in `0caf5247`)
+
 ## [0.16.1] - 2025-06-24
 
 [0.16.1]: https://github.com/prose-im/prose-pod-api/compare/v0.16.0...v0.16.1
