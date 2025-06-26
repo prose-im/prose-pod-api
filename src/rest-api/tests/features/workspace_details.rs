@@ -34,14 +34,14 @@ async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(),
 #[when("an unauthenticated user gets the workspace name")]
 async fn when_anyone_gets_workspace_name(world: &mut TestWorld) {
     let res = get_workspace_name_unauthenticated(world.api()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} sets the workspace name to {string}")]
 async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_name: String) {
     let token = user_token!(world, name);
     let res = set_workspace_name(world.api(), token, workspace_name).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "the returned workspace name should be {string}")]
@@ -87,14 +87,14 @@ async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(
 #[when("an unauthenticated user gets the workspace icon")]
 async fn when_anyone_gets_workspace_icon(world: &mut TestWorld) {
     let res = get_workspace_icon_unauthenticated(world.api()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} sets the workspace icon to {string}")]
 async fn when_set_workspace_icon(world: &mut TestWorld, name: String, png_data: String) {
     let token = user_token!(world, name);
     let res = set_workspace_icon(world.api(), token, png_data).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then("the returned workspace icon should be undefined")]
@@ -148,7 +148,7 @@ async fn given_workspace_accent_color(world: &mut TestWorld, name: String) -> Re
 #[when("an unauthenticated user gets the workspace accent color")]
 async fn when_anyone_gets_workspace_accent_color(world: &mut TestWorld) {
     let res = get_workspace_accent_color_unauthenticated(world.api()).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} sets the workspace accent color to {string}")]
@@ -159,7 +159,7 @@ async fn when_set_workspace_accent_color(
 ) {
     let token = user_token!(world, name);
     let res = set_workspace_accent_color(world.api(), token, workspace_name).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "the returned workspace accent color should be {string}")]

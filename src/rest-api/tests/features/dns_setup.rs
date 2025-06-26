@@ -55,7 +55,7 @@ async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_dns_instructions(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[then(expr = "DNS setup instructions should contain {int} steps")]

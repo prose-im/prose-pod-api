@@ -17,14 +17,23 @@ api_call_fn!(
 async fn when_check_dns(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = check_dns_records(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} checks the DNS records configuration as \"text\\/event-stream\"")]
 async fn when_check_dns_stream(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
-    let res = check_dns_records_stream(world.api(), token).await;
-    world.result = Some(res.into());
+    match check_dns_records_stream(world.api(), token).await {
+        Ok(res) => world.result = Some(res.into()),
+        Err(_) => panic!(
+            "DNS check failed. Expected: {:#?}",
+            (world.pod_network_config().await)
+                .dns_setup_steps()
+                .flat_map(|step| step.records)
+                .map(|record| record.string_repr)
+                .collect::<Vec<_>>()
+        ),
+    }
 }
 
 api_call_fn!(
@@ -38,7 +47,7 @@ api_call_fn!(
 async fn when_check_ports(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = check_ports(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }
 
 api_call_fn!(
@@ -52,5 +61,5 @@ api_call_fn!(
 async fn when_check_ip_connectivity(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = check_ip_connectivity(world.api(), token).await;
-    world.result = Some(res.into());
+    world.result = Some(res.unwrap().into());
 }

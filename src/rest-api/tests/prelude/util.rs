@@ -76,16 +76,15 @@ macro_rules! api_call_fn {
             api: &axum_test::TestServer,
             $($route_param_name: $route_param,)*
             $(payload: $payload_type,)?
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     $( .add_header(axum::http::header::ACCEPT, $accept) )?
                     $(.json(&serde_json::json!(payload as $payload_type)))?
                     $( .content_type($content_type) )?,
             )
             .await
-            .unwrap()
         }
     };
     (
@@ -100,10 +99,10 @@ macro_rules! api_call_fn {
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
             $( $route_param_name: $route_param, )*
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     $( .add_header(axum::http::header::ACCEPT, $accept) )?
                     $( .content_type($content_type) )?
@@ -113,7 +112,6 @@ macro_rules! api_call_fn {
                     ),
             )
             .await
-            .unwrap()
         }
     };
     (
@@ -129,10 +127,10 @@ macro_rules! api_call_fn {
             token: secrecy::SecretString,
             $( $route_param_name: $route_param, )*
             payload: $payload_type,
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     .add_header(
                         axum::http::header::AUTHORIZATION,
@@ -142,7 +140,6 @@ macro_rules! api_call_fn {
                     $( .content_type($content_type) )?,
             )
             .await
-            .unwrap()
         }
     };
     (
@@ -158,10 +155,10 @@ macro_rules! api_call_fn {
             token: secrecy::SecretString,
             $( $route_param_name: $route_param, )*
             payload: $payload_type,
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
                     .add_header(
                         axum::http::header::AUTHORIZATION,
@@ -171,7 +168,6 @@ macro_rules! api_call_fn {
                     $( .content_type($content_type) )?,
             )
             .await
-            .unwrap()
         }
     };
     ($fn:ident, $method:ident, $route:literal, content_type: $content_type:literal) => {
@@ -179,10 +175,10 @@ macro_rules! api_call_fn {
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
             bytes: axum::body::Bytes,
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, $route)
                     .add_header(
                         axum::http::header::AUTHORIZATION,
@@ -192,7 +188,6 @@ macro_rules! api_call_fn {
                     .bytes(bytes),
             )
             .await
-            .unwrap()
         }
     };
     ($fn:ident, $method:ident, $route:literal, $payload_type:ident, $var:ident, $var_type:ty) => {
@@ -200,10 +195,10 @@ macro_rules! api_call_fn {
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
             state: $var_type,
-        ) -> axum_test::TestResponse {
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2),
+                tokio::time::Duration::from_millis(250),
                 api.method(axum::http::Method::$method, $route)
                     .add_header(
                         axum::http::header::AUTHORIZATION,
@@ -213,7 +208,6 @@ macro_rules! api_call_fn {
                     .json(&serde_json::json!($payload_type { $var: state.into() })),
             )
             .await
-            .unwrap()
         }
     };
 }
