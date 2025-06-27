@@ -199,6 +199,13 @@ impl AppConfig {
             .append_domain(&self.server_fqdn())
             .expect("Domain name too long when adding the `prose` prefix")
     }
+    /// E.g. `https://prose.your-company.com`.
+    pub fn app_web_url(&self) -> Url {
+        let mut app_web_fqdn = self.app_web_fqdn();
+        app_web_fqdn.set_fqdn(false);
+        Url::parse(&format!("https://{app_web_fqdn}"))
+            .expect("Cannot make Web app URL from `app_web_fqdn`")
+    }
     /// E.g. `admin.prose.your-company.com.`.
     pub fn dashboard_fqdn(&self) -> DomainName {
         (HostName::from_str("admin").unwrap())

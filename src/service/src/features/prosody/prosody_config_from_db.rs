@@ -105,7 +105,7 @@ pub fn prosody_config_from_db(model: ServerConfig, app_config: &AppConfig) -> Pr
                     .into_iter()
                     .collect(),
                 ),
-                http_external_url: Some(app_config.dashboard.url.to_string()),
+                http_external_url: Some(app_config.app_web_url().to_string()),
                 http_paths: Some(
                     vec![("file_share".to_owned(), "/upload".to_owned())]
                         .into_iter()
