@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.2...HEAD
 
+### Changed
+
+- feat(app-config): Make `notifiers.email` completely optional again (in `739cb33d`)
+
+### Fixed
+
+- fix(app-config): Fix default values overriding existing ones… (in `587ae74c`)
+- fix(dns-setup): Do not mix DNS record types in the same step (in `53c5b62b`)
+- fix: Fix API not exiting on `panic!` when startup actions fail on the first startup (in `22975367`)
+- fix(prosody): Fix `http_external_url` (in `c49775f0`)
+
 ## [0.16.2] - 2025-06-26
 
 [0.16.2]: https://github.com/prose-im/prose-pod-api/compare/v0.16.1...v0.16.2
