@@ -52,20 +52,10 @@ async fn backfill_all_dns_checks_passed_once(
         return Ok(());
     }
 
-    let server_domain = app_config.server_domain().clone();
-    let groups_domain = app_config.groups_domain();
-
-    let pod_address = app_config.pod.network_address();
-
     let federation_enabled = (server_config::federation_enabled::get_opt(db).await?)
         .unwrap_or(app_config.server.defaults.federation_enabled);
 
-    let pod_network_config = PodNetworkConfig {
-        server_domain,
-        groups_domain,
-        pod_address,
-        federation_enabled,
-    };
+    let pod_network_config = PodNetworkConfig::new(app_config, federation_enabled);
 
     trace!("Backfilling `{KEY}`…");
 

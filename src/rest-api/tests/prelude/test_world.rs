@@ -196,14 +196,9 @@ impl TestWorld {
     }
 
     pub async fn pod_network_config(&self) -> PodNetworkConfig {
-        let app_config = self.app_config().clone();
+        let ref app_config = self.app_config().clone();
         let server_config = self.server_config().await.expect("Server config missing");
-        PodNetworkConfig {
-            server_domain: app_config.server_domain().clone(),
-            groups_domain: app_config.groups_domain().clone(),
-            pod_address: app_config.pod.network_address(),
-            federation_enabled: server_config.federation_enabled,
-        }
+        PodNetworkConfig::new(app_config, server_config.federation_enabled)
     }
 }
 

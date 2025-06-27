@@ -15,55 +15,52 @@ use crate::{
     network_checks::{
         models::network_checks::*, DnsEntry, DnsRecordWithStringRepr, DnsSetupStep, IpVersion,
     },
-    xmpp::{JidDomain, XmppConnectionType},
+    xmpp::XmppConnectionType,
+    AppConfig,
 };
 
 #[derive(Debug, Clone)]
 pub struct PodNetworkConfig {
-    pub server_domain: JidDomain,
-    pub groups_domain: JidDomain,
+    /// E.g. `your-company.com.`.
+    pub server_fqdn: DomainName,
+    /// E.g. `groups.your-company.com.`.
+    pub groups_fqdn: DomainName,
+    /// E.g. `prose.your-company.com.`.
+    pub app_web_fqdn: DomainName,
+    /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
+    pub pod_fqdn: DomainName,
+    /// E.g. `admin.prose.your-company.com.`.
+    pub dashboard_fqdn: DomainName,
     pub pod_address: NetworkAddress,
     pub federation_enabled: bool,
 }
 
 impl PodNetworkConfig {
-    /// E.g. `your-company.com.`.
-    pub fn server_fqdn(&self) -> DomainName {
-        self.server_domain.as_fqdn()
+    pub fn new(app_config: &AppConfig, federation_enabled: bool) -> Self {
+        Self {
+            server_fqdn: app_config.server_fqdn(),
+            groups_fqdn: app_config.groups_fqdn(),
+            app_web_fqdn: app_config.app_web_fqdn(),
+            pod_fqdn: app_config.pod_fqdn(),
+            dashboard_fqdn: app_config.dashboard_fqdn(),
+            pod_address: app_config.pod.network_address(),
+            federation_enabled,
+        }
     }
-    /// E.g. `groups.your-company.com.`.
-    pub fn groups_fqdn(&self) -> DomainName {
-        self.groups_domain.as_fqdn()
-    }
-    /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
-    pub fn pod_fqdn(&self) -> DomainName {
-        self.pod_address.as_fqdn(&self.server_fqdn())
-    }
-    /// E.g. `prose.your-company.com.`.
-    pub fn app_web_fqdn(&self) -> DomainName {
-        (HostName::from_str("prose").unwrap())
-            .append_domain(&self.server_fqdn())
-            .expect("Domain name too long when adding the `prose` prefix")
-    }
-    /// E.g. `admin.prose.your-company.com.`.
-    pub fn dashboard_fqdn(&self) -> DomainName {
-        (HostName::from_str("admin").unwrap())
-            .append_domain(&self.app_web_fqdn())
-            .expect("Domain name too long when adding the `admin` prefix")
-    }
+}
 
+impl PodNetworkConfig {
     #[instrument(level = "trace", skip_all)]
     fn dns_entries(&self) -> Vec<DnsSetupStep<DnsEntry>> {
-        // E.g. `your-company.com.`.
-        let ref server_fqdn = self.server_fqdn();
-        // E.g. `groups.your-company.com.`.
-        let ref groups_fqdn = self.groups_fqdn();
-        // E.g. `prose.your-company.com.`.
-        let ref app_web_fqdn = self.app_web_fqdn();
-        // E.g. `prose.your-company.com.` or `your-company.prose.net.`!
-        let ref pod_fqdn = self.pod_fqdn();
-        // E.g. `admin.prose.your-company.com.`.
-        let ref dashboard_fqdn = self.dashboard_fqdn();
+        let Self {
+            server_fqdn,
+            groups_fqdn,
+            app_web_fqdn,
+            pod_fqdn,
+            dashboard_fqdn,
+            pod_address,
+            federation_enabled,
+        } = self;
 
         // === Helpers to create DNS setup steps ===
 
@@ -137,12 +134,12 @@ impl PodNetworkConfig {
 
         let mut entries = Vec::with_capacity(4);
 
-        if let NetworkAddress::Static { ipv4, ipv6 } = &self.pod_address {
+        if let NetworkAddress::Static { ipv4, ipv6 } = pod_address {
             entries.push(step_static_ip(ipv4, ipv6));
         }
         entries.push(step_c2s());
         entries.push(step_cnames());
-        if self.federation_enabled {
+        if *federation_enabled {
             entries.push(step_s2s());
         }
 
@@ -179,7 +176,7 @@ impl PodNetworkConfig {
     /// "Ports reachability" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     #[instrument(level = "trace", skip_all)]
     pub fn port_reachability_checks(&self) -> Vec<PortReachabilityCheck> {
-        let server_domain = self.server_domain.as_fqdn();
+        let ref server_domain = self.server_fqdn;
 
         let mut checks = vec![
             PortReachabilityCheck::Xmpp {
@@ -203,7 +200,7 @@ impl PodNetworkConfig {
     /// "IP connectivity" checks listed in the "Network configuration checker" of the Prose Pod Dashboard.
     #[instrument(level = "trace", skip_all)]
     pub fn ip_connectivity_checks(&self) -> Vec<IpConnectivityCheck> {
-        let ref server_domain = self.server_domain.as_fqdn();
+        let ref server_domain = self.server_fqdn;
 
         let mut checks: Vec<IpConnectivityCheck> = Vec::with_capacity(4);
         checks.push(IpConnectivityCheck::XmppServer {

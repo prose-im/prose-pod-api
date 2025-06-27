@@ -19,6 +19,7 @@ use figment::{
     providers::{Env, Format, Toml},
     Figment,
 };
+use hickory_resolver::{Name as DomainName, Name as HostName};
 use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 pub use prosody_config::ProsodySettings as ProsodyConfig;
@@ -178,6 +179,31 @@ impl AppConfig {
 
         JidDomain::from_str(&format!("groups.{}", self.server.domain))
             .expect("Domain too long after adding 'groups.' prefix.")
+    }
+
+    /// E.g. `your-company.com.`.
+    pub fn server_fqdn(&self) -> DomainName {
+        self.server_domain().as_fqdn()
+    }
+    /// E.g. `groups.your-company.com.`.
+    pub fn groups_fqdn(&self) -> DomainName {
+        self.groups_domain().as_fqdn()
+    }
+    /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
+    pub fn pod_fqdn(&self) -> DomainName {
+        self.pod.network_address().as_fqdn(&self.server_fqdn())
+    }
+    /// E.g. `prose.your-company.com.`.
+    pub fn app_web_fqdn(&self) -> DomainName {
+        (HostName::from_str("prose").unwrap())
+            .append_domain(&self.server_fqdn())
+            .expect("Domain name too long when adding the `prose` prefix")
+    }
+    /// E.g. `admin.prose.your-company.com.`.
+    pub fn dashboard_fqdn(&self) -> DomainName {
+        (HostName::from_str("admin").unwrap())
+            .append_domain(&self.app_web_fqdn())
+            .expect("Domain name too long when adding the `admin` prefix")
     }
 
     pub fn dashboard_url(&self) -> &Url {

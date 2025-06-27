@@ -28,11 +28,6 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
         let server_config =
             server_config_controller::get_server_config(db, app_config, &is_admin).await?;
 
-        Ok(Self {
-            server_domain: app_config.server_domain().clone(),
-            groups_domain: app_config.groups_domain(),
-            pod_address: app_config.pod.network_address(),
-            federation_enabled: server_config.federation_enabled,
-        })
+        Ok(Self::new(app_config, server_config.federation_enabled))
     }
 }
