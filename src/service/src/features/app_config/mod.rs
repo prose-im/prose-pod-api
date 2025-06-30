@@ -411,7 +411,7 @@ pub struct ServerConfig {
     #[serde(default = "defaults::server_log_level")]
     pub log_level: prosody_config::LogLevel,
     #[serde(default)]
-    pub defaults: ServerConfigDefaults,
+    pub defaults: ServerDefaultsConfig,
 }
 
 impl ServerConfig {
@@ -487,7 +487,7 @@ impl Default for ProsodyExtConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct ServerConfigDefaults {
+pub struct ServerDefaultsConfig {
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
     pub file_upload_allowed: bool,
@@ -504,7 +504,7 @@ pub struct ServerConfigDefaults {
     pub push_notification_with_sender: bool,
 }
 
-impl Default for ServerConfigDefaults {
+impl Default for ServerDefaultsConfig {
     fn default() -> Self {
         Self {
             message_archive_enabled: defaults::server_defaults_message_archive_enabled(),
