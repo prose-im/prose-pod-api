@@ -88,8 +88,10 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
 
         run_step_macro!(app_state, app_config);
 
-        run_step!(update_rosters);
         run_step!(backfill_database);
+        // NOTE: `update_rosters` should run after `backfill_database`
+        //   as the latter can add team members.
+        run_step!(update_rosters);
 
         Ok(())
     }

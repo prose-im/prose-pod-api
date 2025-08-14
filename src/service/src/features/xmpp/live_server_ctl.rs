@@ -12,7 +12,10 @@ use tracing::instrument;
 
 use crate::{
     members::MemberRole,
-    prosody::{prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest},
+    prosody::{
+        prosody_admin_rest, prosody_bootstrap_config, prosody_config_from_db, AsProsody as _,
+        ProsodyAdminRest,
+    },
     xmpp::{server_ctl, BareJid, ServerCtlImpl},
     AppConfig, ServerConfig,
 };
@@ -102,6 +105,11 @@ impl ServerCtlImpl for LiveServerCtl {
             .map(|_| ())
     }
 
+    #[instrument(name = "server_ctl::list_users", level = "trace", skip_all, err)]
+    async fn list_users(&self) -> Result<Vec<server_ctl::User>, server_ctl::Error> {
+        let response = self.admin_rest.list_users().await?;
+        Ok(response.into_iter().map(server_ctl::User::from).collect())
+    }
     #[instrument(
         name = "server_ctl::add_user", level = "trace",
         skip_all, fields(jid = jid.to_string()),
@@ -231,5 +239,27 @@ impl ServerCtlImpl for LiveServerCtl {
             .call(|client| client.delete(self.admin_rest.url("data")))
             .await?;
         Ok(())
+    }
+}
+
+impl From<prosody_admin_rest::ListUsersItem> for server_ctl::User {
+    fn from(value: prosody_admin_rest::ListUsersItem) -> Self {
+        Self {
+            jid: value.jid,
+            role: value.role.into(),
+        }
+    }
+}
+
+impl From<prosody_admin_rest::Role> for server_ctl::Role {
+    fn from(value: prosody_admin_rest::Role) -> Self {
+        Self {
+            name: value.name,
+            inherits: value
+                .inherits
+                .into_iter()
+                .map(server_ctl::Role::from)
+                .collect(),
+        }
     }
 }

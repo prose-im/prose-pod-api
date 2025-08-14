@@ -53,6 +53,7 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error>;
     async fn reload(&self) -> Result<(), Error>;
 
+    async fn list_users(&self) -> Result<Vec<User>, Error>;
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
     async fn remove_user(&self, jid: &BareJid) -> Result<(), Error>;
 
@@ -68,6 +69,39 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn force_rosters_sync(&self) -> Result<(), Error>;
 
     async fn delete_all_data(&self) -> Result<(), Error>;
+}
+
+#[derive(Debug)]
+pub struct User {
+    pub jid: BareJid,
+    pub role: Role,
+}
+
+#[derive(Debug)]
+pub struct Role {
+    /// E.g. `"prosody:member"`.
+    pub name: String,
+    pub inherits: Vec<Role>,
+}
+
+impl Role {
+    /// Greater than or equal to another role (“is or inherits”).
+    #[doc(alias = "inherits")]
+    pub fn gte(&self, other: impl AsRef<str>) -> bool {
+        let other = other.as_ref();
+
+        let mut stack = vec![self];
+        while let Some(role) = stack.pop() {
+            if role.name.as_str() == other {
+                return true;
+            }
+            // NOTE: We’re using a LIFO stack so we need to
+            //   reverse the new entries to preserve order.
+            stack.extend(role.inherits.iter().rev());
+        }
+
+        false
+    }
 }
 
 pub type Error = ServerCtlError;
@@ -95,6 +129,24 @@ pub enum ServerCtlError {
     UnexpectedResponse(UnexpectedHttpResponse),
     #[error("{0}")]
     Other(String),
+}
+
+// MARK: - Helpers
+
+impl From<&self::Role> for Option<MemberRole> {
+    fn from(role: &self::Role) -> Self {
+        use crate::prosody::AsProsody as _;
+
+        if role.gte(&MemberRole::Admin.as_prosody()) {
+            Some(MemberRole::Admin)
+        } else if role.gte(&MemberRole::Member.as_prosody()) {
+            Some(MemberRole::Member)
+        } else {
+            // NOTE: Service accounts do not have the "prosody:member" role,
+            //   only "prosody:registered" (> "prosody:guest").
+            None
+        }
+    }
 }
 
 impl From<reqwest::Error> for Error {
