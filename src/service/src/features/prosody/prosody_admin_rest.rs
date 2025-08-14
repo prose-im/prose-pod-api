@@ -118,6 +118,15 @@ impl ProsodyAdminRest {
         format!("{}/{path}", self.admin_rest_api_on_main_host_url)
     }
 
+    pub async fn list_users(&self) -> Result<Vec<ListUsersItem>, server_ctl::Error> {
+        let response = self
+            .call(|client| client.get(self.url_on_main_host("all-users")))
+            .await?;
+        let res: ProsodyAdminRestApiResponse<ListUsersResponse> = (response.deserialize())
+            .map_err(|err| server_ctl::Error::Other(format!("Cannot deserialize: {err}")))?;
+        Ok(res.result.users)
+    }
+
     pub async fn create_team_group(&self) -> Result<(), server_ctl::Error> {
         self.call(|client| {
             client
@@ -263,6 +272,31 @@ struct ProsodyAdminRestApiResponse<T> {
 #[derive(Debug, Deserialize)]
 struct ConnectedResponse {
     connected: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListUsersResponse {
+    // count: u32,
+    users: Vec<ListUsersItem>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListUsersItem {
+    pub jid: BareJid,
+    pub role: Role,
+    // pub secondary_roles: Vec<Role>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Role {
+    /// E.g. `"EHKt_OKcF-5K"`.
+    pub id: String,
+    /// E.g. `"prosody:member"`.
+    pub name: String,
+    /// E.g. `35`.
+    pub priority: i16,
+    #[serde(default)]
+    pub inherits: Vec<Role>,
 }
 
 fn error_description(

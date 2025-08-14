@@ -10,7 +10,10 @@ use service::{
     members::MemberRole,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
-    xmpp::{server_ctl::Error, BareJid},
+    xmpp::{
+        server_ctl::{self, Error},
+        BareJid,
+    },
     AppConfig, ProsodyConfigSection, ServerConfig,
 };
 
@@ -92,6 +95,10 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
+    async fn list_users(&self) -> Result<Vec<server_ctl::User>, Error> {
+        // Do nothing, this is used only at startup.
+        Ok(Vec::new())
+    }
     async fn add_user(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error> {
         self.check_online()?;
 

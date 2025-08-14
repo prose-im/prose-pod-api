@@ -55,6 +55,18 @@ impl MemberRepository {
     }
 
     #[instrument(
+        name = "db::member::exists", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
+    pub async fn exists(db: &impl ConnectionTrait, jid: &BareJid) -> Result<bool, DbErr> {
+        match Entity::find_by_jid(&jid.to_owned().into()).count(db).await {
+            Ok(count) => Ok(count > 0),
+            Err(err) => Err(err),
+        }
+    }
+
+    #[instrument(
         name = "db::member::get", level = "trace",
         skip_all, fields(jid = jid.to_string()),
         err

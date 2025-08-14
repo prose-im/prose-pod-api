@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-use super::{Member, MemberCreateForm, MemberRepository, MemberRole};
+use super::{entities::member, Member, MemberCreateForm, MemberRepository, MemberRole};
 
 #[derive(Debug, Clone)]
 pub struct UnauthenticatedMemberService {
@@ -44,6 +44,15 @@ impl UnauthenticatedMemberService {
 impl UnauthenticatedMemberService {
     #[instrument(
         level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err,
+    )]
+    pub async fn exists<Db: ConnectionTrait>(&self, db: &Db, jid: &BareJid) -> Result<bool, DbErr> {
+        MemberRepository::exists(db, jid).await
+    }
+
+    #[instrument(
+        level = "trace",
         skip_all, fields(
             jid = jid.to_string(),
             role = role.as_ref().map(ToString::to_string),
@@ -59,32 +68,8 @@ impl UnauthenticatedMemberService {
         role: &Option<MemberRole>,
         email_address: Option<EmailAddress>,
     ) -> Result<Member, UserCreateError> {
-        // Start a database transaction so we can roll back
-        // if the member limit is reached.
-        let txn = db.begin().await?;
-
-        // Create the user in database
-        let member = MemberRepository::create(
-            &txn,
-            MemberCreateForm {
-                jid: jid.to_owned(),
-                role: role.to_owned(),
-                joined_at: None,
-                email_address,
-            },
-        )
-        .await?;
-
-        // Check if the member limit is reached.
-        let count = MemberRepository::count(&txn).await?;
-        if count > MEMBER_LIMIT.as_u64() {
-            txn.rollback().await?;
-            return Err(UserCreateError::LimitReached);
-        }
-
-        // Try to commit the transaction before performing
-        // non-transactional XMPP server changes.
-        txn.commit().await?;
+        // Create the user in the Pod API database.
+        let member = self.create_user_local(db, jid, role, email_address).await?;
 
         // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -121,6 +106,53 @@ impl UnauthenticatedMemberService {
         // xmpp_service.set_own_nickname(nickname)?;
 
         Ok(member.into())
+    }
+
+    /// Creates a user in the local database, but not on the XMPP server.
+    /// Useful when reconciliating data from the XMPP server to the Pod API.
+    #[instrument(
+        level = "trace",
+        skip_all, fields(
+            jid = jid.to_string(),
+            role = role.as_ref().map(ToString::to_string),
+        ),
+        err,
+    )]
+    pub async fn create_user_local<Db: ConnectionTrait + TransactionTrait>(
+        &self,
+        db: &Db,
+        jid: &BareJid,
+        role: &Option<MemberRole>,
+        email_address: Option<EmailAddress>,
+    ) -> Result<member::Model, UserCreateError> {
+        // Start a database transaction so we can roll back
+        // if the member limit is reached.
+        let txn = db.begin().await?;
+
+        // Create the user in database
+        let member = MemberRepository::create(
+            &txn,
+            MemberCreateForm {
+                jid: jid.to_owned(),
+                role: role.to_owned(),
+                joined_at: None,
+                email_address,
+            },
+        )
+        .await?;
+
+        // Check if the member limit is reached.
+        let count = MemberRepository::count(&txn).await?;
+        if count > MEMBER_LIMIT.as_u64() {
+            txn.rollback().await?;
+            return Err(UserCreateError::LimitReached);
+        }
+
+        // Try to commit the transaction before performing
+        // non-transactional XMPP server changes.
+        txn.commit().await?;
+
+        Ok(member)
     }
 }
 
