@@ -21,6 +21,7 @@ use prose_pod_api::{
 use service::{
     app_config::defaults,
     auth::{AuthService, LiveAuthService},
+    licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
     prose_xmpp::UUIDProvider,
@@ -164,6 +165,15 @@ async fn init_dependencies(
         .await
         .expect("Could not connect to the database.");
 
+    let license_service_impl = match LiveLicenseService::from_config(&app_config) {
+        Ok(service) => service,
+        Err(err) => {
+            // NOTE: `panic`s are unwound therefore we need to exit manually.
+            tracing::error!("Startup error: {err:#}");
+            std::process::exit(1);
+        }
+    };
+
     // FIXME: Pass a dynamic `AppConfig` to dependencies?
 
     let base = MinimalAppState {
@@ -192,6 +202,7 @@ async fn init_dependencies(
         .inspect_err(|err| warn!("Could not create email notifier: {err}"))
         .ok();
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
+    let license_service = LicenseService::new(Arc::new(license_service_impl));
 
     AppState::new(
         base,
@@ -203,5 +214,6 @@ async fn init_dependencies(
         email_notifier,
         secrets_store,
         network_checker,
+        license_service,
     )
 }

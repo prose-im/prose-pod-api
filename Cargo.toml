@@ -18,6 +18,9 @@ axum-extra = { version = "0.10", default-features = false }
 axum-test = { version = "17", default-features = false }
 axum-tracing-opentelemetry = { version = "0.25", default-features = false }
 base64 = { version = "0.22", default-features = false }
+biscuit-auth = { version = "6.0.0", default-features = false, features = [
+    "datalog-macro",
+] }
 chrono = { version = "0.4", default-features = false }
 cucumber = { version = "0.21", default-features = false }
 email_address = { version = "0.2", default-features = false }
@@ -45,6 +48,7 @@ reqwest = { version = "0.12", default-features = false }
 sea-orm = { version = "1", default-features = false }
 sea-orm-migration = { version = "1", default-features = false }
 secrecy = { version = "0.10", default-features = false }
+semver = { version = "1.0.26", default-features = false }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
 serde_with = { version = "3", default-features = false }

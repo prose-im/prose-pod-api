@@ -3,8 +3,6 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
-
 use service::{
     invitations::{InvitationContact, InvitationRepository},
     members::{MemberRole, UnauthenticatedMemberService, UserCreateError},
@@ -47,6 +45,7 @@ pub async fn backfill_xmpp_users(
         server_ctl,
         auth_service,
         xmpp_service,
+        license_service,
         ..
     }: &AppState,
 ) -> Result<(), String> {
@@ -55,9 +54,10 @@ pub async fn backfill_xmpp_users(
         .map_err(|err| format!("Could not list XMPP accounts: {err}"))?;
 
     let member_service = UnauthenticatedMemberService::new(
-        Arc::new(server_ctl.clone()),
-        Arc::new(auth_service.clone()),
-        Arc::new(xmpp_service.clone()),
+        server_ctl.clone(),
+        auth_service.clone(),
+        license_service.clone(),
+        xmpp_service.clone(),
     );
 
     for user in users.iter() {

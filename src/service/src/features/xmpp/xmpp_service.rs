@@ -19,12 +19,12 @@ pub use super::live_xmpp_service::LiveXmppService;
 
 #[derive(Debug, Clone)]
 pub struct XmppService {
-    inner: Arc<XmppServiceInner>,
+    inner: XmppServiceInner,
     ctx: XmppServiceContext,
 }
 
 impl XmppService {
-    pub fn new(inner: Arc<XmppServiceInner>, ctx: XmppServiceContext) -> Self {
+    pub fn new(inner: XmppServiceInner, ctx: XmppServiceContext) -> Self {
         Self { inner, ctx }
     }
 }

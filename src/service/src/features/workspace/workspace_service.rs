@@ -25,7 +25,7 @@ pub struct WorkspaceService {
 
 impl WorkspaceService {
     pub fn new(
-        xmpp_service: Arc<XmppServiceInner>,
+        xmpp_service: XmppServiceInner,
         workspace_jid: BareJid,
         secrets_store: Arc<SecretsStore>,
     ) -> Result<Self, WorkspaceServiceInitError> {

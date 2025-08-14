@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod mock_auth_service;
+mod mock_license_service;
 mod mock_network_checker;
 mod mock_notifier;
 mod mock_secrets_store;
@@ -11,6 +12,7 @@ mod mock_server_ctl;
 mod mock_xmpp_service;
 
 pub use mock_auth_service::*;
+pub use mock_license_service::*;
 pub use mock_network_checker::*;
 pub use mock_notifier::*;
 pub use mock_secrets_store::*;

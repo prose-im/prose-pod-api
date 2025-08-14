@@ -13,9 +13,7 @@
     },
     "Gherkin": {
       "format_on_save": "off"
-    }
-  },
-  "language_overrides": {
+    },
     "JavaScript": {
       // Disable language server so we don't get warnings and errors from `redoc.standalone.js`.
       "enable_language_server": false
@@ -31,6 +29,13 @@
     "cucumber": {
       "settings": {
         "glue": ["src/*/tests/features/*.rs"]
+      }
+    },
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "features": "all"
+        }
       }
     }
   }

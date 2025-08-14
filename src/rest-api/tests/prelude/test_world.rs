@@ -17,6 +17,7 @@ use service::{
     auth::{AuthService, AuthToken, PasswordResetToken},
     dependencies,
     invitations::{Invitation, InvitationService},
+    licensing::LicenseService,
     members::{Member, UnauthenticatedMemberService},
     models::EmailAddress,
     network_checks::{NetworkChecker, PodNetworkConfig},
@@ -45,6 +46,9 @@ pub struct TestWorld {
     pub auth_service: AuthService,
     pub mock_xmpp_service: MockXmppService,
     pub xmpp_service: XmppServiceInner,
+    #[cfg(feature = "test")]
+    pub mock_license_service: MockLicenseService,
+    pub license_service: LicenseService,
     pub mock_email_notifier: MockNotifier<EmailNotification>,
     pub email_notifier: Notifier<EmailNotification>,
     pub mock_secrets_store: MockSecretsStore,
@@ -108,16 +112,17 @@ impl TestWorld {
 
     pub fn member_service(&self) -> UnauthenticatedMemberService {
         UnauthenticatedMemberService::new(
-            Arc::new(self.server_ctl.clone()),
-            Arc::new(self.auth_service.clone()),
-            Arc::new(self.xmpp_service.clone()),
+            self.server_ctl.clone(),
+            self.auth_service.clone(),
+            self.license_service.clone(),
+            self.xmpp_service.clone(),
         )
     }
 
     pub async fn workspace_service(&self) -> WorkspaceService {
         let workspace_jid = self.app_config().workspace_jid();
         WorkspaceService::new(
-            Arc::new(self.xmpp_service.clone()),
+            self.xmpp_service.clone(),
             workspace_jid,
             Arc::new(self.secrets_store.clone()),
         )
@@ -220,6 +225,7 @@ impl TestWorld {
         let mock_xmpp_service = MockXmppService::default();
         let mock_email_notifier = MockNotifier::<EmailNotification>::default();
         let mock_auth_service = MockAuthService::new(Default::default(), mock_server_ctl_state);
+        let mock_license_service = MockLicenseService::new(config.server_fqdn());
         let mock_secrets_store =
             MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
         let mock_network_checker = MockNetworkChecker::default();
@@ -259,6 +265,9 @@ impl TestWorld {
             mock_xmpp_service,
             auth_service: AuthService::new(Arc::new(mock_auth_service.clone())),
             mock_auth_service,
+            license_service: LicenseService::new(Arc::new(mock_license_service.clone())),
+            #[cfg(feature = "test")]
+            mock_license_service,
             email_notifier: Notifier::from(mock_email_notifier.clone()),
             mock_email_notifier,
             secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),

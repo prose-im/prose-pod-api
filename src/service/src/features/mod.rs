@@ -10,6 +10,7 @@ pub mod factory_reset;
 pub mod global_storage;
 pub mod init;
 pub mod invitations;
+pub mod licensing;
 pub mod members;
 pub mod network_checks;
 pub mod notifications;

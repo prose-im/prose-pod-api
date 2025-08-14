@@ -25,7 +25,7 @@ impl FromRequestParts<AppState> for XmppService {
             bare_jid,
             prosody_token: token.clone(),
         };
-        Ok(XmppService::new(Arc::new(state.xmpp_service.clone()), ctx))
+        Ok(XmppService::new(state.xmpp_service.clone(), ctx))
     }
 }
 
