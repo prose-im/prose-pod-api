@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.16.4...HEAD
 
+### Changed
+
+- feat(licensing): Replace constant user limit by a license system (in `818f4095`)
+
 ## [0.16.4] - 2025-08-14
 
 [0.16.4]: https://github.com/prose-im/prose-pod-api/compare/v0.16.3...v0.16.4
