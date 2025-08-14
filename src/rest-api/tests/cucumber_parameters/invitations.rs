@@ -7,33 +7,6 @@ use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
 
-// ===== Invitation channel =====
-
-type InvitationChannelModel = service::invitations::InvitationChannel;
-
-#[derive(Debug, Parameter)]
-#[param(name = "invitation_channel", regex = r"Email")]
-pub struct InvitationChannel(InvitationChannelModel);
-
-impl Deref for InvitationChannel {
-    type Target = InvitationChannelModel;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl FromStr for InvitationChannel {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Email" => Ok(Self(InvitationChannelModel::Email)),
-            s => Err(format!("Invalid `InvitationChannel`: {s}")),
-        }
-    }
-}
-
 // ===== Invitation status =====
 
 type InvitationStatusModel = service::invitations::InvitationStatus;

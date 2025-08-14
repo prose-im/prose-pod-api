@@ -85,11 +85,11 @@ impl TestWorld {
         &self.db
     }
 
-    pub fn app_config(&self) -> RwLockReadGuard<AppConfig> {
+    pub fn app_config<'a>(&'a self) -> RwLockReadGuard<'a, AppConfig> {
         self.app_config.read().unwrap()
     }
 
-    pub fn app_config_mut(&self) -> RwLockWriteGuard<AppConfig> {
+    pub fn app_config_mut<'a>(&'a self) -> RwLockWriteGuard<'a, AppConfig> {
         self.app_config.write().unwrap()
     }
 
@@ -153,21 +153,23 @@ impl TestWorld {
         self.mock_server_ctl.state.read().unwrap().to_owned()
     }
 
-    pub fn server_ctl_state_mut(&self) -> RwLockWriteGuard<MockServerCtlState> {
+    pub fn server_ctl_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockServerCtlState> {
         self.mock_server_ctl.state.write().unwrap()
     }
 
-    pub fn xmpp_service_state_mut(&self) -> RwLockWriteGuard<MockXmppServiceState> {
+    pub fn xmpp_service_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockXmppServiceState> {
         self.mock_xmpp_service.state.write().unwrap()
     }
 
-    pub fn email_notifier_state(&self) -> RwLockReadGuard<MockNotifierState<EmailNotification>> {
+    pub fn email_notifier_state<'a>(
+        &'a self,
+    ) -> RwLockReadGuard<'a, MockNotifierState<EmailNotification>> {
         self.mock_email_notifier.state.read().unwrap()
     }
 
-    pub fn email_notifier_state_mut(
-        &self,
-    ) -> RwLockWriteGuard<MockNotifierState<EmailNotification>> {
+    pub fn email_notifier_state_mut<'a>(
+        &'a self,
+    ) -> RwLockWriteGuard<'a, MockNotifierState<EmailNotification>> {
         self.mock_email_notifier.state.write().unwrap()
     }
 

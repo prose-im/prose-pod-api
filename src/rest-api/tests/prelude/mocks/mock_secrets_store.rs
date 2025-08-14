@@ -45,7 +45,7 @@ impl MockSecretsStore {
             .clone()
     }
 
-    pub(crate) fn state_mut(&self) -> RwLockWriteGuard<MockSecretsStoreState> {
+    pub(crate) fn state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockSecretsStoreState> {
         self.state
             .write()
             .expect("`MockSecretsStoreState` lock poisonned.")
