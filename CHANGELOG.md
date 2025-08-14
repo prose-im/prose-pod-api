@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [0.16.4]: https://github.com/prose-im/prose-pod-api/compare/v0.16.3...v0.16.4
 
+### Added
+
+- feat(startup): Load XMPP users at startup.
+
+  If some are not in the Pod API database, create them.
+  If there are open invitations for them, read the email address then delete the invitation.
+  This improves the migration UX.
+
 ## [0.16.3] - 2025-06-27
 
 [0.16.3]: https://github.com/prose-im/prose-pod-api/compare/v0.16.2...v0.16.3
