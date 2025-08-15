@@ -431,7 +431,7 @@ pub enum Interface {
     #[cfg_attr(feature = "serde", strum(serialize = "*"))]
     AllIPv4,
     /// All IPv6 interfaces.
-    #[cfg_attr(feature = "serde", strum(serialize = "::1"))]
+    #[cfg_attr(feature = "serde", strum(serialize = "::"))]
     AllIPv6,
     /// IPv4 or IPv6 address.
     #[cfg_attr(feature = "serde", strum(transparent, default))]
