@@ -44,9 +44,9 @@ macro_rules! run_step_macro {
                         "Not running startup step '{}': Step marked to skip in the app configuration.",
                         stringify!($step),
                     );
-                    return Ok(());
+                } else {
+                    $step(&$app_state).await?;
                 }
-                $step(&$app_state).await?;
             };
         }
     };
