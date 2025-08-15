@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.17.0...HEAD
 
+### Fixed
+
+- fix(startup): Fix skipping one startup action would skip all actions (in `ba7499b2`)
+- fix(prosody-config): Fix `Interface::AllIPv6` being parsed as `::1` (in `9ceab890`)
+
 ## [0.17.0] - 2025-08-14
 
 [0.17.0]: https://github.com/prose-im/prose-pod-api/compare/v0.16.4...v0.17.0
