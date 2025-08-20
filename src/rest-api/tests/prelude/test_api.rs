@@ -16,6 +16,7 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
     let app_state = AppState::new(
         MinimalAppState {
             lifecycle_manager: lifecycle_manager.clone(),
+            secrets_store: world.secrets_store.clone(),
         },
         world.db.clone(),
         world.app_config.clone(),
@@ -23,7 +24,6 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
         world.xmpp_service.clone(),
         world.auth_service.clone(),
         Some(world.email_notifier.clone()),
-        world.secrets_store.clone(),
         world.network_checker.clone(),
         world.license_service.clone(),
     );

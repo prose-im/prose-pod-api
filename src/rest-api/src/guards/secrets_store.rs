@@ -13,6 +13,6 @@ impl FromRequestParts<AppState> for service::secrets::SecretsStore {
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        Ok(state.secrets_store.clone())
+        Ok(state.base.secrets_store.clone())
     }
 }

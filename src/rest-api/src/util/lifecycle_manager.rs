@@ -152,9 +152,10 @@ impl LifecycleManager {
         #[cfg(unix)]
         let terminate = async {
             signal::unix::signal(signal::unix::SignalKind::terminate())
-                .expect("failed to install signal handler")
+                .expect("failed to install SIGTERM handler")
                 .recv()
                 .await;
+            warn!("Received SIGTERM.")
         };
 
         #[cfg(not(unix))]
@@ -171,5 +172,40 @@ impl LifecycleManager {
 
         // Cancel all running instances and break infinite main loop.
         self.master_cancellation_token.cancel();
+    }
+
+    pub async fn listen_for_reload(&mut self) {
+        use tokio::signal;
+        use tracing::warn;
+
+        #[cfg(unix)]
+        let mut sighup = signal::unix::signal(signal::unix::SignalKind::hangup())
+            .expect("failed to install SIGHUP handler");
+
+        async fn listen_for_one_reload(#[cfg(unix)] sighup: &mut signal::unix::Signal) {
+            #[cfg(unix)]
+            let sighup = async {
+                sighup.recv().await;
+            };
+
+            #[cfg(not(unix))]
+            let sighup = std::future::pending::<()>();
+
+            tokio::select! {
+                _ = sighup => {
+                    warn!("Received SIGHUP.")
+                },
+            }
+        }
+
+        tokio::select! {
+            _ = async {
+                loop {
+                    listen_for_one_reload(#[cfg(unix)] &mut sighup).await;
+                    self.set_restarting();
+                }
+            } => {},
+            _ = self.master_cancellation_token.cancelled() => {}
+        }
     }
 }

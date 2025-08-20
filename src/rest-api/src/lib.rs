@@ -41,7 +41,6 @@ pub struct AppState {
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
     email_notifier: Option<Notifier<EmailNotification>>,
-    secrets_store: SecretsStore,
     network_checker: NetworkChecker,
     license_service: LicenseService,
     uuid_gen: Uuid,
@@ -56,7 +55,6 @@ impl AppState {
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
         email_notifier: Option<Notifier<EmailNotification>>,
-        secrets_store: SecretsStore,
         network_checker: NetworkChecker,
         license_service: LicenseService,
     ) -> Self {
@@ -70,7 +68,6 @@ impl AppState {
             xmpp_service,
             auth_service,
             email_notifier,
-            secrets_store,
             network_checker,
             license_service,
         }
@@ -89,6 +86,7 @@ impl AxumState for AppState {}
 #[derive(Debug, Clone)]
 pub struct MinimalAppState {
     pub lifecycle_manager: LifecycleManager,
+    pub secrets_store: SecretsStore,
 }
 
 impl AxumState for MinimalAppState {}

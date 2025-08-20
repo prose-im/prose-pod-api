@@ -228,8 +228,7 @@ impl TestWorld {
         let mock_email_notifier = MockNotifier::<EmailNotification>::default();
         let mock_auth_service = MockAuthService::new(Default::default(), mock_server_ctl_state);
         let mock_license_service = MockLicenseService::new(config.server_fqdn());
-        let mock_secrets_store =
-            MockSecretsStore::new(LiveSecretsStore::from_config(&config), &config);
+        let mock_secrets_store = MockSecretsStore::new(LiveSecretsStore::default(), &config);
         let mock_network_checker = MockNetworkChecker::default();
 
         let uuid_gen = dependencies::Uuid::from_config(&config);
@@ -239,7 +238,7 @@ impl TestWorld {
         if let Err(err) = mock_server_ctl
             .add_user(
                 &config.api_jid(),
-                &mock_secrets_store.prose_pod_api_xmpp_password(),
+                &config.bootstrap.prose_pod_api_xmpp_password,
             )
             .await
         {
