@@ -19,7 +19,7 @@ impl FromRequestParts<AppState> for WorkspaceService {
         WorkspaceService::new(
             state.xmpp_service.clone(),
             workspace_jid,
-            Arc::new(state.secrets_store.clone()),
+            Arc::new(state.base.secrets_store.clone()),
         )
         .map_err(Error::from)
     }

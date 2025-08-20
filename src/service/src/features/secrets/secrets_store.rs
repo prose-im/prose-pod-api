@@ -37,8 +37,13 @@ pub struct ServiceAccountSecrets {
 }
 
 pub trait SecretsStoreImpl: Debug + Sync + Send {
+    /// Load app configuration. This is useful to load the bootstrapping
+    /// password during the first startup. On subsequent startups, nothing
+    /// should change (to allow the API to restart properly).
+    fn load_config(&self, app_config: &crate::AppConfig);
+
     fn set_prose_pod_api_xmpp_password(&self, password: SecretString);
-    fn prose_pod_api_xmpp_password(&self) -> SecretString;
+    fn prose_pod_api_xmpp_password(&self) -> Option<SecretString>;
 
     fn set_service_account_secrets(&self, jid: BareJid, secrets: ServiceAccountSecrets);
     fn get_service_account_password(&self, jid: &BareJid) -> Option<SecretString>;

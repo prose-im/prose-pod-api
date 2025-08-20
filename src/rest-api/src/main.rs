@@ -45,10 +45,15 @@ async fn main() {
         .unwrap();
 
     let mut lifecycle_manager = LifecycleManager::new();
+    let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::default()));
 
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
         tokio::task::spawn(async move { lifecycle_manager.listen_for_graceful_shutdown().await });
+    }
+    {
+        let mut lifecycle_manager = lifecycle_manager.clone();
+        tokio::task::spawn(async move { lifecycle_manager.listen_for_reload().await });
     }
 
     let mut starting = true;
@@ -60,11 +65,14 @@ async fn main() {
         }
 
         {
-            let lifecycle_manager = lifecycle_manager.clone();
+            let minimal_app_state = MinimalAppState {
+                lifecycle_manager: lifecycle_manager.clone(),
+                secrets_store: secrets_store.clone(),
+            };
             let tracing_reload_handles = tracing_reload_handles.clone();
             tokio::task::spawn(async move {
                 trace!("Starting an instance…");
-                run(&lifecycle_manager, &tracing_reload_handles).await;
+                run(minimal_app_state, &tracing_reload_handles).await;
                 trace!("Run finished.");
             });
         }
@@ -82,7 +90,7 @@ async fn main() {
 }
 
 async fn run(
-    lifecycle_manager: &LifecycleManager,
+    minimal_app_state: MinimalAppState,
     tracing_reload_handles: &TracingReloadHandles<
         EnvFilter,
         impl Subscriber + for<'a> LookupSpan<'a>,
@@ -90,13 +98,15 @@ async fn run(
         impl Subscriber,
     >,
 ) {
+    let lifecycle_manager = minimal_app_state.lifecycle_manager.clone();
+
     let (addr, app) = match AppConfig::from_default_figment() {
         Ok(app_config) => {
             let addr = SocketAddr::new(app_config.api.address, app_config.api.port);
 
             tracing_subscriber_ext::update_tracing_config(&app_config, tracing_reload_handles);
 
-            let app = startup(app_config, lifecycle_manager).await;
+            let app = startup(app_config, minimal_app_state).await;
 
             (addr, app)
         }
@@ -106,10 +116,7 @@ async fn run(
 
             let addr = SocketAddr::new(defaults::api_address(), defaults::api_port());
 
-            let app_state = MinimalAppState {
-                lifecycle_manager: lifecycle_manager.clone(),
-            };
-            let app = factory_reset_router(&app_state);
+            let app = factory_reset_router(&minimal_app_state);
 
             (addr, app)
         }
@@ -140,8 +147,8 @@ async fn run(
 }
 
 #[instrument(level = "trace", skip_all)]
-async fn startup(app_config: AppConfig, lifecycle_manager: &LifecycleManager) -> Router {
-    let app_state = init_dependencies(app_config, lifecycle_manager).await;
+async fn startup(app_config: AppConfig, minimal_app_state: MinimalAppState) -> Router {
+    let app_state = init_dependencies(app_config, minimal_app_state).await;
 
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
@@ -157,10 +164,7 @@ async fn startup(app_config: AppConfig, lifecycle_manager: &LifecycleManager) ->
 }
 
 #[instrument(level = "trace", skip_all)]
-async fn init_dependencies(
-    app_config: AppConfig,
-    lifecycle_manager: &LifecycleManager,
-) -> AppState {
+async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppState {
     let db = db_conn(&app_config.api.databases.main)
         .await
         .expect("Could not connect to the database.");
@@ -176,15 +180,12 @@ async fn init_dependencies(
 
     // FIXME: Pass a dynamic `AppConfig` to dependencies?
 
-    let base = MinimalAppState {
-        lifecycle_manager: lifecycle_manager.clone(),
-    };
-    let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::from_config(&app_config)));
+    base.secrets_store.load_config(&app_config);
     let http_client = HttpClient::new();
     let prosody_admin_rest = Arc::new(ProsodyAdminRest::from_config(
         &app_config,
         http_client.clone(),
-        secrets_store.clone(),
+        base.secrets_store.clone(),
     ));
     let server_ctl = ServerCtl::new(Arc::new(LiveServerCtl::from_config(
         &app_config,
@@ -212,7 +213,6 @@ async fn init_dependencies(
         xmpp_service,
         auth_service,
         email_notifier,
-        secrets_store,
         network_checker,
         license_service,
     )

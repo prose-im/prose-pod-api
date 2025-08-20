@@ -5,7 +5,7 @@
 
 use anyhow::Context as _;
 use jid::BareJid;
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use tracing::debug;
 
 use crate::{
@@ -53,13 +53,6 @@ pub async fn reset_server_config(
 
     // Update the API user password to match the new one specified in the bootstrap configuration.
     self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone()).await?;
-
-    // Store the new password in the environment variables to the next API instance
-    // can access it (the screts store will be dropped efore next run).
-    std::env::set_var(
-        "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
-        password.expose_secret(),
-    );
 
     // Apply the bootstrap configuration.
     server_ctl.reload().await?;

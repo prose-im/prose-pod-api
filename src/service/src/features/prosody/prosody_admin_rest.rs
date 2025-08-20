@@ -82,6 +82,7 @@ impl ProsodyAdminRest {
                 Some(
                     self.secrets_store
                         .prose_pod_api_xmpp_password()
+                        .expect("Pod API XMPP password not initialized")
                         .expose_secret(),
                 ),
             )

@@ -8,14 +8,14 @@ use std::sync::Arc;
 use service::workspace::{errors::WorkspaceNotInitialized, WorkspaceService};
 use tracing::{debug, info, instrument};
 
-use crate::AppState;
+use crate::{AppState, MinimalAppState};
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn migrate_workspace_vcard(
     AppState {
+        base: MinimalAppState { secrets_store, .. },
         app_config,
         xmpp_service,
-        secrets_store,
         ..
     }: &AppState,
 ) -> Result<(), String> {

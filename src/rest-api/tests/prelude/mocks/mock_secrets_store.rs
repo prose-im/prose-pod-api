@@ -60,11 +60,15 @@ impl MockSecretsStore {
 }
 
 impl SecretsStoreImpl for MockSecretsStore {
+    fn load_config(&self, app_config: &service::AppConfig) {
+        self.implem.load_config(app_config);
+    }
+
     fn set_prose_pod_api_xmpp_password(&self, password: SecretString) {
         self.increase_changes_count(self.api_jid.clone());
         self.implem.set_prose_pod_api_xmpp_password(password)
     }
-    fn prose_pod_api_xmpp_password(&self) -> SecretString {
+    fn prose_pod_api_xmpp_password(&self) -> Option<SecretString> {
         self.implem.prose_pod_api_xmpp_password()
     }
 

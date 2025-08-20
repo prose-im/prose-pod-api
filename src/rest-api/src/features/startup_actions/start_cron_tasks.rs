@@ -11,12 +11,15 @@ use crate::{AppState, MinimalAppState};
 #[instrument(level = "trace", skip_all, err)]
 pub async fn start_cron_tasks(
     AppState {
-        base: MinimalAppState {
-            lifecycle_manager, ..
-        },
+        base:
+            MinimalAppState {
+                lifecycle_manager,
+                secrets_store,
+                ..
+            },
         db,
         app_config,
-        secrets_store,
+
         auth_service,
         ..
     }: &AppState,

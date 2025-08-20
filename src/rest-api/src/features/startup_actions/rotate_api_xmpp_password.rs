@@ -6,14 +6,14 @@
 use service::xmpp::server_manager;
 use tracing::{debug, instrument};
 
-use crate::AppState;
+use crate::{AppState, MinimalAppState};
 
 #[instrument(level = "trace", skip_all, err)]
 pub async fn rotate_api_xmpp_password(
     AppState {
+        base: MinimalAppState { secrets_store, .. },
         server_ctl,
         app_config,
-        secrets_store,
         ..
     }: &AppState,
 ) -> Result<(), String> {
