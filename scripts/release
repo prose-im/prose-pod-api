@@ -18,6 +18,8 @@ OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/docs/openapi/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
 LOCAL_RUN_CONSTANTS_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/constants.sh
+LICENSE_DIR="${REPOSITORY_ROOT:?}"
+PROSE_CLOUD_API_URL='https://prose.org/_api/cloud'
 
 VERSION="$(cat "${VERSION_FILE:?}")"
 
@@ -112,6 +114,11 @@ if [ -z "$FORCE" ]; then
 	git diff-index --quiet HEAD || die "Your index contains uncommitted changes. Please commit or stash them before creating a release."
 fi
 
+# Ensure the changelog has been updated.
+if [ -z "$FORCE" ] && git diff --quiet "$(to-tag "${VERSION:?}")" -- "${CHANGELOG_FILE:?}"; then
+	die "Don’t forget to run $(format_code task changelog:prepare)."
+fi
+
 # Convert the new version to a string.
 NEW_VERSION=$(echo "${VERSION_COMPONENTS[*]}" | tr ' ' '.')
 
@@ -122,6 +129,14 @@ info "New commits:"
 log_as_info_ git --no-pager log --reverse --no-merges \
   --format="- %C(auto)%h %s %C(green)(%ad)%C(reset)" --date=short --color \
   "$(to-tag "${VERSION:?}")"..HEAD
+
+# Request the new license first, to abort with no change
+# if the Cloud API doesn’t authorize the user.
+info "Requesting a new Community license for $(to-tag "${NEW_VERSION:?}")…"
+edo curl -sS -X POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/community" \
+	-H 'Content-Type: application/json' \
+	-d "{\"api_version\":\"${NEW_VERSION:?}\",\"secret\":\"${PROSE_CLOUD_API_SECRET:?"'PROSE_CLOUD_API_SECRET' is missing"}\"}" \
+	--output "${LICENSE_DIR:?}"/prose.lic
 
 # Update version numbers in files.
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
