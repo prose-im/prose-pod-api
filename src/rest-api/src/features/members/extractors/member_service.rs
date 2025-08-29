@@ -7,7 +7,7 @@ use service::{
     auth::UserInfo, members::MemberServiceContext, util::ConcurrentTaskRunner, xmpp::XmppService,
 };
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for service::members::MemberService {
     type Rejection = error::Error;

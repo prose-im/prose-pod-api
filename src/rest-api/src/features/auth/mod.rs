@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod errors;
-pub mod guards;
+pub mod extractors;
 mod routes;
 
 use axum::{middleware::from_extractor_with_state, routing::*};

@@ -9,7 +9,7 @@ use service::{
     members::MemberRepository,
 };
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for IsAdmin {
     type Rejection = error::Error;

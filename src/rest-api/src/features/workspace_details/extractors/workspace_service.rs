@@ -6,7 +6,7 @@
 use axum::extract::OptionalFromRequestParts;
 use service::workspace::WorkspaceService;
 
-use crate::{error::prelude::*, guards::prelude::*};
+use crate::{error::prelude::*, extractors::prelude::*};
 
 impl FromRequestParts<AppState> for WorkspaceService {
     type Rejection = error::Error;

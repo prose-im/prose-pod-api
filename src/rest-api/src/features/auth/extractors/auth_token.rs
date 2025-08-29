@@ -6,7 +6,7 @@
 use axum::http::header::AUTHORIZATION;
 use secrecy::SecretString;
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 const PREFIX: &'static str = "Bearer ";
 

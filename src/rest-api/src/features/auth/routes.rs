@@ -22,7 +22,7 @@ use service::{
 
 use crate::{error::Error, AppState};
 
-use super::guards::BasicAuth;
+use super::extractors::BasicAuth;
 
 // MARK: LOG IN
 

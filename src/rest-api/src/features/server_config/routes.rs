@@ -16,7 +16,7 @@ use service::{
     AppConfig, LinkedHashSet,
 };
 
-use crate::{error::Error, guards::Lua, AppState};
+use crate::{error::Error, extractors::Lua, AppState};
 
 // MARK: Server config
 

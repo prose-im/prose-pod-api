@@ -6,7 +6,7 @@
 use axum::{body::Bytes, extract::FromRequest};
 use axum_extra::headers::{ContentType, HeaderMapExt};
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequest<AppState> for service::licensing::License {
     type Rejection = error::Error;

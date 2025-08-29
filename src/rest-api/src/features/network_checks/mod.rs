@@ -7,7 +7,7 @@ mod check_all;
 mod check_dns_records;
 mod check_ip_connectivity;
 mod check_ports_reachability;
-mod guards;
+mod extractors;
 mod model;
 mod util;
 

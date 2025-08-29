@@ -5,7 +5,7 @@
 
 use service::{auth::AuthToken, util::either::Context};
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for service::auth::UserInfo {
     type Rejection = error::Error;

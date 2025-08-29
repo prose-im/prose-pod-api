@@ -4,9 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod error;
+pub mod extractors;
 pub mod features;
 pub mod forms;
-pub mod guards;
 pub mod responders;
 pub mod util;
 

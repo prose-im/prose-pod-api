@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use crate::{error::prelude::*, guards::prelude::*};
+use crate::{error::prelude::*, extractors::prelude::*};
 
 impl FromRequestParts<AppState> for service::server_config::ServerConfigManager {
     type Rejection = error::Error;
