@@ -29,7 +29,6 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
                 .collect(),
         ),
         https_ports: Some(Default::default()),
-        https_interfaces: Some(Default::default()),
         plugin_paths: Some(
             vec!["/usr/local/lib/prosody/modules"]
                 .into_iter()

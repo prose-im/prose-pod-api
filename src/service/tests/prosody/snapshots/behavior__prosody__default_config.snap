@@ -23,7 +23,6 @@ log = {
 c2s_ports = { 5222 }
 http_ports = { 5280 }
 https_ports = {}
-https_interfaces = {}
 
 -- Modules
 plugin_paths = { "/usr/local/lib/prosody/modules" }
