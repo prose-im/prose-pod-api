@@ -1,0 +1,47 @@
+version: "1.1"
+name: Licensing
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  $ref: "env.yaml#/env"
+
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+
+tests:
+  setLicense:
+    name: Set license
+    steps:
+      - http:
+          method: PUT
+          url: /v1/licensing/license
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          headers:
+            Content-Type: text/plain
+          # NOTE: Setting Community v0.17.1 license. Doesn’t make sense
+          #   but at least doesn’t trigger the “wrong domain” check.
+          body: Eo4CCqEBCgRuYW1lChJDb21tdW5pdHkgKDAuMTcuMSkKCnVzZXJfbGltaXQKC2FwaV92ZXJzaW9uCgYwLjE3LjEKB2FsbG93ZWQYBiIKCggIgAgSAxiBCCIJCgcIgggSAhAUIg4KDAgEEgMYgwgSAxiECDIyCjAKAggbEgcIgwgSAggWEgwIBBIDGIMIEgMIhQgaEwoECgIIFgoFCgMIhQgKBBoCCBUSJAgAEiADxHQ2P1l0/0ifk7qeKR6L3cdgO6T+fka2+GIihfaBmxpAOwbuG+RkqiTVJDgwsTwTSxwpA2D4YAozsXlefTfkIKJ8Wci37ADHSyBzTYvnHrNvAQrekkVYi7ZRGDWbCvomCigBIkISQJohO9clvaXemnmTV8Y1TD4bt8lUbzKVWyW3D4sXFfqyTowgKi3nZcAyLqdxiFUtokJpZrZS5NzSLfjWGzChhQ8=
+          check:
+            status: 204
+      - http:
+          method: PUT
+          url: /v1/licensing/license
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          headers:
+            Content-Type: text/plain
+          # NOTE: Setting Testing license. We’re using “example.org”
+          #   at the moment so it triggers the “wrong domain” check.
+          body: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+          check:
+            status: 400
+            jsonpath:
+              $.error: bad_request
+              $.message: "Bad request: Invalid base64 license: Wrong domain."

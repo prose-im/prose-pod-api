@@ -11,7 +11,10 @@ use std::{
 use biscuit::macros::*;
 use hickory_proto::rr::domain::Name as DomainName;
 use lazy_static::lazy_static;
-use service::licensing::{License, LicenseServiceImpl, LicenseValidator, NoValidLicense};
+use service::{
+    licensing::{License, LicenseServiceImpl, LicenseValidator, NoValidLicense, ValidationError},
+    util::either::Either,
+};
 
 lazy_static! {
     pub(crate) static ref LICENSE_SIGNING_KEY: biscuit::KeyPair = biscuit::KeyPair::new();
@@ -85,8 +88,22 @@ impl LicenseServiceImpl for MockLicenseService {
     fn is_license_valid(&self, license: &License) -> bool {
         self.valid_licenses.read().unwrap().contains(license.id())
     }
+
     fn reload(&self) -> Result<(), NoValidLicense> {
         // Do nothing, act as if nothing had changed.
         Ok(())
+    }
+
+    fn deserialize_license_bytes(&self, _bytes: &[u8]) -> Result<License, ValidationError> {
+        unimplemented!()
+    }
+    fn deserialize_license_base64(
+        &self,
+        _base64: &str,
+    ) -> Result<License, Either<base64::DecodeError, ValidationError>> {
+        unimplemented!()
+    }
+    fn install_license(&self, _license: License) -> Result<(), anyhow::Error> {
+        unimplemented!()
     }
 }

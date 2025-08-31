@@ -155,6 +155,10 @@ paths:
   "/v1/network/checks/ports":
     get: { $ref: "features/network-checks-ports.yaml#/paths/check_ports" }
 
+  # ===== Licensing =====
+  "/v1/licensing/license":
+    put: { $ref: "features/licensing.yaml#/paths/set_license" }
+
   # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }

@@ -13,6 +13,7 @@ pub mod dns_setup;
 pub mod factory_reset;
 pub mod init;
 pub mod invitations;
+pub mod licensing;
 pub mod members;
 pub mod network_checks;
 pub mod onboarding;
@@ -33,6 +34,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(factory_reset::router(app_state.clone()))
         .merge(init::router(app_state.clone()))
         .merge(invitations::router(app_state.clone()))
+        .merge(licensing::router(app_state.clone()))
         .merge(members::router(app_state.clone()))
         .merge(network_checks::router(app_state.clone()))
         .merge(onboarding::router(app_state.clone()))
