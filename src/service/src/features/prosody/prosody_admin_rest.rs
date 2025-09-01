@@ -48,8 +48,8 @@ impl ProsodyAdminRest {
     ) -> Self {
         Self {
             http_client,
-            admin_rest_api_url: config.server.admin_rest_api_url(),
-            admin_rest_api_on_main_host_url: config.server.admin_rest_api_on_main_host_url(),
+            admin_rest_api_url: format!("{}/admin_rest", config.server.admin_http_url()),
+            admin_rest_api_on_main_host_url: format!("{}/admin_rest", config.server.http_url()),
             api_jid: config.api_jid(),
             secrets_store,
             team_updated_notifier: Arc::new(RwLock::new(None)),

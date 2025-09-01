@@ -56,7 +56,7 @@ impl LiveXmppService {
     ) -> Self {
         Self {
             http_client,
-            rest_api_url: config.server.rest_api_url(),
+            rest_api_url: format!("{}/rest", config.server.http_url()),
             non_standard_xmpp_client,
             id_provider,
         }

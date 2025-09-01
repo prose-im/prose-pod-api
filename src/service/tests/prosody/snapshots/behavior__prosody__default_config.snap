@@ -52,6 +52,7 @@ modules_enabled = {
   "reload_modules";
   "cloud_notify";
   "register";
+  "prose_version";
   "mam";
 }
 modules_disabled = { "s2s" }

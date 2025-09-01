@@ -13,7 +13,7 @@ ARG CARGO_INSTALL_EXTRA_ARGS=''
 ARG VERSION
 ARG COMMIT
 ARG BUILD_TIMESTAMP=''
-RUN API_VERSION_DIR=./src/rest-api/static/api-version && \
+RUN API_VERSION_DIR=./src/service/static/api-version && \
     mkdir -p "${API_VERSION_DIR:?}" && \
     echo "${VERSION:?}" > "${API_VERSION_DIR:?}"/VERSION && \
     echo "${COMMIT:-}" > "${API_VERSION_DIR:?}"/COMMIT && \

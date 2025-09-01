@@ -17,6 +17,7 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
         MinimalAppState {
             lifecycle_manager: lifecycle_manager.clone(),
             secrets_store: world.secrets_store.clone(),
+            static_pod_version_service: world.pod_version_service.clone(),
         },
         world.db.clone(),
         world.app_config.clone(),
@@ -26,6 +27,7 @@ pub async fn test_server(world: &TestWorld) -> anyhow::Result<TestServer> {
         Some(world.email_notifier.clone()),
         world.network_checker.clone(),
         world.license_service.clone(),
+        world.pod_version_service.clone(),
     );
 
     let router = prose_pod_api::make_router(&app_state);

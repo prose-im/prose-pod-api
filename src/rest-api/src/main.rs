@@ -24,6 +24,7 @@ use service::{
     licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
+    pod_version::{LivePodVersionService, PodVersionService, StaticPodVersionService},
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyOAuth2},
     secrets::{LiveSecretsStore, SecretsStore},
@@ -68,6 +69,9 @@ async fn main() {
             let minimal_app_state = MinimalAppState {
                 lifecycle_manager: lifecycle_manager.clone(),
                 secrets_store: secrets_store.clone(),
+                static_pod_version_service: PodVersionService::new(Arc::new(
+                    StaticPodVersionService,
+                )),
             };
             let tracing_reload_handles = tracing_reload_handles.clone();
             tokio::task::spawn(async move {
@@ -204,6 +208,10 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         .ok();
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
     let license_service = LicenseService::new(Arc::new(license_service_impl));
+    let pod_version_service = PodVersionService::new(Arc::new(LivePodVersionService::from_config(
+        &app_config,
+        http_client.clone(),
+    )));
 
     AppState::new(
         base,
@@ -215,5 +223,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         email_notifier,
         network_checker,
         license_service,
+        pod_version_service,
     )
 }

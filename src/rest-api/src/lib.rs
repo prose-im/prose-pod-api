@@ -21,6 +21,7 @@ use service::{
     licensing::LicenseService,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
+    pod_version::PodVersionService,
     sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},
@@ -43,6 +44,7 @@ pub struct AppState {
     email_notifier: Option<Notifier<EmailNotification>>,
     network_checker: NetworkChecker,
     license_service: LicenseService,
+    pod_version_service: PodVersionService,
     uuid_gen: Uuid,
 }
 
@@ -57,6 +59,7 @@ impl AppState {
         email_notifier: Option<Notifier<EmailNotification>>,
         network_checker: NetworkChecker,
         license_service: LicenseService,
+        pod_version_service: PodVersionService,
     ) -> Self {
         let uuid_gen = Uuid::from_config(&app_config.read().unwrap());
         Self {
@@ -70,6 +73,7 @@ impl AppState {
             email_notifier,
             network_checker,
             license_service,
+            pod_version_service,
         }
     }
 
@@ -87,6 +91,7 @@ impl AxumState for AppState {}
 pub struct MinimalAppState {
     pub lifecycle_manager: LifecycleManager,
     pub secrets_store: SecretsStore,
+    pub static_pod_version_service: PodVersionService,
 }
 
 impl AxumState for MinimalAppState {}
@@ -131,7 +136,7 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
     Router::new()
         .merge(features::api_docs::router())
         .merge(features::reload::factory_reset_router(app_state.clone()))
-        .merge(features::version::router())
+        .merge(features::version::minimal_router(app_state.clone()))
         // Include trace context as header into the response.
         .layer(OtelInResponseLayer::default())
         // Start OpenTelemetry trace on incoming request.

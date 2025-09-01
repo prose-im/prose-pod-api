@@ -54,7 +54,7 @@ impl ServerCtlImpl for LiveServerCtl {
         }
 
         if start.elapsed() >= timeout {
-            return Err(server_ctl::Error::Other("Timed out while waiting for the XMPP server. You probably forgot to enable the [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module.".to_string()));
+            return Err(server_ctl::Error::Other("Timed out while waiting for the XMPP server. Possible causes (not exhaustive): [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module not enabled, HTTP interface unreachable.".to_string()));
         }
 
         Ok(())

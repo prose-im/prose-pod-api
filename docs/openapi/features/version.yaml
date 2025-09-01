@@ -26,16 +26,33 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/PodComponentsVersions" }
+  get_server_version:
+    tags: [Misc]
+    summary: Get Server version
+    description: Get information about the version of the running Prose Pod Server.
+    operationId: get_server_version
+    security:
+      - BasicAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VersionInfo" }
 components:
   schemas:
     PodComponentsVersions:
       type: object
       required:
         - api
+        - server
       properties:
         api:
           $ref: "#/components/schemas/VersionInfo"
           description: Version of the Prose Pod API.
+        server:
+          $ref: "#/components/schemas/VersionInfo"
+          description: Version of the Prose Pod Server.
     VersionInfo:
       type: object
       required:

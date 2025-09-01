@@ -415,23 +415,11 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    pub fn oauth2_api_url(&self) -> String {
-        format!("http://{}:{}/oauth2", self.local_hostname, self.http_port)
+    pub fn http_url(&self) -> String {
+        format!("http://{}:{}", self.local_hostname, self.http_port)
     }
-    pub fn rest_api_url(&self) -> String {
-        format!("http://{}:{}/rest", self.local_hostname, self.http_port)
-    }
-    pub fn admin_rest_api_url(&self) -> String {
-        format!(
-            "http://{}:{}/admin_rest",
-            self.local_hostname_admin, self.http_port
-        )
-    }
-    pub fn admin_rest_api_on_main_host_url(&self) -> String {
-        format!(
-            "http://{}:{}/admin_rest",
-            self.local_hostname, self.http_port
-        )
+    pub fn admin_http_url(&self) -> String {
+        format!("http://{}:{}", self.local_hostname_admin, self.http_port)
     }
 }
 

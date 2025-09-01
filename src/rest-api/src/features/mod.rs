@@ -40,7 +40,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(profile::router(app_state.clone()))
         .merge(reload::router(app_state.clone()))
         .merge(server_config::router(app_state.clone()))
-        .merge(version::router())
+        .merge(version::router(app_state.clone()))
         .merge(workspace_details::router(app_state.clone()))
         .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names))
 }
