@@ -1,0 +1,156 @@
+paths:
+  set_license:
+    tags: [Licensing]
+    summary: Update the license
+    description: |
+      Update the applied license, using ReST instead of changing a file manually.
+    operationId: set_license
+    security:
+      - BearerAuth: []
+    requestBody:
+      description: Information about who to invite.
+      required: true
+      content:
+        text/plain:
+          schema:
+            type: string
+            format: byte
+            example: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
+components:
+  schemas:
+    InvitationToken:
+      oneOf:
+        - $ref: "#/components/schemas/InvitationAcceptToken"
+        - $ref: "#/components/schemas/InvitationRejectToken"
+    InvitationAcceptToken:
+      type: string
+      format: uuid
+      example: 20edadc2-6c3b-4297-b92a-042f23249225
+    InvitationRejectToken:
+      type: string
+      format: uuid
+      example: f2736e87-850e-4776-bb26-52c12a7d8bd8
+    InvitationTokenType:
+      type: string
+      enum: [accept, reject]
+      example: accept
+    WorkspaceInvitation:
+      type: object
+      required:
+        - invitation_id
+        - created_at
+        - status
+        - jid
+        - pre_assigned_role
+        - contact
+        - accept_token_expires_at
+        - is_expired
+      properties:
+        accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        contact: { $ref: "#/components/schemas/InvitationContact" }
+        created_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        invitation_id: { $ref: "#/components/schemas/InvitationId" }
+        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
+        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+        status: { $ref: "#/components/schemas/InvitationStatus" }
+        is_expired:
+          type: boolean
+    WorkspaceInvitationBasicDetails:
+      type: object
+      required:
+        - jid
+        - pre_assigned_role
+        - is_expired
+      properties:
+        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
+        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
+        is_expired:
+          type: boolean
+    InvitationId:
+      description: The unique identifier of an invitation.
+      type: integer
+      format: int32
+      example: 42
+    InvitationStatus:
+      description: The status of an invitation.
+      type: string
+      enum: [TO_SEND, SENT, SEND_FAILED]
+      example: SENT
+    InvitationContact:
+      description: |-
+        How to contact someone.
+
+        For now only email is supported, but we could extend it to SMS for example.
+      oneOf:
+        - $ref: "#/components/schemas/InvitationContactEmail"
+      discriminator:
+        propertyName: channel
+    InvitationContactEmail:
+      type: object
+      required:
+        - channel
+        - email_address
+      properties:
+        channel:
+          type: string
+          const: email
+        email_address:
+          type: string
+          format: email
+          description: An email address.
+          example: remi@example.org
+      example:
+        channel: email
+        email_address: remi@example.org
+  parameters:
+    InvitationId:
+      description: Unique identifier of a workspace invitation
+      name: invitationId
+      in: path
+      schema: { $ref: "#/components/schemas/InvitationId" }
+      required: true
+    InvitationToken:
+      description: Invitation accept or reject token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationToken" }
+      required: true
+    InvitationAcceptToken:
+      description: Invitation accept token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationAcceptToken" }
+      required: true
+    InvitationRejectToken:
+      description: Invitation reject token
+      in: path
+      name: token
+      schema: { $ref: "#/components/schemas/InvitationRejectToken" }
+      required: true
+    InvitationTokenType:
+      description: Type of invitation token
+      in: query
+      name: token_type
+      schema: { $ref: "#/components/schemas/InvitationTokenType" }
+      required: true
+  responses:
+    InvitationNotFound:
+      description: Invitation not found or expired
+      content:
+        application/json:
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: invitation_not_found
+          example:
+            error: invitation_not_found

@@ -118,7 +118,7 @@ pub async fn perform_factory_reset(
         .truncate(true)
         .open(config_file_path)
         .context(format!(
-            "Could not reset API config file at <{path}>: Cannot open.",
+            "Could not reset API config file at <{path}>: Cannot open",
             path = config_file_path.display(),
         ))
         .map_err(Either::E2)?;

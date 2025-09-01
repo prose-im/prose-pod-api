@@ -5,6 +5,7 @@
 
 use std::time::SystemTime;
 
+use anyhow::Context as _;
 use biscuit::{builder_ext::AuthorizerExt, macros::authorizer, AuthorizerBuilder, Biscuit};
 use hickory_proto::rr::domain::Name as DomainName;
 use lazy_static::lazy_static;
@@ -56,7 +57,7 @@ pub enum ValidationError {
 #[derive(Debug, PartialEq, Eq)]
 #[derive(thiserror::Error)]
 pub enum InternalError {
-    #[error("Biscuit error: {0}")]
+    #[error("Biscuit error: {0:?}")]
     Biscuit(#[from] biscuit::error::Token),
 }
 
@@ -167,6 +168,9 @@ pub struct License {
 }
 
 impl License {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, anyhow::Error> {
+        (self.biscuit.to_vec()).context("Could not serialize Biscuit to bytes")
+    }
     pub fn id(&self) -> &[u8] {
         self.biscuit.container().authority.signature.to_bytes()
     }

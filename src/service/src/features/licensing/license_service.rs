@@ -7,6 +7,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::{fmt::Debug, ops::Deref};
 
+use anyhow::Context as _;
+use base64::Engine;
+
+use crate::licensing::ValidationError;
+use crate::util::either::Either;
 use crate::AppConfig;
 
 use super::{License, LicenseValidator};
@@ -54,6 +59,13 @@ pub trait LicenseServiceImpl: Debug + Send + Sync {
             None => false,
         }
     }
+
+    fn deserialize_license_bytes(&self, bytes: &[u8]) -> Result<License, ValidationError>;
+    fn deserialize_license_base64(
+        &self,
+        base64: &str,
+    ) -> Result<License, Either<base64::DecodeError, ValidationError>>;
+    fn install_license(&self, license: License) -> Result<(), anyhow::Error>;
 }
 
 #[derive(Debug, Clone)]
@@ -149,9 +161,43 @@ impl LicenseServiceImpl for LiveLicenseService {
     fn is_license_valid(&self, license: &License) -> bool {
         license.is_valid(&self.validator)
     }
+
     fn reload(&self) -> Result<(), NoValidLicense> {
         let licenses = Self::read_installed_licenses(&self.validator)?;
         *self.installed_licenses.write().unwrap() = licenses;
+        Ok(())
+    }
+
+    fn deserialize_license_bytes(&self, bytes: &[u8]) -> Result<License, ValidationError> {
+        License::deserialize(bytes, &self.validator)
+    }
+    fn deserialize_license_base64(
+        &self,
+        str: &str,
+    ) -> Result<License, Either<base64::DecodeError, ValidationError>> {
+        use ::base64::engine::general_purpose::STANDARD as base64;
+        let bytes = base64.decode(str).map_err(Either::E1)?;
+        License::deserialize(&bytes, &self.validator).map_err(Either::E2)
+    }
+    fn install_license(&self, license: License) -> Result<(), anyhow::Error> {
+        use std::fs;
+        use std::io::Write as _;
+
+        let custom_license_path = Path::new(PROSE_CONFIG_DIR).join(LICENSE_FILE_NAME);
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&custom_license_path)
+            .context(format!(
+                "Could not install license at <{path}>: Cannot open",
+                path = custom_license_path.display(),
+            ))?;
+        file.write_all(&license.to_bytes()?).context(format!(
+            "Could not install license at <{path}>: Cannot write",
+            path = custom_license_path.display(),
+        ))?;
+
         Ok(())
     }
 }
