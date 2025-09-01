@@ -24,6 +24,7 @@ hickory-proto = { workspace = true, features = [
 hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
 hmac = { workspace = true }
 iso8601-duration = { workspace = true, features = ["serde"] }
+iso8601-timestamp = { workspace = true, features = ["serde"] }
 jid = { workspace = true }
 lazy_static = { workspace = true }
 lettre = { workspace = true, features = [

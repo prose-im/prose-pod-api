@@ -28,7 +28,7 @@ impl ProsodyOAuth2 {
     pub fn from_config(config: &AppConfig, http_client: HttpClient) -> Self {
         Self {
             http_client,
-            base_url: config.server.oauth2_api_url(),
+            base_url: format!("{}/oauth2", config.server.http_url()),
         }
     }
 

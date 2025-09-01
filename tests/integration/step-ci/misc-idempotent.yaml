@@ -1,0 +1,56 @@
+version: "1.1"
+name: Miscellaneous idempotent tests
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  $ref: "env.yaml#/env"
+
+# WARN: Must be [Idempotent](https://developer.mozilla.org/en-US/docs/Glossary/Idempotent)!
+tests:
+  getApiVersion:
+    name: Get API version
+    steps:
+      - http:
+          method: GET
+          url: /version
+          check: { $ref: "#/components/checks/version" }
+      - http:
+          method: GET
+          url: /v1/version
+          check: { $ref: "#/components/checks/version" }
+  getPodVersion:
+    name: Get Pod version
+    steps:
+      - http:
+          method: GET
+          url: /pod/version
+          check: { $ref: "#/components/checks/versions" }
+      - http:
+          method: GET
+          url: /v1/pod/version
+          check: { $ref: "#/components/checks/versions" }
+  getServerVersion:
+    name: Get Server version
+    steps:
+      - http:
+          method: GET
+          url: /server/version
+          check: { $ref: "#/components/checks/version" }
+      - http:
+          method: GET
+          url: /v1/server/version
+          check: { $ref: "#/components/checks/version" }
+
+components:
+  checks:
+    version:
+      status: 200
+      headers:
+        Content-Type: application/json
+      schema: { $ref: openapi.json#/components/schemas/VersionInfo }
+    versions:
+      status: 200
+      headers:
+        Content-Type: application/json
+      schema: { $ref: openapi.json#/components/schemas/PodComponentsVersions }

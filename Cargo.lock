@@ -4139,6 +4139,7 @@ dependencies = [
  "hmac",
  "insta",
  "iso8601-duration",
+ "iso8601-timestamp",
  "jid",
  "lazy_static",
  "lettre",

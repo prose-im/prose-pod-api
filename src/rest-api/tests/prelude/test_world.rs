@@ -22,6 +22,7 @@ use service::{
     models::EmailAddress,
     network_checks::{NetworkChecker, PodNetworkConfig},
     notifications::{notifier::email::EmailNotification, NotificationService, Notifier},
+    pod_version::PodVersionService,
     sea_orm::DatabaseConnection,
     secrets::{LiveSecretsStore, SecretsStore},
     server_config::{ServerConfig, ServerConfigManager},
@@ -55,6 +56,9 @@ pub struct TestWorld {
     pub secrets_store: SecretsStore,
     pub mock_network_checker: MockNetworkChecker,
     pub network_checker: NetworkChecker,
+    #[allow(unused)]
+    pub mock_pod_version_service: MockPodVersionService,
+    pub pod_version_service: PodVersionService,
     pub uuid_gen: dependencies::Uuid,
     pub api: Option<TestServer>,
     pub result: Option<TestResponse>,
@@ -230,6 +234,7 @@ impl TestWorld {
         let mock_license_service = MockLicenseService::new(config.server_fqdn());
         let mock_secrets_store = MockSecretsStore::new(LiveSecretsStore::default(), &config);
         let mock_network_checker = MockNetworkChecker::default();
+        let mock_pod_version_service = MockPodVersionService::default();
 
         let uuid_gen = dependencies::Uuid::from_config(&config);
 
@@ -269,6 +274,8 @@ impl TestWorld {
             license_service: LicenseService::new(Arc::new(mock_license_service.clone())),
             #[cfg(feature = "test")]
             mock_license_service,
+            pod_version_service: PodVersionService::new(Arc::new(mock_pod_version_service.clone())),
+            mock_pod_version_service,
             email_notifier: Notifier::from(mock_email_notifier.clone()),
             mock_email_notifier,
             secrets_store: SecretsStore::new(Arc::new(mock_secrets_store.clone())),

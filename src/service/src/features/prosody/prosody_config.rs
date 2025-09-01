@@ -166,6 +166,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "reload_modules",
                     "cloud_notify",
                     "register",
+                    "prose_version",
                 ]
                 .into_iter()
                 .map(ToString::to_string)
