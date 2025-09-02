@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.17.1...HEAD
 
+### Added
+
+- feat(lifecycle): Reload on `SIGHUP` (in `0f2aa704`)
+- feat(release): Update packaged license when running `task release` (in `602f27c9`)
+- feat(version): Add a route which returns the Server version (in `8e2f361a`)
+- feat(licensing): Add `PUT /v1/licensing/license` to remotely update the license (in `2e0fdbbb`)
+
+### Fixed
+
+- fix(prosody): Do not set `http_interfaces` to `{ "*" }` (in `d1a413e0`)
+- fix(prosody): Do not set `interfaces` to `{ "*" }` (in `eb015ae3`)
+- fix(prosody): Do not set `https_interfaces` to `{}` (in `80fecd3d`)
+- fix(prosody): Do not set `https_ports` to `{}` (in `67699858`)
+- fix(prosody): Use default `c2s_port` implicitly (in `bcb51035`)
+
 ## [0.17.1] - 2025-08-15
 
 [0.17.1]: https://github.com/prose-im/prose-pod-api/compare/v0.17.0...v0.17.1
