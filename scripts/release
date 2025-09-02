@@ -18,7 +18,7 @@ OPENAPI_SPEC_FILE="${REPOSITORY_ROOT:?}"/docs/openapi/openapi.yaml
 CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
 LOCAL_RUN_CONSTANTS_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/constants.sh
-LICENSE_DIR="${REPOSITORY_ROOT:?}"
+LICENSE_FILE="${REPOSITORY_ROOT:?}"/prose.lic
 PROSE_CLOUD_API_URL='https://prose.org/_api/cloud'
 
 VERSION="$(cat "${VERSION_FILE:?}")"
@@ -136,7 +136,7 @@ info "Requesting a new Community license for $(to-tag "${NEW_VERSION:?}")…"
 edo curl -sS -X POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/community" \
 	-H 'Content-Type: application/json' \
 	-d "{\"api_version\":\"${NEW_VERSION:?}\",\"secret\":\"${PROSE_CLOUD_API_SECRET:?"'PROSE_CLOUD_API_SECRET' is missing"}\"}" \
-	--output "${LICENSE_DIR:?}"/prose.lic
+	--output "${LICENSE_FILE:?}"
 
 # Update version numbers in files.
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
@@ -164,7 +164,7 @@ GIT_BRANCH="$(git branch --show-current)"
 info "Pulling $(format_code origin)…"
 edo git pull origin "${GIT_BRANCH:?}"
 info "Committing changes…"
-edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${LOCAL_RUN_CONSTANTS_FILE:?}" "${CARGO_LOCK_FILE:?}" "${CHANGELOG_FILE:?}"
+edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${LOCAL_RUN_CONSTANTS_FILE:?}" "${CARGO_LOCK_FILE:?}" "${CHANGELOG_FILE:?}" "${LICENSE_FILE:?}"
 edo git commit -m "$(to-tag "${NEW_VERSION:?}")"
 info "Creating tag…"
 edo git tag "$(to-tag "${NEW_VERSION:?}")" -m "$(to-tag "${NEW_VERSION:?}")"
