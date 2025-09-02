@@ -119,6 +119,11 @@ if [ -z "$FORCE" ] && git diff --quiet "$(to-tag "${VERSION:?}")" -- "${CHANGELO
 	die "Don’t forget to run $(format_code task changelog:prepare)."
 fi
 
+# Ensure linear history.
+GIT_BRANCH="$(git branch --show-current)"
+info "Pulling $(format_code origin)…"
+edo git pull origin "${GIT_BRANCH:?}"
+
 # Convert the new version to a string.
 NEW_VERSION=$(echo "${VERSION_COMPONENTS[*]}" | tr ' ' '.')
 
@@ -160,9 +165,6 @@ EOF
 )" "${CHANGELOG_FILE:?}"
 
 # Create & push a new git tag.
-GIT_BRANCH="$(git branch --show-current)"
-info "Pulling $(format_code origin)…"
-edo git pull origin "${GIT_BRANCH:?}"
 info "Committing changes…"
 edo git add "${VERSION_FILE:?}" "${OPENAPI_SPEC_FILE:?}" "${CARGO_TOML_FILE:?}" "${LOCAL_RUN_CONSTANTS_FILE:?}" "${CARGO_LOCK_FILE:?}" "${CHANGELOG_FILE:?}" "${LICENSE_FILE:?}"
 edo git commit -m "$(to-tag "${NEW_VERSION:?}")"
