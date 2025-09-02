@@ -77,6 +77,7 @@ tasks:
 
   release:
     desc: Creates a release (bumps the version number, then adds and pushes a tag).
+    dotenv: [.env]
     cmd: "{{.ROOT_DIR}}/scripts/release {{.CLI_ARGS}}"
 
   changelog:prepare:
