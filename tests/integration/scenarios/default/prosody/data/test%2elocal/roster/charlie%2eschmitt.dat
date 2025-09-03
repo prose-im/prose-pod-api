@@ -1,0 +1,84 @@
+return {
+	[false] = {
+		["pending"] = {};
+		["version"] = 65;
+	};
+	["evan.turner@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["jake.lang@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["taylor.cartwright@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["dianna.hermann@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["prose-workspace@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["pauline.collins@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["todd.schultz@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["ella.white@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["pablo.bartoletti@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["barbara.mante@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["drew.howell@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["sheri.nienow@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["meghan.donnelly@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+};

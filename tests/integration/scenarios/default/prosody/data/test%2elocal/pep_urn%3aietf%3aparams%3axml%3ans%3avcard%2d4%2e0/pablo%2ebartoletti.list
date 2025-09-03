@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Pablo B.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["key"] = "pablo.bartoletti@test.local";
+	["with"] = "pablo.bartoletti@test.local";
+	["when"] = 1757007020;
+	["name"] = "vcard";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:20Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+});

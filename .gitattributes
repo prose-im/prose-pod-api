@@ -2,3 +2,4 @@ docs/**/* linguist-documentation
 local-run/**/* -linguist-detectable
 benchmarks/**/* -linguist-detectable
 playgrounds/**/* -linguist-detectable
+tests/integration/scenarios/*/ linguist-generated

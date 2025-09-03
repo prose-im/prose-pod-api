@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Ella W.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["key"] = "ella.white@test.local";
+	["with"] = "ella.white@test.local";
+	["when"] = 1757007017;
+	["name"] = "vcard";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:17Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+});

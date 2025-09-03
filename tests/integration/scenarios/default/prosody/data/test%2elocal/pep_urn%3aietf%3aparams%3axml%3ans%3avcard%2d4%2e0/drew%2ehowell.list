@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Drew H.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["key"] = "drew.howell@test.local";
+	["with"] = "drew.howell@test.local";
+	["when"] = 1757007021;
+	["name"] = "vcard";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:21Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+});

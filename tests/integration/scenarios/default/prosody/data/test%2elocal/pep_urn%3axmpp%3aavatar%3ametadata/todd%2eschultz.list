@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "6085";
+			["id"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "f034688fdb2631906423b84a7f28bb18eb372477";
+	["with"] = "todd.schultz@test.local";
+	["when"] = 1757007013;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:13Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

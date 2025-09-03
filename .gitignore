@@ -9,5 +9,16 @@ target
 
 # Local execution files
 *.env
-*.sqlite
 *.log
+
+# Scenario files
+**/scenarios/ephemeral-scenarios.txt
+**/scenarios/*-*/
+**/scenarios/*/prosody/data
+**/scenarios/*/prosody/config/*
+**/scenarios/*/coredns
+**/scenarios/*/*.zone
+**/scenarios/*/*.sqlite
+**/scenarios/*/*.db
+!**/scenarios/**/.gitkeep
+!**/scenarios/**/.gitignore

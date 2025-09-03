@@ -60,3 +60,10 @@ traced-export() {
 		trace "${var_name}=${!var_name}"
 	done
 }
+
+# Copyright: <https://stackoverflow.com/a/61379914/10967642>.
+in_array() {
+	local name="$1[*]"
+	local IFS=${3:-$'\x1F'}
+	[[ "$IFS${!name}$IFS" = *"$IFS$2$IFS"* ]] || return 1
+}

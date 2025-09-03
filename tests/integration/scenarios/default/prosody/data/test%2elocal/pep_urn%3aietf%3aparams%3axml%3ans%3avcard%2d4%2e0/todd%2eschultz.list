@@ -1,0 +1,23 @@
+item({
+	{
+		{
+			"Todd S.";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "nickname";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	["key"] = "todd.schultz@test.local";
+	["with"] = "todd.schultz@test.local";
+	["when"] = 1757007013;
+	["name"] = "vcard";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:13Z";
+		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+	};
+});

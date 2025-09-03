@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5121";
+			["id"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "0de7b374b1bb0d1c6acbe7d97161a76efca0c189";
+	["with"] = "ella.white@test.local";
+	["when"] = 1757007017;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:17Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

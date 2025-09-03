@@ -19,7 +19,6 @@ CARGO_TOML_FILE="${REPOSITORY_ROOT:?}"/Cargo.toml
 CARGO_LOCK_FILE="${REPOSITORY_ROOT:?}"/Cargo.lock
 LOCAL_RUN_CONSTANTS_FILE="${REPOSITORY_ROOT:?}"/local-run/scripts/constants.sh
 LICENSE_FILE="${REPOSITORY_ROOT:?}"/prose.lic
-PROSE_CLOUD_API_URL='https://prose.org/_api/cloud'
 
 VERSION="$(cat "${VERSION_FILE:?}")"
 
@@ -138,7 +137,8 @@ log_as_info_ git --no-pager log --reverse --no-merges \
 # Request the new license first, to abort with no change
 # if the Cloud API doesn’t authorize the user.
 info "Requesting a new Community license for $(to-tag "${NEW_VERSION:?}")…"
-edo curl -sS -X POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/community" \
+PROSE_CLOUD_API_SECRET="${PROSE_CLOUD_API_SECRET_COMMUNITY:-"${PROSE_CLOUD_API_SECRET:?}"}"
+edo curl -sSf -X POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/community" \
 	-H 'Content-Type: application/json' \
 	-d "{\"api_version\":\"${NEW_VERSION:?}\",\"secret\":\"${PROSE_CLOUD_API_SECRET:?"'PROSE_CLOUD_API_SECRET' is missing"}\"}" \
 	--output "${LICENSE_FILE:?}"

@@ -1,0 +1,38 @@
+return {
+	["dsd4LaDr-V4J"] = {
+		["jid"] = "sheri.nienow@test.local";
+		["id"] = "dsd4LaDr-V4J";
+		["accessed"] = 1757007013;
+		["owner"] = "sheri.nienow@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:d4f378b56a99657962491f7d1d1130be286fa743d728af98aa49bd410928a782"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007013;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017813;
+			};
+		};
+		["created"] = 1757007013;
+	};
+	["xkELOP6WoRI6"] = {
+		["jid"] = "sheri.nienow@test.local";
+		["id"] = "xkELOP6WoRI6";
+		["accessed"] = 1757007014;
+		["owner"] = "sheri.nienow@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:693fc031757630551fe77aaabd682a0fd47ca7e36c044a9e7cd8b5ed46c4663b"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007014;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017814;
+			};
+		};
+		["created"] = 1757007014;
+	};
+};

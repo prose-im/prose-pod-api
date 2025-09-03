@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "4419";
+			["id"] = "439e22855d7283bf6157d308736a79ff27411822";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "439e22855d7283bf6157d308736a79ff27411822";
+	["with"] = "meghan.donnelly@test.local";
+	["when"] = 1757007016;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:16Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

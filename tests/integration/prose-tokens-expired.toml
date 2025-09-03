@@ -8,7 +8,7 @@
 company_name = "Prose (test)"
 
 [server]
-domain = "example.org"
+domain = "test.local"
 
 [notifiers.email]
 smtp_host = "mailpit"

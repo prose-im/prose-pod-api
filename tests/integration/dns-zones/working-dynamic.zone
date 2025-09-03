@@ -1,10 +1,10 @@
-@ IN SOA ns.example.org. admin.example.org. (
+@ IN SOA ns.test.local. admin.test.local. (
   2024101701 ; serial
   3600       ; refresh (1 hour)
   600        ; retry (10 minutes)
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-admin.prose.example.org. 3600 IN CNAME prose.example.org.
-_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 prose.example.org.
-_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 prose.example.org.
+admin.prose.test.local. 3600 IN CNAME prose.test.local.
+_xmpp-client._tcp.test.local. 3600 IN SRV 0 5 5222 prose.test.local.
+_xmpp-server._tcp.test.local. 3600 IN SRV 0 5 5269 prose.test.local.

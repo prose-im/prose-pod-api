@@ -8,13 +8,13 @@
 company_name = "Prose (test)"
 
 [server]
-domain = "example.org"
+domain = "test.local"
 
 [pod]
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 
 [dashboard]
-url = "https://admin.prose.example.org"
+url = "https://admin.prose.test.local"
 
 [notifiers.email]
 smtp_host = "mailpit"
