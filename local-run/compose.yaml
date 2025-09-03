@@ -6,7 +6,6 @@ services:
       - server
       - coredns
       - mailpit
-      - otel-collector
     ports:
       - "8080:8080"
     volumes:
@@ -52,6 +51,7 @@ services:
 
   # # https://github.com/prose-im/prose-pod-dashboard
   # dashboard:
+  #   profiles: [dashboard]
   #   # TODO: Use Docker Hub once supported.
   #   image: "${PROSE_POD_DASHBOARD_IMAGE:-ghcr.io/prose-im/prose-pod-dashboard:${PROSE_POD_DASHBOARD_IMAGE_TAG:-unknown}}"
   #   depends_on: [api]
@@ -94,6 +94,7 @@ services:
   # https://github.com/open-telemetry/opentelemetry-collector
   otel-collector:
     image: otel/opentelemetry-collector:0.122.1
+    profiles: [telemetry]
     volumes:
       - ${OTEL_CONFIG_FILE:?}:/etc/otelcol/config.yaml:ro
     networks:

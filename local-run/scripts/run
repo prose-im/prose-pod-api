@@ -50,6 +50,8 @@ $(format_title 'Options:')
     $(format_flag --dashboard=DOCKER_TAG)
       Choose which version of the Prose Pod Dashboard to run (default: $(format_code "${PROSE_POD_DASHBOARD_IMAGE_TAG:?}")).
       $(format_secondary "The Prose Pod Dashboard doesn’t run by default, you must edit $(format_hyperlink 'compose.yaml' file:"${REPOSITORY_ROOT:?}"/local-run/compose.yaml).")
+
+  $(format_subtitle 'Run options:')
     $(format_flag --scenario=SCENARIO_NAME)
       Choose what scenario to use for this run (default: $(format_code "${SCENARIO_NAME:?}")).
       $(format_secondary 'This can be used to start a Prose Pod API with pre-inserted data.')
@@ -63,6 +65,12 @@ $(format_title 'Options:')
     $(format_flag --detach)
       Run containers in the background. Check logs with $(format_code 'task local:logs').
       $(format_secondary "Same as $(format_code docker compose up --detach).")
+    $(format_flag --compose-profile=*)
+      Enable one or more $(format_hyperlink 'Compose profiles' 'https://docs.docker.com/compose/how-tos/profiles/').
+      $(format_secondary "See $(format_hyperlink 'compose.yaml' file:"${REPOSITORY_ROOT:?}"/local-run/compose.yaml) to find the possible profiles.")
+    $(format_flag +telemetry)
+      Also run the optional $(format_code otel-collector) service for telemetry collection.
+      $(format_secondary "Equivalent to $(format_code --compose-profile=telemetry).")
 
   $(format_subtitle 'Miscellaneous options:')
     $(format_flag --help)
@@ -119,6 +127,8 @@ for arg in "$@"; do
 		--ephemeral) EPHEMERAL=1 ;;
 		--ephemeral-name=*) EPHEMERAL_SCENARIO_NAME="${arg#'--ephemeral-name='}" ;;
 		--detach) DETACH=1 ;;
+		--compose-profile=*) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}""${arg#'--compose-profile='}" ;;
+		+telemetry) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}"telemetry ;;
 		--help) help ;;
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;
@@ -171,6 +181,11 @@ source "${SELF_SCRIPTS:?}"/compose-exports.sh
 if [[ "${PROSE_POD_API_IMAGE_TAG:?}" =~ ^(edge|latest)$ ]]; then
 	edo docker compose -f "${COMPOSE_FILE:?}" pull
 fi
+
+if [ -n "${COMPOSE_PROFILES-}" ]; then
+	trace "Running Compose with profiles $(format_code "${COMPOSE_PROFILES:?}")"
+fi
+export COMPOSE_PROFILES
 edo docker compose -f "${COMPOSE_FILE:?}" up --force-recreate --remove-orphans ${DETACH+--detach}
 
 if (( $EPHEMERAL )) && ! (( $DETACH )); then
