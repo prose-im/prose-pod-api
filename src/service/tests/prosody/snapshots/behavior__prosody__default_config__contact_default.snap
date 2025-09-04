@@ -1,7 +1,7 @@
 ---
-source: service/tests/prosody/mod.rs
-assertion_line: 43
-expression: world.prosody_config().to_string()
+source: src/service/tests/prosody/mod.rs
+assertion_line: 95
+expression: world.prosody_config().to_string(None)
 ---
 -- Prose Pod Server
 -- XMPP Server Configuration
@@ -100,6 +100,16 @@ VirtualHost "test.org"
     "rest";
     "http_oauth2";
     "admin_rest";
+  }
+
+  -- XEP-0157: Contact Addresses for XMPP Services
+  contact_info = {
+    abuse = { "mailto:example@example.org" };
+    admin = { "mailto:example@example.org" };
+    feedback = { "mailto:example@example.org" };
+    sales = { "mailto:example@example.org" };
+    security = { "mailto:example@example.org" };
+    support = { "mailto:support@example.org" };
   }
 
   -- HTTP settings

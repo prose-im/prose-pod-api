@@ -1,6 +1,7 @@
 ---
-source: prosody-config/tests/prosody_config.rs
-expression: result
+source: src/service/tests/prosody/mod.rs
+assertion_line: 95
+expression: world.prosody_config().to_string(None)
 ---
 -- Prose Pod Server
 -- XMPP Server Configuration
@@ -10,31 +11,23 @@ expression: result
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
 
-admins = { "prose-pod-api@admin.prose.local" }
-
 authentication = "internal_hashed"
 
-storage = "internal"
+default_storage = "internal"
 
 log = {
   info = "*console";
-  warn = "*console";
-  error = "*console";
 }
 
 -- Network interfaces/ports
-interfaces = { "*" }
-c2s_ports = { 5222 }
-s2s_ports = { 5269 }
 http_ports = { 5280 }
-http_interfaces = { "*" }
-https_ports = {}
-https_interfaces = {}
 
 -- Modules
+plugin_paths = { "/usr/local/lib/prosody/modules" }
 modules_enabled = {
+  "auto_activate_hosts";
   "roster";
-  "groups";
+  "groups_internal";
   "saslauth";
   "tls";
   "dialback";
@@ -53,49 +46,35 @@ modules_enabled = {
   "blocklist";
   "limits";
   "carbons";
-  "mam";
   "csi";
   "server_contact_info";
   "websocket";
-  "s2s_bidi";
+  "reload_modules";
+  "cloud_notify";
+  "register";
+  "prose_version";
+  "mam";
 }
-
--- Path to SSL key and certificate for all server domains
-ssl = {
-  certificate = "/etc/prosody/certs/prose.local.crt";
-  key = "/etc/prosody/certs/prose.local.key";
-}
+modules_disabled = { "s2s" }
 
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
 allow_registration = false
 
 -- Mandate highest security levels
 c2s_require_encryption = true
-s2s_require_encryption = true
-s2s_secure_auth = false
 
 -- Enforce safety C2S/S2S limits
 c2s_stanza_size_limit = 256 * 1024
-s2s_stanza_size_limit = 512 * 1024
 
 limits = {
   c2s = {
     rate = "50kb/s";
     burst = "2s";
   };
-  s2sin = {
-    rate = "250kb/s";
-    burst = "4s";
-  };
 }
 
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
-
--- XEP-0157: Contact Addresses for XMPP Services
-contact_info = {
-  admin = { "mailto:hostmaster@prose.local" };
-}
 
 -- MAM settings
 archive_expires_after = "never"
@@ -105,27 +84,71 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
--- Define server members groups file
-groups_file = "/etc/prosody/roster_groups.txt"
+-- mod_reload_modules
+reload_modules = { "tls" }
 
--- HTTP settings
-http_host = "prose-pod-server"
-http_external_url = "http://prose-pod-server:5280"
-
--- mod_init_admin
-init_admin_jid = "prose-pod-api@admin.prose.local"
-init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
+-- mod_cloud_notify
+push_notification_with_body = true
+push_notification_with_sender = true
 
 -- Server hosts and components
+VirtualHost "test.org"
+  admins = { "prose-pod-api@admin.prose.local" }
+
+  -- Modules
+  modules_enabled = {
+    "rest";
+    "http_oauth2";
+    "admin_rest";
+  }
+
+  -- XEP-0157: Contact Addresses for XMPP Services
+  contact_info = {
+    admin = { "xmpp:admin@test.org" };
+    support = { "mailto:support@example.org" };
+  }
+
+  -- HTTP settings
+  http_host = "prose-pod-server"
+
+  -- XEP-0030: Service Discovery
+  disco_items = {
+    {
+      "upload.prose.local";
+      "HTTP File Upload";
+    };
+  }
+
+  -- mod_http_oauth2
+  allowed_oauth2_grant_types = {
+    "authorization_code";
+    "refresh_token";
+    "password";
+  }
+  oauth2_access_token_ttl = 10800
+  oauth2_refresh_token_ttl = 0
+  oauth2_registration_key = "dummy-test-key"
+
 VirtualHost "admin.prose.local"
+  admins = { "prose-pod-api@admin.prose.local" }
 
-VirtualHost "prose.local"
+  -- Modules
+  modules_enabled = {
+    "admin_rest";
+    "init_admin";
+  }
 
-Component "groups.prose.local" "muc"
+  -- HTTP settings
+  http_host = "prose-pod-server-admin"
+
+Component "groups.test.org" "muc"
   name = "Chatrooms"
 
   -- Modules
-  modules_enabled = { "muc_mam" }
+  modules_enabled = {
+    "muc_public_affiliations";
+    "muc_mam";
+  }
 
   -- MAM settings
   max_archive_query_results = 100
@@ -141,10 +164,13 @@ Component "upload.prose.local" "http_file_share"
   name = "HTTP File Upload"
 
   -- HTTP settings
-  http_host = "localhost"
-  http_external_url = "http://localhost:5280"
+  http_external_url = "https://prose.test.org/"
+  http_paths = {
+    file_share = "/upload";
+  }
 
   -- XEP-0363: HTTP File Upload
   http_file_share_size_limit = 20 * 1024 * 1024
   http_file_share_expires_after = "never"
-  http_file_share_daily_quota = 250 * 1024 * 1024
+  http_file_share_daily_quota = 100 * 1024 * 1024
+  http_file_share_access = { "test.org" }

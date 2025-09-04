@@ -5,7 +5,7 @@
 
 mod prosody;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use cucumber::World;
 use sea_orm::*;
@@ -16,6 +16,11 @@ use service::{
 };
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
+
+lazy_static::lazy_static! {
+    static ref CRATE_ROOT: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+    static ref CONFIG_PATH: PathBuf = CRATE_ROOT.join("tests").join(CONFIG_FILE_NAME);
+}
 
 #[tokio::main]
 async fn main() {
@@ -38,10 +43,8 @@ struct TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let config_path = crate_root.join("tests").join(CONFIG_FILE_NAME);
-        let app_config = AppConfig::from_path(&config_path)
-            .expect(&format!("Invalid config file at {}", config_path.display()));
+        let app_config = AppConfig::from_path(&CONFIG_PATH.clone())
+            .expect(&format!("Invalid config file at {}", CONFIG_PATH.display()));
 
         // Connecting SQLite
         let db = match Database::connect(&app_config.api.databases.main.url).await {

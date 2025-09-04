@@ -269,7 +269,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         push_if_some(
             &mut res,
             option_def(
-                Some("Specify server administrator"),
+                Some("XEP-0157: Contact Addresses for XMPP Services"),
                 "contact_info",
                 contact_info,
             ),

@@ -10,7 +10,7 @@ use secrecy::ExposeSecret;
 use util::{ApplyDefaultsAndOverrides, WithDefaultsAndOverrides};
 use utils::def;
 
-use crate::{AppConfig, ProseDefault, ServerConfig};
+use crate::{app_config::PublicContactsConfig, AppConfig, ProseDefault, ServerConfig};
 
 use super::prosody_bootstrap_config;
 
@@ -123,12 +123,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
-        let hostmaster_email = match app_config.notifiers.email {
-            Some(ref email_config) => {
-                format!("hostmaster@{domain}", domain = email_config.smtp_host)
-            }
-            None => format!("hostmaster@{domain}", domain = app_config.server.domain),
-        };
 
         let global_settings = ProsodySettings {
             log: Some(LogConfig::Map(
@@ -189,13 +183,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             reload_modules: Some(vec!["tls"].into_iter().map(ToString::to_string).collect()),
             consider_websocket_secure: Some(true),
             cross_domain_websocket: None,
-            contact_info: Some(ContactInfo {
-                // TODO: After resolving [First admin account has no email address · Issue #256 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/256), replace this by the first admin email.
-                admin: vec![format!(
-                    "mailto:{hostmaster_email}"
-                )],
-                ..Default::default()
-            }),
             upgrade_legacy_vcards: Some(true),
             ..Default::default()
         }
@@ -243,6 +230,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         ],
                     ),
                 ],
+                contact_info: ContactInfo::from(&app_config.public_contacts).non_empty(),
                 ..Default::default()
             },
         };
@@ -288,7 +276,36 @@ impl ProseDefault for prosody_config::ProsodyConfig {
     }
 }
 
-// ===== Convenience methods =====
+// MARK: - Mappings
+
+impl From<&PublicContactsConfig> for ContactInfo {
+    fn from(config: &PublicContactsConfig) -> Self {
+        use crate::models::Url;
+        use linked_hash_set::LinkedHashSet;
+
+        fn map_or_default(list: &LinkedHashSet<Url>, default: &Vec<String>) -> Vec<String> {
+            if list.is_empty() {
+                default.to_owned()
+            } else {
+                list.iter().map(ToString::to_string).collect()
+            }
+        }
+        let default = (config.default.iter())
+            .map(ToString::to_string)
+            .collect::<Vec<String>>();
+
+        Self {
+            abuse: map_or_default(&config.abuse, &default),
+            admin: map_or_default(&config.admin, &default),
+            feedback: map_or_default(&config.feedback, &default),
+            sales: map_or_default(&config.sales, &default),
+            security: map_or_default(&config.security, &default),
+            support: map_or_default(&config.support, &default),
+        }
+    }
+}
+
+// MARK: - Helpers
 
 // TODO: Remove unused code
 pub mod util {

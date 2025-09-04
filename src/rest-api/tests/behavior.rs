@@ -20,6 +20,19 @@ use crate::{prelude::*, test_world::TestWorld};
 
 #[tokio::main]
 async fn main() {
+    let args = std::env::args().collect::<Vec<_>>();
+    let debug = args.iter().any(|s| s.contains("@debug"));
+
+    if debug {
+        std::env::set_var(
+            "PROSE_DEBUG_USE_AT_YOUR_OWN_RISK__LOG_CONFIG_AT_STARTUP",
+            "true",
+        );
+        std::env::set_var("PROSE_LOG__WITH_SPAN_EVENTS", "true");
+        std::env::set_var("PROSE_LOG__WITH_FILE", "true");
+        std::env::set_var("PROSE_LOG__WITH_LINE_NUMBER", "true");
+    }
+
     TestWorld::cucumber()
         // .init_tracing()
         .configure_and_init_tracing(
@@ -36,21 +49,11 @@ async fn main() {
                     ("globset", LevelFilter::WARN),
                 ];
 
-                let args = std::env::args().collect::<Vec<_>>();
-                let debug = args.iter().any(|s| s.contains("@debug"));
-
                 let default_level = if debug {
                     LevelFilter::TRACE
                 } else {
                     LevelFilter::WARN
                 };
-
-                if debug {
-                    std::env::set_var(
-                        "PROSE_DEBUG_USE_AT_YOUR_OWN_RISK__LOG_CONFIG_AT_STARTUP",
-                        "true",
-                    );
-                }
 
                 tracing_subscriber::registry().with(
                     filter::Targets::new()

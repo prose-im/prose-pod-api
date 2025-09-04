@@ -58,7 +58,9 @@ impl ProsodyProseVersion {
         };
         let response = {
             let response = client.execute(request).await.map_err(|err| {
-                server_ctl::Error::Other(format!("Prosody Admin REST API call failed: {err}"))
+                server_ctl::Error::Internal(
+                    anyhow::Error::new(err).context("Prosody Admin REST API call failed"),
+                )
             })?;
             ResponseData::from(response).await
         };
@@ -81,8 +83,9 @@ impl ProsodyProseVersion {
 
     pub async fn server_version(&self) -> Result<VersionInfo, server_ctl::Error> {
         let response = self.call(|client| client.get(self.url(""))).await?;
-        (response.deserialize())
-            .map_err(|err| server_ctl::Error::Other(format!("Cannot deserialize: {err}")))
+        (response.deserialize()).map_err(|err| {
+            server_ctl::Error::Internal(anyhow::Error::new(err).context("Cannot deserialize"))
+        })
     }
 }
 

@@ -194,6 +194,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     let server_ctl = ServerCtl::new(Arc::new(LiveServerCtl::from_config(
         &app_config,
         prosody_admin_rest.clone(),
+        db.clone(),
     )));
     let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
         &app_config,

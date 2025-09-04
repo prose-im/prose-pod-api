@@ -95,7 +95,9 @@ impl ProsodyAdminRest {
         };
         let response = {
             let response = client.execute(request).await.map_err(|err| {
-                server_ctl::Error::Other(format!("Prosody Admin REST API call failed: {err}"))
+                server_ctl::Error::Internal(
+                    anyhow::Error::new(err).context("Prosody Admin REST API call failed"),
+                )
             })?;
             ResponseData::from(response).await
         };
@@ -124,7 +126,9 @@ impl ProsodyAdminRest {
             .call(|client| client.get(self.url_on_main_host("all-users")))
             .await?;
         let res: ProsodyAdminRestApiResponse<ListUsersResponse> = (response.deserialize())
-            .map_err(|err| server_ctl::Error::Other(format!("Cannot deserialize: {err}")))?;
+            .map_err(|err| {
+                server_ctl::Error::Internal(anyhow::Error::new(err).context("Cannot deserialize"))
+            })?;
         Ok(res.result.users)
     }
 

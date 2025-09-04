@@ -68,6 +68,8 @@ pub struct AppConfig {
     pub dashboard: DashboardConfig,
     #[serde(default)]
     pub auth: AuthConfig,
+    #[serde(default)]
+    pub public_contacts: PublicContactsConfig,
     /// Advanced config, use only if needed.
     #[serde(default)]
     pub prosody_ext: ProsodyExtConfig,
@@ -443,6 +445,24 @@ impl Default for AuthConfig {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct PublicContactsConfig {
+    #[serde(default)]
+    pub default: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub abuse: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub admin: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub feedback: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub sales: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub security: LinkedHashSet<Url>,
+    #[serde(default)]
+    pub support: LinkedHashSet<Url>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProsodyHostConfig {
     #[serde(default)]
@@ -681,6 +701,8 @@ pub struct DependencyModesConfig {
     "Missing key `{0}` the app configuration. Add it to `prose.toml` or use environment variables."
 )]
 pub struct MissingConfiguration(pub &'static str);
+
+// MARK: - Atoms
 
 // MARK: Dashboard URL
 

@@ -128,7 +128,7 @@ pub enum ServerCtlError {
     #[error("Unexpected API response: {0}")]
     UnexpectedResponse(UnexpectedHttpResponse),
     #[error("{0}")]
-    Other(String),
+    Internal(#[from] anyhow::Error),
 }
 
 // MARK: - Helpers
@@ -151,6 +151,12 @@ impl From<&self::Role> for Option<MemberRole> {
 
 impl From<reqwest::Error> for Error {
     fn from(error: reqwest::Error) -> Self {
-        Self::Other(format!("reqwest::Error: {error:?}"))
+        Self::Internal(anyhow::Error::new(error).context("reqwest::Error"))
+    }
+}
+
+impl From<sea_orm::DbErr> for Error {
+    fn from(error: sea_orm::DbErr) -> Self {
+        Self::Internal(anyhow::Error::new(error).context("Database error"))
     }
 }
