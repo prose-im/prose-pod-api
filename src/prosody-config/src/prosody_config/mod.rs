@@ -720,6 +720,26 @@ pub struct ContactInfo {
     pub support: Vec<String>,
 }
 
+impl ContactInfo {
+    pub fn is_empty(&self) -> bool {
+        self.abuse.is_empty()
+            && self.admin.is_empty()
+            && self.feedback.is_empty()
+            && self.sales.is_empty()
+            && self.security.is_empty()
+            && self.support.is_empty()
+    }
+
+    #[inline]
+    pub fn non_empty(self) -> Option<Self> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(self)
+        }
+    }
+}
+
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RoomCreationRestriction {

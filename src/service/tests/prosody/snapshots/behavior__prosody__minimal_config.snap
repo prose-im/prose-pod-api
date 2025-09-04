@@ -75,11 +75,6 @@ limits = {
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
 
--- Specify server administrator
-contact_info = {
-  admin = { "mailto:hostmaster@test.org" };
-}
-
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 

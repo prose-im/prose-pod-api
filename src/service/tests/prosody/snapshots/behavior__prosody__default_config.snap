@@ -76,11 +76,6 @@ limits = {
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
 
--- Specify server administrator
-contact_info = {
-  admin = { "mailto:hostmaster@test.org" };
-}
-
 -- MAM settings
 archive_expires_after = "never"
 default_archive_policy = true
