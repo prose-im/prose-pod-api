@@ -5,7 +5,7 @@
 
 use service::{auth::IsAdmin, server_config::server_config_controller};
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     type Rejection = error::Error;

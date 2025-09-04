@@ -5,7 +5,7 @@
 
 mod dtos;
 mod errors;
-mod guards;
+mod extractors;
 mod routes;
 
 use axum::middleware::from_extractor_with_state;

@@ -10,7 +10,7 @@ use http_auth_basic::Credentials;
 use secrecy::SecretString;
 use service::models::BareJid;
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 pub struct BasicAuth {
     pub jid: BareJid,

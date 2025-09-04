@@ -5,7 +5,7 @@
 
 use service::network_checks::NetworkChecker;
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for NetworkChecker {
     type Rejection = Infallible;

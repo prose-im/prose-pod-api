@@ -52,7 +52,7 @@
 
 use service::auth::{Authenticated, UserInfo};
 
-use crate::guards::prelude::*;
+use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for Authenticated {
     type Rejection = error::Error;
