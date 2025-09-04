@@ -10,6 +10,7 @@ use service::{
     members::MemberRole,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
+    sea_orm::DatabaseConnection,
     xmpp::{
         server_ctl::{self, Error},
         BareJid,
@@ -22,6 +23,7 @@ use std::sync::{Arc, RwLock};
 #[derive(Debug, Default, Clone)]
 pub struct MockServerCtl {
     pub(crate) state: Arc<RwLock<MockServerCtlState>>,
+    pub(crate) db: DatabaseConnection,
 }
 
 #[derive(Debug, Clone)]
@@ -39,15 +41,15 @@ pub struct MockServerCtlState {
 }
 
 impl MockServerCtl {
-    pub fn new(state: Arc<RwLock<MockServerCtlState>>) -> Self {
-        Self { state }
+    pub fn new(state: Arc<RwLock<MockServerCtlState>>, db: DatabaseConnection) -> Self {
+        Self { state, db }
     }
 
     fn check_online(&self) -> Result<(), Error> {
         if self.state.read().unwrap().online {
             Ok(())
         } else {
-            Err(Error::Other("XMPP server offline".to_owned()))?
+            Err(Error::Internal(anyhow::Error::msg("XMPP server offline")))?
         }
     }
 }
@@ -76,8 +78,11 @@ impl ServerCtlImpl for MockServerCtl {
     ) -> Result<(), Error> {
         self.check_online()?;
 
+        let new_config =
+            prosody_config_from_db(&self.db, app_config, Some(server_config.to_owned())).await?;
+
         let mut state = self.state.write().unwrap();
-        state.applied_config = Some(prosody_config_from_db(server_config.to_owned(), app_config));
+        state.applied_config = Some(new_config);
         Ok(())
     }
     async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error> {
@@ -120,7 +125,7 @@ impl ServerCtlImpl for MockServerCtl {
                     })
             });
         if !domain_exists {
-            return Err(Error::Other(format!("Domain {} not declared in the Prosody configuration. You might need to initialize the server configuration.", jid.domain())));
+            return Err(Error::Internal(anyhow::Error::msg(format!("Domain {domain} not declared in the Prosody configuration. You might need to initialize the server configuration.", domain = jid.domain()))));
         }
 
         state.users.insert(

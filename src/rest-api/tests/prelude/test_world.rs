@@ -226,8 +226,15 @@ impl TestWorld {
         let config = AppConfig::from_path(&config_path)
             .expect(&format!("Invalid config file at {}", config_path.display()));
 
+        let db = db_conn(&config.api.databases.main).await;
+
+        // NOTE: We need to run migrations here before they run in the API because we need to perform actions on the database before the API starts (it's not started by default, since we also test the behavior at startup)
+        if let Err(err) = run_migrations(&db).await {
+            panic!("Could not run migrations in tests: {err}");
+        }
+
         let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
-        let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone());
+        let mock_server_ctl = MockServerCtl::new(mock_server_ctl_state.clone(), db.clone());
         let mock_xmpp_service = MockXmppService::default();
         let mock_email_notifier = MockNotifier::<EmailNotification>::default();
         let mock_auth_service = MockAuthService::new(Default::default(), mock_server_ctl_state);
@@ -248,12 +255,6 @@ impl TestWorld {
             .await
         {
             panic!("Could not create API XMPP account: {}", err);
-        }
-
-        let db = db_conn(&config.api.databases.main).await;
-        // NOTE: We need to run migrations here before they run in the API because we need to perform actions on the database before the API starts (it's not started by default, since we also test the behavior at startup)
-        if let Err(err) = run_migrations(&db).await {
-            panic!("Could not run migrations in tests: {err}");
         }
 
         Self {

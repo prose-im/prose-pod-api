@@ -144,6 +144,25 @@ impl MemberRepository {
         Ok(member.role == MemberRole::Admin)
     }
 
+    #[instrument(
+        name = "db::member::get_admins",
+        level = "trace",
+        skip_all,
+        fields(limit),
+        err
+    )]
+    pub async fn get_admins(
+        db: &impl ConnectionTrait,
+        limit: Option<u64>,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .filter(Column::Role.eq(MemberRole::Admin))
+            .order_by_asc(Column::JoinedAt)
+            .limit(limit)
+            .all(db)
+            .await
+    }
+
     /// Updates a member’s role in database.
     ///
     /// Returns `None` if the role hasn’t changed.

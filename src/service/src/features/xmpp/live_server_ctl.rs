@@ -6,6 +6,7 @@
 use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 
 use reqwest::Method;
+use sea_orm::DatabaseConnection;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
 use tracing::instrument;
@@ -24,13 +25,19 @@ use crate::{
 pub struct LiveServerCtl {
     config_file_path: PathBuf,
     admin_rest: Arc<ProsodyAdminRest>,
+    db: DatabaseConnection,
 }
 
 impl LiveServerCtl {
-    pub fn from_config(config: &AppConfig, admin_rest: Arc<ProsodyAdminRest>) -> Self {
+    pub fn from_config(
+        config: &AppConfig,
+        admin_rest: Arc<ProsodyAdminRest>,
+        db: DatabaseConnection,
+    ) -> Self {
         Self {
             config_file_path: config.prosody_ext.config_file_path.to_owned(),
             admin_rest,
+            db,
         }
     }
 }
@@ -54,7 +61,7 @@ impl ServerCtlImpl for LiveServerCtl {
         }
 
         if start.elapsed() >= timeout {
-            return Err(server_ctl::Error::Other("Timed out while waiting for the XMPP server. Possible causes (not exhaustive): [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module not enabled, HTTP interface unreachable.".to_string()));
+            return Err(server_ctl::Error::Internal(anyhow::Error::msg("Timed out while waiting for the XMPP server. Possible causes (not exhaustive): [`mod_admin_rest`](https://github.com/RemiBardon/prosody-mod_admin_rest) module not enabled, HTTP interface unreachable.")));
         }
 
         Ok(())
@@ -69,7 +76,9 @@ impl ServerCtlImpl for LiveServerCtl {
         let mut file = File::create(&self.config_file_path).map_err(|e| {
             server_ctl::Error::CannotOpenConfigFile(self.config_file_path.clone(), e)
         })?;
-        let prosody_config = prosody_config_from_db(server_config.to_owned(), app_config);
+
+        let prosody_config =
+            prosody_config_from_db(&self.db, app_config, Some(server_config.to_owned())).await?;
         file.write_all(
             prosody_config
                 .to_string(server_config.prosody_overrides_raw.as_deref().cloned())
