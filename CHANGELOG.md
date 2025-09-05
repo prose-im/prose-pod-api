@@ -11,12 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.17.1...HEAD
 
+### Changed
+
+- chore: Rename `guards` to `extractors` (in `b06b47b2`)
+- chore(tests): Change integration tests domain to `test.local` (in `c962045d`)
+
 ### Added
 
 - feat(lifecycle): Reload on `SIGHUP` (in `0f2aa704`)
 - feat(release): Update packaged license when running `task release` (in `602f27c9`)
 - feat(version): Add a route which returns the Server version (in `8e2f361a`)
 - feat(licensing): Add `PUT /v1/licensing/license` to remotely update the license (in `2e0fdbbb`)
+- feat(local-run): Allow running without the `otel-collector` service (in `8c3e2fb3`)
+- feat(app-config): Allow customizing public contacts (in `c80fbe10`)
+- feat(app-config): Use the oldest admin as the admin contact by default (in `2fc39918`)
 
 ### Fixed
 
@@ -25,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(prosody): Do not set `https_interfaces` to `{}` (in `80fecd3d`)
 - fix(prosody): Do not set `https_ports` to `{}` (in `67699858`)
 - fix(prosody): Use default `c2s_port` implicitly (in `bcb51035`)
+- ci: Fix `xh` installation (in `61142332`)
+- fix(tests): Uncomment `members` integration tests (in `218d6573`)
 
 ## [0.17.1] - 2025-08-15
 
