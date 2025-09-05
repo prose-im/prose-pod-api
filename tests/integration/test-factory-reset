@@ -12,7 +12,7 @@ source "${BASH_TOOLBOX:?}"/format.sh
 INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
 LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
-BASE_SCENARIO_NAME=demo
+BASE_SCENARIO_NAME=default
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
 : ${PROSE_POD_API_IMAGE_TAG:=local}
 
@@ -27,7 +27,11 @@ abort() {
 	die "$@"
 }
 
-info 'Starting the demo API (already populated with data)…'
+info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg-blue "Running test 'factory-reset'…")"
+info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+
+info 'Starting the test API (already populated with data)…'
 edo task local:run -- --detach \
 	--api="${PROSE_POD_API_IMAGE_TAG:?}" \
 	--scenario="${BASE_SCENARIO_NAME:?}" \
@@ -38,7 +42,7 @@ sleep 1
 
 info Logging an admin in…
 TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
-	-a 'pauline.collins@example.org:demo' \
+	-a 'pauline.collins@test.local:demo' \
 	content-type: \
 	| jq -r '.token')"
 [ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
@@ -84,7 +88,7 @@ sleep 1
 
 # NOTE: We can’t just check if the file is empty as the API runs migrations when it restarts.
 #   By checking that important tables are empty, we ensure a cleanup process took place
-#   (since the demo scenario comes with data). We know migrations are not just reverted,
+#   (since the test scenario comes with data). We know migrations are not just reverted,
 #   the whole file is rather emptied. Therefor, we don’t need to test **all** tables.
 table-empty() {
 	local table_name="${1:?}"
@@ -124,7 +128,7 @@ wait-until-restarted() {
 info Initializing static config and reloading…
 cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
-domain = "example.org"
+domain = "test.local"
 
 [notifiers.email]
 smtp_host = "mailpit"
@@ -145,7 +149,7 @@ success The API still works!
 retry() {
 	unset TOKEN CONFIRMATION
 	TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
-		-a 'pauline.collins@example.org:demo' \
+		-a 'pauline.collins@test.local:demo' \
 		content-type: \
 		| jq -r '.token')"
 	[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
@@ -159,7 +163,7 @@ retry() {
 		confirmation="${CONFIRMATION:?}" || abort
 	cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
-domain = "example.org"
+domain = "test.local"
 
 [notifiers.email]
 smtp_host = "mailpit"

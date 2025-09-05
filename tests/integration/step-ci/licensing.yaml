@@ -16,7 +16,8 @@ tests:
   setLicense:
     name: Set license
     steps:
-      - http:
+      - name: Valid license
+        http:
           method: PUT
           url: /v1/licensing/license
           auth:
@@ -24,12 +25,12 @@ tests:
               token: ${{ captures.token }}
           headers:
             Content-Type: text/plain
-          # NOTE: Setting Community v0.17.1 license. Doesn’t make sense
-          #   but at least doesn’t trigger the “wrong domain” check.
-          body: Eo4CCqEBCgRuYW1lChJDb21tdW5pdHkgKDAuMTcuMSkKCnVzZXJfbGltaXQKC2FwaV92ZXJzaW9uCgYwLjE3LjEKB2FsbG93ZWQYBiIKCggIgAgSAxiBCCIJCgcIgggSAhAUIg4KDAgEEgMYgwgSAxiECDIyCjAKAggbEgcIgwgSAggWEgwIBBIDGIMIEgMIhQgaEwoECgIIFgoFCgMIhQgKBBoCCBUSJAgAEiADxHQ2P1l0/0ifk7qeKR6L3cdgO6T+fka2+GIihfaBmxpAOwbuG+RkqiTVJDgwsTwTSxwpA2D4YAozsXlefTfkIKJ8Wci37ADHSyBzTYvnHrNvAQrekkVYi7ZRGDWbCvomCigBIkISQJohO9clvaXemnmTV8Y1TD4bt8lUbzKVWyW3D4sXFfqyTowgKi3nZcAyLqdxiFUtokJpZrZS5NzSLfjWGzChhQ8=
+          # NOTE: Testing license with user limit at 20.
+          body: EoYCCpkBCgRuYW1lChVUZXN0aW5nICh0ZXN0LmxvY2FsLikKCnVzZXJfbGltaXQKC3Rlc3QubG9jYWwuCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgm4ypYkmgqVrcyZ6PjW99uPvyGsqF9UTcf9ZZnEmTqMsaQBYyyv4pNL1a9CUThuQ8Tgs3dKBfRZGL4qAgwRecwd+kV1o1OhcRignN1aizs5YwkcVglwoSwGTPK4/AEW2pdgwoASJCEkAwHqm+ZxYMts6yGpcodqcYUP1OQqvIX/ZnGFUA9ctlripc6BiHtHOzIc6WK5PX3xuS4JNbou92YwEKHkeQtiUM
           check:
             status: 204
-      - http:
+      - name: Old Community license
+        http:
           method: PUT
           url: /v1/licensing/license
           auth:
@@ -37,9 +38,24 @@ tests:
               token: ${{ captures.token }}
           headers:
             Content-Type: text/plain
-          # NOTE: Setting Testing license. We’re using “example.org”
-          #   at the moment so it triggers the “wrong domain” check.
-          body: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+          # NOTE: Community license for v0.17.0.
+          body: Eo4CCqEBCgRuYW1lChJDb21tdW5pdHkgKDAuMTcuMCkKCnVzZXJfbGltaXQKC2FwaV92ZXJzaW9uCgYwLjE3LjAKB2FsbG93ZWQYBiIKCggIgAgSAxiBCCIJCgcIgggSAhAUIg4KDAgEEgMYgwgSAxiECDIyCjAKAggbEgcIgwgSAggWEgwIBBIDGIMIEgMIhQgaEwoECgIIFgoFCgMIhQgKBBoCCBUSJAgAEiBCGY87LF7xJVeFhzTbxtnLxpWlpzvfH8+YB5zoHG4aohpAkrljPmYpuwdgn9b/dh6gTZSpyY6T975vj4LyFH7HtF+aZ0OeHfNNnrrfB6/3dGLL+VLhdS6TFu2eXoddilCwCigBIkISQPgoXb+l4RkcRfFFFEZdS+UfuWLMvyXG44cDtw8BCKQ6/P9vOIArvHfufB6pzMiylJ1TyhucQgv9std1NMjpUQ0=
+          check:
+            status: 400
+            jsonpath:
+              $.error: bad_request
+              $.message: "Bad request: Invalid base64 license: Bad Pod API version."
+      - name: Invalid domain
+        http:
+          method: PUT
+          url: /v1/licensing/license
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          headers:
+            Content-Type: text/plain
+          # NOTE: Testing license for `invalid.local`.
+          body: EowCCp8BCgRuYW1lChhUZXN0aW5nIChpbnZhbGlkLmxvY2FsLikKCnVzZXJfbGltaXQKDmludmFsaWQubG9jYWwuCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgJ6ZnIwhZc6Ei9r0W3dFt8m2jS+EXt3Lb+u49biZAYNsaQDOnbokwLmgjz83RaAv6IBvygRzPtxVYlm74YodCuspAtM9P5h7aMgpCZmO/NqgEwHr66C39Ji2rYhbqBPW5swIoASJCEkATauoN2e5i4nIRwh7Cg/iKwgoR+PXd7uJQG4Q4sbaufYXYhjK0vyCppIunJi5+bhzKUhKDbvESWRBKaIFdQcwE
           check:
             status: 400
             jsonpath:

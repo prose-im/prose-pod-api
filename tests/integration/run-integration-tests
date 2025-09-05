@@ -28,11 +28,16 @@ export DNS_ZONE_FILE="${DNS_ZONES_DIR:?}"/working-static.zone
 # NOTE: We don't want things like [stepci/stepci#239](https://github.com/stepci/stepci/issues/239)
 #   to break the tests or the analytics server to slow down the tests execution.
 export STEPCI_DISABLE_ANALYTICS=true
-SCENARIO_NAME=demo
+export SCENARIOS_DIR="${INTEGRATION_TESTS_DIR:?}"/scenarios
+export SCENARIO_CONSTANTS_FILE="${SCENARIOS_DIR:?}"/constants.sh
+SCENARIO_NAME=default
+: ${COMPOSE_PROFILES:=test}
+export COMPOSE_PROFILES
 
 # ===== ARGUMENT PARSING =====
 
 ARGS_=()
+SKIPPED=()
 for arg in "$@"; do
 	case $arg in
 		--api=*)
@@ -45,6 +50,7 @@ for arg in "$@"; do
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;
 		--trace) export LOG_TRACE=1 ;;
+		-*) SKIPPED+=("${arg#'-'}") ;;
 		*) ARGS_+=("$arg") ;;
 	esac
 done
@@ -92,7 +98,7 @@ stepci_run() {
 	local config_options=${2-test}
 
 	info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
-	info "$(fg-blue "Running '$(sed "s#${STEPCI_DIR:?}/##" <<< "${test_file}")' with config '${config_options}'…")"
+	info "$(fg-blue "Running test '$(sed "s#${STEPCI_DIR:?}/##" <<< "${test_file}")' with config '${config_options}'…")"
 	info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
 
 	export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/prose-${config_options:?}.toml"
@@ -115,6 +121,11 @@ info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
 
 # NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`. Special cases are handled here.
 for arg in "$@"; do
+	if in_array SKIPPED "$arg"; then
+		warn "Skipping test $(format_code "$arg") (marked to skip)."
+		continue
+	fi
+
 	if [ "$arg" == factory-reset ]; then
 		# NOTE: Unset `PROSE_CONFIG_FILE` so it’s not overwritten by the factory
 		#   reset.
@@ -138,7 +149,7 @@ for arg in "$@"; do
 		auth-expired)
 			stepci_run "$test_file" 'tokens-expired' ;;
 		init)
-			SCENARIO_NAME=fresh stepci_run "$test_file" ;;
+			SCENARIO_NAME=fresh BASE_SCENARIOS_DIR="${LOCAL_RUN_DIR:?}"/scenarios stepci_run "$test_file" ;;
 		*)
 			stepci_run "$test_file" ;;
 	esac

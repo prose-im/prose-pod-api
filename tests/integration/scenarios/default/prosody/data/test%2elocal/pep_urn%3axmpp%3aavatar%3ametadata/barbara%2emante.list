@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5814";
+			["id"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "af10825e4337efb544bbc8c09c4b96fc5c80acfa";
+	["with"] = "barbara.mante@test.local";
+	["when"] = 1757007021;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:21Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

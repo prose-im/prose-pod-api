@@ -16,6 +16,7 @@ DEMO_DATA_DIR="${LOCAL_RUN_DIR:?}"/demo-data
 : ${LOCAL_RUN_SCRIPTS_DIR:="${LOCAL_RUN_DIR:?}"/scripts}
 
 : ${SCENARIO_NAME:=demo}
+: ${DOMAIN:=example.org}
 
 source "${DEMO_DATA_DIR:?}/constants.sh"
 source "${LOCAL_RUN_SCRIPTS_DIR:?}/scenario-files.sh"
@@ -50,7 +51,7 @@ cat <<EOF > "${PROSE_CONFIG_FILE:?}"
 company_name = "Prose (demo)"
 
 [server]
-domain = "example.org"
+domain = "${DOMAIN:?}"
 
 [pod]
 ${ADDRESS_CFG:?}
@@ -74,27 +75,27 @@ EOF
 
 mkdir -p "$(dirname "${DNS_ZONE_FILE:?}")"
 cat <<EOF > "${DNS_ZONE_FILE:?}"
-@ IN SOA ns.example.org. admin.example.org. (
+@ IN SOA ns.${DOMAIN:?}. admin.${DOMAIN:?}. (
   2024101701 ; serial
   3600       ; refresh (1 hour)
   600        ; retry (10 minutes)
   86400      ; expire (1 day)
   3600       ; minimum (1 hour)
 )
-admin.prose.example.org. 3600 IN CNAME prose.example.org.
+admin.prose.${DOMAIN:?}. 3600 IN CNAME prose.${DOMAIN:?}.
 EOF
 
 if [[ "$*" == *'--pod-address-dynamic'* ]]; then
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 prose.example.org.
-_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 prose.example.org.
+_xmpp-client._tcp.${DOMAIN:?}. 3600 IN SRV 0 5 5222 prose.${DOMAIN:?}.
+_xmpp-server._tcp.${DOMAIN:?}. 3600 IN SRV 0 5 5269 prose.${DOMAIN:?}.
 EOF
 else
 	cat <<EOF >> "${DNS_ZONE_FILE:?}"
-prose.example.org. 600 IN A 172.20.0.40
-prose.example.org. 600 IN AAAA 2001:db8::40
-_xmpp-client._tcp.example.org. 3600 IN SRV 0 5 5222 prose.example.org.
-_xmpp-server._tcp.example.org. 3600 IN SRV 0 5 5269 prose.example.org.
+prose.${DOMAIN:?}. 600 IN A 172.20.0.40
+prose.${DOMAIN:?}. 600 IN AAAA 2001:db8::40
+_xmpp-client._tcp.${DOMAIN:?}. 3600 IN SRV 0 5 5222 prose.${DOMAIN:?}.
+_xmpp-server._tcp.${DOMAIN:?}. 3600 IN SRV 0 5 5269 prose.${DOMAIN:?}.
 EOF
 fi
 

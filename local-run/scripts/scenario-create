@@ -13,6 +13,7 @@ LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
 SELF_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 source "${SELF_SCRIPTS:?}"/constants.sh
 BASE_SCENARIO_NAME="${DEFAULT_SCENARIO_NAME:?}"
+: ${BASE_SCENARIOS_DIR:="${SCENARIOS_DIR:?}"}
 
 # ===== ARGUMENT PARSING =====
 
@@ -43,14 +44,17 @@ edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 [ -d "${SCENARIO_DIR:?}" ] && die "The scenario $(format_code "${SCENARIO_NAME:?}") already exists. Would you like to derive a new one from it? If so, run $(format_code "task local:scenarios:create -- '${SCENARIO_NAME:?}-2' --based-on='${SCENARIO_NAME:?}'")"
 
-info "Will create a new scenario named $(format_code "${SCENARIO_NAME:?}") based on $(format_code "${BASE_SCENARIO_NAME:?}")."
+BASE_SCENARIO_DIR="${BASE_SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"
+info "Will create a new scenario named $(format_code "${SCENARIO_NAME:?}") based on $(format_code "$(echo "${BASE_SCENARIO_DIR:?}" | awk -F / -v OFS=/ '{ print $(NF-2), $(NF-1), $NF }')")."
+
+[ -d "${BASE_SCENARIO_DIR:?}" ] || die "Base scenario $(format_code "${BASE_SCENARIO_DIR:?}") not found."
 
 edo mkdir -p "${SCENARIO_DIR:?}"
 
 copy-if-exists() {
 	local file_path="${1:?}"
-	if [ -e "${SCENARIOS_DIR:?}"/"${BASE_SCENARIO_NAME:?}"/"${file_path:?}" ]; then
-		edo cp -Rf "${SCENARIOS_DIR:?}"/{"${BASE_SCENARIO_NAME:?}","${SCENARIO_NAME:?}"}/"${file_path:?}"
+	if [ -e "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" ]; then
+		edo cp -Rf "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" "${SCENARIO_DIR:?}"/"${file_path:?}"
 	else
 		trace "Cannot $(format_code cp) $(format_code "${file_path:?}"): Not found."
 	fi

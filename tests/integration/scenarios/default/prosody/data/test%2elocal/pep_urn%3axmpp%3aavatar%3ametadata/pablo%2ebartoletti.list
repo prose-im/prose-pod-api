@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5130";
+			["id"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "704e6e9ed61b529daef37c789aad31d9e0389dbc";
+	["with"] = "pablo.bartoletti@test.local";
+	["when"] = 1757007020;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:20Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

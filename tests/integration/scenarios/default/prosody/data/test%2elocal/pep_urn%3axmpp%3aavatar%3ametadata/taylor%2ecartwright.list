@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "5024";
+			["id"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "0739f829a9c19bd1a0fb4f7d3c8924e44320a7e0";
+	["with"] = "taylor.cartwright@test.local";
+	["when"] = 1757007018;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:18Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

@@ -1,0 +1,38 @@
+return {
+	["DpLd3ukevrFf"] = {
+		["jid"] = "barbara.mante@test.local";
+		["id"] = "DpLd3ukevrFf";
+		["accessed"] = 1757007020;
+		["owner"] = "barbara.mante@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:a2b22c680deb516b439fee72a55f0cd35774e988d582b6044f3dbf6fb901e75f"] = {
+				["role"] = "prosody:admin";
+				["created"] = 1757007020;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017820;
+			};
+		};
+		["created"] = 1757007020;
+	};
+	["kL7AK8w0qKIb"] = {
+		["jid"] = "barbara.mante@test.local";
+		["id"] = "kL7AK8w0qKIb";
+		["accessed"] = 1757007020;
+		["owner"] = "barbara.mante@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:2f18d55ac144b4d55fc92dc0afb9fbf4e38a98d2de086775dd5db6e82f197b36"] = {
+				["role"] = "prosody:admin";
+				["created"] = 1757007020;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017820;
+			};
+		};
+		["created"] = 1757007020;
+	};
+};

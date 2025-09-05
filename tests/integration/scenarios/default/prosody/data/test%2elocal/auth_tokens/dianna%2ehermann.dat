@@ -1,0 +1,38 @@
+return {
+	["qAKBtGkMnLvV"] = {
+		["jid"] = "dianna.hermann@test.local";
+		["id"] = "qAKBtGkMnLvV";
+		["accessed"] = 1757007018;
+		["owner"] = "dianna.hermann@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:5ac76cb28240954a9eeb385d9649139f05e70dc1c19442106da53250594cc69d"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007018;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017818;
+			};
+		};
+		["created"] = 1757007018;
+	};
+	["Ap9lv7XlM1N2"] = {
+		["jid"] = "dianna.hermann@test.local";
+		["id"] = "Ap9lv7XlM1N2";
+		["accessed"] = 1757007018;
+		["owner"] = "dianna.hermann@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:b8e2af7a91471506dd438877d884fe5c53a4f7fafca93fa2273c1897d2d40ae4"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007018;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017818;
+			};
+		};
+		["created"] = 1757007018;
+	};
+};

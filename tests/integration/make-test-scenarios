@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Configure the script to exit when a command fails.
+set -eu
+set -o pipefail
+
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+
+# ===== CONSTANTS =====
+
+: ${SELF:="$(basename $0)"}
+
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+
+# ===== MAIN LOGIC =====
+
+export SCENARIOS_DIR="${INTEGRATION_TESTS_DIR:?}"/scenarios
+export SCENARIO_CONSTANTS_FILE="${SCENARIOS_DIR:?}"/constants.sh
+export DOMAIN=test.local
+
+[ -d "${SCENARIOS_DIR:?}" ] || mkdir "${SCENARIOS_DIR:?}"
+
+export BASE_SCENARIOS_DIR="${LOCAL_RUN_DIR:?}"/scenarios
+export BASE_SCENARIO_NAME=fresh
+export SCENARIO_NAME=default
+. "${LOCAL_RUN_DIR:?}"/scripts/make-demo-scenario

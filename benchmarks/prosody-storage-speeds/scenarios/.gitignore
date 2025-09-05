@@ -1,20 +1,3 @@
-/*
-!.git*
-
-# Do not ignore base scenario files
-!default/
-!internal/
-!sqlite-luadbi/
-!sqlite-luasqlite/
-!sqlite-as-default-luasqlite/
-!appendmap/
-
+!sqlite-*/
 !*/local-run.env
-
-*/prosody/data
-*/prosody/config/*
 !*/prosody/config/prosody.bootstrap.cfg.lua
-*/coredns
-*.zone
-*.sqlite
-*.db

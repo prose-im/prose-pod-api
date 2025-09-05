@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "6476";
+			["id"] = "6d2c15dd7c83354288a112b588ae5f7cb0f9a248";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "6d2c15dd7c83354288a112b588ae5f7cb0f9a248";
+	["with"] = "evan.turner@test.local";
+	["when"] = 1757007015;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:15Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

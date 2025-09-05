@@ -1,0 +1,38 @@
+return {
+	["LNobTYVv1rjG"] = {
+		["jid"] = "drew.howell@test.local";
+		["id"] = "LNobTYVv1rjG";
+		["accessed"] = 1757007021;
+		["owner"] = "drew.howell@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:ec91161add894bb9423cf6eccc369d10f24272dd63e77d4238ac0081e0ea0efa"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007021;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017821;
+			};
+		};
+		["created"] = 1757007021;
+	};
+	["7fPGednBT7AX"] = {
+		["jid"] = "drew.howell@test.local";
+		["id"] = "7fPGednBT7AX";
+		["accessed"] = 1757007021;
+		["owner"] = "drew.howell@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+		};
+		["tokens"] = {
+			["sha256:0a0761234297edd410a92c3de44fbfc4c2c519f56b4c7e003d1369a6f5a30129"] = {
+				["role"] = "prosody:member";
+				["created"] = 1757007021;
+				["purpose"] = "oauth2";
+				["expires"] = 1757017821;
+			};
+		};
+		["created"] = 1757007021;
+	};
+};

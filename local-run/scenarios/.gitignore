@@ -1,6 +1,3 @@
-*
-!.git*
-
 # Do not ignore default scenario files
 !default/
 !default/**
@@ -14,3 +11,6 @@
 # Include everything from demo scenarios
 !demo/
 !demo/**
+
+# Always ignore temporary data
+**/prosody.cfg.lua

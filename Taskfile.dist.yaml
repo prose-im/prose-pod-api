@@ -166,3 +166,29 @@ tasks:
         platforms: [linux]
       - cmd: "sed -i '' -E '{{.PATTERN}}' '{{.README}}'"
         platforms: [darwin]
+
+  dev:make-test-scenarios:
+    desc: Create scenarios for integration testing.
+    cmd: "{{.ROOT_DIR}}/tests/integration/make-test-scenarios"
+
+  dev:make-license:testing:
+    desc: Generate a Testing license.
+    dotenv: [.env]
+    cmd: >
+      LICENSE="$(xh POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/testing"
+      user_limit:={{.USER_LIMIT}}
+      secret="${PROSE_CLOUD_API_SECRET_TESTING:?}"
+      {{ if .DOMAIN }}domain="{{ .DOMAIN }}"{{ end }}
+      | base64)";
+      {{ if eq .COPY "true" }}
+      printf "${LICENSE:?}" | pbcopy;
+      echo "Copied to your clipboard! (Use `COPY=false` to log the base64 string instead)";
+      {{ else }}
+      echo "${LICENSE:?}";
+      {{ end }}
+    vars:
+      COPY: "{{ .COPY | default true }}"
+      # NOTE: At the moment, the default in Prose Cloud API is `prose.local`.
+      DOMAIN: '{{ .DOMAIN | default "test.local" }}'
+    requires:
+      vars: [USER_LIMIT]

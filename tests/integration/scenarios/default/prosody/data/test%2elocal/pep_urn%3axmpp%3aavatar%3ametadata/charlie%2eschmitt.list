@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "8045";
+			["id"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "5bb4344f963516b0bf6c1ef914a9ff811604e0a3";
+	["with"] = "charlie.schmitt@test.local";
+	["when"] = 1757007015;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:15Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});

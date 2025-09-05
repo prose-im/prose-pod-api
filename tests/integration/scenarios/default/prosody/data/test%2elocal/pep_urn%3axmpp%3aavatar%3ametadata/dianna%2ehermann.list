@@ -1,0 +1,19 @@
+item({
+	{
+		["name"] = "info";
+		["attr"] = {
+			["bytes"] = "7582";
+			["id"] = "2cb3e69b9ed6019bf1dea0fe728ba4298b41a449";
+			["type"] = "image/png";
+			["xmlns"] = "urn:xmpp:avatar:metadata";
+		};
+	};
+	["key"] = "2cb3e69b9ed6019bf1dea0fe728ba4298b41a449";
+	["with"] = "dianna.hermann@test.local";
+	["when"] = 1757007019;
+	["name"] = "metadata";
+	["attr"] = {
+		["stamp"] = "2025-09-04T17:30:19Z";
+		["xmlns"] = "urn:xmpp:avatar:metadata";
+	};
+});
