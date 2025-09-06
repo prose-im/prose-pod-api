@@ -202,7 +202,7 @@ impl License {
             .authorizer()
             // Validate the token if all checks passed.
             .allow_all();
-        match dbg!(&biscuit).authorize(&dbg!(authorizer)) {
+        match biscuit.authorize(&authorizer) {
             Ok(_) => {}
             Err(err) => return Err(ValidationError::from(err)),
         };
