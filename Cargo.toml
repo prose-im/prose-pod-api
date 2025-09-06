@@ -4,7 +4,7 @@ default-members = ["src/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.17.2"
+version = "0.17.3"
 license = "MPL-2.0"
 edition = "2021"
 homepage = "https://github.com/prose-im/prose-pod-api"
