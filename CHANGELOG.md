@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.17.2...HEAD
 
+### Fixed
+
+- fix: Remove committed `dbg!` leaking license data (in `69181f71`)
+
 ## [0.17.2] - 2025-09-05
 
 [0.17.2]: https://github.com/prose-im/prose-pod-api/compare/v0.17.1...v0.17.2
