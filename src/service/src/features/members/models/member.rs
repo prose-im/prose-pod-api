@@ -3,14 +3,16 @@
 // Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 
 use crate::{
     members::{self, MemberRole},
     models::BareJid,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct Member {
     pub jid: BareJid,
     pub role: MemberRole,

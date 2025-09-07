@@ -6,9 +6,10 @@
 use std::fmt::Debug;
 
 use secrecy::{zeroize::Zeroize, ExposeSecret, SecretString, SerializableSecret};
-use serde::{Deserialize, Serialize};
+use serdev::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 #[repr(transparent)]
 pub struct SerializableSecretString(String);
 impl Zeroize for SerializableSecretString {

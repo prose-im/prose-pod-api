@@ -15,7 +15,8 @@ use crate::{error::prelude::*, responders::Created, AppState};
 
 // MARK: INIT FIRST ACCOUNT
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitFirstAccountRequest {
     pub username: JidNode,
     pub password: SerializableSecretString,

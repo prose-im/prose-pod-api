@@ -57,19 +57,19 @@ impl<Content: DurationContent> FromStr for Duration<Content> {
     }
 }
 
-impl<Content: DurationContent> serde::Serialize for Duration<Content> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+impl<Content: DurationContent> serdev::Serialize for Duration<Content> {
+    fn serialize<S: serdev::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.as_iso_duration().serialize(serializer)
     }
 }
 
-impl<'de, Content: DurationContent> serde::Deserialize<'de> for Duration<Content>
+impl<'de, Content: DurationContent> serdev::Deserialize<'de> for Duration<Content>
 where
     <Content as TryFrom<ISODuration>>::Error: Debug,
 {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: serdev::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Content::try_from(ISODuration::deserialize(deserializer)?)
-            .map_err(|err| serde::de::Error::custom(format!("{err:?}")))
+            .map_err(|err| serdev::de::Error::custom(format!("{err:?}")))
             .map(Self)
     }
 }

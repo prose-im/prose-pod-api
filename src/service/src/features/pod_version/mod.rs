@@ -7,11 +7,12 @@ pub mod pod_version_controller;
 mod pod_version_service;
 
 use iso8601_timestamp::Timestamp;
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 
 pub use pod_version_service::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Serialize, serdev::Deserialize)]
 pub struct VersionInfo {
     /// E.g. `"v0.4.0 (2025-01-01)"`
     pub version: String,

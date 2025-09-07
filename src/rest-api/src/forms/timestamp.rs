@@ -7,11 +7,10 @@ use std::ops::Deref;
 
 use chrono::{DateTime, Utc};
 use iso8601_timestamp::Timestamp as ISOTimestamp;
-use serde::Deserialize;
 
 use crate::error::{self, Error};
 
-#[derive(Deserialize)]
+#[derive(serdev::Deserialize)]
 #[repr(transparent)]
 pub struct Timestamp(ISOTimestamp);
 

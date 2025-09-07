@@ -3,9 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use serde::Deserialize;
-
-#[derive(Deserialize)]
+#[derive(serdev::Deserialize)]
 pub struct SearchQuery {
     #[serde(alias = "search")]
     pub q: String,

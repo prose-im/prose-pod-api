@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::{extract::Path, Json};
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::{
     auth::UserInfo,
     xmpp::{BareJid, XmppService},
@@ -12,12 +12,15 @@ use service::{
 
 use crate::error::{self, Error};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct SetMemberNicknameRequest {
     pub nickname: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(Serialize)]
 pub struct SetMemberNicknameResponse {
     pub jid: BareJid,
     pub nickname: String,

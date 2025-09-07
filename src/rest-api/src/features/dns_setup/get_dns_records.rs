@@ -4,12 +4,14 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::Json;
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::network_checks::{DnsRecordWithStringRepr, DnsSetupStep, PodNetworkConfig};
 
 use crate::error::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct GetDnsRecordsResponse {
     pub steps: Vec<DnsSetupStep<DnsRecordWithStringRepr>>,
 }

@@ -119,7 +119,8 @@ pub enum SetWorkspaceIconError {
 
 // MARK: PATCH ONE
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct PatchWorkspaceDetailsRequest {
     pub name: Option<String>,
     #[serde(default, deserialize_with = "crate::util::deserialize_some")]

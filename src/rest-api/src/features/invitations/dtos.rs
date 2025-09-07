@@ -6,14 +6,16 @@
 //! Data Transfer Objects.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::{
     invitations::{self, InvitationContact, InvitationStatus},
     members::MemberRole,
     models::BareJid,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {
     pub invitation_id: i32,
     pub created_at: DateTime<Utc>,

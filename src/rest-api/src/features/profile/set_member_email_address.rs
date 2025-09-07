@@ -7,7 +7,7 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::{
     auth::UserInfo,
     members::{MemberRepository, MemberRole},
@@ -19,12 +19,8 @@ use crate::{
     AppState,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SetMemberEmailAddressRequest {
-    image: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(Serialize)]
 pub struct SetMemberEmailAddressResponse {
     jid: BareJid,
     // Base64 encoded image

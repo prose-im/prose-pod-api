@@ -75,7 +75,8 @@ pub async fn check_dns_records_stream_route(
 // MODEL
 
 #[serde_as]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DnsRecordStatus {
     Queued,

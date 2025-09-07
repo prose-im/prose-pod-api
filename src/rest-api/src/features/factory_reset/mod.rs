@@ -10,7 +10,7 @@ use axum::response::Response;
 use axum::routing::*;
 use axum::Json;
 use axum_extra::either::Either;
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::auth::errors::InvalidCredentials;
 use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
 use service::factory_reset::factory_reset_controller;
@@ -29,12 +29,14 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize, serdev::Deserialize)]
 struct FactoryResetConfirmation {
     pub confirmation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(serdev::Deserialize)]
 #[serde(untagged)]
 enum FactoryResetRequest {
     PasswordConfirmation { password: SerializableSecretString },

@@ -8,11 +8,12 @@ use prose_xmpp::{
     ns,
     stanza::{vcard4, VCard4},
 };
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 
 use crate::{workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize)]
 pub struct Workspace {
     pub name: String,
     pub icon: Option<Avatar>,

@@ -9,6 +9,8 @@ use std::{
     str::FromStr,
 };
 
+use serdev::{Deserialize, Serialize};
+
 // ===== AsString =====
 
 pub struct SeaOrmAsString<T: Display + FromStr>(pub T);
@@ -73,7 +75,7 @@ impl<T: Display + FromStr> sea_orm::sea_query::Nullable for SeaOrmAsString<T> {
 // ===== LinkedStringSet =====
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[derive(sea_orm::FromJsonQueryResult)]
 #[repr(transparent)]
 pub struct LinkedStringSet(pub linked_hash_set::LinkedHashSet<String>);

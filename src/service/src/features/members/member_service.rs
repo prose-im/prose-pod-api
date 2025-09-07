@@ -9,7 +9,7 @@ use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
@@ -417,7 +417,8 @@ enum EnrichingStep {
     OnlineStatus,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Serialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
     pub role: MemberRole,

@@ -7,7 +7,7 @@ use axum::{
     http::{HeaderValue, StatusCode},
     response::IntoResponse,
 };
-use serde::Serialize;
+use serdev::Serialize;
 
 pub struct Paginated<T>(pub service::models::Paginated<T>);
 

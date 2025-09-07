@@ -6,6 +6,7 @@
 use linked_hash_set::LinkedHashSet;
 use prosody_config::ProsodySettings;
 use serde_with::{serde_as, DefaultOnError};
+use serdev::Serialize;
 
 use crate::{
     app_config::ServerDefaultsConfig,
@@ -13,14 +14,15 @@ use crate::{
     AppConfig,
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
 pub struct PublicServerConfig {
     pub domain: JidDomain,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[serde_with::skip_serializing_none]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig {
     pub domain: JidDomain,
@@ -64,8 +66,7 @@ impl ServerConfig {
 /// by their default. See [ServerConfig] and [ServerConfig::new].
 #[serde_as]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[serde_with::skip_serializing_none]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DynamicServerConfig {
     #[serde_as(deserialize_as = "DefaultOnError")]

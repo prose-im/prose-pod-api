@@ -8,7 +8,6 @@ use std::sync::Arc;
 use anyhow::{anyhow, Context};
 use sea_orm::DatabaseConnection;
 use secrecy::{ExposeSecret as _, SecretString};
-use serde::Deserialize;
 
 use crate::{
     members::MemberRepository,
@@ -100,7 +99,8 @@ impl AuthServiceImpl for LiveAuthService {
 ///   "sub":"xmpp:alice@test.org"
 /// }
 /// ```
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
+#[derive(serdev::Deserialize)]
 struct UserInfoResponse {
     sub: String,
 }

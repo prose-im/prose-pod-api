@@ -24,7 +24,6 @@ use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 pub use prosody_config::ProsodySettings as ProsodyConfig;
 use secrecy::SecretString;
-use serde::Deserialize;
 
 use crate::{
     invitations::InvitationChannel,
@@ -53,7 +52,8 @@ lazy_static! {
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub branding: BrandingConfig,
@@ -220,7 +220,8 @@ impl AppConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct LogConfig {
     #[serde(default = "defaults::log_level")]
     pub level: LogLevel,
@@ -297,7 +298,8 @@ pub enum LogTimer {
     Uptime,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ApiConfig {
     /// IP address to serve on.
     #[serde(default = "defaults::api_address")]
@@ -327,12 +329,14 @@ impl Default for ApiConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct DashboardConfig {
     pub url: DashboardUrl,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ServiceAccountsConfig {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
     pub prose_pod_api: ServiceAccountConfig,
@@ -349,12 +353,14 @@ impl Default for ServiceAccountsConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ServiceAccountConfig {
     pub xmpp_node: JidNode,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct BootstrapConfig {
     #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
     pub prose_pod_api_xmpp_password: SecretString,
@@ -369,17 +375,19 @@ impl Default for BootstrapConfig {
 }
 
 mod pod_config {
-    use hickory_proto::rr::Name as DomainName;
     use std::net::{Ipv4Addr, Ipv6Addr};
 
+    use hickory_proto::rr::Name as DomainName;
+    use serdev::Serialize;
+
     #[derive(Debug, Clone)]
-    #[derive(serde::Serialize, serde::Deserialize)]
+    #[derive(Serialize, serdev::Deserialize)]
     pub struct PodConfig {
         pub address: PodAddress,
     }
 
     #[derive(Debug, Clone, Default)]
-    #[derive(serdev::Serialize, serdev::Deserialize)]
+    #[derive(Serialize, serdev::Deserialize)]
     #[serde(validate = "Self::validate")]
     pub struct PodAddress {
         pub domain: Option<DomainName>,
@@ -401,7 +409,8 @@ mod pod_config {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ServerConfig {
     pub domain: JidDomain,
     #[serde(default = "defaults::server_local_hostname")]
@@ -425,7 +434,8 @@ impl ServerConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct AuthConfig {
     #[serde(default = "defaults::auth_token_ttl")]
     pub token_ttl: iso8601_duration::Duration,
@@ -445,7 +455,8 @@ impl Default for AuthConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(serdev::Deserialize)]
 pub struct PublicContactsConfig {
     #[serde(default)]
     pub default: LinkedHashSet<Url>,
@@ -463,7 +474,8 @@ pub struct PublicContactsConfig {
     pub support: LinkedHashSet<Url>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ProsodyHostConfig {
     #[serde(default)]
     pub defaults: Option<ProsodyConfig>,
@@ -474,7 +486,8 @@ pub struct ProsodyHostConfig {
 /// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
 ///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
 ///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ProsodyExtConfig {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
@@ -494,7 +507,8 @@ impl Default for ProsodyExtConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct ServerDefaultsConfig {
     pub message_archive_enabled: bool,
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
@@ -535,7 +549,8 @@ impl Default for ServerDefaultsConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct BrandingConfig {
     #[serde(default)]
     pub company_name: Option<String>,
@@ -558,7 +573,8 @@ impl Default for InvitationChannel {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(serdev::Deserialize)]
 pub struct NotifiersConfig {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
     pub workspace_invitation_channel: InvitationChannel,
@@ -575,7 +591,8 @@ impl NotifiersConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct EmailNotifierConfig {
     pub pod_address: EmailAddress,
 
@@ -591,7 +608,8 @@ pub struct EmailNotifierConfig {
     pub smtp_encrypt: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct DatabasesConfig {
     #[serde(default = "defaults::databases_main")]
     pub main: DatabaseConfig,
@@ -606,7 +624,8 @@ impl Default for DatabasesConfig {
 }
 
 /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct DatabaseConfig {
     pub url: String,
     #[serde(default)]
@@ -621,7 +640,8 @@ pub struct DatabaseConfig {
     pub sqlx_logging: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct DebugConfig {
     #[serde(default = "defaults::true_in_debug")]
     pub log_config_at_startup: bool,
@@ -647,7 +667,8 @@ impl Default for DebugConfig {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(serdev::Deserialize)]
 pub struct DebugOnlyConfig {
     /// When automatically accepting invitations during testing, one might want to authenticate
     /// the created member. With this flag turned on, the member's password will be their JID.
@@ -658,7 +679,8 @@ pub struct DebugOnlyConfig {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UuidDependencyMode {
     Normal,
@@ -673,7 +695,8 @@ impl Default for UuidDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifierDependencyMode {
     Live,
@@ -688,7 +711,8 @@ impl Default for NotifierDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(serdev::Deserialize)]
 pub struct DependencyModesConfig {
     #[serde(default)]
     pub uuid: UuidDependencyMode,
@@ -707,7 +731,7 @@ pub struct MissingConfiguration(pub &'static str);
 // MARK: Dashboard URL
 
 #[derive(Debug, Clone)]
-#[derive(serdev::Serialize, serdev::Deserialize)]
+#[derive(serdev::Deserialize)]
 #[serde(validate = "Self::validate")]
 pub struct DashboardUrl(Url);
 

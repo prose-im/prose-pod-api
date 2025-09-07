@@ -34,7 +34,9 @@ use super::WORKSPACE_ROUTE;
 
 // MARK: INIT WORKSPACE
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitWorkspaceRequest {
     /// Organization name.
     pub name: String,

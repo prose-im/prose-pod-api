@@ -7,8 +7,8 @@ use anyhow::Context;
 use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
-use serde::Deserialize;
 use serde_json::json;
+use serdev::Deserialize;
 use tracing::{debug, trace};
 
 use crate::{

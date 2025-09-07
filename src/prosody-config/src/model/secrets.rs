@@ -8,11 +8,9 @@ use std::fmt::Debug;
 use secrecy::zeroize::Zeroize;
 #[cfg(feature = "serde")]
 use secrecy::SerializableSecret;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 #[repr(transparent)]
 pub struct SecretString(String);
 

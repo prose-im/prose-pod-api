@@ -5,10 +5,13 @@
 
 mod backfill;
 
+use serdev::Serialize;
+
 pub use self::backfill::backfill;
 pub use self::kv_store::{get_bool, set_bool};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
 pub struct OnboardingStepsStatuses {
     pub all_dns_checks_passed_once: bool,
     pub at_least_one_invitation_sent: bool,

@@ -8,6 +8,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serdev::Serialize;
 use service::{
     auth::{
         auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
@@ -26,11 +27,11 @@ use super::extractors::BasicAuth;
 
 // MARK: LOG IN
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Serialize)]
 #[repr(transparent)]
 pub struct LoginToken(SerializableSecretString);
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize)]
 pub struct LoginResponse {
     pub token: LoginToken,
 }
@@ -80,7 +81,8 @@ pub async fn request_password_reset_route(
     Ok(StatusCode::ACCEPTED)
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {
     pub password: SerializableSecretString,
 }

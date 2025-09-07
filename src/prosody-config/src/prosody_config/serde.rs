@@ -5,7 +5,7 @@
 
 use std::fmt;
 
-use serde::{
+use serdev::{
     de::{self, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };

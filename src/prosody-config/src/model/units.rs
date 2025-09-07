@@ -102,7 +102,7 @@ impl Display for DataRate {
 #[cfg(not(feature = "serde"))]
 pub trait DurationContent {}
 #[cfg(feature = "serde")]
-pub trait DurationContent: serde::Serialize + for<'de> serde::Deserialize<'de> {}
+pub trait DurationContent: serdev::Serialize + for<'de> serdev::Deserialize<'de> {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]

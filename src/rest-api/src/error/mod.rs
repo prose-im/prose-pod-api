@@ -14,8 +14,8 @@ use axum::{
     http::{header::CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use serde::Serialize;
 use serde_json::json;
+use serdev::Serialize;
 use tracing::*;
 
 pub use self::errors::*;
@@ -54,7 +54,8 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Debug, thiserror::Error, Serialize)]
+#[derive(Debug, thiserror::Error)]
+#[derive(Serialize)]
 #[error("{message}")]
 pub struct Error {
     #[serde(rename = "error")]

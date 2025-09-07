@@ -14,16 +14,17 @@ linked-hash-map = { version = "0.5", default-features = false }
 linked_hash_set = { version = "0.1", default-features = false }
 mime = { version = "0.3", default-features = false }
 secrecy = { version = "0.10", default-features = false }
-serde = { version = "1", default-features = false, features = [
-    "derive",
-], optional = true }
 serde_with = { version = "3", default-features = false, features = [
     "macros",
 ], optional = true }
+serdev = { version = "0.2.0", default-features = false, optional = true }
 strum = { version = "0.27", default-features = false, features = [
     "std",
     "derive",
 ] }
+validator = { version = "0.20.0", default-features = false, features = [
+    "derive",
+], optional = true }
 
 [dev-dependencies]
 insta = { version = "1", default-features = false }
@@ -33,8 +34,9 @@ serde_json = { version = "1", features = ["std"], default-features = false }
 default = ["merge", "serde"]
 merge = []
 serde = [
-    "dep:serde",
+    "dep:serdev",
     "dep:serde_with",
+    "dep:validator",
     "secrecy/serde",
     "linked-hash-map/serde_impl",
     "linked_hash_set/serde",

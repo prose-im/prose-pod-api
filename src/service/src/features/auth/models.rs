@@ -8,6 +8,7 @@ use std::ops::Deref;
 use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
+use serdev::Serialize;
 
 use crate::{members::MemberRole, models::SerializableSecretString};
 
@@ -20,7 +21,9 @@ pub struct Credentials {
 #[derive(Debug)]
 pub struct AuthToken(pub SecretString);
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct UserInfo {
     pub jid: BareJid,
     pub role: MemberRole,
@@ -51,18 +54,21 @@ impl From<UserInfo> for Authenticated {
 /// but it'll do for now.
 pub struct IsAdmin;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
-#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromQueryResult)]
+#[derive(serdev::Deserialize)]
+#[derive(sea_orm::FromQueryResult)]
 pub struct PasswordResetKvRecord {
     pub key: PasswordResetToken,
     pub value: PasswordResetRecord,
 }
 
 /// The JSON value stored in the global key/value store.
-#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromJsonQueryResult)]
+#[derive(Serialize, serdev::Deserialize)]
+#[derive(sea_orm::FromJsonQueryResult)]
 pub struct PasswordResetRecord {
     pub jid: BareJid,
     pub expires_at: DateTime<Utc>,

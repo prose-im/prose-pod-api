@@ -7,7 +7,7 @@ use axum::{
     extract::{rejection::QueryRejection, FromRequestParts, OptionalFromRequestParts, Query},
     http::request::Parts,
 };
-use serde::de::DeserializeOwned;
+use serdev::de::DeserializeOwned;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct OptionalQuery<T>(pub T);

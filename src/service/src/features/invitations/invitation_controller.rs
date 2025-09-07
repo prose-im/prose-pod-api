@@ -5,7 +5,7 @@
 
 use anyhow::{anyhow, Context as _};
 use jid::{BareJid, DomainRef};
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 
 use crate::{
     members::MemberRole,
@@ -100,7 +100,8 @@ pub async fn get_invitation(
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(Serialize)]
 pub struct WorkspaceInvitationBasicDetails {
     pub jid: BareJid,
     pub pre_assigned_role: MemberRole,

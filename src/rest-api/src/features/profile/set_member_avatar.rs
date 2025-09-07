@@ -5,18 +5,20 @@
 
 use axum::{extract::Path, Json};
 use base64::{engine::general_purpose, Engine as _};
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::{auth::UserInfo, models::BareJid, xmpp::XmppService};
 
 use crate::error::{self, Error};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(serdev::Deserialize)]
 pub struct SetMemberAvatarRequest {
     // Base64 encoded image
     image: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[derive(Serialize)]
 pub struct SetMemberAvatarResponse {
     jid: BareJid,
     // Base64 encoded image

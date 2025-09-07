@@ -8,8 +8,8 @@ use std::{sync::Arc, time::Duration};
 use mime::Mime;
 use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use secrecy::ExposeSecret as _;
-use serde::Deserialize;
 use serde_json::json;
+use serdev::Deserialize;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{error, trace};
 

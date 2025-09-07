@@ -4,9 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(serdev::Deserialize)]
 pub struct PaginationForm {
     pub page_number: Option<u64>,
     pub page_size: Option<u64>,

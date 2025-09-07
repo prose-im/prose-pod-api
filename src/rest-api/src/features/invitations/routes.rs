@@ -58,7 +58,8 @@ fn ok(invitation: WorkspaceInvitationDto, resource_uri: HeaderValue) -> InviteMe
     }))
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InviteMemberRequest {
     pub username: JidNode,
     #[serde(default)]
@@ -68,7 +69,7 @@ pub struct InviteMemberRequest {
 }
 
 #[cfg(debug_assertions)]
-#[derive(serde::Deserialize)]
+#[derive(serdev::Deserialize)]
 pub struct InviteMemberQuery {
     #[serde(default)]
     pub auto_accept: bool,
@@ -140,7 +141,7 @@ pub async fn get_invitation_route(
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serdev::Deserialize)]
 pub struct GetInvitationTokenDetailsQuery {
     token_type: InvitationTokenType,
 }
@@ -170,7 +171,8 @@ pub async fn get_invitations_route(
 
 // MARK: ACTIONS
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct AcceptWorkspaceInvitationRequest {
     pub nickname: String,
     pub password: SerializableSecretString,

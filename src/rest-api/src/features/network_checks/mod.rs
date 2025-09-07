@@ -20,8 +20,8 @@ mod prelude {
         Json,
     };
     pub use futures::Stream;
-    pub use serde::{Deserialize, Serialize};
     pub use serde_with::serde_as;
+    pub use serdev::Serialize;
     pub use service::network_checks::*;
 
     pub use crate::{

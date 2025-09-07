@@ -49,19 +49,19 @@ impl<D: FromStr> FromStr for PossiblyInfinite<D> {
     }
 }
 
-impl<D: Display> serde::Serialize for PossiblyInfinite<D> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+impl<D: Display> serdev::Serialize for PossiblyInfinite<D> {
+    fn serialize<S: serdev::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.to_string().serialize(serializer)
     }
 }
 
-impl<'de, Duration: FromStr> serde::Deserialize<'de> for PossiblyInfinite<Duration>
+impl<'de, Duration: FromStr> serdev::Deserialize<'de> for PossiblyInfinite<Duration>
 where
     Duration::Err: Display,
 {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: serdev::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::from_str(String::deserialize(deserializer)?.as_str())
-            .map_err(|err| serde::de::Error::custom(&err))
+            .map_err(|err| serdev::de::Error::custom(&err))
     }
 }
 
