@@ -8,7 +8,7 @@ use reqwest::{
     header::{HeaderMap, CONTENT_TYPE},
     Request, Response, StatusCode, Url,
 };
-use serde::{de::DeserializeOwned, Serialize, Serializer};
+use serdev::{de::DeserializeOwned, Serialize, Serializer};
 
 pub use sea_orm::DbErr;
 

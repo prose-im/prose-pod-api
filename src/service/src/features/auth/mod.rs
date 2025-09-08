@@ -64,8 +64,8 @@ pub mod password_reset_tokens {
         db: &impl sea_orm::ConnectionTrait,
         token: &PasswordResetToken,
     ) -> anyhow::Result<bool> {
-        use secrecy::ExposeSecret;
-        self::kv_store::delete(db, &token.expose_secret().as_str()).await
+        use secrecy::ExposeSecret as _;
+        self::kv_store::delete(db, &token.expose_secret()).await
     }
 
     #[tracing::instrument(skip(db), ret)]

@@ -165,7 +165,7 @@ pub async fn delete_all(
     skip_all,
     fields(namespace, key)
 )]
-pub async fn get_typed<T: for<'de> serde::Deserialize<'de>>(
+pub async fn get_typed<T: for<'de> serdev::Deserialize<'de>>(
     db: &impl ConnectionTrait,
     namespace: &str,
     key: &str,
@@ -190,7 +190,7 @@ pub async fn get_typed<T: for<'de> serde::Deserialize<'de>>(
     skip_all,
     fields(namespace, key)
 )]
-pub async fn set_typed<T: serde::Serialize>(
+pub async fn set_typed<T: serdev::Serialize>(
     db: &impl ConnectionTrait,
     namespace: &str,
     key: &str,
@@ -326,7 +326,7 @@ macro_rules! gen_scoped_kv_store {
 
             #[allow(unused)]
             #[inline]
-            pub async fn set_typed<T: serde::Serialize>(
+            pub async fn set_typed<T: serdev::Serialize>(
                 db: &impl ConnectionTrait,
                 key: &str,
                 value: T,
@@ -366,7 +366,7 @@ macro_rules! gen_scoped_kv_store {
 
             #[allow(unused)]
             #[inline]
-            pub async fn get_typed<T: for<'de> serde::Deserialize<'de>>(
+            pub async fn get_typed<T: for<'de> serdev::Deserialize<'de>>(
                 db: &impl ConnectionTrait,
                 key: &str,
             ) -> anyhow::Result<Option<T>> {

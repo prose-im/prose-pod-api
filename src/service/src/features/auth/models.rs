@@ -3,13 +3,16 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
+use serdev::Serialize;
+use validator::{Validate, ValidationError, ValidationErrors};
 
-use crate::{members::MemberRole, models::SerializableSecretString};
+use crate::{
+    auth::auth_controller::PASSWORD_RESET_TOKEN_LENGTH, members::MemberRole,
+    models::SerializableSecretString,
+};
 
 pub struct Credentials {
     pub jid: BareJid,
@@ -20,7 +23,8 @@ pub struct Credentials {
 #[derive(Debug)]
 pub struct AuthToken(pub SecretString);
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "test", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct UserInfo {
     pub jid: BareJid,
     pub role: MemberRole,
@@ -51,26 +55,54 @@ impl From<UserInfo> for Authenticated {
 /// but it'll do for now.
 pub struct IsAdmin;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
-#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromQueryResult)]
+#[derive(sea_orm::FromQueryResult)]
 pub struct PasswordResetKvRecord {
     pub key: PasswordResetToken,
     pub value: PasswordResetRecord,
 }
 
 /// The JSON value stored in the global key/value store.
-#[derive(serde::Serialize, serde::Deserialize, sea_orm::FromJsonQueryResult)]
+#[derive(Serialize, serdev::Deserialize)]
+#[derive(sea_orm::FromJsonQueryResult)]
 pub struct PasswordResetRecord {
     pub jid: BareJid,
     pub expires_at: DateTime<Utc>,
 }
 
+// MARK: Validation
+
+impl Validate for PasswordResetToken {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        use std::borrow::Cow;
+
+        let mut errors = ValidationErrors::new();
+
+        if self.0.len() != PASSWORD_RESET_TOKEN_LENGTH {
+            errors.add(
+                "__self__",
+                ValidationError::new("length").with_message(Cow::Owned(format!(
+                    "Invalid confirmation code: Expected length is {PASSWORD_RESET_TOKEN_LENGTH}."
+                ))),
+            );
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 // MARK: BOILERPLATE
 
-impl Deref for AuthToken {
+impl std::ops::Deref for AuthToken {
     type Target = SecretString;
 
     fn deref(&self) -> &Self::Target {
@@ -78,7 +110,7 @@ impl Deref for AuthToken {
     }
 }
 
-impl Deref for PasswordResetToken {
+impl std::ops::Deref for PasswordResetToken {
     type Target = SerializableSecretString;
 
     fn deref(&self) -> &Self::Target {

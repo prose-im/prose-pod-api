@@ -6,7 +6,9 @@
 use std::ops::Deref;
 
 use anyhow::Context as _;
-use prose_pod_api::features::{init::*, workspace_details::InitWorkspaceRequest};
+use prose_pod_api::features::{
+    auth::models::Password, init::*, workspace_details::InitWorkspaceRequest,
+};
 use service::{
     models::Url,
     workspace::{workspace_controller, Workspace},
@@ -135,7 +137,7 @@ async fn init_first_account(api: &TestServer, node: &JidNode, nickname: &String)
         .add_header(CONTENT_TYPE, "application/json")
         .json(&json!(InitFirstAccountRequest {
             username: node.to_owned(),
-            password: SecretString::from("test.password").into(),
+            password: Password::from("test.password"),
             nickname: nickname.to_owned(),
         }))
         .await

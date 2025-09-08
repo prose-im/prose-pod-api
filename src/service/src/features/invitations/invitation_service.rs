@@ -155,7 +155,7 @@ impl InvitationService {
                 // Use JID as password to make password predictable
                 invitation.jid.to_string().into()
             } else {
-                crate::auth::util::strong_random_password(32)
+                crate::auth::util::random_secret(32)
             };
             self.accept_by_token(
                 invitation.accept_token.into(),

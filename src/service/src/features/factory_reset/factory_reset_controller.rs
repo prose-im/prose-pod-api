@@ -21,6 +21,8 @@ use crate::util::either::Either;
 use crate::xmpp::{server_manager, ServerCtl};
 use crate::AppConfig;
 
+pub const FACTORY_RESET_CONFIRMATION_CODE_LENGTH: usize = 16;
+
 lazy_static! {
     static ref FACTORY_RESET_CONFIRMATION_CODE: RwLock<Option<String>> = RwLock::default();
 }
@@ -48,7 +50,7 @@ pub async fn get_confirmation_code(
     }
 
     // Generate a random 16-characters-long string.
-    let confirmation = crate::auth::util::strong_random_password(16)
+    let confirmation = crate::auth::util::random_secret(FACTORY_RESET_CONFIRMATION_CODE_LENGTH)
         .expose_secret()
         .to_owned();
 

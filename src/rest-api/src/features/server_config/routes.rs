@@ -13,6 +13,7 @@ use service::{
     server_config::{
         server_config_controller, PublicServerConfig, ServerConfig, ServerConfigManager, TlsProfile,
     },
+    xmpp::JidDomain,
     AppConfig, LinkedHashSet,
 };
 
@@ -159,7 +160,7 @@ server_config_routes!(
     federation_whitelist_enabled: bool
 );
 server_config_routes!(
-    federation_friendly_servers: LinkedHashSet<String>
+    federation_friendly_servers: LinkedHashSet<JidDomain>
 );
 
 // MARK: Prosody config (Lua)

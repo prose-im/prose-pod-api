@@ -3,19 +3,22 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use hickory_proto::rr::{
-    domain::Name as DomainName, rdata, RData, Record as HickoryRecord, RecordType,
-};
 use std::{
     net::{Ipv4Addr, Ipv6Addr},
     ops::Deref,
 };
 
-use serde::{Deserialize, Serialize};
+use hickory_proto::rr::{
+    domain::Name as DomainName, rdata, RData, Record as HickoryRecord, RecordType,
+};
+use serdev::Serialize;
 
 use crate::xmpp::{xmpp_client_domain, xmpp_server_domain};
 
-#[derive(Debug, Clone, Serialize, Deserialize, strum::EnumDiscriminants, Eq)]
+#[derive(Debug, Clone, Eq)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
+#[derive(strum::EnumDiscriminants)]
 #[strum_discriminants(derive(strum::EnumString, strum::IntoStaticStr))]
 #[serde(tag = "type")]
 pub enum DnsRecord {
@@ -228,7 +231,9 @@ impl<'a> From<&'a DnsRecord> for PartialDnsRecord<'a> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct DnsRecordWithStringRepr {
     #[serde(flatten)]
     pub inner: DnsRecord,
@@ -252,7 +257,9 @@ impl From<DnsRecord> for DnsRecordWithStringRepr {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct DnsSetupStep<Record> {
     /// The purpose of this step.
     ///

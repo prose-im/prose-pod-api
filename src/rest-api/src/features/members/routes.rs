@@ -16,7 +16,6 @@ use axum::{
 };
 use axum_extra::{either::Either, extract::Query};
 use futures::Stream;
-use serde::Deserialize;
 use service::{
     members::{member_controller, EnrichedMember, Member, MemberService},
     models::PaginationForm,
@@ -84,7 +83,8 @@ pub async fn head_members(
 
 // ENRICHING
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 pub struct JIDs {
     jids: Vec<BareJid>,
 }

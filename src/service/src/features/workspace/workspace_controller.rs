@@ -7,8 +7,10 @@ use anyhow::Context as _;
 use base64::{engine::general_purpose, Engine as _};
 use mime::Mime;
 use tracing::info;
+use validator::Validate;
 
 use crate::{
+    models::Color,
     util::{detect_image_mime_type, either::Either},
     xmpp::{xmpp_service::Avatar, VCard},
 };
@@ -56,13 +58,13 @@ pub async fn get_workspace(
 
 pub async fn get_workspace_accent_color(
     workspace_service: &WorkspaceService,
-) -> Result<Option<String>, GetWorkspaceError> {
+) -> Result<Option<Color>, GetWorkspaceError> {
     workspace_service.get_workspace_accent_color().await
 }
 pub async fn set_workspace_accent_color(
     workspace_service: &WorkspaceService,
-    accent_color: Option<String>,
-) -> Result<Option<String>, GetWorkspaceError> {
+    accent_color: Option<Color>,
+) -> Result<Option<Color>, GetWorkspaceError> {
     workspace_service
         .set_workspace_accent_color(accent_color)
         .await
@@ -119,11 +121,16 @@ pub enum SetWorkspaceIconError {
 
 // MARK: PATCH ONE
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct PatchWorkspaceDetailsRequest {
+    #[validate(length(min = 1, max = 48), non_control_character)]
     pub name: Option<String>,
+
     #[serde(default, deserialize_with = "crate::util::deserialize_some")]
-    pub accent_color: Option<Option<String>>,
+    #[validate(skip)]
+    pub accent_color: Option<Option<Color>>,
 }
 
 pub async fn patch_workspace(

@@ -172,7 +172,7 @@ pub fn server_defaults_federation_whitelist_enabled() -> bool {
 }
 
 /// Do not trust any other server by default.
-pub fn server_defaults_federation_friendly_servers() -> LinkedHashSet<String> {
+pub fn server_defaults_federation_friendly_servers() -> LinkedHashSet<JidDomain> {
     LinkedHashSet::default()
 }
 

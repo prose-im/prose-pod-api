@@ -6,19 +6,26 @@
 use axum::{extract::State, http::HeaderValue, Json};
 use service::{
     init::{InitFirstAccountForm, InitService},
-    members::{Member, MemberRepository, UnauthenticatedMemberService},
-    models::SerializableSecretString,
+    members::{Member, MemberRepository, UnauthenticatedMemberService, NICKNAME_MAX_LENGTH},
     xmpp::JidNode,
 };
+use validator::Validate;
 
-use crate::{error::prelude::*, responders::Created, AppState};
+use crate::{error::prelude::*, features::auth::models::Password, responders::Created, AppState};
 
 // MARK: INIT FIRST ACCOUNT
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
+#[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitFirstAccountRequest {
+    #[validate(skip)] // NOTE: Already parsed.
     pub username: JidNode,
-    pub password: SerializableSecretString,
+
+    #[validate(nested)]
+    pub password: Password,
+
+    #[validate(length(min = 1, max = NICKNAME_MAX_LENGTH), non_control_character)]
     pub nickname: String,
 }
 

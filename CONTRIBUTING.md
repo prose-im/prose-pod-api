@@ -88,6 +88,14 @@ To build the API in debug mode (e.g. to use predictable data generators), you ca
 task build-image -- [--platform=TARGET_PLATFORM] --profile=dev
 ```
 
+## Style
+
+(This is a work in progress)
+
+- Always parse user input (see [Parse all user input · Issue #164 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/164)). To make it easier, we use use [validator](https://crates.io/crates/validator) + [serdev](https://crates.io/crates/serdev) to validate during deserialization. When you need this (i.e. when some wrapped type needs validation), derive `serdev::Deserialize` explicitly and do not `use` it. This makes intent clearer and helps spotting forgotten `serde(validate = "Validate::validate")`. More generally, always make `serdev` explicit when it is used; otherwise (e.g. for serialization) you can `use` it.
+- Derive `Debug` everywhere.
+- Derive `Clone` only when cloning is cheap.
+
 [Step CI]: https://stepci.com/ "Step CI homepage"
 [Task]: https://stepci.com/ "Task"
 [GNU Make]: https://www.gnu.org/software/make/ "Make - GNU Project - Free Software Foundation"

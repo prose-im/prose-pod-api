@@ -9,7 +9,7 @@ use sea_orm::{
     Set,
 };
 use secrecy::{zeroize::Zeroize, ExposeSecret, SecretString, SerializableSecret};
-use serde::{Deserialize, Serialize};
+use serdev::{Deserialize, Serialize};
 
 use crate::{
     dependencies,
@@ -217,7 +217,9 @@ impl InvitationCreateForm {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
+#[derive(Serialize, Deserialize)]
+// NOTE: No need to validate as `Uuid` is parsed.
 #[repr(transparent)]
 pub struct InvitationToken(Uuid);
 impl Zeroize for InvitationToken {

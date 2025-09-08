@@ -7,11 +7,17 @@ pub mod pod_version_controller;
 mod pod_version_service;
 
 use iso8601_timestamp::Timestamp;
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 
 pub use pod_version_service::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Serialize, serdev::Deserialize)]
+// NOTE: Not parsed/validated because it comes from our Prosody module when
+//.  deserialized. Parsing would just cause unnecessary work here if we ever
+//   change the format on the Server. Maye we should still parse/validate it
+//   to catch errors earlier, but I (@RemiBardon) don’t want to do it now.
+// TODO: Parse/validate?
 pub struct VersionInfo {
     /// E.g. `"v0.4.0 (2025-01-01)"`
     pub version: String,

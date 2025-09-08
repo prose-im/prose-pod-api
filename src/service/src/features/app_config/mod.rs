@@ -8,6 +8,7 @@
 pub mod defaults;
 
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     net::IpAddr,
     path::{Path, PathBuf},
@@ -24,7 +25,7 @@ use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 pub use prosody_config::ProsodySettings as ProsodyConfig;
 use secrecy::SecretString;
-use serde::Deserialize;
+use validator::{Validate, ValidationError};
 
 use crate::{
     invitations::InvitationChannel,
@@ -53,38 +54,55 @@ lazy_static! {
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[validate(nest_all_fields)]
+#[serde(validate = "Validate::validate")]
 pub struct AppConfig {
     #[serde(default)]
     pub branding: BrandingConfig,
+
     #[serde(default)]
     pub notifiers: NotifiersConfig,
+
     #[serde(default)]
     pub log: LogConfig,
+
     pub pod: PodConfig,
+
     pub server: ServerConfig,
+
     #[serde(default)]
     pub api: ApiConfig,
+
     pub dashboard: DashboardConfig,
+
     #[serde(default)]
     pub auth: AuthConfig,
+
     #[serde(default)]
     pub public_contacts: PublicContactsConfig,
+
     /// Advanced config, use only if needed.
     #[serde(default)]
     pub prosody_ext: ProsodyExtConfig,
+
     /// Advanced config, use only if needed.
     #[serde(default)]
-    pub prosody: HashMap<String, ProsodyHostConfig>,
+    pub prosody: HashMap<DomainName, ProsodyHostConfig>,
+
     /// Advanced config, use only if needed.
     #[serde(default)]
     pub bootstrap: BootstrapConfig,
+
     /// Advanced config, use only if needed.
     #[serde(default)]
     pub service_accounts: ServiceAccountsConfig,
+
     /// Advanced config, use only if needed.
     #[serde(default, rename = "debug_use_at_your_own_risk")]
     pub debug: DebugConfig,
+
     /// Advanced config, use only if needed.
     #[cfg(debug_assertions)]
     #[serde(default)]
@@ -220,28 +238,40 @@ impl AppConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct LogConfig {
     #[serde(default = "defaults::log_level")]
     pub level: LogLevel,
+
     #[serde(default = "defaults::log_format")]
     pub format: LogFormat,
+
     #[serde(default = "defaults::log_timer")]
     pub timer: LogTimer,
+
     #[serde(default = "defaults::true_in_debug")]
     pub with_ansi: bool,
+
     #[serde(default = "defaults::true_in_debug")]
     pub with_file: bool,
+
     #[serde(default = "defaults::always_true")]
     pub with_level: bool,
+
     #[serde(default = "defaults::always_true")]
     pub with_target: bool,
+
     #[serde(default = "defaults::always_false")]
     pub with_thread_ids: bool,
+
     #[serde(default = "defaults::true_in_debug")]
     pub with_line_number: bool,
+
     #[serde(default = "defaults::always_false")]
     pub with_span_events: bool,
+
     #[serde(default = "defaults::true_in_debug")]
     pub with_thread_names: bool,
 }
@@ -297,21 +327,28 @@ pub enum LogTimer {
     Uptime,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ApiConfig {
     /// IP address to serve on.
     #[serde(default = "defaults::api_address")]
     pub address: IpAddr,
+
     /// Port to serve on.
     #[serde(default = "defaults::api_port")]
     pub port: u16,
+
     /// Some requests may take a long time to execute. Sometimes we support
     /// response timeouts, but don't want to hardcode a value.
     #[serde(default = "defaults::api_default_response_timeout")]
     pub default_response_timeout: Duration<TimeLike>,
+
     #[serde(default = "defaults::api_default_retry_interval")]
     pub default_retry_interval: Duration<TimeLike>,
+
     #[serde(default)]
+    #[validate(nested)]
     pub databases: DatabasesConfig,
 }
 
@@ -327,16 +364,23 @@ impl Default for ApiConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DashboardConfig {
     pub url: DashboardUrl,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ServiceAccountsConfig {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
+    #[validate(nested)]
     pub prose_pod_api: ServiceAccountConfig,
+
     #[serde(default = "defaults::service_accounts_prose_workspace")]
+    #[validate(nested)]
     pub prose_workspace: ServiceAccountConfig,
 }
 
@@ -349,12 +393,16 @@ impl Default for ServiceAccountsConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ServiceAccountConfig {
     pub xmpp_node: JidNode,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct BootstrapConfig {
     #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
     pub prose_pod_api_xmpp_password: SecretString,
@@ -369,50 +417,78 @@ impl Default for BootstrapConfig {
 }
 
 mod pod_config {
+    use std::{
+        borrow::Cow,
+        net::{Ipv4Addr, Ipv6Addr},
+    };
+
     use hickory_proto::rr::Name as DomainName;
-    use std::net::{Ipv4Addr, Ipv6Addr};
+    use serdev::Serialize;
+    use validator::{Validate, ValidationError, ValidationErrors};
 
     #[derive(Debug, Clone)]
-    #[derive(serde::Serialize, serde::Deserialize)]
+    #[derive(Validate, Serialize, serdev::Deserialize)]
+    #[serde(validate = "Validate::validate")]
     pub struct PodConfig {
+        #[validate(nested)]
         pub address: PodAddress,
     }
 
     #[derive(Debug, Clone, Default)]
-    #[derive(serdev::Serialize, serdev::Deserialize)]
-    #[serde(validate = "Self::validate")]
+    #[derive(Serialize, serdev::Deserialize)]
+    #[serde(validate = "Validate::validate")]
     pub struct PodAddress {
         pub domain: Option<DomainName>,
+
         pub ipv4: Option<Ipv4Addr>,
+
         pub ipv6: Option<Ipv6Addr>,
+
         /// NOTE: Here to prevent the creation of an invalid value.
         #[serde(skip)]
         _private: (),
     }
 
-    impl PodAddress {
-        fn validate(&self) -> Result<(), &'static str> {
+    impl Validate for PodAddress {
+        fn validate(&self) -> Result<(), ValidationErrors> {
             if (&self.domain, &self.ipv4, &self.ipv6) == (&None, &None, &None) {
-                return Err("The Pod address must contain at least an IPv4, an IPv6 or a domain.");
+                let mut errors = ValidationErrors::new();
+                errors.add(
+                    "domain",
+                    ValidationError::new("invalid_pod_address").with_message(Cow::Borrowed(
+                        "The Pod address must contain at least an IPv4, an IPv6 or a domain.",
+                    )),
+                );
+                Err(errors)
+            } else {
+                Ok(())
             }
-
-            Ok(())
         }
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ServerConfig {
     pub domain: JidDomain,
+
     #[serde(default = "defaults::server_local_hostname")]
+    #[validate(length(min = 1, max = 1024), non_control_character)]
     pub local_hostname: String,
+
     #[serde(default = "defaults::server_local_hostname_admin")]
+    #[validate(length(min = 1, max = 1024), non_control_character)]
     pub local_hostname_admin: String,
+
     #[serde(default = "defaults::server_http_port")]
     pub http_port: u16,
+
     #[serde(default = "defaults::server_log_level")]
     pub log_level: prosody_config::LogLevel,
+
     #[serde(default)]
+    #[validate(nested)]
     pub defaults: ServerDefaultsConfig,
 }
 
@@ -425,12 +501,16 @@ impl ServerConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct AuthConfig {
     #[serde(default = "defaults::auth_token_ttl")]
     pub token_ttl: iso8601_duration::Duration,
+
     #[serde(default = "defaults::auth_password_reset_token_ttl")]
     pub password_reset_token_ttl: iso8601_duration::Duration,
+
     #[serde(default = "defaults::auth_oauth2_registration_key")]
     pub oauth2_registration_key: SecretString,
 }
@@ -445,28 +525,40 @@ impl Default for AuthConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct PublicContactsConfig {
     #[serde(default)]
     pub default: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub abuse: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub admin: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub feedback: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub sales: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub security: LinkedHashSet<Url>,
+
     #[serde(default)]
     pub support: LinkedHashSet<Url>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
+// TODO: Add validation to `ProsodyConfig`?
 pub struct ProsodyHostConfig {
     #[serde(default)]
     pub defaults: Option<ProsodyConfig>,
+
     #[serde(default)]
     pub overrides: Option<ProsodyConfig>,
 }
@@ -474,14 +566,20 @@ pub struct ProsodyHostConfig {
 /// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
 ///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
 ///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ProsodyExtConfig {
     #[serde(default = "defaults::prosody_config_file_path")]
     pub config_file_path: PathBuf,
+
     /// NOTE: Those modules will be added to `modules_enabled` after everything
     ///   else has been applied (apart from dynamic overrides, which are always
     ///   applied last).
     #[serde(default)]
+    // NOTE: `ValidateRegex` is not implemented for `Vec`,
+    //   let’s ignore validating the character set.
+    #[validate(custom(function = validate_module_names_vec))]
     pub additional_modules_enabled: Vec<String>,
 }
 
@@ -494,21 +592,39 @@ impl Default for ProsodyExtConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct ServerDefaultsConfig {
     pub message_archive_enabled: bool,
+
     pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
+
     pub file_upload_allowed: bool,
+
+    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/107.
     pub file_storage_encryption_scheme: String,
+
     pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
+
     pub mfa_required: bool,
+
     pub tls_profile: TlsProfile,
+
     pub federation_enabled: bool,
+
     pub federation_whitelist_enabled: bool,
-    pub federation_friendly_servers: LinkedHashSet<String>,
+
+    pub federation_friendly_servers: LinkedHashSet<JidDomain>,
+
+    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
     pub settings_backup_interval: String,
+
+    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
     pub user_data_backup_interval: String,
+
     pub push_notification_with_body: bool,
+
     pub push_notification_with_sender: bool,
 }
 
@@ -535,11 +651,16 @@ impl Default for ServerDefaultsConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct BrandingConfig {
     #[serde(default)]
+    #[validate(length(min = 1, max = 48), non_control_character)]
     pub company_name: Option<String>,
+
     #[serde(default = "defaults::branding_api_app_name")]
+    #[validate(length(min = 1, max = 48), non_control_character)]
     pub api_app_name: String,
 }
 
@@ -558,11 +679,15 @@ impl Default for InvitationChannel {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct NotifiersConfig {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
     pub workspace_invitation_channel: InvitationChannel,
+
     #[serde(default)]
+    #[validate(nested)]
     pub email: Option<EmailNotifierConfig>,
 }
 
@@ -575,25 +700,34 @@ impl NotifiersConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct EmailNotifierConfig {
     pub pod_address: EmailAddress,
 
+    #[validate(length(min = 1, max = 1024))]
     pub smtp_host: String,
 
     #[serde(default = "defaults::smtp_port")]
     pub smtp_port: u16,
 
+    #[validate(length(min = 1, max = 1024))]
     pub smtp_username: Option<String>,
+    // NOTE: Not validated because of the Rust type system
+    //   but it’s a password so let’s ignore it.
     pub smtp_password: Option<SecretString>,
 
     #[serde(default = "defaults::smtp_encrypt")]
     pub smtp_encrypt: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DatabasesConfig {
     #[serde(default = "defaults::databases_main")]
+    #[validate(nested)]
     pub main: DatabaseConfig,
 }
 
@@ -606,32 +740,46 @@ impl Default for DatabasesConfig {
 }
 
 /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DatabaseConfig {
+    #[validate(length(min = 1, max = 1024))]
     pub url: String,
+
     #[serde(default)]
     pub min_connections: Option<u32>,
+
     #[serde(default = "defaults::database_max_connections")]
     pub max_connections: usize,
+
     #[serde(default = "defaults::database_connect_timeout")]
     pub connect_timeout: u64,
+
     #[serde(default)]
     pub idle_timeout: Option<u64>,
+
     #[serde(default)]
     pub sqlx_logging: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DebugConfig {
     #[serde(default = "defaults::true_in_debug")]
     pub log_config_at_startup: bool,
+
     #[serde(default = "defaults::true_in_debug")]
     pub detailed_error_responses: bool,
+
     #[serde(default = "defaults::always_false")]
     pub c2s_unencrypted: bool,
+
     // NOTE: Needs to be available in release builds so we can run the CI in
     //   `prose-pod-system` without having to start live notifiers.
     #[serde(default)]
+    #[validate(custom(function = validate_module_names_set))]
     pub skip_startup_actions: HashSet<String>,
 }
 
@@ -647,18 +795,22 @@ impl Default for DebugConfig {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DebugOnlyConfig {
     /// When automatically accepting invitations during testing, one might want to authenticate
     /// the created member. With this flag turned on, the member's password will be their JID.
     #[serde(default)]
     pub insecure_password_on_auto_accept_invitation: bool,
+
     #[serde(default)]
     pub dependency_modes: DependencyModesConfig,
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UuidDependencyMode {
     Normal,
@@ -673,7 +825,8 @@ impl Default for UuidDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(serdev::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifierDependencyMode {
     Live,
@@ -688,10 +841,13 @@ impl Default for NotifierDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct DependencyModesConfig {
     #[serde(default)]
     pub uuid: UuidDependencyMode,
+
     #[serde(default)]
     pub notifier: NotifierDependencyMode,
 }
@@ -707,7 +863,7 @@ pub struct MissingConfiguration(pub &'static str);
 // MARK: Dashboard URL
 
 #[derive(Debug, Clone)]
-#[derive(serdev::Serialize, serdev::Deserialize)]
+#[derive(serdev::Deserialize)]
 #[serde(validate = "Self::validate")]
 pub struct DashboardUrl(Url);
 
@@ -741,4 +897,35 @@ fn url_has_no_path(url: &Url) -> bool {
     // NOTE: `make_relative` when called on the same URL returns only the fragment and query.
     let relative_part = url.make_relative(&url);
     relative_part.is_some_and(|s| s.is_empty())
+}
+
+fn validate_module_names_set(vec: &HashSet<String>) -> Result<(), ValidationError> {
+    validate_module_names_iter(vec.iter())
+}
+fn validate_module_names_vec(vec: &Vec<String>) -> Result<(), ValidationError> {
+    validate_module_names_iter(vec.iter())
+}
+fn validate_module_names_iter<'a>(
+    iter: impl Iterator<Item = &'a String>,
+) -> Result<(), ValidationError> {
+    for module_name in iter {
+        if let Err(e) = validate_module_name(module_name) {
+            return Err(e);
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_module_name(str: &str) -> Result<(), ValidationError> {
+    fn is_valid_module_name_char(char: char) -> bool {
+        char.is_ascii_lowercase() || char.is_ascii_digit() || char == '_'
+    }
+
+    if str.chars().all(is_valid_module_name_char) {
+        Ok(())
+    } else {
+        Err(ValidationError::new("invalid_module_name")
+            .with_message(Cow::Owned(format!("'{str}' is not a valid module name"))))
+    }
 }

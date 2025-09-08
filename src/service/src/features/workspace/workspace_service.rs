@@ -11,6 +11,7 @@ use prose_xmpp::stanza::VCard4;
 use tracing::instrument;
 
 use crate::{
+    models::Color,
     secrets::SecretsStore,
     workspace::Workspace,
     xmpp::{xmpp_service::Avatar, XmppService, XmppServiceContext, XmppServiceInner},
@@ -91,7 +92,7 @@ impl WorkspaceService {
     }
 
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_accent_color(&self) -> Result<Option<String>, GetWorkspaceError> {
+    pub async fn get_workspace_accent_color(&self) -> Result<Option<Color>, GetWorkspaceError> {
         let vcard = self.get_workspace_vcard().await?;
         let workspace = Workspace::try_from(vcard)?;
         Ok(workspace.accent_color)
@@ -99,8 +100,8 @@ impl WorkspaceService {
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
     pub async fn set_workspace_accent_color(
         &self,
-        accent_color: Option<String>,
-    ) -> Result<Option<String>, GetWorkspaceError> {
+        accent_color: Option<Color>,
+    ) -> Result<Option<Color>, GetWorkspaceError> {
         let mut workspace = self.get_workspace().await?;
         workspace.accent_color = accent_color.clone();
         self.set_workspace_vcard(&workspace.into()).await?;

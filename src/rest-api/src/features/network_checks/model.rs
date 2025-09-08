@@ -6,13 +6,14 @@
 use std::fmt::Display;
 
 use axum::response::sse::Event;
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
+use serde_with::SerializeDisplay;
+use serdev::Serialize;
 use service::network_checks::*;
 
 // ===== JSON RESPONSES =====
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
 pub struct NetworkCheckResult {
     id: String,
     event: NetworkCheckEvent,
@@ -53,7 +54,7 @@ macro_rules! impl_network_check_result_from {
 // ===== EVENTS =====
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(SerializeDisplay, DeserializeFromStr)]
+#[derive(SerializeDisplay)]
 #[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "kebab-case")]
 pub enum NetworkCheckEvent {
@@ -73,7 +74,8 @@ macro_rules! impl_network_check_event_from {
     };
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
 pub struct CheckResultData<Status> {
     pub description: String,
     pub status: Status,

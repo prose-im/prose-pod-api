@@ -3,6 +3,8 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::borrow::Cow;
+
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::{from_extractor_with_state, Next};
@@ -10,16 +12,19 @@ use axum::response::Response;
 use axum::routing::*;
 use axum::Json;
 use axum_extra::either::Either;
-use serde::{Deserialize, Serialize};
+use serdev::Serialize;
 use service::auth::errors::InvalidCredentials;
 use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
-use service::factory_reset::factory_reset_controller;
-use service::models::SerializableSecretString;
+use service::factory_reset::factory_reset_controller::{
+    self, FACTORY_RESET_CONFIRMATION_CODE_LENGTH,
+};
 use service::secrets::SecretsStore;
 use service::xmpp::ServerCtl;
 use tracing::info;
+use validator::{Validate, ValidationError, ValidationErrors};
 
 use crate::error::Error;
+use crate::features::auth::models::Password;
 use crate::{AppState, MinimalAppState};
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
@@ -29,15 +34,19 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 struct FactoryResetConfirmation {
     pub confirmation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[derive(serdev::Deserialize)]
 #[serde(untagged)]
+#[serde(validate = "Validate::validate")]
 enum FactoryResetRequest {
-    PasswordConfirmation { password: SerializableSecretString },
+    PasswordConfirmation { password: Password },
     ConfirmationToken(FactoryResetConfirmation),
 }
 
@@ -59,7 +68,7 @@ async fn factory_reset_route(
         FactoryResetRequest::PasswordConfirmation { password } => {
             let credentials = Credentials {
                 jid: user_info.jid,
-                password: password.into_secret_string(),
+                password: password.into(),
             };
             match factory_reset_controller::get_confirmation_code(&credentials, auth_service).await
             {
@@ -105,6 +114,33 @@ pub async fn restart_guard(
             .unwrap();
     }
     next.run(request).await
+}
+
+// MARK: Validation
+
+impl Validate for FactoryResetConfirmation {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+
+        if self.confirmation.len() != FACTORY_RESET_CONFIRMATION_CODE_LENGTH {
+            errors.add("confirmation", ValidationError::new("length").with_message(Cow::Owned(format!("Invalid confirmation code: Expected length is {FACTORY_RESET_CONFIRMATION_CODE_LENGTH}."))));
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+impl Validate for FactoryResetRequest {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        match self {
+            Self::PasswordConfirmation { password } => password.validate(),
+            Self::ConfirmationToken(confirmation) => confirmation.validate(),
+        }
+    }
 }
 
 // BOILERPLATE

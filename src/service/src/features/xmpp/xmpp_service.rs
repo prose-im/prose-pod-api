@@ -11,8 +11,8 @@ use prose_xmpp::{
     BareJid, ConnectionError, RequestError,
 };
 use secrecy::SecretString;
-use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
+use serdev::Serialize;
 use tracing::{debug, instrument};
 
 pub use super::live_xmpp_service::LiveXmppService;
@@ -55,7 +55,9 @@ impl XmppServiceInner {
 pub type VCard = prose_xmpp::stanza::VCard4;
 
 #[serde_as]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct Avatar {
     pub base64: String,
     #[serde(rename = "type")]

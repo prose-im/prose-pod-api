@@ -7,13 +7,14 @@ use axum::{
     http::{header::LOCATION, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use serdev::Serialize;
 
 pub struct Created<T> {
     pub location: HeaderValue,
     pub body: T,
 }
 
-impl<T: serde::Serialize> IntoResponse for Created<T> {
+impl<T: Serialize> IntoResponse for Created<T> {
     fn into_response(self) -> Response {
         IntoResponse::into_response((
             StatusCode::CREATED,

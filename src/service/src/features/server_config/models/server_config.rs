@@ -3,9 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::str::FromStr;
+
 use linked_hash_set::LinkedHashSet;
 use prosody_config::ProsodySettings;
 use serde_with::{serde_as, DefaultOnError};
+use serdev::Serialize;
 
 use crate::{
     app_config::ServerDefaultsConfig,
@@ -13,14 +16,15 @@ use crate::{
     AppConfig,
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[derive(Serialize)]
 pub struct PublicServerConfig {
     pub domain: JidDomain,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[serde_with::skip_serializing_none]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig {
     pub domain: JidDomain,
@@ -34,7 +38,7 @@ pub struct ServerConfig {
     pub tls_profile: TlsProfile,
     pub federation_enabled: bool,
     pub federation_whitelist_enabled: bool,
-    pub federation_friendly_servers: LinkedHashSet<String>,
+    pub federation_friendly_servers: LinkedHashSet<JidDomain>,
     pub settings_backup_interval: String,
     pub user_data_backup_interval: String,
     pub push_notification_with_body: bool,
@@ -64,62 +68,78 @@ impl ServerConfig {
 /// by their default. See [ServerConfig] and [ServerConfig::new].
 #[serde_as]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[serde_with::skip_serializing_none]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DynamicServerConfig {
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub message_archive_enabled: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub message_archive_retention: Option<PossiblyInfinite<Duration<DateLike>>>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub file_upload_allowed: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub file_storage_encryption_scheme: Option<String>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub file_storage_retention: Option<PossiblyInfinite<Duration<DateLike>>>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub mfa_required: Option<bool>,
+
     /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub tls_profile: Option<TlsProfile>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub federation_enabled: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub federation_whitelist_enabled: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub federation_friendly_servers: Option<LinkedStringSet>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub settings_backup_interval: Option<String>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub user_data_backup_interval: Option<String>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub push_notification_with_body: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub push_notification_with_sender: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub c2s_unencrypted: Option<bool>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub prosody_overrides: Option<ProsodySettings>,
+
     #[serde_as(deserialize_as = "DefaultOnError")]
     #[serde(default)]
     pub prosody_overrides_raw: Option<Lua>,
+
     // NOTE: Do not use. Only there to support `skip_serializing_none` while
     //   still allowing full read from the key/value store.
     #[serde(default, rename = "domain", skip_serializing)]
@@ -174,7 +194,14 @@ impl ServerConfig {
             tls_profile: get_or_default!(tls_profile),
             federation_enabled: get_or_default!(federation_enabled),
             federation_whitelist_enabled: get_or_default!(federation_whitelist_enabled),
-            federation_friendly_servers: get_or_default!(deref federation_friendly_servers),
+            federation_friendly_servers: (dynamic_server_config.federation_friendly_servers)
+                .as_deref()
+                .map(|l| {
+                    l.iter()
+                        .flat_map(|domain| JidDomain::from_str(domain).ok())
+                        .collect()
+                })
+                .unwrap_or(federation_friendly_servers.to_owned()),
             settings_backup_interval: get_or_default!(deref settings_backup_interval),
             user_data_backup_interval: get_or_default!(deref user_data_backup_interval),
             push_notification_with_body: get_or_default!(push_notification_with_body),

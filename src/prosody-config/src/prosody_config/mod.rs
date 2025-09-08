@@ -13,8 +13,6 @@ use std::hash::Hash;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
-#[cfg(feature = "serde")]
-use ::serde::{Deserialize, Serialize};
 use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
 
@@ -83,7 +81,7 @@ impl ProsodyConfigSection {
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
-    derive(Serialize, Deserialize),
+    derive(serdev::Serialize, serdev::Deserialize),
     serde(deny_unknown_fields)
 )]
 pub struct ProsodySettings {
@@ -322,7 +320,7 @@ pub enum AuthenticationProvider {
 
 /// See <https://prosody.im/doc/storage>.
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
     #[cfg_attr(feature = "serde", serde(untagged))]
@@ -378,7 +376,7 @@ pub enum StorageBackend {
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
-    derive(Serialize, Deserialize)
+    derive(serdev::Serialize, serdev::Deserialize)
 )]
 pub struct SqlConfig {
     pub driver: Option<SqlDriver>,
@@ -440,7 +438,11 @@ pub enum Interface {
 
 /// See <https://prosody.im/doc/logging>.
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(untagged))]
+#[cfg_attr(
+    feature = "serde",
+    derive(serdev::Serialize, serdev::Deserialize),
+    serde(untagged)
+)]
 pub enum LogConfig {
     /// One value (file path, `"*syslog"` or `"*console"`).
     Raw(LogLevelValue),
@@ -503,7 +505,7 @@ pub enum LogLevel {
 /// }
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct SSLConfig {
     /// Required. Path to your certificate file, relative to your primary config file.
     ///
@@ -636,7 +638,7 @@ pub enum SslVerificationOption {
 /// and <https://docs.openssl.org/master/man3/SSL_CTX_set_options/#notes>.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SslOption(String);
 
@@ -700,7 +702,7 @@ pub enum ConnectionType {
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
-    derive(Serialize, Deserialize),
+    derive(serdev::Serialize, serdev::Deserialize),
     serde(deny_unknown_fields)
 )]
 pub struct ConnectionLimits {
@@ -710,7 +712,7 @@ pub struct ConnectionLimits {
 
 /// See <https://prosody.im/doc/modules/mod_server_contact_info#configuration>.
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct ContactInfo {
     pub abuse: Vec<String>,
     pub admin: Vec<String>,
@@ -789,7 +791,7 @@ pub enum TlsProfile {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct DiscoItem {
     pub address: String,
     pub name: String,

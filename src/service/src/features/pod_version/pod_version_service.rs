@@ -5,6 +5,8 @@
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
+use serdev::Serialize;
+
 use super::VersionInfo;
 
 pub use self::{live::LivePodVersionService, r#static::StaticPodVersionService};
@@ -28,7 +30,7 @@ impl Deref for PodVersionService {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize)]
 pub struct PodComponentsVersions {
     pub api: VersionInfo,
     pub server: VersionInfo,
