@@ -72,6 +72,7 @@ url = { workspace = true }
 url_serde = { workspace = true }
 urlencoding = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
+validator = { workspace = true, features = ["derive", "unic"] }
 xmpp-parsers = { workspace = true }
 
 [dev-dependencies]

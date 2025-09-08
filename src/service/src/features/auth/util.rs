@@ -6,8 +6,10 @@
 use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use secrecy::SecretString;
 
-/// Generates a very strong random password.
-pub fn strong_random_password(length: usize) -> SecretString {
+/// Generates a random secret string.
+pub fn random_secret(length: usize) -> SecretString {
+    assert!(length >= 16);
+
     // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
     thread_rng()
         .sample_iter(&Alphanumeric)

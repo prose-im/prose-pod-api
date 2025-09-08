@@ -19,18 +19,20 @@ use service::{
         InvitationAcceptForm, InvitationContact, InvitationId, InvitationService, InvitationToken,
         InvitationTokenType, InviteMemberForm,
     },
-    members::MemberRole,
+    members::{MemberRole, NICKNAME_MAX_LENGTH},
     models::{PaginationForm, SerializableSecretString},
     notifications::NotificationService,
     workspace::WorkspaceService,
     xmpp::JidNode,
     AppConfig,
 };
+use validator::Validate;
 
 #[cfg(debug_assertions)]
 use crate::AppState;
 use crate::{
     error::Error,
+    features::auth::models::Password,
     responders::{Created, Paginated},
 };
 
@@ -62,8 +64,10 @@ fn ok(invitation: WorkspaceInvitationDto, resource_uri: HeaderValue) -> InviteMe
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InviteMemberRequest {
     pub username: JidNode,
+
     #[serde(default)]
     pub pre_assigned_role: MemberRole,
+
     #[serde(flatten)]
     pub contact: InvitationContact,
 }
@@ -171,11 +175,15 @@ pub async fn get_invitations_route(
 
 // MARK: ACTIONS
 
-#[derive(serdev::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct AcceptWorkspaceInvitationRequest {
+    #[validate(length(min = 1, max = NICKNAME_MAX_LENGTH), non_control_character)]
     pub nickname: String,
-    pub password: SerializableSecretString,
+
+    #[validate(nested)]
+    pub password: Password,
 }
 
 pub async fn invitation_accept_route(

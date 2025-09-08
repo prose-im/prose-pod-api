@@ -219,7 +219,7 @@ impl InvitationCreateForm {
 
 #[derive(Clone)]
 #[derive(Serialize, Deserialize)]
-// NOTE: No need to validate, `Uuid` is already parsed.
+// NOTE: No need to validate as `Uuid` is parsed.
 #[repr(transparent)]
 pub struct InvitationToken(Uuid);
 impl Zeroize for InvitationToken {

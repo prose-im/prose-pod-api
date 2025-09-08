@@ -7,13 +7,18 @@ use axum::{extract::Path, Json};
 use base64::{engine::general_purpose, Engine as _};
 use serdev::Serialize;
 use service::{auth::UserInfo, models::BareJid, xmpp::XmppService};
+use validator::Validate;
 
 use crate::error::{self, Error};
 
 #[derive(Clone, Debug)]
-#[derive(serdev::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 pub struct SetMemberAvatarRequest {
-    // Base64 encoded image
+    /// Base64-encoded image.
+    ///
+    /// NOTE: Max size is 512kB (decoded).
+    #[validate(length(min = 1, max = 682_668), non_control_character)]
     image: String,
 }
 

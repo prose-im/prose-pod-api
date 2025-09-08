@@ -3,18 +3,25 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::str::FromStr as _;
+
+use hickory_proto::rr::Name as DomainName;
 use prosody_config::{utils::def, *};
 use sea_orm::ConnectionTrait;
 use tracing::{info, warn};
 
 use crate::{
-    app_config::{AppConfig, FILE_SHARE_HOST},
+    app_config::AppConfig,
     members::{self, MemberRepository},
     models::{self as db, EmailAddress},
     ProseDefault, ServerConfig,
 };
 
 use super::{prosody_config::util::*, ProsodyConfig};
+
+lazy_static::lazy_static! {
+    static ref FILE_SHARE_HOST: DomainName = DomainName::from_str(crate::app_config::FILE_SHARE_HOST).unwrap();
+}
 
 pub async fn prosody_config_from_db(
     db: &impl ConnectionTrait,
@@ -97,7 +104,12 @@ fn prosody_config_from_db_(
 
         if federation_whitelist_enabled {
             global_settings.enable_module("s2s_whitelist".to_owned());
-            global_settings.s2s_whitelist = Some(federation_friendly_servers);
+            global_settings.s2s_whitelist = Some(
+                federation_friendly_servers
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            );
         }
     }
 
@@ -141,13 +153,13 @@ fn prosody_config_from_db_(
         }
 
         if file_upload_allowed {
-            let host = FILE_SHARE_HOST;
+            let ref host = FILE_SHARE_HOST;
             (main_host_settings.disco_items.get_or_insert_default()).insert(DiscoItem {
-                address: host.to_owned(),
+                address: host.to_string(),
                 name: "HTTP File Upload".to_owned(),
             });
             (config.additional_sections).push(ProsodyConfigSection::Component {
-                hostname: host.to_owned(),
+                hostname: host.to_string(),
                 plugin: "http_file_share".to_owned(),
                 name: "HTTP File Upload".to_owned(),
                 settings: ProsodySettings {

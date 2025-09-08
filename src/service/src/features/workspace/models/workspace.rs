@@ -3,6 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::str::FromStr as _;
+
 use minidom::Element;
 use prose_xmpp::{
     ns,
@@ -10,14 +12,16 @@ use prose_xmpp::{
 };
 use serdev::Serialize;
 
-use crate::{workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar};
+use crate::{
+    models::Color, workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(Serialize)]
 pub struct Workspace {
     pub name: String,
     pub icon: Option<Avatar>,
-    pub accent_color: Option<String>,
+    pub accent_color: Option<Color>,
 }
 
 const ACCENT_COLOR_EXTENSION_KEY: &'static str = "x-accent-color";
@@ -37,7 +41,14 @@ impl TryFrom<VCard4> for Workspace {
                 .unknown_properties
                 .get(ACCENT_COLOR_EXTENSION_KEY)
                 .first()
-                .map(|v| v.text()),
+                .map(|v| {
+                    Color::from_str(&v.text())
+                        .inspect_err(|err| {
+                            tracing::warn!("Invalid accent color stored in workspace vCard: {err}")
+                        })
+                        .ok()
+                })
+                .flatten(),
         })
     }
 }
@@ -55,7 +66,7 @@ impl From<Workspace> for VCard4 {
             kind: Some(vcard4::Kind::Application),
             unknown_properties: vec![accent_color
                 .as_ref()
-                .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.as_str()))]
+                .map(|c| (ACCENT_COLOR_EXTENSION_KEY, c.to_string()))]
             .into_iter()
             .flatten()
             .map(|(k, v)| {

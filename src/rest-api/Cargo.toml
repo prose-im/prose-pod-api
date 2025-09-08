@@ -60,6 +60,7 @@ tower-http = { workspace = true, features = ["fs", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "std"] }
 uuid = { workspace = true }
+validator = { workspace = true }
 
 [dev-dependencies]
 axum-test = { workspace = true, features = ["pretty-assertions"] }

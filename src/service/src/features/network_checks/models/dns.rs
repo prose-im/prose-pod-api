@@ -258,7 +258,8 @@ impl From<DnsRecord> for DnsRecordWithStringRepr {
 }
 
 #[derive(Debug, Clone)]
-#[derive(Serialize, serdev::Deserialize)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct DnsSetupStep<Record> {
     /// The purpose of this step.
     ///

@@ -7,15 +7,19 @@ use axum::{extract::Path, Json};
 use serdev::Serialize;
 use service::{
     auth::UserInfo,
+    members::NICKNAME_MAX_LENGTH,
     xmpp::{BareJid, XmppService},
 };
+use validator::Validate;
 
 use crate::error::{self, Error};
 
 #[derive(Clone, Debug)]
-#[derive(serdev::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct SetMemberNicknameRequest {
+    #[validate(length(min = 1, max = NICKNAME_MAX_LENGTH), non_control_character)]
     pub nickname: String,
 }
 

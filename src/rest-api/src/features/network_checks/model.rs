@@ -75,7 +75,7 @@ macro_rules! impl_network_check_event_from {
 }
 
 #[derive(Debug)]
-#[derive(Serialize, serdev::Deserialize)]
+#[derive(Serialize)]
 pub struct CheckResultData<Status> {
     pub description: String,
     pub status: Status,

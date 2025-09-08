@@ -3,6 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+mod color;
 mod data;
 pub mod durations;
 mod email_address;
@@ -14,6 +15,7 @@ mod serializable_secret_string;
 mod url;
 pub mod xmpp;
 
+pub use color::*;
 pub use data::*;
 pub use durations::*;
 pub use email_address::*;

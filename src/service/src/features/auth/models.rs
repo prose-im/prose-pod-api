@@ -3,14 +3,16 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
 use serdev::Serialize;
+use validator::{Validate, ValidationError, ValidationErrors};
 
-use crate::{members::MemberRole, models::SerializableSecretString};
+use crate::{
+    auth::auth_controller::PASSWORD_RESET_TOKEN_LENGTH, members::MemberRole,
+    models::SerializableSecretString,
+};
 
 pub struct Credentials {
     pub jid: BareJid,
@@ -22,8 +24,7 @@ pub struct Credentials {
 pub struct AuthToken(pub SecretString);
 
 #[derive(Debug)]
-#[derive(serdev::Deserialize)]
-#[cfg_attr(feature = "test", derive(serdev::Serialize))]
+#[cfg_attr(feature = "test", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct UserInfo {
     pub jid: BareJid,
     pub role: MemberRole,
@@ -56,10 +57,10 @@ pub struct IsAdmin;
 
 #[derive(Debug, Clone)]
 #[derive(serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[repr(transparent)]
 pub struct PasswordResetToken(pub SerializableSecretString);
 
-#[derive(serdev::Deserialize)]
 #[derive(sea_orm::FromQueryResult)]
 pub struct PasswordResetKvRecord {
     pub key: PasswordResetToken,
@@ -74,9 +75,34 @@ pub struct PasswordResetRecord {
     pub expires_at: DateTime<Utc>,
 }
 
+// MARK: Validation
+
+impl Validate for PasswordResetToken {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        use std::borrow::Cow;
+
+        let mut errors = ValidationErrors::new();
+
+        if self.0.len() != PASSWORD_RESET_TOKEN_LENGTH {
+            errors.add(
+                "__self__",
+                ValidationError::new("length").with_message(Cow::Owned(format!(
+                    "Invalid confirmation code: Expected length is {PASSWORD_RESET_TOKEN_LENGTH}."
+                ))),
+            );
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 // MARK: BOILERPLATE
 
-impl Deref for AuthToken {
+impl std::ops::Deref for AuthToken {
     type Target = SecretString;
 
     fn deref(&self) -> &Self::Target {
@@ -84,7 +110,7 @@ impl Deref for AuthToken {
     }
 }
 
-impl Deref for PasswordResetToken {
+impl std::ops::Deref for PasswordResetToken {
     type Target = SerializableSecretString;
 
     fn deref(&self) -> &Self::Target {

@@ -3,8 +3,9 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{ops::Deref, str::FromStr};
+use std::{ops::Deref, str::FromStr as _};
 
+use hickory_proto::rr::Name as DomainName;
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
 use secrecy::ExposeSecret;
 use util::{ApplyDefaultsAndOverrides, WithDefaultsAndOverrides};
@@ -13,6 +14,10 @@ use utils::def;
 use crate::{app_config::PublicContactsConfig, AppConfig, ProseDefault, ServerConfig};
 
 use super::prosody_bootstrap_config;
+
+lazy_static::lazy_static! {
+    static ref GLOBAL_HOST: DomainName = DomainName::from_str("global").unwrap();
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProsodyConfig(pub(super) prosody_config::ProsodyConfig);
@@ -186,7 +191,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             upgrade_legacy_vcards: Some(true),
             ..Default::default()
         }
-        .with_defaults_and_overrides_from(app_config, "global")
+        .with_defaults_and_overrides_from(app_config, &GLOBAL_HOST)
         .shallow_merged_with(
             prosody_bootstrap_config::global_settings(),
             MergeStrategy::KeepSelf,
@@ -265,7 +270,8 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         ];
 
         for section in additional_sections.iter_mut() {
-            let ref host = section.hostname().clone();
+            let ref host =
+                (section.hostname().parse()).expect("Invalid hostname in Prosody section");
             section.apply_defaults_and_overrides_from(app_config, host);
         }
 
@@ -309,16 +315,25 @@ impl From<&PublicContactsConfig> for ContactInfo {
 
 // TODO: Remove unused code
 pub mod util {
+    use hickory_proto::rr::Name as DomainName;
     use prosody_config::*;
 
     use crate::AppConfig;
 
     pub(in crate::features::prosody) trait WithDefaultsAndOverrides {
-        fn with_defaults_and_overrides_from(self, app_config: &AppConfig, host: &str) -> Self;
+        fn with_defaults_and_overrides_from(
+            self,
+            app_config: &AppConfig,
+            host: &DomainName,
+        ) -> Self;
     }
 
     impl WithDefaultsAndOverrides for ProsodySettings {
-        fn with_defaults_and_overrides_from(self, app_config: &AppConfig, host: &str) -> Self {
+        fn with_defaults_and_overrides_from(
+            self,
+            app_config: &AppConfig,
+            host: &DomainName,
+        ) -> Self {
             if let Some(host_config) = app_config.prosody.get(host) {
                 let mut res = self;
                 if let Some(ref defaults) = host_config.defaults {
@@ -335,11 +350,11 @@ pub mod util {
     }
 
     pub(in crate::features::prosody) trait ApplyDefaultsAndOverrides {
-        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &str);
+        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &DomainName);
     }
 
     impl ApplyDefaultsAndOverrides for ProsodyConfigSection {
-        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &str) {
+        fn apply_defaults_and_overrides_from(&mut self, app_config: &AppConfig, host: &DomainName) {
             if let Some(host_config) = app_config.prosody.get(host) {
                 let settings = self.settings_mut();
                 if let Some(ref defaults) = host_config.defaults {

@@ -94,6 +94,12 @@ impl From<linked_hash_set::LinkedHashSet<String>> for LinkedStringSet {
     }
 }
 
+impl From<linked_hash_set::LinkedHashSet<crate::xmpp::JidDomain>> for LinkedStringSet {
+    fn from(value: linked_hash_set::LinkedHashSet<crate::xmpp::JidDomain>) -> Self {
+        Self(value.iter().map(ToString::to_string).collect())
+    }
+}
+
 impl std::fmt::Display for LinkedStringSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{")?;

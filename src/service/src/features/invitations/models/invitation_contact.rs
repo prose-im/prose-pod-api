@@ -9,7 +9,7 @@ use crate::models::EmailAddress;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
-// NOTE: No need to validate, `EmailAddress` is already parsed.
+// NOTE: No need to validate as `EmailAddress` is parsed.
 #[serde(tag = "channel", rename_all = "snake_case")]
 pub enum InvitationContact {
     Email { email_address: EmailAddress },

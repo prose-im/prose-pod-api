@@ -22,7 +22,7 @@ use super::{server_ctl, ServerCtl};
 /// Generates a very strong random password.
 fn strong_random_password() -> SecretString {
     // 256 characters because why not
-    crate::auth::util::strong_random_password(256)
+    crate::auth::util::random_secret(256)
 }
 
 async fn set_api_xmpp_password(

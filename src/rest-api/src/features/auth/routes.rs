@@ -20,10 +20,11 @@ use service::{
     util::either::Either,
     xmpp::{BareJid, ServerCtl},
 };
+use validator::Validate;
 
 use crate::{error::Error, AppState};
 
-use super::extractors::BasicAuth;
+use super::{extractors::BasicAuth, models::Password};
 
 // MARK: LOG IN
 
@@ -81,10 +82,12 @@ pub async fn request_password_reset_route(
     Ok(StatusCode::ACCEPTED)
 }
 
-#[derive(serdev::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {
-    pub password: SerializableSecretString,
+    #[validate(nested)]
+    pub password: Password,
 }
 
 pub async fn reset_password_route(
@@ -93,7 +96,6 @@ pub async fn reset_password_route(
     Path(ref token): Path<PasswordResetToken>,
     Json(ResetPasswordRequest { password }): Json<ResetPasswordRequest>,
 ) -> Result<(), Error> {
-    let password = password.into_secret_string();
     auth_controller::reset_password(db, server_ctl, token, &password).await?;
     Ok(())
 }

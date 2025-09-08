@@ -200,7 +200,7 @@ gen_field_routes!(
     federation_whitelist_enabled: bool
 );
 gen_field_routes!(
-    federation_friendly_servers: LinkedHashSet<String> as LinkedStringSet
+    federation_friendly_servers: LinkedHashSet<JidDomain> as LinkedStringSet
 );
 
 // MARK: Prosody config (Lua)

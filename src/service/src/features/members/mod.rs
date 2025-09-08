@@ -15,3 +15,5 @@ pub use member_repository::*;
 pub use member_service::*;
 pub use models::*;
 pub use unauthenticated_member_service::*;
+
+pub const NICKNAME_MAX_LENGTH: u64 = 48;

@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::xmpp::xmpp_service::Avatar;
+use service::{models::Color, xmpp::xmpp_service::Avatar};
 
 use super::prelude::*;
 
@@ -136,11 +136,12 @@ api_call_fn!(
 );
 
 #[given(expr = "the workspace accent color is {string}")]
-async fn given_workspace_accent_color(world: &mut TestWorld, name: String) -> Result<(), Error> {
+async fn given_workspace_accent_color(world: &mut TestWorld, color: String) -> Result<(), Error> {
+    let color = Color::from_str(&color).unwrap();
     world
         .workspace_service()
         .await
-        .set_workspace_accent_color(Some(name))
+        .set_workspace_accent_color(Some(color))
         .await?;
     Ok(())
 }
@@ -169,15 +170,13 @@ async fn then_response_workspace_accent_color(world: &mut TestWorld, accent_colo
 }
 
 #[then(expr = "the workspace accent color should be {string}")]
-async fn then_workspace_accent_color(
-    world: &mut TestWorld,
-    accent_color: String,
-) -> Result<(), Error> {
+async fn then_workspace_accent_color(world: &mut TestWorld, color: String) -> Result<(), Error> {
+    let color = Color::from_str(&color).unwrap();
     let workspace_accent_color = world
         .workspace_service()
         .await
         .get_workspace_accent_color()
         .await?;
-    assert_eq!(workspace_accent_color, Some(accent_color));
+    assert_eq!(workspace_accent_color, Some(color));
     Ok(())
 }

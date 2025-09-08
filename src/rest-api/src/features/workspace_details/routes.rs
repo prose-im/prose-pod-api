@@ -18,12 +18,14 @@ use axum_extra::{
 };
 use mime::Mime;
 use service::{
+    models::Color,
     workspace::{
         workspace_controller::{self, PatchWorkspaceDetailsRequest},
         Workspace, WorkspaceService,
     },
     xmpp::xmpp_service::Avatar,
 };
+use validator::Validate;
 
 use crate::{
     error::{Error, PreconditionRequired},
@@ -35,13 +37,17 @@ use super::WORKSPACE_ROUTE;
 // MARK: INIT WORKSPACE
 
 #[derive(Debug, Clone)]
-#[derive(serdev::Deserialize)]
+#[derive(Validate, serdev::Deserialize)]
+#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitWorkspaceRequest {
     /// Organization name.
+    #[validate(length(min = 1, max = 48), non_control_character)]
     pub name: String,
+
     /// Color used in the Prose workspace, as a HEX color (e.g. `#1972F5`).
-    pub accent_color: Option<String>,
+    #[validate(skip)] // NOTE: Already parsed.
+    pub accent_color: Option<Color>,
 }
 
 pub async fn init_workspace_route(
@@ -93,15 +99,15 @@ pub async fn is_workspace_initialized_route(
 
 pub async fn get_workspace_accent_color_route(
     ref workspace_service: WorkspaceService,
-) -> Result<Json<Option<String>>, Error> {
+) -> Result<Json<Option<Color>>, Error> {
     match workspace_controller::get_workspace_accent_color(workspace_service).await? {
         accent_color => Ok(Json(accent_color)),
     }
 }
 pub async fn set_workspace_accent_color_route(
     ref workspace_service: WorkspaceService,
-    Json(accent_color): Json<Option<String>>,
-) -> Result<Json<Option<String>>, Error> {
+    Json(accent_color): Json<Option<Color>>,
+) -> Result<Json<Option<Color>>, Error> {
     match workspace_controller::set_workspace_accent_color(workspace_service, accent_color).await? {
         accent_color => Ok(Json(accent_color)),
     }
