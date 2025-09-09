@@ -7,7 +7,6 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use serdev::Serialize;
 use service::{
     auth::UserInfo,
     members::{MemberRepository, MemberRole},
@@ -19,15 +18,6 @@ use crate::{
     AppState,
 };
 
-#[derive(Clone, Debug)]
-#[derive(Serialize)]
-pub struct SetMemberEmailAddressResponse {
-    jid: BareJid,
-    // Base64 encoded image
-    image: String,
-}
-
-/// Change a member's avatar.
 pub async fn set_member_email_address_route(
     State(AppState { ref db, .. }): State<AppState>,
     Path(jid): Path<BareJid>,
