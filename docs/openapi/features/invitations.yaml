@@ -219,11 +219,11 @@ components:
         - $ref: "#/components/schemas/InvitationRejectToken"
     InvitationAcceptToken:
       type: string
-      format: uuid
+      format: password
       example: 20edadc2-6c3b-4297-b92a-042f23249225
     InvitationRejectToken:
       type: string
-      format: uuid
+      format: password
       example: f2736e87-850e-4776-bb26-52c12a7d8bd8
     InvitationTokenType:
       type: string
