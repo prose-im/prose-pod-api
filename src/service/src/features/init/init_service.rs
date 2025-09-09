@@ -12,7 +12,8 @@ use tracing::instrument;
 
 use crate::{
     members::{
-        Member, MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError,
+        Member, MemberRepository, MemberRole, Nickname, UnauthenticatedMemberService,
+        UserCreateError,
     },
     models::JidNode,
     util::bare_jid_from_username,
@@ -60,7 +61,7 @@ impl InitService {
 pub struct InitFirstAccountForm {
     pub username: JidNode,
     pub password: SecretString,
-    pub nickname: String,
+    pub nickname: Nickname,
 }
 
 #[derive(Debug, thiserror::Error)]

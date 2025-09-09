@@ -40,6 +40,10 @@ components:
       type: string
       format: password
       example: HsV>dFx^P[m!jM+4W9wf5k:_t{8pSQ*?
+    EmailAddress:
+      type: string
+      format: email
+      example: alice@example.org
     DateTime:
       type: string
       format: date-time

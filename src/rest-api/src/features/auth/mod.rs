@@ -65,7 +65,7 @@ pub mod models {
             if self.0.len() < MINIMUM_PASSWORD_LENGTH {
                 let mut errors = ValidationErrors::new();
                 errors.add(
-                    "__self__",
+                    "__all__",
                     ValidationError::new("password_too_short")
                         .with_message(Cow::Borrowed("Password too short.")),
                 );

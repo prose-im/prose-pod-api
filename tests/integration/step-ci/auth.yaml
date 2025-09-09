@@ -16,13 +16,12 @@ tests:
         http:
           method: PUT
           url: /v1/members/${{ env.MEMBER_JIDS.0 }}/nickname
-          json:
-            nickname: ${{ internet.userName | fake }}
+          json: ${{ internet.userName | fake }}
           auth:
             bearer:
               token: ${{ captures.token }}
           check:
-            status: 200
+            status: /2../
   # See [prose-pod-api#150](https://github.com/prose-im/prose-pod-api/issues/150).
   badJidYieldsUnauthorized:
     name: Logging in with a bad JID yields 401 Unauthorized

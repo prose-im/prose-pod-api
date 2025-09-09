@@ -3,10 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::workspace::{
-    errors::*, workspace_controller::SetWorkspaceIconError, GetWorkspaceError,
-    WorkspaceServiceInitError,
-};
+use service::workspace::{errors::*, GetWorkspaceError, WorkspaceServiceInitError};
 
 use crate::error::prelude::*;
 
@@ -52,16 +49,6 @@ impl HttpApiError for GetWorkspaceError {
         match self {
             Self::WorkspaceNotInitialized(err) => err.recovery_suggestions(),
             Self::Internal(_) => vec![],
-        }
-    }
-}
-
-impl HttpApiError for SetWorkspaceIconError {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::BadImageDataFormat(_) => ErrorCode::BAD_REQUEST,
-            Self::UnsupportedMediaType => ErrorCode::UNSUPPORTED_MEDIA_TYPE,
-            Self::Internal(err) => err.code(),
         }
     }
 }

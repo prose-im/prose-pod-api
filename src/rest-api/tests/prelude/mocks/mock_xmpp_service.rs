@@ -4,9 +4,9 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use linked_hash_map::LinkedHashMap;
-use service::xmpp::{
-    xmpp_service::{Avatar, Error},
-    AvatarData, BareJid, VCard, XmppServiceContext, XmppServiceImpl,
+use service::{
+    models::{Avatar, AvatarOwned},
+    xmpp::{xmpp_service::Error, BareJid, VCard, XmppServiceContext, XmppServiceImpl},
 };
 use tracing::{instrument, trace};
 
@@ -25,7 +25,7 @@ pub struct MockXmppService {
 pub struct MockXmppServiceState {
     pub online: bool,
     pub vcards: LinkedHashMap<BareJid, VCard>,
-    pub avatars: LinkedHashMap<BareJid, Option<Avatar>>,
+    pub avatars: LinkedHashMap<BareJid, Option<AvatarOwned>>,
     pub online_members: HashSet<BareJid>,
 }
 
@@ -88,25 +88,19 @@ impl MockXmppService {
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<Avatar>, Error> {
+    pub fn get_avatar<'a>(&'a self, jid: &BareJid) -> Result<Option<AvatarOwned>, Error> {
         self.check_online()?;
 
         trace!("Getting {jid}'s avatar…");
-        Ok(self
-            .state
-            .read()
-            .expect("`MockXmppServiceState` lock poisonned")
-            .avatars
-            .get(jid)
-            .cloned()
-            .flatten())
+        let state = (self.state.read()).expect("`MockXmppServiceState` lock poisonned");
+        Ok(state.avatars.get(jid).cloned().flatten())
     }
     #[instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn set_avatar(&self, jid: &BareJid, avatar: Option<Avatar>) -> Result<(), Error> {
+    pub fn set_avatar<'a>(&self, jid: &BareJid, avatar: Option<Avatar<'a>>) -> Result<(), Error> {
         self.check_online()?;
 
         trace!("Setting {jid}'s avatar…");
@@ -114,7 +108,7 @@ impl MockXmppService {
             .write()
             .expect("`MockXmppServiceState` lock poisonned")
             .avatars
-            .insert(jid.to_owned(), avatar);
+            .insert(jid.to_owned(), avatar.map(|a| a.to_owned()));
         Ok(())
     }
 
@@ -143,27 +137,19 @@ impl XmppServiceImpl for MockXmppService {
         self.set_vcard(&ctx.bare_jid, vcard)
     }
 
-    async fn get_avatar(
-        &self,
+    async fn get_avatar<'a>(
+        &'a self,
         _ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<Avatar>, Error> {
+    ) -> Result<Option<AvatarOwned>, Error> {
         self.get_avatar(jid)
     }
-    async fn set_own_avatar(
+    async fn set_own_avatar<'a>(
         &self,
         ctx: &XmppServiceContext,
-        data: Vec<u8>,
-        mime: &mime::Mime,
+        avatar: Avatar<'a>,
     ) -> Result<(), Error> {
-        let avatar_data = AvatarData::Data(data.into_boxed_slice());
-        self.set_avatar(
-            &ctx.bare_jid,
-            Some(Avatar {
-                base64: avatar_data.base64().to_string(),
-                mime: mime.clone(),
-            }),
-        )
+        self.set_avatar(&ctx.bare_jid, Some(avatar))
     }
 
     async fn is_connected(&self, _ctx: &XmppServiceContext, jid: &BareJid) -> Result<bool, Error> {

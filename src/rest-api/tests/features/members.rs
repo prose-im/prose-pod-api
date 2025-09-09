@@ -6,10 +6,8 @@
 use service::{
     invitations::{InvitationContact, InviteMemberForm},
     members::{entities::member, *},
-    models::EmailAddress,
+    models::{Avatar, EmailAddress},
     sea_orm::QueryOrder as _,
-    util::detect_image_mime_type,
-    xmpp::xmpp_service::Avatar,
 };
 use urlencoding::encode;
 
@@ -90,13 +88,9 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
 #[given(expr = "{}'s avatar is {}")]
 async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    world.mock_xmpp_service.set_avatar(
-        &jid,
-        Some(Avatar {
-            mime: detect_image_mime_type(&base64).expect("Invalid base64"),
-            base64,
-        }),
-    )?;
+    world
+        .mock_xmpp_service
+        .set_avatar(&jid, Some(Avatar::try_from_base64_string(base64).unwrap()))?;
     Ok(())
 }
 
@@ -135,7 +129,7 @@ async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
     let res = accept_workspace_invitation(
         world.api(),
         invitation.accept_token,
-        username,
+        Nickname::from_string_unsafe(username),
         Some("password".into()),
     )
     .await;

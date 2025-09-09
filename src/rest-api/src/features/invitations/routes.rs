@@ -19,8 +19,8 @@ use service::{
         InvitationAcceptForm, InvitationContact, InvitationId, InvitationService, InvitationToken,
         InvitationTokenType, InviteMemberForm,
     },
-    members::{MemberRole, NICKNAME_MAX_LENGTH},
-    models::{PaginationForm, SerializableSecretString},
+    members::{MemberRole, Nickname},
+    models::PaginationForm,
     notifications::NotificationService,
     workspace::WorkspaceService,
     xmpp::JidNode,
@@ -179,8 +179,8 @@ pub async fn get_invitations_route(
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct AcceptWorkspaceInvitationRequest {
-    #[validate(length(min = 1, max = NICKNAME_MAX_LENGTH), non_control_character)]
-    pub nickname: String,
+    #[validate(nested)]
+    pub nickname: Nickname,
 
     #[validate(nested)]
     pub password: Password,

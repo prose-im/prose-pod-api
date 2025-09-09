@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, State},
+    response::NoContent,
     Json,
 };
 use service::{
@@ -23,12 +24,12 @@ pub async fn set_member_email_address_route(
     Path(jid): Path<BareJid>,
     caller: UserInfo,
     Json(email_address): Json<EmailAddress>,
-) -> Result<(), Error> {
+) -> Result<NoContent, Error> {
     if !(caller.jid == jid || caller.role == MemberRole::Admin) {
         Err(error::Forbidden("You cannot do that.".to_string()))?
     }
 
     MemberRepository::set_email_address(db, &jid, Some(email_address)).await?;
 
-    Ok(())
+    Ok(NoContent)
 }

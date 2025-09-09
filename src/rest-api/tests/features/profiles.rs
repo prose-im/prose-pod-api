@@ -3,7 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::profile::SetMemberNicknameRequest;
 use service::{
     prose_xmpp::stanza::vcard4::Nickname,
     xmpp::{XmppServiceContext, XmppServiceImpl},
@@ -37,7 +36,7 @@ api_call_fn!(
     set_member_nickname,
     PUT,
     "/v1/members/{jid}/nickname"; jid=BareJid,
-    payload: SetMemberNicknameRequest,
+    payload: String,
 );
 
 #[when(expr = "{} sets {}’s nickname to {string}")]
@@ -50,13 +49,7 @@ async fn when_set_nickname(
 ) -> Result<(), Error> {
     let token = world.token(&actor);
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_nickname(
-        world.api(),
-        token,
-        jid,
-        SetMemberNicknameRequest { nickname },
-    )
-    .await;
+    let res = set_member_nickname(world.api(), token, jid, nickname).await;
     world.result = Some(res.unwrap().into());
     Ok(())
 }

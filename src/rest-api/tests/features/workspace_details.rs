@@ -3,7 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{models::Color, xmpp::xmpp_service::Avatar};
+use base64::prelude::BASE64_STANDARD;
+use service::models::{Avatar, Color};
 
 use super::prelude::*;
 
@@ -69,17 +70,14 @@ api_call_fn!(
     set_workspace_icon,
     PUT, "/v1/workspace/icon",
     raw: String,
-    content_type: "image/png",
+    content_type: "text/plain",
 );
 
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
     world.mock_xmpp_service.set_avatar(
         &world.app_config().workspace_jid(),
-        Some(Avatar {
-            base64,
-            mime: mime::IMAGE_PNG,
-        }),
+        Some(Avatar::try_from_base64_string(base64).unwrap()),
     )?;
     Ok(())
 }
@@ -106,7 +104,7 @@ async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
 #[then(expr = "the returned workspace icon should be {string}")]
 async fn then_response_workspace_icon(world: &mut TestWorld, base64: String) {
     let res: Option<Avatar> = world.result().json();
-    assert_eq!(res.map(|a| a.base64), Some(base64));
+    assert_eq!(res.map(|icon| BASE64_STANDARD.encode(icon)), Some(base64));
 }
 
 #[then(expr = "the workspace icon should be {string}")]
@@ -116,7 +114,7 @@ async fn then_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<
         .await
         .get_workspace_icon()
         .await?
-        .map(|d| d.base64);
+        .map(|icon| BASE64_STANDARD.encode(icon));
     assert_eq!(workspace_icon, Some(png_data));
     Ok(())
 }

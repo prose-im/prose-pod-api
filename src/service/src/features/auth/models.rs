@@ -93,7 +93,7 @@ impl Validate for PasswordResetToken {
 
         if self.0.len() != PASSWORD_RESET_TOKEN_LENGTH {
             errors.add(
-                "__self__",
+                "__all__",
                 ValidationError::new("length").with_message(Cow::Owned(format!(
                     "Invalid confirmation code: Expected length is {PASSWORD_RESET_TOKEN_LENGTH}."
                 ))),
