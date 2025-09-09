@@ -45,6 +45,24 @@ tests:
               $.user_limit: 20
               $.expiry: null
               $.ttl_ms: null
+      - http:
+          method: GET
+          url: /v1/licensing/status
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            # NOTE: OpenAPI 3.1-style `type: [string, "null"]` not supported.
+            # schema: { $ref: openapi.json#/components/schemas/LicensingStatus }
+            jsonpath:
+              $.license.name: Testing (test.local.)
+              $.user_count:
+                - isNumber: true
+                - gte: 0
+              $.remaining_seats:
+                - isNumber: true
+                - gte: 0
       - name: Set old Community license
         http:
           method: PUT

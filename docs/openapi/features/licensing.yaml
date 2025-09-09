@@ -51,6 +51,20 @@ paths:
       "204": { description: Success }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_licensing_status:
+    tags: [Licensing]
+    summary: Get licensing status
+    operationId: get_licensing_status
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicensingStatus" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 
 components:
   schemas:
@@ -98,3 +112,22 @@ components:
           type: [integer, "null"]
           format: uint128
           example: 31556952000
+    LicensingStatus:
+      type: object
+      required:
+        - license
+        - user_count
+        - remaining_seats
+      properties:
+        license: { $ref: "#/components/schemas/LicenseDetails" }
+        user_count:
+          type: integer
+          format: uint64
+          example: 42
+        remaining_seats:
+          description: >-
+            Number of users until the limit is reached.
+            Will be `0` if `user_count > license.user_limit`.
+          type: integer
+          format: uint64
+          example: 58
