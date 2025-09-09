@@ -198,6 +198,8 @@ impl LicenseServiceImpl for LiveLicenseService {
             path = custom_license_path.display(),
         ))?;
 
+        self.installed_licenses.write().unwrap().push(license);
+
         Ok(())
     }
 }
