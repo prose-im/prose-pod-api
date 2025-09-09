@@ -1,4 +1,35 @@
 paths:
+  get_license:
+    tags: [Licensing]
+    summary: Get the currently installed license
+    operationId: get_license
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseDetails" }
+            examples:
+              business:
+                summary: Business license
+                value:
+                  id: ugvqNZ88lP4t3Xzpy3ztkbV+XuvQj8PkF2afntFY++wMXjTEhqgQ+UkF/kRtuZSwsSqcsPFGxEh0zHSNMdVwCg
+                  name: Business (crisp.chat.)
+                  user_limit: 100
+                  expiry: 2026-09-09T09:17:08Z
+                  ttl_ms: 31556952000
+              community:
+                summary: Community license
+                value:
+                  id: ZFUgQA3pxRLmCZvepHHEKj7ht2Sb/XIdGUBu+/KlFOIChBq81weAtbKNhrmd+B7Bn08BlSFF61Oco8AJ+Ak3CQ
+                  name: Community (0.17.3)
+                  user_limit: 20
+                  expiry: null
+                  ttl_ms: null
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_license:
     tags: [Licensing]
     summary: Update the license
@@ -8,19 +39,62 @@ paths:
     security:
       - BearerAuth: []
     requestBody:
-      description: Information about who to invite.
+      description: The license, base64-encoded or in binary directly.
       required: true
       content:
         text/plain:
-          schema:
-            type: string
-            format: byte
-            example: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+          schema: { $ref: "#/components/schemas/Base64License" }
+          example: { $ref: "#/components/schemas/Base64License/example" }
         application/octet-stream:
-          schema:
-            type: string
-            format: binary
+          schema: { $ref: "#/components/schemas/RawLicense" }
     responses:
       "204": { description: Success }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
+components:
+  schemas:
+    Base64License:
+      type: string
+      format: byte
+      example: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+    RawLicense:
+      type: string
+      format: binary
+    LicenseDetails:
+      type: object
+      required:
+        - id
+        - name
+        - user_limit
+        - expiry
+        - ttl_ms
+      properties:
+        id:
+          description: Base64-encoded license signature (no pad).
+          type: string
+          format: byte
+          example: ugvqNZ88lP4t3Xzpy3ztkKV+XuvQj8PkF2afntFY++wMXjTEhqgQ+UkF/kRtuZSwsSqcsPFGxEh0zHSNMdVwCg
+        name:
+          description: License name.
+          type: string
+          example: Business (crisp.chat.)
+        user_limit:
+          type: integer
+          format: uint32
+          example: 100
+        expiry:
+          description: License expiry.
+          type: [string, "null"]
+          format: time
+          example: 2026-09-09T09:17:08Z
+        ttl_ms:
+          description: |-
+            Milliseconds until the license expires.
+            License is expired if `ttl_ms` is `0`.
+
+            Beware, `ttl_ms` can be `null`! This happens when the license
+            has no expiry so don’t check for “falsy” values, only `0`!
+          type: [integer, "null"]
+          format: uint128
+          example: 31556952000

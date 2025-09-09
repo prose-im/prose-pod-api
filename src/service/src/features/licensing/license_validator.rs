@@ -46,6 +46,8 @@ pub enum ValidationError {
     Expired,
     #[error("Bad Pod API version.")]
     BadApiVersion,
+    #[error("No license name.")]
+    NoLicenseName,
     #[error("No user limit.")]
     NoUserLimit,
     #[error("Missing condition.")]
@@ -163,6 +165,7 @@ impl LicenseValidator {
 #[derive(Debug, Clone)]
 pub struct License {
     biscuit: Biscuit,
+    name: String,
     user_limit: u32,
     expiry: Option<SystemTime>,
 }
@@ -208,11 +211,13 @@ impl License {
         };
 
         // Pre-read some values from the Biscuit to speed up future checks.
+        let name = Self::name_(&biscuit)?;
         let user_limit = Self::user_limit_(&biscuit)?;
         let expiry = Self::expiry_(&biscuit)?;
 
         Ok(Self {
             biscuit,
+            name,
             user_limit,
             expiry,
         })
@@ -248,12 +253,16 @@ impl License {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn user_limit(&self) -> u32 {
         self.user_limit
     }
 
-    pub fn expiry(&self) -> Option<SystemTime> {
-        self.expiry
+    pub fn expiry(&self) -> &Option<SystemTime> {
+        &self.expiry
     }
 
     pub fn allows_user_count(&self, user_count: u32) -> bool {
@@ -264,6 +273,15 @@ impl License {
 // MARK: - Helpers
 
 impl License {
+    fn name_(biscuit: &Biscuit) -> Result<String, ValidationError> {
+        let mut authorizer = biscuit.authorizer()?;
+        let res: Vec<(String,)> = authorizer.query("data($name) <- name($name)")?;
+        match res.into_iter().next() {
+            Some((name,)) => Ok(name),
+            None => Err(ValidationError::NoLicenseName),
+        }
+    }
+
     fn user_limit_(biscuit: &Biscuit) -> Result<u32, ValidationError> {
         let mut authorizer = biscuit.authorizer()?;
         let res: Vec<(i64,)> = authorizer.query("data($limit) <- user_limit($limit)")?;

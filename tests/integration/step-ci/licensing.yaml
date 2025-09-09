@@ -16,7 +16,7 @@ tests:
   setLicense:
     name: Set license
     steps:
-      - name: Valid license
+      - name: Set valid license
         http:
           method: PUT
           url: /v1/licensing/license
@@ -29,7 +29,23 @@ tests:
           body: EoYCCpkBCgRuYW1lChVUZXN0aW5nICh0ZXN0LmxvY2FsLikKCnVzZXJfbGltaXQKC3Rlc3QubG9jYWwuCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgm4ypYkmgqVrcyZ6PjW99uPvyGsqF9UTcf9ZZnEmTqMsaQBYyyv4pNL1a9CUThuQ8Tgs3dKBfRZGL4qAgwRecwd+kV1o1OhcRignN1aizs5YwkcVglwoSwGTPK4/AEW2pdgwoASJCEkAwHqm+ZxYMts6yGpcodqcYUP1OQqvIX/ZnGFUA9ctlripc6BiHtHOzIc6WK5PX3xuS4JNbou92YwEKHkeQtiUM
           check:
             status: 204
-      - name: Old Community license
+      - name: Get valid license
+        http:
+          method: GET
+          url: /v1/licensing/license
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            # NOTE: OpenAPI 3.1-style `type: [string, "null"]` not supported.
+            # schema: { $ref: openapi.json#/components/schemas/LicenseDetails }
+            jsonpath:
+              $.name: Testing (test.local.)
+              $.user_limit: 20
+              $.expiry: null
+              $.ttl_ms: null
+      - name: Set old Community license
         http:
           method: PUT
           url: /v1/licensing/license
@@ -45,7 +61,7 @@ tests:
             jsonpath:
               $.error: bad_request
               $.message: "Bad request: Invalid base64 license: Bad Pod API version."
-      - name: Invalid domain
+      - name: Set invalid domain
         http:
           method: PUT
           url: /v1/licensing/license

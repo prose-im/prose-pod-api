@@ -158,6 +158,7 @@ paths:
   # ===== Licensing =====
   "/v1/licensing/license":
     put: { $ref: "features/licensing.yaml#/paths/set_license" }
+    get: { $ref: "features/licensing.yaml#/paths/get_license" }
 
   # ===== Administration =====
   "/":
