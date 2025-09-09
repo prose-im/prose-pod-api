@@ -5,7 +5,6 @@
 
 use anyhow::Context as _;
 use base64::{engine::general_purpose, Engine as _};
-use mime::Mime;
 use tracing::info;
 use validator::Validate;
 
@@ -89,11 +88,10 @@ pub async fn get_workspace_icon(
 }
 pub async fn set_workspace_icon(
     workspace_service: &WorkspaceService,
-    mime: Option<Mime>,
     base64: String,
 ) -> Result<Avatar, SetWorkspaceIconError> {
-    let mime = (detect_image_mime_type(&base64, mime))
-        .ok_or(SetWorkspaceIconError::UnsupportedMediaType)?;
+    let mime =
+        detect_image_mime_type(&base64).ok_or(SetWorkspaceIconError::UnsupportedMediaType)?;
 
     let icon_data = general_purpose::STANDARD.decode(&base64)?;
 

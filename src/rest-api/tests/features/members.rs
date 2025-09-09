@@ -93,7 +93,7 @@ async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Re
     world.mock_xmpp_service.set_avatar(
         &jid,
         Some(Avatar {
-            mime: detect_image_mime_type(&base64, None).expect("Invalid base64"),
+            mime: detect_image_mime_type(&base64).expect("Invalid base64"),
             base64,
         }),
     )?;

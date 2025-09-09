@@ -16,7 +16,6 @@ use axum_extra::{
     headers::{ContentType, IfMatch},
     TypedHeader,
 };
-use mime::Mime;
 use service::{
     models::Color,
     workspace::{
@@ -149,13 +148,10 @@ pub async fn get_workspace_icon_json_route(
 }
 pub async fn set_workspace_icon_route(
     ref workspace_service: WorkspaceService,
-    content_type: Option<TypedHeader<ContentType>>,
     headers: HeaderMap,
     base64: String,
 ) -> Result<Either<(TypedHeader<ContentType>, String), Json<Avatar>>, Error> {
-    let mime = content_type.map(|TypedHeader(ct)| Mime::from(ct));
-
-    let icon = workspace_controller::set_workspace_icon(workspace_service, mime, base64).await?;
+    let icon = workspace_controller::set_workspace_icon(workspace_service, base64).await?;
 
     let accept = headers.get(ACCEPT);
     if accept == Some(&HeaderValue::from_static("application/json")) {
