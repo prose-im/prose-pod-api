@@ -10,10 +10,7 @@ use sea_orm::DatabaseConnection;
 use secrecy::SecretString;
 use tracing::instrument;
 
-pub const PASSWORD_RESET_TOKEN_LENGTH: usize = 36;
-
 use crate::{
-    auth::util::random_secret,
     members::{entities::member, MemberRepository, MemberRole, MemberService},
     notifications::{notifier::email::EmailNotification, NotificationService},
     util::either::{Either, Either3},
@@ -98,9 +95,7 @@ pub async fn request_password_reset(
     }
 
     // Generate a random token.
-    // NOTE: We could generate a stronger token but it’s not valid for long and
-    //   needs to be URL-safe so a UUIDv4 is fine.
-    let token = PasswordResetToken::from(random_secret(PASSWORD_RESET_TOKEN_LENGTH));
+    let token = PasswordResetToken::new();
 
     // Compute token expiry.
     let password_reset_token_ttl = (app_config.auth.password_reset_token_ttl.to_std()).expect(

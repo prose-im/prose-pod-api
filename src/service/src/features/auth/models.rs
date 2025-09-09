@@ -10,9 +10,10 @@ use serdev::Serialize;
 use validator::{Validate, ValidationError, ValidationErrors};
 
 use crate::{
-    auth::auth_controller::PASSWORD_RESET_TOKEN_LENGTH, members::MemberRole,
-    models::SerializableSecretString,
+    auth::util::random_secret_url_safe, members::MemberRole, models::SerializableSecretString,
 };
+
+pub const PASSWORD_RESET_TOKEN_LENGTH: usize = 36;
 
 pub struct Credentials {
     pub jid: BareJid,
@@ -59,7 +60,14 @@ pub struct IsAdmin;
 #[derive(serdev::Deserialize)]
 #[serde(validate = "Validate::validate")]
 #[repr(transparent)]
-pub struct PasswordResetToken(pub SerializableSecretString);
+pub struct PasswordResetToken(SerializableSecretString);
+
+impl PasswordResetToken {
+    pub fn new() -> Self {
+        // NOTE: `random_secret`
+        Self::from(random_secret_url_safe(PASSWORD_RESET_TOKEN_LENGTH))
+    }
+}
 
 #[derive(sea_orm::FromQueryResult)]
 pub struct PasswordResetKvRecord {
