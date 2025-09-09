@@ -20,7 +20,7 @@ use service::{
         InvitationTokenType, InviteMemberForm,
     },
     members::{MemberRole, NICKNAME_MAX_LENGTH},
-    models::{PaginationForm, SerializableSecretString},
+    models::PaginationForm,
     notifications::NotificationService,
     workspace::WorkspaceService,
     xmpp::JidNode,
