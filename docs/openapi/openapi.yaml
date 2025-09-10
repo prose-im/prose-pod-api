@@ -150,6 +150,7 @@ paths:
     put: { $ref: "features/profile.yaml#/paths/set_member_avatar" }
   "/v1/members/{memberId}/email-address":
     put: { $ref: "features/profile.yaml#/paths/set_member_email_address" }
+    get: { $ref: "features/profile.yaml#/paths/get_member_email_address" }
   "/v1/members/{memberId}/nickname":
     put: { $ref: "features/profile.yaml#/paths/set_member_nickname" }
 

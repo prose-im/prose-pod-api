@@ -205,6 +205,29 @@ impl MemberRepository {
         Ok(Some(member_role))
     }
 
+    #[instrument(
+        name = "db::member::get_email_address", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err,
+    )]
+    pub async fn get_email_address(
+        db: &impl ConnectionTrait,
+        jid: &BareJid,
+    ) -> Result<Option<EmailAddress>, DbErr> {
+        let email = Entity::find_by_jid(jid)
+            .select_only()
+            .columns([Column::EmailAddress])
+            .into_tuple::<Option<EmailAddress>>()
+            .one(db)
+            .await?;
+
+        let Some(email) = email else {
+            return Err(DbErr::RecordNotFound(format!("No member with id '{jid}'.")));
+        };
+
+        Ok(email)
+    }
+
     /// Updates a member’s email address in database.
     ///
     /// Returns `None` if the email address hasn’t changed.
@@ -223,16 +246,7 @@ impl MemberRepository {
         jid: &BareJid,
         email_address: Option<EmailAddress>,
     ) -> Result<Option<Option<EmailAddress>>, DbErr> {
-        let old_email = Entity::find_by_jid(jid)
-            .select_only()
-            .columns([Column::EmailAddress])
-            .into_tuple::<Option<EmailAddress>>()
-            .one(db)
-            .await?;
-
-        let Some(old_email) = old_email else {
-            return Err(DbErr::RecordNotFound(format!("No member with id '{jid}'.")));
-        };
+        let old_email = Self::get_email_address(db, jid).await?;
 
         // Abort if no change needed.
         if old_email == email_address {
