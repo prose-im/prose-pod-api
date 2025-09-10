@@ -52,13 +52,8 @@ components:
       type: object
       required:
         - address
-        - dashboard_url
       properties:
         address: { $ref: "#/components/schemas/PodAddress" }
-        dashboard_url:
-          type: [string, "null"]
-          format: uri
-          example: https://admin.prose.crisp.chat/
     PodAddress:
       anyOf:
         - title: Domain
