@@ -1,8 +1,8 @@
 paths:
   get_members:
     tags: [Members]
-    summary: Get all members
-    description: Get all members in a paginated manner.
+    summary: Get members
+    description: Get all members or a subset matching a search query, in a paginated manner.
     operationId: get_members
     security:
       - BearerAuth: []
@@ -10,6 +10,16 @@ paths:
       - $ref: "../shared.yaml#/components/parameters/PageNumber"
       - $ref: "../shared.yaml#/components/parameters/PageSize"
       - $ref: "../shared.yaml#/components/parameters/Until"
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: |-
+          A search query. Currently, the search query is used to find members
+          with matching nicknames or JIDs.
+
+          Note that the query will be normalized (lowercased and with diacritics removed)
+          then split into unordered tokens in order to improve results.
     responses:
       "200":
         description: End of results
