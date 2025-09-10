@@ -6,6 +6,12 @@ config:
 env:
   $ref: "env.yaml#/env"
 
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+
 # WARN: Must be [Idempotent](https://developer.mozilla.org/en-US/docs/Glossary/Idempotent)!
 tests:
   getApiVersion:
@@ -41,6 +47,60 @@ tests:
           method: GET
           url: /v1/server/version
           check: { $ref: "#/components/checks/version" }
+  getPodConfig:
+    # NOTE: Getting the default Pod configuration ensures all keys are serialized correctly.
+    #   No need to check _every_ route since we use `serde` in a symetric manner.
+    #   This helps catch most mistakes already.
+    name: Get Pod config
+    steps:
+      - name: Get Pod config
+        http:
+          method: GET
+          url: /v1/pod/config
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              Content-Type: application/json
+            schema: { $ref: openapi.json#/components/schemas/PodConfig }
+  getServerConfig:
+    # NOTE: Getting the default Server configuration ensures all keys are serialized correctly.
+    #   No need to check _every_ route since we use `serde` in a symetric manner.
+    #   This helps catch most mistakes already.
+    name: Get Server config
+    steps:
+      - name: Get Server config
+        http:
+          method: GET
+          url: /v1/server/config
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              Content-Type: application/json
+            schema: { $ref: openapi.json#/components/schemas/ServerConfig }
+  getDashboardConfig:
+    # NOTE: Getting the default Dashboard configuration ensures all keys are serialized correctly.
+    #   No need to check _every_ route since we use `serde` in a symetric manner.
+    #   This helps catch most mistakes already.
+    name: Get Dashboard config
+    steps:
+      - name: Get Dashboard config
+        http:
+          method: GET
+          url: /v1/dashboard/config
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              Content-Type: application/json
+            schema: { $ref: openapi.json#/components/schemas/DashboardConfig }
 
 components:
   checks:
