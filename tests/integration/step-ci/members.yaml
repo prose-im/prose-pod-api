@@ -160,7 +160,7 @@ tests:
             bearer:
               token: ${{ captures.token }}
           check:
-            status: /2../
+            status: 200
             jsonpath:
               $.length: 1
       # NOTE: Check for https://github.com/prose-im/prose-pod-api/issues/238.
@@ -174,7 +174,24 @@ tests:
             bearer:
               token: ${{ captures.token }}
           check:
-            status: /2../
+            status: 200
+            jsonpath:
+              $.length: 0
+      - name: 2-letters search (multiple results)
+        http:
+          method: GET
+          url: /v1/members
+          params:
+            q: li
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            jsonpath:
+              $.length: 2
+              $.[0].jid: ${{ env.MEMBER_JIDS.0 }}
+              $.[1].jid: ${{ env.MEMBER_JIDS.4 }}
   headUnauthenticated:
     name: Get member count without authentication
     steps:
@@ -209,7 +226,8 @@ tests:
           check:
             status: 200
             jsonpath:
-              $.: ${{ env.MEMBER_EMAILS.0 }}
+              $: ${{ env.MEMBER_EMAILS.0 }}
+
 components:
   steps:
     add_member:
