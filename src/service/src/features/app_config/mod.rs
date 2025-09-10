@@ -25,6 +25,7 @@ use lazy_static::lazy_static;
 use linked_hash_set::LinkedHashSet;
 pub use prosody_config::ProsodySettings as ProsodyConfig;
 use secrecy::SecretString;
+use serdev::Serialize;
 use validator::{Validate, ValidationError};
 
 use crate::{
@@ -365,7 +366,7 @@ impl Default for ApiConfig {
 }
 
 #[derive(Debug, Clone)]
-#[derive(Validate, serdev::Deserialize)]
+#[derive(Validate, Serialize, serdev::Deserialize)]
 #[serde(validate = "Validate::validate")]
 pub struct DashboardConfig {
     pub url: DashboardUrl,
@@ -863,7 +864,7 @@ pub struct MissingConfiguration(pub &'static str);
 // MARK: Dashboard URL
 
 #[derive(Debug, Clone)]
-#[derive(serdev::Deserialize)]
+#[derive(Serialize, serdev::Deserialize)]
 #[serde(validate = "Self::validate")]
 pub struct DashboardUrl(Url);
 

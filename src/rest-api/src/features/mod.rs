@@ -9,6 +9,7 @@ pub mod startup_actions;
 
 pub mod api_docs;
 pub mod auth;
+pub mod dashboard_config;
 pub mod dns_setup;
 pub mod factory_reset;
 pub mod init;
@@ -31,6 +32,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
         .merge(api_docs::router())
         .merge(auth::router(app_state.clone()))
+        .merge(dashboard_config::router(app_state.clone()))
         .merge(dns_setup::router(app_state.clone()))
         .merge(factory_reset::router(app_state.clone()))
         .merge(init::router(app_state.clone()))

@@ -29,23 +29,7 @@ paths:
             schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  get_dashboard_url:
-    tags: ["Pod / Configuration"]
-    summary: Get Dashboard URL
-    description: Get the current address of the Prose Pod Dashboard.
-    operationId: get_dashboard_url
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PodConfig/properties/dashboard_url"
-              type: string
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
 components:
   schemas:
     PodConfig:
