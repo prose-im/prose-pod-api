@@ -67,13 +67,15 @@ components:
           properties:
             domain:
               type: string
-              example: crisp.chat
+              format: hostname
+              example: prose.crisp.chat
         - title: IPv4
           type: object
           required: [ipv4]
           properties:
             ipv4:
               type: string
+              format: ipv4
               example: 104.18.28.104
         - title: IPv6
           type: object
@@ -81,6 +83,5 @@ components:
           properties:
             ipv6:
               type: string
+              format: ipv6
               example: 2606:4700::6812:1c68
-      example:
-        hostname: crisp.chat.
