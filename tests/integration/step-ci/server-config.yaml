@@ -14,12 +14,12 @@ before:
 
 tests:
   getServerConfig:
-    # NOTE: Getting the default server configuration ensures all keys are serialized correctly.
+    # NOTE: Getting the default Server configuration ensures all keys are serialized correctly.
     #   No need to check _every_ route since we use `serde` in a symetric manner.
     #   This helps catch most mistakes already.
-    name: Get server config
+    name: Get Server config
     steps:
-      - name: Get server config
+      - name: Get Server config
         http:
           method: GET
           url: /v1/server/config
