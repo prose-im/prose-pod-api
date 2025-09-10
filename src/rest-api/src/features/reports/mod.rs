@@ -9,9 +9,12 @@ use axum::Json;
 use iso8601_timestamp::Timestamp;
 use serdev::Serialize;
 use service::{
-    licensing::licensing_controller::{self, GetLicenseResponse},
-    members::MemberRepository,
+    app_config::DashboardConfig,
+    licensing::licensing_controller::{self, GetLicensingStatusResponse},
     pod_version::{pod_version_controller, PodComponentsVersions},
+    server_config::{server_config_controller, PublicServerConfig},
+    workspace::{workspace_controller, Workspace, WorkspaceService},
+    AppConfig,
 };
 
 use crate::{error::Error, AppState};
@@ -25,33 +28,36 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 #[derive(Serialize)]
 pub struct GetCloudApiReportResponse {
     pub timestamp: Timestamp,
-    pub version: PodComponentsVersions,
-    pub license: GetLicenseResponse,
-    pub user_count: u64,
-    pub remaining_seats: u64,
+    pub versions: PodComponentsVersions,
+    pub licensing: GetLicensingStatusResponse,
+    pub workspace: Workspace,
+    pub server: PublicServerConfig,
+    pub dashboard: DashboardConfig,
 }
 
 async fn get_cloud_api_report(
     State(AppState {
+        ref db,
         ref license_service,
         ref pod_version_service,
-        ref db,
         ..
     }): State<AppState>,
+    ref app_config: AppConfig,
+    ref workspace_service: WorkspaceService,
 ) -> Result<Json<GetCloudApiReportResponse>, Error> {
     let timestamp = Timestamp::now_utc();
-    let version = pod_version_controller::get_pod_version(pod_version_service).await?;
-    let license = licensing_controller::get_license(license_service).await;
-    let user_count = MemberRepository::count(db).await?;
-    let remaining_seats = (license.user_limit as u64)
-        .checked_sub(user_count)
-        .unwrap_or_default();
+    let versions = pod_version_controller::get_pod_version(pod_version_service).await?;
+    let licensing = licensing_controller::get_licensing_status(license_service, db).await?;
+    let workspace = workspace_controller::get_workspace(workspace_service).await?;
+    let server = server_config_controller::get_server_config_public(app_config);
+    let dashboard = app_config.dashboard.clone();
 
     Ok(Json(GetCloudApiReportResponse {
         timestamp,
-        version,
-        license,
-        user_count,
-        remaining_seats,
+        versions,
+        licensing,
+        workspace,
+        server,
+        dashboard,
     }))
 }

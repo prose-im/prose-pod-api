@@ -9,9 +9,9 @@ use axum::middleware::from_extractor_with_state;
 use axum::routing::{get, MethodRouter};
 use axum::Json;
 use axum::{extract::State, response::NoContent};
-use serdev::Serialize;
-use service::licensing::licensing_controller::{self, GetLicenseResponse};
-use service::members::MemberRepository;
+use service::licensing::licensing_controller::{
+    self, GetLicenseResponse, GetLicensingStatusResponse,
+};
 use service::{auth::IsAdmin, licensing::License};
 
 use crate::{error::Error, AppState};
@@ -50,13 +50,6 @@ async fn set_license(
     }
 }
 
-#[derive(Serialize)]
-struct GetLicensingStatusResponse {
-    pub license: GetLicenseResponse,
-    pub user_count: u64,
-    pub remaining_seats: u64,
-}
-
 async fn get_licensing_status(
     State(AppState {
         ref license_service,
@@ -64,15 +57,8 @@ async fn get_licensing_status(
         ..
     }): State<AppState>,
 ) -> Result<Json<GetLicensingStatusResponse>, Error> {
-    let license = licensing_controller::get_license(license_service).await;
-    let user_count = MemberRepository::count(db).await?;
-    let remaining_seats = (license.user_limit as u64)
-        .checked_sub(user_count)
-        .unwrap_or_default();
-
-    Ok(Json(GetLicensingStatusResponse {
-        license,
-        user_count,
-        remaining_seats,
-    }))
+    match licensing_controller::get_licensing_status(license_service, db).await {
+        Ok(status) => Ok(Json(status)),
+        Err(err) => Err(Error::from(err)),
+    }
 }

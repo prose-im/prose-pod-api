@@ -3,8 +3,11 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use base64::Engine;
+use base64::{prelude::BASE64_STANDARD, Engine};
+use sea_orm::DatabaseConnection;
 use serdev::Serialize;
+
+use crate::members::MemberRepository;
 
 use super::LicenseService;
 
@@ -20,7 +23,6 @@ pub struct GetLicenseResponse {
 pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse {
     use std::time::SystemTime;
 
-    use base64::engine::general_purpose::STANDARD_NO_PAD as base64;
     use iso8601_timestamp::Timestamp as IsoTimestamp;
 
     let license = (license_service.installed_licenses().last())
@@ -30,7 +32,7 @@ pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse
     let expiry = license.expiry();
 
     GetLicenseResponse {
-        id: base64.encode(license.id()),
+        id: BASE64_STANDARD.encode(license.id()),
         name: license.name().to_owned(),
         user_limit: license.user_limit(),
         expiry: expiry.map(IsoTimestamp::from),
@@ -40,4 +42,28 @@ pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse
                 .as_millis()
         }),
     }
+}
+
+#[derive(Serialize)]
+pub struct GetLicensingStatusResponse {
+    pub license: GetLicenseResponse,
+    pub user_count: u64,
+    pub remaining_seats: u64,
+}
+
+pub async fn get_licensing_status(
+    license_service: &LicenseService,
+    db: &DatabaseConnection,
+) -> Result<GetLicensingStatusResponse, anyhow::Error> {
+    let license = self::get_license(license_service).await;
+    let user_count = MemberRepository::count(db).await?;
+    let remaining_seats = (license.user_limit as u64)
+        .checked_sub(user_count)
+        .unwrap_or_default();
+
+    Ok(GetLicensingStatusResponse {
+        license,
+        user_count,
+        remaining_seats,
+    })
 }

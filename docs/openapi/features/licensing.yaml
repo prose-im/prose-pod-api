@@ -100,7 +100,7 @@ components:
         expiry:
           description: License expiry.
           type: [string, "null"]
-          format: time
+          format: date-time
           example: 2026-09-09T09:17:08Z
         ttl_ms:
           description: |-

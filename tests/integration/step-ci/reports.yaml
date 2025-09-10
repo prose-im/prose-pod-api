@@ -34,18 +34,7 @@ tests:
           url: /v1/reports/cloud-api
           check:
             status: 200
-            # NOTE: OpenAPI 3.1-style `type: [string, "null"]` not supported.
-            # schema: { $ref: openapi.json#/components/schemas/CloudApiReport }
+            schema: { $ref: openapi.json#/components/schemas/CloudApiReport }
             jsonpath:
+              # Check milliseconds being present for API stability.
               $.timestamp: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/
-              $.license.name: Testing (test.local.)
-              $.version.api.version:
-                - isString: true
-              $.version.server.version:
-                - isString: true
-              $.user_count:
-                - isNumber: true
-                - gte: 0
-              $.remaining_seats:
-                - isNumber: true
-                - gte: 0

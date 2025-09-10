@@ -17,25 +17,18 @@ components:
       type: object
       required:
         - timestamp
-        - version
-        - license
-        - user_count
-        - remaining_seats
+        - versions
+        - licensing
+        - workspace
+        - server
+        - dashboard
       properties:
         timestamp:
           type: string
-          format: time
+          format: date-time
           example: 2025-09-09T11:33:47.123Z
-        version: { $ref: "version.yaml#/components/schemas/PodComponentsVersions" }
-        license: { $ref: "licensing.yaml#/components/schemas/LicenseDetails" }
-        user_count:
-          type: integer
-          format: uint64
-          example: 42
-        remaining_seats:
-          description: >-
-            Number of users until the limit is reached.
-            Will be `0` if `user_count > license.user_limit`.
-          type: integer
-          format: uint64
-          example: 58
+        versions: { $ref: "version.yaml#/components/schemas/PodComponentsVersions" }
+        licensing: { $ref: "licensing.yaml#/components/schemas/LicensingStatus" }
+        workspace: { $ref: "workspace.yaml#/components/schemas/Workspace" }
+        server: { $ref: "server-config.yaml#/components/schemas/PublicServerConfig" }
+        dashboard: { $ref: "dashboard-config.yaml#/components/schemas/DashboardConfig" }
