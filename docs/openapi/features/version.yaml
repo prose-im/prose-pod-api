@@ -71,9 +71,11 @@ components:
           example: v0.4.0
         build_date:
           type: [string, "null"]
+          format: date
           example: 2025-01-01
         build_timestamp:
           type: [string, "null"]
+          format: date-time
           example: 2025-01-01T22:12:00Z
         commit_short:
           type: [string, "null"]

@@ -1,0 +1,44 @@
+paths:
+  get_dashboard_config:
+    tags: ["Dashboard / Configuration"]
+    summary: Get Dashboard config
+    description: Get the current configuration of the Prose Pod Dashboard.
+    operationId: get_dashboard_config
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DashboardConfig" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_dashboard_url:
+    tags: ["Dashboard / Configuration"]
+    summary: Get Dashboard URL
+    description: Get the current address of the Prose Pod Dashboard.
+    operationId: get_dashboard_url
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DashboardConfig/properties/url"
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
+components:
+  schemas:
+    DashboardConfig:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://admin.prose.crisp.chat/

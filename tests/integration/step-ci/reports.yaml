@@ -1,0 +1,40 @@
+version: "1.1"
+name: Reports
+config:
+  http:
+    baseURL: ${{ env.host }}
+env:
+  $ref: "env.yaml#/env"
+
+# NOTE: Paths are relative to the directory from which `stepci` is ran.
+before:
+  name: "Before all (not a test)"
+  steps:
+    - $ref: "init.yaml#/components/steps/log_admin_in"
+    - name: Set valid license
+      http:
+        method: PUT
+        url: /v1/licensing/license
+        auth:
+          bearer:
+            token: ${{ captures.token }}
+        headers:
+          Content-Type: text/plain
+        # NOTE: Testing license with user limit at 20.
+        body: EoYCCpkBCgRuYW1lChVUZXN0aW5nICh0ZXN0LmxvY2FsLikKCnVzZXJfbGltaXQKC3Rlc3QubG9jYWwuCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgm4ypYkmgqVrcyZ6PjW99uPvyGsqF9UTcf9ZZnEmTqMsaQBYyyv4pNL1a9CUThuQ8Tgs3dKBfRZGL4qAgwRecwd+kV1o1OhcRignN1aizs5YwkcVglwoSwGTPK4/AEW2pdgwoASJCEkAwHqm+ZxYMts6yGpcodqcYUP1OQqvIX/ZnGFUA9ctlripc6BiHtHOzIc6WK5PX3xuS4JNbou92YwEKHkeQtiUM
+        check:
+          status: 204
+
+tests:
+  getCloudApiReport:
+    name: Get Cloud API report
+    steps:
+      - http:
+          method: GET
+          url: /v1/reports/cloud-api
+          check:
+            status: 200
+            schema: { $ref: openapi.json#/components/schemas/CloudApiReport }
+            jsonpath:
+              # Check milliseconds being present for API stability.
+              $.timestamp: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/

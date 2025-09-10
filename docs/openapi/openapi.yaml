@@ -97,8 +97,12 @@ paths:
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
-  "/v1/pod/config/dashboard-url":
-    get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }
+
+  # ===== Dashboard config =====
+  "/v1/dashboard/config":
+    get: { $ref: "features/dashboard-config.yaml#/paths/get_dashboard_config" }
+  "/v1/dashboard/config/url":
+    get: { $ref: "features/dashboard-config.yaml#/paths/get_dashboard_url" }
 
   # ===== Workspace =====
   "/v1/workspace":
@@ -164,6 +168,9 @@ paths:
   # ===== Licensing =====
   "/v1/licensing/license":
     put: { $ref: "features/licensing.yaml#/paths/set_license" }
+    get: { $ref: "features/licensing.yaml#/paths/get_license" }
+  "/v1/licensing/status":
+    get: { $ref: "features/licensing.yaml#/paths/get_licensing_status" }
 
   # ===== Administration =====
   "/":
@@ -178,6 +185,10 @@ paths:
     get: { $ref: "features/version.yaml#/paths/get_pod_version" }
   "/server/version":
     get: { $ref: "features/version.yaml#/paths/get_server_version" }
+
+  # ===== Reports =====
+  "/v1/reports/cloud-api":
+    get: { $ref: "features/reports.yaml#/paths/get_cloud_api_report" }
 
   # ===== Expert =====
   "/v1/server/config/prosody":

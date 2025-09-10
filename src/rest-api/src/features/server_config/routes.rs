@@ -29,7 +29,7 @@ pub mod server_config {
         ref app_config: AppConfig,
         is_admin: Option<IsAdmin>,
     ) -> Result<Either<Json<ServerConfig>, Json<PublicServerConfig>>, Error> {
-        match server_config_controller::get_server_config_public(db, app_config, is_admin).await? {
+        match server_config_controller::get_server_config(db, app_config, is_admin).await? {
             service::util::either::Either::E1(config) => Ok(Either::E1(Json(config))),
             service::util::either::Either::E2(config) => Ok(Either::E2(Json(config))),
         }
