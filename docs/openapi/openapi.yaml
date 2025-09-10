@@ -97,7 +97,7 @@ paths:
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_config" }
   "/v1/pod/config/address":
     get: { $ref: "features/pod-config.yaml#/paths/get_pod_address" }
-  "/v1/pod/config/dashboard-url":
+  "/v1/pod/config/dashboard/url":
     get: { $ref: "features/pod-config.yaml#/paths/get_dashboard_url" }
 
   # ===== Workspace =====
