@@ -13,14 +13,15 @@ use prose_xmpp::{
 use serdev::Serialize;
 
 use crate::{
-    models::Color, workspace::errors::WorkspaceNotInitialized, xmpp::xmpp_service::Avatar,
+    models::{AvatarOwned, Color},
+    workspace::errors::WorkspaceNotInitialized,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 #[derive(Serialize)]
 pub struct Workspace {
     pub name: String,
-    pub icon: Option<Avatar>,
+    pub icon: Option<AvatarOwned>,
     pub accent_color: Option<Color>,
 }
 
@@ -53,15 +54,17 @@ impl TryFrom<VCard4> for Workspace {
     }
 }
 
-impl From<Workspace> for VCard4 {
+impl From<&Workspace> for VCard4 {
     fn from(
         Workspace {
             name, accent_color, ..
-        }: Workspace,
+        }: &Workspace,
     ) -> Self {
         // NOTE: When updating this function, also update `WorkspaceService::migrate_workspace_vcard`.
         Self {
-            fn_: vec![vcard4::Fn_ { value: name }],
+            fn_: vec![vcard4::Fn_ {
+                value: name.clone(),
+            }],
             // See [RFC 6473: vCard KIND:application](https://www.rfc-editor.org/rfc/rfc6473.html).
             kind: Some(vcard4::Kind::Application),
             unknown_properties: vec![accent_color

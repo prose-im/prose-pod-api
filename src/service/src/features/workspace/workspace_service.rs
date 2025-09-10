@@ -11,10 +11,10 @@ use prose_xmpp::stanza::VCard4;
 use tracing::instrument;
 
 use crate::{
-    models::Color,
+    models::{Avatar, AvatarOwned, Color},
     secrets::SecretsStore,
     workspace::Workspace,
-    xmpp::{xmpp_service::Avatar, XmppService, XmppServiceContext, XmppServiceInner},
+    xmpp::{XmppService, XmppServiceContext, XmppServiceInner},
 };
 
 use super::errors::WorkspaceNotInitialized;
@@ -60,6 +60,7 @@ impl WorkspaceService {
         let vcard = self.get_workspace_vcard().await?;
         let mut workspace = Workspace::try_from(vcard)?;
         // Avatars are not stored in vCards.
+        // TODO: Avoid this copy?
         workspace.icon = self.get_workspace_icon().await?;
         Ok(workspace)
     }
@@ -87,7 +88,7 @@ impl WorkspaceService {
     pub async fn set_workspace_name(&self, name: String) -> Result<String, GetWorkspaceError> {
         let mut workspace = self.get_workspace().await?;
         workspace.name = name.clone();
-        self.set_workspace_vcard(&workspace.into()).await?;
+        self.set_workspace_vcard(&VCard4::from(&workspace)).await?;
         Ok(name)
     }
 
@@ -104,17 +105,17 @@ impl WorkspaceService {
     ) -> Result<Option<Color>, GetWorkspaceError> {
         let mut workspace = self.get_workspace().await?;
         workspace.accent_color = accent_color.clone();
-        self.set_workspace_vcard(&workspace.into()).await?;
+        self.set_workspace_vcard(&VCard4::from(&workspace)).await?;
         Ok(accent_color)
     }
 
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_icon(&self) -> anyhow::Result<Option<Avatar>> {
+    pub async fn get_workspace_icon(&self) -> anyhow::Result<Option<AvatarOwned>> {
         (self.xmpp_service.get_own_avatar().await).context("XmppService error")
     }
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_icon(&self, data: Vec<u8>, mime: &mime::Mime) -> anyhow::Result<()> {
-        (self.xmpp_service.set_own_avatar(data, mime).await).context("XmppService error")
+    pub async fn set_workspace_icon<'a>(&self, icon: Avatar<'a>) -> anyhow::Result<()> {
+        (self.xmpp_service.set_own_avatar(icon).await).context("XmppService error")
     }
 }
 
@@ -123,7 +124,7 @@ impl WorkspaceService {
         let mut vcard = self.get_workspace_vcard().await?;
 
         let workspace = self.get_workspace().await?;
-        let expected = VCard4::from(workspace);
+        let expected = VCard4::from(&workspace);
 
         if vcard.kind.is_none() {
             vcard.kind = expected.kind;

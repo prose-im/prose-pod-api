@@ -1,0 +1,80 @@
+paths:
+  set_member_avatar:
+    tags: [Members]
+    summary: Set member avatar
+    description: Set a member’s avatar.
+    operationId: set_member_avatar
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    requestBody:
+      description: Member avatar
+      content:
+        application/octet-stream:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarDataBinary" }
+        text/plain:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarDataBase64" }
+          example: { $ref: "members.yaml#/components/schemas/AvatarDataBase64/example" }
+        application/json:
+          schema: { $ref: "members.yaml#/components/schemas/AvatarDataBase64" }
+          example: { $ref: "members.yaml#/components/schemas/AvatarDataBase64/example" }
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_member_email_address:
+    tags: [Members]
+    summary: Set member email address
+    description: Set a member’s email address.
+    operationId: set_member_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_member_email_address:
+    tags: [Members]
+    summary: Get member email address
+    description: Get a member’s email address.
+    operationId: get_member_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "../shared.yaml#/components/schemas/EmailAddress"
+              type: [string, "null"]
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  set_member_nickname:
+    tags: [Members]
+    summary: Set member nickname
+    description: Set a member’s nickname.
+    operationId: set_member_nickname
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "members.yaml#/components/schemas/Nickname" }
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }

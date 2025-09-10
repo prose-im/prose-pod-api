@@ -4,32 +4,23 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::{
-    http::{
-        header::{ACCEPT, IF_MATCH},
-        HeaderMap, HeaderValue, StatusCode,
-    },
+    http::{header::IF_MATCH, HeaderValue, StatusCode},
     response::NoContent,
     Json,
 };
-use axum_extra::{
-    either::Either,
-    headers::{ContentType, IfMatch},
-    TypedHeader,
-};
-use mime::Mime;
+use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 use service::{
-    models::Color,
+    models::{Avatar, AvatarOwned, Color},
     workspace::{
         workspace_controller::{self, PatchWorkspaceDetailsRequest},
         Workspace, WorkspaceService,
     },
-    xmpp::xmpp_service::Avatar,
 };
 use validator::Validate;
 
 use crate::{
     error::{Error, PreconditionRequired},
-    responders::Created,
+    responders::{self, Created},
 };
 
 use super::WORKSPACE_ROUTE;
@@ -131,41 +122,25 @@ pub async fn set_workspace_name_route(
 
 pub async fn get_workspace_icon_route(
     ref workspace_service: WorkspaceService,
-) -> Result<Either<(TypedHeader<ContentType>, String), NoContent>, Error> {
+) -> Result<Either<responders::Avatar, NoContent>, Error> {
     match workspace_controller::get_workspace_icon(workspace_service).await? {
-        Some(icon) => Ok(Either::E1((
-            TypedHeader(ContentType::from(icon.mime)),
-            icon.base64,
-        ))),
+        Some(icon) => Ok(Either::E1(responders::Avatar(icon))),
         None => Ok(Either::E2(NoContent)),
     }
 }
 pub async fn get_workspace_icon_json_route(
     ref workspace_service: WorkspaceService,
-) -> Result<Json<Option<Avatar>>, Error> {
-    match workspace_service.get_workspace_icon().await? {
+) -> Result<Json<Option<AvatarOwned>>, Error> {
+    match workspace_controller::get_workspace_icon(workspace_service).await? {
         icon => Ok(Json(icon)),
     }
 }
-pub async fn set_workspace_icon_route(
+pub async fn set_workspace_icon_route<'a>(
     ref workspace_service: WorkspaceService,
-    content_type: Option<TypedHeader<ContentType>>,
-    headers: HeaderMap,
-    base64: String,
-) -> Result<Either<(TypedHeader<ContentType>, String), Json<Avatar>>, Error> {
-    let mime = content_type.map(|TypedHeader(ct)| Mime::from(ct));
-
-    let icon = workspace_controller::set_workspace_icon(workspace_service, mime, base64).await?;
-
-    let accept = headers.get(ACCEPT);
-    if accept == Some(&HeaderValue::from_static("application/json")) {
-        Ok(Either::E2(Json(icon)))
-    } else {
-        Ok(Either::E1((
-            TypedHeader(ContentType::from(icon.mime)),
-            icon.base64,
-        )))
-    }
+    icon: Avatar<'a>,
+) -> Result<NoContent, Error> {
+    workspace_controller::set_workspace_icon(workspace_service, icon).await?;
+    Ok(NoContent)
 }
 
 // MARK: PATCH ONE

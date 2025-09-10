@@ -144,9 +144,9 @@ ADMIN_TOKEN="${MEMBER_TOKENS[0]}"
 
 info 'Set Workspace icon'
 xh PUT :8080/v1/workspace/icon -q \
-	Content-Type:image/png \
-	--raw "$(cat "${AVATARS_DIR:?}"/prose.png | base64)" \
-	-A bearer -a "${ADMIN_TOKEN:?}"
+	Content-Type:application/octet-stream \
+	-A bearer -a "${ADMIN_TOKEN:?}" \
+	< "${AVATARS_DIR:?}"/prose.png
 
 update-member-n() {
 	local n="${1:?}"
@@ -155,7 +155,7 @@ update-member-n() {
 	if [ -n "${nickname?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s nickname"
 		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/nickname -q \
-			nickname="${nickname:?}" \
+			--raw "\"${nickname:?}\"" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 	else
 		warn "Member ${n:?} (${MEMBER_JIDS[n]}) has no nickname"
@@ -165,7 +165,7 @@ update-member-n() {
 	if [ -n "${avatar?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s avatar"
 		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/avatar -q \
-			image="${avatar:?}" \
+			--raw "\"${avatar:?}\"" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 		local avatar_set="$(xh GET :8080/v1/members/"${MEMBER_JIDS[n]}" -b \
 			-A bearer -a "${MEMBER_TOKENS[n]}" | jq -r '.avatar.base64')"

@@ -15,7 +15,9 @@ use tracing::{debug, error, warn};
 use crate::{
     dependencies,
     invitations::{Invitation, InvitationRepository},
-    members::{MemberRepository, MemberRole, UnauthenticatedMemberService, UserCreateError},
+    members::{
+        MemberRepository, MemberRole, Nickname, UnauthenticatedMemberService, UserCreateError,
+    },
     notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
     util::{bare_jid_from_username, either::Either3},
@@ -160,7 +162,7 @@ impl InvitationService {
             self.accept_by_token(
                 invitation.accept_token.into(),
                 InvitationAcceptForm {
-                    nickname: form.username.to_string(),
+                    nickname: form.username.into(),
                     password,
                 },
             )
@@ -332,7 +334,7 @@ impl InvitationService {
 
 #[derive(Debug)]
 pub struct InvitationAcceptForm {
-    pub nickname: String,
+    pub nickname: Nickname,
     pub password: SecretString,
 }
 

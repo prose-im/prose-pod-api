@@ -6,7 +6,7 @@
 use axum::{extract::State, http::HeaderValue, Json};
 use service::{
     init::{InitFirstAccountForm, InitService},
-    members::{Member, MemberRepository, UnauthenticatedMemberService, NICKNAME_MAX_LENGTH},
+    members::{Member, MemberRepository, Nickname, UnauthenticatedMemberService},
     xmpp::JidNode,
 };
 use validator::Validate;
@@ -25,8 +25,8 @@ pub struct InitFirstAccountRequest {
     #[validate(nested)]
     pub password: Password,
 
-    #[validate(length(min = 1, max = NICKNAME_MAX_LENGTH), non_control_character)]
-    pub nickname: String,
+    #[validate(nested)]
+    pub nickname: Nickname,
 }
 
 pub async fn init_first_account_route(

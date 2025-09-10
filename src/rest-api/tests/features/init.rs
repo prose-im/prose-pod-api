@@ -10,6 +10,7 @@ use prose_pod_api::features::{
     auth::models::Password, init::*, workspace_details::InitWorkspaceRequest,
 };
 use service::{
+    members::Nickname,
     models::Url,
     workspace::{workspace_controller, Workspace},
     xmpp::server_manager,
@@ -132,13 +133,13 @@ async fn init_workspace(api: &TestServer, name: &str) -> TestResponse {
         .await
 }
 
-async fn init_first_account(api: &TestServer, node: &JidNode, nickname: &String) -> TestResponse {
+async fn init_first_account(api: &TestServer, node: &JidNode, nickname: String) -> TestResponse {
     api.put("/v1/init/first-account")
         .add_header(CONTENT_TYPE, "application/json")
         .json(&json!(InitFirstAccountRequest {
             username: node.to_owned(),
             password: Password::from("test.password"),
-            nickname: nickname.to_owned(),
+            nickname: Nickname::from_string_unsafe(nickname),
         }))
         .await
 }
@@ -151,7 +152,7 @@ async fn when_init_workspace(world: &mut TestWorld, name: String) {
 
 #[when(expr = "someone creates the first account {string} with node {string}")]
 async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: JidNode) {
-    let res = init_first_account(world.api(), &node, &nickname).await;
+    let res = init_first_account(world.api(), &node, nickname).await;
     world.result = Some(res);
 }
 

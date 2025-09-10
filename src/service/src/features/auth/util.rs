@@ -7,6 +7,7 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use secrecy::SecretString;
 
 /// Generates a random secret string.
+#[inline]
 pub fn random_secret(length: usize) -> SecretString {
     assert!(length >= 16);
 
@@ -17,4 +18,11 @@ pub fn random_secret(length: usize) -> SecretString {
         .map(char::from)
         .collect::<String>()
         .into()
+}
+
+/// Generates a random secret string (URL-safe).
+#[inline]
+pub fn random_secret_url_safe(length: usize) -> SecretString {
+    // NOTE: Already URL-safe.
+    random_secret(length)
 }

@@ -4,15 +4,14 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::Context as _;
-use base64::{engine::general_purpose, Engine as _};
-use mime::Mime;
+use prose_xmpp::stanza::VCard4;
 use tracing::info;
 use validator::Validate;
 
 use crate::{
-    models::Color,
-    util::{detect_image_mime_type, either::Either},
-    xmpp::{xmpp_service::Avatar, VCard},
+    models::{Avatar, AvatarOwned, Color},
+    util::either::Either,
+    xmpp::VCard,
 };
 
 use super::{errors::WorkspaceAlreadyInitialized, GetWorkspaceError, Workspace, WorkspaceService};
@@ -31,7 +30,7 @@ pub async fn init_workspace(
     let workspace: Workspace = form.into();
 
     workspace_service
-        .set_workspace_vcard(&workspace.clone().into())
+        .set_workspace_vcard(&VCard4::from(&workspace))
         .await
         .context("Could not set workspace vCard")?;
 
@@ -82,41 +81,16 @@ pub async fn set_workspace_name(
     workspace_service.set_workspace_name(name).await
 }
 
-pub async fn get_workspace_icon(
-    workspace_service: &WorkspaceService,
-) -> anyhow::Result<Option<Avatar>, anyhow::Error> {
+pub async fn get_workspace_icon<'a>(
+    workspace_service: &'a WorkspaceService,
+) -> anyhow::Result<Option<AvatarOwned>, anyhow::Error> {
     workspace_service.get_workspace_icon().await
 }
-pub async fn set_workspace_icon(
+pub async fn set_workspace_icon<'a>(
     workspace_service: &WorkspaceService,
-    mime: Option<Mime>,
-    base64: String,
-) -> Result<Avatar, SetWorkspaceIconError> {
-    let mime = (detect_image_mime_type(&base64, mime))
-        .ok_or(SetWorkspaceIconError::UnsupportedMediaType)?;
-
-    let icon_data = general_purpose::STANDARD.decode(&base64)?;
-
-    (workspace_service.set_workspace_icon(icon_data, &mime).await)?;
-
-    Ok(Avatar { base64, mime })
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SetWorkspaceIconError {
-    #[error("Image data should be Base64-encoded. Error: {0}")]
-    BadImageDataFormat(#[from] base64::DecodeError),
-    #[error("Unsupported media type. Supported: {}.",
-        [
-            mime::IMAGE_PNG.to_string(),
-            mime::IMAGE_GIF.to_string(),
-            mime::IMAGE_JPEG.to_string(),
-        ]
-        .join(", ")
-    )]
-    UnsupportedMediaType,
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
+    icon: Avatar<'a>,
+) -> anyhow::Result<()> {
+    workspace_service.set_workspace_icon(icon).await
 }
 
 // MARK: PATCH ONE
@@ -146,7 +120,7 @@ pub async fn patch_workspace(
         workspace.accent_color = accent_color
     }
 
-    let vcard = VCard::from(workspace.clone());
+    let vcard = VCard::from(&workspace);
     workspace_service.set_workspace_vcard(&vcard).await?;
 
     Ok(workspace)

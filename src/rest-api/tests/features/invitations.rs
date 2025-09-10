@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::features::invitations::*;
-use service::invitations::*;
+use service::{invitations::*, members::Nickname};
 
 use super::prelude::*;
 
@@ -62,13 +62,13 @@ async fn get_workspace_invitation_by_token(
 pub(super) async fn accept_workspace_invitation(
     api: &TestServer,
     token: Uuid,
-    nickname: String,
+    nickname: Nickname,
     password: Option<SecretString>,
 ) -> TestResponse {
     api.put(&format!("/v1/invitation-tokens/{token}/accept"))
         .add_header(CONTENT_TYPE, "application/json")
         .json(&json!(AcceptWorkspaceInvitationRequest {
-            nickname: nickname,
+            nickname,
             password: password.unwrap_or("test".to_string().into()).into(),
         }))
         .add_header(ACCEPT, "application/json")
@@ -351,7 +351,7 @@ async fn when_invited_accepts_invitation(
     let res = accept_workspace_invitation(
         world.api(),
         invitation.accept_token,
-        email_address.0.local_part().to_string(),
+        email_address.0.into(),
         None,
     )
     .await;
@@ -365,6 +365,7 @@ async fn when_invited_accepts_invitation_with_nickname(
     nickname: String,
 ) {
     let invitation = world.workspace_invitation(&email_address.0);
+    let nickname = Nickname::from_string_unsafe(nickname);
     let res =
         accept_workspace_invitation(world.api(), invitation.accept_token, nickname, None).await;
     world.result = Some(res.into());
@@ -378,7 +379,7 @@ async fn when_invited_uses_old_accept_link(
     let res = accept_workspace_invitation(
         world.api(),
         world.previous_workspace_invitation_accept_token(&email_address),
-        email_address.0.local_part().to_string(),
+        email_address.0.into(),
         None,
     )
     .await;

@@ -78,12 +78,12 @@ components:
         token:
           title: An authentication token
           type: string
-          format: jwt
+          format: password
           example: eyJhbGciOiJIUzI1NiJ9.eyJqaWQiOiJleGFtcGxlQHByb3NlLm9yZy5sb2NhbCJ9.y88lyu9q0dFx9zYxllJo3XUtNnyc3Z_ad3w1hsfTJQ0
     PasswordResetToken:
       type: string
-      format: uuid
-      example: e52300f9-6a0a-4bab-9ed2-eb30f6de888d
+      format: password
+      example: GjRli65Gkbbzrxf4YhzjnYdfZS2B2PlqP9cB
     ResetPasswordRequest:
       type: object
       required:

@@ -5,7 +5,6 @@
 
 use std::{str::FromStr as _, sync::Arc};
 
-use mime::Mime;
 use prose_xmpp::{
     mods::{self, AvatarData},
     stanza::avatar::{self, ImageId},
@@ -16,9 +15,10 @@ use tracing::{debug, trace};
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::{
-    models::jid::ResourcePart,
+    models::{jid::ResourcePart, Avatar, AvatarOwned},
     prosody::ProsodyRest,
-    xmpp::{xmpp_service::Avatar, VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
+    util::detect_image_media_type,
+    xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
     AppConfig,
 };
 
@@ -125,40 +125,42 @@ impl XmppServiceImpl for LiveXmppService {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<Avatar>, XmppServiceError> {
+    ) -> Result<Option<AvatarOwned>, XmppServiceError> {
         let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx).await? else {
             return Ok(None);
         };
-        let image_id = avatar_metadata.id;
-        let mime = Mime::from_str(&avatar_metadata.r#type)
-            .map_err(|e| XmppServiceError::Other(format!("Invalid MIME type: {e}")))?;
 
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
-        let avatar = profile
+        let avatar_data = profile
             .load_avatar_image(
                 jid.to_owned(),
-                &Sha1HexAttribute::from_str(&image_id.as_ref()).unwrap(),
+                &Sha1HexAttribute::from_str(avatar_metadata.id.as_ref()).unwrap(),
             )
             .await?;
 
-        Ok(avatar.map(|data| Avatar {
-            base64: data.base64().to_string(),
-            mime,
-        }))
+        let Some(avatar_data) = avatar_data else {
+            return Ok(None);
+        };
+
+        let avatar = Avatar::try_from(avatar_data)?;
+
+        Ok(Some(avatar.to_owned()))
     }
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
-    async fn set_own_avatar(
+    async fn set_own_avatar<'a>(
         &self,
         ctx: &XmppServiceContext,
-        data: Vec<u8>,
-        mime: &Mime,
+        avatar: Avatar<'a>,
     ) -> Result<(), XmppServiceError> {
+        let mime = detect_image_media_type(&avatar)
+            .ok_or(XmppServiceError::Other("Unsupported MIME type.".to_owned()))?;
+
         let xmpp_client = self.xmpp_client(ctx).await?;
         let profile = xmpp_client.get_mod::<mods::Profile>();
 
-        let image_data_len = data.len();
-        let image_data = AvatarData::Data(data.into_boxed_slice());
+        let image_data_len = avatar.len();
+        let image_data = AvatarData::Data(avatar.to_vec().into_boxed_slice());
         let checksum: ImageId = image_data
             .generate_sha1_checksum()
             .map_err(|err| {

@@ -14,8 +14,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
+    models::AvatarOwned,
     util::{unaccent, Cache, ConcurrentTaskRunner},
-    xmpp::{xmpp_service::Avatar, BareJid, ServerCtl, ServerCtlError, XmppService},
+    xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
 };
 
 use super::{entities::member, Member, MemberRepository, MemberRole};
@@ -35,7 +36,7 @@ lazy_static! {
     static ref CACHE_TTL: Duration = Duration::from_secs(2 * 60);
 
     static ref VCARDS_DATA_CACHE: Cache<BareJid, Option<VCardData>> = Cache::new(*CACHE_TTL);
-    static ref AVATARS_CACHE: Cache<BareJid, Option<Avatar>> = Cache::new(*CACHE_TTL);
+    static ref AVATARS_CACHE: Cache<BareJid, Option<AvatarOwned>> = Cache::new(*CACHE_TTL);
     static ref ONLINE_STATUSES_CACHE: Cache<BareJid, Option<bool>> = Cache::new(*CACHE_TTL);
 }
 
@@ -355,7 +356,7 @@ impl MemberService {
                         })
                         .instrument(trace_span!("get_avatar"))
                         .await;
-                    member.avatar = avatar;
+                    member.avatar = avatar.to_owned();
                 }
                 EnrichingStep::OnlineStatus => {
                     if member.online.is_some() {
@@ -424,7 +425,7 @@ pub struct EnrichedMember {
     pub role: MemberRole,
     pub online: Option<bool>,
     pub nickname: Option<String>,
-    pub avatar: Option<Avatar>,
+    pub avatar: Option<AvatarOwned>,
 }
 
 impl From<member::Model> for EnrichedMember {
