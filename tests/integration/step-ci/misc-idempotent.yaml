@@ -65,6 +65,11 @@ tests:
             headers:
               Content-Type: application/json
             schema: { $ref: openapi.json#/components/schemas/PodConfig }
+            jsonpath:
+              # Test that there is no trailing dot.
+              # NOTE: This doesn’t mean it SHOULD be that way, it just ensures
+              #   API stability. Maybe we’ll deliberately change it later.
+              $.address.domain: prose.test.local
   getServerConfig:
     # NOTE: Getting the default Server configuration ensures all keys are serialized correctly.
     #   No need to check _every_ route since we use `serde` in a symetric manner.
@@ -83,6 +88,11 @@ tests:
             headers:
               Content-Type: application/json
             schema: { $ref: openapi.json#/components/schemas/ServerConfig }
+            jsonpath:
+              # Test that there is no trailing dot.
+              # NOTE: This doesn’t mean it SHOULD be that way, it just ensures
+              #   API stability. Maybe we’ll deliberately change it later.
+              $.domain: test.local
   getDashboardConfig:
     # NOTE: Getting the default Dashboard configuration ensures all keys are serialized correctly.
     #   No need to check _every_ route since we use `serde` in a symetric manner.
