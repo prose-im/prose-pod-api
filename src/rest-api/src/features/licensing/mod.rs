@@ -6,17 +6,35 @@
 mod extractors;
 
 use axum::middleware::from_extractor_with_state;
-use axum::routing::put;
+use axum::routing::{get, MethodRouter};
+use axum::Json;
 use axum::{extract::State, response::NoContent};
+use service::licensing::licensing_controller::{
+    self, GetLicenseResponse, GetLicensingStatusResponse,
+};
 use service::{auth::IsAdmin, licensing::License};
 
 use crate::{error::Error, AppState};
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        .route("/v1/licensing/license", put(set_license))
+        .route(
+            "/v1/licensing/license",
+            MethodRouter::new().get(get_license).put(set_license),
+        )
+        .route("/v1/licensing/status", get(get_licensing_status))
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .with_state(app_state)
+}
+
+async fn get_license(
+    State(AppState {
+        ref license_service,
+        ..
+    }): State<AppState>,
+) -> Json<GetLicenseResponse> {
+    let response = licensing_controller::get_license(license_service).await;
+    Json(response)
 }
 
 async fn set_license(
@@ -28,6 +46,19 @@ async fn set_license(
 ) -> Result<NoContent, Error> {
     match license_service.install_license(license) {
         Ok(()) => Ok(NoContent),
+        Err(err) => Err(Error::from(err)),
+    }
+}
+
+async fn get_licensing_status(
+    State(AppState {
+        ref license_service,
+        ref db,
+        ..
+    }): State<AppState>,
+) -> Result<Json<GetLicensingStatusResponse>, Error> {
+    match licensing_controller::get_licensing_status(license_service, db).await {
+        Ok(status) => Ok(Json(status)),
         Err(err) => Err(Error::from(err)),
     }
 }

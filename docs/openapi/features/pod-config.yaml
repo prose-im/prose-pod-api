@@ -29,36 +29,15 @@ paths:
             schema: { $ref: "#/components/schemas/PodConfig/properties/address" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
-  get_dashboard_url:
-    tags: ["Pod / Configuration"]
-    summary: Get Dashboard URL
-    description: Get the current address of the Prose Pod Dashboard.
-    operationId: get_dashboard_url
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Success
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PodConfig/properties/dashboard_url"
-              type: string
-      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
-      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+
 components:
   schemas:
     PodConfig:
       type: object
       required:
         - address
-        - dashboard_url
       properties:
         address: { $ref: "#/components/schemas/PodAddress" }
-        dashboard_url:
-          type: [string, "null"]
-          format: uri
-          example: https://admin.prose.crisp.chat/
     PodAddress:
       anyOf:
         - title: Domain
@@ -67,13 +46,15 @@ components:
           properties:
             domain:
               type: string
-              example: crisp.chat
+              format: hostname
+              example: prose.crisp.chat
         - title: IPv4
           type: object
           required: [ipv4]
           properties:
             ipv4:
               type: string
+              format: ipv4
               example: 104.18.28.104
         - title: IPv6
           type: object
@@ -81,6 +62,5 @@ components:
           properties:
             ipv6:
               type: string
+              format: ipv6
               example: 2606:4700::6812:1c68
-      example:
-        hostname: crisp.chat.

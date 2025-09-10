@@ -5,6 +5,7 @@
 
 pub mod license_service;
 pub mod license_validator;
+pub mod licensing_controller;
 
 use biscuit::{AuthorizerBuilder, Biscuit};
 

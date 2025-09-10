@@ -14,7 +14,10 @@ OPENAPI_SPEC_FILE="${OPENAPI_DOCS_DIR:?}"/openapi.yaml
 REDOCLY_CONFIG_FILE="${OPENAPI_DOCS_DIR:?}"/redocly.cfg.yaml
 
 if ! command -v redocly &>/dev/null; then
-    die "$(format_hyperlink "Install $(format_code redocly)" "https://redocly.com/docs/cli/installation") first ($(format_code 'npm i -g @redocly/cli@latest') / $(format_code 'volta install @redocly/cli'))."
+    die "$(format_hyperlink "Install $(format_code redocly)" "https://redocly.com/docs/cli/installation") first ($(format_code 'npm i -g @redocly/cli@1') / $(format_code 'volta install @redocly/cli@1'))."
+fi
+if ! [[ "$(redocly --version)" == 1.* ]]; then
+    die "Only Redocly CLI v1 is supported (for now). Install it with $(format_code 'npm i -g @redocly/cli@1') / $(format_code 'volta install @redocly/cli@1')."
 fi
 
 edo redocly preview-docs "${OPENAPI_SPEC_FILE:?}" --port=8081 --config="${REDOCLY_CONFIG_FILE:?}" "$@"

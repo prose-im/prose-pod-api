@@ -26,7 +26,7 @@ pub async fn get_server_domain(app_config: &AppConfig) -> JidDomain {
     app_config.server.domain.clone()
 }
 #[inline]
-pub async fn get_server_config(
+pub async fn get_server_config_private(
     db: &DatabaseConnection,
     app_config: &AppConfig,
     _is_admin: &IsAdmin,
@@ -35,15 +35,19 @@ pub async fn get_server_config(
     let server_config = ServerConfig::with_default_values(dynamic_server_config, app_config);
     Ok(server_config)
 }
-pub async fn get_server_config_public(
+#[inline]
+pub fn get_server_config_public(app_config: &AppConfig) -> PublicServerConfig {
+    PublicServerConfig::from(app_config)
+}
+pub async fn get_server_config(
     db: &DatabaseConnection,
     app_config: &AppConfig,
     is_admin: Option<IsAdmin>,
 ) -> anyhow::Result<Either<ServerConfig, PublicServerConfig>> {
     if let Some(ref is_admin) = is_admin {
-        (get_server_config(db, app_config, is_admin).await).map(Either::E1)
+        (get_server_config_private(db, app_config, is_admin).await).map(Either::E1)
     } else {
-        Ok(Either::E2(PublicServerConfig::from(app_config)))
+        Ok(Either::E2(get_server_config_public(app_config)))
     }
 }
 

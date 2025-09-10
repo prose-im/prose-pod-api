@@ -71,7 +71,7 @@ jobs:
           submodules: true
 
       - name: Install Redocly CLI
-        run: npm install -g @redocly/cli@latest
+        run: npm install -g @redocly/cli@1
 
       - name: Lint OpenAPI specification file
         run: docs/openapi/openapi-lint

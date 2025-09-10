@@ -1,0 +1,34 @@
+paths:
+  get_cloud_api_report:
+    tags: [Reports]
+    summary: Get Cloud API report
+    operationId: get_cloud_api_report
+    security: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CloudApiReport" }
+
+components:
+  schemas:
+    CloudApiReport:
+      type: object
+      required:
+        - timestamp
+        - versions
+        - licensing
+        - workspace
+        - server
+        - dashboard
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-09-09T11:33:47.123Z
+        versions: { $ref: "version.yaml#/components/schemas/PodComponentsVersions" }
+        licensing: { $ref: "licensing.yaml#/components/schemas/LicensingStatus" }
+        workspace: { $ref: "workspace.yaml#/components/schemas/Workspace" }
+        server: { $ref: "server-config.yaml#/components/schemas/PublicServerConfig" }
+        dashboard: { $ref: "dashboard-config.yaml#/components/schemas/DashboardConfig" }

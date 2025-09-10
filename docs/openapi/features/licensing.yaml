@@ -1,4 +1,35 @@
 paths:
+  get_license:
+    tags: [Licensing]
+    summary: Get the currently installed license
+    operationId: get_license
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicenseDetails" }
+            examples:
+              business:
+                summary: Business license
+                value:
+                  id: ugvqNZ88lP4t3Xzpy3ztkbV+XuvQj8PkF2afntFY++wMXjTEhqgQ+UkF/kRtuZSwsSqcsPFGxEh0zHSNMdVwCg
+                  name: Business (crisp.chat.)
+                  user_limit: 100
+                  expiry: 2026-09-09T09:17:08Z
+                  ttl_ms: 31556952000
+              community:
+                summary: Community license
+                value:
+                  id: ZFUgQA3pxRLmCZvepHHEKj7ht2Sb/XIdGUBu+/KlFOIChBq81weAtbKNhrmd+B7Bn08BlSFF61Oco8AJ+Ak3CQ
+                  name: Community (0.17.3)
+                  user_limit: 20
+                  expiry: null
+                  ttl_ms: null
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   set_license:
     tags: [Licensing]
     summary: Update the license
@@ -8,149 +39,95 @@ paths:
     security:
       - BearerAuth: []
     requestBody:
-      description: Information about who to invite.
+      description: The license, base64-encoded or in binary directly.
       required: true
       content:
         text/plain:
-          schema:
-            type: string
-            format: byte
-            example: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+          schema: { $ref: "#/components/schemas/Base64License" }
+          example: { $ref: "#/components/schemas/Base64License/example" }
         application/octet-stream:
-          schema:
-            type: string
-            format: binary
+          schema: { $ref: "#/components/schemas/RawLicense" }
     responses:
       "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_licensing_status:
+    tags: [Licensing]
+    summary: Get licensing status
+    operationId: get_licensing_status
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LicensingStatus" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
 
 components:
   schemas:
-    InvitationToken:
-      oneOf:
-        - $ref: "#/components/schemas/InvitationAcceptToken"
-        - $ref: "#/components/schemas/InvitationRejectToken"
-    InvitationAcceptToken:
+    Base64License:
       type: string
-      format: uuid
-      example: 20edadc2-6c3b-4297-b92a-042f23249225
-    InvitationRejectToken:
+      format: byte
+      example: EoYCCpkBCgRuYW1lChVUZXN0aW5nIChwcm9zZS5sb2NhbCkKCnVzZXJfbGltaXQKC3Byb3NlLmxvY2FsCgdhbGxvd2VkGAYiCgoICIAIEgMYgQgiCQoHCIIIEgIQFCINCgsIBBICGBQSAxiDCDIwCi4KAggbEgYIFBICCBQSCwgEEgIYFBIDCIQIGhMKBAoCCBQKBQoDCIQICgQaAggVEiQIABIgxK3/DNyB/7XK/EqKn+C5EAlM0XD0qjvaWjETGpRCD98aQLoL6jWfPJT+Ld186ct87ZClfl7r0I/D5Bdmn57RWPvsDF40xIaoEPlJBf5EbbmUsLEqnLDxRsRIdMx0jTHVcAooASJCEkCupwA7lAO99Y65Mox2/1IH9XcE5vw/4hV/+NY/Eo6gZTm+8P4hctEHi7nbNmy2sq0jAdoPeJ1tM9Jbysdp4loB
+    RawLicense:
       type: string
-      format: uuid
-      example: f2736e87-850e-4776-bb26-52c12a7d8bd8
-    InvitationTokenType:
-      type: string
-      enum: [accept, reject]
-      example: accept
-    WorkspaceInvitation:
+      format: binary
+    LicenseDetails:
       type: object
       required:
-        - invitation_id
-        - created_at
-        - status
-        - jid
-        - pre_assigned_role
-        - contact
-        - accept_token_expires_at
-        - is_expired
+        - id
+        - name
+        - user_limit
+        - expiry
+        - ttl_ms
       properties:
-        accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
-        contact: { $ref: "#/components/schemas/InvitationContact" }
-        created_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
-        invitation_id: { $ref: "#/components/schemas/InvitationId" }
-        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
-        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
-        status: { $ref: "#/components/schemas/InvitationStatus" }
-        is_expired:
-          type: boolean
-    WorkspaceInvitationBasicDetails:
-      type: object
-      required:
-        - jid
-        - pre_assigned_role
-        - is_expired
-      properties:
-        jid: { $ref: "../shared.yaml#/components/schemas/JID" }
-        pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
-        is_expired:
-          type: boolean
-    InvitationId:
-      description: The unique identifier of an invitation.
-      type: integer
-      format: int32
-      example: 42
-    InvitationStatus:
-      description: The status of an invitation.
-      type: string
-      enum: [TO_SEND, SENT, SEND_FAILED]
-      example: SENT
-    InvitationContact:
-      description: |-
-        How to contact someone.
+        id:
+          description: Base64-encoded license signature (no pad).
+          type: string
+          format: byte
+          example: ugvqNZ88lP4t3Xzpy3ztkKV+XuvQj8PkF2afntFY++wMXjTEhqgQ+UkF/kRtuZSwsSqcsPFGxEh0zHSNMdVwCg
+        name:
+          description: License name.
+          type: string
+          example: Business (crisp.chat.)
+        user_limit:
+          type: integer
+          format: uint32
+          example: 100
+        expiry:
+          description: License expiry.
+          type: [string, "null"]
+          format: date-time
+          example: 2026-09-09T09:17:08Z
+        ttl_ms:
+          description: |-
+            Milliseconds until the license expires.
+            License is expired if `ttl_ms` is `0`.
 
-        For now only email is supported, but we could extend it to SMS for example.
-      oneOf:
-        - $ref: "#/components/schemas/InvitationContactEmail"
-      discriminator:
-        propertyName: channel
-    InvitationContactEmail:
+            Beware, `ttl_ms` can be `null`! This happens when the license
+            has no expiry so don’t check for “falsy” values, only `0`!
+          type: [integer, "null"]
+          format: uint128
+          example: 31556952000
+    LicensingStatus:
       type: object
       required:
-        - channel
-        - email_address
+        - license
+        - user_count
+        - remaining_seats
       properties:
-        channel:
-          type: string
-          const: email
-        email_address:
-          type: string
-          format: email
-          description: An email address.
-          example: remi@example.org
-      example:
-        channel: email
-        email_address: remi@example.org
-  parameters:
-    InvitationId:
-      description: Unique identifier of a workspace invitation
-      name: invitationId
-      in: path
-      schema: { $ref: "#/components/schemas/InvitationId" }
-      required: true
-    InvitationToken:
-      description: Invitation accept or reject token
-      in: path
-      name: token
-      schema: { $ref: "#/components/schemas/InvitationToken" }
-      required: true
-    InvitationAcceptToken:
-      description: Invitation accept token
-      in: path
-      name: token
-      schema: { $ref: "#/components/schemas/InvitationAcceptToken" }
-      required: true
-    InvitationRejectToken:
-      description: Invitation reject token
-      in: path
-      name: token
-      schema: { $ref: "#/components/schemas/InvitationRejectToken" }
-      required: true
-    InvitationTokenType:
-      description: Type of invitation token
-      in: query
-      name: token_type
-      schema: { $ref: "#/components/schemas/InvitationTokenType" }
-      required: true
-  responses:
-    InvitationNotFound:
-      description: Invitation not found or expired
-      content:
-        application/json:
-          schema:
-            $ref: "../shared.yaml#/components/schemas/Error"
-            properties:
-              error:
-                const: invitation_not_found
-          example:
-            error: invitation_not_found
+        license: { $ref: "#/components/schemas/LicenseDetails" }
+        user_count:
+          type: integer
+          format: uint64
+          example: 42
+        remaining_seats:
+          description: >-
+            Number of users until the limit is reached.
+            Will be `0` if `user_count > license.user_limit`.
+          type: integer
+          format: uint64
+          example: 58

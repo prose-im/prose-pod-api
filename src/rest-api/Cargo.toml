@@ -39,7 +39,7 @@ init-tracing-opentelemetry = { workspace = true, features = [
     "tracing_subscriber_ext",
 ] }
 iso8601-duration = { workspace = true, features = ["serde"] }
-iso8601-timestamp = { workspace = true, features = ["serde"] }
+iso8601-timestamp = { workspace = true, features = ["serde", "std"] }
 lazy_static = { workspace = true }
 mime = { workspace = true }
 minidom = { workspace = true }
