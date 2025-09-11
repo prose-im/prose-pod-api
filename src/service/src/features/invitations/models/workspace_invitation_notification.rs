@@ -49,7 +49,11 @@ fn notification_subject(
     }: &WorkspaceInvitationPayload,
 ) -> String {
     if let Some(ref company) = organization_name {
-        format!("You have been invited to {company}’s Prose server!")
+        if company.ends_with("s") {
+            format!("You have been invited to {company}’ Prose server!")
+        } else {
+            format!("You have been invited to {company}’s Prose server!")
+        }
     } else {
         format!("You have been invited to {workspace_name}!")
     }
@@ -67,7 +71,11 @@ fn notification_message(
 ) -> String {
     vec![
         if let Some(ref company) = organization_name {
-            format!("You have been invited to {company}’s Prose server!")
+            if company.ends_with("s") {
+                format!("You have been invited to {company}’ Prose server!")
+            } else {
+                format!("You have been invited to {company}’s Prose server!")
+            }
         } else {
             format!("You have been invited to {workspace_name}!")
         }
