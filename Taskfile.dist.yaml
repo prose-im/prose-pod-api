@@ -59,9 +59,17 @@ tasks:
   test:
     desc: Runs all tests then updates "Tested at Rust version" in the `README`.
     cmds:
+      - task: unit-test
       - task: smoke-test
       - task: integration-test
       - task: util:update-tested-at-version
+
+  unit-test:
+    desc: Runs unit tests.
+    cmds:
+      - cargo test -p prose-pod-api --lib --examples
+      - cargo test -p prose-pod-api --doc
+      - cargo test --workspace --exclude prose-pod-api
 
   smoke-test:
     desc: Runs smoke tests.
