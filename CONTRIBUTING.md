@@ -8,6 +8,16 @@ After release 1.0, contributions will be more than welcome though!
 
 ## Tools you need
 
+### Git Large File Storage (LFS)
+
+As this project uses [Git LFS](https://git-lfs.com/) to store large files, it requires Git LFS to be available on the system cloning this repository.
+
+```bash
+brew install git-lfs
+git lfs install
+# *Then*, run `git pull`.
+```
+
 ### `task`
 
 Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility.
