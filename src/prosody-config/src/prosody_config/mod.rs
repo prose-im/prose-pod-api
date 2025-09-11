@@ -639,7 +639,6 @@ pub enum SslVerificationOption {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SslOption(String);
 
 /// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.

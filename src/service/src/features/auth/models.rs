@@ -22,6 +22,7 @@ pub struct Credentials {
 
 /// An OAuth 2.0 token (provided by Prosody).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct AuthToken(pub SecretString);
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,7 @@ impl UserInfo {
 
 /// Ensures a user is logged in.
 // NOTE: Has a private field to ensure it cannot be created from somewhere else.
+#[repr(transparent)]
 pub struct Authenticated(());
 
 impl From<UserInfo> for Authenticated {

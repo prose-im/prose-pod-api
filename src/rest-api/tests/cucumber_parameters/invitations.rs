@@ -12,6 +12,7 @@ use cucumber::Parameter;
 type InvitationStatusModel = service::invitations::InvitationStatus;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]
 pub struct InvitationStatus(pub InvitationStatusModel);
 

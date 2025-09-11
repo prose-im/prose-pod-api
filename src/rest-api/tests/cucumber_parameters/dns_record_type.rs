@@ -9,6 +9,7 @@ use cucumber::Parameter;
 use service::network_checks::DnsRecordDiscriminants;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "dns_record_type", regex = r"[A-Z]+")]
 pub struct DnsRecordType(pub DnsRecordDiscriminants);
 

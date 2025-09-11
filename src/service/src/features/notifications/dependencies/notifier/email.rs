@@ -59,6 +59,7 @@ pub enum EmailNotifierCreateError {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Failed to test SMTP connection: {0}")]
 pub struct EmailNotifierTestConnectionError(lettre::transport::smtp::Error);
 

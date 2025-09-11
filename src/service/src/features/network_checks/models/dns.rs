@@ -143,6 +143,7 @@ impl Into<HickoryRecord> for DnsRecord {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Unsupported DNS record type: {0}")]
 pub struct UnsupportedDnsRecordType(RecordType);
 

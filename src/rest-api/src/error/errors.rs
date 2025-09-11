@@ -73,6 +73,7 @@ impl ErrorCode {
     };
 }
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Feature not implemented yet: {0}")]
 pub struct NotImplemented(pub &'static str);
 impl HttpApiError for NotImplemented {
@@ -91,6 +92,7 @@ impl ErrorCode {
 /// Internal server error.
 /// Use it only when a nearly-impossible code path is taken.
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Internal server error: {0}")]
 pub struct InternalServerError(pub String);
 impl HttpApiError for InternalServerError {
@@ -107,6 +109,7 @@ impl ErrorCode {
     };
 }
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Unauthorized: {0}")]
 pub struct Unauthorized(pub String);
 impl HttpApiError for Unauthorized {
@@ -129,6 +132,7 @@ impl ErrorCode {
     };
 }
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Forbidden: {0}")]
 pub struct Forbidden(pub String);
 impl HttpApiError for Forbidden {

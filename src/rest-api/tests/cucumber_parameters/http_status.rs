@@ -9,6 +9,7 @@ use axum::http::StatusCode;
 use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "status", regex = r"\d{3}|.+")]
 pub struct HTTPStatus(StatusCode);
 

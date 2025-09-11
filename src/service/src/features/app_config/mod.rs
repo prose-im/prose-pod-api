@@ -883,6 +883,7 @@ pub struct DependencyModesConfig {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error(
     "Missing key `{0}` the app configuration. Add it to `prose.toml` or use environment variables."
 )]
@@ -895,6 +896,7 @@ pub struct MissingConfiguration(pub &'static str);
 #[derive(Debug, Clone)]
 #[derive(Serialize, serdev::Deserialize)]
 #[serde(validate = "Self::validate")]
+#[repr(transparent)]
 pub struct DashboardUrl(Url);
 
 impl DashboardUrl {

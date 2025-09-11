@@ -102,6 +102,7 @@ impl FromRef<AppState> for MinimalAppState {
     }
 }
 
+#[repr(transparent)]
 pub struct PreStartupRouter(Router);
 
 /// A custom [`Router`] with a default configuration.
@@ -150,6 +151,7 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Startup error: {0}")]
 pub struct StartupError(String);
 

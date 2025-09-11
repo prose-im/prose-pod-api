@@ -23,6 +23,7 @@ use super::{
 };
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("No invitation with id '{0}'.")]
 pub struct InvitationNotFound(InvitationId);
 

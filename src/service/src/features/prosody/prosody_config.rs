@@ -20,6 +20,7 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct ProsodyConfig(pub(super) prosody_config::ProsodyConfig);
 
 impl Deref for ProsodyConfig {

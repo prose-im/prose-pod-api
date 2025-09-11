@@ -19,6 +19,7 @@ mod nickname {
     #[derive(Clone)]
     #[derive(Serialize, serdev::Deserialize)]
     #[serde(validate = "Validate::validate")]
+    #[repr(transparent)]
     pub struct Nickname(String);
 
     impl Validate for Nickname {

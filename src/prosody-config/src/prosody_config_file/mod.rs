@@ -36,6 +36,7 @@ pub enum ProsodyConfigFileSection {
 // ===== Atoms =====
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct LuaComment(pub String);
 
 impl<S: ToString> From<S> for LuaComment {
