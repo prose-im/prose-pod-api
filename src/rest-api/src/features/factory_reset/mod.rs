@@ -36,6 +36,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 
 #[derive(Debug)]
 #[derive(Serialize, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 struct FactoryResetConfirmation {
     pub confirmation: String,
@@ -43,7 +44,7 @@ struct FactoryResetConfirmation {
 
 #[derive(Debug)]
 #[derive(serdev::Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 enum FactoryResetRequest {
     PasswordConfirmation { password: Password },

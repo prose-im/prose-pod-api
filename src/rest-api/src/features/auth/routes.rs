@@ -83,6 +83,7 @@ pub async fn request_password_reset_route(
 }
 
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {

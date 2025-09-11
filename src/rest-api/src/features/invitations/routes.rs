@@ -61,6 +61,8 @@ fn ok(invitation: WorkspaceInvitationDto, resource_uri: HeaderValue) -> InviteMe
 }
 
 #[derive(serdev::Deserialize)]
+// NOTE: Cannot use `serde(deny_unknown_fields)` because of a `serde(flatten)`
+//   + `serde(tag)` bug. See <https://github.com/serde-rs/serde/issues/1358>.
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InviteMemberRequest {
     pub username: JidNode,
@@ -176,6 +178,7 @@ pub async fn get_invitations_route(
 // MARK: ACTIONS
 
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct AcceptWorkspaceInvitationRequest {

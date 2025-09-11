@@ -29,6 +29,7 @@ use super::WORKSPACE_ROUTE;
 
 #[derive(Debug, Clone)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitWorkspaceRequest {

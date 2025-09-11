@@ -16,6 +16,7 @@ use crate::{error::prelude::*, features::auth::models::Password, responders::Cre
 // MARK: INIT FIRST ACCOUNT
 
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InitFirstAccountRequest {

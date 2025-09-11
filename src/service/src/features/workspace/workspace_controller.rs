@@ -97,6 +97,7 @@ pub async fn set_workspace_icon<'a>(
 
 #[derive(Debug, Clone)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct PatchWorkspaceDetailsRequest {
     #[validate(length(min = 1, max = 48), non_control_character)]
