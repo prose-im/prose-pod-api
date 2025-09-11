@@ -24,7 +24,7 @@ pub struct Credentials {
 #[derive(Debug)]
 pub struct AuthToken(pub SecretString);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "test", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct UserInfo {
     pub jid: BareJid,
