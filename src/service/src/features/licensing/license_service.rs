@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock};
 use std::{fmt::Debug, ops::Deref};
 
 use anyhow::Context as _;
-use base64::Engine;
+use base64::{prelude::BASE64_STANDARD, Engine as _};
 
 use crate::licensing::ValidationError;
 use crate::util::either::Either;
@@ -175,8 +175,7 @@ impl LicenseServiceImpl for LiveLicenseService {
         &self,
         str: &str,
     ) -> Result<License, Either<base64::DecodeError, ValidationError>> {
-        use ::base64::engine::general_purpose::STANDARD as base64;
-        let bytes = base64.decode(str).map_err(Either::E1)?;
+        let bytes = BASE64_STANDARD.decode(str).map_err(Either::E1)?;
         License::deserialize(&bytes, &self.validator).map_err(Either::E2)
     }
     fn install_license(&self, license: License) -> Result<(), anyhow::Error> {

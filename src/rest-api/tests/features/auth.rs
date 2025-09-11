@@ -89,7 +89,7 @@ async fn log_in(api: &TestServer, username: &BareJid, password: SecretString) ->
             AUTHORIZATION,
             format!("Basic {}", {
                 let mut buf = String::new();
-                Base64.encode_string(
+                BASE64_STANDARD.encode_string(
                     format!("{}:{}", username, password.expose_secret()),
                     &mut buf,
                 );
