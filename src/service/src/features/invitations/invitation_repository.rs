@@ -24,6 +24,7 @@ use crate::{
 
 const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
 
+#[derive(Debug)]
 pub enum InvitationRepository {}
 
 impl InvitationRepository {
@@ -217,7 +218,7 @@ impl InvitationCreateForm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 // NOTE: No need to validate as `Uuid` is parsed.
 #[repr(transparent)]

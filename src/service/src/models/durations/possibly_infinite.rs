@@ -12,7 +12,7 @@ use sea_orm::{entity::prelude::*, sea_query};
 
 const DURATION_INFINITE: &'static str = "infinite";
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PossiblyInfinite<D> {
     Infinite,
     Finite(D),

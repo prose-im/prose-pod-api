@@ -13,7 +13,7 @@ use crate::{
     models::{EmailAddress, JID},
 };
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "workspace_invitation")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -64,7 +64,7 @@ impl ActiveModel {
     }
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}

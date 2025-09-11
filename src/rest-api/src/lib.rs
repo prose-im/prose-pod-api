@@ -102,6 +102,7 @@ impl FromRef<AppState> for MinimalAppState {
     }
 }
 
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct PreStartupRouter(Router);
 

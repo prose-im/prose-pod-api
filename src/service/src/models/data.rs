@@ -6,7 +6,7 @@
 /// Bytes.
 ///
 /// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Bytes {
     Bytes(u32),
     KiloBytes(u32),
@@ -19,7 +19,7 @@ pub enum Bytes {
 ///
 /// See <https://en.wikipedia.org/wiki/Data-rate_units>
 /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DataRate {
     BytesPerSec(u32),
     KiloBytesPerSec(u32),

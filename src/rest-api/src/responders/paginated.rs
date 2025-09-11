@@ -9,6 +9,7 @@ use axum::{
 };
 use serdev::Serialize;
 
+#[derive(Debug)]
 pub struct Paginated<T>(pub service::models::Paginated<T>);
 
 impl<T> From<service::models::Paginated<T>> for Paginated<T> {

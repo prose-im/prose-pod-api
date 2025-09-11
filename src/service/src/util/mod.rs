@@ -28,7 +28,7 @@ pub fn bare_jid_from_username(username: &NodeRef, server_domain: &DomainRef) -> 
 #[macro_export]
 macro_rules! wrapper_type {
     ($wrapper:ident, $t:ty) => {
-        #[derive(std::fmt::Debug, Clone, Eq, PartialEq, Hash)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
         #[repr(transparent)]
         pub struct $wrapper($t);

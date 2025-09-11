@@ -12,7 +12,7 @@ use iso8601_duration::Duration as ISODuration;
 
 use super::DurationContent;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TimeLike {
     Seconds(u32),
     Minutes(u32),

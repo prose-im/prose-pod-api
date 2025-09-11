@@ -18,7 +18,7 @@ use axum_extra::handler::HandlerCallWithExtractors;
 
 macro_rules! impl_content_type {
     ($ident:ident, $mime:literal) => {
-        #[derive(Copy, Clone)]
+        #[derive(Debug, Clone, Copy)]
         pub struct $ident;
 
         impl ContentType for $ident {
@@ -47,6 +47,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct WithContentTypeHandler<C, H> {
     content_type: PhantomData<C>,
     handler: H,
@@ -77,6 +78,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct WithContentType<C>(PhantomData<C>);
 
 impl<S, C> FromRequestParts<S> for WithContentType<C>
@@ -111,6 +113,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct WithAcceptHandler<C, H> {
     content_type: PhantomData<C>,
     handler: H,
@@ -140,6 +143,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct WithAccept<C>(PhantomData<C>);
 
 impl<S, C> FromRequestParts<S> for WithAccept<C>
@@ -164,6 +168,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct WrongContentType;
 
 impl IntoResponse for WrongContentType {

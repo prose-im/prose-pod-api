@@ -19,7 +19,7 @@ lazy_static::lazy_static! {
     static ref GLOBAL_HOST: DomainName = DomainName::from_str("global").unwrap();
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct ProsodyConfig(pub(super) prosody_config::ProsodyConfig);
 

@@ -11,7 +11,7 @@ use strum::{EnumIter, EnumString};
 // NOTE: When adding a new case to this enum, make sure to
 //   add a new migration to update the column size.
 #[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(SerializeDisplay, DeserializeFromStr)]
 #[derive(EnumIter, EnumString, strum::Display)]
 pub enum MemberRole {

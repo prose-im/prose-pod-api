@@ -28,11 +28,11 @@ use super::{extractors::BasicAuth, models::Password};
 
 // MARK: LOG IN
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[repr(transparent)]
 pub struct LoginToken(SerializableSecretString);
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub token: LoginToken,
 }
@@ -82,7 +82,7 @@ pub async fn request_password_reset_route(
     Ok(StatusCode::ACCEPTED)
 }
 
-#[derive(Validate, serdev::Deserialize)]
+#[derive(Debug, Validate, serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]

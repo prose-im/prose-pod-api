@@ -22,7 +22,7 @@ pub use time_like::*;
 
 use crate::sea_orm_try_get_by_string;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Duration<Content: DurationContent>(pub Content);
 
 pub trait DurationContent: Copy + Eq + Into<ISODuration> + TryFrom<ISODuration> + FromStr {

@@ -60,6 +60,7 @@ fn ok(invitation: WorkspaceInvitationDto, resource_uri: HeaderValue) -> InviteMe
     }))
 }
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 // NOTE: Cannot use `serde(deny_unknown_fields)` because of a `serde(flatten)`
 //   + `serde(tag)` bug. See <https://github.com/serde-rs/serde/issues/1358>.
@@ -75,6 +76,7 @@ pub struct InviteMemberRequest {
 }
 
 #[cfg(debug_assertions)]
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct InviteMemberQuery {
     #[serde(default)]
@@ -147,6 +149,7 @@ pub async fn get_invitation_route(
     }
 }
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct GetInvitationTokenDetailsQuery {
     token_type: InvitationTokenType,
@@ -177,6 +180,7 @@ pub async fn get_invitations_route(
 
 // MARK: ACTIONS
 
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]

@@ -5,6 +5,7 @@
 
 use super::Timestamp;
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct Pagination {
     pub page_number: Option<u64>,

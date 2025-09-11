@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// All the data needed to generate the content of a workspace invitation.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct WorkspaceInvitationPayload {
     pub accept_token: InvitationToken,
     pub reject_token: InvitationToken,

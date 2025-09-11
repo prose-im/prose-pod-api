@@ -12,6 +12,7 @@ use service::models::BareJid;
 
 use crate::extractors::prelude::*;
 
+#[derive(Debug)]
 pub struct BasicAuth {
     pub jid: BareJid,
     pub password: SecretString,

@@ -3,6 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+#[derive(Debug)]
 pub struct Paginated<T> {
     pub data: Vec<T>,
     pub current_page: u64,

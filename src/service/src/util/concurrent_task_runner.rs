@@ -313,6 +313,7 @@ impl ConcurrentTaskRunner {
     }
 }
 
+#[derive(Debug)]
 enum Futures<F: Future> {
     Ordered(FuturesOrdered<F>),
     Unordered(FuturesUnordered<F>),

@@ -11,6 +11,7 @@ use crate::members::MemberRepository;
 
 use super::LicenseService;
 
+#[derive(Debug)]
 #[derive(Serialize)]
 pub struct GetLicenseResponse {
     pub id: String,
@@ -44,6 +45,7 @@ pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse
     }
 }
 
+#[derive(Debug)]
 #[derive(Serialize)]
 pub struct GetLicensingStatusResponse {
     pub license: GetLicenseResponse,

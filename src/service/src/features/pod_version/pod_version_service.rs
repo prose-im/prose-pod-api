@@ -30,7 +30,7 @@ impl Deref for PodVersionService {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct PodComponentsVersions {
     pub api: VersionInfo,
     pub server: VersionInfo,

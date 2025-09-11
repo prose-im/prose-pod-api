@@ -25,6 +25,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
+#[derive(Debug)]
 #[derive(Serialize)]
 pub struct GetCloudApiReportResponse {
     pub timestamp: Timestamp,

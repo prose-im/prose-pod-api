@@ -15,7 +15,7 @@ use crate::{sea_orm::DatabaseConnection, server_config, xmpp::ServerCtl, AppConf
 
 use super::DynamicServerConfig;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ServerConfigManager {
     db: Arc<DatabaseConnection>,
     app_config: Arc<RwLock<AppConfig>>,

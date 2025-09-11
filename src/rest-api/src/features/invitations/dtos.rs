@@ -13,7 +13,7 @@ use service::{
     models::BareJid,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize)]
 #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {

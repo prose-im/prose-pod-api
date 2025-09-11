@@ -8,7 +8,7 @@ use std::{fmt::Display, str::FromStr};
 /// A color.
 ///
 /// See [color - CSS | MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/color).
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(serde_with::DeserializeFromStr, serde_with::SerializeDisplay)]
 pub enum Color {
     Hex([u8; 3]),

@@ -101,7 +101,7 @@ pub async fn get_invitation(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize)]
 pub struct WorkspaceInvitationBasicDetails {
     pub jid: BareJid,

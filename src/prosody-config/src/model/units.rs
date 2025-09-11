@@ -14,7 +14,7 @@ use crate::util::split_leading_digits;
 /// Bytes.
 ///
 /// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -60,7 +60,7 @@ impl Display for Bytes {
 ///
 /// See <https://en.wikipedia.org/wiki/Data-rate_units>
 /// and <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -104,7 +104,7 @@ pub trait DurationContent {}
 #[cfg(feature = "serde")]
 pub trait DurationContent: serdev::Serialize + for<'de> serdev::Deserialize<'de> {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "serde",
@@ -134,7 +134,7 @@ impl<Content: DurationContent + Display> Display for Duration<Content> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -185,7 +185,7 @@ impl TimeLike {
 
 impl DurationContent for TimeLike {}
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -229,7 +229,7 @@ impl Display for DateLike {
 
 impl DurationContent for DateLike {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)

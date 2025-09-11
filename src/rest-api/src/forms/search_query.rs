@@ -5,6 +5,7 @@
 
 use validator::Validate;
 
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
 #[serde(validate = "Validate::validate")]
 pub struct SearchQuery {

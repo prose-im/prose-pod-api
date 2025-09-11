@@ -5,7 +5,7 @@
 
 // WARN: When adding a new case to this enum, make sure to
 //   add a new migration to update the column size.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(strum::EnumIter, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]

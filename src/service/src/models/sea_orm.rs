@@ -74,7 +74,7 @@ impl<T: Display + FromStr> sea_orm::sea_query::Nullable for SeaOrmAsString<T> {
 
 // ===== LinkedStringSet =====
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
 #[derive(sea_orm::FromJsonQueryResult)]
 #[repr(transparent)]
