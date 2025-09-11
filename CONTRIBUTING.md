@@ -18,6 +18,15 @@ git lfs install
 # *Then*, run `git pull`.
 ```
 
+### Docker + Docker Compose
+
+If you plan on running integration tests, you will need both Docker and Docker Compose on your machine. Here are the official docs for installing both of them:
+
+- [Install Docker](https://docs.docker.com/get-started/get-docker/)
+- [Install Docker Compose](https://docs.docker.com/compose/install/)
+
+Or, if you’re running Linux (not macOS), you can simply run `curl -L https://get.docker.com | sh`.
+
 ### `task`
 
 Instead of using [GNU Make], we are using [Task] for its simplicity and flexibility.
