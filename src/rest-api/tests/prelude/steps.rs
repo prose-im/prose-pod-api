@@ -12,11 +12,71 @@ use tracing::error;
 
 use crate::{features::prelude::*, test_api::test_server};
 
+pub mod app_config {
+    use std::sync::Arc;
+
+    use service::{
+        dependencies,
+        licensing::LicenseService,
+        secrets::{LiveSecretsStore, SecretsStore},
+        AppConfig,
+    };
+
+    use crate::{
+        features::prelude::*,
+        prelude::{
+            mocks::{MockLicenseService, MockSecretsStore},
+            test_world::CONFIG_PATH,
+        },
+    };
+
+    pub fn reload_config(world: &mut TestWorld) {
+        let figment =
+            AppConfig::figment_at_path(CONFIG_PATH.as_path()).merge(world.config_overrides.clone());
+        let config = AppConfig::from_figment(figment)
+            .expect(&format!("Invalid config file at {}", CONFIG_PATH.display()));
+
+        let mock_license_service = Arc::new(MockLicenseService::new(config.server_fqdn()));
+        let mock_secrets_store =
+            Arc::new(MockSecretsStore::new(LiveSecretsStore::default(), &config));
+        let uuid_gen = dependencies::Uuid::from_config(&config);
+
+        world.app_config = Some(Arc::new(config));
+        world.license_service = Some(LicenseService::new(mock_license_service.clone()));
+        world.mock_license_service = Some(mock_license_service);
+        world.secrets_store = Some(SecretsStore::new(mock_secrets_store.clone()));
+        world.mock_secrets_store = Some(mock_secrets_store);
+        world.uuid_gen = Some(uuid_gen);
+    }
+
+    #[given(expr = "config {string} is set to {}")]
+    fn given_app_config(world: &mut TestWorld, key: String, value: String) -> anyhow::Result<()> {
+        if world.api.is_some() {
+            tracing::warn!("Config set after the API has started, you need to restart.");
+            world.api = None;
+        }
+        world.set_config(&key, &value)?;
+        reload_config(world);
+
+        Ok(())
+    }
+
+    #[given(expr = "config {string} is unset")]
+    fn given_app_config_unset(world: &mut TestWorld, key: String) {
+        if world.api.is_some() {
+            tracing::warn!("Config set after the API has started, you need to restart.");
+            world.api = None;
+        }
+        world.unset_config(&key);
+        reload_config(world);
+    }
+}
+
 #[given(expr = "the Prose Pod API {state_verb} started")]
 async fn given_api_run_state(world: &mut TestWorld, state: parameters::StateVerb) {
     if state.into_bool() {
         assert!(world.api.is_none());
-        world.api = Some(test_server(&world).await.unwrap());
+        world.api = Some(test_server(world).await.unwrap());
         world.reset_server_ctl_counts();
     } else {
         assert!(world.api.is_none());
@@ -26,14 +86,14 @@ async fn given_api_run_state(world: &mut TestWorld, state: parameters::StateVerb
 
 #[given(expr = "the Prose Pod API has restarted")]
 async fn given_api_restarted(world: &mut TestWorld) {
-    world.api = Some(test_server(&world).await.unwrap());
+    world.api = Some(test_server(world).await.unwrap());
     world.reset_server_ctl_counts();
 }
 
 #[when("the Prose Pod API starts")]
 async fn when_api_starts(world: &mut TestWorld) {
     assert!(world.api.is_none());
-    match test_server(&world).await {
+    match test_server(world).await {
         Ok(server) => world.api = Some(server),
         Err(err) => {
             world.api = None;
@@ -190,5 +250,5 @@ async fn then_no_sse_event_id(world: &mut TestWorld, id: String) {
 
 #[then(expr = "<{jid}>'s password is changed")]
 fn then_password_changed(world: &mut TestWorld, jid: parameters::JID) {
-    assert_ne!(world.mock_secrets_store.changes_count(&jid), 0);
+    assert_ne!(world.mock_secrets_store().changes_count(&jid), 0);
 }

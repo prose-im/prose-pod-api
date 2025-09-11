@@ -2,7 +2,8 @@
 Feature: Inviting members
 
   Background:
-    Given the Prose Pod has been initialized for prose.org
+    Given config "server.domain" is set to "prose.org"
+      And the Prose Pod has been initialized
       And the Prose Pod API has started
 
   """
@@ -267,7 +268,7 @@ Feature: Inviting members
 
     Scenario: Rémi joins using a custom nickname
       Given <remi@prose.org> has been invited via email
-        And the XMPP server domain is prose.org
+          # NOTE: config "server.domain" is set to "prose.org"
        When <remi@prose.org> accepts their invitation using the nickname "Rémi B."
        Then the call should succeed
         And remi@prose.org’s nickname should be "Rémi B."

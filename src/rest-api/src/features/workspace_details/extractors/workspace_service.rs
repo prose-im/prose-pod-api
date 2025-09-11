@@ -15,7 +15,7 @@ impl FromRequestParts<AppState> for WorkspaceService {
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let workspace_jid = state.app_config_frozen().workspace_jid();
+        let workspace_jid = state.app_config.workspace_jid();
         WorkspaceService::new(
             state.xmpp_service.clone(),
             workspace_jid,

@@ -19,7 +19,6 @@ pub async fn start_cron_tasks(
             },
         db,
         app_config,
-
         auth_service,
         ..
     }: &AppState,

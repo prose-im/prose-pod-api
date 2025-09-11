@@ -4,18 +4,20 @@ Feature: IP connectivity checks
   Background:
     Given the XMPP server has been initialized
       And Valerian is an admin
-      And the Prose Pod API has started
+        # NOTE: Required when `pod.address.domain` is unset
+      And config "dashboard.url" is set to "https://dashboard.prose.test.org"
 
   Rule: SSE route sends CHECKING events first.
 
     Scenario: IPv4 + IPv6
-      Given the Prose Pod is publicly accessible via an IPv4
-        And the Prose Pod is publicly accessible via an IPv6
-        And the Prose Pod isn’t publicly accessible via a domain
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.ipv4" is set to "0.0.0.0"
+        And config "pod.address.ipv6" is set to "::"
+        And config "pod.address.domain" is unset
+        And the Prose Pod API has started
         And federation is enabled
-        And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a A record for test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for test.prose.org.
+        And prose.org’s DNS zone has a A record for test.org.
+        And prose.org’s DNS zone has a AAAA record for test.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
         And one SSE with id "IPv4-c2s" is
@@ -65,11 +67,12 @@ Feature: IP connectivity checks
             """
 
     Scenario: Hostname
-      Given the Prose Pod is publicly accessible via a domain
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.domain" is set to "prose.test.org"
+        And the Prose Pod API has started
         And federation is enabled
-        And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a A record for test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for test.prose.org.
+        And prose.org’s DNS zone has a A record for test.org.
+        And prose.org’s DNS zone has a AAAA record for test.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
         And one SSE with id "IPv4-c2s" is
@@ -121,17 +124,18 @@ Feature: IP connectivity checks
   Rule: Standard hosts are checked too
 
     Scenario: Standard XMPP hostnames
-      Given the Prose Pod is publicly accessible via a domain
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.domain" is set to "prose.test.org"
+        And the Prose Pod API has started
         And federation is enabled
-        And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has no A record for test.prose.org.
-        And prose.org’s DNS zone has no AAAA record for test.prose.org.
-        And prose.org’s DNS zone has a A record for _xmpp-client._tcp.test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for _xmpp-client._tcp.test.prose.org.
-        And prose.org’s DNS zone has a A record for _xmpp-server._tcp.test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.test.prose.org.
-        And prose.org’s DNS zone has a A record for _xmpp-server._tcp.groups.test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.groups.test.prose.org.
+        And prose.org’s DNS zone has no A record for test.org.
+        And prose.org’s DNS zone has no AAAA record for test.org.
+        And prose.org’s DNS zone has a A record for _xmpp-client._tcp.test.org.
+        And prose.org’s DNS zone has a AAAA record for _xmpp-client._tcp.test.org.
+        And prose.org’s DNS zone has a A record for _xmpp-server._tcp.test.org.
+        And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.test.org.
+        And prose.org’s DNS zone has a A record for _xmpp-server._tcp.groups.test.org.
+        And prose.org’s DNS zone has a AAAA record for _xmpp-server._tcp.groups.test.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
         And one SSE with id "IPv4-c2s" is
@@ -163,11 +167,12 @@ Feature: IP connectivity checks
   Rule: Server-to-server checks are ran only if federation is enabled
 
     Scenario: Hostname
-      Given the Prose Pod is publicly accessible via a domain
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.domain" is set to "prose.test.org"
+        And the Prose Pod API has started
         And federation is disabled
-        And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a A record for test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for test.prose.org.
+        And prose.org’s DNS zone has a A record for test.org.
+        And prose.org’s DNS zone has a AAAA record for test.org.
        When Valerian checks the IP connectivity
        Then the response is a SSE stream
         And at least one SSE has id "IPv4-c2s"

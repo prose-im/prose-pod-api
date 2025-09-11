@@ -68,7 +68,7 @@ pub trait LicenseServiceImpl: Debug + Send + Sync {
     fn install_license(&self, license: License) -> Result<(), anyhow::Error>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LiveLicenseService {
     validator: LicenseValidator,
     installed_licenses: Arc<RwLock<Vec<License>>>,

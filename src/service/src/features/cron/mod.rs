@@ -6,7 +6,7 @@
 mod delete_expired_password_reset_tokens;
 mod refresh_service_accounts_tokens;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use futures::future::join_all;
 use sea_orm::DatabaseConnection;
@@ -20,7 +20,7 @@ use super::{auth::AuthService, secrets::SecretsStore};
 #[derive(Debug, Clone)]
 pub struct CronContext {
     pub cancellation_token: CancellationToken,
-    pub app_config: Arc<RwLock<AppConfig>>,
+    pub app_config: Arc<AppConfig>,
     pub db: DatabaseConnection,
     pub secrets_store: SecretsStore,
     pub auth_service: AuthService,

@@ -24,7 +24,6 @@ use crate::{
 
 use super::{non_standard_xmpp_client::NonStandardXmppClient, xmpp_client::XMPPClient};
 
-#[derive(Clone)]
 pub struct LiveXmppService {
     http_client: HttpClient,
     pub rest_api_url: String,

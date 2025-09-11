@@ -36,12 +36,14 @@ pub use merge::MergeStrategy;
 /// > Prosody defaults.
 ///
 /// See <https://prosody.im/doc/configure>.
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProsodyConfig {
     pub global_settings: ProsodySettings,
     pub additional_sections: Vec<ProsodyConfigSection>,
 }
 
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProsodyConfigSection {
     VirtualHost {
@@ -77,6 +79,7 @@ impl ProsodyConfigSection {
     }
 }
 
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde",
@@ -298,7 +301,7 @@ impl ProsodySettings {
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -504,6 +507,7 @@ pub enum LogLevel {
 ///   key = "/etc/prosody/certs/example.com.key";
 /// }
 /// ```
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct SSLConfig {
@@ -675,7 +679,7 @@ pub enum ExtraVerificationOption {
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -710,6 +714,7 @@ pub struct ConnectionLimits {
 }
 
 /// See <https://prosody.im/doc/modules/mod_server_contact_info#configuration>.
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct ContactInfo {
@@ -742,7 +747,7 @@ impl ContactInfo {
 }
 
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoomCreationRestriction {
     /// Do not restrict room creation.
     NotRestricted,
@@ -754,7 +759,7 @@ pub enum RoomCreationRestriction {
 }
 
 /// See <https://prosody.im/doc/modules/mod_mam>.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArchivePolicy {
     /// Always archive messages.
     Always,
@@ -767,7 +772,7 @@ pub enum ArchivePolicy {
 /// See <https://prosody.im/doc/configure#other_encryption_options> and <https://wiki.mozilla.org/Security/Server_Side_TLS>.
 ///
 /// Source: `mozilla_ssl_configs` in <https://hg.prosody.im/trunk/file/tip/core/certmanager.lua>.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),

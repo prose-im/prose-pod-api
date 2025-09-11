@@ -12,7 +12,7 @@ mod model;
 mod util;
 
 mod prelude {
-    pub use std::convert::Infallible;
+    pub use std::{convert::Infallible, sync::Arc};
 
     pub use axum::{
         extract::{Query, State},
@@ -24,6 +24,7 @@ mod prelude {
     pub use serdev::Serialize;
     pub use service::network_checks::*;
 
+    pub(crate) use crate::AppConfig;
     pub use crate::{
         error::Error, forms, impl_network_check_event_from, impl_network_check_result_from,
         AppState,

@@ -125,7 +125,7 @@ async fn given_invited(
             },
             created_at: None,
         },
-        &world.uuid_gen,
+        &world.uuid_gen(),
     )
     .await?;
 
@@ -171,7 +171,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
                 },
                 created_at: None,
             },
-            &world.uuid_gen,
+            &world.uuid_gen(),
         )
         .await?;
         world.workspace_invitations.insert(email_address, model);
@@ -205,7 +205,7 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
     // Resend invitation
     let db = world.db();
-    let model = InvitationRepository::resend(db, &world.uuid_gen, invitation_before).await?;
+    let model = InvitationRepository::resend(db, &world.uuid_gen(), invitation_before).await?;
 
     // Store current invitation data
     world

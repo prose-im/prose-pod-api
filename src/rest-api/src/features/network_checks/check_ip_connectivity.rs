@@ -22,9 +22,8 @@ pub async fn check_ip_stream_route(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
     Query(forms::Interval { interval }): Query<forms::Interval>,
-    State(AppState { app_config, .. }): State<AppState>,
+    State(ref app_config): State<Arc<AppConfig>>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let ref app_config = app_config.read().unwrap().clone();
     run_checks_stream(
         pod_network_config.ip_connectivity_checks().into_iter(),
         network_checker,

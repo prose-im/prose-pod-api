@@ -10,7 +10,7 @@ pub mod forms;
 pub mod responders;
 pub mod util;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use axum::{extract::FromRef, middleware, Router};
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
@@ -33,11 +33,12 @@ use util::{error_catcher, LifecycleManager};
 
 pub trait AxumState: Clone + Send + Sync + 'static {}
 
+// NOTE: Any Axum state must implement `Clone`.
 #[derive(Debug, Clone)]
 pub struct AppState {
     base: MinimalAppState,
     db: DatabaseConnection,
-    app_config: Arc<RwLock<AppConfig>>,
+    app_config: Arc<AppConfig>,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
     auth_service: AuthService,
@@ -52,7 +53,7 @@ impl AppState {
     pub fn new(
         base: MinimalAppState,
         db: DatabaseConnection,
-        app_config: Arc<RwLock<AppConfig>>,
+        app_config: Arc<AppConfig>,
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
         auth_service: AuthService,
@@ -61,7 +62,7 @@ impl AppState {
         license_service: LicenseService,
         pod_version_service: PodVersionService,
     ) -> Self {
-        let uuid_gen = Uuid::from_config(&app_config.read().unwrap());
+        let uuid_gen = Uuid::from_config(&app_config);
         Self {
             base,
             db,
@@ -75,11 +76,6 @@ impl AppState {
             license_service,
             pod_version_service,
         }
-    }
-
-    /// An immutable version of the global app configuration.
-    pub fn app_config_frozen(&self) -> AppConfig {
-        self.app_config.read().unwrap().clone()
     }
 }
 

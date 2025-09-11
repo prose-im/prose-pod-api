@@ -22,7 +22,7 @@ use std::sync::{Arc, RwLock};
 
 use super::mock_server_ctl::MockServerCtlState;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockAuthService {
     pub(crate) state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,

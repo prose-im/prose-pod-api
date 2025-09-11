@@ -16,7 +16,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct MockXmppService {
     pub(crate) state: Arc<RwLock<MockXmppServiceState>>,
 }

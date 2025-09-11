@@ -104,7 +104,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             http_file_share_global_quota,
             http_file_share_access,
             use_libevent,
-            custom_settings,
+            mut custom_settings,
             dont_archive_namespaces,
             archive_store,
             mam_include_total,
@@ -433,7 +433,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             ),
         );
 
-        res.append(custom_settings.clone().as_mut());
+        res.append(custom_settings.as_mut());
 
         res
     }

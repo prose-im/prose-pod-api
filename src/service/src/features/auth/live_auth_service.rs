@@ -22,7 +22,7 @@ use super::{
     AuthToken, UserInfo,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LiveAuthService {
     prosody_oauth2: Arc<ProsodyOAuth2>,
 }

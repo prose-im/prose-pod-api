@@ -3,19 +3,16 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    sync::{Arc, RwLock},
-    time::SystemTime,
-};
+use std::{sync::Arc, time::SystemTime};
 
 use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
 use crate::{auth::AuthService, secrets::SecretsStore, AppConfig};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Context {
-    pub app_config: Arc<RwLock<AppConfig>>,
+    pub app_config: Arc<AppConfig>,
     pub secrets_store: SecretsStore,
     pub auth_service: AuthService,
 }
@@ -28,7 +25,7 @@ pub async fn run(
         ref auth_service,
     }: Context,
 ) {
-    let oauth2_tokens_ttl = (app_config.read().unwrap().auth.token_ttl.num_seconds())
+    let oauth2_tokens_ttl = (app_config.auth.token_ttl.num_seconds())
         .expect("`app_config.auth.token_ttl` contains years or months. Not supported.");
 
     // If the TTL is `0` (which is the case in some tests), don’t run the task.
@@ -84,7 +81,7 @@ pub async fn run(
 
         info!("Refreshing service accounts tokens…");
 
-        let service_accounts = vec![app_config.read().unwrap().workspace_jid()];
+        let service_accounts = vec![app_config.workspace_jid()];
 
         for jid in service_accounts.iter() {
             let Some(password) = secrets_store.get_service_account_password(jid) else {

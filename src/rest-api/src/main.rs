@@ -3,10 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    net::SocketAddr,
-    sync::{Arc, RwLock},
-};
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::Router;
 use prose_pod_api::{
@@ -217,7 +214,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     AppState::new(
         base,
         db,
-        Arc::new(RwLock::new(app_config)),
+        Arc::new(app_config),
         server_ctl,
         xmpp_service,
         auth_service,

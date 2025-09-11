@@ -27,7 +27,7 @@ impl FromRequestParts<AppState> for service::members::MemberService {
             Arc::new(state.db.clone()),
             Arc::new(state.server_ctl.clone()),
             Arc::new(xmpp_service),
-            ConcurrentTaskRunner::default(&state.app_config_frozen()),
+            ConcurrentTaskRunner::default(&state.app_config),
             ctx,
         ))
     }

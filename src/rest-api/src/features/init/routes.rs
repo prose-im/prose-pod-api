@@ -3,11 +3,14 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use axum::{extract::State, http::HeaderValue, Json};
 use service::{
     init::{InitFirstAccountForm, InitService},
     members::{Member, MemberRepository, Nickname, UnauthenticatedMemberService},
     xmpp::JidNode,
+    AppConfig,
 };
 use validator::Validate;
 
@@ -31,12 +34,11 @@ pub struct InitFirstAccountRequest {
 }
 
 pub async fn init_first_account_route(
-    State(ref app_state): State<AppState>,
+    State(ref app_config): State<Arc<AppConfig>>,
     init_service: InitService,
     ref member_service: UnauthenticatedMemberService,
     Json(req): Json<InitFirstAccountRequest>,
 ) -> Result<Created<Member>, Error> {
-    let ref app_config = app_state.app_config_frozen();
     let ref server_domain = app_config.server_domain();
 
     let member = init_service

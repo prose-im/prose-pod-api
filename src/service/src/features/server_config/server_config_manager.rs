@@ -3,10 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    future::Future,
-    sync::{Arc, RwLock},
-};
+use std::{future::Future, sync::Arc};
 
 use anyhow::Context as _;
 use tracing::trace;
@@ -18,14 +15,14 @@ use super::DynamicServerConfig;
 #[derive(Debug, Clone)]
 pub struct ServerConfigManager {
     db: Arc<DatabaseConnection>,
-    app_config: Arc<RwLock<AppConfig>>,
+    app_config: Arc<AppConfig>,
     server_ctl: Arc<ServerCtl>,
 }
 
 impl ServerConfigManager {
     pub fn new(
         db: Arc<DatabaseConnection>,
-        app_config: Arc<RwLock<AppConfig>>,
+        app_config: Arc<AppConfig>,
         server_ctl: Arc<ServerCtl>,
     ) -> Self {
         Self {
@@ -33,10 +30,6 @@ impl ServerConfigManager {
             app_config,
             server_ctl,
         }
-    }
-
-    fn app_config_frozen(&self) -> AppConfig {
-        self.app_config.read().unwrap().clone()
     }
 }
 
@@ -68,7 +61,7 @@ impl ServerConfigManager {
 
         Ok(ServerConfig::with_default_values(
             &new_config,
-            &self.app_config_frozen(),
+            &self.app_config,
         ))
     }
 
@@ -83,7 +76,7 @@ impl ServerConfigManager {
         dynamic_server_config: &DynamicServerConfig,
     ) -> anyhow::Result<ServerConfig> {
         let server_ctl = self.server_ctl.as_ref();
-        let app_config = self.app_config_frozen();
+        let ref app_config = self.app_config;
 
         trace!("Saving server config…");
         let server_config = ServerConfig::with_default_values(dynamic_server_config, &app_config);

@@ -2,7 +2,8 @@
 Feature: Members list
 
   Background:
-    Given the Prose Pod has been initialized for prose.org
+    Given config "server.domain" is set to "prose.org"
+      And the Prose Pod has been initialized
       And Valerian is an admin
       And the Prose Pod API has started
 

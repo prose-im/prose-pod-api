@@ -22,7 +22,7 @@ use crate::{
     TestWorld,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct MockNetworkChecker {
     dns_zone: Arc<RwLock<Vec<DnsRecord>>>,
     open_ports: Arc<RwLock<HashMap<HickoryDomainName, HashSet<u16>>>>,

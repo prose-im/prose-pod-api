@@ -20,7 +20,7 @@ lazy_static! {
     pub(crate) static ref LICENSE_SIGNING_KEY: biscuit::KeyPair = biscuit::KeyPair::new();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockLicenseService {
     installed_licenses: Arc<RwLock<Vec<License>>>,
     valid_licenses: Arc<RwLock<HashSet<Vec<u8>>>>,

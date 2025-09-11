@@ -3,10 +3,10 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-#[cfg(debug_assertions)]
-use axum::extract::State;
+use std::sync::Arc;
+
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     http::{HeaderValue, StatusCode},
     Json,
 };
@@ -86,7 +86,7 @@ pub struct InviteMemberQuery {
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { ref db, .. }): State<AppState>,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
     ref notification_service: NotificationService,
     ref invitation_service: InvitationService,
     ref workspace_service: WorkspaceService,
@@ -127,7 +127,7 @@ pub async fn invite_member_route(
 
 pub async fn can_invite_member_route(
     is_admin: Option<IsAdmin>,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
 ) -> StatusCode {
     if is_admin.is_none() {
         StatusCode::FORBIDDEN
@@ -212,7 +212,7 @@ pub async fn invitation_reject_route(
 
 pub async fn invitation_resend_route(
     ref invitation_service: InvitationService,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
     ref notification_service: NotificationService,
     ref workspace_service: WorkspaceService,
     Path(invitation_id): Path<InvitationId>,

@@ -81,7 +81,6 @@ async fn factory_reset_route(
             }
         }
         FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation { confirmation }) => {
-            let ref app_config = app_config.read().unwrap().clone();
             factory_reset_controller::perform_factory_reset(
                 confirmation,
                 db,

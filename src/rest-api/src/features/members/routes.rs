@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, convert::Infallible, fmt::Display};
+use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -83,7 +83,7 @@ pub async fn head_members(
 
 // ENRICHING
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct JIDs {
     jids: Vec<BareJid>,
@@ -104,17 +104,16 @@ impl Display for JIDs {
 pub async fn enrich_members_route(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
-    app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
 ) -> Json<HashMap<BareJid, EnrichedMember>> {
-    Json(member_controller::enrich_members(member_service, jids, &app_config).await)
+    Json(member_controller::enrich_members(member_service, jids, app_config).await)
 }
 
 pub async fn enrich_members_stream_route(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
-    State(ref app_state): State<AppState>,
+    State(ref app_config): State<Arc<AppConfig>>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let ref app_config = app_state.app_config_frozen();
     let rx = member_controller::enrich_members_stream(member_service, jids, app_config);
 
     let sse_rx = ReceiverStream::new(rx).filter_map(|e| match e {

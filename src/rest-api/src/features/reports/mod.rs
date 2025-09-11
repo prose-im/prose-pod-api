@@ -3,6 +3,8 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use axum::extract::State;
 use axum::routing::get;
 use axum::Json;
@@ -33,7 +35,7 @@ pub struct GetCloudApiReportResponse {
     pub licensing: GetLicensingStatusResponse,
     pub workspace: Workspace,
     pub server: PublicServerConfig,
-    pub dashboard: DashboardConfig,
+    pub dashboard: Arc<DashboardConfig>,
 }
 
 async fn get_cloud_api_report(
@@ -43,7 +45,7 @@ async fn get_cloud_api_report(
         ref pod_version_service,
         ..
     }): State<AppState>,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
     ref workspace_service: WorkspaceService,
 ) -> Result<Json<GetCloudApiReportResponse>, Error> {
     let timestamp = Timestamp::now_utc();

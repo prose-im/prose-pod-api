@@ -4,33 +4,35 @@ Feature: DNS record checks
   Background:
     Given the XMPP server has been initialized
       And Valerian is an admin
-      And the Prose Pod API has started
+        # NOTE: Required when `pod.address.domain` is unset
+      And config "dashboard.url" is set to "https://dashboard.prose.test.org"
 
   Rule: SSE route sends CHECKING events first.
 
     Scenario: IPv4 + IPv6
-      Given the Prose Pod is publicly accessible via an IPv4
-        And the Prose Pod is publicly accessible via an IPv6
-        And the Prose Pod isn’t publicly accessible via a domain
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.ipv4" is set to "0.0.0.0"
+        And config "pod.address.ipv6" is set to "::"
+        And config "pod.address.domain" is unset
         And federation is enabled
-        And the XMPP server domain is test.prose.org
-        And prose.org’s DNS zone has a A record for prose.test.prose.org.
-        And prose.org’s DNS zone has a AAAA record for prose.test.prose.org.
-        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.prose.org. to prose.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to prose.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to prose.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.prose.org. redirecting port 5269 to prose.test.prose.org.
+        And the Prose Pod API has started
+        And prose.org’s DNS zone has a A record for prose.test.org.
+        And prose.org’s DNS zone has a AAAA record for prose.test.org.
+        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.org. to prose.test.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.org. redirecting port 5222 to prose.test.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.org. redirecting port 5269 to prose.test.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.org. redirecting port 5269 to prose.test.org.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And one SSE with id "IPv4" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv4 record for prose.test.prose.org.","status":"CHECKING"}
+            data:{"description":"IPv4 record for prose.test.org.","status":"CHECKING"}
             """
         And one SSE with id "IPv6" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv6 record for prose.test.prose.org.","status":"CHECKING"}
+            data:{"description":"IPv6 record for prose.test.org.","status":"CHECKING"}
             """
         And one SSE with id "SRV-c2s" is
             """
@@ -45,12 +47,12 @@ Feature: DNS record checks
         And one SSE with id "IPv4" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv4 record for prose.test.prose.org.","status":"VALID"}
+            data:{"description":"IPv4 record for prose.test.org.","status":"VALID"}
             """
         And one SSE with id "IPv6" is
             """
             event:dns-record-check-result
-            data:{"description":"IPv6 record for prose.test.prose.org.","status":"VALID"}
+            data:{"description":"IPv6 record for prose.test.org.","status":"VALID"}
             """
         And one SSE with id "SRV-c2s" is
             """
@@ -69,13 +71,14 @@ Feature: DNS record checks
             """
 
     Scenario: Hostname
-      Given federation is enabled
-        And the XMPP server domain is test.prose.org
-        And the Prose Pod is publicly accessible via prose.test.prose.org
-        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.prose.org. to prose.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to cloud-provider.com.
-        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.prose.org. redirecting port 5269 to cloud-provider.com.
-        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.prose.org. redirecting port 5269 to cloud-provider.com.
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.domain" is set to "prose.test.org"
+        And the Prose Pod API has started
+        And federation is enabled
+        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.org. to prose.test.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.org. redirecting port 5222 to cloud-provider.com.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.test.org. redirecting port 5269 to cloud-provider.com.
+        And prose.org’s DNS zone has a SRV record for _xmpp-server._tcp.groups.test.org. redirecting port 5269 to cloud-provider.com.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And one SSE with id "SRV-c2s" is
@@ -107,11 +110,12 @@ Feature: DNS record checks
   Rule: Server-to-server checks are ran only if federation is enabled
 
     Scenario: Hostname
-      Given federation is disabled
-        And the XMPP server domain is test.prose.org
-        And the Prose Pod is publicly accessible via prose.test.prose.org
-        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.prose.org. to prose.test.prose.org.
-        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.prose.org. redirecting port 5222 to cloud-provider.com.
+      Given config "server.domain" is set to "test.org"
+        And config "pod.address.domain" is set to "prose.test.org"
+        And the Prose Pod API has started
+        And federation is disabled
+        And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.org. to prose.test.org.
+        And prose.org’s DNS zone has a SRV record for _xmpp-client._tcp.test.org. redirecting port 5222 to cloud-provider.com.
        When Valerian checks the DNS records configuration as "text/event-stream"
        Then the response is a SSE stream
         And at least one SSE has id "SRV-c2s"

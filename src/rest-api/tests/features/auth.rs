@@ -75,11 +75,6 @@ async fn given_password_reset_requested(
     Ok(())
 }
 
-#[given(expr = "password reset tokens expire after {duration}")]
-async fn given_password_reset_tokens_ttl(world: &mut TestWorld, duration: parameters::Duration) {
-    world.app_config_mut().auth.password_reset_token_ttl = duration.iso().unwrap();
-}
-
 // MARK: - When
 
 async fn log_in(api: &TestServer, username: &BareJid, password: SecretString) -> TestResponse {
@@ -102,9 +97,12 @@ async fn log_in(api: &TestServer, username: &BareJid, password: SecretString) ->
 #[when(expr = "{} logs into the Prose Pod API")]
 async fn when_user_logs_in(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    let users = world.server_ctl_state().users;
-    let user = users.get(&jid).expect("User must be created first");
-    let res = log_in(world.api(), &jid, user.password.clone()).await;
+    let password = {
+        let ref users = world.server_ctl_state().users;
+        let user = users.get(&jid).expect("User must be created first");
+        user.password.clone()
+    };
+    let res = log_in(world.api(), &jid, password).await;
     world.result = Some(res.into());
     Ok(())
 }
@@ -208,9 +206,9 @@ async fn then_prosody_token_expires_after(
 ) -> Result<(), DbErr> {
     let domain = world.app_config().server_domain().clone();
 
-    let prosody_config = world
-        .server_ctl_state()
-        .applied_config
+    let server_ctl_state = world.server_ctl_state();
+    let prosody_config = (server_ctl_state.applied_config)
+        .as_ref()
         .expect("XMPP server config not initialized");
     let settings = prosody_config
         .virtual_host_settings(&domain.to_string())
@@ -243,9 +241,11 @@ async fn then_n_valid_password_reset_tokens(
 #[then(expr = "{}’s password should be {string}")]
 async fn then_password(world: &mut TestWorld, name: String, expected: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    let users = world.server_ctl_state().users;
-    let user = users.get(&jid).expect("User must be created first");
-    let password = user.password.clone();
+    let password = {
+        let ref users = world.server_ctl_state().users;
+        let user = users.get(&jid).expect("User must be created first");
+        user.password.clone()
+    };
     assert_eq!(password.expose_secret(), expected);
     Ok(())
 }

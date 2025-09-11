@@ -3,6 +3,8 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use axum::{extract::State, response::NoContent, Json};
 use axum_extra::either::Either;
 
@@ -26,7 +28,7 @@ pub mod server_config {
 
     pub async fn get(
         State(AppState { ref db, .. }): State<AppState>,
-        ref app_config: AppConfig,
+        State(ref app_config): State<Arc<AppConfig>>,
         is_admin: Option<IsAdmin>,
     ) -> Result<Either<Json<ServerConfig>, Json<PublicServerConfig>>, Error> {
         match server_config_controller::get_server_config(db, app_config, is_admin).await? {
@@ -45,7 +47,7 @@ macro_rules! server_config_routes {
             use super::*;
 
             pub async fn set(
-                ref manager: ServerConfigManager,
+                State(ref manager): State<ServerConfigManager>,
                 Json($var): Json<$var_type>,
             ) -> Result<Json<$var_type>, Error> {
                 match server_config_controller::$var::set(manager, $var).await? {
@@ -55,7 +57,7 @@ macro_rules! server_config_routes {
 
             pub async fn get(
                 State(AppState { ref db, .. }): State<AppState>,
-                ref app_config: AppConfig,
+                State(ref app_config): State<Arc<AppConfig>>,
             ) -> Result<Json<$var_type>, Error> {
                 match server_config_controller::$var::get(db, app_config).await? {
                     $var => Ok(Json($var)),
@@ -64,7 +66,7 @@ macro_rules! server_config_routes {
 
             pub async fn reset(
                 State(AppState { ref db, .. }): State<AppState>,
-                ref app_config: AppConfig,
+                State(ref app_config): State<Arc<AppConfig>>,
             ) -> Result<Json<$var_type>, Error> {
                 server_config_controller::$var::reset(db).await?;
                 match server_config_controller::$var::get(db, app_config).await? {
@@ -86,7 +88,7 @@ macro_rules! gen_server_config_group_reset_route {
             use super::*;
 
             pub async fn reset(
-                ref manager: ServerConfigManager,
+                State(ref manager): State<ServerConfigManager>,
             ) -> Result<([(HeaderName, HeaderValue); 1], Json<ServerConfig>), crate::error::Error>
             {
                 let new_config = server_config_controller::$group::reset(manager).await?;
@@ -104,7 +106,29 @@ macro_rules! gen_server_config_group_reset_route {
 
 // MARK: File upload
 
-gen_server_config_group_reset_route!(files_config);
+// gen_server_config_group_reset_route!(files_config);
+
+pub mod files_config {
+    use axum::http::{header::CONTENT_LOCATION, HeaderName, HeaderValue};
+
+    use crate::features::server_config::SERVER_CONFIG_ROUTE;
+
+    use super::*;
+
+    pub async fn reset(
+        State(ref manager): State<ServerConfigManager>,
+    ) -> Result<([(HeaderName, HeaderValue); 1], Json<ServerConfig>), crate::error::Error> {
+        let new_config = server_config_controller::files_config::reset(manager).await?;
+        Ok((
+            [(
+                CONTENT_LOCATION,
+                HeaderValue::from_static(SERVER_CONFIG_ROUTE),
+            )],
+            Json(new_config),
+        ))
+    }
+}
+
 server_config_routes!(
     file_upload_allowed: bool
 );
@@ -168,7 +192,7 @@ server_config_routes!(
 pub mod prosody_config_lua {
     use super::*;
 
-    pub async fn get(ref app_config: AppConfig) -> Result<Lua, Error> {
+    pub async fn get(State(ref app_config): State<Arc<AppConfig>>) -> Result<Lua, Error> {
         match server_config_controller::get_prosody_config_lua(app_config).await? {
             prosody_config => Ok(Lua::from(prosody_config)),
         }
@@ -181,7 +205,7 @@ pub mod prosody_overrides {
     use super::*;
 
     pub async fn set(
-        ref manager: ServerConfigManager,
+        State(ref manager): State<ServerConfigManager>,
         Json(overrides): Json<ProsodySettings>,
     ) -> Result<Json<Option<ProsodySettings>>, Error> {
         match server_config_controller::prosody_overrides::set(manager, overrides).await? {
@@ -191,7 +215,7 @@ pub mod prosody_overrides {
 
     pub async fn get(
         State(AppState { ref db, .. }): State<AppState>,
-        ref app_config: AppConfig,
+        State(ref app_config): State<Arc<AppConfig>>,
     ) -> Result<Either<Json<ProsodySettings>, NoContent>, Error> {
         match server_config_controller::prosody_overrides::get(db, app_config).await? {
             Some(overrides) => Ok(Either::E1(Json(overrides))),
@@ -214,7 +238,7 @@ pub mod prosody_overrides_raw {
     use super::*;
 
     pub async fn set(
-        ref manager: ServerConfigManager,
+        State(ref manager): State<ServerConfigManager>,
         lua: Lua,
     ) -> Result<Either<Lua, NoContent>, Error> {
         match server_config_controller::prosody_overrides_raw::set(manager, lua.into()).await? {
@@ -225,7 +249,7 @@ pub mod prosody_overrides_raw {
 
     pub async fn get(
         State(AppState { ref db, .. }): State<AppState>,
-        ref app_config: AppConfig,
+        State(ref app_config): State<Arc<AppConfig>>,
     ) -> Result<Either<Lua, NoContent>, Error> {
         match server_config_controller::prosody_overrides_raw::get(db, app_config).await? {
             Some(overrides) => Ok(Either::E1(Lua::from(overrides))),

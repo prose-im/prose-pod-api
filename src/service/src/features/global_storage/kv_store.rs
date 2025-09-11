@@ -30,7 +30,7 @@ mod entity {
         pub value: Json,
     }
 
-    #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
+    #[derive(Debug, EnumIter, DeriveRelation)]
     pub enum Relation {}
 
     impl ActiveModelBehavior for ActiveModel {}

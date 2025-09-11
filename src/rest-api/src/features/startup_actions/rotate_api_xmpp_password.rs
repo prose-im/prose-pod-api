@@ -19,7 +19,7 @@ pub async fn rotate_api_xmpp_password(
 ) -> Result<(), String> {
     debug!("Rotating Prose Pod API's XMPP password…");
 
-    let ref app_config = app_config.read().unwrap().clone();
+    let ref app_config = app_config.clone();
 
     if let Err(err) =
         server_manager::rotate_api_xmpp_password(server_ctl, app_config, secrets_store).await

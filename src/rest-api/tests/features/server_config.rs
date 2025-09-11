@@ -151,7 +151,10 @@ async fn then_message_archiving(
     assert_eq!(server_config.message_archive_enabled, enabled);
 
     // Check applied Prosody configuration
-    let prosody_config = world.server_ctl_state().applied_config.unwrap();
+    let prosody_config = {
+        let server_ctl_state = world.server_ctl_state();
+        server_ctl_state.applied_config.as_ref().unwrap().clone()
+    };
     let global_settings = prosody_config.global_settings.to_owned();
     let muc_settings = prosody_config
         .component_settings("muc")
@@ -180,7 +183,10 @@ async fn then_message_archive_retention(
     assert_eq!(server_config.message_archive_retention, duration, "db");
 
     // Check applied Prosody configuration
-    let prosody_config = world.server_ctl_state().applied_config.unwrap();
+    let prosody_config = {
+        let server_ctl_state = world.server_ctl_state();
+        server_ctl_state.applied_config.as_ref().unwrap().clone()
+    };
     let global_settings = prosody_config.global_settings.to_owned();
     assert_eq!(
         global_settings.archive_expires_after,

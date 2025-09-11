@@ -10,14 +10,14 @@ use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
 use std::{hash::Hash, path::PathBuf};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ProsodyConfigFile {
     pub header: Option<Group<LuaComment>>,
     pub global_settings: Vec<Group<LuaDefinition>>,
     pub additional_sections: Vec<ProsodyConfigFileSection>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ProsodyConfigFileSection {
     VirtualHost {
         comments: Vec<LuaComment>,
@@ -47,6 +47,7 @@ impl<S: ToString> From<S> for LuaComment {
 
 /// When we want to group definitions together by topic for example,
 /// we can use groups to avoid printing empty lines in-between.
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct Group<T> {
@@ -89,6 +90,7 @@ impl LuaDefinition {
     }
 }
 
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LuaDefinition {
     pub comment: Option<LuaComment>,
@@ -138,6 +140,7 @@ impl From<u32> for LuaNumber {
     }
 }
 
+// TODO: Remove `Clone` derive.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LuaValue {
     Bool(bool),

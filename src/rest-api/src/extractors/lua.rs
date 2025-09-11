@@ -12,7 +12,7 @@ use axum::response::{IntoResponse, Response};
 
 use crate::error::{Error, ErrorCode, HttpApiError, LogLevel};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct Lua(pub String);
 

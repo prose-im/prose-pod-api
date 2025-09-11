@@ -26,20 +26,20 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 mod routes {
-    use axum::{extract::State, Json};
-    use service::{app_config::DashboardConfig, models::Url};
+    use std::sync::Arc;
 
-    use crate::AppState;
+    use axum::{extract::State, Json};
+    use service::{app_config::DashboardConfig, models::Url, AppConfig};
 
     pub async fn get_dashboard_config_route(
-        State(AppState { app_config, .. }): State<AppState>,
-    ) -> Json<DashboardConfig> {
-        Json(app_config.read().unwrap().dashboard.clone())
+        State(ref app_config): State<Arc<AppConfig>>,
+    ) -> Json<Arc<DashboardConfig>> {
+        Json(app_config.dashboard.clone())
     }
 
     pub(super) async fn get_dashboard_url_route(
-        State(AppState { app_config, .. }): State<AppState>,
+        State(ref app_config): State<Arc<AppConfig>>,
     ) -> Json<Url> {
-        Json(app_config.read().unwrap().dashboard_url().to_owned())
+        Json(app_config.dashboard_url().to_owned())
     }
 }

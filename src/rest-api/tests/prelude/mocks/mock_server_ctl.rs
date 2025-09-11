@@ -20,23 +20,23 @@ use service::{
 
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct MockServerCtl {
     pub(crate) state: Arc<RwLock<MockServerCtlState>>,
     pub(crate) db: DatabaseConnection,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UserAccount {
     pub password: SecretString,
     pub role: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockServerCtlState {
     pub online: bool,
     pub conf_reload_count: usize,
-    pub applied_config: Option<ProsodyConfig>,
+    pub applied_config: Option<Arc<ProsodyConfig>>,
     pub users: LinkedHashMap<BareJid, UserAccount>,
 }
 
@@ -82,14 +82,14 @@ impl ServerCtlImpl for MockServerCtl {
             prosody_config_from_db(&self.db, app_config, Some(server_config.to_owned())).await?;
 
         let mut state = self.state.write().unwrap();
-        state.applied_config = Some(new_config);
+        state.applied_config = Some(Arc::new(new_config));
         Ok(())
     }
     async fn reset_config(&self, init_admin_password: &SecretString) -> Result<(), Error> {
         self.check_online()?;
 
         let mut state = self.state.write().unwrap();
-        state.applied_config = Some(prosody_bootstrap_config(init_admin_password));
+        state.applied_config = Some(Arc::new(prosody_bootstrap_config(init_admin_password)));
         Ok(())
     }
     async fn reload(&self) -> Result<(), Error> {
