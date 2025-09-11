@@ -6,7 +6,7 @@
 mod cache;
 mod concurrent_task_runner;
 mod debounced_notify;
-mod deserialize_some;
+mod deserializers;
 mod detect_mime_type;
 pub mod either;
 mod sea_orm;
@@ -17,7 +17,7 @@ use crate::models::jid::{BareJid, DomainRef, NodeRef};
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::debounced_notify::*;
-pub use self::deserialize_some::*;
+pub use self::deserializers::*;
 pub use self::detect_mime_type::*;
 pub use self::unaccent::*;
 

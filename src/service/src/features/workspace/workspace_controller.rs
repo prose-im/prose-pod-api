@@ -103,7 +103,10 @@ pub struct PatchWorkspaceDetailsRequest {
     #[validate(length(min = 1, max = 48), non_control_character)]
     pub name: Option<String>,
 
-    #[serde(default, deserialize_with = "crate::util::deserialize_some")]
+    #[serde(
+        default,
+        deserialize_with = "crate::util::deserialize_null_as_some_none"
+    )]
     #[validate(skip)]
     pub accent_color: Option<Option<Color>>,
 }
