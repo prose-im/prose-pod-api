@@ -16,7 +16,7 @@ use prose_pod_api::{
     AppState, MinimalAppState,
 };
 use service::{
-    app_config::defaults,
+    app_config::{defaults, LogConfig},
     auth::{AuthService, LiveAuthService},
     licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
@@ -38,9 +38,15 @@ async fn main() {
         .expect("Could not install default crypto provider.");
 
     // NOTE: Can only be called once.
-    let (_tracing_guard, tracing_reload_handles) = init_subscribers()
-        .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
-        .unwrap();
+    let (_tracing_guard, tracing_reload_handles) = {
+        let figment = AppConfig::figment();
+        let ref log_config = figment
+            .extract_inner::<LogConfig>("log")
+            .expect("Invalid `log` config.");
+        init_subscribers(log_config)
+            .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
+            .unwrap()
+    };
 
     let mut lifecycle_manager = LifecycleManager::new();
     let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::default()));
