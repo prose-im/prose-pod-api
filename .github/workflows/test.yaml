@@ -85,6 +85,9 @@ jobs:
       - name: Ensure no debug tags are committed in feature files
         run: "! grep -rEn --include='*.feature' '@(testing|debug)' ."
 
+      - name: Ensure no `dbg!`s are committed in source files
+        run: "! grep -rEn --include='*.rs' 'dbg!' src"
+
   smoke-test:
     if: github.event.pull_request.draft == false
     needs: [lint-rust, lint-openapi, check-no-unwanted-strings]
