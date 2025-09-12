@@ -356,6 +356,9 @@ pub struct ApiConfig {
     #[serde(default = "defaults::api_default_retry_interval")]
     pub default_retry_interval: Duration<TimeLike>,
 
+    #[serde(default = "defaults::api_sse_timeout")]
+    pub sse_timeout: Duration<TimeLike>,
+
     #[serde(default)]
     #[validate(nested)]
     pub databases: DatabasesConfig,
@@ -368,8 +371,15 @@ impl Default for ApiConfig {
             port: defaults::api_port(),
             default_response_timeout: defaults::api_default_response_timeout(),
             default_retry_interval: defaults::api_default_retry_interval(),
+            sse_timeout: defaults::api_sse_timeout(),
             databases: Default::default(),
         }
+    }
+}
+
+impl ApiConfig {
+    pub fn sse_timeout(&self) -> std::time::Duration {
+        self.sse_timeout.into_std_duration()
     }
 }
 

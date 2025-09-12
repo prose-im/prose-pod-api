@@ -17,7 +17,7 @@ use tracing::{instrument, trace, Instrument as _};
 
 use crate::error::{self, Error};
 
-use super::{end_event, SSE_TIMEOUT};
+use super::end_event;
 
 #[instrument(level = "trace", skip_all)]
 pub async fn run_checks<'r, Check, T>(
@@ -61,7 +61,7 @@ where
     let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
     let runner = ConcurrentTaskRunner::default(app_config)
-        .with_timeout(*SSE_TIMEOUT)
+        .with_timeout(app_config.api.sse_timeout())
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();
 

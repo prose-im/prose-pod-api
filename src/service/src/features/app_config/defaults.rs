@@ -251,3 +251,7 @@ pub fn api_default_response_timeout() -> Duration<TimeLike> {
 pub fn api_default_retry_interval() -> Duration<TimeLike> {
     Duration(TimeLike::Seconds(5))
 }
+
+pub fn api_sse_timeout() -> Duration<TimeLike> {
+    Duration(TimeLike::Minutes(5))
+}

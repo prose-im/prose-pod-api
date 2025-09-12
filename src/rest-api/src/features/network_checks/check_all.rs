@@ -16,7 +16,7 @@ use crate::features::network_checks::{
     check_ports_reachability::port_reachability_check_result,
 };
 
-use super::{check_dns_records_route__, model::*, prelude::*, util::*, SSE_TIMEOUT};
+use super::{check_dns_records_route__, model::*, prelude::*, util::*};
 
 pub async fn check_network_configuration_route(
     app_state: State<AppState>,
@@ -115,7 +115,7 @@ async fn check_network_configuration_stream_route_(
         validate_retry_interval,
     )?;
     let runner = ConcurrentTaskRunner::default(app_config)
-        .with_timeout(*SSE_TIMEOUT)
+        .with_timeout(app_config.api.sse_timeout())
         .with_retry_interval(retry_interval);
     let cancellation_token = runner.cancellation_token.clone();
 
