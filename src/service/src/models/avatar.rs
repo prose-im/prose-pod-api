@@ -9,10 +9,15 @@ use mime::Mime;
 use serde_with::{base64::Base64, serde_as, DisplayFromStr};
 use serdev::{Serialize, Serializer};
 
-use crate::util::{detect_image_media_type, SUPPORTED_IMAGE_MEDIA_TYPES};
+use crate::{
+    models::Bytes,
+    util::{detect_image_media_type, SUPPORTED_IMAGE_MEDIA_TYPES},
+};
 
-/// 512kB
-const AVATAR_MAX_LENGTH: usize = 512_000;
+// NOTE: This is the very maximum the Pod API will accept. While a softer limit
+//   can be configured via the app configuration (checked when uploading), this
+//   limit ensures no [`Avatar`] value can ever exceed 10MB (to prevent abuse).
+pub(crate) const AVATAR_MAX_LENGTH: Bytes = Bytes::MegaBytes(10);
 
 /// Avatar, decoded from raw bytes or Base64.
 ///
@@ -34,7 +39,7 @@ pub struct Avatar<'a> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AvatarDecodeError {
-    #[error("Avatar too large. Max length: {AVATAR_MAX_LENGTH}B.")]
+    #[error("Avatar too large. Max length: {AVATAR_MAX_LENGTH}.")]
     TooLarge,
     #[error("Unsupported media type. Supported: {SUPPORTED_IMAGE_MEDIA_TYPES:?}.")]
     UnsupportedMediaType,
@@ -44,7 +49,7 @@ pub enum AvatarDecodeError {
 
 impl<'a> Avatar<'a> {
     pub fn try_from_bytes(bytes: Cow<'a, [u8]>) -> Result<Self, AvatarDecodeError> {
-        if bytes.len() > AVATAR_MAX_LENGTH {
+        if bytes.len() > AVATAR_MAX_LENGTH.as_bytes() as usize {
             return Err(AvatarDecodeError::TooLarge);
         }
 

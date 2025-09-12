@@ -31,6 +31,14 @@ impl DateLike {
             Self::Years(n) => ISODuration::new(n as f32, 0., 0., 0., 0., 0.),
         }
     }
+    pub fn into_time_delta(self) -> chrono::TimeDelta {
+        match self {
+            Self::Days(n) => chrono::TimeDelta::days(n as i64),
+            Self::Weeks(n) => chrono::TimeDelta::weeks(n as i64),
+            Self::Months(n) => chrono::TimeDelta::days(30 * n as i64),
+            Self::Years(n) => chrono::TimeDelta::days(365 * n as i64),
+        }
+    }
 }
 impl Eq for DateLike {}
 impl Into<ISODuration> for DateLike {

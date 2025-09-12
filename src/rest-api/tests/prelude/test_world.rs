@@ -17,6 +17,7 @@ use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
     auth::{AuthService, AuthToken, PasswordResetToken},
     dependencies,
+    factory_reset::FactoryResetService,
     invitations::{Invitation, InvitationService},
     licensing::LicenseService,
     members::{Member, UnauthenticatedMemberService},
@@ -70,6 +71,7 @@ pub struct TestWorld {
     #[allow(unused)]
     pub mock_pod_version_service: Arc<MockPodVersionService>,
     pub pod_version_service: PodVersionService,
+    pub factory_reset_service: FactoryResetService,
     pub uuid_gen: Option<dependencies::Uuid>,
     pub result: Option<TestResponse>,
     /// Map a name to a member and an authorization token.
@@ -328,6 +330,7 @@ impl TestWorld {
             mock_license_service: None,
             pod_version_service: PodVersionService::new(mock_pod_version_service.clone()),
             mock_pod_version_service,
+            factory_reset_service: FactoryResetService::default(),
             email_notifier: Notifier::from(mock_email_notifier.clone()
                 as Arc<dyn GenericNotifier<Notification = EmailNotification>>),
             mock_email_notifier,

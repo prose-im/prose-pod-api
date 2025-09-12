@@ -53,16 +53,18 @@ where
     Check::CheckResult: RetryableNetworkCheckResult + Clone + Send,
     Status: From<Check::CheckResult> + WithQueued + WithChecking + Send + 'static,
 {
-    let retry_interval = retry_interval.map_or_else(
-        || Ok(app_config.api.default_retry_interval.into_std_duration()),
-        validate_retry_interval,
-    )?;
+    let retry_interval = retry_interval.map(validate_retry_interval).transpose()?;
 
     let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
-    let runner = ConcurrentTaskRunner::default(app_config)
-        .with_timeout(app_config.api.sse_timeout())
-        .with_retry_interval(retry_interval);
+    let runner = {
+        let mut runner =
+            ConcurrentTaskRunner::default().with_timings(app_config.api.network_checks.into());
+        if let Some(retry_interval) = retry_interval {
+            runner = runner.with_retry_interval(retry_interval);
+        }
+        runner
+    };
     let cancellation_token = runner.cancellation_token.clone();
 
     tokio::spawn(

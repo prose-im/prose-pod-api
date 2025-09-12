@@ -23,7 +23,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, Instrument as _};
 
-use crate::AppConfig;
+use crate::app_config::NetworkChecksConfig;
 
 /// Helper used to run multiple tasks concurrently.
 ///
@@ -31,50 +31,72 @@ use crate::AppConfig;
 /// along with retry logic if needed.
 #[derive(Debug, Clone)]
 pub struct ConcurrentTaskRunner {
-    pub timeout: Duration,
     pub ordered: bool,
     pub cancellation_token: CancellationToken,
-    pub retry_interval: Duration,
-    pub retry_timeout: Duration,
+    pub timings: TaskRunnerTimings,
+}
+
+impl Default for ConcurrentTaskRunner {
+    fn default() -> Self {
+        Self {
+            ordered: false,
+            cancellation_token: CancellationToken::new(),
+            timings: Default::default(),
+        }
+    }
 }
 
 impl ConcurrentTaskRunner {
-    pub fn default(app_config: &AppConfig) -> Self {
-        let default_reponse_timeout = app_config.api.default_response_timeout.into_std_duration();
-        Self {
-            timeout: default_reponse_timeout,
-            ordered: false,
-            cancellation_token: CancellationToken::new(),
-            retry_interval: app_config.api.default_retry_interval.into_std_duration(),
-            retry_timeout: default_reponse_timeout,
-        }
-    }
     pub fn ordered(self) -> Self {
         Self {
             ordered: true,
             ..self
         }
     }
+
+    pub fn with_timings(mut self, timings: TaskRunnerTimings) -> Self {
+        self.timings = timings;
+        self
+    }
+
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
+        self.timings.timeout = timeout;
         self
     }
-    /// "No timeout" means 1 hour (which should never happen).
+
+    /// “No timeout” means 1 hour (which should never happen).
     pub fn no_timeout(mut self) -> Self {
-        self.timeout = Duration::from_secs(3600);
+        self.timings.timeout = Duration::from_secs(3600);
         self
     }
+
     pub fn with_retry_interval(mut self, retry_interval: Duration) -> Self {
-        self.retry_interval = retry_interval;
+        self.timings.retry_interval = retry_interval;
         self
     }
+
     pub fn child(&self) -> Self {
         Self {
-            timeout: self.timeout.clone(),
             ordered: self.ordered,
             cancellation_token: self.cancellation_token.child_token(),
-            retry_interval: self.retry_interval.clone(),
-            retry_timeout: self.retry_timeout.clone(),
+            timings: self.timings,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TaskRunnerTimings {
+    pub timeout: Duration,
+    pub retry_interval: Duration,
+    pub retry_timeout: Duration,
+}
+
+impl Default for TaskRunnerTimings {
+    fn default() -> Self {
+        Self {
+            timeout: Duration::from_secs(10),
+            retry_interval: Duration::from_secs(2),
+            retry_timeout: Duration::from_secs(1),
         }
     }
 }
@@ -109,7 +131,7 @@ impl ConcurrentTaskRunner {
         R: Send + 'static,
     {
         let Self {
-            timeout, ordered, ..
+            timings, ordered, ..
         } = self.clone();
         let cancellation_token = self.cancellation_token.child_token();
         let make_future = Arc::new(make_future);
@@ -150,7 +172,7 @@ impl ConcurrentTaskRunner {
                             send!(tx, msg, cancellation_token);
                         }
                     } => {}
-                    _ = sleep(timeout) => {
+                    _ = sleep(timings.timeout) => {
                         trace!("⌛️ Timed out. Cancelling all tasks…");
                         on_cancel();
                         cancellation_token.cancel();
@@ -189,12 +211,11 @@ impl ConcurrentTaskRunner {
         F: Future<Output = R> + Send + 'static + Unpin,
         R: Send + 'static,
     {
-        let Self {
+        let TaskRunnerTimings {
             timeout,
             retry_interval,
             retry_timeout,
-            ..
-        } = self.clone();
+        } = self.timings;
         let cancellation_token = self.cancellation_token.child_token();
         let make_future = Arc::new(make_future);
 
@@ -335,13 +356,26 @@ impl<F: Future> Futures<F> {
     }
 }
 
+// MARK: - Boilerplate
+
 impl<F: Future> From<FuturesOrdered<F>> for Futures<F> {
     fn from(futures: FuturesOrdered<F>) -> Self {
         Self::Ordered(futures)
     }
 }
+
 impl<F: Future> From<FuturesUnordered<F>> for Futures<F> {
     fn from(futures: FuturesUnordered<F>) -> Self {
         Self::Unordered(futures)
+    }
+}
+
+impl From<NetworkChecksConfig> for TaskRunnerTimings {
+    fn from(value: NetworkChecksConfig) -> Self {
+        Self {
+            timeout: value.timeout.into_std_duration(),
+            retry_interval: value.retry_interval.into_std_duration(),
+            retry_timeout: value.retry_timeout.into_std_duration(),
+        }
     }
 }

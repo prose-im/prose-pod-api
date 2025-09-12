@@ -7,25 +7,19 @@ use std::fs::{self, File};
 use std::io::Write;
 
 use anyhow::Context;
-use lazy_static::lazy_static;
 use sea_orm::DatabaseConnection;
-use secrecy::ExposeSecret;
-use tokio::sync::RwLock;
 use tracing::{debug, info, instrument, warn};
 
 use crate::app_config::CONFIG_FILE_PATH;
 use crate::auth::errors::InvalidCredentials;
 use crate::auth::{AuthService, Credentials};
+use crate::factory_reset::FactoryResetConfirmationCode;
 use crate::secrets::SecretsStore;
 use crate::util::either::Either;
 use crate::xmpp::{server_manager, ServerCtl};
 use crate::AppConfig;
 
-pub const FACTORY_RESET_CONFIRMATION_CODE_LENGTH: usize = 16;
-
-lazy_static! {
-    static ref FACTORY_RESET_CONFIRMATION_CODE: RwLock<Option<String>> = RwLock::default();
-}
+use super::{FactoryResetService, InvalidConfirmationCode};
 
 #[instrument(
     name = "factory_reset_controller::get_confirmation_code",
@@ -33,9 +27,10 @@ lazy_static! {
     skip_all, fields(jid = credentials.jid.to_string()),
 )]
 pub async fn get_confirmation_code(
+    factory_reset_service: &FactoryResetService,
     credentials: &Credentials,
     auth_service: &AuthService,
-) -> Result<String, InvalidCredentials> {
+) -> Result<FactoryResetConfirmationCode, InvalidCredentials> {
     // Test password.
     // NOTE: This cannot be used to brute-force a user’s password since
     //   the request is already authenticated using a valid OAuth 2.0
@@ -49,24 +44,10 @@ pub async fn get_confirmation_code(
         return Err(InvalidCredentials);
     }
 
-    // Generate a random 16-characters-long string.
-    let confirmation = crate::auth::util::random_secret(FACTORY_RESET_CONFIRMATION_CODE_LENGTH)
-        .expose_secret()
-        .to_owned();
-
-    {
-        // Store the code for later confirmation.
-        // WARN: This means two people can’t ask for a factory reset concurrently…
-        //   but who cares?
-        *FACTORY_RESET_CONFIRMATION_CODE.write().await = Some(confirmation.clone());
-    }
+    let confirmation = factory_reset_service.get_confirmation_code();
 
     Ok(confirmation)
 }
-
-#[derive(Debug, thiserror::Error)]
-#[error("Invalid confirmation code.")]
-pub struct InvalidConfirmationCode;
 
 #[instrument(
     name = "factory_reset_controller::perform_factory_reset",
@@ -74,13 +55,14 @@ pub struct InvalidConfirmationCode;
     skip_all
 )]
 pub async fn perform_factory_reset(
-    confirmation: String,
+    factory_reset_service: &FactoryResetService,
+    confirmation: FactoryResetConfirmationCode,
     db: DatabaseConnection,
     server_ctl: &ServerCtl,
     app_config: &AppConfig,
     secrets_store: &SecretsStore,
 ) -> Result<(), Either<InvalidConfirmationCode, anyhow::Error>> {
-    if Some(confirmation) != *FACTORY_RESET_CONFIRMATION_CODE.read().await {
+    if !factory_reset_service.is_confirmation_code_valid(&confirmation) {
         return Err(Either::E1(InvalidConfirmationCode));
     }
 

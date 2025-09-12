@@ -16,8 +16,9 @@ use prose_pod_api::{
     AppState, MinimalAppState,
 };
 use service::{
-    app_config::{defaults, LogConfig},
+    app_config::{pub_defaults as defaults, LogConfig},
     auth::{AuthService, LiveAuthService},
+    factory_reset::FactoryResetService,
     licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
@@ -121,7 +122,7 @@ async fn run(
         Err(_) if lifecycle_manager.is_restarting() => {
             warn!("The Prose Pod API is missing some static configuration. Serving only utility routes.");
 
-            let addr = SocketAddr::new(defaults::api::address(), defaults::api::port());
+            let addr = SocketAddr::new(defaults::api_address(), defaults::api_port());
 
             let app = factory_reset_router(&minimal_app_state);
 
@@ -210,12 +211,15 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     let email_notifier = Notifier::from_config::<EmailNotifier, _>(&app_config)
         .inspect_err(|err| warn!("Could not create email notifier: {err}"))
         .ok();
-    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
+    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::from_config(
+        &app_config.api.network_checks,
+    )));
     let license_service = LicenseService::new(Arc::new(license_service_impl));
     let pod_version_service = PodVersionService::new(Arc::new(LivePodVersionService::from_config(
         &app_config,
         http_client.clone(),
     )));
+    let factory_reset_service = FactoryResetService::default();
 
     AppState::new(
         base,
@@ -228,5 +232,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         network_checker,
         license_service,
         pod_version_service,
+        factory_reset_service,
     )
 }

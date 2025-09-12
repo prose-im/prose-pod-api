@@ -18,6 +18,7 @@ use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
+    factory_reset::FactoryResetService,
     licensing::LicenseService,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
@@ -46,6 +47,7 @@ pub struct AppState {
     network_checker: NetworkChecker,
     license_service: LicenseService,
     pod_version_service: PodVersionService,
+    factory_reset_service: FactoryResetService,
     uuid_gen: Uuid,
 }
 
@@ -61,6 +63,7 @@ impl AppState {
         network_checker: NetworkChecker,
         license_service: LicenseService,
         pod_version_service: PodVersionService,
+        factory_reset_service: FactoryResetService,
     ) -> Self {
         let uuid_gen = Uuid::from_config(&app_config);
         Self {
@@ -75,6 +78,7 @@ impl AppState {
             network_checker,
             license_service,
             pod_version_service,
+            factory_reset_service,
         }
     }
 }

@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub mod defaults;
+pub(crate) mod defaults;
 
 use std::{
     collections::HashMap,
@@ -56,12 +56,17 @@ mod prelude {
     pub use serdev::Serialize;
     pub use validator::{Validate, ValidationError, ValidationErrors};
 
-    pub use crate::{app_config::defaults, errors::MissingConfiguration, models::*};
+    pub(crate) use crate::app_config::defaults;
+    pub use crate::{errors::MissingConfiguration, models::*};
 
     pub use super::{util::*, AppConfig};
 }
 
-// TODO: Validate values intervals (e.g. `default_response_timeout`).
+pub mod pub_defaults {
+    pub use super::defaults::api::{address as api_address, port as api_port};
+}
+
+// TODO: Validate values intervals.
 /// Prose Pod configuration.
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
@@ -294,6 +299,8 @@ mod log {
 mod api {
     use std::net::IpAddr;
 
+    use serdev::Deserialize;
+
     use super::prelude::*;
 
     pub use self::databases::*;
@@ -305,26 +312,29 @@ mod api {
     pub struct ApiConfig {
         /// IP address to serve on.
         #[serde(default = "defaults::api::address")]
+        #[validate(skip)]
         pub address: IpAddr,
 
         /// Port to serve on.
         #[serde(default = "defaults::api::port")]
+        #[validate(skip)]
         pub port: u16,
-
-        /// Some requests may take a long time to execute. Sometimes we support
-        /// response timeouts, but don't want to hardcode a value.
-        #[serde(default = "defaults::api::default_response_timeout")]
-        pub default_response_timeout: Duration<TimeLike>,
-
-        #[serde(default = "defaults::api::default_retry_interval")]
-        pub default_retry_interval: Duration<TimeLike>,
-
-        #[serde(default = "defaults::api::sse_timeout")]
-        pub sse_timeout: Duration<TimeLike>,
 
         #[serde(default)]
         #[validate(nested)]
         pub databases: DatabasesConfig,
+
+        // TODO: Validate.
+        #[serde(default)]
+        pub network_checks: NetworkChecksConfig,
+
+        // TODO: Validate.
+        #[serde(default)]
+        pub member_enriching: MemberEnrichingConfig,
+
+        // TODO: Validate.
+        #[serde(default)]
+        pub invitations: InvitationsConfig,
     }
 
     impl Default for ApiConfig {
@@ -332,17 +342,77 @@ mod api {
             Self {
                 address: defaults::api::address(),
                 port: defaults::api::port(),
-                default_response_timeout: defaults::api::default_response_timeout(),
-                default_retry_interval: defaults::api::default_retry_interval(),
-                sse_timeout: defaults::api::sse_timeout(),
                 databases: Default::default(),
+                network_checks: Default::default(),
+                member_enriching: Default::default(),
+                invitations: Default::default(),
             }
         }
     }
 
-    impl ApiConfig {
-        pub fn sse_timeout(&self) -> std::time::Duration {
-            self.sse_timeout.into_std_duration()
+    // TODO: Validate values.
+    #[derive(Debug, Clone, Copy)]
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub struct NetworkChecksConfig {
+        #[serde(default = "defaults::api::network_checks::timeout")]
+        pub timeout: Duration<TimeLike>,
+
+        #[serde(default = "defaults::api::network_checks::retry_interval")]
+        pub retry_interval: Duration<TimeLike>,
+
+        #[serde(default = "defaults::api::network_checks::retry_timeout")]
+        pub retry_timeout: Duration<TimeLike>,
+
+        #[serde(default = "defaults::api::network_checks::dns_cache_ttl")]
+        pub dns_cache_ttl: Duration<TimeLike>,
+    }
+
+    impl Default for NetworkChecksConfig {
+        fn default() -> Self {
+            use defaults::api::network_checks as defaults;
+            Self {
+                timeout: defaults::timeout(),
+                retry_interval: defaults::retry_interval(),
+                retry_timeout: defaults::retry_timeout(),
+                dns_cache_ttl: defaults::dns_cache_ttl(),
+            }
+        }
+    }
+
+    // TODO: Validate values.
+    #[derive(Debug, Clone, Copy)]
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub struct MemberEnrichingConfig {
+        #[serde(default = "defaults::api::member_enriching::cache_ttl")]
+        pub cache_ttl: Duration<TimeLike>,
+    }
+
+    impl Default for MemberEnrichingConfig {
+        fn default() -> Self {
+            use defaults::api::member_enriching as defaults;
+            Self {
+                cache_ttl: defaults::cache_ttl(),
+            }
+        }
+    }
+
+    // TODO: Validate values.
+    #[derive(Debug, Clone, Copy)]
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub struct InvitationsConfig {
+        #[serde(default = "defaults::api::invitations::invitation_ttl")]
+        pub invitation_ttl: Duration<DateLike>,
+    }
+
+    impl Default for InvitationsConfig {
+        fn default() -> Self {
+            use defaults::api::invitations as defaults;
+            Self {
+                invitation_ttl: defaults::invitation_ttl(),
+            }
         }
     }
 
