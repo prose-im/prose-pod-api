@@ -7,7 +7,7 @@ use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
 
-// ===== Invitation status =====
+// MARK: - Invitation status
 
 type InvitationStatusModel = service::invitations::InvitationStatus;
 

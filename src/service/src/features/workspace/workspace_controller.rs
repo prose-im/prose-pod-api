@@ -16,7 +16,7 @@ use crate::{
 
 use super::{errors::WorkspaceAlreadyInitialized, GetWorkspaceError, Workspace, WorkspaceService};
 
-// MARK: INIT WORKSPACE
+// MARK: Init workspace
 
 pub async fn init_workspace(
     workspace_service: &WorkspaceService,
@@ -45,7 +45,7 @@ pub async fn is_workspace_initialized(
     workspace_service.is_workspace_initialized().await
 }
 
-// MARK: GET ONE
+// MARK: Get one
 
 pub async fn get_workspace(
     workspace_service: &WorkspaceService,
@@ -53,7 +53,7 @@ pub async fn get_workspace(
     workspace_service.get_workspace().await
 }
 
-// MARK: GET/SET FIELDS
+// MARK: Get/set fields
 
 pub async fn get_workspace_accent_color(
     workspace_service: &WorkspaceService,
@@ -93,7 +93,7 @@ pub async fn set_workspace_icon<'a>(
     workspace_service.set_workspace_icon(icon).await
 }
 
-// MARK: PATCH ONE
+// MARK: Patch one
 
 #[derive(Debug, Clone)]
 #[derive(Validate, serdev::Deserialize)]

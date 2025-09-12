@@ -34,7 +34,7 @@ use crate::{
     AppState,
 };
 
-// GET ONE
+// MARK: Get one
 
 pub async fn get_member_route(
     Path(jid): Path<BareJid>,
@@ -46,7 +46,7 @@ pub async fn get_member_route(
     }
 }
 
-// DELETE ONE
+// MARK: Delete one
 
 pub async fn delete_member_route(
     State(AppState { db, .. }): State<AppState>,
@@ -57,7 +57,7 @@ pub async fn delete_member_route(
     Ok(StatusCode::NO_CONTENT)
 }
 
-// GET MANY
+// MARK: Get many
 
 pub async fn get_members_route(
     member_service: MemberService,
@@ -83,7 +83,7 @@ pub async fn head_members(
     }
 }
 
-// ENRICHING
+// MARK: Enriching
 
 #[derive(Debug)]
 #[derive(serdev::Deserialize)]

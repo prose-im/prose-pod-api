@@ -23,7 +23,7 @@ use crate::{
 
 use super::*;
 
-// GENERAL
+// MARK: - General
 
 #[cfg(debug_assertions)]
 pub fn true_in_debug() -> bool {
@@ -41,7 +41,7 @@ pub fn always_false() -> bool {
     false
 }
 
-// SPECIFIC
+// MARK: - Specific
 
 pub fn log_level() -> LogLevel {
     LogLevel::Info

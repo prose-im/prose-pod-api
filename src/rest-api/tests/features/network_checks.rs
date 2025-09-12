@@ -5,6 +5,8 @@
 
 use super::prelude::*;
 
+// MARK: - When
+
 api_call_fn!(check_dns_records, GET, "/v1/network/checks/dns");
 api_call_fn!(
     check_dns_records_stream,

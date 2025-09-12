@@ -19,7 +19,7 @@ use crate::{
 
 use super::{EnrichedMember, Member, MemberRepository, MemberService, UserDeleteError};
 
-// GET ONE
+// MARK: Get one
 
 #[derive(Debug, thiserror::Error)]
 #[error("No member with id '{jid}'")]
@@ -38,7 +38,7 @@ pub async fn get_member(
     }
 }
 
-// DELETE ONE
+// MARK: Delete one
 
 pub async fn delete_member(
     db: &DatabaseConnection,
@@ -48,7 +48,7 @@ pub async fn delete_member(
     member_service.delete_user(db, jid).await
 }
 
-// GET MANY
+// MARK: Get many
 
 pub async fn head_members(db: &DatabaseConnection) -> Result<Paginated<Member>, anyhow::Error> {
     let (metadata, _) = MemberRepository::get_page(db, 1, 1, None)
@@ -120,7 +120,7 @@ pub async fn get_members_filtered(
     ))
 }
 
-// ENRICHING
+// MARK: Enriching
 
 pub async fn enrich_members(
     member_service: MemberService,

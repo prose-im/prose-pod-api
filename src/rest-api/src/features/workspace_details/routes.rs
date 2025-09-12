@@ -30,7 +30,7 @@ use crate::{
 
 use super::WORKSPACE_ROUTE;
 
-// MARK: INIT WORKSPACE
+// MARK: Init workspace
 
 #[derive(Debug, Clone)]
 #[derive(Validate, serdev::Deserialize)]
@@ -60,7 +60,7 @@ pub async fn init_workspace_route(
     })
 }
 
-// MARK: GET ONE
+// MARK: Get one
 
 pub async fn get_workspace_route(
     ref workspace_service: WorkspaceService,
@@ -92,7 +92,7 @@ pub async fn is_workspace_initialized_route(
     }
 }
 
-// MARK: GET/SET FIELDS
+// MARK: Get/set fields
 
 pub async fn get_workspace_accent_color_route(
     ref workspace_service: WorkspaceService,
@@ -163,7 +163,7 @@ pub async fn set_workspace_icon_route<'a>(
     Ok(NoContent)
 }
 
-// MARK: PATCH ONE
+// MARK: Patch one
 
 pub async fn patch_workspace_route(
     ref workspace_service: WorkspaceService,
@@ -174,7 +174,7 @@ pub async fn patch_workspace_route(
     }
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl Into<Workspace> for InitWorkspaceRequest {
     fn into(self) -> Workspace {

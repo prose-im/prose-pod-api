@@ -16,7 +16,7 @@ use validator::Validate;
 
 use crate::{error::prelude::*, features::auth::models::Password, responders::Created, AppState};
 
-// MARK: INIT FIRST ACCOUNT
+// MARK: - Init first account
 
 #[derive(Debug, Validate, serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -62,7 +62,7 @@ pub async fn is_first_account_created_route(
     }
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl Into<InitFirstAccountForm> for InitFirstAccountRequest {
     fn into(self) -> InitFirstAccountForm {

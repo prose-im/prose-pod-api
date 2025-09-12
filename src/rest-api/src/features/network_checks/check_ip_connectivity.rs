@@ -52,7 +52,7 @@ async fn check_ip_stream_route_(
     )
 }
 
-// MODEL
+// MARK: - Models
 
 #[serde_as]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,7 +65,7 @@ pub enum IpConnectivityStatus {
     Failure,
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl_network_check_result_from!(
     IpConnectivityCheck,

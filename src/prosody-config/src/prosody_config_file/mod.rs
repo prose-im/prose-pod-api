@@ -33,7 +33,7 @@ pub enum ProsodyConfigFileSection {
     },
 }
 
-// ===== Atoms =====
+// MARK: - Atoms
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]

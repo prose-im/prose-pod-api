@@ -85,7 +85,7 @@ pub async fn run(
     }
 }
 
-// ===== BOILERPLATE =====
+// MARK: - Boilerplate
 
 impl From<super::CronContext> for Context {
     fn from(value: super::CronContext) -> Self {

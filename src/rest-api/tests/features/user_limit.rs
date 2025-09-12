@@ -10,6 +10,8 @@ use crate::prelude::mocks::LICENSE_SIGNING_KEY;
 
 use super::prelude::*;
 
+// MARK: - Given
+
 #[given(expr = "the user limit is {int}")]
 async fn given_user_limit(world: &mut TestWorld, limit: u32) -> Result<(), Error> {
     let ref validator = world.mock_license_service().validator;

@@ -143,7 +143,7 @@ impl Validate for FactoryResetRequest {
     }
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 mod error {
     use crate::error::prelude::*;

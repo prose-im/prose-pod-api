@@ -7,7 +7,7 @@
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{convert::Infallible, fmt::Display, str::FromStr};
 
-// ===== JID =====
+// MARK: JID
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]

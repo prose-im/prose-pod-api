@@ -71,7 +71,7 @@ impl Print for ProsodyConfigFile {
     }
 }
 
-// ===== Atoms =====
+// MARK: - Atoms
 
 impl<T: Print> Print for Option<T> {
     fn print(&self, acc: &mut String, indent: u8) {
@@ -173,7 +173,7 @@ impl Print for LuaValue {
     }
 }
 
-// ===== Helpers =====
+// MARK: - Helpers
 
 fn add_indent(acc: &mut String, n: u8) {
     for _ in 0..n {

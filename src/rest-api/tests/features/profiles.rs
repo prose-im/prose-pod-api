@@ -10,6 +10,8 @@ use service::{
 
 use super::prelude::*;
 
+// MARK: - Given
+
 #[given(expr = "{}’s nickname is {string}")]
 #[given(expr = "{}'s nickname is {string}")]
 async fn given_nickname(
@@ -31,6 +33,8 @@ async fn given_nickname(
         .await?;
     Ok(())
 }
+
+// MARK: - When
 
 api_call_fn!(
     set_member_nickname,
@@ -62,6 +66,8 @@ async fn when_set_nickname_self(
 ) -> Result<(), Error> {
     when_set_nickname(world, name.clone(), name, nickname).await
 }
+
+// MARK: - Then
 
 #[then(expr = "{}’s nickname should be {string}")]
 #[then(expr = "{}'s nickname should be {string}")]

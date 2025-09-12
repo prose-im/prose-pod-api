@@ -801,7 +801,7 @@ pub struct DiscoItem {
     pub name: String,
 }
 
-// ===== DEFAULT =====
+// MARK: - Defaults
 
 impl Default for LogConfig {
     fn default() -> Self {

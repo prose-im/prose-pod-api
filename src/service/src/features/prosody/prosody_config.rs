@@ -119,7 +119,7 @@ impl ProsodyConfig {
     }
 }
 
-// ===== Default configuration =====
+// MARK: Default configuration
 
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {

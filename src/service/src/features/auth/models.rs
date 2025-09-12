@@ -115,7 +115,7 @@ impl Validate for PasswordResetToken {
     }
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl std::ops::Deref for AuthToken {
     type Target = SecretString;

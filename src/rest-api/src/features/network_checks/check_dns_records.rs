@@ -94,7 +94,7 @@ async fn check_dns_records_stream_route_(
     )
 }
 
-// MODEL
+// MARK: - Models
 
 #[serde_as]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -108,7 +108,7 @@ pub enum DnsRecordStatus {
     Invalid,
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl_network_check_result_from!(
     DnsRecordCheck,

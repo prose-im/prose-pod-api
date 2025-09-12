@@ -13,6 +13,51 @@ use urlencoding::encode;
 
 use super::{invitations::accept_workspace_invitation, prelude::*};
 
+// MARK: - Given
+
+#[given(expr = "the workspace has {int} member(s)")]
+#[given(expr = "the Workspace has {int} member(s)")]
+async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
+    let domain = world.server_config().await?.domain;
+    let n = {
+        let db = world.db();
+        std::cmp::max(0u64, n - MemberRepository::count(db).await?)
+    };
+    for i in 0..n {
+        let db = world.db();
+        let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
+        let member = MemberCreateForm {
+            jid: jid.clone(),
+            role: None,
+            joined_at: None,
+            email_address: Some(EmailAddress::from_str(jid.as_str()).unwrap()),
+        };
+        let model = MemberRepository::create(db, member).await?;
+        let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
+
+        world.members.insert(jid.to_string(), (model.into(), token));
+    }
+    Ok(())
+}
+
+#[given(expr = "{}'s avatar is {}")]
+async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Result<(), Error> {
+    let jid = name_to_jid(world, &name).await?;
+    world
+        .mock_xmpp_service
+        .set_avatar(&jid, Some(Avatar::try_from_base64_string(base64).unwrap()))?;
+    Ok(())
+}
+
+#[given(expr = "{} has no avatar")]
+async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    let jid = name_to_jid(world, &name).await?;
+    world.mock_xmpp_service.set_avatar(&jid, None)?;
+    Ok(())
+}
+
+// MARK: - When
+
 async fn list_members_(api: &TestServer, token: Option<SecretString>) -> TestResponse {
     let mut req = api
         .get("/v1/members")
@@ -58,47 +103,6 @@ async fn delete_member(api: &TestServer, token: SecretString, jid: &BareJid) -> 
     api.delete(&format!("/v1/members/{jid}"))
         .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
         .await
-}
-
-#[given(expr = "the workspace has {int} member(s)")]
-#[given(expr = "the Workspace has {int} member(s)")]
-async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
-    let domain = world.server_config().await?.domain;
-    let n = {
-        let db = world.db();
-        std::cmp::max(0u64, n - MemberRepository::count(db).await?)
-    };
-    for i in 0..n {
-        let db = world.db();
-        let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
-        let member = MemberCreateForm {
-            jid: jid.clone(),
-            role: None,
-            joined_at: None,
-            email_address: Some(EmailAddress::from_str(jid.as_str()).unwrap()),
-        };
-        let model = MemberRepository::create(db, member).await?;
-        let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
-
-        world.members.insert(jid.to_string(), (model.into(), token));
-    }
-    Ok(())
-}
-
-#[given(expr = "{}'s avatar is {}")]
-async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Result<(), Error> {
-    let jid = name_to_jid(world, &name).await?;
-    world
-        .mock_xmpp_service
-        .set_avatar(&jid, Some(Avatar::try_from_base64_string(base64).unwrap()))?;
-    Ok(())
-}
-
-#[given(expr = "{} has no avatar")]
-async fn given_no_avatar(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let jid = name_to_jid(world, &name).await?;
-    world.mock_xmpp_service.set_avatar(&jid, None)?;
-    Ok(())
 }
 
 #[when("a new member joins the Workspace")]
@@ -226,6 +230,8 @@ async fn when_member_n_deleted(
     world.result = Some(res.into());
     Ok(())
 }
+
+// MARK: - Then
 
 #[then(expr = "they should see {int} member(s)")]
 fn then_n_members(world: &mut TestWorld, n: usize) {

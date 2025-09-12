@@ -38,7 +38,7 @@ use crate::{
 
 use super::dtos::*;
 
-// MARK: CREATE
+// MARK: Create
 
 #[cfg(not(debug_assertions))]
 pub type InviteMemberResponse = Result<Created<WorkspaceInvitationDto>, Error>;
@@ -138,7 +138,7 @@ pub async fn can_invite_member_route(
     }
 }
 
-// MARK: GET ONE
+// MARK: Get one
 
 pub async fn get_invitation_route(
     invitation_service: InvitationService,
@@ -167,7 +167,7 @@ pub async fn get_invitation_by_token_route(
     }
 }
 
-// MARK: GET MANY
+// MARK: Get many
 
 pub async fn get_invitations_route(
     invitation_service: InvitationService,
@@ -178,7 +178,7 @@ pub async fn get_invitations_route(
     }
 }
 
-// MARK: ACTIONS
+// MARK: Actions
 
 #[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
@@ -236,7 +236,7 @@ pub async fn invitation_cancel_route(
     Ok(StatusCode::NO_CONTENT)
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
     fn into(self) -> InvitationAcceptForm {

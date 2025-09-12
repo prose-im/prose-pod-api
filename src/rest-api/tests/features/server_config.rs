@@ -16,6 +16,10 @@ use service::{
 
 use super::prelude::*;
 
+// MARK: - Global
+
+// MARK: Given
+
 #[given(regex = "the server config is")]
 async fn given_server_config_in_db(world: &mut TestWorld, step: &Step) -> anyhow::Result<()> {
     let json = step.docstring().unwrap().trim();
@@ -23,6 +27,8 @@ async fn given_server_config_in_db(world: &mut TestWorld, step: &Step) -> anyhow
     global_storage::kv_store::set_map(world.db(), "server_config", map).await?;
     Ok(())
 }
+
+// MARK: When
 
 api_call_fn!(get_server_config, GET, "/v1/server/config");
 
@@ -32,6 +38,8 @@ async fn when_get_server_config(world: &mut TestWorld, name: String) {
     let res = get_server_config(world.api(), token).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: Then
 
 #[then("the server should have been reconfigured")]
 fn then_server_reconfigured(world: &mut TestWorld) {
@@ -43,20 +51,33 @@ fn then_server_not_reconfigured(world: &mut TestWorld) {
     assert_eq!(world.server_ctl_state().conf_reload_count, 0);
 }
 
-async fn given_server_config<F, R>(
+// MARK: - Message archiving
+
+// MARK: Given
+
+#[given(expr = "message archiving is {toggle}")]
+async fn given_message_archiving(
     world: &mut TestWorld,
-    update: impl FnOnce(DatabaseConnection) -> F,
-) -> anyhow::Result<()>
-where
-    F: Future<Output = anyhow::Result<R>> + 'static,
-{
-    update(world.db.clone()).await?;
-    world.server_config_manager().reload().await?;
-    world.reset_server_ctl_counts();
-    Ok(())
+    state: parameters::ToggleState,
+) -> anyhow::Result<()> {
+    given_server_config(world, |db| async move {
+        server_config::message_archive_enabled::set(&db, state.into()).await
+    })
+    .await
 }
 
-// MESSAGE ARCHIVING
+#[given(expr = "the message archive retention is set to {duration}")]
+async fn given_message_archive_retention(
+    world: &mut TestWorld,
+    duration: parameters::Duration,
+) -> anyhow::Result<()> {
+    given_server_config(world, |db| async move {
+        server_config::message_archive_retention::set(&db, duration.into()).await
+    })
+    .await
+}
+
+// MARK: When
 
 api_call_fn!(
     reset_messaging_configuration,
@@ -80,28 +101,6 @@ api_call_fn!(
     DELETE,
     "/v1/server/config/message-archive-retention"
 );
-
-#[given(expr = "message archiving is {toggle}")]
-async fn given_message_archiving(
-    world: &mut TestWorld,
-    state: parameters::ToggleState,
-) -> anyhow::Result<()> {
-    given_server_config(world, |db| async move {
-        server_config::message_archive_enabled::set(&db, state.into()).await
-    })
-    .await
-}
-
-#[given(expr = "the message archive retention is set to {duration}")]
-async fn given_message_archive_retention(
-    world: &mut TestWorld,
-    duration: parameters::Duration,
-) -> anyhow::Result<()> {
-    given_server_config(world, |db| async move {
-        server_config::message_archive_retention::set(&db, duration.into()).await
-    })
-    .await
-}
 
 #[when(expr = "{} turns message archiving {toggle}")]
 async fn when_set_message_archiving(
@@ -138,6 +137,8 @@ async fn when_reset_message_archive_retention(world: &mut TestWorld, name: Strin
     let res = reset_message_archive_retention(world.api(), token).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: Then
 
 #[then(expr = "message archiving should be {toggle}")]
 async fn then_message_archiving(
@@ -197,21 +198,9 @@ async fn then_message_archive_retention(
     Ok(())
 }
 
-// FILE UPLOADING
+// MARK: - File uploading
 
-api_call_fn!(reset_files_configuration, DELETE, "/v1/server/config/files");
-api_call_fn!(
-    set_file_uploading,
-    PUT,
-    "/v1/server/config/file-upload-allowed",
-    payload: bool,
-);
-api_call_fn!(
-    set_file_retention,
-    PUT,
-    "/v1/server/config/file-storage-retention",
-    payload: PossiblyInfinite<Duration<DateLike>>,
-);
+// MARK: Given
 
 #[given(expr = "file uploading is {toggle}")]
 async fn given_file_uploading(
@@ -230,6 +219,22 @@ async fn given_file_retention(
     server_config::file_storage_retention::set(world.db(), duration.into()).await?;
     Ok(())
 }
+
+// MARK: When
+
+api_call_fn!(reset_files_configuration, DELETE, "/v1/server/config/files");
+api_call_fn!(
+    set_file_uploading,
+    PUT,
+    "/v1/server/config/file-upload-allowed",
+    payload: bool,
+);
+api_call_fn!(
+    set_file_retention,
+    PUT,
+    "/v1/server/config/file-storage-retention",
+    payload: PossiblyInfinite<Duration<DateLike>>,
+);
 
 #[when(expr = "{} turns file uploading {toggle}")]
 async fn when_set_file_uploading(
@@ -260,6 +265,8 @@ async fn when_set_file_retention(
     world.result = Some(res.unwrap().into());
 }
 
+// MARK: Then
+
 #[then(expr = "file uploading should be {toggle}")]
 async fn then_file_uploading(
     world: &mut TestWorld,
@@ -281,5 +288,20 @@ async fn then_file_retention(
 
     assert_eq!(server_config.file_storage_retention, duration.into());
 
+    Ok(())
+}
+
+// MARK: - Helpers
+
+async fn given_server_config<F, R>(
+    world: &mut TestWorld,
+    update: impl FnOnce(DatabaseConnection) -> F,
+) -> anyhow::Result<()>
+where
+    F: Future<Output = anyhow::Result<R>> + 'static,
+{
+    update(world.db.clone()).await?;
+    world.server_config_manager().reload().await?;
+    world.reset_server_ctl_counts();
     Ok(())
 }

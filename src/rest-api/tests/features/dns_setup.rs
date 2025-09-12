@@ -12,7 +12,7 @@ use service::{
 
 use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
 
-api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
+// MARK: - Given
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
@@ -20,12 +20,18 @@ async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result
     Ok(())
 }
 
+// MARK: - When
+
+api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
+
 #[when(expr = "{} requests DNS setup instructions")]
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_dns_instructions(world.api(), token).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: - Then
 
 #[then(expr = "DNS setup instructions should contain {int} steps")]
 async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {

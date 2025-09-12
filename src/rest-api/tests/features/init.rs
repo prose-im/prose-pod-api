@@ -17,6 +17,8 @@ use super::prelude::*;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
 
+// MARK: - Given
+
 #[given("the Prose Pod has not been initialized")]
 fn given_pod_not_initialized(world: &mut TestWorld) {
     given_workspace_not_initialized(world);
@@ -93,6 +95,8 @@ fn given_pod_address_not_initialized(_world: &mut TestWorld) {
     // Do nothing, even though we could performs checks
 }
 
+// MARK: - When
+
 async fn init_workspace(api: &TestServer, name: &str) -> TestResponse {
     api.put("/v1/workspace")
         .json(&json!(InitWorkspaceRequest {
@@ -124,6 +128,8 @@ async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: 
     let res = init_first_account(world.api(), &node, nickname).await;
     world.result = Some(res);
 }
+
+// MARK: - Then
 
 #[then(expr = "the error code should be {string}")]
 async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), serde_json::Error> {

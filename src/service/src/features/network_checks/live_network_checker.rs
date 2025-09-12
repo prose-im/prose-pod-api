@@ -242,7 +242,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
     }
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl Debug for LiveNetworkChecker {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

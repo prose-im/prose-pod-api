@@ -9,7 +9,7 @@ use strum::Display;
 
 use crate::util::split_leading_digits;
 
-// ===== Data =====
+// MARK: Data
 
 /// Bytes.
 ///
@@ -97,7 +97,7 @@ impl Display for DataRate {
     }
 }
 
-// ===== Durations =====
+// MARK: Durations
 
 #[cfg(not(feature = "serde"))]
 pub trait DurationContent {}
@@ -277,7 +277,7 @@ impl<D> Into<Option<D>> for PossiblyInfinite<D> {
     }
 }
 
-// ===== Errors =====
+// MARK: Errors
 
 #[derive(Debug, Display)]
 pub enum ParseMeasurementError {

@@ -8,101 +8,7 @@ use service::{invitations::*, members::Nickname};
 
 use super::prelude::*;
 
-async fn invite_member(
-    api: &TestServer,
-    token: &SecretString,
-    username: &JidNode,
-    pre_assigned_role: parameters::MemberRole,
-    contact: InvitationContact,
-) -> TestResponse {
-    api.post(&"/v1/invitations")
-        .add_header(CONTENT_TYPE, "application/json")
-        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .json(&json!(InviteMemberRequest {
-            username: username.to_owned(),
-            pre_assigned_role: pre_assigned_role.0,
-            contact,
-        }))
-        .await
-}
-
-async fn list_workspace_invitations(api: &TestServer, token: SecretString) -> TestResponse {
-    api.get(&"/v1/invitations")
-        .add_header(ACCEPT, "application/json")
-        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .await
-}
-
-async fn list_workspace_invitations_paged(
-    api: &TestServer,
-    token: SecretString,
-    page_number: u64,
-    page_size: u64,
-) -> TestResponse {
-    api.get(&format!(
-        "/v1/invitations?page_number={page_number}&page_size={page_size}"
-    ))
-    .add_header(ACCEPT, "application/json")
-    .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-    .await
-}
-
-async fn get_workspace_invitation_by_token(
-    api: &TestServer,
-    token: &Uuid,
-    token_type: InvitationTokenType,
-) -> TestResponse {
-    api.get(&format!(
-        "/v1/invitation-tokens/{token}/details?token_type={token_type}"
-    ))
-    .add_header(ACCEPT, "application/json")
-    .await
-}
-
-pub(super) async fn accept_workspace_invitation(
-    api: &TestServer,
-    token: Uuid,
-    nickname: Nickname,
-    password: Option<SecretString>,
-) -> TestResponse {
-    api.put(&format!("/v1/invitation-tokens/{token}/accept"))
-        .add_header(CONTENT_TYPE, "application/json")
-        .json(&json!(AcceptWorkspaceInvitationRequest {
-            nickname,
-            password: password.unwrap_or("test".to_string().into()).into(),
-        }))
-        .add_header(ACCEPT, "application/json")
-        .await
-}
-
-async fn reject_workspace_invitation(api: &TestServer, token: Uuid) -> TestResponse {
-    api.put(&format!("/v1/invitation-tokens/{token}/reject"))
-        .add_header(ACCEPT, "application/json")
-        .await
-}
-
-async fn cancel_workspace_invitation(
-    api: &TestServer,
-    token: SecretString,
-    invitation_id: i32,
-) -> TestResponse {
-    api.delete(&format!("/v1/invitations/{invitation_id}"))
-        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .add_header(ACCEPT, "application/json")
-        .await
-}
-
-async fn workspace_invitation_admin_action(
-    api: &TestServer,
-    token: SecretString,
-    invitation_id: i32,
-    action: &'static str,
-) -> TestResponse {
-    api.post(&format!("/v1/invitations/{invitation_id}/{action}"))
-        .add_header(ACCEPT, "application/json")
-        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .await
-}
+// MARK: - Given
 
 #[given(expr = "<{email}> has been invited via email")]
 async fn given_invited(
@@ -246,6 +152,104 @@ async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), Muta
     )
     .await?;
     Ok(())
+}
+
+// MARK: - When
+
+async fn invite_member(
+    api: &TestServer,
+    token: &SecretString,
+    username: &JidNode,
+    pre_assigned_role: parameters::MemberRole,
+    contact: InvitationContact,
+) -> TestResponse {
+    api.post(&"/v1/invitations")
+        .add_header(CONTENT_TYPE, "application/json")
+        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+        .json(&json!(InviteMemberRequest {
+            username: username.to_owned(),
+            pre_assigned_role: pre_assigned_role.0,
+            contact,
+        }))
+        .await
+}
+
+async fn list_workspace_invitations(api: &TestServer, token: SecretString) -> TestResponse {
+    api.get(&"/v1/invitations")
+        .add_header(ACCEPT, "application/json")
+        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+        .await
+}
+
+async fn list_workspace_invitations_paged(
+    api: &TestServer,
+    token: SecretString,
+    page_number: u64,
+    page_size: u64,
+) -> TestResponse {
+    api.get(&format!(
+        "/v1/invitations?page_number={page_number}&page_size={page_size}"
+    ))
+    .add_header(ACCEPT, "application/json")
+    .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+    .await
+}
+
+async fn get_workspace_invitation_by_token(
+    api: &TestServer,
+    token: &Uuid,
+    token_type: InvitationTokenType,
+) -> TestResponse {
+    api.get(&format!(
+        "/v1/invitation-tokens/{token}/details?token_type={token_type}"
+    ))
+    .add_header(ACCEPT, "application/json")
+    .await
+}
+
+pub(super) async fn accept_workspace_invitation(
+    api: &TestServer,
+    token: Uuid,
+    nickname: Nickname,
+    password: Option<SecretString>,
+) -> TestResponse {
+    api.put(&format!("/v1/invitation-tokens/{token}/accept"))
+        .add_header(CONTENT_TYPE, "application/json")
+        .json(&json!(AcceptWorkspaceInvitationRequest {
+            nickname,
+            password: password.unwrap_or("test".to_string().into()).into(),
+        }))
+        .add_header(ACCEPT, "application/json")
+        .await
+}
+
+async fn reject_workspace_invitation(api: &TestServer, token: Uuid) -> TestResponse {
+    api.put(&format!("/v1/invitation-tokens/{token}/reject"))
+        .add_header(ACCEPT, "application/json")
+        .await
+}
+
+async fn cancel_workspace_invitation(
+    api: &TestServer,
+    token: SecretString,
+    invitation_id: i32,
+) -> TestResponse {
+    api.delete(&format!("/v1/invitations/{invitation_id}"))
+        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+        .add_header(ACCEPT, "application/json")
+        .await
+}
+
+async fn workspace_invitation_admin_action(
+    api: &TestServer,
+    token: SecretString,
+    invitation_id: i32,
+    action: &'static str,
+) -> TestResponse {
+    api.post(&format!("/v1/invitations/{invitation_id}/{action}"))
+        .add_header(ACCEPT, "application/json")
+        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
+        .await
 }
 
 #[when(expr = r#"{} invites <{email}> as a(n) {member_role}"#)]
@@ -411,6 +415,8 @@ async fn when_user_cancels_workspace_invitation(world: &mut TestWorld, name: Str
     let res = cancel_workspace_invitation(world.api(), token, invitation.id).await;
     world.result = Some(res.into());
 }
+
+// MARK: - Then
 
 #[then(expr = "they should see {int} pending invitation(s)")]
 fn then_n_pending_invitations(world: &mut TestWorld, n: usize) {

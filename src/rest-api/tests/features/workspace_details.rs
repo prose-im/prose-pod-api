@@ -8,7 +8,21 @@ use service::models::{Avatar, Color};
 
 use super::prelude::*;
 
-// WORKSPACE NAME
+// MARK: - Workspace name
+
+// MARK: Given
+
+#[given(expr = "the workspace is named {string}")]
+async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
+    world
+        .workspace_service()
+        .await
+        .set_workspace_name(name)
+        .await?;
+    Ok(())
+}
+
+// MARK: When
 
 api_call_fn!(
     get_workspace_name_unauthenticated,
@@ -21,16 +35,6 @@ api_call_fn!(
     "/v1/workspace/name",
     payload: String,
 );
-
-#[given(expr = "the workspace is named {string}")]
-async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    world
-        .workspace_service()
-        .await
-        .set_workspace_name(name)
-        .await?;
-    Ok(())
-}
 
 #[when("an unauthenticated user gets the workspace name")]
 async fn when_anyone_gets_workspace_name(world: &mut TestWorld) {
@@ -45,6 +49,8 @@ async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_
     world.result = Some(res.unwrap().into());
 }
 
+// MARK: Then
+
 #[then(expr = "the returned workspace name should be {string}")]
 async fn then_response_workspace_name(world: &mut TestWorld, name: String) {
     let res: String = world.result().json();
@@ -58,7 +64,20 @@ async fn then_workspace_name(world: &mut TestWorld, name: String) -> Result<(), 
     Ok(())
 }
 
-// WORKSPACE ICON
+// MARK: - Workspace icon
+
+// MARK: Given
+
+#[given(expr = "the workspace icon is {string}")]
+async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
+    world.mock_xmpp_service.set_avatar(
+        &world.app_config().workspace_jid(),
+        Some(Avatar::try_from_base64_string(base64).unwrap()),
+    )?;
+    Ok(())
+}
+
+// MARK: When
 
 api_call_fn!(
     get_workspace_icon_unauthenticated,
@@ -73,15 +92,6 @@ api_call_fn!(
     content_type: "text/plain",
 );
 
-#[given(expr = "the workspace icon is {string}")]
-async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
-    world.mock_xmpp_service.set_avatar(
-        &world.app_config().workspace_jid(),
-        Some(Avatar::try_from_base64_string(base64).unwrap()),
-    )?;
-    Ok(())
-}
-
 #[when("an unauthenticated user gets the workspace icon")]
 async fn when_anyone_gets_workspace_icon(world: &mut TestWorld) {
     let res = get_workspace_icon_unauthenticated(world.api()).await;
@@ -94,6 +104,8 @@ async fn when_set_workspace_icon(world: &mut TestWorld, name: String, png_data: 
     let res = set_workspace_icon(world.api(), token, png_data).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: Then
 
 #[then("the returned workspace icon should be undefined")]
 async fn then_response_workspace_icon_is_undefined(world: &mut TestWorld) {
@@ -119,7 +131,22 @@ async fn then_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<
     Ok(())
 }
 
-// WORKSPACE ACCENT COLOR
+// MARK: - Workspace accent color
+
+// MARK: Given
+
+#[given(expr = "the workspace accent color is {string}")]
+async fn given_workspace_accent_color(world: &mut TestWorld, color: String) -> Result<(), Error> {
+    let color = Color::from_str(&color).unwrap();
+    world
+        .workspace_service()
+        .await
+        .set_workspace_accent_color(Some(color))
+        .await?;
+    Ok(())
+}
+
+// MARK: When
 
 api_call_fn!(
     get_workspace_accent_color_unauthenticated,
@@ -132,17 +159,6 @@ api_call_fn!(
     "/v1/workspace/accent-color",
     payload: String,
 );
-
-#[given(expr = "the workspace accent color is {string}")]
-async fn given_workspace_accent_color(world: &mut TestWorld, color: String) -> Result<(), Error> {
-    let color = Color::from_str(&color).unwrap();
-    world
-        .workspace_service()
-        .await
-        .set_workspace_accent_color(Some(color))
-        .await?;
-    Ok(())
-}
 
 #[when("an unauthenticated user gets the workspace accent color")]
 async fn when_anyone_gets_workspace_accent_color(world: &mut TestWorld) {
@@ -160,6 +176,8 @@ async fn when_set_workspace_accent_color(
     let res = set_workspace_accent_color(world.api(), token, workspace_name).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: Then
 
 #[then(expr = "the returned workspace accent color should be {string}")]
 async fn then_response_workspace_accent_color(world: &mut TestWorld, accent_color: String) {
