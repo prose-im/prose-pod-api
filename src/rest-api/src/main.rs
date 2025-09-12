@@ -18,6 +18,7 @@ use prose_pod_api::{
 use service::{
     app_config::{defaults, LogConfig},
     auth::{AuthService, LiveAuthService},
+    factory_reset::FactoryResetService,
     licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
@@ -216,6 +217,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         &app_config,
         http_client.clone(),
     )));
+    let factory_reset_service = FactoryResetService::default();
 
     AppState::new(
         base,
@@ -228,5 +230,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         network_checker,
         license_service,
         pod_version_service,
+        factory_reset_service,
     )
 }
