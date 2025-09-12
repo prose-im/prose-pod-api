@@ -10,7 +10,7 @@ use serde_with::SerializeDisplay;
 use serdev::Serialize;
 use service::network_checks::*;
 
-// ===== JSON RESPONSES =====
+// MARK: - JSON responses
 
 #[derive(Debug)]
 #[derive(Serialize)]
@@ -51,7 +51,7 @@ macro_rules! impl_network_check_result_from {
     };
 }
 
-// ===== EVENTS =====
+// MARK: - Events
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(SerializeDisplay)]

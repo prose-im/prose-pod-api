@@ -26,6 +26,7 @@ pub struct CannotAssignRole;
 pub struct CannotResetPassword;
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Missing email address for {jid}.", jid = 0.to_string())]
 pub struct MissingEmailAddress(pub BareJid);
 

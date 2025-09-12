@@ -48,7 +48,7 @@ Feature: Password reset
   Rule: Password reset tokens expire
 
     Example: Rémi tries to reset his password after the token has expired
-      Given password reset tokens expire after 0 second
+      Given config "auth.password_reset_token_ttl" is set to "PT0S"
         And the Prose Pod API has restarted
         And Valerian is an admin
         And Rémi is not an admin

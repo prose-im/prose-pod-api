@@ -15,6 +15,7 @@ use crate::{
 
 pub const PASSWORD_RESET_TOKEN_LENGTH: usize = 36;
 
+#[derive(Debug)]
 pub struct Credentials {
     pub jid: BareJid,
     pub password: SecretString,
@@ -22,9 +23,10 @@ pub struct Credentials {
 
 /// An OAuth 2.0 token (provided by Prosody).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct AuthToken(pub SecretString);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "test", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct UserInfo {
     pub jid: BareJid,
@@ -42,6 +44,8 @@ impl UserInfo {
 
 /// Ensures a user is logged in.
 // NOTE: Has a private field to ensure it cannot be created from somewhere else.
+#[derive(Debug)]
+#[repr(transparent)]
 pub struct Authenticated(());
 
 impl From<UserInfo> for Authenticated {
@@ -54,6 +58,7 @@ impl From<UserInfo> for Authenticated {
 ///
 /// It's not perfect, one day we'll replace it with scopes and permissions,
 /// but it'll do for now.
+#[derive(Debug)]
 pub struct IsAdmin;
 
 #[derive(Debug, Clone)]
@@ -69,6 +74,7 @@ impl PasswordResetToken {
     }
 }
 
+#[derive(Debug)]
 #[derive(sea_orm::FromQueryResult)]
 pub struct PasswordResetKvRecord {
     pub key: PasswordResetToken,
@@ -76,6 +82,7 @@ pub struct PasswordResetKvRecord {
 }
 
 /// The JSON value stored in the global key/value store.
+#[derive(Debug)]
 #[derive(Serialize, serdev::Deserialize)]
 #[derive(sea_orm::FromJsonQueryResult)]
 pub struct PasswordResetRecord {
@@ -108,7 +115,7 @@ impl Validate for PasswordResetToken {
     }
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl std::ops::Deref for AuthToken {
     type Target = SecretString;

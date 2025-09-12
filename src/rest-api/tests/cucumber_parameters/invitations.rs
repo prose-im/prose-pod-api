@@ -7,11 +7,12 @@ use std::{ops::Deref, str::FromStr};
 
 use cucumber::Parameter;
 
-// ===== Invitation status =====
+// MARK: - Invitation status
 
 type InvitationStatusModel = service::invitations::InvitationStatus;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "invitation_status", regex = r"[A-Z_]+")]
 pub struct InvitationStatus(pub InvitationStatusModel);
 

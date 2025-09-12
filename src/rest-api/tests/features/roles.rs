@@ -8,7 +8,7 @@ use service::{members::*, models::EmailAddress};
 
 use super::prelude::*;
 
-// GIVEN
+// MARK: - Given
 
 #[given(expr = "{} is an admin")]
 async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
@@ -63,7 +63,7 @@ async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
     Ok(())
 }
 
-// WHEN
+// MARK: - When
 
 async fn set_member_role(
     api: &TestServer,
@@ -104,7 +104,7 @@ async fn when_set_role_member(
     Ok(())
 }
 
-// THEN
+// MARK: - Then
 
 #[then(expr = "{} should have the {member_role} role")]
 async fn then_role(

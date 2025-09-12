@@ -9,6 +9,7 @@ use cucumber::Parameter;
 use service::models::BareJid;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "jid", regex = r"[^<]+@[^>]+")]
 pub struct JID(pub BareJid);
 

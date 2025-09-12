@@ -18,7 +18,7 @@ pub mod prelude {
     pub use std::{convert::Infallible, sync::Arc};
 
     pub use axum::{
-        extract::{FromRequest, FromRequestParts, Request},
+        extract::{FromRef, FromRequest, FromRequestParts, Request},
         http::request,
     };
 

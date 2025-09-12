@@ -36,13 +36,15 @@ pub use merge::MergeStrategy;
 /// > Prosody defaults.
 ///
 /// See <https://prosody.im/doc/configure>.
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProsodyConfig {
     pub global_settings: ProsodySettings,
     pub additional_sections: Vec<ProsodyConfigSection>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProsodyConfigSection {
     VirtualHost {
         hostname: String,
@@ -77,7 +79,8 @@ impl ProsodyConfigSection {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
@@ -298,7 +301,7 @@ impl ProsodySettings {
 }
 
 /// See <https://prosody.im/doc/authentication#providers>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -319,7 +322,7 @@ pub enum AuthenticationProvider {
 }
 
 /// See <https://prosody.im/doc/storage>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub enum StorageConfig {
     /// One value (e.g. `"internal"`, `"sql"`…).
@@ -333,7 +336,7 @@ pub enum StorageConfig {
 }
 
 /// See <https://prosody.im/doc/storage#backends>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -372,7 +375,7 @@ pub enum StorageBackend {
 ///   password = "secretpassword"; -- The password to authenticate to the database
 /// }
 /// ```
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
@@ -387,7 +390,7 @@ pub struct SqlConfig {
     pub password: Option<SecretString>,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -403,7 +406,7 @@ pub enum SqlDriver {
 }
 
 /// See <https://hg.prosody.im/trunk/file/5611ce3bc54c/plugins/mod_storage_sql.lua#l974>.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
@@ -418,7 +421,7 @@ pub enum SqliteTune {
 }
 
 /// See <https://prosody.im/doc/ports#default_interfaces>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -437,7 +440,7 @@ pub enum Interface {
 }
 
 /// See <https://prosody.im/doc/logging>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serdev::Serialize, serdev::Deserialize),
@@ -455,7 +458,7 @@ pub enum LogConfig {
 }
 
 /// See <https://prosody.im/doc/logging>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -477,7 +480,7 @@ pub enum LogLevelValue {
     Syslog,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -504,7 +507,8 @@ pub enum LogLevel {
 ///   key = "/etc/prosody/certs/example.com.key";
 /// }
 /// ```
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct SSLConfig {
     /// Required. Path to your certificate file, relative to your primary config file.
@@ -564,7 +568,7 @@ pub struct SSLConfig {
 /// See <https://prosody.im/doc/advanced_ssl_config#protocol>.
 ///
 /// Source: `protocols` in <https://hg.prosody.im/trunk/file/tip/util/sslconfig.lua>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -613,7 +617,7 @@ pub enum SslProtocol {
 }
 
 /// See <https://prosody.im/doc/advanced_ssl_config#verify>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -636,10 +640,9 @@ pub enum SslVerificationOption {
 
 /// See <https://prosody.im/doc/advanced_ssl_config#options>
 /// and <https://docs.openssl.org/master/man3/SSL_CTX_set_options/#notes>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct SslOption(String);
 
 /// Source: <https://github.com/lunarmodules/luasec/blob/master/src/options.c>.
@@ -658,7 +661,7 @@ pub mod ssl_option {
 }
 
 /// See <https://prosody.im/doc/advanced_ssl_config#verifyext>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -676,7 +679,7 @@ pub enum ExtraVerificationOption {
 }
 
 /// Values from <https://prosody.im/doc/modules/mod_limits>.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -698,7 +701,7 @@ pub enum ConnectionType {
 }
 
 /// See <https://prosody.im/doc/modules/mod_limits>.
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "serde",
     serde_with::skip_serializing_none,
@@ -711,7 +714,8 @@ pub struct ConnectionLimits {
 }
 
 /// See <https://prosody.im/doc/modules/mod_server_contact_info#configuration>.
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct ContactInfo {
     pub abuse: Vec<String>,
@@ -743,7 +747,7 @@ impl ContactInfo {
 }
 
 /// See <https://prosody.im/doc/chatrooms#creating_rooms>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoomCreationRestriction {
     /// Do not restrict room creation.
     NotRestricted,
@@ -755,7 +759,7 @@ pub enum RoomCreationRestriction {
 }
 
 /// See <https://prosody.im/doc/modules/mod_mam>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArchivePolicy {
     /// Always archive messages.
     Always,
@@ -768,7 +772,7 @@ pub enum ArchivePolicy {
 /// See <https://prosody.im/doc/configure#other_encryption_options> and <https://wiki.mozilla.org/Security/Server_Side_TLS>.
 ///
 /// Source: `mozilla_ssl_configs` in <https://hg.prosody.im/trunk/file/tip/core/certmanager.lua>.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(
     feature = "serde",
     derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr),
@@ -790,14 +794,14 @@ pub enum TlsProfile {
     Old,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct DiscoItem {
     pub address: String,
     pub name: String,
 }
 
-// ===== DEFAULT =====
+// MARK: - Defaults
 
 impl Default for LogConfig {
     fn default() -> Self {

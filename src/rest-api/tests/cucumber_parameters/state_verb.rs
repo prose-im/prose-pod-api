@@ -8,6 +8,7 @@ use std::str::FromStr;
 use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(
     name = "state_verb",
     regex = "(is|isn't|is not)|(has|doesn't have|does not have)"

@@ -23,10 +23,11 @@ use super::{
 };
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("No invitation with id '{0}'.")]
 pub struct InvitationNotFound(InvitationId);
 
-// MARK: CREATE
+// MARK: Create
 
 #[cfg(not(debug_assertions))]
 pub type InviteMemberResponse = Result<Invitation, InviteMemberError>;
@@ -86,7 +87,7 @@ pub async fn invite_member(
     ok(invitation)
 }
 
-// MARK: GET ONE
+// MARK: Get one
 
 /// Get information about a workspace invitation.
 pub async fn get_invitation(
@@ -100,7 +101,7 @@ pub async fn get_invitation(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 #[derive(Serialize)]
 pub struct WorkspaceInvitationBasicDetails {
     pub jid: BareJid,
@@ -138,7 +139,7 @@ pub async fn get_invitation_by_token(
     }
 }
 
-// MARK: GET MANY
+// MARK: Get many
 
 impl Pagination {
     fn invitations(
@@ -180,7 +181,7 @@ pub async fn get_invitations(
     ))
 }
 
-// MARK: ACTIONS
+// MARK: Actions
 
 /// Accept a workspace invitation.
 pub async fn invitation_accept(

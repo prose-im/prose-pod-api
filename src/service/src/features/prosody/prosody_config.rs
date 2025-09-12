@@ -19,7 +19,8 @@ lazy_static::lazy_static! {
     static ref GLOBAL_HOST: DomainName = DomainName::from_str("global").unwrap();
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct ProsodyConfig(pub(super) prosody_config::ProsodyConfig);
 
 impl Deref for ProsodyConfig {
@@ -118,7 +119,7 @@ impl ProsodyConfig {
     }
 }
 
-// ===== Default configuration =====
+// MARK: Default configuration
 
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
@@ -235,7 +236,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         ],
                     ),
                 ],
-                contact_info: ContactInfo::from(&app_config.public_contacts).non_empty(),
+                contact_info: ContactInfo::from(app_config.public_contacts.deref()).non_empty(),
                 ..Default::default()
             },
         };

@@ -45,7 +45,7 @@ impl std::fmt::Display for ErrorCode {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevel {
     Trace,
     Debug,

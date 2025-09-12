@@ -13,6 +13,7 @@ use serdev::{de::DeserializeOwned, Serialize, Serializer};
 pub use sea_orm::DbErr;
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Not implemented: {0}")]
 pub struct NotImplemented(pub &'static str);
 

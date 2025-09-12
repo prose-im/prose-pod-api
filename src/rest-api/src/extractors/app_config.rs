@@ -5,13 +5,8 @@
 
 use super::prelude::*;
 
-impl FromRequestParts<AppState> for service::AppConfig {
-    type Rejection = Infallible;
-
-    async fn from_request_parts(
-        _parts: &mut request::Parts,
-        state: &AppState,
-    ) -> Result<Self, Self::Rejection> {
-        Ok(state.app_config_frozen())
+impl FromRef<AppState> for Arc<service::AppConfig> {
+    fn from_ref(state: &AppState) -> Self {
+        state.app_config.clone()
     }
 }

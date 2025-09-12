@@ -3,7 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use chrono::Utc;
 use sea_orm::DatabaseConnection;
@@ -15,9 +15,9 @@ use crate::{
     AppConfig,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Context {
-    pub app_config: Arc<RwLock<AppConfig>>,
+    pub app_config: Arc<AppConfig>,
     pub db: DatabaseConnection,
 }
 
@@ -28,7 +28,7 @@ pub async fn run(
         ref db,
     }: Context,
 ) {
-    let tokens_ttl = (app_config.read().unwrap().auth.password_reset_token_ttl)
+    let tokens_ttl = (app_config.auth.password_reset_token_ttl)
         .num_seconds()
         .expect(
             "`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.",
@@ -85,7 +85,7 @@ pub async fn run(
     }
 }
 
-// ===== BOILERPLATE =====
+// MARK: - Boilerplate
 
 impl From<super::CronContext> for Context {
     fn from(value: super::CronContext) -> Self {

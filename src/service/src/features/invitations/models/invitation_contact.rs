@@ -7,8 +7,9 @@ use serdev::{Deserialize, Serialize};
 
 use crate::models::EmailAddress;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 // NOTE: No need to validate as `EmailAddress` is parsed.
 #[serde(tag = "channel", rename_all = "snake_case")]
 pub enum InvitationContact {

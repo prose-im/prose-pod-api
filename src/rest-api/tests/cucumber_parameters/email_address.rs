@@ -9,6 +9,7 @@ use std::{fmt::Display, ops::Deref, str::FromStr};
 use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "email", regex = r"[^<]+@[^>]+")]
 pub struct EmailAddress(pub EmailAddressEntityModel);
 

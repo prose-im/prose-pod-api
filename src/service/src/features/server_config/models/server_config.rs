@@ -214,7 +214,7 @@ impl ServerConfig {
 }
 
 /// See <https://wiki.mozilla.org/Security/Server_Side_TLS>.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(strum::EnumIter, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]

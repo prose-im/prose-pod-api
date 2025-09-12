@@ -7,9 +7,9 @@
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{convert::Infallible, fmt::Display, str::FromStr};
 
-// ===== JID =====
+// MARK: JID
 
-#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(SerializeDisplay, DeserializeFromStr))]
 pub struct BareJid {
     pub node: Option<String>,

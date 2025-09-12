@@ -12,7 +12,7 @@ use crate::model::*;
 use crate::prosody_config_file::utils::*;
 use crate::prosody_config_file::*;
 
-// ===== Config to config file =====
+// MARK: Config to config file
 
 impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
     fn into(self) -> Vec<Group<LuaDefinition>> {
@@ -104,7 +104,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             http_file_share_global_quota,
             http_file_share_access,
             use_libevent,
-            custom_settings,
+            mut custom_settings,
             dont_archive_namespaces,
             archive_store,
             mam_include_total,
@@ -433,7 +433,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             ),
         );
 
-        res.append(custom_settings.clone().as_mut());
+        res.append(custom_settings.as_mut());
 
         res
     }
@@ -485,7 +485,7 @@ impl ProsodyConfig {
     }
 }
 
-// ===== LuaValue mappings =====
+// MARK: LuaValue mappings
 
 macro_rules! enum_to_lua_string {
     ($t:ty) => {
@@ -905,7 +905,7 @@ impl Into<LuaValue> for DiscoItem {
     }
 }
 
-// ===== Data structure conversions =====
+// MARK: Data structure conversions
 
 impl TimeLike {
     pub fn seconds_as_lua_number(&self) -> LuaNumber {

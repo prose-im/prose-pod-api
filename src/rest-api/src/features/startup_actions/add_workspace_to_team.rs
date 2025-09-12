@@ -21,7 +21,7 @@ pub async fn add_workspace_to_team(
 ) -> Result<(), String> {
     debug!("Adding the Workspace XMPP account to everyone’s rosters…");
 
-    let workspace_jid = app_config.read().unwrap().workspace_jid();
+    let workspace_jid = app_config.workspace_jid();
 
     if let Err(err) = server_ctl.add_team_member(&workspace_jid).await {
         return Err(format!(

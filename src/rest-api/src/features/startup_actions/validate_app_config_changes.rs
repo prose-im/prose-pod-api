@@ -17,8 +17,10 @@ pub async fn validate_app_config_changes(app_state: &AppState) -> Result<(), Str
     Ok(())
 }
 
-async fn ensure_server_domain_not_changed(app_state: &AppState) -> Result<(), String> {
-    let (_, members) = (MemberRepository::get_page(&app_state.db, 1, 1, None).await)
+async fn ensure_server_domain_not_changed(
+    AppState { db, app_config, .. }: &AppState,
+) -> Result<(), String> {
+    let (_, members) = (MemberRepository::get_page(db, 1, 1, None).await)
         .map_err(|err| format!("Could not ensure the server domain hasn’t been modified: {err}"))?;
 
     let Some(member) = members.first() else {
@@ -27,8 +29,6 @@ async fn ensure_server_domain_not_changed(app_state: &AppState) -> Result<(), St
         );
         return Ok(());
     };
-
-    let ref app_config = app_state.app_config_frozen();
 
     let old_domain = member.jid().domain().to_string();
     let new_domain = app_config.server_domain().to_string();

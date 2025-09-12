@@ -8,7 +8,7 @@ use service::onboarding;
 
 use super::prelude::*;
 
-api_call_fn!(get_onboarding_steps_statuses, GET, "/v1/onboarding-steps");
+// MARK: - Given
 
 #[given(expr = "onboarding step {string} is {bool}")]
 async fn given_onboarding_step(
@@ -20,12 +20,18 @@ async fn given_onboarding_step(
     Ok(())
 }
 
+// MARK: - When
+
+api_call_fn!(get_onboarding_steps_statuses, GET, "/v1/onboarding-steps");
+
 #[when(expr = "{} queries onboarding steps statuses")]
 async fn when_get_onboarding_step_statuses(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_onboarding_steps_statuses(world.api(), token).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: - Then
 
 #[then(expr = "onboarding step {string} should be {bool}")]
 async fn then_onboarding_step(

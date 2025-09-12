@@ -237,6 +237,7 @@ impl ProsodyAdminRest {
     }
 }
 
+#[derive(Debug)]
 enum AddMemberFailed {
     GroupNotFound,
 }

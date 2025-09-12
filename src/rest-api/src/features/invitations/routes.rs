@@ -3,10 +3,10 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-#[cfg(debug_assertions)]
-use axum::extract::State;
+use std::sync::Arc;
+
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     http::{HeaderValue, StatusCode},
     Json,
 };
@@ -38,7 +38,7 @@ use crate::{
 
 use super::dtos::*;
 
-// MARK: CREATE
+// MARK: Create
 
 #[cfg(not(debug_assertions))]
 pub type InviteMemberResponse = Result<Created<WorkspaceInvitationDto>, Error>;
@@ -60,7 +60,10 @@ fn ok(invitation: WorkspaceInvitationDto, resource_uri: HeaderValue) -> InviteMe
     }))
 }
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
+// NOTE: Cannot use `serde(deny_unknown_fields)` because of a `serde(flatten)`
+//   + `serde(tag)` bug. See <https://github.com/serde-rs/serde/issues/1358>.
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct InviteMemberRequest {
     pub username: JidNode,
@@ -73,6 +76,7 @@ pub struct InviteMemberRequest {
 }
 
 #[cfg(debug_assertions)]
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct InviteMemberQuery {
     #[serde(default)]
@@ -82,7 +86,7 @@ pub struct InviteMemberQuery {
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member_route(
     #[cfg(debug_assertions)] State(AppState { ref db, .. }): State<AppState>,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
     ref notification_service: NotificationService,
     ref invitation_service: InvitationService,
     ref workspace_service: WorkspaceService,
@@ -123,7 +127,7 @@ pub async fn invite_member_route(
 
 pub async fn can_invite_member_route(
     is_admin: Option<IsAdmin>,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
 ) -> StatusCode {
     if is_admin.is_none() {
         StatusCode::FORBIDDEN
@@ -134,7 +138,7 @@ pub async fn can_invite_member_route(
     }
 }
 
-// MARK: GET ONE
+// MARK: Get one
 
 pub async fn get_invitation_route(
     invitation_service: InvitationService,
@@ -145,6 +149,7 @@ pub async fn get_invitation_route(
     }
 }
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct GetInvitationTokenDetailsQuery {
     token_type: InvitationTokenType,
@@ -162,7 +167,7 @@ pub async fn get_invitation_by_token_route(
     }
 }
 
-// MARK: GET MANY
+// MARK: Get many
 
 pub async fn get_invitations_route(
     invitation_service: InvitationService,
@@ -173,9 +178,11 @@ pub async fn get_invitations_route(
     }
 }
 
-// MARK: ACTIONS
+// MARK: Actions
 
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(serdev::Serialize))]
 pub struct AcceptWorkspaceInvitationRequest {
@@ -205,7 +212,7 @@ pub async fn invitation_reject_route(
 
 pub async fn invitation_resend_route(
     ref invitation_service: InvitationService,
-    ref app_config: AppConfig,
+    State(ref app_config): State<Arc<AppConfig>>,
     ref notification_service: NotificationService,
     ref workspace_service: WorkspaceService,
     Path(invitation_id): Path<InvitationId>,
@@ -229,7 +236,7 @@ pub async fn invitation_cancel_route(
     Ok(StatusCode::NO_CONTENT)
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
     fn into(self) -> InvitationAcceptForm {

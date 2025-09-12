@@ -10,7 +10,7 @@ use sea_orm::{entity::prelude::*, Set};
 
 use crate::{members::MemberRole, models::EmailAddress};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "member")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
@@ -38,7 +38,7 @@ impl Entity {
     }
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}

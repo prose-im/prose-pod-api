@@ -13,6 +13,7 @@ use std::{
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
+    sync::Arc,
 };
 
 use email_address::EmailAddress;
@@ -55,38 +56,43 @@ lazy_static! {
 ///
 /// Structure inspired from [valeriansaliou/vigil](https://github.com/valeriansaliou/vigil)'s
 /// [Config](https://github.com/valeriansaliou/vigil/tree/master/src/config).
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+// NOTE: During development, we often have `PROSE_`-prefixed environment
+//   variables defined (e.g. `PROSE_POD_API_DIR`), which makes serde complain
+//   “unknown field: found `pod_api_dir`”. Enabling `deny_unknown_fields` only
+//   in release mode should work around it.
+#[cfg_attr(not(debug_assertions), serde(deny_unknown_fields))]
 #[validate(nest_all_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct AppConfig {
     #[serde(default)]
-    pub branding: BrandingConfig,
+    pub branding: Arc<BrandingConfig>,
 
     #[serde(default)]
-    pub notifiers: NotifiersConfig,
+    pub notifiers: Arc<NotifiersConfig>,
 
     #[serde(default)]
-    pub log: LogConfig,
+    pub log: Arc<LogConfig>,
 
-    pub pod: PodConfig,
+    pub pod: Arc<PodConfig>,
 
-    pub server: ServerConfig,
-
-    #[serde(default)]
-    pub api: ApiConfig,
-
-    pub dashboard: DashboardConfig,
+    pub server: Arc<ServerConfig>,
 
     #[serde(default)]
-    pub auth: AuthConfig,
+    pub api: Arc<ApiConfig>,
+
+    pub dashboard: Arc<DashboardConfig>,
 
     #[serde(default)]
-    pub public_contacts: PublicContactsConfig,
+    pub auth: Arc<AuthConfig>,
+
+    #[serde(default)]
+    pub public_contacts: Arc<PublicContactsConfig>,
 
     /// Advanced config, use only if needed.
     #[serde(default)]
-    pub prosody_ext: ProsodyExtConfig,
+    pub prosody_ext: Arc<ProsodyExtConfig>,
 
     /// Advanced config, use only if needed.
     #[serde(default)]
@@ -94,20 +100,20 @@ pub struct AppConfig {
 
     /// Advanced config, use only if needed.
     #[serde(default)]
-    pub bootstrap: BootstrapConfig,
+    pub bootstrap: Arc<BootstrapConfig>,
 
     /// Advanced config, use only if needed.
     #[serde(default)]
-    pub service_accounts: ServiceAccountsConfig,
+    pub service_accounts: Arc<ServiceAccountsConfig>,
 
     /// Advanced config, use only if needed.
     #[serde(default, rename = "debug_use_at_your_own_risk")]
-    pub debug: DebugConfig,
+    pub debug: Arc<DebugConfig>,
 
     /// Advanced config, use only if needed.
     #[cfg(debug_assertions)]
     #[serde(default)]
-    pub debug_only: DebugOnlyConfig,
+    pub debug_only: Arc<DebugOnlyConfig>,
 }
 
 impl AppConfig {
@@ -239,8 +245,9 @@ impl AppConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct LogConfig {
     #[serde(default = "defaults::log_level")]
@@ -295,7 +302,7 @@ impl Default for LogConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
 #[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
@@ -307,7 +314,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
 #[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
@@ -318,7 +325,7 @@ pub enum LogFormat {
     Pretty,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
 #[derive(strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
@@ -328,8 +335,9 @@ pub enum LogTimer {
     Uptime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ApiConfig {
     /// IP address to serve on.
@@ -365,15 +373,17 @@ impl Default for ApiConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, Serialize, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DashboardConfig {
     pub url: DashboardUrl,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ServiceAccountsConfig {
     #[serde(default = "defaults::service_accounts_prose_pod_api")]
@@ -394,15 +404,17 @@ impl Default for ServiceAccountsConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ServiceAccountConfig {
     pub xmpp_node: JidNode,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct BootstrapConfig {
     #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
@@ -427,9 +439,11 @@ mod pod_config {
     use serdev::Serialize;
     use validator::{Validate, ValidationError, ValidationErrors};
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     #[derive(Validate, Serialize, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
+    #[cfg_attr(feature = "test", derive(Clone))]
     pub struct PodConfig {
         #[validate(nested)]
         pub address: PodAddress,
@@ -437,6 +451,7 @@ mod pod_config {
 
     #[derive(Debug, Clone, Default)]
     #[derive(Serialize, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct PodAddress {
         pub domain: Option<DomainName>,
@@ -468,8 +483,9 @@ mod pod_config {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ServerConfig {
     pub domain: JidDomain,
@@ -502,8 +518,9 @@ impl ServerConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct AuthConfig {
     #[serde(default = "defaults::auth_token_ttl")]
@@ -526,8 +543,9 @@ impl Default for AuthConfig {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct PublicContactsConfig {
     #[serde(default)]
@@ -552,8 +570,9 @@ pub struct PublicContactsConfig {
     pub support: LinkedHashSet<Url>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 // TODO: Add validation to `ProsodyConfig`?
 pub struct ProsodyHostConfig {
@@ -567,8 +586,9 @@ pub struct ProsodyHostConfig {
 /// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
 ///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
 ///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ProsodyExtConfig {
     #[serde(default = "defaults::prosody_config_file_path")]
@@ -593,8 +613,9 @@ impl Default for ProsodyExtConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ServerDefaultsConfig {
     pub message_archive_enabled: bool,
@@ -652,8 +673,9 @@ impl Default for ServerDefaultsConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct BrandingConfig {
     #[serde(default)]
@@ -680,8 +702,9 @@ impl Default for InvitationChannel {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct NotifiersConfig {
     #[serde(default = "defaults::notify_workspace_invitation_channel")]
@@ -701,8 +724,9 @@ impl NotifiersConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct EmailNotifierConfig {
     pub pod_address: EmailAddress,
@@ -723,8 +747,9 @@ pub struct EmailNotifierConfig {
     pub smtp_encrypt: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DatabasesConfig {
     #[serde(default = "defaults::databases_main")]
@@ -741,8 +766,9 @@ impl Default for DatabasesConfig {
 }
 
 /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DatabaseConfig {
     #[validate(length(min = 1, max = 1024))]
@@ -764,8 +790,9 @@ pub struct DatabaseConfig {
     pub sqlx_logging: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DebugConfig {
     #[serde(default = "defaults::true_in_debug")]
@@ -796,8 +823,9 @@ impl Default for DebugConfig {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DebugOnlyConfig {
     /// When automatically accepting invitations during testing, one might want to authenticate
@@ -810,8 +838,9 @@ pub struct DebugOnlyConfig {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "snake_case")]
 pub enum UuidDependencyMode {
     Normal,
@@ -826,8 +855,9 @@ impl Default for UuidDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[derive(serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifierDependencyMode {
     Live,
@@ -842,8 +872,9 @@ impl Default for NotifierDependencyMode {
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 #[derive(Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DependencyModesConfig {
     #[serde(default)]
@@ -854,6 +885,7 @@ pub struct DependencyModesConfig {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error(
     "Missing key `{0}` the app configuration. Add it to `prose.toml` or use environment variables."
 )]
@@ -866,6 +898,7 @@ pub struct MissingConfiguration(pub &'static str);
 #[derive(Debug, Clone)]
 #[derive(Serialize, serdev::Deserialize)]
 #[serde(validate = "Self::validate")]
+#[repr(transparent)]
 pub struct DashboardUrl(Url);
 
 impl DashboardUrl {

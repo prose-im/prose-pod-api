@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::anyhow;
-use base64::engine::{general_purpose::STANDARD_NO_PAD as Base64, Engine as _};
+use base64::{prelude::BASE64_STANDARD, Engine as _};
 use secrecy::{ExposeSecret as _, SecretString};
 use service::{
     auth::{
@@ -22,7 +22,7 @@ use std::sync::{Arc, RwLock};
 
 use super::mock_server_ctl::MockServerCtlState;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockAuthService {
     pub(crate) state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_server_ctl_state: Arc<RwLock<MockServerCtlState>>,
@@ -66,7 +66,7 @@ impl MockAuthService {
             role,
         })
         .unwrap();
-        let base64 = Base64.encode(json);
+        let base64 = BASE64_STANDARD.encode(json);
         let token = SecretString::from(base64);
 
         Ok(AuthToken(token))
@@ -111,7 +111,7 @@ impl AuthServiceImpl for MockAuthService {
         self.check_online()?;
 
         let base64 = token.expose_secret();
-        let json = (Base64.decode(base64)).map_err(|err| {
+        let json = (BASE64_STANDARD.decode(base64)).map_err(|err| {
             debug!("Could not Base64-decode test token: {err}");
             Either::E1(InvalidAuthToken)
         })?;

@@ -18,7 +18,7 @@ pub struct Member {
     pub role: MemberRole,
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl From<members::entities::Member> for Member {
     fn from(model: members::entities::Member) -> Self {

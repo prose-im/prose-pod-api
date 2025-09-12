@@ -10,6 +10,7 @@ Feature: Rotating service account passwords
   Rule: The workspace account password is rotated
 
     Scenario: At API startup
-      Given the Prose Pod has been initialized for test.org
+      Given config "server.domain" is set to "test.org"
+        And the Prose Pod has been initialized
        When the Prose Pod API starts
        Then <prose-workspace@test.org>'s password is changed

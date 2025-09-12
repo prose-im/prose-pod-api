@@ -3,15 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::ops::Deref;
-
 use anyhow::Context as _;
 use prose_pod_api::features::{
     auth::models::Password, init::*, workspace_details::InitWorkspaceRequest,
 };
 use service::{
     members::Nickname,
-    models::Url,
     workspace::{workspace_controller, Workspace},
     xmpp::server_manager,
 };
@@ -19,6 +16,8 @@ use service::{
 use super::prelude::*;
 
 pub const DEFAULT_WORKSPACE_NAME: &'static str = "Prose";
+
+// MARK: - Given
 
 #[given("the Prose Pod has not been initialized")]
 fn given_pod_not_initialized(world: &mut TestWorld) {
@@ -30,16 +29,6 @@ fn given_pod_not_initialized(world: &mut TestWorld) {
 async fn given_pod_initialized(world: &mut TestWorld) -> Result<(), Error> {
     given_xmpp_server_initialized(world).await?;
     given_workspace_initialized(world).await?;
-    Ok(())
-}
-
-#[given(expr = "the Prose Pod has been initialized for {domain_name}")]
-async fn given_pod_initialized_for_domain(
-    world: &mut TestWorld,
-    domain: parameters::DomainName,
-) -> Result<(), Error> {
-    given_server_domain(world, domain).await?;
-    given_pod_initialized(world).await?;
     Ok(())
 }
 
@@ -81,7 +70,7 @@ async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<
         &world.server_ctl,
         &world.app_config().clone(),
         &world.auth_service,
-        &world.secrets_store,
+        &world.secrets_store(),
     )
     .await
     .context("Could not create service XMPP account")?;
@@ -96,24 +85,6 @@ async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<
     Ok(())
 }
 
-#[given(expr = "the XMPP server domain is {domain_name}")]
-async fn given_server_domain(
-    world: &mut TestWorld,
-    domain: parameters::DomainName,
-) -> anyhow::Result<()> {
-    world.app_config_mut().server.domain = domain.deref().into();
-    world.server_config_manager().reload().await?;
-    Ok(())
-}
-
-#[given(expr = "the dashboard URL is {domain_name}")]
-async fn given_dashboard_url(world: &mut TestWorld, domain: parameters::DomainName) {
-    use service::app_config::DashboardUrl;
-
-    let url = Url::parse(&domain.to_string()).expect("Invalid dashboard URL");
-    world.app_config_mut().dashboard.url = DashboardUrl::new(url).unwrap();
-}
-
 #[given("nothing has changed since the initialization of the workspace")]
 fn given_nothing_changed(_world: &mut TestWorld) {
     // Do nothing, even though we could performs checks
@@ -123,6 +94,8 @@ fn given_nothing_changed(_world: &mut TestWorld) {
 fn given_pod_address_not_initialized(_world: &mut TestWorld) {
     // Do nothing, even though we could performs checks
 }
+
+// MARK: - When
 
 async fn init_workspace(api: &TestServer, name: &str) -> TestResponse {
     api.put("/v1/workspace")
@@ -155,6 +128,8 @@ async fn when_init_first_account(world: &mut TestWorld, nickname: String, node: 
     let res = init_first_account(world.api(), &node, nickname).await;
     world.result = Some(res);
 }
+
+// MARK: - Then
 
 #[then(expr = "the error code should be {string}")]
 async fn then_error_reason(world: &mut TestWorld, reason: String) -> Result<(), serde_json::Error> {

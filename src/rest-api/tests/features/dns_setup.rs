@@ -3,11 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr as _,
-};
-
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, features::dns_setup::GetDnsRecordsResponse};
 use service::{
@@ -15,44 +10,9 @@ use service::{
     server_config,
 };
 
-use crate::{
-    api_call_fn,
-    cucumber_parameters::{self as parameters, *},
-    user_token, TestWorld,
-};
+use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
 
-api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
-
-#[given("the Prose Pod is publicly accessible via an IPv4")]
-async fn given_pod_ipv4(world: &mut TestWorld) {
-    // We don't care about the value so we can leave it unspecified.
-    let ipv4 = Ipv4Addr::UNSPECIFIED;
-    world.app_config_mut().pod.address.ipv4 = Some(ipv4.into());
-}
-
-#[given("the Prose Pod is publicly accessible via an IPv6")]
-async fn given_pod_ipv6(world: &mut TestWorld) {
-    // We don't care about the value so we can leave it unspecified.
-    let ipv6 = Ipv6Addr::UNSPECIFIED;
-    world.app_config_mut().pod.address.ipv6 = Some(ipv6.into());
-}
-
-#[given("the Prose Pod is publicly accessible via a domain")]
-fn given_pod_domain_default(world: &mut TestWorld) {
-    let server_domain = world.app_config().server_domain().clone();
-    let domain = DomainName::from_str(&format!("prose.{server_domain}")).unwrap();
-    given_pod_domain(world, domain);
-}
-
-#[given(expr = "the Prose Pod is publicly accessible via {domain_name}")]
-fn given_pod_domain(world: &mut TestWorld, domain: parameters::DomainName) {
-    world.app_config_mut().pod.address.domain = Some(domain.0);
-}
-
-#[given("the Prose Pod isn’t publicly accessible via a domain")]
-async fn given_pod_no_domain(world: &mut TestWorld) {
-    world.app_config_mut().pod.address.domain = None;
-}
+// MARK: - Given
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
@@ -60,12 +20,18 @@ async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result
     Ok(())
 }
 
+// MARK: - When
+
+api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
+
 #[when(expr = "{} requests DNS setup instructions")]
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
     let token = user_token!(world, name);
     let res = get_dns_instructions(world.api(), token).await;
     world.result = Some(res.unwrap().into());
 }
+
+// MARK: - Then
 
 #[then(expr = "DNS setup instructions should contain {int} steps")]
 async fn then_dns_instructions_n_steps(world: &mut TestWorld, n: usize) {

@@ -11,6 +11,7 @@ use cucumber::Parameter;
 /// The `{string}` parameter matches a full string with spaces, but requires quotes.
 /// This parameter matches a full string with spaces without requiring quotes.
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "text", regex = r".+")]
 pub struct Text(pub String);
 

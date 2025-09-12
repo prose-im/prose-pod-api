@@ -30,7 +30,7 @@ impl Deref for PodVersionService {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct PodComponentsVersions {
     pub api: VersionInfo,
     pub server: VersionInfo,
@@ -57,7 +57,7 @@ mod live {
 
     use super::{PodVersionServiceImpl, VersionInfo};
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct LivePodVersionService {
         mod_prose_version: ProsodyProseVersion,
     }
@@ -102,7 +102,7 @@ mod r#static {
         );
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct StaticPodVersionService;
 
     #[async_trait::async_trait]

@@ -10,6 +10,7 @@ use iso8601_timestamp::Timestamp as ISOTimestamp;
 
 use crate::error::{self, Error};
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 #[repr(transparent)]
 pub struct Timestamp(ISOTimestamp);

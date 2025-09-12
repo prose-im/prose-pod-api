@@ -7,19 +7,19 @@ use std::sync::{Arc, RwLock};
 
 use service::notifications::notifier::{GenericNotifier, NotificationTrait, NotifierError};
 
-#[derive(Debug, Clone)]
-pub struct MockNotifier<N: NotificationTrait + Clone> {
+#[derive(Debug)]
+pub struct MockNotifier<N: NotificationTrait> {
     pub(crate) state: Arc<RwLock<MockNotifierState<N>>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockNotifierState<N: NotificationTrait> {
     pub online: bool,
     pub send_count: usize,
     pub sent: Vec<N>,
 }
 
-impl<N: NotificationTrait + Clone> Default for MockNotifier<N> {
+impl<N: NotificationTrait> Default for MockNotifier<N> {
     fn default() -> Self {
         Self {
             state: Default::default(),
@@ -27,7 +27,7 @@ impl<N: NotificationTrait + Clone> Default for MockNotifier<N> {
     }
 }
 
-impl<N: NotificationTrait + Clone> Default for MockNotifierState<N> {
+impl<N: NotificationTrait> Default for MockNotifierState<N> {
     fn default() -> Self {
         Self {
             online: true,
@@ -37,7 +37,7 @@ impl<N: NotificationTrait + Clone> Default for MockNotifierState<N> {
     }
 }
 
-impl<N: NotificationTrait + Clone> MockNotifier<N> {
+impl<N: NotificationTrait> MockNotifier<N> {
     fn check_online(&self) -> Result<(), NotifierError> {
         if self.state.read().unwrap().online {
             Ok(())

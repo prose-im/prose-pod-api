@@ -47,7 +47,7 @@ impl ProsodySettings {
             consider_websocket_secure,
             contact_info,
             cross_domain_websocket,
-            custom_settings,
+            mut custom_settings,
             default_archive_policy,
             default_storage,
             disco_expose_admins,
@@ -226,16 +226,17 @@ impl ProsodySettings {
         merge!(upgrade_legacy_vcards);
         merge!(use_libevent);
 
-        // NOTE: We cannot simply use `Vec::extend`, as it would make values
-        //   in `other` take precedence over values in `self` (which is the
-        //   opposite of what happens for other keys). For consistency, we have
-        //   to prepend values of `other` (Prosody settings appearing last
-        //   taking precedence over previous ones).
-        // NOTE: This implementation isn’t the most efficient, but who cares?
-        self.custom_settings = [
-            custom_settings,
-            self.custom_settings.clone(),
-        ]
-        .concat();
+        // NOTE: We cannot simply use `Vec::extend` on `self.custom_settings`,
+        //   as it would make values in `other` take precedence over values in
+        //   `self` (which is the opposite of what happens for other keys).
+        //   For consistency, we have to prepend values of `other` (Prosody
+        //   settings appearing last taking precedence over previous ones).
+        //   We cannot extend `custom_settings` with `self.custom_settings`
+        //   either as `self.custom_settings` is behind a shared reference.
+        let mut new_custom_settings =
+            Vec::with_capacity(custom_settings.len() + self.custom_settings.len());
+        new_custom_settings.append(&mut custom_settings);
+        new_custom_settings.append(&mut self.custom_settings);
+        self.custom_settings = new_custom_settings;
     }
 }

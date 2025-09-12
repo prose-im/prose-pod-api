@@ -7,6 +7,7 @@ use serdev::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
+#[repr(transparent)]
 pub struct Lua(pub String);
 
 impl std::ops::Deref for Lua {

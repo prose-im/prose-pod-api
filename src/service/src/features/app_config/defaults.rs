@@ -23,7 +23,7 @@ use crate::{
 
 use super::*;
 
-// GENERAL
+// MARK: - General
 
 #[cfg(debug_assertions)]
 pub fn true_in_debug() -> bool {
@@ -41,7 +41,7 @@ pub fn always_false() -> bool {
     false
 }
 
-// SPECIFIC
+// MARK: - Specific
 
 pub fn log_level() -> LogLevel {
     LogLevel::Info
@@ -114,7 +114,7 @@ pub fn auth_oauth2_registration_key() -> SecretString {
     // }
     fn bytes_to_base64(bytes: &[u8]) -> String {
         use base64::Engine as _;
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+        base64::prelude::BASE64_STANDARD.encode(bytes)
     }
 
     SecretString::from(bytes_to_base64(&key))

@@ -20,7 +20,7 @@ pub async fn create_service_accounts(
 ) -> Result<(), String> {
     debug!("Creating service accounts…");
 
-    let ref app_config = app_config.read().unwrap().clone();
+    let ref app_config = app_config.clone();
 
     // Ensure service accounts exist and rotate passwords
     // NOTE: After an update, the Prose Pod API might require more service accounts

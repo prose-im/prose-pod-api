@@ -43,6 +43,7 @@ pub struct XmppServiceContext {
 }
 
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct XmppServiceInner(Arc<dyn XmppServiceImpl>);
 
 impl XmppServiceInner {

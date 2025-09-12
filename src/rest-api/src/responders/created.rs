@@ -9,6 +9,7 @@ use axum::{
 };
 use serdev::Serialize;
 
+#[derive(Debug)]
 pub struct Created<T> {
     pub location: HeaderValue,
     pub body: T,

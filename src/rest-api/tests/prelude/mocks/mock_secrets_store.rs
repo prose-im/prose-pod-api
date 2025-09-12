@@ -6,7 +6,7 @@
 use std::{
     collections::HashMap,
     fmt::Debug,
-    sync::{Arc, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use secrecy::SecretString;
@@ -17,14 +17,14 @@ use service::{
     AppConfig,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockSecretsStore {
     implem: LiveSecretsStore,
     state: Arc<RwLock<MockSecretsStoreState>>,
     api_jid: BareJid,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct MockSecretsStoreState {
     pub changes_count: HashMap<BareJid, u32>,
 }
@@ -38,11 +38,10 @@ impl MockSecretsStore {
         }
     }
 
-    pub(crate) fn state(&self) -> MockSecretsStoreState {
+    pub(crate) fn state<'a>(&'a self) -> RwLockReadGuard<'a, MockSecretsStoreState> {
         self.state
             .read()
             .expect("`MockSecretsStoreState` lock poisonned.")
-            .clone()
     }
 
     pub(crate) fn state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockSecretsStoreState> {

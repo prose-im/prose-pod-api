@@ -17,6 +17,7 @@ use super::models::{dns::*, network_checks::*};
 
 /// A service used to perform network checks (DNS resolution, ports checking…).
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct NetworkChecker(Arc<dyn NetworkCheckerImpl>);
 
 impl NetworkChecker {
@@ -92,6 +93,7 @@ pub trait NetworkCheckerImpl: Debug + Sync + Send {
 }
 
 #[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
+#[repr(transparent)]
 #[error("DNS lookup error: {0}")]
 pub struct DnsLookupError(pub String);
 

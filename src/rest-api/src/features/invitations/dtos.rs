@@ -13,7 +13,7 @@ use service::{
     models::BareJid,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 #[derive(Serialize)]
 #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {
@@ -27,7 +27,7 @@ pub struct WorkspaceInvitationDto {
     pub is_expired: bool,
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationDto {
     fn from(value: invitations::entities::workspace_invitation::Model) -> Self {

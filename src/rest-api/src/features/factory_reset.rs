@@ -36,6 +36,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 
 #[derive(Debug)]
 #[derive(Serialize, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 struct FactoryResetConfirmation {
     pub confirmation: String,
@@ -43,7 +44,7 @@ struct FactoryResetConfirmation {
 
 #[derive(Debug)]
 #[derive(serdev::Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 enum FactoryResetRequest {
     PasswordConfirmation { password: Password },
@@ -80,7 +81,6 @@ async fn factory_reset_route(
             }
         }
         FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation { confirmation }) => {
-            let ref app_config = app_config.read().unwrap().clone();
             factory_reset_controller::perform_factory_reset(
                 confirmation,
                 db,
@@ -143,7 +143,7 @@ impl Validate for FactoryResetRequest {
     }
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 mod error {
     use crate::error::prelude::*;

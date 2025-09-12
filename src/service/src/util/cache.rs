@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use parking_lot::RwLock;
 use tracing::trace;
 
+#[derive(Debug)]
 pub struct Cache<K, V> {
     data: RwLock<HashMap<K, (Instant, V)>>,
     ttl: Duration,

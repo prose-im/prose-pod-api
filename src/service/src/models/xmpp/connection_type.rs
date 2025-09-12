@@ -51,7 +51,7 @@ impl XmppConnectionType {
 /// Probably abstract enough to be used in non-Prosody APIs.
 ///
 /// See also <https://docs.ejabberd.im/admin/configuration/basic/#shapers> for ejabberd.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum XmppDirectionalConnectionType {
     /// "c2s"
     ClientToServer,

@@ -34,7 +34,7 @@ pub async fn backfill_onboarding_steps(
         ..
     }: &AppState,
 ) -> Result<(), String> {
-    let ref app_config = app_config.read().unwrap().clone();
+    let ref app_config = app_config.clone();
     service::onboarding::backfill(db, app_config, network_checker, uuid_gen).await;
     Ok(())
 }

@@ -21,7 +21,7 @@ use crate::{
     AppConfig, ServerConfig,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LiveServerCtl {
     config_file_path: PathBuf,
     admin_rest: Arc<ProsodyAdminRest>,

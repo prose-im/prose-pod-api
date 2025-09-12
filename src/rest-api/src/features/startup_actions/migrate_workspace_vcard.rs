@@ -21,7 +21,7 @@ pub async fn migrate_workspace_vcard(
 ) -> Result<(), String> {
     debug!("Migrating the Workspace vCard…");
 
-    let workspace_jid = app_config.read().unwrap().workspace_jid();
+    let workspace_jid = app_config.workspace_jid();
     let workspace_service = WorkspaceService::new(
         xmpp_service.clone(),
         workspace_jid,

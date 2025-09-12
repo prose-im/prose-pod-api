@@ -8,6 +8,7 @@ use std::{ops::Deref, str::FromStr};
 use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "member_role", regex = r"\w+")]
 pub struct MemberRole(pub service::members::MemberRole);
 

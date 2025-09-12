@@ -7,6 +7,8 @@ use axum::{body::Bytes, response::IntoResponse};
 use axum_extra::{headers::ContentType, TypedHeader};
 use service::models::AvatarOwned;
 
+#[derive(Debug)]
+#[repr(transparent)]
 pub struct Avatar(pub AvatarOwned);
 
 impl IntoResponse for Avatar {

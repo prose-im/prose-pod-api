@@ -18,12 +18,9 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
     )]
     async fn from_request_parts(
         parts: &mut request::Parts,
-        state: &AppState,
+        state @ AppState { db, app_config, .. }: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let is_admin = IsAdmin::from_request_parts(parts, state).await?;
-
-        let AppState { db, .. } = state;
-        let ref app_config = state.app_config_frozen();
 
         let server_config =
             server_config_controller::get_server_config_private(db, app_config, &is_admin).await?;

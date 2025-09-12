@@ -26,13 +26,13 @@ use crate::{error::Error, AppState};
 
 use super::{extractors::BasicAuth, models::Password};
 
-// MARK: LOG IN
+// MARK: - Log in
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[repr(transparent)]
 pub struct LoginToken(SerializableSecretString);
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub token: LoginToken,
 }
@@ -50,7 +50,7 @@ pub async fn login_route(
     }
 }
 
-// MARK: ROLES
+// MARK: - Roles
 
 pub async fn set_member_role_route(
     State(AppState { ref db, .. }): State<AppState>,
@@ -64,7 +64,7 @@ pub async fn set_member_role_route(
     }
 }
 
-// MARK: PASSWORD RESET / CHANGE
+// MARK: - Password reset / change
 
 pub async fn request_password_reset_route(
     State(AppState {
@@ -76,13 +76,13 @@ pub async fn request_password_reset_route(
     ref caller: UserInfo,
     Path(ref jid): Path<BareJid>,
 ) -> Result<StatusCode, Error> {
-    let ref app_config = app_config.read().unwrap().clone();
     auth_controller::request_password_reset(db, notification_service, app_config, caller, jid)
         .await?;
     Ok(StatusCode::ACCEPTED)
 }
 
-#[derive(Validate, serdev::Deserialize)]
+#[derive(Debug, Validate, serdev::Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {
@@ -100,7 +100,7 @@ pub async fn reset_password_route(
     Ok(())
 }
 
-// MARK: BOILERPLATE
+// MARK: - Boilerplate
 
 impl From<AuthToken> for LoginToken {
     fn from(value: AuthToken) -> Self {

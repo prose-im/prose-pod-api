@@ -20,7 +20,7 @@ pub use prosody_oauth2::{ProsodyOAuth2, ProsodyOAuth2Error};
 pub use prosody_prose_version::ProsodyProseVersion;
 pub use prosody_rest::ProsodyRest;
 
-// ===== Mapping to Prosody =====
+// MARK: - Mapping to Prosody
 
 /// Map our types to their representation in Prosody.
 ///

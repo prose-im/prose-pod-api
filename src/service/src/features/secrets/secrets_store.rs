@@ -12,6 +12,7 @@ use secrecy::SecretString;
 ///
 /// WARN: This must NOT be used to save user tokens!
 #[derive(Debug, Clone)]
+#[repr(transparent)]
 pub struct SecretsStore(Arc<dyn SecretsStoreImpl>);
 
 impl SecretsStore {

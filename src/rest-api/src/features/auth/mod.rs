@@ -50,6 +50,7 @@ pub mod models {
     #[derive(Debug, Clone)]
     #[derive(Serialize, serdev::Deserialize)]
     #[serde(validate = "Validate::validate")]
+    #[repr(transparent)]
     pub struct Password(SerializableSecretString);
 
     impl Deref for Password {

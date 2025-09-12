@@ -9,6 +9,7 @@ use cucumber::Parameter;
 use hickory_proto::rr::Name as HickoryDomainName;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "domain_name", regex = r"(?:(?:\w|-)+\.)*(?:\w|-)+\.?")]
 pub struct DomainName(pub HickoryDomainName);
 

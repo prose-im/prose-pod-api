@@ -202,7 +202,9 @@ pub fn update_tracing_config(
 /// to support dynamic reloading of the log level filter.
 ///
 /// NOTE: Can only be called once.
-pub fn init_subscribers() -> Result<
+pub fn init_subscribers(
+    log_config: &LogConfig,
+) -> Result<
     (
         TracingGuard,
         TracingReloadHandles<
@@ -214,8 +216,6 @@ pub fn init_subscribers() -> Result<
     ),
     Error,
 > {
-    let log_config = LogConfig::default();
-
     // Setup a temporary subscriber to log output during setup.
     let subscriber = tracing_subscriber::registry()
         .with(build_filter_layer(&log_config))

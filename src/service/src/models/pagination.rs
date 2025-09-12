@@ -5,6 +5,7 @@
 
 use chrono::{DateTime, Utc};
 
+#[derive(Debug)]
 #[derive(serdev::Deserialize)]
 pub struct PaginationForm {
     pub page_number: Option<u64>,
@@ -12,6 +13,7 @@ pub struct PaginationForm {
     pub until: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug)]
 pub struct Pagination {
     pub page_number: u64,
     pub page_size: u64,

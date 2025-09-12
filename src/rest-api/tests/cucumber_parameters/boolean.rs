@@ -8,6 +8,7 @@ use std::{ops::Deref, str::FromStr};
 use cucumber::Parameter;
 
 #[derive(Debug, Parameter)]
+#[repr(transparent)]
 #[param(name = "bool", regex = "true|false")]
 pub struct Bool(bool);
 

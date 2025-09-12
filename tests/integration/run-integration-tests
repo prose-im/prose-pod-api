@@ -46,6 +46,7 @@ for arg in "$@"; do
 		--server=*)
 			export PROSE_POD_SERVER_IMAGE_TAG="${arg#'--server='}"
 			;;
+		+telemetry) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}"telemetry ;;
 		--help) die 'Unsupported' ;;
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;

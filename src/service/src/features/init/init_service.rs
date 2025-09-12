@@ -19,6 +19,7 @@ use crate::{
     util::bare_jid_from_username,
 };
 
+#[derive(Debug)]
 pub struct InitService {
     pub db: Arc<DatabaseConnection>,
 }

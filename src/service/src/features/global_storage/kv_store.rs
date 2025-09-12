@@ -20,7 +20,7 @@ use self::entity::{ActiveModel, Column, Entity};
 mod entity {
     use sea_orm::entity::prelude::*;
 
-    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
     #[sea_orm(table_name = "kv_store")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
@@ -30,7 +30,7 @@ mod entity {
         pub value: Json,
     }
 
-    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    #[derive(Debug, EnumIter, DeriveRelation)]
     pub enum Relation {}
 
     impl ActiveModelBehavior for ActiveModel {}

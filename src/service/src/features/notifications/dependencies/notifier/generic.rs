@@ -35,8 +35,8 @@ pub trait GenericNotifier: Debug + Sync + Send {
     }
 }
 
-#[repr(transparent)]
 #[derive(Debug, Clone)]
 #[derive(thiserror::Error)]
+#[repr(transparent)]
 #[error("{0}")]
 pub struct NotifierError(pub String);

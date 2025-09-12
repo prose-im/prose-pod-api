@@ -21,7 +21,7 @@ use super::ServiceAccountNotFound;
 /// A place to store service accounts secrets (e.g. Prosody tokens).
 ///
 /// WARN: This must NOT be used to save user tokens!
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct LiveSecretsStore {
     store: Arc<RwLock<HashMap<BareJid, ServiceAccountSecrets>>>,
     // NOTE: This account is the only one to get a special treatment because

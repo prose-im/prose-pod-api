@@ -56,7 +56,7 @@ macro_rules! run_step_macro {
 pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     trace!("Running startup actions…");
 
-    let ref app_config = app_state.app_config_frozen();
+    let ref app_config = app_state.app_config;
     DETAILED_ERROR_REPONSES.store(
         app_config.debug.detailed_error_responses,
         std::sync::atomic::Ordering::Relaxed,
@@ -83,9 +83,9 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
 
     // Some actions won’t prevent the API from running properly so let’s not
     // make startup longer because of it.
-    async fn run_remaining(app_state: &AppState) -> Result<(), String> {
-        let ref app_config = app_state.app_config_frozen();
-
+    async fn run_remaining(
+        app_state @ AppState { app_config, .. }: &AppState,
+    ) -> Result<(), String> {
         run_step_macro!(app_state, app_config);
 
         run_step!(backfill_database);

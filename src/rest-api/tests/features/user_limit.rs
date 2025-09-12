@@ -10,9 +10,11 @@ use crate::prelude::mocks::LICENSE_SIGNING_KEY;
 
 use super::prelude::*;
 
+// MARK: - Given
+
 #[given(expr = "the user limit is {int}")]
 async fn given_user_limit(world: &mut TestWorld, limit: u32) -> Result<(), Error> {
-    let ref validator = world.mock_license_service.validator;
+    let ref validator = world.mock_license_service().validator;
 
     let domain = world.app_config().server_fqdn();
     let biscuit = biscuit!(
@@ -34,8 +36,8 @@ async fn given_user_limit(world: &mut TestWorld, limit: u32) -> Result<(), Error
     .unwrap();
 
     let license = License::new(biscuit, validator).unwrap();
-    world.mock_license_service.set_valid(&license);
-    world.mock_license_service.add_installed(license);
+    world.mock_license_service().set_valid(&license);
+    world.mock_license_service().add_installed(license);
 
     Ok(())
 }

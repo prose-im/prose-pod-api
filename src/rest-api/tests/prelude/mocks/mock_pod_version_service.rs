@@ -7,12 +7,12 @@ use std::sync::{Arc, RwLock};
 
 use service::pod_version::{PodVersionServiceImpl, StaticPodVersionService, VersionInfo};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct MockPodVersionService {
     data: Arc<RwLock<MockPodVersionServiceData>>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct MockPodVersionServiceData {
     pub api: Option<VersionInfo>,
     pub server: Option<VersionInfo>,

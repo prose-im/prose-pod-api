@@ -10,14 +10,14 @@ use linked_hash_map::LinkedHashMap;
 use linked_hash_set::LinkedHashSet;
 use std::{hash::Hash, path::PathBuf};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ProsodyConfigFile {
     pub header: Option<Group<LuaComment>>,
     pub global_settings: Vec<Group<LuaDefinition>>,
     pub additional_sections: Vec<ProsodyConfigFileSection>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ProsodyConfigFileSection {
     VirtualHost {
         comments: Vec<LuaComment>,
@@ -33,9 +33,10 @@ pub enum ProsodyConfigFileSection {
     },
 }
 
-// ===== Atoms =====
+// MARK: - Atoms
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct LuaComment(pub String);
 
 impl<S: ToString> From<S> for LuaComment {
@@ -46,7 +47,8 @@ impl<S: ToString> From<S> for LuaComment {
 
 /// When we want to group definitions together by topic for example,
 /// we can use groups to avoid printing empty lines in-between.
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serdev::Serialize, serdev::Deserialize))]
 pub struct Group<T> {
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -88,14 +90,15 @@ impl LuaDefinition {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LuaDefinition {
     pub comment: Option<LuaComment>,
     pub key: String,
     pub value: LuaValue,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LuaNumber {
     Scalar(i64),
     Product(Box<LuaNumber>, Box<LuaNumber>),
@@ -137,7 +140,8 @@ impl From<u32> for LuaNumber {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+// TODO: Remove `Clone` derive.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LuaValue {
     Bool(bool),
     Number(LuaNumber),

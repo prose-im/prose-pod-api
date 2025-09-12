@@ -9,7 +9,7 @@ pub use jid::*;
 
 use crate::{models::EmailAddress, sea_orm_string, wrapper_type};
 
-// ===== BARE JID =====
+// MARK: - Bare JID
 
 wrapper_type!(JID, jid::BareJid);
 
@@ -34,7 +34,7 @@ impl From<EmailAddress> for JID {
 
 sea_orm_string!(JID);
 
-// ===== JID NODE =====
+// MARK: - JID node
 
 wrapper_type!(JidNode, jid::NodePart);
 
@@ -48,7 +48,7 @@ impl From<EmailAddress> for JidNode {
 
 sea_orm_string!(JidNode);
 
-// ===== JID NODE =====
+// MARK: - JID domain
 
 wrapper_type!(JidDomain, jid::DomainPart);
 

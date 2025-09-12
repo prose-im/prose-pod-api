@@ -16,7 +16,7 @@ use crate::{
 use super::PasswordResetToken;
 
 /// All the data needed to generate the content of a password reset notification.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PasswordResetNotificationPayload {
     pub reset_token: PasswordResetToken,
     pub expires_at: DateTime<Utc>,

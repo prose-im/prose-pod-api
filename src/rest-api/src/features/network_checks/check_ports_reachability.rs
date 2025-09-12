@@ -8,6 +8,24 @@ use super::{model::*, prelude::*, util::*};
 pub async fn check_ports_route(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
+    query: Query<forms::Interval>,
+    app_config: State<Arc<AppConfig>>,
+    headers: HeaderMap,
+) -> Either<
+    Result<Json<Vec<NetworkCheckResult>>, Error>,
+    Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>,
+> {
+    match headers.get(ACCEPT) {
+        Some(ct) if ct.starts_with(TEXT_EVENT_STREAM.essence_str()) => Either::E2(
+            check_ports_stream_route_(pod_network_config, network_checker, app_config, query).await,
+        ),
+        _ => Either::E1(check_ports_route_(pod_network_config, network_checker).await),
+    }
+}
+
+async fn check_ports_route_(
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
     let res = run_checks(
         pod_network_config.port_reachability_checks().into_iter(),
@@ -18,13 +36,12 @@ pub async fn check_ports_route(
     Ok(Json(res))
 }
 
-pub async fn check_ports_stream_route(
+async fn check_ports_stream_route_(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
+    State(ref app_config): State<Arc<AppConfig>>,
     Query(forms::Interval { interval }): Query<forms::Interval>,
-    State(AppState { app_config, .. }): State<AppState>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let ref app_config = app_config.read().unwrap().clone();
     run_checks_stream(
         pod_network_config.port_reachability_checks().into_iter(),
         network_checker,
@@ -35,7 +52,7 @@ pub async fn check_ports_stream_route(
     )
 }
 
-// MODEL
+// MARK: - Models
 
 #[serde_as]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,7 +65,7 @@ pub enum PortReachabilityStatus {
     Closed,
 }
 
-// BOILERPLATE
+// MARK: - Boilerplate
 
 impl_network_check_result_from!(
     PortReachabilityCheck,
