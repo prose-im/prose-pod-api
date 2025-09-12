@@ -61,6 +61,7 @@ tasks:
     cmds:
       - task: unit-test
       - task: smoke-test
+      - cargo check --release
       - task: local:build
       - task: integration-test
       - task: util:update-tested-at-version
