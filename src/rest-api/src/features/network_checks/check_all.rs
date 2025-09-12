@@ -16,9 +16,36 @@ use crate::features::network_checks::{
     check_ports_reachability::port_reachability_check_result,
 };
 
-use super::{check_dns_records_route_, model::*, prelude::*, util::*, SSE_TIMEOUT};
+use super::{check_dns_records_route__, model::*, prelude::*, util::*, SSE_TIMEOUT};
 
 pub async fn check_network_configuration_route(
+    app_state: State<AppState>,
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    query: Query<forms::Interval>,
+    headers: HeaderMap,
+) -> Either<
+    Result<Json<Vec<NetworkCheckResult>>, Error>,
+    Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>,
+> {
+    match headers.get(ACCEPT) {
+        Some(ct) if ct.starts_with(TEXT_EVENT_STREAM.essence_str()) => Either::E2(
+            check_network_configuration_stream_route_(
+                app_state,
+                pod_network_config,
+                network_checker,
+                query,
+            )
+            .await,
+        ),
+        _ => Either::E1(
+            check_network_configuration_route_(app_state, pod_network_config, network_checker)
+                .await,
+        ),
+    }
+}
+
+async fn check_network_configuration_route_(
     State(AppState { db, .. }): State<AppState>,
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
@@ -29,7 +56,7 @@ pub async fn check_network_configuration_route(
         let pod_network_config = pod_network_config.clone();
         let network_checker = network_checker.clone();
         tasks.push_back(tokio::spawn(
-            async move { check_dns_records_route_(pod_network_config, network_checker, &db).await }
+            async move { check_dns_records_route__(pod_network_config, network_checker, &db).await }
                 .in_current_span(),
         ));
     }
@@ -75,13 +102,13 @@ pub async fn check_network_configuration_route(
     Ok(Json(res))
 }
 
-pub async fn check_network_configuration_stream_route(
-    pod_network_config: PodNetworkConfig,
-    network_checker: NetworkChecker,
-    Query(forms::Interval { interval }): Query<forms::Interval>,
+async fn check_network_configuration_stream_route_(
     State(AppState {
         ref app_config, db, ..
     }): State<AppState>,
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     let retry_interval = interval.map_or_else(
         || Ok(app_config.api.default_retry_interval.into_std_duration()),

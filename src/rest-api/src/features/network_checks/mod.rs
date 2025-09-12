@@ -16,10 +16,13 @@ mod prelude {
 
     pub use axum::{
         extract::{Query, State},
+        http::{header::ACCEPT, HeaderMap},
         response::{sse::Event, Sse},
         Json,
     };
+    pub use axum_extra::either::Either;
     pub use futures::Stream;
+    pub use mime::TEXT_EVENT_STREAM;
     pub use serde_with::serde_as;
     pub use serdev::Serialize;
     pub use service::network_checks::*;
@@ -27,7 +30,7 @@ mod prelude {
     pub(crate) use crate::AppConfig;
     pub use crate::{
         error::Error, forms, impl_network_check_event_from, impl_network_check_result_from,
-        AppState,
+        util::headers_ext::HeaderValueExt as _, AppState,
     };
 }
 
@@ -35,11 +38,9 @@ use std::time::Duration;
 
 use axum::middleware::from_extractor_with_state;
 use axum::routing::get;
-use axum_extra::handler::HandlerCallWithExtractors as _;
 use lazy_static::lazy_static;
 use service::auth::IsAdmin;
 
-use crate::util::content_type_or::*;
 use crate::AppState;
 
 pub use self::check_all::*;
@@ -59,34 +60,10 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .nest(
             NETWORK_ROUTE,
             axum::Router::new()
-                .route(
-                    "/checks",
-                    get(with_accept::<TextEventStream, _>(
-                        check_network_configuration_stream_route,
-                    )
-                    .or(check_network_configuration_route)),
-                )
-                .route(
-                    "/checks/dns",
-                    get(
-                        with_accept::<TextEventStream, _>(check_dns_records_stream_route)
-                            .or(check_dns_records_route),
-                    ),
-                )
-                .route(
-                    "/checks/ip",
-                    get(
-                        with_accept::<TextEventStream, _>(check_ip_stream_route)
-                            .or(check_ip_route),
-                    ),
-                )
-                .route(
-                    "/checks/ports",
-                    get(
-                        with_accept::<TextEventStream, _>(check_ports_stream_route)
-                            .or(check_ports_route),
-                    ),
-                ),
+                .route("/checks", get(check_network_configuration_route))
+                .route("/checks/dns", get(check_dns_records_route))
+                .route("/checks/ip", get(check_ip_route))
+                .route("/checks/ports", get(check_ports_route)),
         )
         .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .with_state(app_state)

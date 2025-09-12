@@ -4,11 +4,15 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::{
-    http::{header::IF_MATCH, HeaderValue, StatusCode},
+    http::{
+        header::{ACCEPT, IF_MATCH},
+        HeaderMap, HeaderValue, StatusCode,
+    },
     response::NoContent,
     Json,
 };
 use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
+use mime::APPLICATION_JSON;
 use service::{
     models::{Avatar, AvatarOwned, Color},
     workspace::{
@@ -21,6 +25,7 @@ use validator::Validate;
 use crate::{
     error::{Error, PreconditionRequired},
     responders::{self, Created},
+    util::headers_ext::HeaderValueExt as _,
 };
 
 use super::WORKSPACE_ROUTE;
@@ -122,6 +127,20 @@ pub async fn set_workspace_name_route(
 }
 
 pub async fn get_workspace_icon_route(
+    workspace_service: WorkspaceService,
+    headers: HeaderMap,
+) -> Either<
+    Result<Either<responders::Avatar, NoContent>, Error>,
+    Result<Json<Option<AvatarOwned>>, Error>,
+> {
+    match headers.get(ACCEPT) {
+        Some(ct) if ct.starts_with(APPLICATION_JSON.essence_str()) => {
+            Either::E2(get_workspace_icon_json_route_(workspace_service).await)
+        }
+        _ => Either::E1(get_workspace_icon_route_(workspace_service).await),
+    }
+}
+async fn get_workspace_icon_route_(
     ref workspace_service: WorkspaceService,
 ) -> Result<Either<responders::Avatar, NoContent>, Error> {
     match workspace_controller::get_workspace_icon(workspace_service).await? {
@@ -129,7 +148,7 @@ pub async fn get_workspace_icon_route(
         None => Ok(Either::E2(NoContent)),
     }
 }
-pub async fn get_workspace_icon_json_route(
+async fn get_workspace_icon_json_route_(
     ref workspace_service: WorkspaceService,
 ) -> Result<Json<Option<AvatarOwned>>, Error> {
     match workspace_controller::get_workspace_icon(workspace_service).await? {

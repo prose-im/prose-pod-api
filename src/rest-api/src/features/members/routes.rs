@@ -7,7 +7,7 @@ use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{header::ACCEPT, HeaderMap, StatusCode},
     response::{
         sse::{Event, KeepAlive},
         Sse,
@@ -16,6 +16,7 @@ use axum::{
 };
 use axum_extra::{either::Either, extract::Query};
 use futures::Stream;
+use mime::TEXT_EVENT_STREAM;
 use service::{
     members::{member_controller, EnrichedMember, Member, MemberService},
     models::PaginationForm,
@@ -29,6 +30,7 @@ use crate::{
     error::Error,
     forms::{OptionalQuery, SearchQuery},
     responders::Paginated,
+    util::headers_ext::HeaderValueExt as _,
     AppState,
 };
 
@@ -103,13 +105,30 @@ impl Display for JIDs {
 
 pub async fn enrich_members_route(
     member_service: MemberService,
+    query: Query<JIDs>,
+    state: State<Arc<AppConfig>>,
+    headers: HeaderMap,
+) -> Either<
+    Json<HashMap<BareJid, EnrichedMember>>,
+    Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>,
+> {
+    match headers.get(ACCEPT) {
+        Some(ct) if ct.starts_with(TEXT_EVENT_STREAM.essence_str()) => {
+            Either::E2(enrich_members_stream_route_(member_service, query, state).await)
+        }
+        _ => Either::E1(enrich_members_route_(member_service, query, state).await),
+    }
+}
+
+async fn enrich_members_route_(
+    member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
     State(ref app_config): State<Arc<AppConfig>>,
 ) -> Json<HashMap<BareJid, EnrichedMember>> {
     Json(member_controller::enrich_members(member_service, jids, app_config).await)
 }
 
-pub async fn enrich_members_stream_route(
+async fn enrich_members_stream_route_(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
     State(ref app_config): State<Arc<AppConfig>>,

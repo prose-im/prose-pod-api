@@ -8,7 +8,7 @@ use tracing::{trace, warn};
 
 use super::{model::*, prelude::*, util::*};
 
-pub(super) async fn check_dns_records_route_(
+pub(super) async fn check_dns_records_route__(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
     db: &DatabaseConnection,
@@ -38,21 +38,42 @@ pub(super) async fn check_dns_records_route_(
 }
 
 pub async fn check_dns_records_route(
+    app_state: State<AppState>,
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    query: Query<forms::Interval>,
+    headers: HeaderMap,
+) -> Either<
+    Result<Json<Vec<NetworkCheckResult>>, Error>,
+    Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error>,
+> {
+    match headers.get(ACCEPT) {
+        Some(ct) if ct.starts_with(TEXT_EVENT_STREAM.essence_str()) => Either::E2(
+            check_dns_records_stream_route_(app_state, pod_network_config, network_checker, query)
+                .await,
+        ),
+        _ => Either::E1(
+            check_dns_records_route_(app_state, pod_network_config, network_checker).await,
+        ),
+    }
+}
+
+async fn check_dns_records_route_(
     State(AppState { db, .. }): State<AppState>,
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let res = check_dns_records_route_(pod_network_config, network_checker, &db).await;
+    let res = check_dns_records_route__(pod_network_config, network_checker, &db).await;
     Ok(Json(res))
 }
 
-pub async fn check_dns_records_stream_route(
-    pod_network_config: PodNetworkConfig,
-    network_checker: NetworkChecker,
-    Query(forms::Interval { interval }): Query<forms::Interval>,
+async fn check_dns_records_stream_route_(
     State(AppState {
         ref app_config, db, ..
     }): State<AppState>,
+    pod_network_config: PodNetworkConfig,
+    network_checker: NetworkChecker,
+    Query(forms::Interval { interval }): Query<forms::Interval>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
     run_checks_stream(
         pod_network_config.dns_record_checks(),
