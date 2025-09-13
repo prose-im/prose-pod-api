@@ -85,6 +85,7 @@ impl InvitationService {
                 pre_assigned_role: Some(form.pre_assigned_role.clone()),
                 contact: form.contact.clone(),
                 created_at: None,
+                ttl: app_config.api.invitations.invitation_ttl.into_time_delta(),
             },
             &self.uuid_gen,
         )

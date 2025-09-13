@@ -258,8 +258,6 @@ pub mod databases {
 pub mod api {
     use std::net::{IpAddr, Ipv4Addr};
 
-    use crate::models::{Duration, TimeLike};
-
     pub fn address() -> IpAddr {
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
     }
@@ -268,16 +266,48 @@ pub mod api {
         8080
     }
 
-    /// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
-    pub fn default_response_timeout() -> Duration<TimeLike> {
-        Duration(TimeLike::Seconds(10.0))
+    pub mod network_checks {
+        use crate::models::durations::*;
+
+        pub fn timeout() -> Duration<TimeLike> {
+            Duration(TimeLike::Minutes(5.0))
+        }
+        pub fn retry_interval() -> Duration<TimeLike> {
+            Duration(TimeLike::Seconds(5.0))
+        }
+        pub fn retry_timeout() -> Duration<TimeLike> {
+            Duration(TimeLike::Seconds(1.0))
+        }
+        /// When querying DNS records, we query the authoritative name servers directly.
+        /// To avoid unnecessary DNS queries, we cache the IP addresses of these servers.
+        /// However, these IP addresses can change over time so we need to clear the cache
+        /// every now and then. 5 minutes seems long enough to avoid unnecessary queries
+        /// while a user is checking their DNS configuration, but short enough to react to
+        /// DNS server reconfigurations.
+        pub fn dns_cache_ttl() -> Duration<TimeLike> {
+            Duration(TimeLike::Minutes(5.0))
+        }
     }
 
-    pub fn default_retry_interval() -> Duration<TimeLike> {
-        Duration(TimeLike::Seconds(5.0))
+    pub mod member_enriching {
+        use crate::models::durations::*;
+
+        /// When enriching members, we query the XMPP server for all vCards. To
+        /// avoid flooding the server with too many requests, we cache enriched
+        /// members for a little while (enough for someone to finish searching for a
+        /// member, but short enough to react to changes). Enriching isn’t a very
+        /// costly operation but we wouldn’t want to enrich all members for every
+        /// keystroke in the search bar of the Dashboard.
+        pub fn cache_ttl() -> Duration<TimeLike> {
+            Duration(TimeLike::Minutes(2.0))
+        }
     }
 
-    pub fn sse_timeout() -> Duration<TimeLike> {
-        Duration(TimeLike::Minutes(5.0))
+    pub mod invitations {
+        use crate::models::durations::*;
+
+        pub fn invitation_ttl() -> Duration<DateLike> {
+            Duration(DateLike::Days(3))
+        }
     }
 }

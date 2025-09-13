@@ -3,17 +3,17 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{cmp::min, collections::HashSet, sync::Arc, time::Duration};
+use std::{cmp::min, collections::HashSet, sync::Arc};
 
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
-use lazy_static::lazy_static;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
 use serdev::Serialize;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
+    app_config::MemberEnrichingConfig,
     models::AvatarOwned,
     util::{unaccent, Cache, ConcurrentTaskRunner},
     xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
@@ -24,16 +24,6 @@ use super::{entities::member, Member, MemberRepository, MemberRole};
 #[derive(Debug, Clone)]
 struct VCardData {
     pub nickname: Option<String>,
-}
-
-lazy_static! {
-    /// When enriching members, we query the XMPP server for all vCards. To
-    /// avoid flooding the server with too many requests, we cache enriched
-    /// members for a little while (enough for someone to finish searching for a
-    /// member, but short enough to react to changes). Enriching isn’t a very
-    /// costly operation but we wouldn’t want to enrich all members for every
-    /// keystroke in the search bar of the Dashboard.
-    static ref CACHE_TTL: Duration = Duration::from_secs(2 * 60);
 }
 
 #[derive(Debug, Clone)]
@@ -62,7 +52,9 @@ impl MemberService {
         xmpp_service: Arc<XmppService>,
         concurrent_task_runner: ConcurrentTaskRunner,
         ctx: MemberServiceContext,
+        config: MemberEnrichingConfig,
     ) -> Self {
+        let cache_ttl = config.cache_ttl.into_std_duration();
         Self {
             db,
             server_ctl,
@@ -73,9 +65,9 @@ impl MemberService {
             cancellation_token: concurrent_task_runner.cancellation_token.clone(),
             concurrent_task_runner,
             ctx,
-            vcards_data_cache: Arc::new(Cache::new(*CACHE_TTL)),
-            avatars_cache: Arc::new(Cache::new(*CACHE_TTL)),
-            online_statuses_cache: Arc::new(Cache::new(*CACHE_TTL)),
+            vcards_data_cache: Arc::new(Cache::new(cache_ttl)),
+            avatars_cache: Arc::new(Cache::new(cache_ttl)),
+            online_statuses_cache: Arc::new(Cache::new(cache_ttl)),
         }
     }
 

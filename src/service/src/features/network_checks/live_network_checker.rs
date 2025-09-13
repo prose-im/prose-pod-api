@@ -24,38 +24,39 @@ use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use tracing::{debug, trace, warn};
 
+use crate::app_config::NetworkChecksConfig;
+
 use super::{DnsLookupError, DnsRecord, NetworkCheckerImpl, SrvLookupResponse};
 
 lazy_static! {
     /// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
     ///   so we use [`Resolver::from_system_conf`] explicitly.
     static ref SYSTEM_RESOLVER: Arc<TokioAsyncResolver> = Arc::new(TokioAsyncResolver::tokio_from_system_conf().unwrap());
-
-    /// When querying DNS records, we query the authoritative name servers directly.
-    /// To avoid unnecessary DNS queries, we cache the IP addresses of these servers.
-    /// However, these IP addresses can change over time so we need to clear the cache
-    /// every now and then. 5 minutes seems long enough to avoid unnecessary queries
-    /// while a user is checking their DNS configuration, but short enough to react to
-    /// DNS server reconfigurations.
-    static ref DNS_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 }
 
 /// NOTE: [`Debug`] is implemented by hand, make sure to update it when adding new fields.
-#[derive(Default)]
 pub struct LiveNetworkChecker {
     /// Caches non-recursive DNS resolvers by domain name, along with the time it was cached at
-    /// to allow cache expiry. See [`DNS_CACHE_TTL`].
+    /// to allow cache expiry.
     direct_resolvers: Arc<RwLock<HashMap<DomainName, (Instant, Arc<TokioAsyncResolver>)>>>,
+    dns_cache_ttl: Duration,
 }
 
 impl LiveNetworkChecker {
+    pub fn from_config(config: &NetworkChecksConfig) -> Self {
+        Self {
+            direct_resolvers: Default::default(),
+            dns_cache_ttl: config.dns_cache_ttl.into_std_duration(),
+        }
+    }
+
     /// A DNS resolver which queries the name servers directly and stores no cache.
     async fn direct_resolver(&self, domain: &DomainName) -> Arc<TokioAsyncResolver> {
         // Read the cache to avoid unnecessary DNS queries.
         {
             let mut resolvers_guard = self.direct_resolvers.upgradable_read();
             if let Some((cached_at, resolver)) = resolvers_guard.get(domain) {
-                if cached_at.elapsed() < *DNS_CACHE_TTL {
+                if cached_at.elapsed() < self.dns_cache_ttl {
                     return resolver.clone();
                 } else {
                     // Clear the cache if it's expired.

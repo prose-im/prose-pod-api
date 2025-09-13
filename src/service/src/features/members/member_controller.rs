@@ -14,7 +14,6 @@ use crate::{
     models::{Paginated, Pagination, PaginationForm},
     util::{either::Either, ConcurrentTaskRunner},
     xmpp::BareJid,
-    AppConfig,
 };
 
 use super::{EnrichedMember, Member, MemberRepository, MemberService, UserDeleteError};
@@ -125,10 +124,9 @@ pub async fn get_members_filtered(
 pub async fn enrich_members(
     member_service: MemberService,
     jids: Vec<BareJid>,
-    app_config: &AppConfig,
 ) -> HashMap<BareJid, EnrichedMember> {
     let jids_count = jids.len();
-    let runner = ConcurrentTaskRunner::default(app_config);
+    let runner = ConcurrentTaskRunner::default();
 
     let cancellation_token = member_service.cancellation_token.clone();
     let mut rx = runner.run(
@@ -150,10 +148,9 @@ pub async fn enrich_members(
 pub fn enrich_members_stream(
     member_service: MemberService,
     jids: Vec<BareJid>,
-    app_config: &AppConfig,
 ) -> Receiver<Result<Option<EnrichedMember>, anyhow::Error>> {
     let member_service = Arc::new(member_service);
-    let runner = ConcurrentTaskRunner::default(app_config);
+    let runner = ConcurrentTaskRunner::default();
 
     let cancellation_token = member_service.cancellation_token.clone();
     runner.run(
