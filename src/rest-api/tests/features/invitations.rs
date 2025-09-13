@@ -30,6 +30,9 @@ async fn given_invited(
                 email_address: email_address.to_owned(),
             },
             created_at: None,
+            ttl: (world.app_config().api.invitations)
+                .invitation_ttl
+                .into_time_delta(),
         },
         &world.uuid_gen(),
     )
@@ -76,6 +79,9 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
                     email_address: email_address.to_owned(),
                 },
                 created_at: None,
+                ttl: (world.app_config().api.invitations)
+                    .invitation_ttl
+                    .into_time_delta(),
             },
             &world.uuid_gen(),
         )
@@ -111,7 +117,10 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
     // Resend invitation
     let db = world.db();
-    let model = InvitationRepository::resend(db, &world.uuid_gen(), invitation_before).await?;
+    let ttl = (world.app_config().api.invitations)
+        .invitation_ttl
+        .into_time_delta();
+    let model = InvitationRepository::resend(db, &world.uuid_gen(), invitation_before, ttl).await?;
 
     // Store current invitation data
     world

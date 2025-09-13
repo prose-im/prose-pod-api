@@ -3,8 +3,6 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::borrow::Cow;
-
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::{from_extractor_with_state, Next};
@@ -15,13 +13,13 @@ use axum_extra::either::Either;
 use serdev::Serialize;
 use service::auth::errors::InvalidCredentials;
 use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
-use service::factory_reset::factory_reset_controller::{
-    self, FACTORY_RESET_CONFIRMATION_CODE_LENGTH,
+use service::factory_reset::{
+    factory_reset_controller, FactoryResetConfirmationCode, FactoryResetService,
 };
 use service::secrets::SecretsStore;
 use service::xmpp::ServerCtl;
 use tracing::info;
-use validator::{Validate, ValidationError, ValidationErrors};
+use validator::{Validate, ValidationErrors};
 
 use crate::error::Error;
 use crate::features::auth::models::Password;
@@ -35,11 +33,12 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 #[derive(Debug)]
-#[derive(Serialize, serdev::Deserialize)]
+#[derive(Serialize, Validate, serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 struct FactoryResetConfirmation {
-    pub confirmation: String,
+    #[validate(nested)]
+    pub confirmation: FactoryResetConfirmationCode,
 }
 
 #[derive(Debug)]
@@ -63,15 +62,21 @@ async fn factory_reset_route(
     ref secrets_store: SecretsStore,
     user_info: UserInfo,
     ref auth_service: AuthService,
+    ref factory_reset_service: FactoryResetService,
     Json(req): Json<FactoryResetRequest>,
 ) -> Result<Either<(StatusCode, Json<FactoryResetConfirmation>), StatusCode>, Error> {
     match req {
         FactoryResetRequest::PasswordConfirmation { password } => {
-            let credentials = Credentials {
+            let ref credentials = Credentials {
                 jid: user_info.jid,
                 password: password.into(),
             };
-            match factory_reset_controller::get_confirmation_code(&credentials, auth_service).await
+            match factory_reset_controller::get_confirmation_code(
+                factory_reset_service,
+                credentials,
+                auth_service,
+            )
+            .await
             {
                 Ok(confirmation) => Ok(Either::E1((
                     StatusCode::ACCEPTED,
@@ -82,6 +87,7 @@ async fn factory_reset_route(
         }
         FactoryResetRequest::ConfirmationToken(FactoryResetConfirmation { confirmation }) => {
             factory_reset_controller::perform_factory_reset(
+                factory_reset_service,
                 confirmation,
                 db,
                 server_ctl,
@@ -118,22 +124,6 @@ pub async fn restart_guard(
 
 // MARK: Validation
 
-impl Validate for FactoryResetConfirmation {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut errors = ValidationErrors::new();
-
-        if self.confirmation.len() != FACTORY_RESET_CONFIRMATION_CODE_LENGTH {
-            errors.add("confirmation", ValidationError::new("length").with_message(Cow::Owned(format!("Invalid confirmation code: Expected length is {FACTORY_RESET_CONFIRMATION_CODE_LENGTH}."))));
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-}
-
 impl Validate for FactoryResetRequest {
     fn validate(&self) -> Result<(), ValidationErrors> {
         match self {
@@ -143,12 +133,40 @@ impl Validate for FactoryResetRequest {
     }
 }
 
+// MARK: - Extractors
+
+mod extractors {
+    use std::convert::Infallible;
+
+    use axum::{extract::FromRequestParts, http::request::Parts};
+    use service::factory_reset::FactoryResetService;
+
+    use crate::AppState;
+
+    impl FromRequestParts<AppState> for FactoryResetService {
+        type Rejection = Infallible;
+
+        #[tracing::instrument(
+            name = "req::extract::factory_reset_service",
+            level = "trace",
+            skip_all,
+            err
+        )]
+        async fn from_request_parts(
+            _parts: &mut Parts,
+            state: &AppState,
+        ) -> Result<Self, Self::Rejection> {
+            Ok(state.factory_reset_service.clone())
+        }
+    }
+}
+
 // MARK: - Boilerplate
 
-mod error {
+mod errors {
     use crate::error::prelude::*;
 
-    impl HttpApiError for service::factory_reset::factory_reset_controller::InvalidConfirmationCode {
+    impl HttpApiError for service::factory_reset::InvalidConfirmationCode {
         fn code(&self) -> ErrorCode {
             ErrorCode {
                 value: "invalid_confirmation_code",

@@ -14,30 +14,26 @@ use super::DurationContent;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TimeLike {
-    Seconds(u32),
-    Minutes(u32),
-    Hours(u32),
+    Seconds(f32),
+    Minutes(f32),
+    Hours(f32),
 }
 
 impl TimeLike {
-    pub fn seconds(&self) -> u32 {
+    pub fn seconds(&self) -> f32 {
         match self {
             Self::Seconds(n) => n.clone(),
-            Self::Minutes(n) => n * Self::Seconds(60).seconds(),
-            Self::Hours(n) => n * Self::Minutes(60).seconds(),
+            Self::Minutes(n) => n * Self::Seconds(60.).seconds(),
+            Self::Hours(n) => n * Self::Minutes(60.).seconds(),
         }
     }
-    /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
-    ///   As this situation will probably never happen, it's good enough.
     pub fn into_iso_duration(self) -> ISODuration {
         match self {
-            Self::Seconds(n) => ISODuration::new(0., 0., 0., 0., 0., n as f32),
-            Self::Minutes(n) => ISODuration::new(0., 0., 0., 0., n as f32, 0.),
-            Self::Hours(n) => ISODuration::new(0., 0., 0., n as f32, 0., 0.),
+            Self::Seconds(n) => ISODuration::new(0., 0., 0., 0., 0., n),
+            Self::Minutes(n) => ISODuration::new(0., 0., 0., 0., n, 0.),
+            Self::Hours(n) => ISODuration::new(0., 0., 0., n, 0., 0.),
         }
     }
-    /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
-    ///   As this situation will probably never happen, it's good enough.
     pub fn into_std_duration(self) -> std::time::Duration {
         match self {
             Self::Seconds(n) => std::time::Duration::from_secs(n as u64),
@@ -61,21 +57,20 @@ impl Into<std::time::Duration> for TimeLike {
 impl TryFrom<ISODuration> for TimeLike {
     type Error = &'static str;
 
-    /// NOTE: This method is not correct, as a `u32` can overflow in a `f32`.
-    ///   As this situation will probably never happen, it's good enough.
     fn try_from(value: ISODuration) -> Result<Self, Self::Error> {
-        fn non_zero(n: f32) -> Option<u32> {
-            match n as u32 {
-                0 => None,
-                n => Some(n),
+        fn gte1(n: f32) -> Option<f32> {
+            if n >= 1. {
+                Some(n)
+            } else {
+                None
             }
         }
 
-        if let Some(hours) = value.num_hours().and_then(non_zero) {
+        if let Some(hours) = value.num_hours().and_then(gte1) {
             Ok(Self::Hours(hours))
-        } else if let Some(minutes) = value.num_minutes().and_then(non_zero) {
+        } else if let Some(minutes) = value.num_minutes().and_then(gte1) {
             Ok(Self::Minutes(minutes))
-        } else if let Some(seconds) = value.num_seconds().and_then(non_zero) {
+        } else if let Some(seconds) = value.num_seconds().and_then(gte1) {
             Ok(Self::Seconds(seconds))
         } else {
             Err("Invalid duration")
@@ -109,29 +104,36 @@ mod tests {
     use crate::models::durations::{Duration, PossiblyInfinite};
 
     #[test]
-    fn test_deserializing() -> Result<(), serde_json::Error> {
+    fn test_serde() -> Result<(), serde_json::Error> {
         fn test(
             str: &str,
             expected: PossiblyInfinite<Duration<TimeLike>>,
         ) -> Result<(), serde_json::Error> {
             let value = json!(str);
             let duration: PossiblyInfinite<Duration<TimeLike>> = serde_json::from_value(value)?;
-            assert_eq!(duration, expected, "{str}");
+            assert_eq!(duration, expected, "de: {str}");
+            let json = serde_json::to_value(duration)?;
+            assert_eq!(
+                json,
+                serde_json::Value::String(format!("{str}")),
+                "ser: {str}"
+            );
             Ok(())
         }
         test("infinite", PossiblyInfinite::Infinite)?;
         test(
             "PT2S",
-            PossiblyInfinite::Finite(Duration(TimeLike::Seconds(2))),
+            PossiblyInfinite::Finite(Duration(TimeLike::Seconds(2.))),
         )?;
         test(
             "PT3M",
-            PossiblyInfinite::Finite(Duration(TimeLike::Minutes(3))),
+            PossiblyInfinite::Finite(Duration(TimeLike::Minutes(3.))),
         )?;
         test(
             "PT4H",
-            PossiblyInfinite::Finite(Duration(TimeLike::Hours(4))),
+            PossiblyInfinite::Finite(Duration(TimeLike::Hours(4.))),
         )?;
+
         Ok(())
     }
 }

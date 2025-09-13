@@ -6,8 +6,6 @@
 use biscuit::macros::*;
 use service::licensing::License;
 
-use crate::prelude::mocks::LICENSE_SIGNING_KEY;
-
 use super::prelude::*;
 
 // MARK: - Given
@@ -30,7 +28,7 @@ async fn given_user_limit(world: &mut TestWorld, limit: u32) -> Result<(), Error
         user_limit = limit as i64,
         domain = domain.to_string(),
     )
-    .build(&LICENSE_SIGNING_KEY)
+    .build(&world.mock_license_service().license_signing_key)
     .unwrap()
     .seal()
     .unwrap();

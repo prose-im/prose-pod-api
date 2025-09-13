@@ -22,8 +22,6 @@ use crate::{
     MutationError,
 };
 
-const DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME: TimeDelta = TimeDelta::days(3);
-
 #[derive(Debug)]
 pub enum InvitationRepository {}
 
@@ -148,12 +146,11 @@ impl InvitationRepository {
         db: &impl ConnectionTrait,
         uuid: &dependencies::Uuid,
         model: Invitation,
+        ttl: TimeDelta,
     ) -> Result<Invitation, MutationError> {
         let mut active = model.into_active_model();
         active.accept_token = Set(uuid.new_v4());
-        active.accept_token_expires_at = Set(Utc::now()
-            .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
-            .unwrap());
+        active.accept_token_expires_at = Set(Utc::now().checked_add_signed(ttl).unwrap());
         let model = active.update(db).await?;
 
         Ok(model)
@@ -194,6 +191,7 @@ pub struct InvitationCreateForm {
     pub pre_assigned_role: Option<MemberRole>,
     pub contact: InvitationContact,
     pub created_at: Option<DateTime<Utc>>,
+    pub ttl: TimeDelta,
 }
 
 impl InvitationCreateForm {
@@ -208,9 +206,7 @@ impl InvitationCreateForm {
             invitation_channel: NotSet,
             email_address: NotSet,
             accept_token: Set(uuid.new_v4()),
-            accept_token_expires_at: Set(created_at
-                .checked_add_signed(DEFAULT_WORKSPACE_INVITATION_ACCEPT_TOKEN_LIFETIME)
-                .unwrap()),
+            accept_token_expires_at: Set(created_at.checked_add_signed(self.ttl).unwrap()),
             reject_token: Set(uuid.new_v4()),
         };
         res.set_contact(self.contact);

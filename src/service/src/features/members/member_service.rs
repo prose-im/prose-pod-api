@@ -3,17 +3,17 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{cmp::min, collections::HashSet, sync::Arc, time::Duration};
+use std::{cmp::min, collections::HashSet, sync::Arc};
 
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
-use lazy_static::lazy_static;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
 use serdev::Serialize;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
+    app_config::MemberEnrichingConfig,
     models::AvatarOwned,
     util::{unaccent, Cache, ConcurrentTaskRunner},
     xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
@@ -26,20 +26,6 @@ struct VCardData {
     pub nickname: Option<String>,
 }
 
-lazy_static! {
-    /// When enriching members, we query the XMPP server for all vCards. To
-    /// avoid flooding the server with too many requests, we cache enriched
-    /// members for a little while (enough for someone to finish searching for a
-    /// member, but short enough to react to changes). Enriching isn’t a very
-    /// costly operation but we wouldn’t want to enrich all members for every
-    /// keystroke in the search bar of the Dashboard.
-    static ref CACHE_TTL: Duration = Duration::from_secs(2 * 60);
-
-    static ref VCARDS_DATA_CACHE: Cache<BareJid, Option<VCardData>> = Cache::new(*CACHE_TTL);
-    static ref AVATARS_CACHE: Cache<BareJid, Option<AvatarOwned>> = Cache::new(*CACHE_TTL);
-    static ref ONLINE_STATUSES_CACHE: Cache<BareJid, Option<bool>> = Cache::new(*CACHE_TTL);
-}
-
 #[derive(Debug, Clone)]
 pub struct MemberService {
     db: Arc<DatabaseConnection>,
@@ -49,6 +35,9 @@ pub struct MemberService {
     /// A runner used when doing multiple enrichings in parallel.
     concurrent_task_runner: ConcurrentTaskRunner,
     ctx: MemberServiceContext,
+    vcards_data_cache: Arc<Cache<BareJid, Option<VCardData>>>,
+    avatars_cache: Arc<Cache<BareJid, Option<AvatarOwned>>>,
+    online_statuses_cache: Arc<Cache<BareJid, Option<bool>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,7 +52,9 @@ impl MemberService {
         xmpp_service: Arc<XmppService>,
         concurrent_task_runner: ConcurrentTaskRunner,
         ctx: MemberServiceContext,
+        config: MemberEnrichingConfig,
     ) -> Self {
+        let cache_ttl = config.cache_ttl.into_std_duration();
         Self {
             db,
             server_ctl,
@@ -74,6 +65,9 @@ impl MemberService {
             cancellation_token: concurrent_task_runner.cancellation_token.clone(),
             concurrent_task_runner,
             ctx,
+            vcards_data_cache: Arc::new(Cache::new(cache_ttl)),
+            avatars_cache: Arc::new(Cache::new(cache_ttl)),
+            online_statuses_cache: Arc::new(Cache::new(cache_ttl)),
         }
     }
 
@@ -306,7 +300,7 @@ impl MemberService {
                     if member.nickname.is_some() {
                         continue;
                     }
-                    let (vcard, _) = VCARDS_DATA_CACHE
+                    let (vcard, _) = (self.vcards_data_cache)
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s vCard…");
                             let vcard = match self.xmpp_service.get_vcard(jid).await {
@@ -337,7 +331,7 @@ impl MemberService {
                     if member.avatar.is_some() {
                         continue;
                     }
-                    let (avatar, _) = AVATARS_CACHE
+                    let (avatar, _) = (self.avatars_cache)
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s avatar…");
                             match self.xmpp_service.get_avatar(jid).await {
@@ -362,7 +356,7 @@ impl MemberService {
                     if member.online.is_some() {
                         continue;
                     }
-                    let (online, _) = ONLINE_STATUSES_CACHE
+                    let (online, _) = (self.online_statuses_cache)
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Checking if `{jid}` is connected…");
                             self.xmpp_service
