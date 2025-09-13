@@ -250,13 +250,13 @@ impl AppConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct LogConfig {
-    #[serde(default = "defaults::log_level")]
+    #[serde(default = "defaults::log::level")]
     pub level: LogLevel,
 
-    #[serde(default = "defaults::log_format")]
+    #[serde(default = "defaults::log::format")]
     pub format: LogFormat,
 
-    #[serde(default = "defaults::log_timer")]
+    #[serde(default = "defaults::log::timer")]
     pub timer: LogTimer,
 
     #[serde(default = "defaults::true_in_debug")]
@@ -287,9 +287,9 @@ pub struct LogConfig {
 impl Default for LogConfig {
     fn default() -> Self {
         Self {
-            level: defaults::log_level(),
-            format: defaults::log_format(),
-            timer: defaults::log_timer(),
+            level: defaults::log::level(),
+            format: defaults::log::format(),
+            timer: defaults::log::timer(),
             with_ansi: defaults::true_in_debug(),
             with_file: defaults::true_in_debug(),
             with_level: defaults::always_true(),
@@ -341,22 +341,22 @@ pub enum LogTimer {
 #[serde(validate = "Validate::validate")]
 pub struct ApiConfig {
     /// IP address to serve on.
-    #[serde(default = "defaults::api_address")]
+    #[serde(default = "defaults::api::address")]
     pub address: IpAddr,
 
     /// Port to serve on.
-    #[serde(default = "defaults::api_port")]
+    #[serde(default = "defaults::api::port")]
     pub port: u16,
 
     /// Some requests may take a long time to execute. Sometimes we support
     /// response timeouts, but don't want to hardcode a value.
-    #[serde(default = "defaults::api_default_response_timeout")]
+    #[serde(default = "defaults::api::default_response_timeout")]
     pub default_response_timeout: Duration<TimeLike>,
 
-    #[serde(default = "defaults::api_default_retry_interval")]
+    #[serde(default = "defaults::api::default_retry_interval")]
     pub default_retry_interval: Duration<TimeLike>,
 
-    #[serde(default = "defaults::api_sse_timeout")]
+    #[serde(default = "defaults::api::sse_timeout")]
     pub sse_timeout: Duration<TimeLike>,
 
     #[serde(default)]
@@ -367,11 +367,11 @@ pub struct ApiConfig {
 impl Default for ApiConfig {
     fn default() -> Self {
         Self {
-            address: defaults::api_address(),
-            port: defaults::api_port(),
-            default_response_timeout: defaults::api_default_response_timeout(),
-            default_retry_interval: defaults::api_default_retry_interval(),
-            sse_timeout: defaults::api_sse_timeout(),
+            address: defaults::api::address(),
+            port: defaults::api::port(),
+            default_response_timeout: defaults::api::default_response_timeout(),
+            default_retry_interval: defaults::api::default_retry_interval(),
+            sse_timeout: defaults::api::sse_timeout(),
             databases: Default::default(),
         }
     }
@@ -396,11 +396,11 @@ pub struct DashboardConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ServiceAccountsConfig {
-    #[serde(default = "defaults::service_accounts_prose_pod_api")]
+    #[serde(default = "defaults::service_accounts::prose_pod_api")]
     #[validate(nested)]
     pub prose_pod_api: ServiceAccountConfig,
 
-    #[serde(default = "defaults::service_accounts_prose_workspace")]
+    #[serde(default = "defaults::service_accounts::prose_workspace")]
     #[validate(nested)]
     pub prose_workspace: ServiceAccountConfig,
 }
@@ -408,8 +408,8 @@ pub struct ServiceAccountsConfig {
 impl Default for ServiceAccountsConfig {
     fn default() -> Self {
         Self {
-            prose_pod_api: defaults::service_accounts_prose_pod_api(),
-            prose_workspace: defaults::service_accounts_prose_workspace(),
+            prose_pod_api: defaults::service_accounts::prose_pod_api(),
+            prose_workspace: defaults::service_accounts::prose_workspace(),
         }
     }
 }
@@ -427,14 +427,15 @@ pub struct ServiceAccountConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct BootstrapConfig {
-    #[serde(default = "defaults::bootstrap_prose_pod_api_xmpp_password")]
+    #[serde(default = "defaults::bootstrap::prose_pod_api_xmpp_password")]
     pub prose_pod_api_xmpp_password: SecretString,
 }
 
 impl Default for BootstrapConfig {
     fn default() -> Self {
+        use defaults::bootstrap as defaults;
         Self {
-            prose_pod_api_xmpp_password: defaults::bootstrap_prose_pod_api_xmpp_password(),
+            prose_pod_api_xmpp_password: defaults::prose_pod_api_xmpp_password(),
         }
     }
 }
@@ -500,18 +501,18 @@ mod pod_config {
 pub struct ServerConfig {
     pub domain: JidDomain,
 
-    #[serde(default = "defaults::server_local_hostname")]
+    #[serde(default = "defaults::server::local_hostname")]
     #[validate(length(min = 1, max = 1024), non_control_character)]
     pub local_hostname: String,
 
-    #[serde(default = "defaults::server_local_hostname_admin")]
+    #[serde(default = "defaults::server::local_hostname_admin")]
     #[validate(length(min = 1, max = 1024), non_control_character)]
     pub local_hostname_admin: String,
 
-    #[serde(default = "defaults::server_http_port")]
+    #[serde(default = "defaults::server::http_port")]
     pub http_port: u16,
 
-    #[serde(default = "defaults::server_log_level")]
+    #[serde(default = "defaults::server::log_level")]
     pub log_level: prosody_config::LogLevel,
 
     #[serde(default)]
@@ -533,22 +534,23 @@ impl ServerConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct AuthConfig {
-    #[serde(default = "defaults::auth_token_ttl")]
+    #[serde(default = "defaults::auth::token_ttl")]
     pub token_ttl: iso8601_duration::Duration,
 
-    #[serde(default = "defaults::auth_password_reset_token_ttl")]
+    #[serde(default = "defaults::auth::password_reset_token_ttl")]
     pub password_reset_token_ttl: iso8601_duration::Duration,
 
-    #[serde(default = "defaults::auth_oauth2_registration_key")]
+    #[serde(default = "defaults::auth::oauth2_registration_key")]
     pub oauth2_registration_key: SecretString,
 }
 
 impl Default for AuthConfig {
     fn default() -> Self {
+        use defaults::auth as defaults;
         Self {
-            token_ttl: defaults::auth_token_ttl(),
-            password_reset_token_ttl: defaults::auth_password_reset_token_ttl(),
-            oauth2_registration_key: defaults::auth_oauth2_registration_key(),
+            token_ttl: defaults::token_ttl(),
+            password_reset_token_ttl: defaults::password_reset_token_ttl(),
+            oauth2_registration_key: defaults::oauth2_registration_key(),
         }
     }
 }
@@ -601,7 +603,7 @@ pub struct ProsodyHostConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct ProsodyExtConfig {
-    #[serde(default = "defaults::prosody_config_file_path")]
+    #[serde(default = "defaults::prosody::config_file_path")]
     pub config_file_path: PathBuf,
 
     /// NOTE: Those modules will be added to `modules_enabled` after everything
@@ -616,8 +618,9 @@ pub struct ProsodyExtConfig {
 
 impl Default for ProsodyExtConfig {
     fn default() -> Self {
+        use defaults::prosody as defaults;
         Self {
-            config_file_path: defaults::prosody_config_file_path(),
+            config_file_path: defaults::config_file_path(),
             additional_modules_enabled: Default::default(),
         }
     }
@@ -662,23 +665,22 @@ pub struct ServerDefaultsConfig {
 
 impl Default for ServerDefaultsConfig {
     fn default() -> Self {
+        use defaults::server::defaults;
         Self {
-            message_archive_enabled: defaults::server_defaults_message_archive_enabled(),
-            message_archive_retention: defaults::server_defaults_message_archive_retention(),
-            file_upload_allowed: defaults::server_defaults_file_upload_allowed(),
-            file_storage_encryption_scheme:
-                defaults::server_defaults_file_storage_encryption_scheme(),
-            file_storage_retention: defaults::server_defaults_file_storage_retention(),
-            mfa_required: defaults::server_defaults_mfa_required(),
-            tls_profile: defaults::server_defaults_tls_profile(),
-            federation_enabled: defaults::server_defaults_federation_enabled(),
-            federation_whitelist_enabled: defaults::server_defaults_federation_whitelist_enabled(),
-            federation_friendly_servers: defaults::server_defaults_federation_friendly_servers(),
-            settings_backup_interval: defaults::server_defaults_settings_backup_interval(),
-            user_data_backup_interval: defaults::server_defaults_user_data_backup_interval(),
-            push_notification_with_body: defaults::server_defaults_push_notification_with_body(),
-            push_notification_with_sender: defaults::server_defaults_push_notification_with_sender(
-            ),
+            message_archive_enabled: defaults::message_archive_enabled(),
+            message_archive_retention: defaults::message_archive_retention(),
+            file_upload_allowed: defaults::file_upload_allowed(),
+            file_storage_encryption_scheme: defaults::file_storage_encryption_scheme(),
+            file_storage_retention: defaults::file_storage_retention(),
+            mfa_required: defaults::mfa_required(),
+            tls_profile: defaults::tls_profile(),
+            federation_enabled: defaults::federation_enabled(),
+            federation_whitelist_enabled: defaults::federation_whitelist_enabled(),
+            federation_friendly_servers: defaults::federation_friendly_servers(),
+            settings_backup_interval: defaults::settings_backup_interval(),
+            user_data_backup_interval: defaults::user_data_backup_interval(),
+            push_notification_with_body: defaults::push_notification_with_body(),
+            push_notification_with_sender: defaults::push_notification_with_sender(),
         }
     }
 }
@@ -692,23 +694,18 @@ pub struct BrandingConfig {
     #[validate(length(min = 1, max = 48), non_control_character)]
     pub company_name: Option<String>,
 
-    #[serde(default = "defaults::branding_api_app_name")]
+    #[serde(default = "defaults::branding::api_app_name")]
     #[validate(length(min = 1, max = 48), non_control_character)]
     pub api_app_name: String,
 }
 
 impl Default for BrandingConfig {
     fn default() -> Self {
+        use defaults::branding as defaults;
         Self {
             company_name: None,
-            api_app_name: defaults::branding_api_app_name(),
+            api_app_name: defaults::api_app_name(),
         }
-    }
-}
-
-impl Default for InvitationChannel {
-    fn default() -> Self {
-        defaults::notify_workspace_invitation_channel()
     }
 }
 
@@ -717,7 +714,7 @@ impl Default for InvitationChannel {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct NotifiersConfig {
-    #[serde(default = "defaults::notify_workspace_invitation_channel")]
+    #[serde(default = "defaults::notifiers::workspace_invitation_channel")]
     pub workspace_invitation_channel: InvitationChannel,
 
     #[serde(default)]
@@ -734,6 +731,12 @@ impl NotifiersConfig {
     }
 }
 
+impl Default for InvitationChannel {
+    fn default() -> Self {
+        defaults::notifiers::workspace_invitation_channel()
+    }
+}
+
 #[derive(Debug)]
 #[derive(Validate, serdev::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -744,7 +747,7 @@ pub struct EmailNotifierConfig {
     #[validate(length(min = 1, max = 1024))]
     pub smtp_host: String,
 
-    #[serde(default = "defaults::smtp_port")]
+    #[serde(default = "defaults::notifiers::email::smtp_port")]
     pub smtp_port: u16,
 
     #[validate(length(min = 1, max = 1024))]
@@ -753,7 +756,7 @@ pub struct EmailNotifierConfig {
     //   but it’s a password so let’s ignore it.
     pub smtp_password: Option<SecretString>,
 
-    #[serde(default = "defaults::smtp_encrypt")]
+    #[serde(default = "defaults::notifiers::email::smtp_encrypt")]
     pub smtp_encrypt: bool,
 }
 
@@ -762,15 +765,16 @@ pub struct EmailNotifierConfig {
 #[serde(deny_unknown_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct DatabasesConfig {
-    #[serde(default = "defaults::databases_main")]
+    #[serde(default = "defaults::databases::main")]
     #[validate(nested)]
     pub main: DatabaseConfig,
 }
 
 impl Default for DatabasesConfig {
     fn default() -> Self {
+        use defaults::databases as defaults;
         Self {
-            main: defaults::databases_main(),
+            main: defaults::main(),
         }
     }
 }
@@ -787,10 +791,10 @@ pub struct DatabaseConfig {
     #[serde(default)]
     pub min_connections: Option<u32>,
 
-    #[serde(default = "defaults::database_max_connections")]
+    #[serde(default = "defaults::databases::default::max_connections")]
     pub max_connections: usize,
 
-    #[serde(default = "defaults::database_connect_timeout")]
+    #[serde(default = "defaults::databases::default::connect_timeout")]
     pub connect_timeout: u64,
 
     #[serde(default)]
@@ -897,7 +901,7 @@ pub struct DependencyModesConfig {
 #[derive(Debug, thiserror::Error)]
 #[repr(transparent)]
 #[error(
-    "Missing key `{0}` the app configuration. Add it to `prose.toml` or use environment variables."
+    "Missing key `{0}` in the app configuration. Add it to `prose.toml` or use environment variables."
 )]
 pub struct MissingConfiguration(pub &'static str);
 
