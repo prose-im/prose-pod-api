@@ -121,7 +121,7 @@ async fn run(
         Err(_) if lifecycle_manager.is_restarting() => {
             warn!("The Prose Pod API is missing some static configuration. Serving only utility routes.");
 
-            let addr = SocketAddr::new(defaults::api_address(), defaults::api_port());
+            let addr = SocketAddr::new(defaults::api::address(), defaults::api::port());
 
             let app = factory_reset_router(&minimal_app_state);
 
