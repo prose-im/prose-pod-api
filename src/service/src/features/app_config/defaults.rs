@@ -270,14 +270,14 @@ pub mod api {
 
     /// 10 seconds seems reasonable, as it's enough to go around the globe multiple times.
     pub fn default_response_timeout() -> Duration<TimeLike> {
-        Duration(TimeLike::Seconds(10))
+        Duration(TimeLike::Seconds(10.0))
     }
 
     pub fn default_retry_interval() -> Duration<TimeLike> {
-        Duration(TimeLike::Seconds(5))
+        Duration(TimeLike::Seconds(5.0))
     }
 
     pub fn sse_timeout() -> Duration<TimeLike> {
-        Duration(TimeLike::Minutes(5))
+        Duration(TimeLike::Minutes(5.0))
     }
 }
