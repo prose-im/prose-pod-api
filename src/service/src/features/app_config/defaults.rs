@@ -1,19 +1,12 @@
 // prose-pod-api
 //
-// Copyright:
-//   - 2018, Valerian Saliou <valerian@valeriansaliou.name> via valeriansaliou/vigil
-//   - 2024–2025, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 // MARK: - General
 
-#[cfg(debug_assertions)]
 pub fn true_in_debug() -> bool {
-    true
-}
-#[cfg(not(debug_assertions))]
-pub fn true_in_debug() -> bool {
-    false
+    cfg!(debug_assertions)
 }
 
 pub fn always_true() -> bool {
