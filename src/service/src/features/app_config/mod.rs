@@ -1,42 +1,37 @@
 // prose-pod-api
 //
-// Copyright:
-//   - 2018, Valerian Saliou <valerian@valeriansaliou.name> via valeriansaliou/vigil
-//   - 2024–2025, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod defaults;
 
 use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    net::IpAddr,
+    collections::HashMap,
     path::{Path, PathBuf},
-    str::FromStr as _,
     sync::Arc,
 };
 
-use email_address::EmailAddress;
-use figment::{
-    providers::{Env, Format, Toml},
-    Figment,
-};
-use hickory_resolver::{Name as DomainName, Name as HostName};
+use figment::Figment;
+use hickory_resolver::Name as DomainName;
 use lazy_static::lazy_static;
-use linked_hash_set::LinkedHashSet;
-pub use prosody_config::ProsodySettings as ProsodyConfig;
-use secrecy::SecretString;
-use serdev::Serialize;
-use validator::{Validate, ValidationError};
+use validator::Validate;
 
-use crate::{
-    invitations::InvitationChannel,
-    models::{durations::*, xmpp::jid::*, TimeLike, Url},
-};
-
-use super::{server_config::TlsProfile, xmpp::JidDomain};
-
-pub use self::pod_config::*;
+pub use self::api::*;
+pub use self::auth::*;
+pub use self::bootstrap::*;
+pub use self::branding::*;
+pub use self::dashboard::*;
+pub use self::debug::*;
+#[cfg(debug_assertions)]
+pub use self::debug_only::*;
+pub use self::log::*;
+pub use self::notifiers::*;
+pub use self::pod::*;
+pub use self::prosody::*;
+pub use self::prosody_ext::*;
+pub use self::public_contacts::*;
+pub use self::server::*;
+pub use self::service_accounts::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose";
@@ -49,6 +44,21 @@ pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
 lazy_static! {
     pub static ref CONFIG_FILE_PATH: PathBuf =
         (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
+}
+
+mod prelude {
+    pub use std::borrow::Cow;
+    pub use std::collections::HashSet;
+    pub use std::path::PathBuf;
+
+    pub use linked_hash_set::LinkedHashSet;
+    pub use secrecy::SecretString;
+    pub use serdev::Serialize;
+    pub use validator::{Validate, ValidationError, ValidationErrors};
+
+    pub use crate::{app_config::defaults, errors::MissingConfiguration, models::*};
+
+    pub use super::{util::*, AppConfig};
 }
 
 // TODO: Validate values intervals (e.g. `default_response_timeout`).
@@ -122,6 +132,8 @@ impl AppConfig {
     }
 
     pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {
+        use figment::providers::{Env, Format, Toml};
+
         // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
         Figment::new()
             .merge(Toml::file(path))
@@ -183,272 +195,310 @@ impl AppConfig {
     pub fn from_default_figment() -> anyhow::Result<Self> {
         Self::from_figment(Self::figment())
     }
+}
 
-    pub fn api_jid(&self) -> BareJid {
-        BareJid::from_parts(
-            Some(&self.service_accounts.prose_pod_api.xmpp_node),
-            &DomainPart::from_str(ADMIN_HOST).unwrap(),
-        )
-    }
+mod log {
+    use super::prelude::*;
 
-    pub fn workspace_jid(&self) -> BareJid {
-        BareJid::from_parts(
-            Some(&self.service_accounts.prose_workspace.xmpp_node),
-            &self.server.domain,
-        )
-    }
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct LogConfig {
+        #[serde(default = "defaults::log::level")]
+        pub level: LogLevel,
 
-    pub fn server_domain(&self) -> &JidDomain {
-        &self.server.domain
-    }
-    pub fn groups_domain(&self) -> JidDomain {
-        use std::str::FromStr as _;
+        #[serde(default = "defaults::log::format")]
+        pub format: LogFormat,
 
-        JidDomain::from_str(&format!("groups.{}", self.server.domain))
-            .expect("Domain too long after adding 'groups.' prefix.")
-    }
+        #[serde(default = "defaults::log::timer")]
+        pub timer: LogTimer,
 
-    /// E.g. `your-company.com.`.
-    pub fn server_fqdn(&self) -> DomainName {
-        self.server_domain().as_fqdn()
-    }
-    /// E.g. `groups.your-company.com.`.
-    pub fn groups_fqdn(&self) -> DomainName {
-        self.groups_domain().as_fqdn()
-    }
-    /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
-    pub fn pod_fqdn(&self) -> DomainName {
-        self.pod.network_address().as_fqdn(&self.server_fqdn())
-    }
-    /// E.g. `prose.your-company.com.`.
-    pub fn app_web_fqdn(&self) -> DomainName {
-        (HostName::from_str("prose").unwrap())
-            .append_domain(&self.server_fqdn())
-            .expect("Domain name too long when adding the `prose` prefix")
-    }
-    /// E.g. `https://prose.your-company.com`.
-    pub fn app_web_url(&self) -> Url {
-        let mut app_web_fqdn = self.app_web_fqdn();
-        app_web_fqdn.set_fqdn(false);
-        Url::parse(&format!("https://{app_web_fqdn}"))
-            .expect("Cannot make Web app URL from `app_web_fqdn`")
-    }
-    /// E.g. `admin.prose.your-company.com.`.
-    pub fn dashboard_fqdn(&self) -> DomainName {
-        (HostName::from_str("admin").unwrap())
-            .append_domain(&self.app_web_fqdn())
-            .expect("Domain name too long when adding the `admin` prefix")
+        #[serde(default = "defaults::true_in_debug")]
+        pub with_ansi: bool,
+
+        #[serde(default = "defaults::true_in_debug")]
+        pub with_file: bool,
+
+        #[serde(default = "defaults::always_true")]
+        pub with_level: bool,
+
+        #[serde(default = "defaults::always_true")]
+        pub with_target: bool,
+
+        #[serde(default = "defaults::always_false")]
+        pub with_thread_ids: bool,
+
+        #[serde(default = "defaults::true_in_debug")]
+        pub with_line_number: bool,
+
+        #[serde(default = "defaults::always_false")]
+        pub with_span_events: bool,
+
+        #[serde(default = "crate::app_config::defaults::true_in_debug")]
+        pub with_thread_names: bool,
     }
 
-    pub fn dashboard_url(&self) -> &Url {
-        &self.dashboard.url.0
+    impl Default for LogConfig {
+        fn default() -> Self {
+            Self {
+                level: defaults::log::level(),
+                format: defaults::log::format(),
+                timer: defaults::log::timer(),
+                with_ansi: defaults::true_in_debug(),
+                with_file: defaults::true_in_debug(),
+                with_level: defaults::always_true(),
+                with_target: defaults::always_true(),
+                with_thread_ids: defaults::always_false(),
+                with_line_number: defaults::always_true(),
+                with_span_events: defaults::always_false(),
+                with_thread_names: defaults::true_in_debug(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+    #[derive(strum::Display, strum::EnumString)]
+    #[strum(serialize_all = "snake_case")]
+    pub enum LogLevel {
+        Trace,
+        Debug,
+        Info,
+        Warn,
+        Error,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+    #[derive(strum::Display, strum::EnumString)]
+    #[strum(serialize_all = "snake_case")]
+    pub enum LogFormat {
+        Full,
+        Compact,
+        Json,
+        Pretty,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+    #[derive(strum::Display, strum::EnumString)]
+    #[strum(serialize_all = "snake_case")]
+    pub enum LogTimer {
+        None,
+        Time,
+        Uptime,
     }
 }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct LogConfig {
-    #[serde(default = "defaults::log::level")]
-    pub level: LogLevel,
+mod api {
+    use std::net::IpAddr;
 
-    #[serde(default = "defaults::log::format")]
-    pub format: LogFormat,
+    use super::prelude::*;
 
-    #[serde(default = "defaults::log::timer")]
-    pub timer: LogTimer,
+    pub use self::databases::*;
 
-    #[serde(default = "defaults::true_in_debug")]
-    pub with_ansi: bool,
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ApiConfig {
+        /// IP address to serve on.
+        #[serde(default = "defaults::api::address")]
+        pub address: IpAddr,
 
-    #[serde(default = "defaults::true_in_debug")]
-    pub with_file: bool,
+        /// Port to serve on.
+        #[serde(default = "defaults::api::port")]
+        pub port: u16,
 
-    #[serde(default = "defaults::always_true")]
-    pub with_level: bool,
+        /// Some requests may take a long time to execute. Sometimes we support
+        /// response timeouts, but don't want to hardcode a value.
+        #[serde(default = "defaults::api::default_response_timeout")]
+        pub default_response_timeout: Duration<TimeLike>,
 
-    #[serde(default = "defaults::always_true")]
-    pub with_target: bool,
+        #[serde(default = "defaults::api::default_retry_interval")]
+        pub default_retry_interval: Duration<TimeLike>,
 
-    #[serde(default = "defaults::always_false")]
-    pub with_thread_ids: bool,
+        #[serde(default = "defaults::api::sse_timeout")]
+        pub sse_timeout: Duration<TimeLike>,
 
-    #[serde(default = "defaults::true_in_debug")]
-    pub with_line_number: bool,
+        #[serde(default)]
+        #[validate(nested)]
+        pub databases: DatabasesConfig,
+    }
 
-    #[serde(default = "defaults::always_false")]
-    pub with_span_events: bool,
+    impl Default for ApiConfig {
+        fn default() -> Self {
+            Self {
+                address: defaults::api::address(),
+                port: defaults::api::port(),
+                default_response_timeout: defaults::api::default_response_timeout(),
+                default_retry_interval: defaults::api::default_retry_interval(),
+                sse_timeout: defaults::api::sse_timeout(),
+                databases: Default::default(),
+            }
+        }
+    }
 
-    #[serde(default = "defaults::true_in_debug")]
-    pub with_thread_names: bool,
-}
+    impl ApiConfig {
+        pub fn sse_timeout(&self) -> std::time::Duration {
+            self.sse_timeout.into_std_duration()
+        }
+    }
 
-impl Default for LogConfig {
-    fn default() -> Self {
-        Self {
-            level: defaults::log::level(),
-            format: defaults::log::format(),
-            timer: defaults::log::timer(),
-            with_ansi: defaults::true_in_debug(),
-            with_file: defaults::true_in_debug(),
-            with_level: defaults::always_true(),
-            with_target: defaults::always_true(),
-            with_thread_ids: defaults::always_false(),
-            with_line_number: defaults::always_true(),
-            with_span_events: defaults::always_false(),
-            with_thread_names: defaults::true_in_debug(),
+    mod databases {
+        use crate::app_config::prelude::*;
+
+        #[derive(Debug)]
+        #[derive(Validate, serdev::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        #[serde(validate = "Validate::validate")]
+        pub struct DatabasesConfig {
+            #[serde(default = "defaults::databases::main")]
+            #[validate(nested)]
+            pub main: DatabaseConfig,
+        }
+
+        impl Default for DatabasesConfig {
+            fn default() -> Self {
+                use defaults::databases as defaults;
+                Self {
+                    main: defaults::main(),
+                }
+            }
+        }
+
+        /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
+        #[derive(Debug)]
+        #[derive(Validate, serdev::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        #[serde(validate = "Validate::validate")]
+        pub struct DatabaseConfig {
+            #[validate(length(min = 1, max = 1024))]
+            pub url: String,
+
+            #[serde(default)]
+            pub min_connections: Option<u32>,
+
+            #[serde(default = "defaults::databases::default::max_connections")]
+            pub max_connections: usize,
+
+            #[serde(default = "defaults::databases::default::connect_timeout")]
+            pub connect_timeout: u64,
+
+            #[serde(default)]
+            pub idle_timeout: Option<u64>,
+
+            #[serde(default)]
+            pub sqlx_logging: bool,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
-#[derive(strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum LogLevel {
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
-}
+mod dashboard {
+    use std::ops::Deref as _;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
-#[derive(strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum LogFormat {
-    Full,
-    Compact,
-    Json,
-    Pretty,
-}
+    use super::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
-#[derive(strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum LogTimer {
-    None,
-    Time,
-    Uptime,
-}
+    #[derive(Debug)]
+    #[derive(Validate, Serialize, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct DashboardConfig {
+        pub url: DashboardUrl,
+    }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ApiConfig {
-    /// IP address to serve on.
-    #[serde(default = "defaults::api::address")]
-    pub address: IpAddr,
-
-    /// Port to serve on.
-    #[serde(default = "defaults::api::port")]
-    pub port: u16,
-
-    /// Some requests may take a long time to execute. Sometimes we support
-    /// response timeouts, but don't want to hardcode a value.
-    #[serde(default = "defaults::api::default_response_timeout")]
-    pub default_response_timeout: Duration<TimeLike>,
-
-    #[serde(default = "defaults::api::default_retry_interval")]
-    pub default_retry_interval: Duration<TimeLike>,
-
-    #[serde(default = "defaults::api::sse_timeout")]
-    pub sse_timeout: Duration<TimeLike>,
-
-    #[serde(default)]
-    #[validate(nested)]
-    pub databases: DatabasesConfig,
-}
-
-impl Default for ApiConfig {
-    fn default() -> Self {
-        Self {
-            address: defaults::api::address(),
-            port: defaults::api::port(),
-            default_response_timeout: defaults::api::default_response_timeout(),
-            default_retry_interval: defaults::api::default_retry_interval(),
-            sse_timeout: defaults::api::sse_timeout(),
-            databases: Default::default(),
+    impl AppConfig {
+        pub fn dashboard_url(&self) -> &Url {
+            self.dashboard.url.deref()
         }
     }
 }
 
-impl ApiConfig {
-    pub fn sse_timeout(&self) -> std::time::Duration {
-        self.sse_timeout.into_std_duration()
+mod service_accounts {
+    use std::str::FromStr as _;
+
+    use crate::app_config::ADMIN_HOST;
+    use crate::models::xmpp::jid::DomainPart;
+
+    use super::prelude::*;
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServiceAccountsConfig {
+        #[serde(default = "defaults::service_accounts::prose_pod_api")]
+        #[validate(nested)]
+        pub prose_pod_api: ServiceAccountConfig,
+
+        #[serde(default = "defaults::service_accounts::prose_workspace")]
+        #[validate(nested)]
+        pub prose_workspace: ServiceAccountConfig,
     }
-}
 
-#[derive(Debug)]
-#[derive(Validate, Serialize, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DashboardConfig {
-    pub url: DashboardUrl,
-}
+    impl Default for ServiceAccountsConfig {
+        fn default() -> Self {
+            Self {
+                prose_pod_api: defaults::service_accounts::prose_pod_api(),
+                prose_workspace: defaults::service_accounts::prose_workspace(),
+            }
+        }
+    }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ServiceAccountsConfig {
-    #[serde(default = "defaults::service_accounts::prose_pod_api")]
-    #[validate(nested)]
-    pub prose_pod_api: ServiceAccountConfig,
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServiceAccountConfig {
+        pub xmpp_node: JidNode,
+    }
 
-    #[serde(default = "defaults::service_accounts::prose_workspace")]
-    #[validate(nested)]
-    pub prose_workspace: ServiceAccountConfig,
-}
+    impl AppConfig {
+        pub fn api_jid(&self) -> BareJid {
+            BareJid::from_parts(
+                Some(&self.service_accounts.prose_pod_api.xmpp_node),
+                &DomainPart::from_str(ADMIN_HOST).unwrap(),
+            )
+        }
 
-impl Default for ServiceAccountsConfig {
-    fn default() -> Self {
-        Self {
-            prose_pod_api: defaults::service_accounts::prose_pod_api(),
-            prose_workspace: defaults::service_accounts::prose_workspace(),
+        pub fn workspace_jid(&self) -> BareJid {
+            BareJid::from_parts(
+                Some(&self.service_accounts.prose_workspace.xmpp_node),
+                &self.server.domain,
+            )
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ServiceAccountConfig {
-    pub xmpp_node: JidNode,
-}
+mod bootstrap {
+    use super::prelude::*;
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct BootstrapConfig {
-    #[serde(default = "defaults::bootstrap::prose_pod_api_xmpp_password")]
-    pub prose_pod_api_xmpp_password: SecretString,
-}
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct BootstrapConfig {
+        #[serde(default = "defaults::bootstrap::prose_pod_api_xmpp_password")]
+        pub prose_pod_api_xmpp_password: SecretString,
+    }
 
-impl Default for BootstrapConfig {
-    fn default() -> Self {
-        use defaults::bootstrap as defaults;
-        Self {
-            prose_pod_api_xmpp_password: defaults::prose_pod_api_xmpp_password(),
+    impl Default for BootstrapConfig {
+        fn default() -> Self {
+            use defaults::bootstrap as defaults;
+            Self {
+                prose_pod_api_xmpp_password: defaults::prose_pod_api_xmpp_password(),
+            }
         }
     }
 }
 
-mod pod_config {
-    use std::{
-        borrow::Cow,
-        net::{Ipv4Addr, Ipv6Addr},
-    };
+mod pod {
+    use std::net::{Ipv4Addr, Ipv6Addr};
 
     use hickory_proto::rr::Name as DomainName;
-    use serdev::Serialize;
-    use validator::{Validate, ValidationError, ValidationErrors};
+
+    use super::prelude::*;
 
     #[derive(Debug)]
     #[derive(Validate, Serialize, serdev::Deserialize)]
@@ -492,488 +542,492 @@ mod pod_config {
             }
         }
     }
-}
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ServerConfig {
-    pub domain: JidDomain,
-
-    #[serde(default = "defaults::server::local_hostname")]
-    #[validate(length(min = 1, max = 1024), non_control_character)]
-    pub local_hostname: String,
-
-    #[serde(default = "defaults::server::local_hostname_admin")]
-    #[validate(length(min = 1, max = 1024), non_control_character)]
-    pub local_hostname_admin: String,
-
-    #[serde(default = "defaults::server::http_port")]
-    pub http_port: u16,
-
-    #[serde(default = "defaults::server::log_level")]
-    pub log_level: prosody_config::LogLevel,
-
-    #[serde(default)]
-    #[validate(nested)]
-    pub defaults: ServerDefaultsConfig,
-}
-
-impl ServerConfig {
-    pub fn http_url(&self) -> String {
-        format!("http://{}:{}", self.local_hostname, self.http_port)
-    }
-    pub fn admin_http_url(&self) -> String {
-        format!("http://{}:{}", self.local_hostname_admin, self.http_port)
-    }
-}
-
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct AuthConfig {
-    #[serde(default = "defaults::auth::token_ttl")]
-    pub token_ttl: iso8601_duration::Duration,
-
-    #[serde(default = "defaults::auth::password_reset_token_ttl")]
-    pub password_reset_token_ttl: iso8601_duration::Duration,
-
-    #[serde(default = "defaults::auth::oauth2_registration_key")]
-    pub oauth2_registration_key: SecretString,
-}
-
-impl Default for AuthConfig {
-    fn default() -> Self {
-        use defaults::auth as defaults;
-        Self {
-            token_ttl: defaults::token_ttl(),
-            password_reset_token_ttl: defaults::password_reset_token_ttl(),
-            oauth2_registration_key: defaults::oauth2_registration_key(),
+    impl AppConfig {
+        /// E.g. `prose.your-company.com.` or `your-company.prose.net.`!
+        pub fn pod_fqdn(&self) -> DomainName {
+            self.pod.network_address().as_fqdn(&self.server_fqdn())
         }
     }
 }
 
-#[derive(Debug, Default)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct PublicContactsConfig {
-    #[serde(default)]
-    pub default: LinkedHashSet<Url>,
+mod server {
+    use std::str::FromStr as _;
 
-    #[serde(default)]
-    pub abuse: LinkedHashSet<Url>,
+    use hickory_proto::rr::{Name as DomainName, Name as HostName};
 
-    #[serde(default)]
-    pub admin: LinkedHashSet<Url>,
+    use crate::server_config::TlsProfile;
 
-    #[serde(default)]
-    pub feedback: LinkedHashSet<Url>,
+    use super::prelude::*;
 
-    #[serde(default)]
-    pub sales: LinkedHashSet<Url>,
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServerConfig {
+        pub domain: JidDomain,
 
-    #[serde(default)]
-    pub security: LinkedHashSet<Url>,
+        #[serde(default = "defaults::server::local_hostname")]
+        #[validate(length(min = 1, max = 1024), non_control_character)]
+        pub local_hostname: String,
 
-    #[serde(default)]
-    pub support: LinkedHashSet<Url>,
-}
+        #[serde(default = "defaults::server::local_hostname_admin")]
+        #[validate(length(min = 1, max = 1024), non_control_character)]
+        pub local_hostname_admin: String,
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-// TODO: Add validation to `ProsodyConfig`?
-pub struct ProsodyHostConfig {
-    #[serde(default)]
-    pub defaults: Option<ProsodyConfig>,
+        #[serde(default = "defaults::server::http_port")]
+        pub http_port: u16,
 
-    #[serde(default)]
-    pub overrides: Option<ProsodyConfig>,
-}
+        #[serde(default = "defaults::server::log_level")]
+        pub log_level: prosody_config::LogLevel,
 
-/// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
-///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
-///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ProsodyExtConfig {
-    #[serde(default = "defaults::prosody::config_file_path")]
-    pub config_file_path: PathBuf,
+        #[serde(default)]
+        #[validate(nested)]
+        pub defaults: ServerDefaultsConfig,
+    }
 
-    /// NOTE: Those modules will be added to `modules_enabled` after everything
-    ///   else has been applied (apart from dynamic overrides, which are always
-    ///   applied last).
-    #[serde(default)]
-    // NOTE: `ValidateRegex` is not implemented for `Vec`,
-    //   let’s ignore validating the character set.
-    #[validate(custom(function = validate_module_names_vec))]
-    pub additional_modules_enabled: Vec<String>,
-}
+    impl ServerConfig {
+        pub fn http_url(&self) -> String {
+            format!("http://{}:{}", self.local_hostname, self.http_port)
+        }
+        pub fn admin_http_url(&self) -> String {
+            format!("http://{}:{}", self.local_hostname_admin, self.http_port)
+        }
+    }
 
-impl Default for ProsodyExtConfig {
-    fn default() -> Self {
-        use defaults::prosody as defaults;
-        Self {
-            config_file_path: defaults::config_file_path(),
-            additional_modules_enabled: Default::default(),
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServerDefaultsConfig {
+        pub message_archive_enabled: bool,
+
+        pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
+
+        pub file_upload_allowed: bool,
+
+        // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/107.
+        pub file_storage_encryption_scheme: String,
+
+        pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
+
+        pub mfa_required: bool,
+
+        pub tls_profile: TlsProfile,
+
+        pub federation_enabled: bool,
+
+        pub federation_whitelist_enabled: bool,
+
+        pub federation_friendly_servers: LinkedHashSet<JidDomain>,
+
+        // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
+        pub settings_backup_interval: String,
+
+        // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
+        pub user_data_backup_interval: String,
+
+        pub push_notification_with_body: bool,
+
+        pub push_notification_with_sender: bool,
+    }
+
+    impl Default for ServerDefaultsConfig {
+        fn default() -> Self {
+            use defaults::server::defaults;
+            Self {
+                message_archive_enabled: defaults::message_archive_enabled(),
+                message_archive_retention: defaults::message_archive_retention(),
+                file_upload_allowed: defaults::file_upload_allowed(),
+                file_storage_encryption_scheme: defaults::file_storage_encryption_scheme(),
+                file_storage_retention: defaults::file_storage_retention(),
+                mfa_required: defaults::mfa_required(),
+                tls_profile: defaults::tls_profile(),
+                federation_enabled: defaults::federation_enabled(),
+                federation_whitelist_enabled: defaults::federation_whitelist_enabled(),
+                federation_friendly_servers: defaults::federation_friendly_servers(),
+                settings_backup_interval: defaults::settings_backup_interval(),
+                user_data_backup_interval: defaults::user_data_backup_interval(),
+                push_notification_with_body: defaults::push_notification_with_body(),
+                push_notification_with_sender: defaults::push_notification_with_sender(),
+            }
+        }
+    }
+
+    impl AppConfig {
+        pub fn server_domain(&self) -> &JidDomain {
+            &self.server.domain
+        }
+
+        pub fn groups_domain(&self) -> JidDomain {
+            JidDomain::from_str(&format!("groups.{}", self.server.domain))
+                .expect("Domain too long after adding 'groups.' prefix.")
+        }
+
+        /// E.g. `your-company.com.`.
+        pub fn server_fqdn(&self) -> DomainName {
+            self.server_domain().as_fqdn()
+        }
+
+        /// E.g. `groups.your-company.com.`.
+        pub fn groups_fqdn(&self) -> DomainName {
+            self.groups_domain().as_fqdn()
+        }
+
+        /// E.g. `prose.your-company.com.`.
+        pub fn app_web_fqdn(&self) -> DomainName {
+            (HostName::from_str("prose").unwrap())
+                .append_domain(&self.server_fqdn())
+                .expect("Domain name too long when adding the `prose` prefix")
+        }
+
+        /// E.g. `https://prose.your-company.com`.
+        pub fn app_web_url(&self) -> Url {
+            let mut app_web_fqdn = self.app_web_fqdn();
+            app_web_fqdn.set_fqdn(false);
+            Url::parse(&format!("https://{app_web_fqdn}"))
+                .expect("Cannot make Web app URL from `app_web_fqdn`")
+        }
+
+        /// E.g. `admin.prose.your-company.com.`.
+        pub fn dashboard_fqdn(&self) -> DomainName {
+            (HostName::from_str("admin").unwrap())
+                .append_domain(&self.app_web_fqdn())
+                .expect("Domain name too long when adding the `admin` prefix")
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct ServerDefaultsConfig {
-    pub message_archive_enabled: bool,
+mod auth {
+    use super::prelude::*;
 
-    pub message_archive_retention: PossiblyInfinite<Duration<DateLike>>,
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct AuthConfig {
+        #[serde(default = "defaults::auth::token_ttl")]
+        pub token_ttl: iso8601_duration::Duration,
 
-    pub file_upload_allowed: bool,
+        #[serde(default = "defaults::auth::password_reset_token_ttl")]
+        pub password_reset_token_ttl: iso8601_duration::Duration,
 
-    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/107.
-    pub file_storage_encryption_scheme: String,
+        #[serde(default = "defaults::auth::oauth2_registration_key")]
+        pub oauth2_registration_key: SecretString,
+    }
 
-    pub file_storage_retention: PossiblyInfinite<Duration<DateLike>>,
-
-    pub mfa_required: bool,
-
-    pub tls_profile: TlsProfile,
-
-    pub federation_enabled: bool,
-
-    pub federation_whitelist_enabled: bool,
-
-    pub federation_friendly_servers: LinkedHashSet<JidDomain>,
-
-    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
-    pub settings_backup_interval: String,
-
-    // FIXME: Type strongly when implementing https://github.com/prose-im/prose-pod-api/issues/131.
-    pub user_data_backup_interval: String,
-
-    pub push_notification_with_body: bool,
-
-    pub push_notification_with_sender: bool,
-}
-
-impl Default for ServerDefaultsConfig {
-    fn default() -> Self {
-        use defaults::server::defaults;
-        Self {
-            message_archive_enabled: defaults::message_archive_enabled(),
-            message_archive_retention: defaults::message_archive_retention(),
-            file_upload_allowed: defaults::file_upload_allowed(),
-            file_storage_encryption_scheme: defaults::file_storage_encryption_scheme(),
-            file_storage_retention: defaults::file_storage_retention(),
-            mfa_required: defaults::mfa_required(),
-            tls_profile: defaults::tls_profile(),
-            federation_enabled: defaults::federation_enabled(),
-            federation_whitelist_enabled: defaults::federation_whitelist_enabled(),
-            federation_friendly_servers: defaults::federation_friendly_servers(),
-            settings_backup_interval: defaults::settings_backup_interval(),
-            user_data_backup_interval: defaults::user_data_backup_interval(),
-            push_notification_with_body: defaults::push_notification_with_body(),
-            push_notification_with_sender: defaults::push_notification_with_sender(),
+    impl Default for AuthConfig {
+        fn default() -> Self {
+            use defaults::auth as defaults;
+            Self {
+                token_ttl: defaults::token_ttl(),
+                password_reset_token_ttl: defaults::password_reset_token_ttl(),
+                oauth2_registration_key: defaults::oauth2_registration_key(),
+            }
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct BrandingConfig {
-    #[serde(default)]
-    #[validate(length(min = 1, max = 48), non_control_character)]
-    pub company_name: Option<String>,
+mod public_contacts {
+    use super::prelude::*;
 
-    #[serde(default = "defaults::branding::api_app_name")]
-    #[validate(length(min = 1, max = 48), non_control_character)]
-    pub api_app_name: String,
+    #[derive(Debug, Default)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct PublicContactsConfig {
+        #[serde(default)]
+        pub default: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub abuse: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub admin: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub feedback: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub sales: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub security: LinkedHashSet<Url>,
+
+        #[serde(default)]
+        pub support: LinkedHashSet<Url>,
+    }
 }
 
-impl Default for BrandingConfig {
-    fn default() -> Self {
-        use defaults::branding as defaults;
-        Self {
-            company_name: None,
-            api_app_name: defaults::api_app_name(),
+mod prosody_ext {
+    use super::prelude::*;
+
+    /// NOTE: We cannot include [`ProsodySettings`] as a flattened field because
+    ///   `#[serde(deny_unknown_fields)]` doesn’t work with `#[serde(flatten)]`.
+    ///   See <https://serde.rs/container-attrs.html#deny_unknown_fields>.
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ProsodyExtConfig {
+        #[serde(default = "defaults::prosody::config_file_path")]
+        pub config_file_path: PathBuf,
+
+        /// NOTE: Those modules will be added to `modules_enabled` after everything
+        ///   else has been applied (apart from dynamic overrides, which are always
+        ///   applied last).
+        #[serde(default)]
+        // NOTE: `ValidateRegex` is not implemented for `Vec`,
+        //   let’s ignore validating the character set.
+        #[validate(custom(function = validate_module_names_vec))]
+        pub additional_modules_enabled: Vec<String>,
+    }
+
+    impl Default for ProsodyExtConfig {
+        fn default() -> Self {
+            use defaults::prosody as defaults;
+            Self {
+                config_file_path: defaults::config_file_path(),
+                additional_modules_enabled: Default::default(),
+            }
         }
     }
 }
 
-#[derive(Debug, Default)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct NotifiersConfig {
-    #[serde(default = "defaults::notifiers::workspace_invitation_channel")]
-    pub workspace_invitation_channel: InvitationChannel,
+mod prosody {
+    pub use prosody_config::ProsodySettings as ProsodyConfig;
 
-    #[serde(default)]
-    #[validate(nested)]
-    pub email: Option<EmailNotifierConfig>,
+    use super::prelude::*;
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    // TODO: Add validation to `ProsodyConfig`?
+    pub struct ProsodyHostConfig {
+        #[serde(default)]
+        pub defaults: Option<ProsodyConfig>,
+
+        #[serde(default)]
+        pub overrides: Option<ProsodyConfig>,
+    }
 }
 
-impl NotifiersConfig {
-    pub fn email<'a>(&'a self) -> Result<&'a EmailNotifierConfig, MissingConfiguration> {
-        match self.email {
-            Some(ref conf) => Ok(conf),
-            None => Err(MissingConfiguration("notifiers.email")),
+mod branding {
+    use super::prelude::*;
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct BrandingConfig {
+        #[serde(default)]
+        #[validate(length(min = 1, max = 48), non_control_character)]
+        pub company_name: Option<String>,
+
+        #[serde(default = "defaults::branding::api_app_name")]
+        #[validate(length(min = 1, max = 48), non_control_character)]
+        pub api_app_name: String,
+    }
+
+    impl Default for BrandingConfig {
+        fn default() -> Self {
+            use defaults::branding as defaults;
+            Self {
+                company_name: None,
+                api_app_name: defaults::api_app_name(),
+            }
         }
     }
 }
 
-impl Default for InvitationChannel {
-    fn default() -> Self {
-        defaults::notifiers::workspace_invitation_channel()
+mod notifiers {
+    use crate::invitations::InvitationChannel;
+
+    use super::prelude::*;
+
+    #[derive(Debug, Default)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct NotifiersConfig {
+        #[serde(default = "defaults::notifiers::workspace_invitation_channel")]
+        pub workspace_invitation_channel: InvitationChannel,
+
+        #[serde(default)]
+        #[validate(nested)]
+        pub email: Option<EmailNotifierConfig>,
     }
-}
 
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct EmailNotifierConfig {
-    pub pod_address: EmailAddress,
-
-    #[validate(length(min = 1, max = 1024))]
-    pub smtp_host: String,
-
-    #[serde(default = "defaults::notifiers::email::smtp_port")]
-    pub smtp_port: u16,
-
-    #[validate(length(min = 1, max = 1024))]
-    pub smtp_username: Option<String>,
-    // NOTE: Not validated because of the Rust type system
-    //   but it’s a password so let’s ignore it.
-    pub smtp_password: Option<SecretString>,
-
-    #[serde(default = "defaults::notifiers::email::smtp_encrypt")]
-    pub smtp_encrypt: bool,
-}
-
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DatabasesConfig {
-    #[serde(default = "defaults::databases::main")]
-    #[validate(nested)]
-    pub main: DatabaseConfig,
-}
-
-impl Default for DatabasesConfig {
-    fn default() -> Self {
-        use defaults::databases as defaults;
-        Self {
-            main: defaults::main(),
+    impl NotifiersConfig {
+        pub fn email<'a>(&'a self) -> Result<&'a EmailNotifierConfig, MissingConfiguration> {
+            match self.email {
+                Some(ref conf) => Ok(conf),
+                None => Err(MissingConfiguration("notifiers.email")),
+            }
         }
     }
+
+    impl Default for InvitationChannel {
+        fn default() -> Self {
+            defaults::notifiers::workspace_invitation_channel()
+        }
+    }
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct EmailNotifierConfig {
+        pub pod_address: EmailAddress,
+
+        #[validate(length(min = 1, max = 1024))]
+        pub smtp_host: String,
+
+        #[serde(default = "defaults::notifiers::email::smtp_port")]
+        pub smtp_port: u16,
+
+        #[validate(length(min = 1, max = 1024))]
+        pub smtp_username: Option<String>,
+        // NOTE: Not validated because of the Rust type system
+        //   but it’s a password so let’s ignore it.
+        pub smtp_password: Option<SecretString>,
+
+        #[serde(default = "defaults::notifiers::email::smtp_encrypt")]
+        pub smtp_encrypt: bool,
+    }
 }
 
-/// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DatabaseConfig {
-    #[validate(length(min = 1, max = 1024))]
-    pub url: String,
+mod debug {
+    use super::prelude::*;
 
-    #[serde(default)]
-    pub min_connections: Option<u32>,
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct DebugConfig {
+        #[serde(default = "defaults::true_in_debug")]
+        pub log_config_at_startup: bool,
 
-    #[serde(default = "defaults::databases::default::max_connections")]
-    pub max_connections: usize,
+        #[serde(default = "defaults::true_in_debug")]
+        pub detailed_error_responses: bool,
 
-    #[serde(default = "defaults::databases::default::connect_timeout")]
-    pub connect_timeout: u64,
+        #[serde(default = "defaults::always_false")]
+        pub c2s_unencrypted: bool,
 
-    #[serde(default)]
-    pub idle_timeout: Option<u64>,
+        // NOTE: Needs to be available in release builds so we can run the CI in
+        //   `prose-pod-system` without having to start live notifiers.
+        #[serde(default)]
+        #[validate(custom(function = validate_module_names_set))]
+        pub skip_startup_actions: HashSet<String>,
+    }
 
-    #[serde(default)]
-    pub sqlx_logging: bool,
-}
-
-#[derive(Debug)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DebugConfig {
-    #[serde(default = "defaults::true_in_debug")]
-    pub log_config_at_startup: bool,
-
-    #[serde(default = "defaults::true_in_debug")]
-    pub detailed_error_responses: bool,
-
-    #[serde(default = "defaults::always_false")]
-    pub c2s_unencrypted: bool,
-
-    // NOTE: Needs to be available in release builds so we can run the CI in
-    //   `prose-pod-system` without having to start live notifiers.
-    #[serde(default)]
-    #[validate(custom(function = validate_module_names_set))]
-    pub skip_startup_actions: HashSet<String>,
-}
-
-impl Default for DebugConfig {
-    fn default() -> Self {
-        Self {
-            log_config_at_startup: defaults::true_in_debug(),
-            detailed_error_responses: defaults::true_in_debug(),
-            c2s_unencrypted: defaults::always_false(),
-            skip_startup_actions: Default::default(),
+    impl Default for DebugConfig {
+        fn default() -> Self {
+            Self {
+                log_config_at_startup: defaults::true_in_debug(),
+                detailed_error_responses: defaults::true_in_debug(),
+                c2s_unencrypted: defaults::always_false(),
+                skip_startup_actions: Default::default(),
+            }
         }
     }
 }
 
 #[cfg(debug_assertions)]
-#[derive(Debug, Default)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DebugOnlyConfig {
-    /// When automatically accepting invitations during testing, one might want to authenticate
-    /// the created member. With this flag turned on, the member's password will be their JID.
-    #[serde(default)]
-    pub insecure_password_on_auto_accept_invitation: bool,
+mod debug_only {
+    use super::prelude::*;
 
-    #[serde(default)]
-    pub dependency_modes: DependencyModesConfig,
-}
+    #[derive(Debug, Default)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct DebugOnlyConfig {
+        /// When automatically accepting invitations during testing, one might want to authenticate
+        /// the created member. With this flag turned on, the member's password will be their JID.
+        #[serde(default)]
+        pub insecure_password_on_auto_accept_invitation: bool,
 
-#[cfg(debug_assertions)]
-#[derive(Debug)]
-#[derive(serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "snake_case")]
-pub enum UuidDependencyMode {
-    Normal,
-    Incrementing,
-}
-
-#[cfg(debug_assertions)]
-impl Default for UuidDependencyMode {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
-
-#[cfg(debug_assertions)]
-#[derive(Debug, Clone, Copy)]
-#[derive(serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "snake_case")]
-pub enum NotifierDependencyMode {
-    Live,
-    Logging,
-}
-
-#[cfg(debug_assertions)]
-impl Default for NotifierDependencyMode {
-    fn default() -> Self {
-        Self::Live
-    }
-}
-
-#[cfg(debug_assertions)]
-#[derive(Debug, Default)]
-#[derive(Validate, serdev::Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
-pub struct DependencyModesConfig {
-    #[serde(default)]
-    pub uuid: UuidDependencyMode,
-
-    #[serde(default)]
-    pub notifier: NotifierDependencyMode,
-}
-
-#[derive(Debug, thiserror::Error)]
-#[repr(transparent)]
-#[error(
-    "Missing key `{0}` in the app configuration. Add it to `prose.toml` or use environment variables."
-)]
-pub struct MissingConfiguration(pub &'static str);
-
-// MARK: - Atoms
-
-// MARK: Dashboard URL
-
-#[derive(Debug, Clone)]
-#[derive(Serialize, serdev::Deserialize)]
-#[serde(validate = "Self::validate")]
-#[repr(transparent)]
-pub struct DashboardUrl(Url);
-
-impl DashboardUrl {
-    pub fn new(url: Url) -> anyhow::Result<Self> {
-        let res = Self(url);
-        res.validate().map_err(|str| anyhow::Error::msg(str))?;
-        Ok(res)
+        #[serde(default)]
+        pub dependency_modes: DependencyModesConfig,
     }
 
-    fn validate(&self) -> Result<(), &'static str> {
-        if url_has_no_path(&self.0) {
-            Ok(())
-        } else {
-            Err("The Dashboard URL contains a fragment or query.")
+    #[derive(Debug)]
+    #[derive(serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename_all = "snake_case")]
+    pub enum UuidDependencyMode {
+        Normal,
+        Incrementing,
+    }
+
+    impl Default for UuidDependencyMode {
+        fn default() -> Self {
+            Self::Normal
         }
     }
-}
 
-impl std::ops::Deref for DashboardUrl {
-    type Target = Url;
+    #[derive(Debug, Clone, Copy)]
+    #[derive(serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename_all = "snake_case")]
+    pub enum NotifierDependencyMode {
+        Live,
+        Logging,
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    impl Default for NotifierDependencyMode {
+        fn default() -> Self {
+            Self::Live
+        }
+    }
+
+    #[derive(Debug, Default)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[serde(validate = "Validate::validate")]
+    pub struct DependencyModesConfig {
+        #[serde(default)]
+        pub uuid: UuidDependencyMode,
+
+        #[serde(default)]
+        pub notifier: NotifierDependencyMode,
     }
 }
 
 // MARK: - Helpers
 
-fn url_has_no_path(url: &Url) -> bool {
-    // NOTE: `make_relative` when called on the same URL returns only the fragment and query.
-    let relative_part = url.make_relative(&url);
-    relative_part.is_some_and(|s| s.is_empty())
-}
+mod util {
+    use super::prelude::*;
 
-fn validate_module_names_set(vec: &HashSet<String>) -> Result<(), ValidationError> {
-    validate_module_names_iter(vec.iter())
-}
-fn validate_module_names_vec(vec: &Vec<String>) -> Result<(), ValidationError> {
-    validate_module_names_iter(vec.iter())
-}
-fn validate_module_names_iter<'a>(
-    iter: impl Iterator<Item = &'a String>,
-) -> Result<(), ValidationError> {
-    for module_name in iter {
-        if let Err(e) = validate_module_name(module_name) {
-            return Err(e);
+    pub fn validate_module_names_set(vec: &HashSet<String>) -> Result<(), ValidationError> {
+        validate_module_names_iter(vec.iter())
+    }
+    pub fn validate_module_names_vec(vec: &Vec<String>) -> Result<(), ValidationError> {
+        validate_module_names_iter(vec.iter())
+    }
+    pub fn validate_module_names_iter<'a>(
+        iter: impl Iterator<Item = &'a String>,
+    ) -> Result<(), ValidationError> {
+        for module_name in iter {
+            if let Err(e) = validate_module_name(module_name) {
+                return Err(e);
+            }
         }
-    }
 
-    Ok(())
-}
-
-fn validate_module_name(str: &str) -> Result<(), ValidationError> {
-    fn is_valid_module_name_char(char: char) -> bool {
-        char.is_ascii_lowercase() || char.is_ascii_digit() || char == '_'
-    }
-
-    if str.chars().all(is_valid_module_name_char) {
         Ok(())
-    } else {
-        Err(ValidationError::new("invalid_module_name")
-            .with_message(Cow::Owned(format!("'{str}' is not a valid module name"))))
+    }
+
+    pub fn validate_module_name(str: &str) -> Result<(), ValidationError> {
+        fn is_valid_module_name_char(char: char) -> bool {
+            char.is_ascii_lowercase() || char.is_ascii_digit() || char == '_'
+        }
+
+        if str.chars().all(is_valid_module_name_char) {
+            Ok(())
+        } else {
+            Err(ValidationError::new("invalid_module_name")
+                .with_message(Cow::Owned(format!("'{str}' is not a valid module name"))))
+        }
     }
 }

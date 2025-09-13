@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    app_config::MissingConfiguration,
+    errors::MissingConfiguration,
     invitations::{
         invitation_controller::InvitationNotFound, CannotAcceptInvitation, InvitationAcceptError,
         InvitationExpired, InvitationResendError, InviteMemberError, NoInvitationForToken,

@@ -20,9 +20,7 @@ use lettre::{
 use secrecy::{ExposeSecret as _, SecretString};
 
 use crate::{
-    app_config::{BrandingConfig, MissingConfiguration},
-    models::EmailAddress,
-    AppConfig,
+    app_config::BrandingConfig, errors::MissingConfiguration, models::EmailAddress, AppConfig,
 };
 
 use super::{GenericNotifier, NotificationTrait, NotifierError, DISPATCH_TIMEOUT_SECONDS};
