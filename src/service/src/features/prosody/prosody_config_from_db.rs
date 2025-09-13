@@ -248,9 +248,9 @@ impl IntoProsody<DateLike> for db::DateLike {
 impl IntoProsody<TimeLike> for db::TimeLike {
     fn into_prosody(self) -> TimeLike {
         match self {
-            Self::Seconds(n) => TimeLike::Seconds(n),
-            Self::Minutes(n) => TimeLike::Minutes(n),
-            Self::Hours(n) => TimeLike::Hours(n),
+            Self::Seconds(n) => TimeLike::Seconds(n as u32),
+            Self::Minutes(n) => TimeLike::Minutes(n as u32),
+            Self::Hours(n) => TimeLike::Hours(n as u32),
         }
     }
 }
