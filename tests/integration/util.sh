@@ -1,4 +1,8 @@
 abort() {
+	if [ -n "${1-}" ]; then
+		error "${1:?}"
+	fi
+
 	echo
 	if [ -n "${GITHUB_ACTIONS-}" ]; then
 		task integration-test:logs
