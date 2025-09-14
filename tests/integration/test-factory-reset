@@ -15,8 +15,10 @@ LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 BASE_SCENARIO_NAME=default
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
 : ${PROSE_POD_API_IMAGE_TAG:=local}
-
 SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+
+# Unset `PROSE_CONFIG_FILE` so it’s not overwritten by the factory reset.
+unset PROSE_CONFIG_FILE
 # Compute dynamic variables.
 source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
