@@ -26,6 +26,8 @@ use crate::{
 pub enum InvitationRepository {}
 
 impl InvitationRepository {
+    // TODO: Trace fields.
+    #[tracing::instrument(name = "db::invitation::create", level = "info", skip_all, err)]
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<InvitationCreateForm>,
@@ -34,6 +36,13 @@ impl InvitationRepository {
         form.into().into_active_model(uuid).insert(db).await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::get_all",
+        level = "trace",
+        skip_all,
+        fields(page_number, page_size, until),
+        err
+    )]
     pub async fn get_all(
         db: &impl ConnectionTrait,
         page_number: u64,
@@ -56,6 +65,13 @@ impl InvitationRepository {
         Ok((num_items_and_pages, models))
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::get_by_id",
+        level = "trace",
+        skip_all,
+        fields(invitation_id = id),
+        err
+    )]
     pub async fn get_by_id(
         db: &impl ConnectionTrait,
         id: &i32,
@@ -63,6 +79,11 @@ impl InvitationRepository {
         Entity::find_by_id(*id).one(db).await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::get_by_jid", level = "trace",
+        skip_all, fields(jid = jid.to_string()),
+        err
+    )]
     pub async fn get_by_jid(
         db: &impl ConnectionTrait,
         jid: &BareJid,
@@ -73,6 +94,12 @@ impl InvitationRepository {
             .await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::get_by_accept_token",
+        level = "trace",
+        skip_all,
+        err
+    )]
     pub async fn get_by_accept_token(
         db: &impl ConnectionTrait,
         token: InvitationToken,
@@ -83,6 +110,12 @@ impl InvitationRepository {
             .await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::get_by_reject_token",
+        level = "trace",
+        skip_all,
+        err
+    )]
     pub async fn get_by_reject_token(
         db: &impl ConnectionTrait,
         token: InvitationToken,
@@ -93,6 +126,13 @@ impl InvitationRepository {
             .await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::update_status_by_id",
+        level = "trace",
+        skip_all,
+        fields(invitation_id = id, status),
+        err
+    )]
     pub async fn update_status_by_id(
         db: &impl ConnectionTrait,
         id: i32,
@@ -110,6 +150,13 @@ impl InvitationRepository {
         Self::update_status(db, model, status).await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::update_status_by_email",
+        level = "trace",
+        skip_all,
+        fields(email_address, status),
+        err
+    )]
     pub async fn update_status_by_email(
         db: &impl ConnectionTrait,
         email_address: EmailAddress,
@@ -130,6 +177,13 @@ impl InvitationRepository {
         Self::update_status(db, model, status).await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::update_status",
+        level = "info",
+        skip_all,
+        fields(invitation_id = model.id, jid = model.jid.to_string(), previous_status = model.status.to_string(), status = status.to_string()),
+        err
+    )]
     pub async fn update_status(
         db: &impl ConnectionTrait,
         model: Invitation,
@@ -142,6 +196,13 @@ impl InvitationRepository {
         Ok(model)
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::resend",
+        level = "info",
+        skip_all,
+        fields(invitation_id = model.id, jid = model.jid.to_string(), status = model.status.to_string(), ttl),
+        err
+    )]
     pub async fn resend(
         db: &impl ConnectionTrait,
         uuid: &dependencies::Uuid,
@@ -159,6 +220,13 @@ impl InvitationRepository {
     /// Accept a user invitation (i.e. delete it from database).
     /// To also create the associated user at the same time,
     /// use [`MemberService`][crate::members::MemberService].
+    #[tracing::instrument(
+        name = "db::invitation::accept",
+        level = "info",
+        skip_all,
+        fields(invitation_id = invitation.id, jid = invitation.jid.to_string()),
+        err
+    )]
     pub async fn accept(
         db: &impl ConnectionTrait,
         invitation: Invitation,
@@ -167,6 +235,13 @@ impl InvitationRepository {
         Ok(())
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::count_for_email_address",
+        level = "trace",
+        skip_all,
+        fields(email_address),
+        err
+    )]
     pub async fn count_for_email_address(
         db: &impl ConnectionTrait,
         email_address: EmailAddress,
@@ -177,6 +252,13 @@ impl InvitationRepository {
             .await
     }
 
+    #[tracing::instrument(
+        name = "db::invitation::delete_by_id",
+        level = "info",
+        skip_all,
+        fields(invitation_id = invitation_id),
+        err
+    )]
     pub async fn delete_by_id(
         db: &impl ConnectionTrait,
         invitation_id: i32,
