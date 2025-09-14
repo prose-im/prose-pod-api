@@ -13,18 +13,9 @@
     },
     "Gherkin": {
       "format_on_save": "off"
-    },
-    "JavaScript": {
-      // Disable language server so we don't get warnings and errors from `redoc.standalone.js`.
-      "enable_language_server": false
     }
   },
-  "file_scan_exclusions": [
-    "**/.git",
-    "**/.DS_Store",
-    "**/redoc.standalone.js",
-    "**/redoc.html"
-  ],
+  "file_scan_exclusions": ["**/.git", "**/.DS_Store"],
   "lsp": {
     "cucumber": {
       "settings": {

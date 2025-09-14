@@ -135,8 +135,8 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
 /// file to (re)start the API.
 #[instrument(level = "trace", skip_all)]
 pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
-    Router::new()
-        .merge(features::api_docs::router())
+    #[allow(unused_mut)]
+    let mut router = Router::new()
         .merge(features::reload::factory_reset_router(app_state.clone()))
         .merge(features::version::minimal_router(app_state.clone()))
         // Include trace context as header into the response.
@@ -148,7 +148,14 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
         .layer(middleware::from_fn_with_state(
             app_state.clone(),
             restart_guard,
-        ))
+        ));
+
+    #[cfg(all(debug_assertions, feature = "openapi"))]
+    {
+        router = router.merge(features::api_docs::router());
+    }
+
+    router
 }
 
 #[derive(Debug, thiserror::Error)]

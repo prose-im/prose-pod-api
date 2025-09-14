@@ -9,9 +9,10 @@
   - [Describe Prose Pod API using the OpenAPI Specification](./2023-12-18-a-describe-with-openapi.md) (2023-12-18)
   - [Write the OpenAPI description file manually](./2024-04-25-a-write-openapi-manually.md) (2024-04-25)
 <!-- "ø" or a nested unordered list linking to other ADRs and their date -->
-- Superseded by: ø
+- Superseded by:
+  - [Stop exposing the OpenAPI docs](./2025-09-13-a-stop-exposing-openapi-docs.md) (2025-09-13)
 <!-- "No" or "Yes" with the deprecation date -->
-- Deprecated: No
+- Deprecated: Yes (2025-09-13)
 
 ## Context
 
