@@ -20,12 +20,7 @@ SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
 # Compute dynamic variables.
 source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
-abort() {
-	# Do not stop the API after a failure to allow investigation.
-	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
-	task integration-test:logs
-	die "$@"
-}
+source "${INTEGRATION_TESTS_DIR:?}"/util.sh
 
 info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
 info "$(fg-blue "Running test 'factory-reset'…")"
