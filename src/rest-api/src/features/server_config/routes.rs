@@ -65,11 +65,9 @@ macro_rules! server_config_routes {
             }
 
             pub async fn reset(
-                State(AppState { ref db, .. }): State<AppState>,
-                State(ref app_config): State<Arc<AppConfig>>,
+                State(ref manager): State<ServerConfigManager>,
             ) -> Result<Json<$var_type>, Error> {
-                server_config_controller::$var::reset(db).await?;
-                match server_config_controller::$var::get(db, app_config).await? {
+                match server_config_controller::$var::reset(manager).await? {
                     $var => Ok(Json($var)),
                 }
             }

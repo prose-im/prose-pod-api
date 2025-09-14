@@ -93,9 +93,17 @@ macro_rules! gen_field_routes {
             }
 
             pub async fn reset(
-                db: &sea_orm::DatabaseConnection,
-            ) -> anyhow::Result<()> {
-                crate::server_config::$var_name::delete(db).await
+                manager: &crate::server_config::ServerConfigManager,
+            ) -> anyhow::Result<$var_type> {
+                tracing::trace!("Resetting {}…", stringify!($var_name));
+                let var = manager
+                    .update(|txn| async move {
+                        crate::server_config::$var_name::delete(&txn).await?;
+                        Ok(txn)
+                    })
+                    .await?
+                    .$var_name;
+                Ok(var$(.$extra_fn())?)
             }
         }
     };
