@@ -68,6 +68,9 @@ $(format_title 'Options:')
     $(format_flag --compose-profile=*)
       Enable one or more $(format_hyperlink 'Compose profiles' 'https://docs.docker.com/compose/how-tos/profiles/').
       $(format_secondary "See $(format_hyperlink 'compose.yaml' file:"${REPOSITORY_ROOT:?}"/local-run/compose.yaml) to find the possible profiles.")
+    $(format_flag +dashboard)
+      Also start a Prose Pod Dashboard.
+      $(format_secondary "Equivalent to $(format_code --compose-profile=dashboard).")
     $(format_flag +telemetry)
       Also run the optional $(format_code otel-collector) service for telemetry collection.
       $(format_secondary "Equivalent to $(format_code --compose-profile=telemetry).")
@@ -128,6 +131,7 @@ for arg in "$@"; do
 		--ephemeral-name=*) EPHEMERAL_SCENARIO_NAME="${arg#'--ephemeral-name='}" ;;
 		--detach) DETACH=1 ;;
 		--compose-profile=*) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}""${arg#'--compose-profile='}" ;;
+		+dashboard) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}"dashboard ;;
 		+telemetry) COMPOSE_PROFILES+="${COMPOSE_PROFILES:+,}"telemetry ;;
 		--help) help ;;
 		--dry-run) export DRY_RUN=1 ;;
