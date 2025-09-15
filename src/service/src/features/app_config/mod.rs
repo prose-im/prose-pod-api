@@ -188,6 +188,13 @@ impl AppConfig {
             ));
         }
 
+        if figment.contains("api.databases.main") {
+            figment = figment.join(Serialized::default(
+                "api.databases.main.url",
+                defaults::databases::main().url,
+            ));
+        }
+
         figment
             .extract()
             .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))
