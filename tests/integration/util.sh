@@ -17,3 +17,14 @@ abort() {
 	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
 	exit 1
 }
+
+wait-until-api-running() {
+	local start=$(date +%s) now elapsed timeout=3
+	while ! edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/ --timeout $timeout -p=HBhm; do
+		now=$(date +%s)
+		elapsed=$((now - start))
+		if (( elapsed >= $timeout )); then
+			abort "API still unreachable after ${timeout:?}s."
+		fi
+	done
+}

@@ -111,17 +111,6 @@ if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/pr
 fi
 success API config file reset
 
-wait-until-restarted() {
-	local start=$(date +%s) now elapsed timeout=3
-	while ! edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/ --timeout $timeout -p=HBhm; do
-		now=$(date +%s)
-		elapsed=$((now - start))
-		if (( elapsed >= $timeout )); then
-			abort API stuck restarting.
-		fi
-	done
-}
-
 info Initializing static config and reloading…
 cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
@@ -135,7 +124,7 @@ EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
 info Waiting for the API to restart…
-wait-until-restarted
+wait-until-api-running
 
 info Checking if the API still works…
 # Run the `init` integration test, which will initialize the Pod
@@ -168,18 +157,18 @@ smtp_encrypt = false
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
-	wait-until-restarted
+	wait-until-api-running
 	success It worked!
 }
 
 info 'Trying a second factory reset…'
-wait-until-restarted
+wait-until-api-running
 # NOTE: This time we don’t need to initialize the Pod again as
 #   `task integration-test -- init` did it already.
 retry
 
 info 'Trying a third factory reset (because why not?)…'
-wait-until-restarted
+wait-until-api-running
 edo xh PUT -Iq "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \
