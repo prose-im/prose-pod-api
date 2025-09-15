@@ -152,9 +152,7 @@ jobs:
         uses: arduino/setup-task@v2
 
       - name: Build image
-        # NOTE: We need to build in debug mode because we need to use
-        #   `debug_only` configuration during integration tests.
-        run: task build-image -- --profile=dev --locked
+        run: task local:build
 
       - name: Install SQLite3
         run: sudo apt-get update && sudo apt-get install -y sqlite3

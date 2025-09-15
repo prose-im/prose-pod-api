@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+source "${BASH_TOOLBOX:?}"/format.sh
+
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+BASE_SCENARIO_NAME=default
+: ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
+: ${PROSE_POD_API_IMAGE_TAG:=local}
+SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+
+# Compute dynamic variables.
+source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
+
+source "${INTEGRATION_TESTS_DIR:?}"/util.sh
+
+run-concurrent() {
+	${1:?} &
+	p1=$!
+	${2:?} &
+	p2=$!
+
+	if ! wait ${p1:?}; then
+		abort "$(format_code "$1") failed."
+		abort
+	fi
+	if ! wait ${p2:?}; then
+		abort "$(format_code "$2") failed."
+	fi
+}
+
+info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg-blue "Running test 'concurrent-calls'…")"
+info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+
+info 'Starting the test API (already populated with data)…'
+edo task local:run -- --detach \
+	--api="${PROSE_POD_API_IMAGE_TAG:?}" \
+	--scenario="${BASE_SCENARIO_NAME:?}" \
+	--ephemeral --ephemeral-name="${SCENARIO_NAME:?}"
+
+# Wait a bit to make sure the API is ready (e.g. has run migrations).
+sleep 1
+
+info Logging an admin in…
+TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
+	-a 'pauline.collins@test.local:demo' \
+	content-type: \
+	| jq -r '.token')"
+[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
+
+reset-server-config() {
+	edo log_as_error_ xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}"/v1/server/config/"${1:?}" \
+		-A bearer -a "${TOKEN:?}"
+}
+
+# NOTE: I (@RemiBardon) did not manage to reproduce in smoke tests so we’ll have
+#   to stick with less predictable integration tests. On my machine I got 6/10
+#   failures so I guess it’s likely enough we’ll get at least 1/10 in the CI.
+#   If it turns out it’s not enough, we can always run this more times (each
+#   call is just a few milliseconds) but I guess we’d get even better results
+#   running more calls in parallel.
+for n in $(seq 10); do
+	info "Resetting $(format_code federation-enabled) and $(format_code federation-friendly-servers) concurrently (${n:?}/10)…"
+	run-concurrent \
+		'reset-server-config federation-enabled' \
+		'reset-server-config federation-friendly-servers'
+done
+
+# Everything worked, no need to investigate.
+# Delete the ephemeral scenario.
+edo task local:stop

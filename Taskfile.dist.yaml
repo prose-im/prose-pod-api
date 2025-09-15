@@ -31,7 +31,7 @@ tasks:
 
   update:
     desc: Updates all dependencies.
-    deps: [rust:update-deps, openapi:update-redoc]
+    deps: [rust:update-deps]
 
   rust:update-deps:
     desc: Updates Rust dependencies.
@@ -155,13 +155,6 @@ tasks:
   openapi:preview-docs:
     desc: Preview the OpenAPI specification file in a graphical interface.
     cmd: "{{.ROOT_DIR}}/docs/openapi/openapi-preview-docs {{.CLI_ARGS}}"
-
-  openapi:update-redoc:
-    desc: Updates Redoc.
-    vars:
-      SRC: https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js
-      DEST: src/rest-api/static/api-docs/redoc.standalone.js
-    cmd: wget -q '{{.SRC}}' -O '{{.DEST}}'
 
   util:update-tested-at-version:
     desc: Updates "Tested at Rust version" in the `README`.

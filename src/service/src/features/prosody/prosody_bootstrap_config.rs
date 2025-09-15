@@ -24,7 +24,7 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
                 .collect(),
         )),
         http_ports: Some(
-            vec![app_config::defaults::server_http_port()]
+            vec![app_config::defaults::server::http_port()]
                 .into_iter()
                 .collect(),
         ),
@@ -72,7 +72,7 @@ pub fn admin_virtual_host(
 
 pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyConfig {
     let api_jid = BareJid::from_parts(
-        Some(&app_config::defaults::service_accounts_prose_pod_api().xmpp_node),
+        Some(&app_config::defaults::service_accounts::prose_pod_api().xmpp_node),
         &DomainPart::from_str(ADMIN_HOST).unwrap(),
     );
     let api_jid = prosody_config::BareJid::new(
@@ -82,7 +82,7 @@ pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyCo
 
     let mut admin_virtual_host = admin_virtual_host(
         &api_jid,
-        app_config::defaults::server_local_hostname_admin(),
+        app_config::defaults::server::local_hostname_admin(),
     );
     (admin_virtual_host.settings_mut().custom_settings).push(
         // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.

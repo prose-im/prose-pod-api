@@ -16,7 +16,7 @@ use tracing_subscriber::{
     layer::{Layer, SubscriberExt as _},
 };
 
-use crate::{prelude::*, test_world::TestWorld};
+use crate::prelude::*;
 
 #[tokio::main]
 async fn main() {

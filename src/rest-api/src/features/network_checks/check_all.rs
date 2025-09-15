@@ -16,7 +16,7 @@ use crate::features::network_checks::{
     check_ports_reachability::port_reachability_check_result,
 };
 
-use super::{check_dns_records_route__, model::*, prelude::*, util::*, SSE_TIMEOUT};
+use super::{check_dns_records_route__, model::*, prelude::*, util::*};
 
 pub async fn check_network_configuration_route(
     app_state: State<AppState>,
@@ -110,13 +110,16 @@ async fn check_network_configuration_stream_route_(
     network_checker: NetworkChecker,
     Query(forms::Interval { interval }): Query<forms::Interval>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let retry_interval = interval.map_or_else(
-        || Ok(app_config.api.default_retry_interval.into_std_duration()),
-        validate_retry_interval,
-    )?;
-    let runner = ConcurrentTaskRunner::default(app_config)
-        .with_timeout(*SSE_TIMEOUT)
-        .with_retry_interval(retry_interval);
+    let retry_interval = interval.map(validate_retry_interval).transpose()?;
+
+    let runner = {
+        let mut runner =
+            ConcurrentTaskRunner::default().with_timings(app_config.api.network_checks.into());
+        if let Some(retry_interval) = retry_interval {
+            runner = runner.with_retry_interval(retry_interval);
+        }
+        runner
+    };
     let cancellation_token = runner.cancellation_token.clone();
 
     let (sse_tx, sse_rx) = mpsc::channel::<Result<Event, Infallible>>(32);

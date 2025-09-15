@@ -16,8 +16,9 @@ use prose_pod_api::{
     AppState, MinimalAppState,
 };
 use service::{
-    app_config::{defaults, LogConfig},
+    app_config::{pub_defaults as defaults, LogConfig},
     auth::{AuthService, LiveAuthService},
+    factory_reset::FactoryResetService,
     licensing::{LicenseService, LiveLicenseService},
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
@@ -28,7 +29,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing::{info, instrument, trace, warn, Subscriber};
+use tracing::{info, instrument, trace, warn, Instrument as _, Subscriber};
 use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
 #[tokio::main]
@@ -53,11 +54,13 @@ async fn main() {
 
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
-        tokio::task::spawn(async move { lifecycle_manager.listen_for_graceful_shutdown().await });
+        tokio::spawn(
+            async move { lifecycle_manager.listen_for_graceful_shutdown().await }.in_current_span(),
+        );
     }
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
-        tokio::task::spawn(async move { lifecycle_manager.listen_for_reload().await });
+        tokio::spawn(async move { lifecycle_manager.listen_for_reload().await }.in_current_span());
     }
 
     let mut starting = true;
@@ -77,11 +80,14 @@ async fn main() {
                 )),
             };
             let tracing_reload_handles = tracing_reload_handles.clone();
-            tokio::task::spawn(async move {
-                trace!("Starting an instance…");
-                run(minimal_app_state, &tracing_reload_handles).await;
-                trace!("Run finished.");
-            });
+            tokio::spawn(
+                async move {
+                    trace!("Starting an instance…");
+                    run(minimal_app_state, &tracing_reload_handles).await;
+                    trace!("Run finished.");
+                }
+                .in_current_span(),
+            );
         }
 
         lifecycle_manager = lifecycle_manager.rotate_instance();
@@ -210,12 +216,15 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     let email_notifier = Notifier::from_config::<EmailNotifier, _>(&app_config)
         .inspect_err(|err| warn!("Could not create email notifier: {err}"))
         .ok();
-    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::default()));
+    let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::from_config(
+        &app_config.api.network_checks,
+    )));
     let license_service = LicenseService::new(Arc::new(license_service_impl));
     let pod_version_service = PodVersionService::new(Arc::new(LivePodVersionService::from_config(
         &app_config,
         http_client.clone(),
     )));
+    let factory_reset_service = FactoryResetService::default();
 
     AppState::new(
         base,
@@ -228,5 +237,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         network_checker,
         license_service,
         pod_version_service,
+        factory_reset_service,
     )
 }

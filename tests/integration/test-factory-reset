@@ -15,17 +15,14 @@ LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
 BASE_SCENARIO_NAME=default
 : ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
 : ${PROSE_POD_API_IMAGE_TAG:=local}
-
 SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+
+# Unset `PROSE_CONFIG_FILE` so it’s not overwritten by the factory reset.
+unset PROSE_CONFIG_FILE
 # Compute dynamic variables.
 source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
-abort() {
-	# Do not stop the API after a failure to allow investigation.
-	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
-	task integration-test:logs
-	die "$@"
-}
+source "${INTEGRATION_TESTS_DIR:?}"/util.sh
 
 info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
 info "$(fg-blue "Running test 'factory-reset'…")"
@@ -114,17 +111,6 @@ if [ "$(cat "${PROSE_CONFIG_FILE:?}")" != "$(cat "${INTEGRATION_TESTS_DIR:?}"/pr
 fi
 success API config file reset
 
-wait-until-restarted() {
-	local start=$(date +%s) now elapsed timeout=3
-	while ! edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/api-docs/openapi.json --timeout $timeout -p=HBhm; do
-		now=$(date +%s)
-		elapsed=$((now - start))
-		if (( elapsed >= $timeout )); then
-			abort API stuck restarting.
-		fi
-	done
-}
-
 info Initializing static config and reloading…
 cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
@@ -138,7 +124,7 @@ EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
 info Waiting for the API to restart…
-wait-until-restarted
+wait-until-api-running
 
 info Checking if the API still works…
 # Run the `init` integration test, which will initialize the Pod
@@ -171,19 +157,19 @@ smtp_encrypt = false
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
-	wait-until-restarted
+	wait-until-api-running
 	success It worked!
 }
 
 info 'Trying a second factory reset…'
-wait-until-restarted
+wait-until-api-running
 # NOTE: This time we don’t need to initialize the Pod again as
 #   `task integration-test -- init` did it already.
 retry
 
 info 'Trying a third factory reset (because why not?)…'
-wait-until-restarted
-edo xh PUT -Iq "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
+wait-until-api-running
+edo xh PUT -Iv "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \
 	nickname=Whatever

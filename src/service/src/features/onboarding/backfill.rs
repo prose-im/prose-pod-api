@@ -3,6 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use chrono::TimeDelta;
 use sea_orm::DatabaseConnection;
 
 use crate::{dependencies, network_checks::NetworkChecker, server_config, AppConfig};
@@ -115,6 +116,7 @@ async fn backfill_at_least_one_invitation_sent(
                 email_address: EmailAddress::from_str("foo@example.org").unwrap(),
             },
             created_at: None,
+            ttl: TimeDelta::zero(),
         },
         uuid_gen,
     )

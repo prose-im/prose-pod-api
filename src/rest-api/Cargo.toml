@@ -85,6 +85,7 @@ path = "src/lib.rs"
 [features]
 default = []
 test = ["service/test"]
+openapi = []
 
 [[test]]
 name = "behavior"

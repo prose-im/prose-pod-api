@@ -8,9 +8,17 @@ use reqwest::{
     header::{HeaderMap, CONTENT_TYPE},
     Request, Response, StatusCode, Url,
 };
+pub use sea_orm::DbErr;
 use serdev::{de::DeserializeOwned, Serialize, Serializer};
 
-pub use sea_orm::DbErr;
+use crate::app_config::CONFIG_FILE_NAME;
+
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
+#[error(
+    "Missing key `{0}` in the app configuration. Add it to `{CONFIG_FILE_NAME}` or use environment variables."
+)]
+pub struct MissingConfiguration(pub &'static str);
 
 #[derive(Debug, thiserror::Error)]
 #[repr(transparent)]

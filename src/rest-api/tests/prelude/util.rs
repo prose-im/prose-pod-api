@@ -63,85 +63,71 @@ macro_rules! user_token {
 
 #[macro_export]
 macro_rules! api_call_fn {
+    // Authenticated.
+    (
+        $fn:ident,
+        $method:ident,
+        $route:literal $(; $route_param_name:tt=$route_param:ty)*
+        $(, accept: $accept:literal)?
+        $(, payload: $payload_type:ty)?
+        $(,)?
+    ) => {
+        pub async fn $fn(
+            api: &axum_test::TestServer,
+            token: secrecy::SecretString,
+            $($route_param_name: $route_param,)*
+            $(payload: $payload_type,)?
+        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
+            use secrecy::ExposeSecret as _;
+            tokio::time::timeout(
+                tokio::time::Duration::from_millis(250),
+                api.method(
+                        axum::http::Method::$method,
+                        &format!(
+                            $route
+                            $(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*
+                        )
+                    )
+                    .add_header(
+                        axum::http::header::AUTHORIZATION,
+                        format!("Bearer {}", token.expose_secret()),
+                    )
+                    $(.add_header(axum::http::header::ACCEPT, $accept))?
+                    $(.json(&serde_json::json!(payload as $payload_type)))?,
+            )
+            .await
+        }
+    };
+    // Unauthenticated.
     (
         $fn:ident,
         unauthenticated: $method:ident,
         $route:literal $(; $route_param_name:tt=$route_param:ty)*
         $(, accept: $accept:literal)?
         $(, payload: $payload_type:ty)?
-        $(, content_type: $content_type:literal)?
         $(,)?
     ) => {
-        async fn $fn(
+        pub async fn $fn(
             api: &axum_test::TestServer,
             $($route_param_name: $route_param,)*
             $(payload: $payload_type,)?
         ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             tokio::time::timeout(
                 tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
-                    $( .add_header(axum::http::header::ACCEPT, $accept) )?
-                    $(.json(&serde_json::json!(payload as $payload_type)))?
-                    $( .content_type($content_type) )?,
-            )
-            .await
-        }
-    };
-    (
-        $fn:ident,
-        $method:ident,
-        $route:literal $(; $route_param_name:tt=$route_param:ty)*
-        $(, accept: $accept:literal)?
-        $(, content_type: $content_type:literal)?
-        $(,)?
-    ) => {
-        async fn $fn(
-            api: &axum_test::TestServer,
-            token: secrecy::SecretString,
-            $( $route_param_name: $route_param, )*
-        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
-            use secrecy::ExposeSecret as _;
-            tokio::time::timeout(
-                tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
-                    $( .add_header(axum::http::header::ACCEPT, $accept) )?
-                    $( .content_type($content_type) )?
-                    .add_header(
-                        axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
-                    ),
-            )
-            .await
-        }
-    };
-    (
-        $fn:ident,
-        $method:ident,
-        $route:literal $(; $route_param_name:tt=$route_param:ty)*,
-        payload: $payload_type:ty
-        $(, content_type: $content_type:literal)?
-        $(,)?
-    ) => {
-        async fn $fn(
-            api: &axum_test::TestServer,
-            token: secrecy::SecretString,
-            $( $route_param_name: $route_param, )*
-            payload: $payload_type,
-        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
-            use secrecy::ExposeSecret as _;
-            tokio::time::timeout(
-                tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
-                    .add_header(
-                        axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
+                api.method(
+                        axum::http::Method::$method,
+                        &format!(
+                            $route
+                            $(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*
+                        )
                     )
-                    .json(&serde_json::json!(payload))
-                    $( .content_type($content_type) )?,
+                    $(.add_header(axum::http::header::ACCEPT, $accept))?
+                    $(.json(&serde_json::json!(payload as $payload_type)))?,
             )
             .await
         }
     };
+    // Non-JSON payload.
     (
         $fn:ident,
         $method:ident,
@@ -150,62 +136,28 @@ macro_rules! api_call_fn {
         $(, content_type: $content_type:literal)?
         $(,)?
     ) => {
-        async fn $fn(
+        pub async fn $fn(
             api: &axum_test::TestServer,
             token: secrecy::SecretString,
-            $( $route_param_name: $route_param, )*
+            $($route_param_name: $route_param,)*
             payload: $payload_type,
         ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
             use secrecy::ExposeSecret as _;
             tokio::time::timeout(
                 tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, &format!($route$(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*))
+                api.method(
+                        axum::http::Method::$method,
+                        &format!(
+                            $route
+                            $(, $route_param_name=urlencoding::encode(&$route_param_name.to_string()))*
+                        )
+                    )
                     .add_header(
                         axum::http::header::AUTHORIZATION,
                         format!("Bearer {}", token.expose_secret()),
                     )
                     .text(payload)
-                    $( .content_type($content_type) )?,
-            )
-            .await
-        }
-    };
-    ($fn:ident, $method:ident, $route:literal, content_type: $content_type:literal) => {
-        async fn $fn(
-            api: &axum_test::TestServer,
-            token: secrecy::SecretString,
-            bytes: axum::body::Bytes,
-        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
-            use secrecy::ExposeSecret as _;
-            tokio::time::timeout(
-                tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, $route)
-                    .add_header(
-                        axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
-                    )
-                    .content_type($content_type)
-                    .bytes(bytes),
-            )
-            .await
-        }
-    };
-    ($fn:ident, $method:ident, $route:literal, $payload_type:ident, $var:ident, $var_type:ty) => {
-        async fn $fn(
-            api: &axum_test::TestServer,
-            token: secrecy::SecretString,
-            state: $var_type,
-        ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
-            use secrecy::ExposeSecret as _;
-            tokio::time::timeout(
-                tokio::time::Duration::from_millis(250),
-                api.method(axum::http::Method::$method, $route)
-                    .add_header(
-                        axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
-                    )
-                    .content_type("application/json")
-                    .json(&serde_json::json!($payload_type { $var: state.into() })),
+                    $(.content_type($content_type))?,
             )
             .await
         }

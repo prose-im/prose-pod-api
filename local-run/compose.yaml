@@ -49,16 +49,15 @@ services:
     # Make sure logs are colored.
     tty: true
 
-  # # https://github.com/prose-im/prose-pod-dashboard
-  # dashboard:
-  #   profiles: [dashboard]
-  #   # TODO: Use Docker Hub once supported.
-  #   image: "${PROSE_POD_DASHBOARD_IMAGE:-ghcr.io/prose-im/prose-pod-dashboard:${PROSE_POD_DASHBOARD_IMAGE_TAG:-unknown}}"
-  #   depends_on: [api]
-  #   ports:
-  #     - "8081:8080"
-  #   networks: [prose-network]
-  #   tty: "${PROSE_POD_DASHBOARD_IS_TTY:-${PROSE_POD_IS_TTY:-false}}"
+  # https://github.com/prose-im/prose-pod-dashboard
+  dashboard:
+    profiles: [dashboard]
+    image: "${PROSE_POD_DASHBOARD_IMAGE:-proseim/prose-pod-dashboard:${PROSE_POD_DASHBOARD_IMAGE_TAG:-unknown}}"
+    depends_on: [api]
+    ports:
+      - "8081:8080"
+    networks: [prose-network]
+    tty: "${PROSE_POD_DASHBOARD_IS_TTY:-${PROSE_POD_IS_TTY:-false}}"
 
   # https://github.com/coredns/coredns
   coredns:

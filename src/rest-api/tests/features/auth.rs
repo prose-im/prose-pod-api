@@ -199,6 +199,11 @@ async fn when_password_reset_2(
 
 // MARK: - Then
 
+#[then(expr = "<{jid}>'s password is changed")]
+fn then_password_changed(world: &mut TestWorld, jid: parameters::JID) {
+    assert_ne!(world.mock_secrets_store().changes_count(&jid), 0);
+}
+
 #[then(expr = "their Prosody access token should expire after {duration}")]
 async fn then_prosody_token_expires_after(
     world: &mut TestWorld,

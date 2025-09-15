@@ -8,7 +8,7 @@ use prose_pod_api::{util::LifecycleManager, AppState, MinimalAppState};
 use service::xmpp::ServerCtlImpl as _;
 use tracing::*;
 
-use super::{steps::app_config::reload_config, test_world::TestWorld};
+use super::{app_config::reload_config, test_world::TestWorld};
 
 pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
     info!("Creating test router…");
@@ -48,6 +48,7 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
         world.network_checker.clone(),
         world.license_service().clone(),
         world.pod_version_service.clone(),
+        world.factory_reset_service.clone(),
     );
 
     let router = prose_pod_api::make_router(&app_state);

@@ -10,34 +10,23 @@ use std::{
 
 use biscuit::macros::*;
 use hickory_proto::rr::domain::Name as DomainName;
-use lazy_static::lazy_static;
 use service::{
     licensing::{License, LicenseServiceImpl, LicenseValidator, NoValidLicense, ValidationError},
     util::either::Either,
 };
-
-lazy_static! {
-    pub(crate) static ref LICENSE_SIGNING_KEY: biscuit::KeyPair = biscuit::KeyPair::new();
-}
 
 #[derive(Debug)]
 pub struct MockLicenseService {
     installed_licenses: Arc<RwLock<Vec<License>>>,
     valid_licenses: Arc<RwLock<HashSet<Vec<u8>>>>,
     pub(crate) validator: LicenseValidator,
+    pub(crate) license_signing_key: biscuit::KeyPair,
 }
 
 impl MockLicenseService {
     pub fn new(server_domain: DomainName) -> Self {
         let validator = LicenseValidator::new(server_domain);
-
-        let res = Self {
-            installed_licenses: Default::default(),
-            valid_licenses: Default::default(),
-            validator,
-        };
-
-        let ref validator = res.validator;
+        let license_signing_key = biscuit::KeyPair::new();
 
         let api_version = env!("CARGO_PKG_VERSION");
         let biscuit = biscuit!(
@@ -52,12 +41,19 @@ impl MockLicenseService {
             name = format!("Community ({api_version})"),
             user_limit = 20i64,
         )
-        .build(&LICENSE_SIGNING_KEY)
+        .build(&license_signing_key)
         .unwrap()
         .seal()
         .unwrap();
 
-        let license = License::new(biscuit, validator).unwrap();
+        let license = License::new(biscuit, &validator).unwrap();
+
+        let res = Self {
+            installed_licenses: Default::default(),
+            valid_licenses: Default::default(),
+            validator,
+            license_signing_key,
+        };
         res.set_valid(&license);
         res.set_installed(vec![license]);
 

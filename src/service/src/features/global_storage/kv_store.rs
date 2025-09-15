@@ -10,7 +10,7 @@ use sea_orm::{
     PaginatorTrait, QueryFilter, Set, Unchanged,
 };
 use serde_json::Value as Json;
-use tracing::{instrument, warn};
+use tracing::warn;
 
 use crate::util::either::Either;
 
@@ -36,7 +36,7 @@ mod entity {
     impl ActiveModelBehavior for ActiveModel {}
 }
 
-#[instrument(name = "store::set", level = "trace", skip_all, fields(namespace, key))]
+#[tracing::instrument(name = "store::set", level = "trace", skip_all, fields(namespace, key))]
 pub async fn set(
     db: &impl ConnectionTrait,
     namespace: &str,
@@ -64,7 +64,7 @@ pub async fn set(
     .map(|_| ())
 }
 
-#[instrument(name = "store::get_all", level = "trace", skip_all, fields(namespace))]
+#[tracing::instrument(name = "store::get_all", level = "trace", skip_all, fields(namespace))]
 pub async fn get_all(
     db: &impl ConnectionTrait,
     namespace: &str,
@@ -74,11 +74,12 @@ pub async fn get_all(
     Ok(models.into_iter().map(|kv| (kv.key, kv.value)).collect())
 }
 
-#[instrument(
+#[tracing::instrument(
     name = "store::has_key",
     level = "trace",
     skip_all,
-    fields(namespace, key)
+    fields(namespace, key),
+    ret(level = "trace")
 )]
 pub async fn has_key(db: &impl ConnectionTrait, namespace: &str, key: &str) -> Result<bool, DbErr> {
     let primary_key = (namespace.to_owned(), key.to_owned());
@@ -90,7 +91,13 @@ pub async fn has_key(db: &impl ConnectionTrait, namespace: &str, key: &str) -> R
     }
 }
 
-#[instrument(name = "store::get", level = "trace", skip_all, fields(namespace, key))]
+#[tracing::instrument(
+    name = "store::get",
+    level = "trace",
+    skip_all,
+    fields(namespace, key),
+    ret(level = "trace")
+)]
 pub async fn get(
     db: &impl ConnectionTrait,
     namespace: &str,
@@ -110,13 +117,14 @@ pub async fn get(
 ///
 /// This is particularly useful to perform an inverse search, like when
 /// searching for the JID associated to a certain password reset token.
-#[instrument(
+#[tracing::instrument(
     name = "store::get_by_value_entry",
     level = "trace",
     skip_all,
-    fields(namespace, value_entry_key)
+    fields(namespace, value_entry_key),
+    ret(level = "trace")
 )]
-pub async fn get_by_value_entry<T: sea_orm::FromQueryResult>(
+pub async fn get_by_value_entry<T: sea_orm::FromQueryResult + std::fmt::Debug>(
     db: &impl ConnectionTrait,
     namespace: &str,
     entry: (&str, impl Into<sea_orm::Value>),
@@ -132,7 +140,7 @@ pub async fn get_by_value_entry<T: sea_orm::FromQueryResult>(
 }
 
 /// Returns whether or not a record was deleted.
-#[instrument(
+#[tracing::instrument(
     name = "store::delete",
     level = "trace",
     skip_all,
@@ -148,7 +156,7 @@ pub async fn delete(db: &impl ConnectionTrait, namespace: &str, key: &str) -> Re
     }
 }
 
-#[instrument(name = "store::delete", level = "trace", skip_all, fields(namespace))]
+#[tracing::instrument(name = "store::delete", level = "trace", skip_all, fields(namespace))]
 pub async fn delete_all(
     db: &impl ConnectionTrait,
     namespace: &str,
@@ -163,9 +171,10 @@ pub async fn delete_all(
     name = "store::get_typed",
     level = "trace",
     skip_all,
-    fields(namespace, key)
+    fields(namespace, key),
+    ret(level = "trace")
 )]
-pub async fn get_typed<T: for<'de> serdev::Deserialize<'de>>(
+pub async fn get_typed<T: for<'de> serdev::Deserialize<'de> + std::fmt::Debug>(
     db: &impl ConnectionTrait,
     namespace: &str,
     key: &str,
@@ -231,7 +240,7 @@ macro_rules! get_set {
             self::get_typed::<$t>(db, namespace, key).await
         }
 
-        #[tracing::instrument(name = $set_fn_span, level = "trace", skip_all, fields(namespace, key))]
+        #[tracing::instrument(name = $set_fn_span, level = "info", skip_all, fields(namespace, key))]
         pub async fn $set_fn(
             db: &impl ConnectionTrait,
             namespace: &str,
@@ -274,6 +283,12 @@ macro_rules! gen_scoped_kv_store_get_set {
         #[allow(unused)]
         #[inline]
         pub async fn $get_fn(db: &impl ConnectionTrait, key: &str) -> anyhow::Result<Option<$t>> {
+            let span = tracing::trace_span!(
+                target: concat!("db::", stringify!($namespace)),
+                concat!("db::", stringify!($namespace), stringify!($get_fn)),
+                key,
+            );
+            let _span = span.enter();
             (global_storage::kv_store::$get_fn(db, NAMESPACE, key).await)
                 .map_err(|err| anyhow::anyhow!("Database error: {err}"))
         }
@@ -285,6 +300,12 @@ macro_rules! gen_scoped_kv_store_get_set {
             key: &str,
             value: $t,
         ) -> anyhow::Result<()> {
+            let span = tracing::info_span!(
+                target: concat!("db::", stringify!($namespace)),
+                concat!("db::", stringify!($namespace), stringify!($set_fn)),
+                key,
+            );
+            let _span = span.enter();
             use crate::util::either::Either;
             (global_storage::kv_store::$set_fn(db, NAMESPACE, key, value).await).map_err(|err| {
                 match err {
@@ -320,17 +341,29 @@ macro_rules! gen_scoped_kv_store {
                 key: &str,
                 value: Json,
             ) -> anyhow::Result<()> {
+                let span = tracing::info_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::set"),
+                    key, ?value,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::set(db, NAMESPACE, key, value).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
             #[allow(unused)]
             #[inline]
-            pub async fn set_typed<T: serdev::Serialize>(
+            pub async fn set_typed<T: serdev::Serialize + std::fmt::Debug>(
                 db: &impl ConnectionTrait,
                 key: &str,
                 value: T,
             ) -> anyhow::Result<()> {
+                let span = tracing::info_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::set"),
+                    key, ?value,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::set_typed::<T>(db, NAMESPACE, key, value).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
@@ -340,6 +373,11 @@ macro_rules! gen_scoped_kv_store {
             pub async fn get_all(
                 db: &impl ConnectionTrait,
             ) -> anyhow::Result<serde_json::Map<String, Json>> {
+                let span = tracing::trace_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::get_all"),
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::get_all(db, NAMESPACE).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
@@ -350,6 +388,12 @@ macro_rules! gen_scoped_kv_store {
                 db: &impl ConnectionTrait,
                 key: &str,
             ) -> anyhow::Result<bool> {
+                let span = tracing::trace_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::has_key"),
+                    key,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::has_key(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
@@ -360,26 +404,43 @@ macro_rules! gen_scoped_kv_store {
                 db: &impl ConnectionTrait,
                 key: &str,
             ) -> anyhow::Result<Option<Json>> {
+                let span = tracing::trace_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::get"),
+                    key,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::get(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
             #[allow(unused)]
             #[inline]
-            pub async fn get_typed<T: for<'de> serdev::Deserialize<'de>>(
+            pub async fn get_typed<T: for<'de> serdev::Deserialize<'de> + std::fmt::Debug>(
                 db: &impl ConnectionTrait,
                 key: &str,
             ) -> anyhow::Result<Option<T>> {
+                let span = tracing::trace_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::get"),
+                    key,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::get_typed::<T>(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
             #[allow(unused)]
             #[inline]
-            pub async fn get_by_value_entry<T: sea_orm::FromQueryResult>(
+            pub async fn get_by_value_entry<T: sea_orm::FromQueryResult + std::fmt::Debug>(
                 db: &impl ConnectionTrait,
                 entry: (&str, impl Into<sea_orm::Value>),
             ) -> anyhow::Result<Vec<T>> {
+                let span = tracing::trace_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::get_by_value_entry"),
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::get_by_value_entry(db, NAMESPACE, entry).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
@@ -391,6 +452,12 @@ macro_rules! gen_scoped_kv_store {
                 db: &impl ConnectionTrait,
                 key: &str,
             ) -> anyhow::Result<bool> {
+                let span = tracing::info_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::delete"),
+                    key,
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::delete(db, NAMESPACE, key).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
@@ -400,6 +467,11 @@ macro_rules! gen_scoped_kv_store {
             pub async fn delete_all(
                 db: &impl ConnectionTrait,
             ) -> anyhow::Result<sea_orm::DeleteResult> {
+                let span = tracing::info_span!(
+                    target: concat!("db::", stringify!($namespace)),
+                    concat!("db::", stringify!($namespace), "::delete_all"),
+                );
+                let _span = span.enter();
                 (global_storage::kv_store::delete_all(db, NAMESPACE).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }

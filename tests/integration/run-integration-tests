@@ -67,14 +67,7 @@ start() {
 	else
 		trace 'Starting the Prose Pod…'
 		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral
-		for _ in $(seq 1 5); do
-			trace 'Waiting a second…'
-			sleep 1
-			local error="$(edo xh :8080/v1/version -q)" && return 0 || :
-		done
-		error 'API still unreachable after 5s:'
-		error "${error-}"
-		abort
+		wait-until-api-running
 	fi
 }
 
@@ -87,21 +80,7 @@ stop() {
 	fi
 }
 
-abort() {
-	echo
-	if [ -n "$GITHUB_ACTIONS" ]; then
-		task integration-test:logs
-	else
-		warn "┌───────────────────────────────────────────────────┐"
-		warn "│ Run $(format_code task integration-test:logs) to see the logs. │"
-		warn "└───────────────────────────────────────────────────┘"
-	fi
-	echo
-
-	# Do not stop the API after a failure to allow investigation.
-	# NOTE: In the CI, it will be stopped anyway so it’s perfect.
-	exit 1
-}
+source "${INTEGRATION_TESTS_DIR:?}"/util.sh
 
 stepci_run() {
 	local test_file=${1:?}
@@ -122,31 +101,29 @@ stepci_run() {
 if [ "$#" -eq 0 ]; then
 	info "No test file provided. Will use all $(format_code '*.yaml') files in $(format_url "${STEPCI_DIR:?}")."
 	# WARN: Spaces in `*.yaml` files will break.
-	set -- $(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' ! -name 'env.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/")
-	# Add factory reset test.
-	set -- "$@" factory-reset
+	set -- \
+		$(cd "${STEPCI_DIR:?}"; find . -type f -name '*.yaml' ! -name 'env.yaml' | sed -E "s/\.\/(.+)\.yaml$/\1/") \
+		$(cd "${INTEGRATION_TESTS_DIR:?}"; find . -type f -name 'test-*' | sed -E "s/\.\/test-(.+)$/\1/")
 fi
 
 info "Will run tests on $(format_url ${INTEGRATION_TEST_HOST:?})."
 
-# NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`. Special cases are handled here.
+# NOTE: Some tests need a different `PROSE_CONFIG_FILE` or `DNS_ZONE_FILE`.
+#   Special cases are handled here.
 for arg in "$@"; do
 	if in_array SKIPPED "$arg"; then
 		warn "Skipping test $(format_code "$arg") (marked to skip)."
 		continue
 	fi
 
-	if [ "$arg" == factory-reset ]; then
-		# NOTE: Unset `PROSE_CONFIG_FILE` so it’s not overwritten by the factory
-		#   reset.
-		unset PROSE_CONFIG_FILE
-		"${INTEGRATION_TESTS_DIR:?}"/test-factory-reset
+	if [[ -f "${INTEGRATION_TESTS_DIR:?}"/test-"$arg" ]]; then
+		"${INTEGRATION_TESTS_DIR:?}"/test-"$arg"
 		continue
 	fi
 
 	test_file="${STEPCI_DIR:?}/${arg:?}.yaml"
 
-	if ! [ -e "$test_file" ]; then
+	if ! [ -f "$test_file" ]; then
 		error "$(format_url "$test_file") not found, skipping."
 		continue
 	fi

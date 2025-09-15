@@ -57,6 +57,9 @@ traced-export() {
 	local var_name
 	for var_name in "$@"; do
 		export ${var_name}
+		if ! [[ -v "${var_name}" ]]; then
+			die "Variable $(format_code "${var_name}") does not exist."
+		fi
 		trace "${var_name}=${!var_name}"
 	done
 }

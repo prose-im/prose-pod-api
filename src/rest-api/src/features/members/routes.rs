@@ -3,7 +3,7 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{collections::HashMap, convert::Infallible, fmt::Display, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, fmt::Display};
 
 use axum::{
     extract::{Path, State},
@@ -21,7 +21,6 @@ use service::{
     members::{member_controller, EnrichedMember, Member, MemberService},
     models::PaginationForm,
     xmpp::BareJid,
-    AppConfig,
 };
 use tokio_stream::{wrappers::ReceiverStream, StreamExt as _};
 use tracing::warn;
@@ -106,7 +105,6 @@ impl Display for JIDs {
 pub async fn enrich_members_route(
     member_service: MemberService,
     query: Query<JIDs>,
-    state: State<Arc<AppConfig>>,
     headers: HeaderMap,
 ) -> Either<
     Json<HashMap<BareJid, EnrichedMember>>,
@@ -114,26 +112,24 @@ pub async fn enrich_members_route(
 > {
     match headers.get(ACCEPT) {
         Some(ct) if ct.starts_with(TEXT_EVENT_STREAM.essence_str()) => {
-            Either::E2(enrich_members_stream_route_(member_service, query, state).await)
+            Either::E2(enrich_members_stream_route_(member_service, query).await)
         }
-        _ => Either::E1(enrich_members_route_(member_service, query, state).await),
+        _ => Either::E1(enrich_members_route_(member_service, query).await),
     }
 }
 
 async fn enrich_members_route_(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
-    State(ref app_config): State<Arc<AppConfig>>,
 ) -> Json<HashMap<BareJid, EnrichedMember>> {
-    Json(member_controller::enrich_members(member_service, jids, app_config).await)
+    Json(member_controller::enrich_members(member_service, jids).await)
 }
 
 async fn enrich_members_stream_route_(
     member_service: MemberService,
     Query(JIDs { jids }): Query<JIDs>,
-    State(ref app_config): State<Arc<AppConfig>>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Error> {
-    let rx = member_controller::enrich_members_stream(member_service, jids, app_config);
+    let rx = member_controller::enrich_members_stream(member_service, jids);
 
     let sse_rx = ReceiverStream::new(rx).filter_map(|e| match e {
         Ok(Some(member)) => Some(Ok(Event::default()

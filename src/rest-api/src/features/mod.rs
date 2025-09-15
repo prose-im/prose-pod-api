@@ -7,11 +7,13 @@ use crate::{forms::multi_value_items::rename_bracketed_query_param_names, AppSta
 
 pub mod startup_actions;
 
+#[cfg(all(debug_assertions, feature = "openapi"))]
 pub mod api_docs;
 pub mod auth;
 pub mod dashboard_config;
 pub mod dns_setup;
 pub mod factory_reset;
+pub mod health_check;
 pub mod init;
 pub mod invitations;
 pub mod licensing;
@@ -29,12 +31,13 @@ pub mod workspace_details;
 const NETWORK_ROUTE: &'static str = "/v1/network";
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
-    axum::Router::new()
-        .merge(api_docs::router())
+    #[allow(unused_mut)]
+    let mut router = axum::Router::new()
         .merge(auth::router(app_state.clone()))
         .merge(dashboard_config::router(app_state.clone()))
         .merge(dns_setup::router(app_state.clone()))
         .merge(factory_reset::router(app_state.clone()))
+        .merge(health_check::router())
         .merge(init::router(app_state.clone()))
         .merge(invitations::router(app_state.clone()))
         .merge(licensing::router(app_state.clone()))
@@ -48,5 +51,12 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(version::router(app_state.clone()))
         .merge(workspace_details::router(app_state.clone()))
         .merge(reports::router(app_state.clone()))
-        .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names))
+        .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names));
+
+    #[cfg(all(debug_assertions, feature = "openapi"))]
+    {
+        router = router.merge(api_docs::router());
+    }
+
+    router
 }

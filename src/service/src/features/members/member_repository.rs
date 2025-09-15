@@ -7,7 +7,6 @@ use chrono::{DateTime, Utc};
 use sea_orm::{
     prelude::*, DeleteResult, ItemsAndPagesNumber, NotSet, QueryOrder as _, QuerySelect, Set,
 };
-use tracing::instrument;
 
 use crate::{
     members::{
@@ -24,7 +23,7 @@ impl MemberRepository {
     /// Create the user in database but NOT on the XMPP server.
     /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to create users in both places at the same time.
-    #[instrument(name = "db::member::create", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "db::member::create", level = "info", skip_all, err)]
     pub async fn create(
         db: &impl ConnectionTrait,
         form: impl Into<MemberCreateForm>,
@@ -39,8 +38,8 @@ impl MemberRepository {
     /// Delete the user from database but NOT from the XMPP server.
     /// Use [`MemberService`][crate::members::MemberService] instead,
     /// to delete users from both places at the same time.
-    #[instrument(
-        name = "db::member::delete", level = "trace",
+    #[tracing::instrument(
+        name = "db::member::delete", level = "info",
         skip_all, fields(jid = jid.to_string()),
         err
     )]
@@ -54,7 +53,7 @@ impl MemberRepository {
         }
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::exists", level = "trace",
         skip_all, fields(jid = jid.to_string()),
         err
@@ -66,7 +65,7 @@ impl MemberRepository {
         }
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::get", level = "trace",
         skip_all, fields(jid = jid.to_string()),
         err
@@ -75,7 +74,7 @@ impl MemberRepository {
         Entity::find_by_jid(&jid.to_owned().into()).one(db).await
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::get_page",
         level = "trace",
         skip_all,
@@ -104,12 +103,12 @@ impl MemberRepository {
         Ok((num_items_and_pages, models))
     }
 
-    #[instrument(name = "db::member::get_all", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "db::member::get_all", level = "trace", skip_all, err)]
     pub async fn get_all(db: &impl ConnectionTrait) -> Result<Vec<Model>, DbErr> {
         Entity::find().order_by_asc(Column::JoinedAt).all(db).await
     }
 
-    #[instrument(name = "db::member::get_all_until", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "db::member::get_all_until", level = "trace", skip_all, err)]
     #[inline]
     pub async fn get_all_until(
         db: &impl ConnectionTrait,
@@ -122,12 +121,12 @@ impl MemberRepository {
         query.all(db).await
     }
 
-    #[instrument(name = "db::member::get_count", level = "trace", skip_all, err)]
+    #[tracing::instrument(name = "db::member::get_count", level = "trace", skip_all, err)]
     pub async fn count(db: &impl ConnectionTrait) -> Result<u64, DbErr> {
         Entity::find().count(db).await
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::is_admin", level = "trace",
         skip_all, fields(jid = jid.to_string()),
         err
@@ -144,7 +143,7 @@ impl MemberRepository {
         Ok(member.role == MemberRole::Admin)
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::get_admins",
         level = "trace",
         skip_all,
@@ -168,8 +167,8 @@ impl MemberRepository {
     /// Returns `None` if the role hasn’t changed.
     ///
     /// Returns the **old** value if the role has changed.
-    #[instrument(
-        name = "db::member::set_role", level = "trace",
+    #[tracing::instrument(
+        name = "db::member::set_role", level = "info",
         skip_all, fields(
             jid = jid.to_string(),
             role = role.to_string()
@@ -205,7 +204,7 @@ impl MemberRepository {
         Ok(Some(member_role))
     }
 
-    #[instrument(
+    #[tracing::instrument(
         name = "db::member::get_email_address", level = "trace",
         skip_all, fields(jid = jid.to_string()),
         err,
@@ -233,8 +232,8 @@ impl MemberRepository {
     /// Returns `None` if the email address hasn’t changed.
     ///
     /// Returns the **old** value if the email address has changed.
-    #[instrument(
-        name = "db::member::set_email_address", level = "trace",
+    #[tracing::instrument(
+        name = "db::member::set_email_address", level = "info",
         skip_all, fields(
             jid = jid.to_string(),
             email_address = email_address.as_ref().map(ToString::to_string)

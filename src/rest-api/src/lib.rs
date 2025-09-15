@@ -18,6 +18,7 @@ use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
     dependencies::Uuid,
+    factory_reset::FactoryResetService,
     licensing::LicenseService,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
@@ -46,6 +47,7 @@ pub struct AppState {
     network_checker: NetworkChecker,
     license_service: LicenseService,
     pod_version_service: PodVersionService,
+    factory_reset_service: FactoryResetService,
     uuid_gen: Uuid,
 }
 
@@ -61,6 +63,7 @@ impl AppState {
         network_checker: NetworkChecker,
         license_service: LicenseService,
         pod_version_service: PodVersionService,
+        factory_reset_service: FactoryResetService,
     ) -> Self {
         let uuid_gen = Uuid::from_config(&app_config);
         Self {
@@ -75,6 +78,7 @@ impl AppState {
             network_checker,
             license_service,
             pod_version_service,
+            factory_reset_service,
         }
     }
 }
@@ -131,8 +135,8 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
 /// file to (re)start the API.
 #[instrument(level = "trace", skip_all)]
 pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
-    Router::new()
-        .merge(features::api_docs::router())
+    #[allow(unused_mut)]
+    let mut router = Router::new()
         .merge(features::reload::factory_reset_router(app_state.clone()))
         .merge(features::version::minimal_router(app_state.clone()))
         // Include trace context as header into the response.
@@ -144,7 +148,14 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
         .layer(middleware::from_fn_with_state(
             app_state.clone(),
             restart_guard,
-        ))
+        ));
+
+    #[cfg(all(debug_assertions, feature = "openapi"))]
+    {
+        router = router.merge(features::api_docs::router());
+    }
+
+    router
 }
 
 #[derive(Debug, thiserror::Error)]
