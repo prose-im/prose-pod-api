@@ -11,6 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.17.3...HEAD
 
+### Removed
+
+- feat!: Stop exposing the OpenAPI docs (in `f639c0ff`)
+
+### Changed
+
+- feat(pod-config)!: Rename `GET /v1/pod/config/dashboard-url` to `GET /v1/dashboard/config/url` (in `61d105eb` + `624c72c2`)
+- chore: Update Redoc (in `d555bc76`)
+- chore(app-config): Set default `api.databases.main.max_connections` to `1` (in `559d4a4b`)
+
+### Added
+
+- feat(licensing): Add `GET /v1/licensing/license` (in `78f201a5`)
+- feat(reports): Add `GET /v1/reports/cloud-api` (in `e99815e9`)
+- feat(licensing): Add `GET /v1/licensing/status` (in `5fa0a1f7`)
+- feat(members): Add `GET /v1/members/{jid}/email-address` (in `13146744`)
+- feat: Add health check route (`GET /`) (in `c5d04861`)
+- feat: Parse/validate all user input (in `3740e500`)
+- docs(members): Document `PUT /v1/members/{jid}/email-address`, along with a ton of code improvements (in `19ea5027`)
+- docs(members): Document `GET /v1/members`’s `q` query parameter (in `aedf0a05`)
+- chore: Add `serde(deny_unknown_fields)` to all DTOs (in `de4a49d7`)
+- feat(local-run): Allow running the Dashboard with `+dashboard` (in `4bae47a4`)
+
+### Fixed
+
+- fix(licensing): Fix license installation (in `8c8d5711`)
+- fix(server-config): Fix reset routes not reloading the server (in `33ed647b`)
+- fix(security): Never trust user-provided MIME type (in `e93a9d2a`)
+- feat(app-config): Support sub-second durations in app config (in `e51aa913`)
+- fix(invitations): `"You have been invited to {company}'s Prose server!"` isn't correct with company names ending with a “s” (in `196f47e2`)
+- fix: Run tests from all workspace crates in `task test` (in `3ec78897`)
+- perf: Attach user info to requests to avoid querying Prosody and the database multiple times (in `7dc524c7`)
+- chore: Read log format from config/env before initializing tracing (in `358aa793`)
+
 ## [0.17.3] - 2025-09-06
 
 [0.17.3]: https://github.com/prose-im/prose-pod-api/compare/v0.17.2...v0.17.3
