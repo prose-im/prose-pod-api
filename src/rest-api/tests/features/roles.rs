@@ -11,7 +11,7 @@ use super::prelude::*;
 // MARK: - Given
 
 #[given(expr = "{} is an admin")]
-async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+pub async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
     let db = world.db();
 
     let jid = name_to_jid(world, &name).await?;

@@ -36,9 +36,8 @@ use service::{
 };
 use uuid::Uuid;
 
-use crate::prelude::steps::app_config::reload_config;
-
 use super::{
+    app_config::reload_config,
     database::{db_conn, run_migrations},
     mocks::*,
 };
