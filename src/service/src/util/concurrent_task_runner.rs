@@ -3,13 +3,7 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    cmp::{max, min},
-    fmt::Debug,
-    future::Future,
-    sync::Arc,
-    time::Duration,
-};
+use std::{fmt::Debug, future::Future, sync::Arc, time::Duration};
 
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -137,9 +131,9 @@ impl ConcurrentTaskRunner {
         let make_future = Arc::new(make_future);
 
         // Create a mpsc channel to receive task results.
-        // NOTE: `mpsc::channel` panics if passed `0`, hence the `max(_, 1)`.
+        // NOTE: `mpsc::channel` panics if passed `0`, hence `clamp(1, _)`.
         //   Fixes https://github.com/prose-im/prose-pod-api/issues/238.
-        let (tx, rx) = mpsc::channel::<R>(min(max(data.len(), 1), 32));
+        let (tx, rx) = mpsc::channel::<R>(data.len().clamp(1, 32));
 
         // Map futures to cancellable tasks.
         let mut tasks: Futures<JoinHandle<Option<R>>> = Futures::new(
@@ -222,7 +216,9 @@ impl ConcurrentTaskRunner {
         let default_msgs: Option<Vec<R>> = before_all.map(|f| data.iter().map(f).collect());
 
         // Create a mpsc channel to receive task results.
-        let (tx, rx) = mpsc::channel::<R>(min(data.len(), 32));
+        // NOTE: `mpsc::channel` panics if passed `0`, hence `clamp(1, _)`.
+        //   Fixes https://github.com/prose-im/prose-pod-api/issues/238.
+        let (tx, rx) = mpsc::channel::<R>(data.len().clamp(1, 32));
 
         let barrier = before_all.map(|_| Arc::new(Barrier::new(data.len() + 1)));
 
