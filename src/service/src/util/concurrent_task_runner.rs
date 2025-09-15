@@ -127,7 +127,7 @@ impl ConcurrentTaskRunner {
     ) -> mpsc::Receiver<R>
     where
         D: Debug + Clone + Send + 'static,
-        F: Future<Output = R> + Send + 'static + Unpin,
+        F: Future<Output = R> + Send + 'static,
         R: Send + 'static,
     {
         let Self {
