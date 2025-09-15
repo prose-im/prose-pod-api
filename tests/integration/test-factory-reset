@@ -169,7 +169,7 @@ retry
 
 info 'Trying a third factory reset (because why not?)…'
 wait-until-api-running
-edo xh PUT -Iq "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
+edo xh PUT -Iv "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \
 	nickname=Whatever
