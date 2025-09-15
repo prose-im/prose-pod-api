@@ -95,12 +95,16 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
 
         Ok(())
     }
-    tokio::spawn(async move {
-        if let Err(err) = run_remaining(&app_state).await {
-            warn!("{}", crate::StartupError(err));
-        }
-        (app_state.base.lifecycle_manager).set_startup_actions_finished();
-    });
+    tokio::spawn(
+        async move {
+            if let Err(err) = run_remaining(&app_state).await {
+                warn!("{}", crate::StartupError(err));
+            }
+            (app_state.base.lifecycle_manager).set_startup_actions_finished();
+        },
+        // FIXME: For some reason, this breaks behavior tests.
+        // .in_current_span(),
+    );
 
     Ok(())
 }

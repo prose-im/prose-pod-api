@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{onboarding, sea_orm::DatabaseConnection};
-use tracing::{trace, warn};
+use tracing::{trace, warn, Instrument as _};
 
 use super::{model::*, prelude::*, util::*};
 
@@ -82,14 +82,17 @@ async fn check_dns_records_stream_route_(
         interval,
         app_config,
         move || {
-            tokio::spawn(async move {
-                trace!("Setting `all_dns_checks_passed_once` to true…");
-                (onboarding::all_dns_checks_passed_once::set(&db, true).await)
-                    .inspect_err(|err| {
-                        warn!("Could not set `all_dns_checks_passed_once` to true: {err}")
-                    })
-                    .ok();
-            });
+            tokio::spawn(
+                async move {
+                    trace!("Setting `all_dns_checks_passed_once` to true…");
+                    (onboarding::all_dns_checks_passed_once::set(&db, true).await)
+                        .inspect_err(|err| {
+                            warn!("Could not set `all_dns_checks_passed_once` to true: {err}")
+                        })
+                        .ok();
+                }
+                .in_current_span(),
+            );
         },
     )
 }

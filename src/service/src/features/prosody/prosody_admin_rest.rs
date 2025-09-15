@@ -11,7 +11,7 @@ use secrecy::ExposeSecret as _;
 use serde_json::json;
 use serdev::Deserialize;
 use tokio::{sync::RwLock, task::JoinHandle};
-use tracing::{error, trace};
+use tracing::{error, trace, Instrument as _};
 
 use crate::{
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
@@ -224,11 +224,16 @@ impl ProsodyAdminRest {
             Duration::from_millis(TEAM_ROSTERS_SYNC_DEBOUNCE_MILLIS),
             move |_| {
                 let admin_rest = admin_rest.clone();
-                tokio::spawn(async move {
-                    if let Err(err) = admin_rest.update_rosters().await {
-                        error!("Could not synchronize rosters after updating team members: {err}")
+                tokio::spawn(
+                    async move {
+                        if let Err(err) = admin_rest.update_rosters().await {
+                            error!(
+                                "Could not synchronize rosters after updating team members: {err}"
+                            )
+                        }
                     }
-                });
+                    .in_current_span(),
+                );
             },
         );
 

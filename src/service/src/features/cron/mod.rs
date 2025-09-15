@@ -11,7 +11,7 @@ use std::sync::Arc;
 use futures::future::join_all;
 use sea_orm::DatabaseConnection;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{info, Instrument as _};
 
 use crate::AppConfig;
 
@@ -32,17 +32,21 @@ pub fn start_cron_tasks(ctx: CronContext) {
     macro_rules! spawn {
         ($task:ident) => {{
             let ctx = $task::Context::from(ctx.clone());
-            tokio::spawn(async move { $task::run(ctx).await })
+            tokio::spawn(async move { $task::run(ctx).await }.in_current_span())
         }};
     }
 
-    tokio::spawn(async move {
-        tokio::select! {
-            _ = join_all(vec![
-                spawn!(refresh_service_accounts_tokens),
-                spawn!(delete_expired_password_reset_tokens),
-            ]) => {},
-            _ = ctx.cancellation_token.cancelled() => {},
-        }
-    });
+    tokio::spawn(
+        async move {
+            tokio::select! {
+                _ = join_all(vec![
+                    spawn!(refresh_service_accounts_tokens),
+                    spawn!(delete_expired_password_reset_tokens),
+                ]) => {},
+                _ = ctx.cancellation_token.cancelled() => {},
+            }
+        },
+        // FIXME: For some reason, this breaks behavior tests.
+        // .in_current_span(),
+    );
 }

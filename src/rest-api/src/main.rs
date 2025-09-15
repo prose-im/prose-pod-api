@@ -29,7 +29,7 @@ use service::{
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
 };
-use tracing::{info, instrument, trace, warn, Subscriber};
+use tracing::{info, instrument, trace, warn, Instrument as _, Subscriber};
 use tracing_subscriber::{registry::LookupSpan, EnvFilter, Layer};
 
 #[tokio::main]
@@ -54,11 +54,13 @@ async fn main() {
 
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
-        tokio::task::spawn(async move { lifecycle_manager.listen_for_graceful_shutdown().await });
+        tokio::spawn(
+            async move { lifecycle_manager.listen_for_graceful_shutdown().await }.in_current_span(),
+        );
     }
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
-        tokio::task::spawn(async move { lifecycle_manager.listen_for_reload().await });
+        tokio::spawn(async move { lifecycle_manager.listen_for_reload().await }.in_current_span());
     }
 
     let mut starting = true;
@@ -78,11 +80,14 @@ async fn main() {
                 )),
             };
             let tracing_reload_handles = tracing_reload_handles.clone();
-            tokio::task::spawn(async move {
-                trace!("Starting an instance…");
-                run(minimal_app_state, &tracing_reload_handles).await;
-                trace!("Run finished.");
-            });
+            tokio::spawn(
+                async move {
+                    trace!("Starting an instance…");
+                    run(minimal_app_state, &tracing_reload_handles).await;
+                    trace!("Run finished.");
+                }
+                .in_current_span(),
+            );
         }
 
         lifecycle_manager = lifecycle_manager.rotate_instance();

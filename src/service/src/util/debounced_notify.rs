@@ -8,6 +8,7 @@ use std::time::Duration;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 use tokio::time::{sleep, Instant};
+use tracing::Instrument as _;
 
 // NOTE: See `playgrounds/tokio-debounce` for a testing playground.
 /// Allows debouncing events (i.e. propagating a signal only after some time has
@@ -34,18 +35,21 @@ impl DebouncedNotify {
         callback: impl Fn(Instant) + Send + 'static,
     ) -> JoinHandle<()> {
         let notify = self.notify.clone();
-        tokio::spawn(async move {
-            let mut last_signal: Option<Instant> = None;
-            loop {
-                tokio::select! {
-                    _ = notify.notified() => {
-                        last_signal = Some(Instant::now());
-                    }
-                    _ = sleep(delay), if last_signal.is_some_and(|i| i.elapsed() < delay) => {
-                        callback(last_signal.unwrap());
+        tokio::spawn(
+            async move {
+                let mut last_signal: Option<Instant> = None;
+                loop {
+                    tokio::select! {
+                        _ = notify.notified() => {
+                            last_signal = Some(Instant::now());
+                        }
+                        _ = sleep(delay), if last_signal.is_some_and(|i| i.elapsed() < delay) => {
+                            callback(last_signal.unwrap());
+                        }
                     }
                 }
             }
-        })
+            .in_current_span(),
+        )
     }
 }
