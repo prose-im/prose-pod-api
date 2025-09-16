@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.19.0...HEAD
 
+### Fixed
+
+- Fix API crashing if config key `log` is missing (in `68e2813d`)
+
 ## [0.19.0] - 2025-09-16
 
 [0.19.0]: https://github.com/prose-im/prose-pod-api/compare/v0.18.0...v0.19.0
