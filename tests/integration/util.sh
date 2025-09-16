@@ -20,7 +20,7 @@ abort() {
 
 wait-until-api-running() {
 	local start=$(date +%s) now elapsed timeout=3
-	while ! edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/ --timeout $timeout -p=HBhm; do
+	while ! edo log_as_trace_ xh GET -Iq "${INTEGRATION_TEST_HOST:?}"/health --timeout $timeout -p=HBhm; do
 		now=$(date +%s)
 		elapsed=$((now - start))
 		if (( elapsed >= $timeout )); then

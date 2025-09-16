@@ -6,5 +6,11 @@
 use axum::{http::StatusCode, routing::get};
 
 pub(super) fn router() -> axum::Router {
-    axum::Router::new().route("/", get(async || StatusCode::OK))
+    axum::Router::new()
+        .route("/health", get(health_check))
+        .route("/healthz", get(health_check))
+}
+
+async fn health_check() -> StatusCode {
+    StatusCode::OK
 }
