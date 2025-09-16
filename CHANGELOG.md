@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.18.0...HEAD
 
+### Changed
+
+- feat(health-check)!: Move health check from `GET /` to `GET /health(z)` (in `1f68a081`)
+
 ## [0.18.0] - 2025-09-15
 
 [0.18.0]: https://github.com/prose-im/prose-pod-api/compare/v0.17.3...v0.18.0
