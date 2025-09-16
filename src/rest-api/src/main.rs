@@ -41,9 +41,11 @@ async fn main() {
     // NOTE: Can only be called once.
     let (_tracing_guard, tracing_reload_handles) = {
         let figment = AppConfig::figment();
-        let ref log_config = figment
-            .extract_inner::<LogConfig>("log")
-            .expect("Invalid `log` config.");
+        let ref log_config = match figment.extract_inner::<LogConfig>("log") {
+            Ok(config) => config,
+            Err(err) if err.missing() => Default::default(),
+            Err(err) => panic!("Invalid `log` config: {err:?}"),
+        };
         init_subscribers(log_config)
             .map_err(|err| panic!("Failed to init tracing for OpenTelemetry: {err}"))
             .unwrap()
