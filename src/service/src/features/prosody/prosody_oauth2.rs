@@ -54,12 +54,15 @@ impl ProsodyOAuth2 {
         if accept(&response) {
             Ok(response)
         } else {
+            let body = response.text();
+            trace!(
+                "Prosody OAuth2 error: {status}: {body}",
+                status = response.status
+            );
             Err(match response.status {
-                StatusCode::UNAUTHORIZED => Error::Unauthorized(response.text()),
-                StatusCode::FORBIDDEN => Error::Forbidden(response.text()),
-                StatusCode::BAD_REQUEST
-                    if response.text().to_lowercase().contains("invalid jid") =>
-                {
+                StatusCode::UNAUTHORIZED => Error::Unauthorized(body),
+                StatusCode::FORBIDDEN => Error::Forbidden(body),
+                StatusCode::BAD_REQUEST if body.to_lowercase().contains("invalid jid") => {
                     Error::Unauthorized("Invalid JID".to_string())
                 }
                 StatusCode::BAD_REQUEST
@@ -70,9 +73,7 @@ impl ProsodyOAuth2 {
                 {
                     Error::Unauthorized("Incorrect credentials".to_string())
                 }
-                StatusCode::BAD_REQUEST
-                    if response.text().to_lowercase().contains("invalid_grant") =>
-                {
+                StatusCode::BAD_REQUEST if body.to_lowercase().contains("invalid_grant") => {
                     Error::Unauthorized("Invalid token".to_string())
                 }
                 _ => {
@@ -126,7 +127,11 @@ impl ProsodyOAuth2 {
             .await?;
 
         if response.status == StatusCode::UNAUTHORIZED {
-            debug!("Prosody OAuth2 API returned status {}", response.status);
+            let body = response.text();
+            debug!(
+                "Prosody OAuth2 API returned status {}: {body}",
+                response.status,
+            );
             return Ok(None);
         }
 
