@@ -18,6 +18,7 @@ use axum_extra::{either::Either, extract::Query};
 use futures::Stream;
 use mime::TEXT_EVENT_STREAM;
 use service::{
+    auth::AuthToken,
     members::{member_controller, EnrichedMember, Member, MemberService},
     models::PaginationForm,
     xmpp::BareJid,
@@ -50,9 +51,10 @@ pub async fn get_member_route(
 pub async fn delete_member_route(
     State(AppState { db, .. }): State<AppState>,
     Path(jid): Path<BareJid>,
+    ref token: AuthToken,
     member_service: MemberService,
 ) -> Result<StatusCode, Error> {
-    member_controller::delete_member(&db, &jid, &member_service).await?;
+    member_controller::delete_member(&db, &jid, &member_service, token).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

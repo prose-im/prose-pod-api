@@ -6,9 +6,8 @@
 use std::{sync::Arc, time::Duration};
 
 use mime::Mime;
-use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
+use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::ExposeSecret as _;
-use serde_json::json;
 use serdev::Deserialize;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{error, trace, Instrument as _};
@@ -21,7 +20,8 @@ use crate::{
     AppConfig,
 };
 
-const TEAM_GROUP_ID: &'static str = "team";
+// TODO: Move somewhere else.
+pub(crate) const TEAM_GROUP_ID: &'static str = "team";
 const TEAM_GROUP_NAME: &'static str = "Team";
 /// NOTE: Value must be greater than the time it takes to add a member (approx.
 ///   150ms) otherwise it really is useless but should also be lower than the
@@ -142,58 +142,6 @@ impl ProsodyAdminRest {
                 .body(format!(r#"{{"name":"{TEAM_GROUP_NAME}"}}"#))
         })
         .await?;
-        Ok(())
-    }
-
-    pub async fn update_team_members(
-        &self,
-        method: Method,
-        jid: &BareJid,
-    ) -> Result<(), server_ctl::Error> {
-        let add_member = |client: &HttpClient| {
-            client
-                .request(
-                    method,
-                    format!(
-                        "{}/{TEAM_GROUP_ID}/members/{}",
-                        self.url_on_main_host("groups"),
-                        urlencoding::encode(
-                            jid.node()
-                                .expect("Bare JID has no node part: {jid}")
-                                .as_str()
-                        )
-                    ),
-                )
-                .json(&json!({ "delay_update": true }))
-        };
-        let map_res = |response: ResponseData| {
-            if response.status.is_success() {
-                Ok(Ok(()))
-            } else if response
-                .body
-                .as_ref()
-                .is_ok_and(|body| body == &json!({ "result": "group-not-found" }))
-            {
-                Ok(Err(AddMemberFailed::GroupNotFound))
-            } else {
-                Err(response)
-            }
-        };
-
-        // Try to add the member
-        match self.call_(add_member.clone(), map_res).await? {
-            Ok(_) => {}
-            // If group wasn't found, try to create it and add the member again
-            Err(AddMemberFailed::GroupNotFound) => {
-                self.create_team_group().await?;
-                self.call(add_member).await?;
-            }
-        }
-
-        // Notify that the team has been updated, to trigger a sync of rosters
-        // after a debounce delay.
-        self.notify_team_updated().await;
-
         Ok(())
     }
 

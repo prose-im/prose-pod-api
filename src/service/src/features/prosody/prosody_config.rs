@@ -167,6 +167,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "cloud_notify",
                     "register",
                     "prose_version",
+                    "http_admin_api",
                 ]
                 .into_iter()
                 .map(ToString::to_string)

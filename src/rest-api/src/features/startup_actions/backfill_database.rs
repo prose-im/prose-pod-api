@@ -118,9 +118,10 @@ pub async fn backfill_xmpp_users(
                 );
 
                 // Add the user to everyone's roster (if needed).
-                server_ctl.add_team_member(&user.jid).await.map_err(|err| {
-                    UserCreateError::XmppServerCannotAddTeamMember(err).to_string()
-                })?;
+                let disabled = true;
+                // server_ctl.add_team_member(&user.jid).await.map_err(|err| {
+                //     UserCreateError::XmppServerCannotAddTeamMember(err).to_string()
+                // })?;
             }
             Ok(true) => {
                 // User already exists, do nothing.

@@ -11,6 +11,7 @@ use tokio::sync::mpsc::Receiver;
 use tracing::Instrument as _;
 
 use crate::{
+    auth::AuthToken,
     models::{Paginated, Pagination, PaginationForm},
     util::{either::Either, ConcurrentTaskRunner},
     xmpp::BareJid,
@@ -43,8 +44,9 @@ pub async fn delete_member(
     db: &DatabaseConnection,
     jid: &BareJid,
     member_service: &MemberService,
+    token: &AuthToken,
 ) -> Result<(), UserDeleteError> {
-    member_service.delete_user(db, jid).await
+    member_service.delete_user(db, jid, token).await
 }
 
 // MARK: Get many

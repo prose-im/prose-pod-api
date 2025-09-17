@@ -77,9 +77,10 @@ async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<
 
     // Add the Workspace XMPP account to everyone’s rosters so they receive
     // Workspace icon updates.
-    let workspace_jid = world.app_config().workspace_jid();
-    (world.server_ctl.add_team_member(&workspace_jid).await)
-        .context("Could not add the Workspace to the team")?;
+    let disabled = true;
+    // let workspace_jid = world.app_config().workspace_jid();
+    // (world.server_ctl.add_team_member(&workspace_jid).await)
+    //     .context("Could not add the Workspace to the team")?;
 
     world.reset_server_ctl_counts();
     Ok(())

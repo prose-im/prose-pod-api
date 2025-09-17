@@ -82,9 +82,11 @@ impl UnauthenticatedMemberService {
         // Create the user
         (server_ctl.add_user(jid, &password).await)
             .map_err(UserCreateError::XmppServerCannotCreateUser)?;
+        // FIXME: Re-enable.
+        let disabled = true;
         // Add the user to everyone's roster
-        (server_ctl.add_team_member(jid).await)
-            .map_err(UserCreateError::XmppServerCannotAddTeamMember)?;
+        // (server_ctl.add_team_member(jid).await)
+        //     .map_err(UserCreateError::XmppServerCannotAddTeamMember)?;
         if let Some(role) = role {
             // Set the user's role for servers which support it
             (server_ctl.set_user_role(jid, &role).await)

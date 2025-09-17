@@ -5,17 +5,18 @@
 
 use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 
-use reqwest::Method;
 use sea_orm::DatabaseConnection;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
 use tracing::instrument;
 
 use crate::{
+    auth::AuthToken,
     members::MemberRole,
     prosody::{
-        prosody_admin_rest, prosody_bootstrap_config, prosody_config_from_db, AsProsody as _,
-        ProsodyAdminRest,
+        prosody_admin_rest::{self, TEAM_GROUP_ID},
+        prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest,
+        ProsodyHttpAdminApi,
     },
     xmpp::{server_ctl, BareJid, ServerCtlImpl},
     AppConfig, ServerConfig,
@@ -25,6 +26,7 @@ use crate::{
 pub struct LiveServerCtl {
     config_file_path: PathBuf,
     admin_rest: Arc<ProsodyAdminRest>,
+    admin_api: Arc<ProsodyHttpAdminApi>,
     db: DatabaseConnection,
 }
 
@@ -32,11 +34,13 @@ impl LiveServerCtl {
     pub fn from_config(
         config: &AppConfig,
         admin_rest: Arc<ProsodyAdminRest>,
+        admin_api: Arc<ProsodyHttpAdminApi>,
         db: DatabaseConnection,
     ) -> Self {
         Self {
             config_file_path: config.prosody_ext.config_file_path.to_owned(),
             admin_rest,
+            admin_api,
             db,
         }
     }
@@ -217,9 +221,13 @@ impl ServerCtlImpl for LiveServerCtl {
         skip_all, fields(jid = jid.to_string()),
         err
     )]
-    async fn add_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
-        self.admin_rest
-            .update_team_members(Method::PUT, jid)
+    async fn add_team_member(
+        &self,
+        jid: &BareJid,
+        token: &AuthToken,
+    ) -> Result<(), server_ctl::Error> {
+        self.admin_api
+            .add_group_member(TEAM_GROUP_ID, jid.node().unwrap(), token)
             .await?;
         Ok(())
     }
@@ -228,9 +236,13 @@ impl ServerCtlImpl for LiveServerCtl {
         skip_all, fields(jid = jid.to_string()),
         err
     )]
-    async fn remove_team_member(&self, jid: &BareJid) -> Result<(), server_ctl::Error> {
-        self.admin_rest
-            .update_team_members(Method::DELETE, jid)
+    async fn remove_team_member(
+        &self,
+        jid: &BareJid,
+        token: &AuthToken,
+    ) -> Result<(), server_ctl::Error> {
+        self.admin_api
+            .remove_group_member(TEAM_GROUP_ID, jid.node().unwrap(), token)
             .await?;
         Ok(())
     }

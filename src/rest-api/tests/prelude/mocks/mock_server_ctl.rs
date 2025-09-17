@@ -7,6 +7,7 @@ use linked_hash_map::LinkedHashMap;
 use secrecy::SecretString;
 pub use service::xmpp::ServerCtlImpl;
 use service::{
+    auth::AuthToken,
     members::MemberRole,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
@@ -174,13 +175,13 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    async fn add_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+    async fn add_team_member(&self, _jid: &BareJid, _token: &AuthToken) -> Result<(), Error> {
         self.check_online()?;
 
         // We don't care in tests for now
         Ok(())
     }
-    async fn remove_team_member(&self, _jid: &BareJid) -> Result<(), Error> {
+    async fn remove_team_member(&self, _jid: &BareJid, _token: &AuthToken) -> Result<(), Error> {
         self.check_online()?;
 
         // We don't care in tests for now

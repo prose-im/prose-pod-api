@@ -17,7 +17,8 @@ use prose_xmpp::BareJid;
 use secrecy::SecretString;
 
 use crate::{
-    errors::UnexpectedHttpResponse, members::MemberRole, server_config::ServerConfig, AppConfig,
+    auth::AuthToken, errors::UnexpectedHttpResponse, members::MemberRole,
+    server_config::ServerConfig, AppConfig,
 };
 
 #[derive(Debug, Clone)]
@@ -61,9 +62,9 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
 
     /// Add a user to everyone's roster.
-    async fn add_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+    async fn add_team_member(&self, jid: &BareJid, token: &AuthToken) -> Result<(), Error>;
     /// Remove a user from everyone's roster.
-    async fn remove_team_member(&self, jid: &BareJid) -> Result<(), Error>;
+    async fn remove_team_member(&self, jid: &BareJid, token: &AuthToken) -> Result<(), Error>;
     /// Rosters synchronization is debounced, but sometimes one needs to force
     /// a re-sync (e.g. after a termination).
     async fn force_rosters_sync(&self) -> Result<(), Error>;

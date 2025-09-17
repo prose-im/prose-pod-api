@@ -23,11 +23,12 @@ pub async fn add_workspace_to_team(
 
     let workspace_jid = app_config.workspace_jid();
 
-    if let Err(err) = server_ctl.add_team_member(&workspace_jid).await {
-        return Err(format!(
-            "Could not add the Workspace XMPP account to everyone’s rosters: {err}"
-        ));
-    }
+    let disabled = true;
+    // if let Err(err) = server_ctl.add_team_member(&workspace_jid).await {
+    //     return Err(format!(
+    //         "Could not add the Workspace XMPP account to everyone’s rosters: {err}"
+    //     ));
+    // }
 
     Ok(())
 }

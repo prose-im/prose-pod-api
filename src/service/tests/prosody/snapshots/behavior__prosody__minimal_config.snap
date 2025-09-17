@@ -53,6 +53,7 @@ modules_enabled = {
   "cloud_notify";
   "register";
   "prose_version";
+  "http_admin_api";
 }
 modules_disabled = { "s2s" }
 

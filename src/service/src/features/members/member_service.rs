@@ -14,6 +14,7 @@ use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 
 use crate::{
     app_config::MemberEnrichingConfig,
+    auth::AuthToken,
     models::AvatarOwned,
     util::{unaccent, Cache, ConcurrentTaskRunner},
     xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
@@ -81,6 +82,7 @@ impl MemberService {
         &self,
         db: &impl ConnectionTrait,
         jid: &BareJid,
+        token: &AuthToken,
     ) -> Result<(), UserDeleteError> {
         if *jid == self.ctx.bare_jid {
             return Err(UserDeleteError::CannotSelfRemove);
@@ -97,7 +99,7 @@ impl MemberService {
 
         // Remove the user from everyone's rosters.
         server_ctl
-            .remove_team_member(jid)
+            .remove_team_member(jid, token)
             .await
             .map_err(UserDeleteError::XmppServerCannotRemoveTeamMember)?;
 

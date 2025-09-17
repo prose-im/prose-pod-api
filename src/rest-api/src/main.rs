@@ -24,7 +24,7 @@ use service::{
     notifications::{notifier::email::EmailNotifier, Notifier},
     pod_version::{LivePodVersionService, PodVersionService, StaticPodVersionService},
     prose_xmpp::UUIDProvider,
-    prosody::{ProsodyAdminRest, ProsodyOAuth2},
+    prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyOAuth2},
     secrets::{LiveSecretsStore, SecretsStore},
     xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
     AppConfig, HttpClient,
@@ -202,9 +202,14 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         http_client.clone(),
         base.secrets_store.clone(),
     ));
+    let prosody_http_admin_api = Arc::new(ProsodyHttpAdminApi::from_config(
+        &app_config,
+        http_client.clone(),
+    ));
     let server_ctl = ServerCtl::new(Arc::new(LiveServerCtl::from_config(
         &app_config,
         prosody_admin_rest.clone(),
+        prosody_http_admin_api.clone(),
         db.clone(),
     )));
     let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
