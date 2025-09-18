@@ -8,12 +8,14 @@ use secrecy::SecretString;
 pub use service::xmpp::ServerCtlImpl;
 use service::{
     auth::AuthToken,
+    errors::Forbidden,
     members::MemberRole,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
     sea_orm::DatabaseConnection,
+    util::either::{Either, Either3},
     xmpp::{
-        server_ctl::{self, Error},
+        server_ctl::{self, errors::GroupNotFound, Error},
         BareJid,
     },
     AppConfig, ProsodyConfigSection, ServerConfig,
@@ -46,11 +48,11 @@ impl MockServerCtl {
         Self { state, db }
     }
 
-    fn check_online(&self) -> Result<(), Error> {
+    fn check_online(&self) -> Result<(), anyhow::Error> {
         if self.state.read().unwrap().online {
             Ok(())
         } else {
-            Err(Error::Internal(anyhow::Error::msg("XMPP server offline")))?
+            Err(anyhow::Error::msg("XMPP server offline"))
         }
     }
 }
@@ -175,13 +177,21 @@ impl ServerCtlImpl for MockServerCtl {
         Ok(())
     }
 
-    async fn add_team_member(&self, _jid: &BareJid, _token: &AuthToken) -> Result<(), Error> {
+    async fn add_team_member(
+        &self,
+        _jid: &BareJid,
+        _token: &AuthToken,
+    ) -> Result<(), Either3<Forbidden, GroupNotFound, anyhow::Error>> {
         self.check_online()?;
 
         // We don't care in tests for now
         Ok(())
     }
-    async fn remove_team_member(&self, _jid: &BareJid, _token: &AuthToken) -> Result<(), Error> {
+    async fn remove_team_member(
+        &self,
+        _jid: &BareJid,
+        _token: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
         self.check_online()?;
 
         // We don't care in tests for now

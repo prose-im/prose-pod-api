@@ -5,7 +5,7 @@
 
 use std::{cmp::min, collections::HashSet, sync::Arc};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context as _};
 use chrono::{DateTime, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
 use serdev::Serialize;
@@ -15,9 +15,13 @@ use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
 use crate::{
     app_config::MemberEnrichingConfig,
     auth::AuthToken,
+    errors::Forbidden,
     models::AvatarOwned,
-    util::{unaccent, Cache, ConcurrentTaskRunner},
-    xmpp::{BareJid, ServerCtl, ServerCtlError, XmppService},
+    util::{
+        either::{Context as _, Either},
+        unaccent, Cache, ConcurrentTaskRunner,
+    },
+    xmpp::{BareJid, ServerCtl, XmppService},
 };
 
 use super::{entities::member, Member, MemberRepository, MemberRole};
@@ -101,13 +105,13 @@ impl MemberService {
         server_ctl
             .remove_team_member(jid, token)
             .await
-            .map_err(UserDeleteError::XmppServerCannotRemoveTeamMember)?;
+            .context("XMPP server cannot remove team member")?;
 
         // Delete the user from the XMPP server.
         server_ctl
             .remove_user(jid)
             .await
-            .map_err(UserDeleteError::XmppServerCannotDeleteUser)?;
+            .context("XMPP server cannot delete user")?;
 
         Ok(())
     }
@@ -117,12 +121,25 @@ impl MemberService {
 pub enum UserDeleteError {
     #[error("Cannot self-remove.")]
     CannotSelfRemove,
-    #[error("Database error: {0}")]
-    DbErr(#[from] DbErr),
-    #[error("XMPP server cannot remove team member: {0}")]
-    XmppServerCannotRemoveTeamMember(ServerCtlError),
-    #[error("XMPP server cannot delete user: {0}")]
-    XmppServerCannotDeleteUser(ServerCtlError),
+    #[error("{0}")]
+    Forbidden(#[from] Forbidden),
+    #[error("Internal error: {0}")]
+    Internal(#[from] anyhow::Error),
+}
+
+impl From<DbErr> for UserDeleteError {
+    fn from(err: DbErr) -> Self {
+        Self::Internal(anyhow::Error::from(err))
+    }
+}
+
+impl From<Either<Forbidden, anyhow::Error>> for UserDeleteError {
+    fn from(either: Either<Forbidden, anyhow::Error>) -> Self {
+        match either {
+            Either::E1(err) => Self::from(err),
+            Either::E2(err) => Self::from(err),
+        }
+    }
 }
 
 impl MemberService {

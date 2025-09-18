@@ -43,9 +43,8 @@ impl CustomErrorCode for UserDeleteError {
                 http_status: StatusCode::FORBIDDEN,
                 log_level: LogLevel::Info,
             },
-            Self::DbErr(err) => err.code(),
-            Self::XmppServerCannotRemoveTeamMember(err) => err.code(),
-            Self::XmppServerCannotDeleteUser(err) => err.code(),
+            Self::Forbidden(err) => err.code(),
+            Self::Internal(err) => err.code(),
         }
     }
 }

@@ -17,8 +17,13 @@ use prose_xmpp::BareJid;
 use secrecy::SecretString;
 
 use crate::{
-    auth::AuthToken, errors::UnexpectedHttpResponse, members::MemberRole,
-    server_config::ServerConfig, AppConfig,
+    auth::AuthToken,
+    errors::{Forbidden, UnexpectedHttpResponse},
+    members::MemberRole,
+    server_config::ServerConfig,
+    util::either::{Either, Either3},
+    xmpp::server_ctl::errors::GroupNotFound,
+    AppConfig,
 };
 
 #[derive(Debug, Clone)]
@@ -62,9 +67,17 @@ pub trait ServerCtlImpl: Debug + Sync + Send {
     async fn set_user_password(&self, jid: &BareJid, password: &SecretString) -> Result<(), Error>;
 
     /// Add a user to everyone's roster.
-    async fn add_team_member(&self, jid: &BareJid, token: &AuthToken) -> Result<(), Error>;
+    async fn add_team_member(
+        &self,
+        jid: &BareJid,
+        token: &AuthToken,
+    ) -> Result<(), Either3<Forbidden, GroupNotFound, anyhow::Error>>;
     /// Remove a user from everyone's roster.
-    async fn remove_team_member(&self, jid: &BareJid, token: &AuthToken) -> Result<(), Error>;
+    async fn remove_team_member(
+        &self,
+        jid: &BareJid,
+        token: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
     /// Rosters synchronization is debounced, but sometimes one needs to force
     /// a re-sync (e.g. after a termination).
     async fn force_rosters_sync(&self) -> Result<(), Error>;
@@ -130,6 +143,20 @@ pub enum ServerCtlError {
     UnexpectedResponse(UnexpectedHttpResponse),
     #[error("{0}")]
     Internal(#[from] anyhow::Error),
+}
+
+pub mod errors {
+    #[derive(Debug, thiserror::Error)]
+    #[error("Group ‘{group_id}’ not found.")]
+    pub struct GroupNotFound {
+        pub group_id: String,
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("Group ‘{group_id}’ already exists.")]
+    pub struct GroupAlreadyExists {
+        pub group_id: String,
+    }
 }
 
 // MARK: - Helpers

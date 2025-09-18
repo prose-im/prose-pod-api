@@ -7,7 +7,7 @@ pub mod prosody_admin_rest;
 mod prosody_bootstrap_config;
 pub mod prosody_config;
 mod prosody_config_from_db;
-mod prosody_http_admin_api;
+pub mod prosody_http_admin_api;
 mod prosody_oauth2;
 mod prosody_prose_version;
 mod prosody_rest;

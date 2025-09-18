@@ -25,6 +25,11 @@ pub struct MissingConfiguration(pub &'static str);
 #[error("Not implemented: {0}")]
 pub struct NotImplemented(pub &'static str);
 
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
+#[error("Forbidden: {0}")]
+pub struct Forbidden(pub String);
+
 #[derive(Debug, thiserror::Error, Serialize)]
 #[error("{message} (response: {response:#?})")]
 pub struct UnexpectedHttpResponse {

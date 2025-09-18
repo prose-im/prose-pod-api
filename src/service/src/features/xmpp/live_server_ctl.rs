@@ -12,14 +12,20 @@ use tracing::instrument;
 
 use crate::{
     auth::AuthToken,
+    errors::Forbidden,
     members::MemberRole,
     prosody::{
         prosody_admin_rest::{self, TEAM_GROUP_ID},
         prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest,
         ProsodyHttpAdminApi,
     },
-    xmpp::{server_ctl, BareJid, ServerCtlImpl},
+    util::either::{Either, Either3},
     AppConfig, ServerConfig,
+};
+
+use super::{
+    server_ctl::{self, errors::GroupNotFound},
+    BareJid, ServerCtlImpl,
 };
 
 #[derive(Debug)]
@@ -225,7 +231,7 @@ impl ServerCtlImpl for LiveServerCtl {
         &self,
         jid: &BareJid,
         token: &AuthToken,
-    ) -> Result<(), server_ctl::Error> {
+    ) -> Result<(), Either3<Forbidden, GroupNotFound, anyhow::Error>> {
         self.admin_api
             .add_group_member(TEAM_GROUP_ID, jid.node().unwrap(), token)
             .await?;
@@ -240,7 +246,7 @@ impl ServerCtlImpl for LiveServerCtl {
         &self,
         jid: &BareJid,
         token: &AuthToken,
-    ) -> Result<(), server_ctl::Error> {
+    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
         self.admin_api
             .remove_group_member(TEAM_GROUP_ID, jid.node().unwrap(), token)
             .await?;

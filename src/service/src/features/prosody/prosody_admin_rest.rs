@@ -132,19 +132,6 @@ impl ProsodyAdminRest {
         Ok(res.result.users)
     }
 
-    pub async fn create_team_group(&self) -> Result<(), server_ctl::Error> {
-        self.call(|client| {
-            client
-                .put(format!(
-                    "{}/{TEAM_GROUP_ID}",
-                    self.url_on_main_host("groups")
-                ))
-                .body(format!(r#"{{"name":"{TEAM_GROUP_NAME}"}}"#))
-        })
-        .await?;
-        Ok(())
-    }
-
     pub(crate) async fn update_rosters(&self) -> Result<(), server_ctl::Error> {
         tracing::debug!("Synchronizing rosters…");
         self.call(|client| {
@@ -188,11 +175,6 @@ impl ProsodyAdminRest {
         notifier.notify();
         *self.team_updated_notifier.write().await = Some((notifier, handle));
     }
-}
-
-#[derive(Debug)]
-enum AddMemberFailed {
-    GroupNotFound,
 }
 
 #[async_trait::async_trait]

@@ -4,6 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::http::header::InvalidHeaderValue;
+pub use service::errors::*;
 use service::{
     sea_orm,
     xmpp::{server_ctl, xmpp_service, CreateServiceAccountError},
@@ -131,10 +132,6 @@ impl ErrorCode {
         log_level: LogLevel::Warn,
     };
 }
-#[derive(Debug, thiserror::Error)]
-#[repr(transparent)]
-#[error("Forbidden: {0}")]
-pub struct Forbidden(pub String);
 impl HttpApiError for Forbidden {
     fn code(&self) -> ErrorCode {
         ErrorCode::FORBIDDEN
