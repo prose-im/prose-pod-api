@@ -117,6 +117,8 @@ fn prosody_config_from_db_(
         warn!("Debug config `c2s_unencrypted` is enabled.");
         global_settings.enable_module("reload_modules".to_owned());
         (global_settings.reload_modules.get_or_insert_default()).insert("saslauth".to_owned());
+        // FIX: “Duplicate option 'c2s_require_encryption'”.
+        global_settings.c2s_require_encryption = None;
         global_settings.custom_settings.push(Group::new(
             "Debug config: c2s_unencrypted",
             vec![
