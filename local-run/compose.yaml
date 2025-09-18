@@ -29,7 +29,6 @@ services:
     volumes:
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
       - "${VAR_LIB_PROSODY_DIR:?}:/var/lib/prosody/"
-      # - "${ETC_PROSODY_DIR:?}/prosody.bootstrap.cfg.lua:/usr/share/prose/prosody.bootstrap.cfg.lua"
     ports:
       - "5222:5222"
       - "5269:5269"
