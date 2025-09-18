@@ -33,7 +33,7 @@ macro_rules! gen {
             }
         }
 
-        // MARK: USEFUL (OPINIONATED) IMPLEMENTATIONS
+        // MARK: Useful (opinionated) implementations
 
         // NOTE: `anyhow::Error` -> `EitherN<…, anyhow::Error>`.
         impl<$case_0$(, $case)*> From<anyhow::Error> for $t<$case_0$(, $case)*, anyhow::Error> {
