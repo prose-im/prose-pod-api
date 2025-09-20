@@ -142,6 +142,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "auto_activate_hosts",
                     "roster",
                     "groups_internal",
+                    "groups_shell",
                     "saslauth",
                     "tls",
                     "dialback",
