@@ -78,11 +78,6 @@ pub struct Error {
 
     #[serde(skip_serializing)]
     log_level: LogLevel,
-
-    /// Whether or not the error has already been logged.
-    /// This way we can make sure an error is not logged twice.
-    #[serde(skip_serializing)]
-    logged: AtomicBool,
 }
 
 impl Error {
@@ -101,7 +96,6 @@ impl Error {
             http_status: code.http_status,
             http_headers,
             log_level: code.log_level,
-            logged: AtomicBool::new(false),
         }
     }
 }
@@ -109,10 +103,6 @@ impl Error {
 impl Error {
     /// Log the error.
     fn log(&self) {
-        if self.logged.load(Ordering::Relaxed) {
-            return;
-        }
-
         let mut messages = Vec::<String>::with_capacity(3);
 
         messages.push(self.message.clone());
@@ -144,8 +134,6 @@ impl Error {
             LogLevel::Warn => warn!("{log_line}"),
             LogLevel::Error => error!("{log_line}"),
         };
-
-        self.logged.store(true, Ordering::Relaxed);
     }
 
     fn add_headers(&self, headers: &mut HeaderMap) {
