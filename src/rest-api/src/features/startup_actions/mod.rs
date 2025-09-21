@@ -69,6 +69,8 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         run_step_macro!(app_state, app_config);
 
         run_step!(run_migrations);
+        let temp = true;
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         run_step!(test_services_reachability);
         run_step!(wait_for_server);
         run_step!(rotate_api_xmpp_password);
