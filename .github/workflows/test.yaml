@@ -88,6 +88,9 @@ jobs:
       - name: Ensure no `dbg!`s are committed in source files
         run: "! grep -rEn --include='*.rs' 'dbg!' src"
 
+      - name: Ensure no `todo!`s are committed in source files
+        run: "! grep -rEn --include='*.rs' 'todo!' src"
+
   smoke-test:
     if: github.event.pull_request.draft == false
     needs: [lint-rust, lint-openapi, check-no-unwanted-strings]
