@@ -54,7 +54,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 #[derive(Serialize)]
 #[error("{message}")]
 pub struct Error {
