@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
        It’s used by `task release` when updating the changelog. -->
 [Unreleased]: https://github.com/prose-im/prose-pod-api/compare/v0.19.1...HEAD
 
+### Changed
+
+- chore(app-config): Use `figment` correctly instead of using `serde(default)` (in `4b1c13b7`)
+
+### Added
+
+- test(app-config): Add tests for smart default values (in `fd96cf88`)
+
+### Fixed
+
+- fix: Fix database locks by opening two connection pools (in `8d808920`)
+- fix(local-run): Fix `task telemetry:start` not working when Docker network changed (in `cf3c6b46`)
+
 ## [0.19.1] - 2025-09-16
 
 [0.19.1]: https://github.com/prose-im/prose-pod-api/compare/v0.19.0...v0.19.1
