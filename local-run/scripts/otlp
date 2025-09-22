@@ -184,7 +184,28 @@ start-container() {
 	elif local container_id="$(container-id "${container_name}")"; [ -n "${container_id:-}" ]; then
 		# CASE: Container already exists.
 		trace "${service_name} already exists."
-		edo log_as_trace_ docker start "${container_id}"
+
+		local pod_network_id="$({ docker network inspect "${PROSE_OTEL_DOCKER_NETWORK:?}" 2>/dev/null || :; } | jq -r ".[0].Id")"
+
+		# FIX: https://github.com/prose-im/prose-pod-api/issues/334
+		if [[ "${pod_network_id:-null}" == 'null' ]]; then
+			info "Network $(format_code "${PROSE_OTEL_DOCKER_NETWORK:?}") does not exist. Please run $(format_code "task local:run -- [args...] +telemetry") first."
+			die
+		fi
+
+		local jaeger_network_id="$(docker inspect "${container_id}" | jq -r ".[0].NetworkSettings.Networks[\"${PROSE_OTEL_DOCKER_NETWORK:?}\"].NetworkID")"
+
+		# FIX: https://github.com/prose-im/prose-pod-api/issues/334
+		if [[ "${jaeger_network_id:-null}" == 'null' ]]; then
+			trace "Reconnecting ${service_name} to Docker network $(format_code "${PROSE_OTEL_DOCKER_NETWORK:?}")…"
+			edo log_as_trace_ docker network connect "${PROSE_OTEL_DOCKER_NETWORK:?}" "${container_id}"
+		elif [[ "${jaeger_network_id:?}" != "${pod_network_id:?}" ]]; then
+			trace "Network $(format_code "${PROSE_OTEL_DOCKER_NETWORK:?}") ID changed, reconnecting…"
+			edo log_as_trace_ docker network disconnect "${PROSE_OTEL_DOCKER_NETWORK:?}" "${container_id}"
+			edo log_as_trace_ docker network connect "${PROSE_OTEL_DOCKER_NETWORK:?}" "${container_id}"
+		fi
+
+		edo log_as_trace_ docker start "${container_id}" 2\>/dev/null
 	else
 		edo log_as_trace_ docker run -d \
 			--name "${container_name}" \
