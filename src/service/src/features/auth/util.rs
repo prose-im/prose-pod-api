@@ -19,3 +19,22 @@ pub fn random_secret_url_safe(length: usize) -> SecretString {
     // NOTE: Already URL-safe.
     random_secret(length)
 }
+
+#[must_use]
+#[inline]
+pub fn random_oauth2_registration_key() -> SecretString {
+    use rand::RngCore as _;
+
+    let mut key = [0u8; 256];
+    rand::thread_rng().fill_bytes(&mut key);
+
+    // fn bytes_to_hex(bytes: &[u8]) -> String {
+    //     bytes.iter().map(|byte| format!("{:02x}", byte)).collect()
+    // }
+    fn bytes_to_base64(bytes: &[u8]) -> String {
+        use base64::Engine as _;
+        base64::prelude::BASE64_STANDARD.encode(bytes)
+    }
+
+    SecretString::from(bytes_to_base64(&key))
+}

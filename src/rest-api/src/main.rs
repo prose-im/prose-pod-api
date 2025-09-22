@@ -43,7 +43,9 @@ async fn main() {
         let figment = AppConfig::figment();
         let ref log_config = match figment.extract_inner::<LogConfig>("log") {
             Ok(config) => config,
-            Err(err) if err.missing() => Default::default(),
+            Err(err) if err.missing() => {
+                unreachable!("Defaults should be provided by `AppConfig::figment`")
+            }
             Err(err) => panic!("Invalid `log` config: {err:?}"),
         };
         init_subscribers(log_config)
@@ -129,7 +131,7 @@ async fn run(
         Err(_) if lifecycle_manager.is_restarting() => {
             warn!("The Prose Pod API is missing some static configuration. Serving only utility routes.");
 
-            let addr = SocketAddr::new(defaults::api_address(), defaults::api_port());
+            let addr = SocketAddr::new(defaults::API_ADDRESS, defaults::API_PORT);
 
             let app = factory_reset_router(&minimal_app_state);
 

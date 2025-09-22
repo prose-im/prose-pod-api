@@ -3,8 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-pub(crate) mod defaults;
-
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -44,6 +42,13 @@ pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
 lazy_static! {
     pub static ref CONFIG_FILE_PATH: PathBuf =
         (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
+    static ref DEFAULT_MAIN_DATABASE_URL: String =
+        format!("sqlite://{API_DATA_DIR}/database.sqlite");
+    static ref DEFAULT_DB_MAX_READ_CONNECTIONS: usize = {
+        let workers: usize =
+            std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+        workers * 4
+    };
 }
 
 mod prelude {
@@ -56,15 +61,264 @@ mod prelude {
     pub use serdev::Serialize;
     pub use validator::{Validate, ValidationError, ValidationErrors};
 
-    pub(crate) use crate::app_config::defaults;
     pub use crate::{errors::MissingConfiguration, models::*};
 
     pub use super::{util::*, AppConfig};
 }
 
 pub mod pub_defaults {
-    pub use super::defaults::api::{address as api_address, port as api_port};
+    pub const API_ADDRESS: std::net::IpAddr = std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
+
+    pub const API_PORT: u16 = 8080;
+
+    pub const SERVER_HTTP_PORT: u16 = 5280;
+
+    pub const SERVER_LOCAL_HOSTNAME: &'static str = "prose-pod-server";
+
+    pub const SERVER_LOCAL_HOSTNAME_ADMIN: &'static str = "prose-pod-server-admin";
+
+    pub const SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE: &'static str = "prose-pod-api";
 }
+
+fn default_config_static() -> Figment {
+    use self::pub_defaults::*;
+    use figment::providers::{Format as _, Toml};
+    use secrecy::{ExposeSecret as _, SecretString};
+    use toml::toml;
+
+    let random_oauth2_registration_key: SecretString =
+        crate::auth::util::random_oauth2_registration_key();
+    let random_oauth2_registration_key: &str = random_oauth2_registration_key.expose_secret();
+
+    let default_database_url = DEFAULT_MAIN_DATABASE_URL.as_str();
+
+    let default_log_format = if cfg!(debug_assertions) {
+        "pretty"
+    } else {
+        "json"
+    };
+    let default_log_timer = if cfg!(debug_assertions) {
+        "uptime"
+    } else {
+        "time"
+    };
+
+    let true_in_debug = cfg!(debug_assertions);
+
+    let api_address = API_ADDRESS.to_string();
+
+    let static_defaults = toml! {
+        [branding]
+        api_app_name = "Prose Pod API"
+
+        [log]
+        level = "info"
+        format = default_log_format
+        timer = default_log_timer
+        with_ansi = true_in_debug
+        with_file = true_in_debug
+        with_level = true
+        with_target = true
+        with_thread_ids = false
+        with_line_number = true_in_debug
+        with_span_events = false
+        with_thread_names = true_in_debug
+
+        [api]
+        address = api_address
+        port = API_PORT
+
+        [notifiers]
+        workspace_invitation_channel = "email"
+
+        [api.databases.main]
+        url = default_database_url
+        connect_timeout = 5
+        sqlx_logging = false
+
+        [auth]
+        token_ttl = "PT3H"
+        password_reset_token_ttl = "PT15M"
+        oauth2_registration_key = random_oauth2_registration_key
+
+        [api.network_checks]
+        timeout = "PT5M"
+        retry_interval = "PT5S"
+        retry_timeout = "PT1S"
+        // When querying DNS records, we query the authoritative name servers directly.
+        // To avoid unnecessary DNS queries, we cache the IP addresses of these servers.
+        // However, these IP addresses can change over time so we need to clear the cache
+        // every now and then. 5 minutes seems long enough to avoid unnecessary queries
+        // while a user is checking their DNS configuration, but short enough to react to
+        // DNS server reconfigurations.
+        dns_cache_ttl = "PT5M"
+
+        [api.member_enriching]
+        // When enriching members, we query the XMPP server for all vCards. To
+        // avoid flooding the server with too many requests, we cache enriched
+        // members for a little while (enough for someone to finish searching for a
+        // member, but short enough to react to changes). Enriching isn’t a very
+        // costly operation but we wouldn’t want to enrich all members for every
+        // keystroke in the search bar of the Dashboard.
+        cache_ttl = "PT2M"
+
+        [api.invitations]
+        invitation_ttl = "P3D"
+
+        [server]
+        local_hostname = SERVER_LOCAL_HOSTNAME
+        local_hostname_admin = SERVER_LOCAL_HOSTNAME_ADMIN
+        http_port = SERVER_HTTP_PORT
+        log_level = "info"
+
+        [server.defaults]
+        message_archive_enabled = true
+        message_archive_retention = "infinite"
+        file_upload_allowed = true
+        file_storage_retention = "infinite"
+        file_storage_encryption_scheme = "AES-256"
+        mfa_required = true
+        tls_profile = "modern"
+        federation_enabled = false
+        // Federate with the whole XMPP network by default.
+        federation_whitelist_enabled = false
+        // Do not trust any other server by default
+        // (useless until whitelist enabled).
+        federation_friendly_servers = []
+        settings_backup_interval = "P1D"
+        user_data_backup_interval = "P1W"
+        push_notification_with_body = true
+        push_notification_with_sender = true
+
+        [service_accounts.prose_pod_api]
+        xmpp_node = SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE
+
+        [service_accounts.prose_workspace]
+        xmpp_node = "prose-workspace"
+
+        [bootstrap]
+        prose_pod_api_xmpp_password = "bootstrap"
+
+        [prosody_ext]
+        config_file_path = "/etc/prosody/prosody.cfg.lua"
+
+        [debug_use_at_your_own_risk]
+        log_config_at_startup = true_in_debug
+        detailed_error_responses = true_in_debug
+        c2s_unencrypted = false
+    }
+    .to_string();
+
+    Figment::from(Toml::string(&static_defaults))
+}
+
+fn with_dynamic_defaults(mut figment: Figment) -> anyhow::Result<Figment> {
+    use figment::{providers::*, value::Value};
+
+    let server_domain = figment.extract_inner::<String>("server.domain")?;
+
+    // NOTE: We have to use `Serialized::default`. See <https://github.com/SergioBenitez/Figment/issues/64#issuecomment-1493111060>.
+
+    if figment.contains("notifiers.email") {
+        figment = figment
+            .join(Serialized::default("notifiers.email.smtp_port", 587))
+            .join(Serialized::default("notifiers.email.smtp_encrypt", true));
+    }
+
+    // If an email notifier is defined, add a default for the Pod address.
+    let smtp_host = figment
+        .extract_inner::<String>("notifiers.email.smtp_host")
+        .ok();
+    if smtp_host.is_some() {
+        figment = figment.join(Serialized::default(
+            "notifiers.email.pod_address",
+            format!("prose@{server_domain}"),
+        ));
+    }
+
+    let PodAddress {
+        domain: pod_domain,
+        ipv4: pod_ipv4,
+        ipv6: pod_ipv6,
+        ..
+    } = figment
+        .extract_inner::<PodAddress>("pod.address")
+        .unwrap_or_default();
+    if (pod_ipv4, pod_ipv6) == (None, None) {
+        // If no static address has been defined, add a default for the Pod domain.
+        let default_server_domain = format!("prose.{server_domain}");
+        figment = figment.join(Serialized::default(
+            "pod.address.domain",
+            &default_server_domain,
+        ));
+
+        // If possible, add a default for the Dashboard URL.
+        let pod_domain = pod_domain.map_or(default_server_domain, |name| name.to_string());
+        figment = figment.join(Serialized::default(
+            "dashboard.url",
+            format!("https://admin.{pod_domain}"),
+        ));
+    }
+
+    if let Ok(main_default) = figment.extract_inner::<Value>("api.databases.main") {
+        // Use `main` as default for `main_read` and `main_write`.
+        figment = figment
+            .join(Serialized::default(
+                "api.databases.main_read",
+                main_default.clone(),
+            ))
+            .join(Serialized::default(
+                "api.databases.main_write",
+                main_default,
+            ));
+
+        // Override default `max_connections` for `main_write`.
+        figment = figment
+            .join(Serialized::default(
+                "api.databases.main_read.max_connections",
+                *DEFAULT_DB_MAX_READ_CONNECTIONS,
+            ))
+            .join(Serialized::default(
+                "api.databases.main_write.max_connections",
+                1,
+            ));
+    }
+
+    Ok(figment)
+}
+
+impl AppConfig {
+    pub fn figment() -> Figment {
+        Self::figment_at_path(CONFIG_FILE_PATH.as_path())
+    }
+
+    pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {
+        use figment::providers::{Env, Format, Toml};
+
+        // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
+        default_config_static()
+            .merge(Toml::file(path))
+            .merge(Env::prefixed("PROSE_").split("__"))
+    }
+
+    pub fn from_figment(figment: Figment) -> anyhow::Result<Self> {
+        use anyhow::Context as _;
+
+        with_dynamic_defaults(figment)?
+            .extract()
+            .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))
+    }
+
+    pub fn from_path(path: impl AsRef<Path>) -> anyhow::Result<Self> {
+        Self::from_figment(Self::figment_at_path(path))
+    }
+
+    pub fn from_default_figment() -> anyhow::Result<Self> {
+        Self::from_figment(Self::figment())
+    }
+}
+
+// MARK: - Data structures
 
 // TODO: Validate values intervals.
 /// Prose Pod configuration.
@@ -81,32 +335,26 @@ pub mod pub_defaults {
 #[validate(nest_all_fields)]
 #[serde(validate = "Validate::validate")]
 pub struct AppConfig {
-    #[serde(default)]
     pub branding: Arc<BrandingConfig>,
 
-    #[serde(default)]
     pub notifiers: Arc<NotifiersConfig>,
 
-    #[serde(default)]
     pub log: Arc<LogConfig>,
 
     pub pod: Arc<PodConfig>,
 
     pub server: Arc<ServerConfig>,
 
-    #[serde(default)]
     pub api: Arc<ApiConfig>,
 
     pub dashboard: Arc<DashboardConfig>,
 
-    #[serde(default)]
     pub auth: Arc<AuthConfig>,
 
     #[serde(default)]
     pub public_contacts: Arc<PublicContactsConfig>,
 
     /// Advanced config, use only if needed.
-    #[serde(default)]
     pub prosody_ext: Arc<ProsodyExtConfig>,
 
     /// Advanced config, use only if needed.
@@ -114,126 +362,19 @@ pub struct AppConfig {
     pub prosody: HashMap<DomainName, ProsodyHostConfig>,
 
     /// Advanced config, use only if needed.
-    #[serde(default)]
     pub bootstrap: Arc<BootstrapConfig>,
 
     /// Advanced config, use only if needed.
-    #[serde(default)]
     pub service_accounts: Arc<ServiceAccountsConfig>,
 
     /// Advanced config, use only if needed.
-    #[serde(default, rename = "debug_use_at_your_own_risk")]
+    #[serde(rename = "debug_use_at_your_own_risk")]
     pub debug: Arc<DebugConfig>,
 
     /// Advanced config, use only if needed.
     #[cfg(debug_assertions)]
     #[serde(default)]
     pub debug_only: Arc<DebugOnlyConfig>,
-}
-
-impl AppConfig {
-    pub fn figment() -> Figment {
-        Self::figment_at_path(CONFIG_FILE_PATH.as_path())
-    }
-
-    pub fn figment_at_path(path: impl AsRef<Path>) -> Figment {
-        use figment::providers::{Env, Format, Toml};
-
-        // NOTE: See what's possible at <https://docs.rs/figment/latest/figment/>.
-        Figment::new()
-            .merge(Toml::file(path))
-            .merge(Env::prefixed("PROSE_").split("__"))
-    }
-
-    pub fn from_figment(mut figment: Figment) -> anyhow::Result<Self> {
-        use anyhow::Context as _;
-        use figment::{providers::*, value::Value};
-
-        let server_domain = figment.extract_inner::<String>("server.domain")?;
-
-        // NOTE: We have to use `Serialized::default`. See <https://github.com/SergioBenitez/Figment/issues/64#issuecomment-1493111060>.
-
-        // If an email notifier is defined, add a default for the Pod address.
-        let smtp_host = figment
-            .extract_inner::<String>("notifiers.email.smtp_host")
-            .ok();
-        if smtp_host.is_some() {
-            figment = figment.join(Serialized::default(
-                "notifiers.email.pod_address",
-                format!("prose@{server_domain}"),
-            ));
-        }
-
-        let PodAddress {
-            domain: pod_domain,
-            ipv4: pod_ipv4,
-            ipv6: pod_ipv6,
-            ..
-        } = figment
-            .extract_inner::<PodAddress>("pod.address")
-            .unwrap_or_default();
-        if (pod_ipv4, pod_ipv6) == (None, None) {
-            // If no static address has been defined, add a default for the Pod domain.
-            let default_server_domain = format!("prose.{server_domain}");
-            figment = figment.join(Serialized::default(
-                "pod.address.domain",
-                &default_server_domain,
-            ));
-
-            // If possible, add a default for the Dashboard URL.
-            let pod_domain = pod_domain.map_or(default_server_domain, |name| name.to_string());
-            figment = figment.join(Serialized::default(
-                "dashboard.url",
-                format!("https://admin.{pod_domain}"),
-            ));
-        }
-
-        if figment.contains("api.databases.main") {
-            // Allow setting configs without expliciting
-            // the non-optional `url` field.
-            figment = figment.join(Serialized::default(
-                "api.databases.main.url",
-                defaults::databases::main_url(),
-            ));
-
-            // Use `main` as default for `main_read` and `main_write`.
-            let main_default = figment.extract_inner::<Value>("api.databases.main").expect(
-                "Figment should already contain the key since we just checked with `.contains`.",
-            );
-            figment = figment
-                .join(Serialized::default(
-                    "api.databases.main_read",
-                    main_default.clone(),
-                ))
-                .join(Serialized::default(
-                    "api.databases.main_write",
-                    main_default,
-                ));
-        }
-
-        // Apply defaults for `main_read` and `main_write`.
-        figment = figment
-            .join(Serialized::default(
-                "api.databases.main_read",
-                defaults::databases::main_read(),
-            ))
-            .join(Serialized::default(
-                "api.databases.main_write",
-                defaults::databases::main_write(),
-            ));
-
-        figment
-            .extract()
-            .context(format!("Invalid '{CONFIG_FILE_NAME}' configuration file"))
-    }
-
-    pub fn from_path(path: impl AsRef<Path>) -> anyhow::Result<Self> {
-        Self::from_figment(Self::figment_at_path(path))
-    }
-
-    pub fn from_default_figment() -> anyhow::Result<Self> {
-        Self::from_figment(Self::figment())
-    }
 }
 
 mod log {
@@ -244,56 +385,27 @@ mod log {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct LogConfig {
-        #[serde(default = "defaults::log::level")]
         pub level: LogLevel,
 
-        #[serde(default = "defaults::log::format")]
         pub format: LogFormat,
 
-        #[serde(default = "defaults::log::timer")]
         pub timer: LogTimer,
 
-        #[serde(default = "defaults::true_in_debug")]
         pub with_ansi: bool,
 
-        #[serde(default = "defaults::true_in_debug")]
         pub with_file: bool,
 
-        #[serde(default = "defaults::always_true")]
         pub with_level: bool,
 
-        #[serde(default = "defaults::always_true")]
         pub with_target: bool,
 
-        #[serde(default = "defaults::always_false")]
         pub with_thread_ids: bool,
 
-        #[serde(default = "defaults::true_in_debug")]
         pub with_line_number: bool,
 
-        #[serde(default = "defaults::always_false")]
         pub with_span_events: bool,
 
-        #[serde(default = "crate::app_config::defaults::true_in_debug")]
         pub with_thread_names: bool,
-    }
-
-    impl Default for LogConfig {
-        fn default() -> Self {
-            Self {
-                level: defaults::log::level(),
-                format: defaults::log::format(),
-                timer: defaults::log::timer(),
-                with_ansi: defaults::true_in_debug(),
-                with_file: defaults::true_in_debug(),
-                with_level: defaults::always_true(),
-                with_target: defaults::always_true(),
-                with_thread_ids: defaults::always_false(),
-                with_line_number: defaults::always_true(),
-                with_span_events: defaults::always_false(),
-                with_thread_names: defaults::true_in_debug(),
-            }
-        }
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -345,12 +457,10 @@ mod api {
     #[serde(validate = "Validate::validate")]
     pub struct ApiConfig {
         /// IP address to serve on.
-        #[serde(default = "defaults::api::address")]
         #[validate(skip)]
         pub address: IpAddr,
 
         /// Port to serve on.
-        #[serde(default = "defaults::api::port")]
         #[validate(skip)]
         pub port: u16,
 
@@ -358,29 +468,13 @@ mod api {
         pub databases: DatabasesConfig,
 
         // TODO: Validate.
-        #[serde(default)]
         pub network_checks: NetworkChecksConfig,
 
         // TODO: Validate.
-        #[serde(default)]
         pub member_enriching: MemberEnrichingConfig,
 
         // TODO: Validate.
-        #[serde(default)]
         pub invitations: InvitationsConfig,
-    }
-
-    impl Default for ApiConfig {
-        fn default() -> Self {
-            Self {
-                address: defaults::api::address(),
-                port: defaults::api::port(),
-                databases: Default::default(),
-                network_checks: Default::default(),
-                member_enriching: Default::default(),
-                invitations: Default::default(),
-            }
-        }
     }
 
     // TODO: Validate values.
@@ -388,29 +482,13 @@ mod api {
     #[derive(Deserialize)]
     #[serde(deny_unknown_fields)]
     pub struct NetworkChecksConfig {
-        #[serde(default = "defaults::api::network_checks::timeout")]
         pub timeout: Duration<TimeLike>,
 
-        #[serde(default = "defaults::api::network_checks::retry_interval")]
         pub retry_interval: Duration<TimeLike>,
 
-        #[serde(default = "defaults::api::network_checks::retry_timeout")]
         pub retry_timeout: Duration<TimeLike>,
 
-        #[serde(default = "defaults::api::network_checks::dns_cache_ttl")]
         pub dns_cache_ttl: Duration<TimeLike>,
-    }
-
-    impl Default for NetworkChecksConfig {
-        fn default() -> Self {
-            use defaults::api::network_checks as defaults;
-            Self {
-                timeout: defaults::timeout(),
-                retry_interval: defaults::retry_interval(),
-                retry_timeout: defaults::retry_timeout(),
-                dns_cache_ttl: defaults::dns_cache_ttl(),
-            }
-        }
     }
 
     // TODO: Validate values.
@@ -418,17 +496,7 @@ mod api {
     #[derive(Deserialize)]
     #[serde(deny_unknown_fields)]
     pub struct MemberEnrichingConfig {
-        #[serde(default = "defaults::api::member_enriching::cache_ttl")]
         pub cache_ttl: Duration<TimeLike>,
-    }
-
-    impl Default for MemberEnrichingConfig {
-        fn default() -> Self {
-            use defaults::api::member_enriching as defaults;
-            Self {
-                cache_ttl: defaults::cache_ttl(),
-            }
-        }
     }
 
     // TODO: Validate values.
@@ -436,17 +504,7 @@ mod api {
     #[derive(Deserialize)]
     #[serde(deny_unknown_fields)]
     pub struct InvitationsConfig {
-        #[serde(default = "defaults::api::invitations::invitation_ttl")]
         pub invitation_ttl: Duration<DateLike>,
-    }
-
-    impl Default for InvitationsConfig {
-        fn default() -> Self {
-            use defaults::api::invitations as defaults;
-            Self {
-                invitation_ttl: defaults::invitation_ttl(),
-            }
-        }
     }
 
     mod databases {
@@ -474,16 +532,6 @@ mod api {
             }
         }
 
-        impl Default for DatabasesConfig {
-            fn default() -> Self {
-                use defaults::databases as defaults;
-                Self {
-                    main_read: defaults::main_read(),
-                    main_write: defaults::main_write(),
-                }
-            }
-        }
-
         /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
         #[derive(Debug)]
         #[serde_with::skip_serializing_none]
@@ -497,10 +545,8 @@ mod api {
             #[serde(default)]
             pub min_connections: Option<u32>,
 
-            #[serde(default = "defaults::databases::default::max_connections")]
             pub max_connections: usize,
 
-            #[serde(default = "defaults::databases::default::connect_timeout")]
             pub connect_timeout: u64,
 
             #[serde(default)]
@@ -509,7 +555,6 @@ mod api {
             #[serde(default)]
             pub idle_timeout: Option<u64>,
 
-            #[serde(default)]
             pub sqlx_logging: bool,
         }
     }
@@ -548,22 +593,11 @@ mod service_accounts {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct ServiceAccountsConfig {
-        #[serde(default = "defaults::service_accounts::prose_pod_api")]
         #[validate(nested)]
         pub prose_pod_api: ServiceAccountConfig,
 
-        #[serde(default = "defaults::service_accounts::prose_workspace")]
         #[validate(nested)]
         pub prose_workspace: ServiceAccountConfig,
-    }
-
-    impl Default for ServiceAccountsConfig {
-        fn default() -> Self {
-            Self {
-                prose_pod_api: defaults::service_accounts::prose_pod_api(),
-                prose_workspace: defaults::service_accounts::prose_workspace(),
-            }
-        }
     }
 
     #[derive(Debug)]
@@ -599,17 +633,7 @@ mod bootstrap {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct BootstrapConfig {
-        #[serde(default = "defaults::bootstrap::prose_pod_api_xmpp_password")]
         pub prose_pod_api_xmpp_password: SecretString,
-    }
-
-    impl Default for BootstrapConfig {
-        fn default() -> Self {
-            use defaults::bootstrap as defaults;
-            Self {
-                prose_pod_api_xmpp_password: defaults::prose_pod_api_xmpp_password(),
-            }
-        }
     }
 }
 
@@ -687,21 +711,16 @@ mod server {
     pub struct ServerConfig {
         pub domain: JidDomain,
 
-        #[serde(default = "defaults::server::local_hostname")]
         #[validate(length(min = 1, max = 1024), non_control_character)]
         pub local_hostname: String,
 
-        #[serde(default = "defaults::server::local_hostname_admin")]
         #[validate(length(min = 1, max = 1024), non_control_character)]
         pub local_hostname_admin: String,
 
-        #[serde(default = "defaults::server::http_port")]
         pub http_port: u16,
 
-        #[serde(default = "defaults::server::log_level")]
         pub log_level: prosody_config::LogLevel,
 
-        #[serde(default)]
         #[validate(nested)]
         pub defaults: ServerDefaultsConfig,
     }
@@ -733,6 +752,8 @@ mod server {
 
         pub mfa_required: bool,
 
+        /// Minimum [TLS](https://fr.wikipedia.org/wiki/Transport_Layer_Security) profile
+        /// (see <https://wiki.mozilla.org/Security/Server_Side_TLS>).
         pub tls_profile: TlsProfile,
 
         pub federation_enabled: bool,
@@ -750,28 +771,6 @@ mod server {
         pub push_notification_with_body: bool,
 
         pub push_notification_with_sender: bool,
-    }
-
-    impl Default for ServerDefaultsConfig {
-        fn default() -> Self {
-            use defaults::server::defaults;
-            Self {
-                message_archive_enabled: defaults::message_archive_enabled(),
-                message_archive_retention: defaults::message_archive_retention(),
-                file_upload_allowed: defaults::file_upload_allowed(),
-                file_storage_encryption_scheme: defaults::file_storage_encryption_scheme(),
-                file_storage_retention: defaults::file_storage_retention(),
-                mfa_required: defaults::mfa_required(),
-                tls_profile: defaults::tls_profile(),
-                federation_enabled: defaults::federation_enabled(),
-                federation_whitelist_enabled: defaults::federation_whitelist_enabled(),
-                federation_friendly_servers: defaults::federation_friendly_servers(),
-                settings_backup_interval: defaults::settings_backup_interval(),
-                user_data_backup_interval: defaults::user_data_backup_interval(),
-                push_notification_with_body: defaults::push_notification_with_body(),
-                push_notification_with_sender: defaults::push_notification_with_sender(),
-            }
-        }
     }
 
     impl AppConfig {
@@ -826,25 +825,11 @@ mod auth {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct AuthConfig {
-        #[serde(default = "defaults::auth::token_ttl")]
         pub token_ttl: iso8601_duration::Duration,
 
-        #[serde(default = "defaults::auth::password_reset_token_ttl")]
         pub password_reset_token_ttl: iso8601_duration::Duration,
 
-        #[serde(default = "defaults::auth::oauth2_registration_key")]
         pub oauth2_registration_key: SecretString,
-    }
-
-    impl Default for AuthConfig {
-        fn default() -> Self {
-            use defaults::auth as defaults;
-            Self {
-                token_ttl: defaults::token_ttl(),
-                password_reset_token_ttl: defaults::password_reset_token_ttl(),
-                oauth2_registration_key: defaults::oauth2_registration_key(),
-            }
-        }
     }
 }
 
@@ -890,7 +875,6 @@ mod prosody_ext {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct ProsodyExtConfig {
-        #[serde(default = "defaults::prosody::config_file_path")]
         pub config_file_path: PathBuf,
 
         /// NOTE: Those modules will be added to `modules_enabled` after everything
@@ -901,16 +885,6 @@ mod prosody_ext {
         //   let’s ignore validating the character set.
         #[validate(custom(function = validate_module_names_vec))]
         pub additional_modules_enabled: Vec<String>,
-    }
-
-    impl Default for ProsodyExtConfig {
-        fn default() -> Self {
-            use defaults::prosody as defaults;
-            Self {
-                config_file_path: defaults::config_file_path(),
-                additional_modules_enabled: Default::default(),
-            }
-        }
     }
 }
 
@@ -945,19 +919,8 @@ mod branding {
         #[validate(length(min = 1, max = 48), non_control_character)]
         pub company_name: Option<String>,
 
-        #[serde(default = "defaults::branding::api_app_name")]
         #[validate(length(min = 1, max = 48), non_control_character)]
         pub api_app_name: String,
-    }
-
-    impl Default for BrandingConfig {
-        fn default() -> Self {
-            use defaults::branding as defaults;
-            Self {
-                company_name: None,
-                api_app_name: defaults::api_app_name(),
-            }
-        }
     }
 }
 
@@ -966,12 +929,11 @@ mod notifiers {
 
     use super::prelude::*;
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     #[derive(Validate, serdev::Deserialize)]
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct NotifiersConfig {
-        #[serde(default = "defaults::notifiers::workspace_invitation_channel")]
         pub workspace_invitation_channel: InvitationChannel,
 
         #[serde(default)]
@@ -988,12 +950,6 @@ mod notifiers {
         }
     }
 
-    impl Default for InvitationChannel {
-        fn default() -> Self {
-            defaults::notifiers::workspace_invitation_channel()
-        }
-    }
-
     #[derive(Debug)]
     #[derive(Validate, serdev::Deserialize)]
     #[serde(deny_unknown_fields)]
@@ -1004,16 +960,16 @@ mod notifiers {
         #[validate(length(min = 1, max = 1024))]
         pub smtp_host: String,
 
-        #[serde(default = "defaults::notifiers::email::smtp_port")]
         pub smtp_port: u16,
 
         #[validate(length(min = 1, max = 1024))]
         pub smtp_username: Option<String>,
+
+        #[serde(default)]
         // NOTE: Not validated because of the Rust type system
         //   but it’s a password so let’s ignore it.
         pub smtp_password: Option<SecretString>,
 
-        #[serde(default = "defaults::notifiers::email::smtp_encrypt")]
         pub smtp_encrypt: bool,
     }
 }
@@ -1026,31 +982,19 @@ mod debug {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct DebugConfig {
-        #[serde(default = "defaults::true_in_debug")]
         pub log_config_at_startup: bool,
 
-        #[serde(default = "defaults::true_in_debug")]
         pub detailed_error_responses: bool,
 
-        #[serde(default = "defaults::always_false")]
         pub c2s_unencrypted: bool,
 
-        // NOTE: Needs to be available in release builds so we can run the CI in
-        //   `prose-pod-system` without having to start live notifiers.
+        // NOTE: Needs to be available in release builds so we can
+        //   run the CI in `prose-pod-system` without having to start
+        //   live notifiers. Also this turned out very useful
+        //   to multiple people so let’s keep it public.
         #[serde(default)]
         #[validate(custom(function = validate_module_names_set))]
         pub skip_startup_actions: HashSet<String>,
-    }
-
-    impl Default for DebugConfig {
-        fn default() -> Self {
-            Self {
-                log_config_at_startup: defaults::true_in_debug(),
-                detailed_error_responses: defaults::true_in_debug(),
-                c2s_unencrypted: defaults::always_false(),
-                skip_startup_actions: Default::default(),
-            }
-        }
     }
 }
 
@@ -1152,130 +1096,320 @@ mod util {
     }
 }
 
+// MARK: - Tests
+
 #[cfg(test)]
 mod tests {
-    use figment::{
-        providers::{Format, Json},
-        Figment,
-    };
+    use figment::providers::{Format, Json};
     use serde_json::json;
 
-    use crate::AppConfig;
+    use super::default_config_static;
+    use super::AppConfig;
+    use super::DEFAULT_DB_MAX_READ_CONNECTIONS;
+
+    #[inline]
+    fn config_from_json(json: &serde_json::Value) -> Result<AppConfig, String> {
+        let json = serde_json::to_string(&json).unwrap();
+
+        let figment = default_config_static().merge(Json::string(&json));
+
+        match AppConfig::from_figment(figment) {
+            Ok(app_config) => Ok(app_config),
+            Err(err) => Err(format!("{err:#}")),
+        }
+    }
+
+    #[inline]
+    fn minimal_config_json() -> serde_json::Value {
+        json!({
+            "server": {
+                "domain": "example.org"
+            }
+        })
+    }
 
     #[test]
-    fn test_database_rw_defaults() {
-        let max_conn_def = crate::app_config::defaults::databases::default::max_connections();
+    fn test_minimal_config_empty() {
+        let empty_config = json!({});
+        assert_ne!(config_from_json(&empty_config).err(), None);
+    }
 
-        let cases = vec![
-            (
-                json!({}),
-                json!({
-                    "main_read": {
-                        "max_connections": max_conn_def
-                    },
-                    "main_write": {
-                        "max_connections": 1
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example"
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "example",
-                        "max_connections": max_conn_def
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 1
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example",
-                        "max_connections": 4
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                    "main_read": {
-                        "url": "other"
-                    },
-                    "main_write": {
-                        "max_connections": 1
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "other",
-                        "max_connections": 4
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 1
-                    },
-                }),
-            ),
-        ];
+    #[test]
+    fn test_minimal_config_ok() {
+        let minimal_config = minimal_config_json();
+        assert_eq!(config_from_json(&minimal_config).err(), None);
+    }
 
-        for (input, output) in cases {
-            let json = json!({
-                "server": {
-                    "domain": "example.org"
-                },
-                "api": {
-                    "databases": input,
+    #[test]
+    fn test_default_pod_email_address_no_email_notifier() {
+        let minimal_config = minimal_config_json();
+        let app_config = config_from_json(&minimal_config).unwrap();
+        assert_eq!(
+            (app_config.notifiers.email)
+                .as_ref()
+                .map(|cfg| format!("{cfg:#?}")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_default_pod_email_address_ok() {
+        let config_json = json!({
+            "server": { "domain": "example.org" },
+            "notifiers": {
+                "email": {
+                    "smtp_host": "mail.example.org"
                 }
-            });
-            let json = serde_json::to_string_pretty(&json).unwrap();
+            }
+        });
+        let app_config = config_from_json(&config_json).unwrap();
+        let email_config = app_config.notifiers.email().unwrap();
+        assert_eq!(&email_config.pod_address.to_string(), "prose@example.org");
+    }
 
-            let figment = Figment::new().merge(Json::string(&json));
-            let app_config = AppConfig::from_figment(figment).map_err(|err| err.to_string());
-            assert_eq!(app_config.as_ref().err(), None);
+    #[inline]
+    fn test_default_pod_domain_(config_json: serde_json::Value, expected: Option<&str>) {
+        let app_config = config_from_json(&config_json).unwrap();
+        let pod_domain = app_config.pod.address.domain.as_ref();
+        assert_eq!(
+            pod_domain.map(ToString::to_string),
+            expected.map(ToOwned::to_owned)
+        );
+    }
 
-            let app_config = app_config.unwrap();
-            let ref db_config = app_config.api.databases;
+    #[test]
+    fn test_default_pod_domain_ok() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" }
+            }),
+            Some("prose.example.org"),
+        )
+    }
 
-            // NOTE(RemiBardon): Ugly but I don’t care, it just needs to work.
-            if let Some(val) = output["main_read"]["url"].as_str() {
-                assert_eq!(db_config.main_read.url, val, "main_read.url: {input:#?}");
+    #[test]
+    fn test_default_pod_domain_ipv4() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "ipv4": "127.0.0.1" }
+                },
+                "dashboard": {
+                    "url": "https://admin.prose.example.org"
+                }
+            }),
+            None,
+        )
+    }
+
+    #[test]
+    fn test_default_pod_domain_ipv6() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "ipv6": "::1" }
+                },
+                "dashboard": {
+                    "url": "https://admin.prose.example.org"
+                }
+            }),
+            None,
+        )
+    }
+
+    #[test]
+    fn test_default_pod_domain_override() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "domain": "chat.example.org" }
+                }
+            }),
+            Some("chat.example.org"),
+        );
+    }
+
+    #[inline]
+    fn test_default_dashboard_url_(config_json: serde_json::Value, expected: &str) {
+        let app_config = config_from_json(&config_json).unwrap();
+        assert_eq!(app_config.dashboard.url.as_str(), expected);
+    }
+
+    #[test]
+    fn test_default_dashboard_url_ok() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" }
+            }),
+            "https://admin.prose.example.org/",
+        )
+    }
+
+    #[test]
+    fn test_default_dashboard_url_domain_overriden() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "domain": "chat.example.org" }
+                }
+            }),
+            "https://admin.chat.example.org/",
+        )
+    }
+
+    // NOTE: Also tests the addition of the trailing slash (`/`).
+    #[test]
+    fn test_default_dashboard_url_override() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" },
+                "dashboard": {
+                    "url": "https://admin.example.org"
+                }
+            }),
+            "https://admin.example.org/",
+        )
+    }
+
+    #[test]
+    fn test_default_email_notifier_config() {
+        let config_json = json!({
+            "server": { "domain": "example.org" },
+            "notifiers": {
+                "email": {
+                    "smtp_host": "mail.example.org"
+                },
             }
-            if let Some(val) = output["main_read"]["max_connections"].as_u64() {
-                assert_eq!(
-                    db_config.main_read.max_connections as u64, val,
-                    "main_read.max_connections: {input:#?}"
-                );
+        });
+        let app_config = config_from_json(&config_json).unwrap();
+        let email_config = app_config.notifiers.email.as_ref().unwrap();
+        assert_eq!(email_config.smtp_port, 587);
+        assert_eq!(email_config.smtp_encrypt, true);
+    }
+
+    #[inline]
+    fn test_database_rw_defaults_(input: serde_json::Value, output: serde_json::Value) {
+        let config_json = json!({
+            "server": { "domain": "example.org" },
+            "api": {
+                "databases": input,
             }
-            if let Some(val) = output["main_write"]["url"].as_str() {
-                assert_eq!(db_config.main_write.url, val, "main_write.url: {input:#?}");
-            }
-            if let Some(val) = output["main_write"]["max_connections"].as_u64() {
-                assert_eq!(
-                    db_config.main_write.max_connections as u64, val,
-                    "main_write.max_connections: {input:#?}"
-                );
-            }
+        });
+
+        let app_config = config_from_json(&config_json);
+        assert_eq!(app_config.as_ref().err(), None);
+
+        let json = serde_json::to_string_pretty(&config_json).unwrap();
+        let ref db_config = app_config.unwrap().api.databases;
+
+        // NOTE(RemiBardon): Ugly but I don’t care, it just needs to work.
+        if let Some(val) = output["main_read"]["url"].as_str() {
+            assert_eq!(db_config.main_read.url, val, "main_read.url: {json}");
         }
+        if let Some(val) = output["main_read"]["max_connections"].as_u64() {
+            assert_eq!(
+                db_config.main_read.max_connections as u64, val,
+                "main_read.max_connections: {json}"
+            );
+        }
+        if let Some(val) = output["main_write"]["url"].as_str() {
+            assert_eq!(db_config.main_write.url, val, "main_write.url: {json}");
+        }
+        if let Some(val) = output["main_write"]["max_connections"].as_u64() {
+            assert_eq!(
+                db_config.main_write.max_connections as u64, val,
+                "main_write.max_connections: {json}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_database_rw_defaults_empty() {
+        test_database_rw_defaults_(
+            json!({}),
+            json!({
+                "main_read": {
+                    "max_connections": *DEFAULT_DB_MAX_READ_CONNECTIONS
+                },
+                "main_write": {
+                    "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_url_override() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example"
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "example",
+                    "max_connections": *DEFAULT_DB_MAX_READ_CONNECTIONS
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_max_connections_override() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example",
+                    "max_connections": 4
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_max_connections_override_write() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+                "main_read": {
+                    "url": "other"
+                },
+                "main_write": {
+                    "max_connections": 1
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "other",
+                    "max_connections": 4
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 1
+                },
+            }),
+        );
     }
 }
