@@ -84,6 +84,7 @@ fn default_config_static() -> Figment {
     use self::pub_defaults::*;
     use figment::providers::{Format as _, Toml};
     use secrecy::{ExposeSecret as _, SecretString};
+    use toml::toml;
 
     let random_oauth2_registration_key: SecretString =
         crate::auth::util::random_oauth2_registration_key();
@@ -106,7 +107,7 @@ fn default_config_static() -> Figment {
 
     let api_address = API_ADDRESS.to_string();
 
-    let toml = toml::toml! {
+    let static_defaults = toml! {
         [branding]
         api_app_name = "Prose Pod API"
 
@@ -208,7 +209,7 @@ fn default_config_static() -> Figment {
     }
     .to_string();
 
-    Figment::from(Toml::string(&toml))
+    Figment::from(Toml::string(&static_defaults))
 }
 
 fn with_dynamic_defaults(mut figment: Figment) -> anyhow::Result<Figment> {
