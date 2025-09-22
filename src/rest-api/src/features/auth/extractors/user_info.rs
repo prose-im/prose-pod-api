@@ -42,7 +42,10 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
 
         // Get user info from auth token.
         let token = AuthToken::from_request_parts(parts, state).await?;
-        let res = (state.auth_service.get_user_info(token, &state.db).await)
+        let res = state
+            .auth_service
+            .get_user_info(token, &state.db.read)
+            .await
             .context("Could not get user info from token")
             .map_err(Error::from);
 

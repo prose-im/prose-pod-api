@@ -20,7 +20,7 @@ pub async fn validate_app_config_changes(app_state: &AppState) -> Result<(), Str
 async fn ensure_server_domain_not_changed(
     AppState { db, app_config, .. }: &AppState,
 ) -> Result<(), String> {
-    let (_, members) = (MemberRepository::get_page(db, 1, 1, None).await)
+    let (_, members) = (MemberRepository::get_page(&db.read, 1, 1, None).await)
         .map_err(|err| format!("Could not ensure the server domain hasn’t been modified: {err}"))?;
 
     let Some(member) = members.first() else {

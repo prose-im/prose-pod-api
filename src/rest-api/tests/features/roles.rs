@@ -12,17 +12,15 @@ use super::prelude::*;
 
 #[given(expr = "{} is an admin")]
 pub async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let db = world.db();
-
     let jid = name_to_jid(world, &name).await?;
-    match MemberRepository::get(db, &jid).await? {
+    match MemberRepository::get(&world.db.read, &jid).await? {
         Some(_) => {
-            MemberRepository::set_role(db, &jid, MemberRole::Admin).await?;
+            MemberRepository::set_role(&world.db.write, &jid, MemberRole::Admin).await?;
         }
         None => {
             let model = (world.member_service())
                 .create_user(
-                    db,
+                    &world.db.write,
                     &jid,
                     &"password".into(),
                     &name,
@@ -42,12 +40,10 @@ pub async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Erro
 
 #[given(regex = r"^(.+) is (not an admin|a regular member|a member)$")]
 async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let db = world.db();
-
     let jid = name_to_jid(world, &name).await?;
     let model = (world.member_service())
         .create_user(
-            db,
+            &world.db.write,
             &jid,
             &"password".into(),
             &name,
@@ -113,7 +109,7 @@ async fn then_role(
     role: parameters::MemberRole,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &subject).await?;
-    let member = MemberRepository::get(world.db(), &jid)
+    let member = MemberRepository::get(&world.db.read, &jid)
         .await?
         .expect(&format!("Member {jid} not found"));
     assert_eq!(member.role, role.0);

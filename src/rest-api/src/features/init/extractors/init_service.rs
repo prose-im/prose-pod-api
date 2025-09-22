@@ -13,7 +13,7 @@ impl FromRequestParts<AppState> for service::init::InitService {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         Ok(Self {
-            db: Arc::new(state.db.clone()),
+            db: state.db.clone(),
         })
     }
 }

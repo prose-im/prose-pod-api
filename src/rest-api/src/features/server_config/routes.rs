@@ -31,7 +31,7 @@ pub mod server_config {
         State(ref app_config): State<Arc<AppConfig>>,
         is_admin: Option<IsAdmin>,
     ) -> Result<Either<Json<ServerConfig>, Json<PublicServerConfig>>, Error> {
-        match server_config_controller::get_server_config(db, app_config, is_admin).await? {
+        match server_config_controller::get_server_config(&db.read, app_config, is_admin).await? {
             service::util::either::Either::E1(config) => Ok(Either::E1(Json(config))),
             service::util::either::Either::E2(config) => Ok(Either::E2(Json(config))),
         }
@@ -59,7 +59,7 @@ macro_rules! server_config_routes {
                 State(AppState { ref db, .. }): State<AppState>,
                 State(ref app_config): State<Arc<AppConfig>>,
             ) -> Result<Json<$var_type>, Error> {
-                match server_config_controller::$var::get(db, app_config).await? {
+                match server_config_controller::$var::get(&db.read, app_config).await? {
                     $var => Ok(Json($var)),
                 }
             }
@@ -215,7 +215,7 @@ pub mod prosody_overrides {
         State(AppState { ref db, .. }): State<AppState>,
         State(ref app_config): State<Arc<AppConfig>>,
     ) -> Result<Either<Json<ProsodySettings>, NoContent>, Error> {
-        match server_config_controller::prosody_overrides::get(db, app_config).await? {
+        match server_config_controller::prosody_overrides::get(&db.read, app_config).await? {
             Some(overrides) => Ok(Either::E1(Json(overrides))),
             None => Ok(Either::E2(NoContent)),
         }
@@ -224,7 +224,7 @@ pub mod prosody_overrides {
     pub async fn delete(
         State(AppState { ref db, .. }): State<AppState>,
     ) -> Result<NoContent, Error> {
-        match server_config_controller::prosody_overrides::delete(db).await? {
+        match server_config_controller::prosody_overrides::delete(&db.write).await? {
             _ => Ok(NoContent),
         }
     }
@@ -249,7 +249,7 @@ pub mod prosody_overrides_raw {
         State(AppState { ref db, .. }): State<AppState>,
         State(ref app_config): State<Arc<AppConfig>>,
     ) -> Result<Either<Lua, NoContent>, Error> {
-        match server_config_controller::prosody_overrides_raw::get(db, app_config).await? {
+        match server_config_controller::prosody_overrides_raw::get(&db.read, app_config).await? {
             Some(overrides) => Ok(Either::E1(Lua::from(overrides))),
             None => Ok(Either::E2(NoContent)),
         }
@@ -258,7 +258,7 @@ pub mod prosody_overrides_raw {
     pub async fn delete(
         State(AppState { ref db, .. }): State<AppState>,
     ) -> Result<NoContent, Error> {
-        match server_config_controller::prosody_overrides_raw::delete(db).await? {
+        match server_config_controller::prosody_overrides_raw::delete(&db.write).await? {
             _ => Ok(NoContent),
         }
     }

@@ -26,5 +26,5 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 async fn onboarding_steps_route(
     State(AppState { ref db, .. }): State<AppState>,
 ) -> Json<OnboardingStepsStatuses> {
-    Json(onboarding::get_steps_statuses(db).await)
+    Json(onboarding::get_steps_statuses(&db.read).await)
 }

@@ -6,6 +6,7 @@
 mod atoms;
 mod avatar;
 mod color;
+mod db;
 pub mod durations;
 mod email_address;
 mod lua;
@@ -20,6 +21,7 @@ pub mod xmpp;
 pub use self::atoms::*;
 pub use self::avatar::*;
 pub use self::color::*;
+pub use self::db::*;
 pub use self::durations::*;
 pub use self::email_address::*;
 pub use self::lua::*;

@@ -13,7 +13,7 @@ use crate::AppState;
 pub async fn init_server_config(app_state @ AppState { db, .. }: &AppState) -> Result<(), String> {
     debug!("Initializing the XMPP server configuration…");
 
-    let server_config = (server_config::get(db).await)
+    let server_config = (server_config::get(&db.read).await)
         .map_err(|err| format!("Could not initialize the XMPP server configuration: {err}"))?;
 
     // Apply the server configuration stored in the database

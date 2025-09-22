@@ -23,7 +23,8 @@ impl FromRequestParts<AppState> for service::network_checks::PodNetworkConfig {
         let is_admin = IsAdmin::from_request_parts(parts, state).await?;
 
         let server_config =
-            server_config_controller::get_server_config_private(db, app_config, &is_admin).await?;
+            server_config_controller::get_server_config_private(&db.read, app_config, &is_admin)
+                .await?;
 
         Ok(Self::new(app_config, server_config.federation_enabled))
     }

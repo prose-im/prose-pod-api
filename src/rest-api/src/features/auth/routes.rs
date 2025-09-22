@@ -59,7 +59,7 @@ pub async fn set_member_role_route(
     Path(jid): Path<BareJid>,
     Json(role): Json<MemberRole>,
 ) -> Result<Json<MemberRole>, Error> {
-    match auth_controller::set_member_role(db, member_service, user_info, jid, role).await? {
+    match auth_controller::set_member_role(&db.write, member_service, user_info, jid, role).await? {
         () => Ok(Json(role)),
     }
 }
@@ -76,8 +76,14 @@ pub async fn request_password_reset_route(
     ref caller: UserInfo,
     Path(ref jid): Path<BareJid>,
 ) -> Result<StatusCode, Error> {
-    auth_controller::request_password_reset(db, notification_service, app_config, caller, jid)
-        .await?;
+    auth_controller::request_password_reset(
+        &db.write,
+        notification_service,
+        app_config,
+        caller,
+        jid,
+    )
+    .await?;
     Ok(StatusCode::ACCEPTED)
 }
 
@@ -96,7 +102,7 @@ pub async fn reset_password_route(
     Path(ref token): Path<PasswordResetToken>,
     Json(ResetPasswordRequest { password }): Json<ResetPasswordRequest>,
 ) -> Result<(), Error> {
-    auth_controller::reset_password(db, server_ctl, token, &password).await?;
+    auth_controller::reset_password(&db.write, server_ctl, token, &password).await?;
     Ok(())
 }
 

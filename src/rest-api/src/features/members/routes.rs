@@ -52,7 +52,7 @@ pub async fn delete_member_route(
     Path(jid): Path<BareJid>,
     member_service: MemberService,
 ) -> Result<StatusCode, Error> {
-    member_controller::delete_member(&db, &jid, &member_service).await?;
+    member_controller::delete_member(&db.write, &jid, &member_service).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -77,7 +77,7 @@ pub async fn get_members_route(
 pub async fn head_members(
     State(AppState { ref db, .. }): State<AppState>,
 ) -> Result<Paginated<Member>, Error> {
-    match member_controller::head_members(db).await? {
+    match member_controller::head_members(&db.read).await? {
         members => Ok(members.map(Into::into).into()),
     }
 }

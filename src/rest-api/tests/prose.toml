@@ -14,7 +14,6 @@ domain = "test.org"
 smtp_host = "test.org"
 
 [api.databases.main]
-url = "sqlite::memory:"
 sqlx_logging = true
 
 [debug_only.dependency_modes]
