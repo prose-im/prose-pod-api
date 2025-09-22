@@ -1160,122 +1160,296 @@ mod tests {
     };
     use serde_json::json;
 
-    use crate::AppConfig;
+    use super::defaults::databases::default::max_connections as default_max_db_connections;
+    use super::AppConfig;
+
+    #[inline]
+    fn config_from_json(json: &serde_json::Value) -> Result<AppConfig, String> {
+        let json = serde_json::to_string(&json).unwrap();
+
+        let figment = Figment::from(Json::string(&json));
+
+        match AppConfig::from_figment(figment) {
+            Ok(app_config) => Ok(app_config),
+            Err(err) => Err(format!("{err:#}")),
+        }
+    }
+
+    #[inline]
+    fn minimal_config_json() -> serde_json::Value {
+        json!({
+            "server": {
+                "domain": "example.org"
+            }
+        })
+    }
 
     #[test]
-    fn test_database_rw_defaults() {
-        let max_conn_def = crate::app_config::defaults::databases::default::max_connections();
+    fn test_minimal_config_empty() {
+        let empty_config = json!({});
+        assert_ne!(config_from_json(&empty_config).err(), None);
+    }
 
-        let cases = vec![
-            (
-                json!({}),
-                json!({
-                    "main_read": {
-                        "max_connections": max_conn_def
-                    },
-                    "main_write": {
-                        "max_connections": 1
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example"
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "example",
-                        "max_connections": max_conn_def
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 1
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example",
-                        "max_connections": 4
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                }),
-            ),
-            (
-                json!({
-                    "main": {
-                        "url": "example",
-                        "max_connections": 4
-                    },
-                    "main_read": {
-                        "url": "other"
-                    },
-                    "main_write": {
-                        "max_connections": 1
-                    }
-                }),
-                json!({
-                    "main_read": {
-                        "url": "other",
-                        "max_connections": 4
-                    },
-                    "main_write": {
-                        "url": "example",
-                        "max_connections": 1
-                    },
-                }),
-            ),
-        ];
+    #[test]
+    fn test_minimal_config_ok() {
+        let minimal_config = minimal_config_json();
+        assert_eq!(config_from_json(&minimal_config).err(), None);
+    }
 
-        for (input, output) in cases {
-            let json = json!({
-                "server": {
-                    "domain": "example.org"
-                },
-                "api": {
-                    "databases": input,
+    #[test]
+    fn test_default_pod_email_address_no_email_notifier() {
+        let minimal_config = minimal_config_json();
+        let app_config = config_from_json(&minimal_config).unwrap();
+        assert_eq!(
+            (app_config.notifiers.email)
+                .as_ref()
+                .map(|cfg| format!("{cfg:#?}")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_default_pod_email_address_ok() {
+        let config_json = json!({
+            "server": { "domain": "example.org" },
+            "notifiers": {
+                "email": {
+                    "smtp_host": "mail.example.org"
                 }
-            });
-            let json = serde_json::to_string_pretty(&json).unwrap();
+            }
+        });
+        let app_config = config_from_json(&config_json).unwrap();
+        let email_config = app_config.notifiers.email().unwrap();
+        assert_eq!(&email_config.pod_address.to_string(), "prose@example.org");
+    }
 
-            let figment = Figment::new().merge(Json::string(&json));
-            let app_config = AppConfig::from_figment(figment).map_err(|err| err.to_string());
-            assert_eq!(app_config.as_ref().err(), None);
+    #[inline]
+    fn test_default_pod_domain_(config_json: serde_json::Value, expected: Option<&str>) {
+        let app_config = config_from_json(&config_json).unwrap();
+        let pod_domain = app_config.pod.address.domain.as_ref();
+        assert_eq!(
+            pod_domain.map(ToString::to_string),
+            expected.map(ToOwned::to_owned)
+        );
+    }
 
-            let app_config = app_config.unwrap();
-            let ref db_config = app_config.api.databases;
+    #[test]
+    fn test_default_pod_domain_ok() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" }
+            }),
+            Some("prose.example.org"),
+        )
+    }
 
-            // NOTE(RemiBardon): Ugly but I don’t care, it just needs to work.
-            if let Some(val) = output["main_read"]["url"].as_str() {
-                assert_eq!(db_config.main_read.url, val, "main_read.url: {input:#?}");
+    #[test]
+    fn test_default_pod_domain_ipv4() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "ipv4": "127.0.0.1" }
+                },
+                "dashboard": {
+                    "url": "https://admin.prose.example.org"
+                }
+            }),
+            None,
+        )
+    }
+
+    #[test]
+    fn test_default_pod_domain_ipv6() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "ipv6": "::1" }
+                },
+                "dashboard": {
+                    "url": "https://admin.prose.example.org"
+                }
+            }),
+            None,
+        )
+    }
+
+    #[test]
+    fn test_default_pod_domain_override() {
+        test_default_pod_domain_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "domain": "chat.example.org" }
+                }
+            }),
+            Some("chat.example.org"),
+        );
+    }
+
+    #[inline]
+    fn test_default_dashboard_url_(config_json: serde_json::Value, expected: &str) {
+        let app_config = config_from_json(&config_json).unwrap();
+        assert_eq!(app_config.dashboard.url.as_str(), expected);
+    }
+
+    #[test]
+    fn test_default_dashboard_url_ok() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" }
+            }),
+            "https://admin.prose.example.org/",
+        )
+    }
+
+    #[test]
+    fn test_default_dashboard_url_domain_overriden() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" },
+                "pod": {
+                    "address": { "domain": "chat.example.org" }
+                }
+            }),
+            "https://admin.chat.example.org/",
+        )
+    }
+
+    // NOTE: Also tests the addition of the trailing slash (`/`).
+    #[test]
+    fn test_default_dashboard_url_override() {
+        test_default_dashboard_url_(
+            json!({
+                "server": { "domain": "example.org" },
+                "dashboard": {
+                    "url": "https://admin.example.org"
+                }
+            }),
+            "https://admin.example.org/",
+        )
+    }
+
+    #[inline]
+    fn test_database_rw_defaults_(input: serde_json::Value, output: serde_json::Value) {
+        let json = json!({
+            "server": { "domain": "example.org" },
+            "api": {
+                "databases": input,
             }
-            if let Some(val) = output["main_read"]["max_connections"].as_u64() {
-                assert_eq!(
-                    db_config.main_read.max_connections as u64, val,
-                    "main_read.max_connections: {input:#?}"
-                );
-            }
-            if let Some(val) = output["main_write"]["url"].as_str() {
-                assert_eq!(db_config.main_write.url, val, "main_write.url: {input:#?}");
-            }
-            if let Some(val) = output["main_write"]["max_connections"].as_u64() {
-                assert_eq!(
-                    db_config.main_write.max_connections as u64, val,
-                    "main_write.max_connections: {input:#?}"
-                );
-            }
+        });
+
+        let app_config = config_from_json(&json);
+        assert_eq!(app_config.as_ref().err(), None);
+
+        let json = serde_json::to_string_pretty(&json).unwrap();
+        let ref db_config = app_config.unwrap().api.databases;
+
+        // NOTE(RemiBardon): Ugly but I don’t care, it just needs to work.
+        if let Some(val) = output["main_read"]["url"].as_str() {
+            assert_eq!(db_config.main_read.url, val, "main_read.url: {json}");
         }
+        if let Some(val) = output["main_read"]["max_connections"].as_u64() {
+            assert_eq!(
+                db_config.main_read.max_connections as u64, val,
+                "main_read.max_connections: {json}"
+            );
+        }
+        if let Some(val) = output["main_write"]["url"].as_str() {
+            assert_eq!(db_config.main_write.url, val, "main_write.url: {json}");
+        }
+        if let Some(val) = output["main_write"]["max_connections"].as_u64() {
+            assert_eq!(
+                db_config.main_write.max_connections as u64, val,
+                "main_write.max_connections: {json}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_database_rw_defaults_empty() {
+        test_database_rw_defaults_(
+            json!({}),
+            json!({
+                "main_read": {
+                    "max_connections": default_max_db_connections()
+                },
+                "main_write": {
+                    "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_url_override() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example"
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "example",
+                    "max_connections": default_max_db_connections()
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_max_connections_override() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example",
+                    "max_connections": 4
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+            }),
+        );
+    }
+
+    #[test]
+    fn test_database_rw_defaults_max_connections_override_write() {
+        test_database_rw_defaults_(
+            json!({
+                "main": {
+                    "url": "example",
+                    "max_connections": 4
+                },
+                "main_read": {
+                    "url": "other"
+                },
+                "main_write": {
+                    "max_connections": 1
+                }
+            }),
+            json!({
+                "main_read": {
+                    "url": "other",
+                    "max_connections": 4
+                },
+                "main_write": {
+                    "url": "example",
+                    "max_connections": 1
+                },
+            }),
+        );
     }
 }
