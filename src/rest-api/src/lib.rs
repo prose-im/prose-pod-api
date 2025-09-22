@@ -20,10 +20,10 @@ use service::{
     dependencies::Uuid,
     factory_reset::FactoryResetService,
     licensing::LicenseService,
+    models::DatabaseRwConnectionPools,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
     pod_version::PodVersionService,
-    sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
@@ -38,7 +38,7 @@ pub trait AxumState: Clone + Send + Sync + 'static {}
 #[derive(Debug, Clone)]
 pub struct AppState {
     base: MinimalAppState,
-    db: DatabaseConnection,
+    db: DatabaseRwConnectionPools,
     app_config: Arc<AppConfig>,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
@@ -54,7 +54,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(
         base: MinimalAppState,
-        db: DatabaseConnection,
+        db: DatabaseRwConnectionPools,
         app_config: Arc<AppConfig>,
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,

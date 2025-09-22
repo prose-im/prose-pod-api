@@ -56,8 +56,10 @@ async fn check_network_configuration_route_(
         let pod_network_config = pod_network_config.clone();
         let network_checker = network_checker.clone();
         tasks.push_back(tokio::spawn(
-            async move { check_dns_records_route__(pod_network_config, network_checker, &db).await }
-                .in_current_span(),
+            async move {
+                check_dns_records_route__(pod_network_config, network_checker, &db.read).await
+            }
+            .in_current_span(),
         ));
     }
     {
@@ -145,7 +147,7 @@ async fn check_network_configuration_stream_route_(
                         move || {
                             tokio::spawn(async move {
                                 trace!("Setting `all_dns_checks_passed_once` to true…");
-                                (onboarding::all_dns_checks_passed_once::set(&db, true).await)
+                                (onboarding::all_dns_checks_passed_once::set(&db.write, true).await)
                                     .inspect_err(|err| {
                                         warn!("Could not set `all_dns_checks_passed_once` to true: {err}")
                                     })

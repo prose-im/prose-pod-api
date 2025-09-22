@@ -22,7 +22,7 @@ async fn given_invited(
 
     // Create invitation
     let model = InvitationRepository::create(
-        world.db(),
+        &world.db.write,
         InvitationCreateForm {
             jid,
             pre_assigned_role: None,
@@ -53,13 +53,11 @@ async fn given_pre_assigned_role(
     email_address: parameters::EmailAddress,
     role: parameters::MemberRole,
 ) -> Result<(), DbErr> {
-    let db = world.db();
-
     let mut active = world
         .workspace_invitation(&email_address)
         .into_active_model();
     active.pre_assigned_role = Set(role.0);
-    active.update(db).await?;
+    active.update(&world.db.write).await?;
 
     Ok(())
 }
@@ -71,7 +69,7 @@ async fn given_n_invited(world: &mut TestWorld, n: u32) -> Result<(), Error> {
         let email_address =
             service::models::EmailAddress::from_str(&format!("person.{i}@{domain}")).unwrap();
         let model = InvitationRepository::create(
-            world.db(),
+            &world.db.write,
             InvitationCreateForm {
                 jid: BareJid::new(&format!("person.{i}@{domain}")).unwrap(),
                 pre_assigned_role: None,
@@ -96,9 +94,8 @@ async fn given_invitation_received(
     world: &mut TestWorld,
     email_address: parameters::EmailAddress,
 ) -> Result<(), MutationError> {
-    let db = world.db();
     InvitationRepository::update_status_by_email(
-        db,
+        &world.db.write,
         email_address.0,
         service::invitations::InvitationStatus::Sent,
     )
@@ -116,11 +113,12 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
         .insert(email_address.clone(), invitation_before.accept_token);
 
     // Resend invitation
-    let db = world.db();
     let ttl = (world.app_config().api.invitations)
         .invitation_ttl
         .into_time_delta();
-    let model = InvitationRepository::resend(db, &world.uuid_gen(), invitation_before, ttl).await?;
+    let model =
+        InvitationRepository::resend(&world.db.write, &world.uuid_gen(), invitation_before, ttl)
+            .await?;
 
     // Store current invitation data
     world
@@ -133,14 +131,13 @@ async fn given_invitation_resent(world: &mut TestWorld) -> Result<(), MutationEr
 
 #[given("the invitation has already expired")]
 async fn given_invitation_expired(world: &mut TestWorld) -> Result<(), MutationError> {
-    let db = world.db();
     let (email_address, invitation_before) = world.scenario_workspace_invitation();
 
     // Update invitation
     let mut active = invitation_before.into_active_model();
     active.accept_token_expires_at =
         Set(Utc::now().checked_sub_signed(TimeDelta::days(1)).unwrap());
-    let model = active.update(db).await?;
+    let model = active.update(&world.db.write).await?;
 
     // Store current invitation data
     world
@@ -153,9 +150,8 @@ async fn given_invitation_expired(world: &mut TestWorld) -> Result<(), MutationE
 
 #[given("the invitation did not go through")]
 async fn given_invitation_not_received(world: &mut TestWorld) -> Result<(), MutationError> {
-    let db = world.db();
     InvitationRepository::update_status(
-        db,
+        &world.db.write,
         world.scenario_workspace_invitation().1,
         service::invitations::InvitationStatus::SendFailed,
     )
@@ -450,7 +446,8 @@ async fn then_invitation_for_email(
     email_address: parameters::EmailAddress,
 ) -> Result<(), DbErr> {
     let count =
-        InvitationRepository::count_for_email_address(world.db(), email_address.0.clone()).await?;
+        InvitationRepository::count_for_email_address(&world.db.read, email_address.0.clone())
+            .await?;
     assert_eq!(
         count, 1,
         "Found {count} workspace_invitation(s) for <{email_address}> in the database"
@@ -464,7 +461,8 @@ async fn then_no_invitation_for_email(
     email_address: parameters::EmailAddress,
 ) -> Result<(), Error> {
     let count =
-        InvitationRepository::count_for_email_address(world.db(), email_address.0.clone()).await?;
+        InvitationRepository::count_for_email_address(&world.db.read, email_address.0.clone())
+            .await?;
     let server_domain = world.server_config().await?.domain;
     assert_eq!(
         count, 0,

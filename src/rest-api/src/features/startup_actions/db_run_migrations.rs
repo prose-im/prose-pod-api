@@ -9,7 +9,7 @@ use tracing::instrument;
 use crate::AppState;
 
 #[instrument(level = "trace", skip_all, err)]
-pub async fn run_migrations(AppState { db, .. }: &AppState) -> Result<(), String> {
-    let _ = service::Migrator::up(db, None).await;
+pub async fn db_run_migrations(AppState { db, .. }: &AppState) -> Result<(), String> {
+    let _ = service::Migrator::up(&db.write, None).await;
     Ok(())
 }

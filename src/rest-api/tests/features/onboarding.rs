@@ -16,7 +16,7 @@ async fn given_onboarding_step(
     key: String,
     status: parameters::Bool,
 ) -> anyhow::Result<()> {
-    onboarding::set_bool(world.db(), &key, *status).await?;
+    onboarding::set_bool(&world.db.write, &key, *status).await?;
     Ok(())
 }
 
@@ -39,7 +39,7 @@ async fn then_onboarding_step(
     key: String,
     expected: parameters::Bool,
 ) -> anyhow::Result<()> {
-    let status = onboarding::get_bool(world.db(), &key).await?;
+    let status = onboarding::get_bool(&world.db.write, &key).await?;
     assert_eq!(status, Some(*expected));
     Ok(())
 }

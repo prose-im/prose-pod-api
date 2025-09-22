@@ -6,9 +6,7 @@
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use jid::DomainRef;
-use sea_orm::{
-    DatabaseConnection, DbConn, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _,
-};
+use sea_orm::{DbConn, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _};
 use secrecy::{ExposeSecret as _, SecretString};
 use tracing::{debug, error, warn};
 
@@ -18,6 +16,7 @@ use crate::{
     members::{
         MemberRepository, MemberRole, Nickname, UnauthenticatedMemberService, UserCreateError,
     },
+    models::DatabaseRwConnectionPools,
     notifications::{notifier::email::EmailNotification, NotificationService},
     onboarding,
     util::{bare_jid_from_username, either::Either3},
@@ -33,14 +32,14 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct InvitationService {
-    db: DatabaseConnection,
+    db: DatabaseRwConnectionPools,
     uuid_gen: dependencies::Uuid,
     member_service: UnauthenticatedMemberService,
 }
 
 impl InvitationService {
     pub fn new(
-        db: DatabaseConnection,
+        db: DatabaseRwConnectionPools,
         uuid_gen: dependencies::Uuid,
         member_service: UnauthenticatedMemberService,
     ) -> Self {
@@ -65,13 +64,13 @@ impl InvitationService {
         let form = form.into();
         let jid = form.jid(server_domain);
 
-        if (InvitationRepository::get_by_jid(&self.db, &jid).await)
+        if (InvitationRepository::get_by_jid(&self.db.read, &jid).await)
             .as_ref()
             .is_ok_and(Option::is_some)
         {
             return Err(InviteMemberError::InvitationConfict);
         }
-        if (MemberRepository::get(&self.db, &jid).await)
+        if (MemberRepository::get(&self.db.read, &jid).await)
             .as_ref()
             .is_ok_and(Option::is_some)
         {
@@ -79,7 +78,7 @@ impl InvitationService {
         }
 
         let invitation = InvitationRepository::create(
-            &self.db,
+            &self.db.write,
             InvitationCreateForm {
                 jid,
                 pre_assigned_role: Some(form.pre_assigned_role.clone()),
@@ -92,7 +91,7 @@ impl InvitationService {
         .await
         .context("Database error")?;
 
-        (onboarding::at_least_one_invitation_sent::set(&self.db, true).await)
+        (onboarding::at_least_one_invitation_sent::set(&self.db.write, true).await)
             .inspect_err(|err| warn!("Could not set `at_least_one_invitation_sent` to true: {err}"))
             .ok();
 
@@ -116,7 +115,7 @@ impl InvitationService {
         {
             error!("Could not send workspace invitation: {err}");
             InvitationRepository::update_status(
-                &self.db,
+                &self.db.write,
                 invitation.clone(),
                 InvitationStatus::SendFailed,
             )
@@ -139,13 +138,17 @@ impl InvitationService {
             );
         };
 
-        InvitationRepository::update_status(&self.db, invitation.clone(), InvitationStatus::Sent)
-            .await
-            .context(format!(
-                "Could not mark workspace invitation `{id}` as `{status}`",
-                id = invitation.id,
-                status = InvitationStatus::Sent,
-            ))?;
+        InvitationRepository::update_status(
+            &self.db.write,
+            invitation.clone(),
+            InvitationStatus::Sent,
+        )
+        .await
+        .context(format!(
+            "Could not mark workspace invitation `{id}` as `{status}`",
+            id = invitation.id,
+            status = InvitationStatus::Sent,
+        ))?;
 
         #[cfg(debug_assertions)]
         if auto_accept {
@@ -221,7 +224,7 @@ pub enum InviteMemberError {
 
 impl InvitationService {
     pub async fn get(&self, id: &i32) -> Result<Option<Invitation>, anyhow::Error> {
-        (InvitationRepository::get_by_id(&self.db, id).await).context("Database error")
+        (InvitationRepository::get_by_id(&self.db.read, id).await).context("Database error")
     }
     pub async fn get_invitations(
         &self,
@@ -229,7 +232,7 @@ impl InvitationService {
         page_size: u64,
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), anyhow::Error> {
-        (InvitationRepository::get_all(&self.db, page_number, page_size, until).await)
+        (InvitationRepository::get_all(&self.db.read, page_number, page_size, until).await)
             .context("Database error")
     }
 }
@@ -283,7 +286,7 @@ impl InvitationService {
         &self,
         token: InvitationToken,
     ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
-        match InvitationRepository::get_by_accept_token(&self.db, token).await? {
+        match InvitationRepository::get_by_accept_token(&self.db.read, token).await? {
             Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
             Some(invitation) => Ok(invitation),
             None => Err(Either3::E1(NoInvitationForToken)),
@@ -293,7 +296,7 @@ impl InvitationService {
         &self,
         token: InvitationToken,
     ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
-        match InvitationRepository::get_by_reject_token(&self.db, token).await? {
+        match InvitationRepository::get_by_reject_token(&self.db.read, token).await? {
             Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
             Some(invitation) => Ok(invitation),
             None => Err(Either3::E1(NoInvitationForToken)),
@@ -320,14 +323,14 @@ impl InvitationService {
         // Check if JID is already taken (in which case the member cannot be created).
         // NOTE: There should not be any invitation for an already-taken username,
         //   but let's keep this as a safeguard.
-        if (MemberRepository::get(&self.db, &invitation.jid).await)
+        if (MemberRepository::get(&self.db.read, &invitation.jid).await)
             .as_ref()
             .is_ok_and(Option::is_some)
         {
             return Err(CannotAcceptInvitation::MemberAlreadyExists);
         }
 
-        (self.accept(&self.db, invitation, form.into()).await)?;
+        (self.accept(&self.db.write, invitation, form.into()).await)?;
 
         Ok(())
     }
@@ -372,7 +375,7 @@ impl InvitationService {
         // NOTE: An extra layer of security *just in case*
         assert_eq!(*token.expose_secret(), invitation.reject_token);
 
-        (invitation.delete(&self.db).await).context("Database error")?;
+        (invitation.delete(&self.db.write).await).context("Database error")?;
 
         Ok(())
     }
@@ -386,7 +389,7 @@ impl InvitationService {
         workspace_service: &WorkspaceService,
         invitation_id: i32,
     ) -> Result<(), InvitationResendError> {
-        let invitation = (InvitationRepository::get_by_id(&self.db, &invitation_id).await)
+        let invitation = (InvitationRepository::get_by_id(&self.db.read, &invitation_id).await)
             .context("Database error")?
             .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
 
@@ -423,7 +426,7 @@ pub enum InvitationResendError {
 
 impl InvitationService {
     pub async fn cancel(&self, invitation_id: i32) -> anyhow::Result<()> {
-        (InvitationRepository::delete_by_id(&self.db, invitation_id).await)
+        (InvitationRepository::delete_by_id(&self.db.write, invitation_id).await)
             .context("Database error")?;
 
         Ok(())

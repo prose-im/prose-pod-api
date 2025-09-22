@@ -231,36 +231,33 @@ pub mod notifiers {
 pub mod databases {
     use crate::app_config::{DatabaseConfig, API_DATA_DIR};
 
-    pub fn main() -> DatabaseConfig {
+    pub fn main_url() -> String {
+        format!("sqlite://{API_DATA_DIR}/database.sqlite")
+    }
+
+    pub fn main_read() -> DatabaseConfig {
         DatabaseConfig {
-            url: format!("sqlite://{API_DATA_DIR}/database.sqlite"),
-            min_connections: Default::default(),
+            url: main_url(),
+            min_connections: None,
             max_connections: default::max_connections(),
             connect_timeout: default::connect_timeout(),
-            idle_timeout: Default::default(),
-            sqlx_logging: Default::default(),
+            acquire_timeout: None,
+            idle_timeout: None,
+            sqlx_logging: false,
         }
+    }
+
+    pub fn main_write() -> DatabaseConfig {
+        let mut main_write = main_read();
+        main_write.max_connections = 1;
+        main_write
     }
 
     pub mod default {
         pub fn max_connections() -> usize {
-            // BUG: See [“database is locked” when two server configs are reset concurrently · Issue #327 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/327).
-            // let workers: usize =
-            //     std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
-            // workers * 4
-
-            if cfg!(feature = "test") {
-                // FIX: See [prose-pod-api#327 (comment)](https://github.com/prose-im/prose-pod-api/issues/327#issuecomment-3292783517).
-                4
-            } else {
-                // BUG: See [“database is locked” when two server configs are reset concurrently · Issue #327 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/327).
-                // let workers: usize =
-                //     std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
-                // workers * 4
-
-                // FIX: See [prose-pod-api#327 (comment)](https://github.com/prose-im/prose-pod-api/issues/327#issuecomment-3291683089).
-                1
-            }
+            let workers: usize =
+                std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+            workers * 4
         }
 
         pub fn connect_timeout() -> u64 {

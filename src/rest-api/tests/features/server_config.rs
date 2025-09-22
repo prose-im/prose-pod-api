@@ -24,7 +24,7 @@ use super::prelude::*;
 async fn given_server_config_in_db(world: &mut TestWorld, step: &Step) -> anyhow::Result<()> {
     let json = step.docstring().unwrap().trim();
     let map = serde_json::from_str(json)?;
-    global_storage::kv_store::set_map(world.db(), "server_config", map).await?;
+    global_storage::kv_store::set_map(&world.db.write, "server_config", map).await?;
     Ok(())
 }
 
@@ -207,7 +207,7 @@ async fn given_file_uploading(
     world: &mut TestWorld,
     state: parameters::ToggleState,
 ) -> anyhow::Result<()> {
-    server_config::file_upload_allowed::set(world.db(), state.into()).await?;
+    server_config::file_upload_allowed::set(&world.db.write, state.into()).await?;
     Ok(())
 }
 
@@ -216,7 +216,7 @@ async fn given_file_retention(
     world: &mut TestWorld,
     duration: parameters::Duration,
 ) -> anyhow::Result<()> {
-    server_config::file_storage_retention::set(world.db(), duration.into()).await?;
+    server_config::file_storage_retention::set(&world.db.write, duration.into()).await?;
     Ok(())
 }
 
@@ -300,7 +300,7 @@ async fn given_server_config<F, R>(
 where
     F: Future<Output = anyhow::Result<R>> + 'static,
 {
-    update(world.db.clone()).await?;
+    update(world.db.write.clone()).await?;
     world.server_config_manager().reload().await?;
     world.reset_server_ctl_counts();
     Ok(())

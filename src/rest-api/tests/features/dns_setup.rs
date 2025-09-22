@@ -16,7 +16,7 @@ use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
-    server_config::federation_enabled::set(world.db(), enabled.as_bool()).await?;
+    server_config::federation_enabled::set(&world.db.write, enabled.as_bool()).await?;
     Ok(())
 }
 

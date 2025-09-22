@@ -8,20 +8,22 @@ use std::{future::Future, sync::Arc};
 use anyhow::Context as _;
 use tracing::trace;
 
-use crate::{sea_orm::DatabaseConnection, server_config, xmpp::ServerCtl, AppConfig, ServerConfig};
+use crate::{
+    models::DatabaseRwConnectionPools, server_config, xmpp::ServerCtl, AppConfig, ServerConfig,
+};
 
 use super::DynamicServerConfig;
 
 #[derive(Debug, Clone)]
 pub struct ServerConfigManager {
-    db: Arc<DatabaseConnection>,
+    db: DatabaseRwConnectionPools,
     app_config: Arc<AppConfig>,
     server_ctl: Arc<ServerCtl>,
 }
 
 impl ServerConfigManager {
     pub fn new(
-        db: Arc<DatabaseConnection>,
+        db: DatabaseRwConnectionPools,
         app_config: Arc<AppConfig>,
         server_ctl: Arc<ServerCtl>,
     ) -> Self {
@@ -43,7 +45,7 @@ impl ServerConfigManager {
     {
         use sea_orm::TransactionTrait as _;
 
-        let txn = (self.db.as_ref().begin().await).context("Failed creating transaction")?;
+        let txn = (self.db.write.begin().await).context("Failed creating transaction")?;
 
         let old_config = server_config::get(&txn).await?;
         trace!("Updating server config in database…");
@@ -66,8 +68,7 @@ impl ServerConfigManager {
     }
 
     pub async fn reload(&self) -> anyhow::Result<ServerConfig> {
-        let db = self.db.as_ref();
-        let ref dynamic_server_config = server_config::get(db).await?;
+        let ref dynamic_server_config = server_config::get(&self.db.read).await?;
         self.apply(dynamic_server_config).await
     }
 

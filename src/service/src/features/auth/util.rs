@@ -3,7 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use secrecy::SecretString;
 
 /// Generates a random secret string.
@@ -11,13 +10,7 @@ use secrecy::SecretString;
 pub fn random_secret(length: usize) -> SecretString {
     assert!(length >= 16);
 
-    // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(length)
-        .map(char::from)
-        .collect::<String>()
-        .into()
+    crate::util::random_string_alphanumeric(length).into()
 }
 
 /// Generates a random secret string (URL-safe).

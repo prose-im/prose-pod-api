@@ -78,7 +78,7 @@ mod routes {
             Err(error::Forbidden("You cannot do that.".to_string()))?
         }
 
-        MemberRepository::set_email_address(db, &jid, Some(email_address)).await?;
+        MemberRepository::set_email_address(&db.write, &jid, Some(email_address)).await?;
 
         Ok(NoContent)
     }
@@ -92,7 +92,7 @@ mod routes {
             Err(error::Forbidden("You cannot do that.".to_string()))?
         }
 
-        let email_address = MemberRepository::get_email_address(db, &jid).await?;
+        let email_address = MemberRepository::get_email_address(&db.read, &jid).await?;
 
         Ok(Json(email_address))
     }

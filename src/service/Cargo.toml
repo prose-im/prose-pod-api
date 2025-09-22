@@ -78,6 +78,7 @@ xmpp-parsers = { workspace = true }
 [dev-dependencies]
 cucumber = { workspace = true, features = ["macros"] }
 insta = { workspace = true }
+figment = { version = "*", features = ["json"] }
 
 [features]
 default = []

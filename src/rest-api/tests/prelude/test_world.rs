@@ -21,16 +21,16 @@ use service::{
     invitations::{Invitation, InvitationService},
     licensing::LicenseService,
     members::{Member, UnauthenticatedMemberService},
-    models::EmailAddress,
+    models::{DatabaseRwConnectionPools, EmailAddress},
     network_checks::{NetworkChecker, PodNetworkConfig},
     notifications::{
         notifier::{email::EmailNotification, GenericNotifier},
         NotificationService, Notifier,
     },
     pod_version::PodVersionService,
-    sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     server_config::{ServerConfig, ServerConfigManager},
+    util::random_string_alphanumeric,
     workspace::WorkspaceService,
     xmpp::{BareJid, ServerCtl, XmppServiceInner},
 };
@@ -51,7 +51,7 @@ lazy_static::lazy_static! {
 #[world(init = Self::new)]
 pub struct TestWorld {
     pub app_config: Option<Arc<AppConfig>>,
-    pub db: DatabaseConnection,
+    pub db: DatabaseRwConnectionPools,
     pub mock_server_ctl: Arc<MockServerCtl>,
     pub server_ctl: ServerCtl,
     pub mock_auth_service: Arc<MockAuthService>,
@@ -99,10 +99,6 @@ impl TestWorld {
         }
     }
 
-    pub fn db(&self) -> &DatabaseConnection {
-        &self.db
-    }
-
     pub fn app_config(&self) -> Arc<AppConfig> {
         self.app_config
             .as_ref()
@@ -144,7 +140,7 @@ impl TestWorld {
 
     pub fn server_config_manager(&self) -> ServerConfigManager {
         ServerConfigManager::new(
-            Arc::new(self.db.clone()),
+            self.db.clone(),
             self.app_config().clone(),
             Arc::new(self.server_ctl.clone()),
         )
@@ -171,7 +167,7 @@ impl TestWorld {
 
     pub fn invitation_service(&self) -> InvitationService {
         InvitationService::new(
-            self.db().clone(),
+            self.db.clone(),
             self.uuid_gen().clone(),
             self.member_service(),
         )
@@ -183,7 +179,7 @@ impl TestWorld {
 
     pub async fn server_config(&self) -> anyhow::Result<ServerConfig> {
         use service::server_config;
-        let ref dynamic_server_config = server_config::get(self.db()).await?;
+        let ref dynamic_server_config = server_config::get(&self.db.read).await?;
         let server_config =
             ServerConfig::with_default_values(dynamic_server_config, &self.app_config());
         Ok(server_config)
@@ -275,22 +271,43 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        // NOTE: Behavior tests don't need to read the environment, therefore we have to set the required variables.
+        // NOTE: Behavior tests don’t read the user’s environment,
+        //   therefore we have to set the required variables
+        //   (otherwise set automatically on `task local:run`).
         let api_xmpp_password = SecretString::from("anything");
         std::env::set_var(
             "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
             &api_xmpp_password.expose_secret(),
         );
 
+        // FIX: Since we open two different connections for reading
+        //   and writing, we need in-memory databases to share their cache
+        //.  (otherwise the read-only connection could never see anything).
+        //   This creates a named in-memory database (see
+        //   [“In-memory Databases And Shared Cache” in SQLite’s “In-Memory Databases” documentation](https://sqlite.org/inmemorydb.html#sharedmemdb)).
+        //   We also have to use a unique name because all tests are spawned
+        //   in the same process, which means using a constant file name
+        //   (e.g. `sqlite:file:test?mode=memory&cache=shared`) would result in
+        //   “UNIQUE constraint failed” errors from the database every 2nd test.
+        let filename = random_string_alphanumeric(16);
+        let db_url = format!("sqlite:file:{filename}?mode=memory&cache=shared");
+        std::env::set_var("PROSE_API__DATABASES__MAIN__URL", db_url);
+
         let db = {
             let config = AppConfig::from_path(CONFIG_PATH.as_path())
                 .expect(&format!("Invalid config file at {}", CONFIG_PATH.display()));
 
-            db_conn(&config.api.databases.main).await
+            DatabaseRwConnectionPools {
+                read: db_conn(&config.api.databases.main_read).await,
+                write: db_conn(&config.api.databases.main_write).await,
+            }
         };
 
-        // NOTE: We need to run migrations here before they run in the API because we need to perform actions on the database before the API starts (it's not started by default, since we also test the behavior at startup)
-        if let Err(err) = run_migrations(&db).await {
+        // NOTE: We need to run migrations here before they run
+        //   in the API because we need to perform actions on
+        //   the database before the API starts (it’s not started
+        //   by default, since we also test the behavior at startup).
+        if let Err(err) = run_migrations(&db.write).await {
             panic!("Could not run migrations in tests: {err}");
         }
 

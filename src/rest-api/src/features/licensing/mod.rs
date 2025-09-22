@@ -57,7 +57,7 @@ async fn get_licensing_status(
         ..
     }): State<AppState>,
 ) -> Result<Json<GetLicensingStatusResponse>, Error> {
-    match licensing_controller::get_licensing_status(license_service, db).await {
+    match licensing_controller::get_licensing_status(license_service, &db.read).await {
         Ok(status) => Ok(Json(status)),
         Err(err) => Err(Error::from(err)),
     }

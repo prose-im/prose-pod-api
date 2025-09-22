@@ -13,9 +13,6 @@ domain = "test.org"
 [notifiers.email]
 smtp_host = "test.org"
 
-[api.databases.main]
-url = "sqlite::memory:"
-
 [auth]
 oauth2_registration_key = "dummy-test-key"
 

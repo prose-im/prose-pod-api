@@ -8,9 +8,9 @@ use secrecy::SecretString;
 pub use service::xmpp::ServerCtlImpl;
 use service::{
     members::MemberRole,
+    models::DatabaseRwConnectionPools,
     prosody::{prosody_bootstrap_config, AsProsody as _, ProsodyConfig},
     prosody_config_from_db,
-    sea_orm::DatabaseConnection,
     xmpp::{
         server_ctl::{self, Error},
         BareJid,
@@ -20,10 +20,10 @@ use service::{
 
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MockServerCtl {
     pub(crate) state: Arc<RwLock<MockServerCtlState>>,
-    pub(crate) db: DatabaseConnection,
+    pub(crate) db: DatabaseRwConnectionPools,
 }
 
 #[derive(Debug)]
@@ -41,7 +41,7 @@ pub struct MockServerCtlState {
 }
 
 impl MockServerCtl {
-    pub fn new(state: Arc<RwLock<MockServerCtlState>>, db: DatabaseConnection) -> Self {
+    pub fn new(state: Arc<RwLock<MockServerCtlState>>, db: DatabaseRwConnectionPools) -> Self {
         Self { state, db }
     }
 
@@ -79,7 +79,8 @@ impl ServerCtlImpl for MockServerCtl {
         self.check_online()?;
 
         let new_config =
-            prosody_config_from_db(&self.db, app_config, Some(server_config.to_owned())).await?;
+            prosody_config_from_db(&self.db.read, app_config, Some(server_config.to_owned()))
+                .await?;
 
         let mut state = self.state.write().unwrap();
         state.applied_config = Some(Arc::new(new_config));

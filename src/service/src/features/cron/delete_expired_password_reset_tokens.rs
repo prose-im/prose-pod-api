@@ -6,19 +6,19 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use sea_orm::DatabaseConnection;
 use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
 use crate::{
     auth::{password_reset_tokens, PasswordResetRecord},
+    models::DatabaseRwConnectionPools,
     AppConfig,
 };
 
 #[derive(Debug)]
 pub struct Context {
     pub app_config: Arc<AppConfig>,
-    pub db: DatabaseConnection,
+    pub db: DatabaseRwConnectionPools,
 }
 
 #[instrument(level = "trace", skip_all, ret(level = "warn"))]
@@ -56,7 +56,7 @@ pub async fn run(
 
         debug!("Deleting expired password reset tokens…");
 
-        let tokens = match password_reset_tokens::get_all(db).await {
+        let tokens = match password_reset_tokens::get_all(&db.read).await {
             Ok(tokens) if tokens.is_empty() => continue,
             Ok(tokens) => tokens,
             Err(err) => {
@@ -69,7 +69,9 @@ pub async fn run(
             match serde_json::from_value::<PasswordResetRecord>(value) {
                 Ok(record) => {
                     if Utc::now() > record.expires_at {
-                        if let Err(err) = password_reset_tokens::kv_store_delete(db, &key).await {
+                        if let Err(err) =
+                            password_reset_tokens::kv_store_delete(&db.write, &key).await
+                        {
                             error!("Could not delete expired password reset token record from database: {err}");
                         }
                     }

@@ -147,7 +147,7 @@ impl AppConfig {
 
     pub fn from_figment(mut figment: Figment) -> anyhow::Result<Self> {
         use anyhow::Context as _;
-        use figment::providers::*;
+        use figment::{providers::*, value::Value};
 
         let server_domain = figment.extract_inner::<String>("server.domain")?;
 
@@ -189,11 +189,38 @@ impl AppConfig {
         }
 
         if figment.contains("api.databases.main") {
+            // Allow setting configs without expliciting
+            // the non-optional `url` field.
             figment = figment.join(Serialized::default(
                 "api.databases.main.url",
-                defaults::databases::main().url,
+                defaults::databases::main_url(),
             ));
+
+            // Use `main` as default for `main_read` and `main_write`.
+            let main_default = figment.extract_inner::<Value>("api.databases.main").expect(
+                "Figment should already contain the key since we just checked with `.contains`.",
+            );
+            figment = figment
+                .join(Serialized::default(
+                    "api.databases.main_read",
+                    main_default.clone(),
+                ))
+                .join(Serialized::default(
+                    "api.databases.main_write",
+                    main_default,
+                ));
         }
+
+        // Apply defaults for `main_read` and `main_write`.
+        figment = figment
+            .join(Serialized::default(
+                "api.databases.main_read",
+                defaults::databases::main_read(),
+            ))
+            .join(Serialized::default(
+                "api.databases.main_write",
+                defaults::databases::main_write(),
+            ));
 
         figment
             .extract()
@@ -327,7 +354,6 @@ mod api {
         #[validate(skip)]
         pub port: u16,
 
-        #[serde(default)]
         #[validate(nested)]
         pub databases: DatabasesConfig,
 
@@ -428,26 +454,40 @@ mod api {
 
         #[derive(Debug)]
         #[derive(Validate, serdev::Deserialize)]
-        #[serde(deny_unknown_fields)]
+        // NOTE: Disabled to allow using `main` as default for `main_read`
+        //   and `main_write`. Figment is additive by construction therefore
+        //   it’s not trivial to remove a key. This is a quick fix.
+        // #[serde(deny_unknown_fields)]
         #[serde(validate = "Validate::validate")]
         pub struct DatabasesConfig {
-            #[serde(default = "defaults::databases::main")]
             #[validate(nested)]
-            pub main: DatabaseConfig,
+            pub main_read: DatabaseConfig,
+
+            #[validate(nested)]
+            pub main_write: DatabaseConfig,
+        }
+
+        impl DatabasesConfig {
+            pub fn main_url(&self) -> &String {
+                assert_eq!(self.main_read.url, self.main_write.url);
+                &self.main_read.url
+            }
         }
 
         impl Default for DatabasesConfig {
             fn default() -> Self {
                 use defaults::databases as defaults;
                 Self {
-                    main: defaults::main(),
+                    main_read: defaults::main_read(),
+                    main_write: defaults::main_write(),
                 }
             }
         }
 
         /// Inspired by <https://github.com/SeaQL/sea-orm/blob/bead32a0d812fd9c80c57e91e956e9d90159e067/sea-orm-rocket/lib/src/config.rs>.
         #[derive(Debug)]
-        #[derive(Validate, serdev::Deserialize)]
+        #[serde_with::skip_serializing_none]
+        #[derive(Validate, serdev::Deserialize, Serialize)]
         #[serde(deny_unknown_fields)]
         #[serde(validate = "Validate::validate")]
         pub struct DatabaseConfig {
@@ -462,6 +502,9 @@ mod api {
 
             #[serde(default = "defaults::databases::default::connect_timeout")]
             pub connect_timeout: u64,
+
+            #[serde(default)]
+            pub acquire_timeout: Option<u64>,
 
             #[serde(default)]
             pub idle_timeout: Option<u64>,
@@ -1105,6 +1148,134 @@ mod util {
         } else {
             Err(ValidationError::new("invalid_module_name")
                 .with_message(Cow::Owned(format!("'{str}' is not a valid module name"))))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use figment::{
+        providers::{Format, Json},
+        Figment,
+    };
+    use serde_json::json;
+
+    use crate::AppConfig;
+
+    #[test]
+    fn test_database_rw_defaults() {
+        let max_conn_def = crate::app_config::defaults::databases::default::max_connections();
+
+        let cases = vec![
+            (
+                json!({}),
+                json!({
+                    "main_read": {
+                        "max_connections": max_conn_def
+                    },
+                    "main_write": {
+                        "max_connections": 1
+                    },
+                }),
+            ),
+            (
+                json!({
+                    "main": {
+                        "url": "example"
+                    }
+                }),
+                json!({
+                    "main_read": {
+                        "url": "example",
+                        "max_connections": max_conn_def
+                    },
+                    "main_write": {
+                        "url": "example",
+                        "max_connections": 1
+                    },
+                }),
+            ),
+            (
+                json!({
+                    "main": {
+                        "url": "example",
+                        "max_connections": 4
+                    }
+                }),
+                json!({
+                    "main_read": {
+                        "url": "example",
+                        "max_connections": 4
+                    },
+                    "main_write": {
+                        "url": "example",
+                        "max_connections": 4
+                    },
+                }),
+            ),
+            (
+                json!({
+                    "main": {
+                        "url": "example",
+                        "max_connections": 4
+                    },
+                    "main_read": {
+                        "url": "other"
+                    },
+                    "main_write": {
+                        "max_connections": 1
+                    }
+                }),
+                json!({
+                    "main_read": {
+                        "url": "other",
+                        "max_connections": 4
+                    },
+                    "main_write": {
+                        "url": "example",
+                        "max_connections": 1
+                    },
+                }),
+            ),
+        ];
+
+        for (input, output) in cases {
+            let json = json!({
+                "server": {
+                    "domain": "example.org"
+                },
+                "api": {
+                    "databases": input,
+                }
+            });
+            let json = serde_json::to_string_pretty(&json).unwrap();
+
+            let figment = Figment::new().merge(Json::string(&json));
+            let app_config = AppConfig::from_figment(figment).map_err(|err| err.to_string());
+            assert_eq!(app_config.as_ref().err(), None);
+
+            let app_config = app_config.unwrap();
+            let ref db_config = app_config.api.databases;
+
+            // NOTE(RemiBardon): Ugly but I don’t care, it just needs to work.
+            if let Some(val) = output["main_read"]["url"].as_str() {
+                assert_eq!(db_config.main_read.url, val, "main_read.url: {input:#?}");
+            }
+            if let Some(val) = output["main_read"]["max_connections"].as_u64() {
+                assert_eq!(
+                    db_config.main_read.max_connections as u64, val,
+                    "main_read.max_connections: {input:#?}"
+                );
+            }
+            if let Some(val) = output["main_write"]["url"].as_str() {
+                assert_eq!(db_config.main_write.url, val, "main_write.url: {input:#?}");
+            }
+            if let Some(val) = output["main_write"]["max_connections"].as_u64() {
+                assert_eq!(
+                    db_config.main_write.max_connections as u64, val,
+                    "main_write.max_connections: {input:#?}"
+                );
+            }
         }
     }
 }

@@ -1334,6 +1334,7 @@ dependencies = [
  "atomic",
  "pear",
  "serde",
+ "serde_json",
  "toml",
  "uncased",
  "version_check",
