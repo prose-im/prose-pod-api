@@ -55,7 +55,7 @@ pub async fn init_first_account_route(
 pub async fn is_first_account_created_route(
     State(AppState { db, .. }): State<AppState>,
 ) -> StatusCode {
-    if MemberRepository::count(&db).await.unwrap_or_default() == 0 {
+    if MemberRepository::count(&db.read).await.unwrap_or_default() == 0 {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::OK

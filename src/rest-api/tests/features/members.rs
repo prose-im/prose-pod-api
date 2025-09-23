@@ -19,12 +19,8 @@ use super::{invitations::accept_workspace_invitation, prelude::*};
 #[given(expr = "the Workspace has {int} member(s)")]
 async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
     let domain = world.server_config().await?.domain;
-    let n = {
-        let db = world.db();
-        std::cmp::max(0u64, n - MemberRepository::count(db).await?)
-    };
+    let n = std::cmp::max(0u64, n - MemberRepository::count(&world.db.read).await?);
     for i in 0..n {
-        let db = world.db();
         let jid = BareJid::new(&format!("person.{i}@{domain}")).unwrap();
         let member = MemberCreateForm {
             jid: jid.clone(),
@@ -32,7 +28,7 @@ async fn given_n_members(world: &mut TestWorld, n: u64) -> Result<(), Error> {
             joined_at: None,
             email_address: Some(EmailAddress::from_str(jid.as_str()).unwrap()),
         };
-        let model = MemberRepository::create(db, member).await?;
+        let model = MemberRepository::create(&world.db.read, member).await?;
         let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
 
         world.members.insert(jid.to_string(), (model.into(), token));
@@ -107,10 +103,8 @@ async fn delete_member(api: &TestServer, token: SecretString, jid: &BareJid) -> 
 
 #[when("a new member joins the Workspace")]
 async fn when_new_member_joins(world: &mut TestWorld) -> Result<(), Error> {
-    let db = world.db();
-
     let domain = world.server_config().await?.domain;
-    let username = format!("member.{}", MemberRepository::count(db).await?);
+    let username = format!("member.{}", MemberRepository::count(&world.db.read).await?);
     let jid = BareJid::new(&format!("{username}@{domain}")).unwrap();
     let email_address = EmailAddress::from_str(jid.as_str()).unwrap();
 
@@ -210,7 +204,7 @@ async fn when_delete_member(
 
 #[when(expr = "{} deletes a member")]
 async fn when_member_deleted(world: &mut TestWorld, actor: String) -> Result<(), Error> {
-    let count = MemberRepository::count(world.db()).await? as usize;
+    let count = MemberRepository::count(&world.db.read).await? as usize;
     when_member_n_deleted(world, actor, count - 1).await
 }
 
@@ -223,7 +217,7 @@ async fn when_member_n_deleted(
     let token = user_token!(world, actor);
     let members = member::Entity::find()
         .order_by_asc(member::Column::JoinedAt)
-        .all(world.db())
+        .all(&world.db.read)
         .await?;
     let jid = members[n].jid();
     let res = delete_member(world.api(), token, &jid).await;
@@ -241,7 +235,7 @@ fn then_n_members(world: &mut TestWorld, n: usize) {
 
 #[then(expr = "there should be {int} member(s) in the database")]
 async fn then_n_members_in_db(world: &mut TestWorld, n: u64) -> Result<(), Error> {
-    let count = MemberRepository::count(world.db()).await?;
+    let count = MemberRepository::count(&world.db.read).await?;
     assert_eq!(count, n);
     Ok(())
 }

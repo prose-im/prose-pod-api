@@ -134,19 +134,26 @@ success The API still works!
 
 retry() {
 	unset TOKEN CONFIRMATION
+
 	TOKEN="$(xh POST -I "${INTEGRATION_TEST_HOST:?}"/v1/login \
 		-a 'pauline.collins@test.local:demo' \
 		content-type: \
 		| jq -r '.token')"
 	[ -n "${TOKEN-}" ] && [ "${TOKEN:?}" != null ] || abort
+
 	CONFIRMATION="$(xh DELETE -I "${INTEGRATION_TEST_HOST:?}" \
 		-A bearer -a "${TOKEN:?}" \
 		password=demo \
 		| jq -r '.confirmation')"
 	[ -n "${CONFIRMATION-}" ] && [ "${CONFIRMATION:?}" != null ] || abort
+
 	edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" \
 		-A bearer -a "${TOKEN:?}" \
 		confirmation="${CONFIRMATION:?}" || abort
+
+	# Wait a bit to make sure the API is ready (e.g. has run migrations).
+	sleep 1
+
 	cat <<'EOF' > "${PROSE_CONFIG_FILE:?}"
 [server]
 domain = "test.local"
@@ -157,6 +164,7 @@ smtp_encrypt = false
 
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
+
 	wait-until-api-running
 	success It worked!
 }

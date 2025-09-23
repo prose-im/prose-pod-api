@@ -63,7 +63,7 @@ async fn check_dns_records_route_(
     pod_network_config: PodNetworkConfig,
     network_checker: NetworkChecker,
 ) -> Result<Json<Vec<NetworkCheckResult>>, Error> {
-    let res = check_dns_records_route__(pod_network_config, network_checker, &db).await;
+    let res = check_dns_records_route__(pod_network_config, network_checker, &db.read).await;
     Ok(Json(res))
 }
 
@@ -85,7 +85,7 @@ async fn check_dns_records_stream_route_(
             tokio::spawn(
                 async move {
                     trace!("Setting `all_dns_checks_passed_once` to true…");
-                    (onboarding::all_dns_checks_passed_once::set(&db, true).await)
+                    (onboarding::all_dns_checks_passed_once::set(&db.write, true).await)
                         .inspect_err(|err| {
                             warn!("Could not set `all_dns_checks_passed_once` to true: {err}")
                         })

@@ -22,7 +22,7 @@ impl FromRequestParts<AppState> for IsAdmin {
         let user_info = UserInfo::from_request_parts(parts, state).await?;
         let jid = user_info.jid;
 
-        if MemberRepository::is_admin(&state.db, &jid).await? {
+        if MemberRepository::is_admin(&state.db.read, &jid).await? {
             Ok(Self)
         } else {
             Err(Error::from(error::Forbidden(format!(

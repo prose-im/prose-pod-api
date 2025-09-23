@@ -67,9 +67,9 @@ pub async fn backfill_xmpp_users(
         };
 
         // Create member in database if it doesn’t exist already.
-        match member_service.exists(db, &user.jid).await {
+        match member_service.exists(&db.read, &user.jid).await {
             Ok(false) => {
-                let txn = (db.begin().await)
+                let txn = (db.write.begin().await)
                     .map_err(|err| format!("Could not start transaction: {err}"))?;
 
                 // Try to find email address in an invitation,

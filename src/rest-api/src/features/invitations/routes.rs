@@ -95,7 +95,7 @@ pub async fn invite_member_route(
 ) -> InviteMemberResponse {
     let res = invitation_controller::invite_member(
         #[cfg(debug_assertions)]
-        db,
+        &db.write,
         app_config,
         app_config.server_domain(),
         notification_service,

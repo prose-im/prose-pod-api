@@ -9,11 +9,10 @@ mod refresh_service_accounts_tokens;
 use std::sync::Arc;
 
 use futures::future::join_all;
-use sea_orm::DatabaseConnection;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, Instrument as _};
 
-use crate::AppConfig;
+use crate::{models::DatabaseRwConnectionPools, AppConfig};
 
 use super::{auth::AuthService, secrets::SecretsStore};
 
@@ -21,7 +20,7 @@ use super::{auth::AuthService, secrets::SecretsStore};
 pub struct CronContext {
     pub cancellation_token: CancellationToken,
     pub app_config: Arc<AppConfig>,
-    pub db: DatabaseConnection,
+    pub db: DatabaseRwConnectionPools,
     pub secrets_store: SecretsStore,
     pub auth_service: AuthService,
 }

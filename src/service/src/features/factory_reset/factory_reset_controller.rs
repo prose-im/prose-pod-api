@@ -7,13 +7,13 @@ use std::fs::{self, File};
 use std::io::Write;
 
 use anyhow::Context;
-use sea_orm::DatabaseConnection;
 use tracing::{debug, info, instrument, warn};
 
 use crate::app_config::CONFIG_FILE_PATH;
 use crate::auth::errors::InvalidCredentials;
 use crate::auth::{AuthService, Credentials};
 use crate::factory_reset::FactoryResetConfirmationCode;
+use crate::models::DatabaseRwConnectionPools;
 use crate::secrets::SecretsStore;
 use crate::util::either::Either;
 use crate::xmpp::{server_manager, ServerCtl};
@@ -57,7 +57,7 @@ pub async fn get_confirmation_code(
 pub async fn perform_factory_reset(
     factory_reset_service: &FactoryResetService,
     confirmation: FactoryResetConfirmationCode,
-    db: DatabaseConnection,
+    db: DatabaseRwConnectionPools,
     server_ctl: &ServerCtl,
     app_config: &AppConfig,
     secrets_store: &SecretsStore,
@@ -69,7 +69,7 @@ pub async fn perform_factory_reset(
     warn!("Performing a factory reset…");
 
     debug!("Resetting the server…");
-    (server_manager::reset_server_config(&db, server_ctl, app_config, secrets_store).await)
+    (server_manager::reset_server_config(&db.write, server_ctl, app_config, secrets_store).await)
         .context("Could not reset server config")
         .map_err(Either::E2)?;
 
@@ -81,12 +81,17 @@ pub async fn perform_factory_reset(
     debug!("Resetting the API’s database…");
     // Close the database connection to make sure SeaORM
     // doesn’t write to it after we empty the file.
-    (db.close().await)
-        .context("Could not close the database connection")
+    (db.write.close().await)
+        .context("Could not close the database connection (write)")
+        .map_err(Either::E2)?;
+    // Close the database connection to make sure SeaORM
+    // doesn’t write to it after we empty the file.
+    (db.read.close().await)
+        .context("Could not close the database connection (read)")
         .map_err(Either::E2)?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
-    let database_url = (app_config.api.databases.main.url)
+    let database_url = (app_config.api.databases.main_url())
         .strip_prefix("sqlite://")
         .context("Database URL should start with `sqlite://`")
         .map_err(Either::E2)?;

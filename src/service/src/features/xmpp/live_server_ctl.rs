@@ -5,7 +5,6 @@
 
 use std::{fs::File, io::Write as _, path::PathBuf, sync::Arc};
 
-use sea_orm::DatabaseConnection;
 use secrecy::{ExposeSecret as _, SecretString};
 use tokio::time::{sleep, Duration, Instant};
 use tracing::instrument;
@@ -14,6 +13,7 @@ use crate::{
     auth::AuthToken,
     errors::Forbidden,
     members::MemberRole,
+    models::DatabaseRwConnectionPools,
     prosody::{
         prosody_admin_rest::{self, TEAM_GROUP_ID},
         prosody_bootstrap_config, prosody_config_from_db, AsProsody as _, ProsodyAdminRest,
@@ -33,7 +33,7 @@ pub struct LiveServerCtl {
     config_file_path: PathBuf,
     admin_rest: Arc<ProsodyAdminRest>,
     admin_api: Arc<ProsodyHttpAdminApi>,
-    db: DatabaseConnection,
+    db: DatabaseRwConnectionPools,
 }
 
 impl LiveServerCtl {
@@ -41,7 +41,7 @@ impl LiveServerCtl {
         config: &AppConfig,
         admin_rest: Arc<ProsodyAdminRest>,
         admin_api: Arc<ProsodyHttpAdminApi>,
-        db: DatabaseConnection,
+        db: DatabaseRwConnectionPools,
     ) -> Self {
         Self {
             config_file_path: config.prosody_ext.config_file_path.to_owned(),
@@ -88,7 +88,8 @@ impl ServerCtlImpl for LiveServerCtl {
         })?;
 
         let prosody_config =
-            prosody_config_from_db(&self.db, app_config, Some(server_config.to_owned())).await?;
+            prosody_config_from_db(&self.db.read, app_config, Some(server_config.to_owned()))
+                .await?;
         file.write_all(
             prosody_config
                 .to_string(server_config.prosody_overrides_raw.as_deref().cloned())

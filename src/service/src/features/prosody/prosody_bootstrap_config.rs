@@ -9,7 +9,10 @@ use jid::{BareJid, DomainPart};
 use prosody_config::{utils::def, *};
 use secrecy::{ExposeSecret as _, SecretString};
 
-use crate::app_config::{self, ADMIN_HOST};
+use crate::{
+    app_config::{self, ADMIN_HOST},
+    xmpp::JidNode,
+};
 
 use super::ProsodyConfig;
 
@@ -24,7 +27,7 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
                 .collect(),
         )),
         http_ports: Some(
-            vec![app_config::defaults::server::http_port()]
+            vec![app_config::pub_defaults::SERVER_HTTP_PORT]
                 .into_iter()
                 .collect(),
         ),
@@ -71,8 +74,10 @@ pub fn admin_virtual_host(
 }
 
 pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyConfig {
+    use app_config::pub_defaults::*;
+
     let api_jid = BareJid::from_parts(
-        Some(&app_config::defaults::service_accounts::prose_pod_api().xmpp_node),
+        Some(&JidNode::from_str(SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE).unwrap()),
         &DomainPart::from_str(ADMIN_HOST).unwrap(),
     );
     let api_jid = prosody_config::BareJid::new(
@@ -80,10 +85,8 @@ pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyCo
         api_jid.domain(),
     );
 
-    let mut admin_virtual_host = admin_virtual_host(
-        &api_jid,
-        app_config::defaults::server::local_hostname_admin(),
-    );
+    let mut admin_virtual_host =
+        admin_virtual_host(&api_jid, SERVER_LOCAL_HOSTNAME_ADMIN.to_owned());
     (admin_virtual_host.settings_mut().custom_settings).push(
         // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
         Group::new(

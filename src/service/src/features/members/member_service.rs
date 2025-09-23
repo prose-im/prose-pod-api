@@ -7,7 +7,7 @@ use std::{cmp::min, collections::HashSet, sync::Arc};
 
 use anyhow::{anyhow, Context as _};
 use chrono::{DateTime, Utc};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ItemsAndPagesNumber, Iterable};
+use sea_orm::{ConnectionTrait, DbErr, ItemsAndPagesNumber, Iterable};
 use serdev::Serialize;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, instrument, trace, trace_span, warn, Instrument};
@@ -16,7 +16,7 @@ use crate::{
     app_config::MemberEnrichingConfig,
     auth::AuthToken,
     errors::Forbidden,
-    models::AvatarOwned,
+    models::{AvatarOwned, DatabaseRwConnectionPools},
     util::{
         either::{Context as _, Either},
         unaccent, Cache, ConcurrentTaskRunner,
@@ -33,7 +33,7 @@ struct VCardData {
 
 #[derive(Debug, Clone)]
 pub struct MemberService {
-    db: Arc<DatabaseConnection>,
+    db: DatabaseRwConnectionPools,
     server_ctl: Arc<ServerCtl>,
     xmpp_service: Arc<XmppService>,
     pub cancellation_token: CancellationToken,
@@ -52,7 +52,7 @@ pub struct MemberServiceContext {
 
 impl MemberService {
     pub fn new(
-        db: Arc<DatabaseConnection>,
+        db: DatabaseRwConnectionPools,
         server_ctl: Arc<ServerCtl>,
         xmpp_service: Arc<XmppService>,
         concurrent_task_runner: ConcurrentTaskRunner,
@@ -150,7 +150,7 @@ impl MemberService {
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<Member>), anyhow::Error> {
         let (metadata, members) =
-            MemberRepository::get_page(self.db.as_ref(), page_number, page_size, until)
+            MemberRepository::get_page(&self.db.read, page_number, page_size, until)
                 .await
                 .context("Database error")?;
         Ok((metadata, members.into_iter().map(Into::into).collect()))
@@ -164,7 +164,7 @@ impl MemberService {
         until: Option<DateTime<Utc>>,
     ) -> Result<(ItemsAndPagesNumber, Vec<EnrichedMember>), anyhow::Error> {
         // Get **all** members from database (no details).
-        let members = MemberRepository::get_all_until(self.db.as_ref(), until)
+        let members = MemberRepository::get_all_until(&self.db.read, until)
             .await
             .context("Database error")?;
 
@@ -258,8 +258,9 @@ impl MemberService {
         jid: &BareJid,
         role: MemberRole,
     ) -> anyhow::Result<Option<MemberRole>> {
-        let new_role =
-            (MemberRepository::set_role(self.db.as_ref(), jid, role).await?).replace(role);
+        let new_role = MemberRepository::set_role(&self.db.write, jid, role)
+            .await?
+            .replace(role);
 
         // NOTE: We can't rollback changes made to the XMPP server so we do it
         //   after "rollbackable" DB changes in case they fail. It's not perfect
@@ -279,7 +280,7 @@ impl MemberService {
     pub async fn enrich_jid(&self, jid: &BareJid) -> Result<Option<EnrichedMember>, anyhow::Error> {
         trace!("Enriching `{jid}`…");
 
-        let member = match MemberRepository::get(self.db.as_ref(), jid).await {
+        let member = match MemberRepository::get(&self.db.read, jid).await {
             Ok(Some(entity)) => entity,
             Ok(None) => {
                 warn!("Member '{jid}' does not exist in database. Won't try enriching it with XMPP data.");

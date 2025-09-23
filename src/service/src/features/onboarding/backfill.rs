@@ -4,9 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use chrono::TimeDelta;
-use sea_orm::DatabaseConnection;
 
-use crate::{dependencies, network_checks::NetworkChecker, server_config, AppConfig};
+use crate::{
+    dependencies, models::DatabaseRwConnectionPools, network_checks::NetworkChecker, server_config,
+    AppConfig,
+};
 
 use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 
@@ -15,7 +17,7 @@ use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 /// generate missing values from existing data.
 #[tracing::instrument(level = "trace", skip_all)]
 pub async fn backfill(
-    db: &DatabaseConnection,
+    db: &DatabaseRwConnectionPools,
     app_config: &AppConfig,
     network_checker: &NetworkChecker,
     uuid_gen: &dependencies::Uuid,
@@ -34,7 +36,7 @@ pub async fn backfill(
 }
 
 async fn backfill_all_dns_checks_passed_once(
-    db: &DatabaseConnection,
+    db: &DatabaseRwConnectionPools,
     app_config: &AppConfig,
     network_checker: &NetworkChecker,
 ) -> anyhow::Result<()> {
@@ -48,12 +50,12 @@ async fn backfill_all_dns_checks_passed_once(
 
     const KEY: &'static str = "all_dns_checks_passed_once";
 
-    if store::get_opt(db).await?.is_some() {
+    if store::get_opt(&db.read).await?.is_some() {
         trace!("Not backfilling `{KEY}`: Already set.");
         return Ok(());
     }
 
-    let federation_enabled = (server_config::federation_enabled::get_opt(db).await?)
+    let federation_enabled = (server_config::federation_enabled::get_opt(&db.read).await?)
         .unwrap_or(app_config.server.defaults.federation_enabled);
 
     let pod_network_config = PodNetworkConfig::new(app_config, federation_enabled);
@@ -70,14 +72,14 @@ async fn backfill_all_dns_checks_passed_once(
     // data as it might be temporary.
     if all_dns_checks_passed {
         trace!("Backfilling `{KEY}` to {all_dns_checks_passed}…");
-        return store::set(db, all_dns_checks_passed).await;
+        return store::set(&db.write, all_dns_checks_passed).await;
     }
 
     Ok(())
 }
 
 async fn backfill_at_least_one_invitation_sent(
-    db: &DatabaseConnection,
+    db: &DatabaseRwConnectionPools,
     uuid_gen: &dependencies::Uuid,
 ) -> anyhow::Result<()> {
     use std::str::FromStr as _;
@@ -93,7 +95,7 @@ async fn backfill_at_least_one_invitation_sent(
 
     const KEY: &'static str = "at_least_one_invitation_sent";
 
-    if store::get_opt(db).await?.is_some() {
+    if store::get_opt(&db.read).await?.is_some() {
         trace!("Not backfilling `{KEY}`: Already set.");
         return Ok(());
     }
@@ -105,7 +107,7 @@ async fn backfill_at_least_one_invitation_sent(
     // a new one in a transaction and check the auto-incrementing ID (which
     // don’t get reused, as stated in https://sqlite.org/autoinc.html). If
     // it’s greater than 1, it means a row existed once in the past.
-    let transaction = db.begin().await.unwrap();
+    let transaction = db.write.begin().await.unwrap();
 
     let invitation = InvitationRepository::create(
         &transaction,
@@ -128,5 +130,5 @@ async fn backfill_at_least_one_invitation_sent(
     transaction.rollback().await?;
 
     trace!("Backfilling `{KEY}` to {at_least_one_invitation_sent}…");
-    store::set(db, at_least_one_invitation_sent).await
+    store::set(&db.write, at_least_one_invitation_sent).await
 }

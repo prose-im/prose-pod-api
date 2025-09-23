@@ -6,11 +6,12 @@
 mod add_workspace_to_team;
 mod backfill_database;
 mod create_service_accounts;
+mod db_configure;
+mod db_run_migrations;
 mod init_server_config;
 mod migrate_workspace_vcard;
 mod register_oauth2_client;
 mod rotate_api_xmpp_password;
-mod run_migrations;
 mod start_cron_tasks;
 mod test_services_reachability;
 mod update_rosters;
@@ -24,11 +25,12 @@ use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 use self::add_workspace_to_team::*;
 use self::backfill_database::*;
 use self::create_service_accounts::*;
+use self::db_configure::*;
+use self::db_run_migrations::*;
 use self::init_server_config::*;
 use self::migrate_workspace_vcard::*;
 use self::register_oauth2_client::*;
 use self::rotate_api_xmpp_password::*;
-use self::run_migrations::*;
 use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
 use self::update_rosters::*;
@@ -68,7 +70,8 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
     {
         run_step_macro!(app_state, app_config);
 
-        run_step!(run_migrations);
+        run_step!(db_configure);
+        run_step!(db_run_migrations);
         let temp = true;
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         run_step!(test_services_reachability);

@@ -12,6 +12,7 @@ use sea_orm::*;
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
     prosody::ProsodyConfig,
+    util::random_string_alphanumeric,
     MigratorTrait as _,
 };
 
@@ -43,11 +44,24 @@ struct TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
+        // FIX: Since we open two different connections for reading
+        //   and writing, we need in-memory databases to share their cache
+        //.  (otherwise the read-only connection could never see anything).
+        //   This creates a named in-memory database (see
+        //   [“In-memory Databases And Shared Cache” in SQLite’s “In-Memory Databases” documentation](https://sqlite.org/inmemorydb.html#sharedmemdb)).
+        //   We also have to use a unique name because all tests are spawned
+        //   in the same process, which means using a constant file name
+        //   (e.g. `sqlite:file:test?mode=memory&cache=shared`) would result in
+        //   “UNIQUE constraint failed” errors from the database every 2nd test.
+        let filename = random_string_alphanumeric(16);
+        let db_url = format!("sqlite:file:{filename}?mode=memory&cache=shared");
+        std::env::set_var("PROSE_API__DATABASES__MAIN__URL", db_url);
+
         let app_config = AppConfig::from_path(&CONFIG_PATH.clone())
             .expect(&format!("Invalid config file at {}", CONFIG_PATH.display()));
 
         // Connecting SQLite
-        let db = match Database::connect(&app_config.api.databases.main.url).await {
+        let db = match Database::connect(app_config.api.databases.main_url()).await {
             Ok(conn) => conn,
             Err(e) => panic!("Could not connect to test database: {e}"),
         };

@@ -57,11 +57,11 @@ async fn given_password_reset_requested(
 
     let token = world.mock_auth_service.log_in_unchecked(&actor_jid).await?;
     let user_info = (world.mock_auth_service)
-        .get_user_info(token, world.db())
+        .get_user_info(token, &world.db.read)
         .await?;
 
     auth_controller::request_password_reset(
-        world.db(),
+        &world.db.write,
         &world.notifcation_service(),
         &world.app_config(),
         &user_info,
@@ -69,7 +69,7 @@ async fn given_password_reset_requested(
     )
     .await?;
 
-    let tokens = password_reset_tokens::get_by_jid(world.db(), &subject_jid).await?;
+    let tokens = password_reset_tokens::get_by_jid(&world.db.read, &subject_jid).await?;
     world.password_reset_tokens.insert(subject_jid, tokens);
 
     Ok(())
@@ -125,7 +125,7 @@ async fn when_password_reset_request(
     let res = request_password_reset(world.api(), actor_token, subject_jid.clone()).await;
     world.result = Some(res.unwrap().into());
 
-    let tokens = password_reset_tokens::get_by_jid(world.db(), &subject_jid).await?;
+    let tokens = password_reset_tokens::get_by_jid(&world.db.read, &subject_jid).await?;
     world.password_reset_tokens.insert(subject_jid, tokens);
 
     Ok(())
@@ -238,7 +238,7 @@ async fn then_n_valid_password_reset_tokens(
     name: String,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    let entries = password_reset_tokens::get_by_jid(world.db(), &jid).await?;
+    let entries = password_reset_tokens::get_by_jid(&world.db.read, &jid).await?;
     assert_eq!(entries.len(), n);
     Ok(())
 }

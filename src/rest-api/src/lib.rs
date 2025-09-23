@@ -20,10 +20,10 @@ use service::{
     dependencies::Uuid,
     factory_reset::FactoryResetService,
     licensing::LicenseService,
+    models::DatabaseRwConnectionPools,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
     pod_version::PodVersionService,
-    sea_orm::DatabaseConnection,
     secrets::SecretsStore,
     xmpp::{ServerCtl, XmppServiceInner},
     AppConfig,
@@ -38,7 +38,7 @@ pub trait AxumState: Clone + Send + Sync + 'static {}
 #[derive(Debug, Clone)]
 pub struct AppState {
     base: MinimalAppState,
-    db: DatabaseConnection,
+    db: DatabaseRwConnectionPools,
     app_config: Arc<AppConfig>,
     server_ctl: ServerCtl,
     xmpp_service: XmppServiceInner,
@@ -54,7 +54,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(
         base: MinimalAppState,
-        db: DatabaseConnection,
+        db: DatabaseRwConnectionPools,
         app_config: Arc<AppConfig>,
         server_ctl: ServerCtl,
         xmpp_service: XmppServiceInner,
@@ -130,7 +130,7 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
     PreStartupRouter(router)
 }
 
-/// A router used only sfter a factory reset, when the static configuration file
+/// A router used only after a factory reset, when the static configuration file
 /// is empty and the API cannot start. Call `POST /reload` after editing this
 /// file to (re)start the API.
 #[instrument(level = "trace", skip_all)]
@@ -139,6 +139,7 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
     let mut router = Router::new()
         .merge(features::reload::factory_reset_router(app_state.clone()))
         .merge(features::version::minimal_router(app_state.clone()))
+        .merge(features::health_check::minimal_router(app_state.clone()))
         // Include trace context as header into the response.
         .layer(OtelInResponseLayer::default())
         // Start OpenTelemetry trace on incoming request.

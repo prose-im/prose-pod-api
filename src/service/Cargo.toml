@@ -66,6 +66,7 @@ strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
+toml = { workspace = true, features = ["serde", "display"] }
 tracing = { workspace = true }
 unicode-normalization = { workspace = true }
 url = { workspace = true }
@@ -78,6 +79,7 @@ xmpp-parsers = { workspace = true }
 [dev-dependencies]
 cucumber = { workspace = true, features = ["macros"] }
 insta = { workspace = true }
+figment = { version = "*", features = ["json"] }
 
 [features]
 default = []

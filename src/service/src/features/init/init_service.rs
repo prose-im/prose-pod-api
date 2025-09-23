@@ -3,10 +3,8 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
-
 use jid::DomainRef;
-use sea_orm::{DatabaseConnection, DbErr, TransactionTrait as _};
+use sea_orm::{DbErr, TransactionTrait as _};
 use secrecy::SecretString;
 use tracing::instrument;
 
@@ -15,13 +13,13 @@ use crate::{
         Member, MemberRepository, MemberRole, Nickname, UnauthenticatedMemberService,
         UserCreateError,
     },
-    models::JidNode,
+    models::{DatabaseRwConnectionPools, JidNode},
     util::bare_jid_from_username,
 };
 
 #[derive(Debug)]
 pub struct InitService {
-    pub db: Arc<DatabaseConnection>,
+    pub db: DatabaseRwConnectionPools,
 }
 
 impl InitService {
@@ -35,11 +33,11 @@ impl InitService {
         let form = form.into();
         let jid = bare_jid_from_username(&form.username, server_domain);
 
-        if MemberRepository::count(self.db.as_ref()).await? > 0 {
+        if MemberRepository::count(&self.db.read).await? > 0 {
             return Err(InitFirstAccountError::FirstAccountAlreadyCreated);
         }
 
-        let txn = self.db.begin().await?;
+        let txn = self.db.write.begin().await?;
         let member = member_service
             .create_user(
                 &txn,
