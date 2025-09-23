@@ -130,7 +130,7 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
     PreStartupRouter(router)
 }
 
-/// A router used only sfter a factory reset, when the static configuration file
+/// A router used only after a factory reset, when the static configuration file
 /// is empty and the API cannot start. Call `POST /reload` after editing this
 /// file to (re)start the API.
 #[instrument(level = "trace", skip_all)]
