@@ -37,7 +37,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(dashboard_config::router(app_state.clone()))
         .merge(dns_setup::router(app_state.clone()))
         .merge(factory_reset::router(app_state.clone()))
-        .merge(health_check::router())
+        .merge(health_check::router(app_state.clone()))
         .merge(init::router(app_state.clone()))
         .merge(invitations::router(app_state.clone()))
         .merge(licensing::router(app_state.clone()))

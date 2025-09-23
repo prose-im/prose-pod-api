@@ -139,6 +139,7 @@ pub fn factory_reset_router(app_state: &MinimalAppState) -> Router {
     let mut router = Router::new()
         .merge(features::reload::factory_reset_router(app_state.clone()))
         .merge(features::version::minimal_router(app_state.clone()))
+        .merge(features::health_check::minimal_router(app_state.clone()))
         // Include trace context as header into the response.
         .layer(OtelInResponseLayer::default())
         // Start OpenTelemetry trace on incoming request.
