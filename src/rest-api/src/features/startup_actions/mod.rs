@@ -3,7 +3,6 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod add_workspace_to_team;
 mod backfill_database;
 mod create_service_accounts;
 mod db_configure;
@@ -22,7 +21,6 @@ use tracing::{info, instrument, trace, warn};
 
 use crate::{error::DETAILED_ERROR_REPONSES, AppState};
 
-use self::add_workspace_to_team::*;
 use self::backfill_database::*;
 use self::create_service_accounts::*;
 use self::db_configure::*;
@@ -82,7 +80,6 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         run_step!(register_oauth2_client);
         run_step!(create_service_accounts);
         run_step!(migrate_workspace_vcard);
-        run_step!(add_workspace_to_team);
         run_step!(start_cron_tasks);
     }
 
