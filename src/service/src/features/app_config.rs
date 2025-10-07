@@ -34,9 +34,6 @@ pub use self::service_accounts::*;
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose";
 pub const CONFIG_FILE_NAME: &'static str = "prose.toml";
-// NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
-//   and cannot be changed via configuration.
-pub const ADMIN_HOST: &'static str = "admin.prose.local";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
 
 lazy_static! {
@@ -73,11 +70,9 @@ pub mod pub_defaults {
 
     pub const SERVER_HTTP_PORT: u16 = 5280;
 
+    pub const SERVER_API_PORT: u16 = 8080;
+
     pub const SERVER_LOCAL_HOSTNAME: &'static str = "prose-pod-server";
-
-    pub const SERVER_LOCAL_HOSTNAME_ADMIN: &'static str = "prose-pod-server-admin";
-
-    pub const SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE: &'static str = "prose-pod-api";
 }
 
 fn default_config_static() -> Figment {
@@ -139,6 +134,7 @@ fn default_config_static() -> Figment {
         [auth]
         token_ttl = "PT3H"
         password_reset_token_ttl = "PT15M"
+        invitation_ttl = "P1W"
         oauth2_registration_key = random_oauth2_registration_key
 
         [api.network_checks]
@@ -167,8 +163,8 @@ fn default_config_static() -> Figment {
 
         [server]
         local_hostname = SERVER_LOCAL_HOSTNAME
-        local_hostname_admin = SERVER_LOCAL_HOSTNAME_ADMIN
         http_port = SERVER_HTTP_PORT
+        api_port = SERVER_API_PORT
         log_level = "info"
 
         [server.defaults]
@@ -190,14 +186,8 @@ fn default_config_static() -> Figment {
         push_notification_with_body = true
         push_notification_with_sender = true
 
-        [service_accounts.prose_pod_api]
-        xmpp_node = SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE
-
         [service_accounts.prose_workspace]
         xmpp_node = "prose-workspace"
-
-        [bootstrap]
-        prose_pod_api_xmpp_password = "bootstrap"
 
         [prosody_ext]
         config_file_path = "/etc/prosody/prosody.cfg.lua"
@@ -362,6 +352,7 @@ pub struct AppConfig {
     pub prosody: HashMap<DomainName, ProsodyHostConfig>,
 
     /// Advanced config, use only if needed.
+    #[serde(default)]
     pub bootstrap: Arc<BootstrapConfig>,
 
     /// Advanced config, use only if needed.
@@ -581,11 +572,6 @@ mod dashboard {
 }
 
 mod service_accounts {
-    use std::str::FromStr as _;
-
-    use crate::app_config::ADMIN_HOST;
-    use crate::models::xmpp::jid::DomainPart;
-
     use super::prelude::*;
 
     #[derive(Debug)]
@@ -593,9 +579,6 @@ mod service_accounts {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct ServiceAccountsConfig {
-        #[validate(nested)]
-        pub prose_pod_api: ServiceAccountConfig,
-
         #[validate(nested)]
         pub prose_workspace: ServiceAccountConfig,
     }
@@ -609,13 +592,6 @@ mod service_accounts {
     }
 
     impl AppConfig {
-        pub fn api_jid(&self) -> BareJid {
-            BareJid::from_parts(
-                Some(&self.service_accounts.prose_pod_api.xmpp_node),
-                &DomainPart::from_str(ADMIN_HOST).unwrap(),
-            )
-        }
-
         pub fn workspace_jid(&self) -> BareJid {
             BareJid::from_parts(
                 Some(&self.service_accounts.prose_workspace.xmpp_node),
@@ -628,13 +604,11 @@ mod service_accounts {
 mod bootstrap {
     use super::prelude::*;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     #[derive(Validate, serdev::Deserialize)]
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
-    pub struct BootstrapConfig {
-        pub prose_pod_api_xmpp_password: SecretString,
-    }
+    pub struct BootstrapConfig {}
 }
 
 mod pod {
@@ -714,10 +688,9 @@ mod server {
         #[validate(length(min = 1, max = 1024), non_control_character)]
         pub local_hostname: String,
 
-        #[validate(length(min = 1, max = 1024), non_control_character)]
-        pub local_hostname_admin: String,
-
         pub http_port: u16,
+
+        pub api_port: u16,
 
         pub log_level: prosody_config::LogLevel,
 
@@ -729,8 +702,8 @@ mod server {
         pub fn http_url(&self) -> String {
             format!("http://{}:{}", self.local_hostname, self.http_port)
         }
-        pub fn admin_http_url(&self) -> String {
-            format!("http://{}:{}", self.local_hostname_admin, self.http_port)
+        pub fn api_url(&self) -> String {
+            format!("http://{}:{}", self.local_hostname, self.api_port)
         }
     }
 
@@ -828,6 +801,8 @@ mod auth {
         pub token_ttl: iso8601_duration::Duration,
 
         pub password_reset_token_ttl: iso8601_duration::Duration,
+
+        pub invitation_ttl: iso8601_duration::Duration,
 
         pub oauth2_registration_key: SecretString,
     }
@@ -1016,21 +991,6 @@ mod debug_only {
         pub dependency_modes: DependencyModesConfig,
     }
 
-    #[derive(Debug)]
-    #[derive(serdev::Deserialize)]
-    #[serde(deny_unknown_fields)]
-    #[serde(rename_all = "snake_case")]
-    pub enum UuidDependencyMode {
-        Normal,
-        Incrementing,
-    }
-
-    impl Default for UuidDependencyMode {
-        fn default() -> Self {
-            Self::Normal
-        }
-    }
-
     #[derive(Debug, Clone, Copy)]
     #[derive(serdev::Deserialize)]
     #[serde(deny_unknown_fields)]
@@ -1051,9 +1011,6 @@ mod debug_only {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct DependencyModesConfig {
-        #[serde(default)]
-        pub uuid: UuidDependencyMode,
-
         #[serde(default)]
         pub notifier: NotifierDependencyMode,
     }

@@ -73,27 +73,11 @@ impl HttpApiError for CannotResetPassword {
     }
 }
 
-impl HttpApiError for PasswordResetTokenNotFound {
-    fn code(&self) -> ErrorCode {
-        ErrorCode {
-            // NOTE: We use `password_reset_token_expired` here since the API
-            //   can rarely differenciate an expired token from a non-existing
-            //   one. The reason being that expired tokens are deleted from time
-            //   to time, and when an expired token is used.
-            value: "password_reset_token_expired",
-            http_status: StatusCode::NOT_FOUND,
-            log_level: LogLevel::Info,
-        }
-    }
-}
-
 impl HttpApiError for PasswordResetTokenExpired {
     fn code(&self) -> ErrorCode {
         ErrorCode {
             value: "password_reset_token_expired",
-            // NOTE: While we could return 404 Not Found here, we return
-            //   410 Gone to help debugging (in rare cases).
-            http_status: StatusCode::GONE,
+            http_status: StatusCode::NOT_FOUND,
             log_level: LogLevel::Info,
         }
     }

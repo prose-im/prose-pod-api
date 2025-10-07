@@ -8,7 +8,7 @@ use std::{sync::Arc, time::SystemTime};
 use tokio::time::{interval, Duration, MissedTickBehavior};
 use tracing::*;
 
-use crate::{auth::AuthService, secrets::SecretsStore, AppConfig};
+use crate::{auth::AuthService, secrets_store::SecretsStore, AppConfig};
 
 #[derive(Debug)]
 pub struct Context {
@@ -97,7 +97,7 @@ pub async fn run(
                     continue;
                 }
             };
-            if let Err(err) = secrets_store.set_service_account_prosody_token(jid, token.0) {
+            if let Err(err) = secrets_store.set_service_account_prosody_token(jid, token) {
                 error!("Could not refresh service accounts tokens: {err}");
                 continue;
             };

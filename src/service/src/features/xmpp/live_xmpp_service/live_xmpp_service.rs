@@ -1,10 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{str::FromStr as _, sync::Arc};
+use std::{ops::Deref, str::FromStr as _, sync::Arc};
 
+use async_trait::async_trait;
 use prose_xmpp::{
     mods::{self, AvatarData},
     stanza::avatar::{self, ImageId},
@@ -71,7 +72,7 @@ impl LiveXmppService {
             .connect(
                 &ctx.bare_jid
                     .with_resource(&ResourcePart::new(&self.id_provider.new_id()).unwrap()),
-                ctx.prosody_token.clone(),
+                ctx.auth_token.deref().clone(),
             )
             .await
             .map_err(XmppServiceError::from)?;
@@ -91,7 +92,7 @@ impl LiveXmppService {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl XmppServiceImpl for LiveXmppService {
     async fn get_vcard(
         &self,
@@ -105,6 +106,7 @@ impl XmppServiceImpl for LiveXmppService {
             .await
             .map_err(Into::into)
     }
+
     async fn set_own_vcard(
         &self,
         ctx: &XmppServiceContext,
@@ -146,6 +148,7 @@ impl XmppServiceImpl for LiveXmppService {
 
         Ok(Some(avatar.to_owned()))
     }
+
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
     async fn set_own_avatar<'a>(
         &self,
@@ -188,11 +191,13 @@ impl XmppServiceImpl for LiveXmppService {
 
     async fn is_connected(
         &self,
-        _ctx: &XmppServiceContext,
+        ctx: &XmppServiceContext,
         jid: &BareJid,
     ) -> Result<bool, XmppServiceError> {
+        // FIXME: Use standard XMPP (so non-admins can see the presence
+        //   of their contacts in the Dashboard).
         self.non_standard_xmpp_client
-            .is_connected(jid)
+            .is_connected(jid, &ctx.auth_token)
             .await
             .map_err(XmppServiceError::from)
     }

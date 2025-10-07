@@ -124,18 +124,6 @@ VirtualHost "test.local"
   oauth2_refresh_token_ttl = 0
   oauth2_registration_key = "0TJ6t1lWutrYon6SVjtcdVz9_XfIwAIuWkRoellx-f1r8ALPYAwjnwR4DgTy2aaGprMIBPd0HLTfT9GPprfUG_O4-FHDBduoNotdjJc4KIki2KrfnL_B2orAqreBXk_yPk3ay3gBUHfet74CPbnROx66AsPVGQjJ1SH_68YVK10NGbSTnp0Er9EQlYXvuO01H-NlRylmnRHXb05Ph5dKK_pfhEdCEsD5Jhz_uLs5emlAyXS9h6uk5GMihW9Yz1o3CZQzBwuhv6kBSTtssXjBqJme7nEyZdIRLCic1Eg5ks3YBokOPMSvX1WjFUK0nsTm1J0J9I9rKnJMQrSQYrkUjA"
 
-VirtualHost "admin.prose.local"
-  admins = { "prose-pod-api@admin.prose.local" }
-
-  -- Modules
-  modules_enabled = {
-    "admin_rest";
-    "init_admin";
-  }
-
-  -- HTTP settings
-  http_host = "prose-pod-server-admin"
-
 Component "groups.test.local" "muc"
   name = "Chatrooms"
 

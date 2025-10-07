@@ -6,9 +6,17 @@
 use std::{fmt::Debug, str::FromStr as _};
 
 use prose_pod_api::error::{self, Error};
-use service::xmpp::BareJid;
+use service::{auth::Password, xmpp::BareJid};
 
 use crate::TestWorld;
+
+pub const USER_MISSING: &'static str = "User must be created first";
+pub fn user_missing(name: &str) -> String {
+    format!("{USER_MISSING}: {name}")
+}
+pub fn jid_missing(jid: &BareJid) -> String {
+    format!("{USER_MISSING}: {jid}")
+}
 
 pub async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error> {
     // Strip potential `<>` around the JID (if `name` is a JID).
@@ -29,6 +37,10 @@ pub async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error
             "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
         ))
     })?)
+}
+
+pub fn dumb_password() -> Password {
+    Password::from("insecure-test-password")
 }
 
 pub fn assert_contains_if<S: Debug, T: Debug + ?Sized>(
@@ -52,16 +64,6 @@ pub fn assert_defined_if<T: PartialEq + Debug>(condition: bool, value: Option<T>
 }
 
 #[macro_export]
-macro_rules! user_token {
-    ($world:expr, $name:expr) => {
-        ($world.members.get(&$name))
-            .expect("User must be created first")
-            .1
-            .clone()
-    };
-}
-
-#[macro_export]
 macro_rules! api_call_fn {
     // Authenticated.
     (
@@ -74,7 +76,7 @@ macro_rules! api_call_fn {
     ) => {
         pub async fn $fn(
             api: &axum_test::TestServer,
-            token: secrecy::SecretString,
+            auth: &service::auth::AuthToken,
             $($route_param_name: $route_param,)*
             $(payload: $payload_type,)?
         ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
@@ -90,7 +92,7 @@ macro_rules! api_call_fn {
                     )
                     .add_header(
                         axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
+                        format!("Bearer {}", auth.expose_secret()),
                     )
                     $(.add_header(axum::http::header::ACCEPT, $accept))?
                     $(.json(&serde_json::json!(payload as $payload_type)))?,
@@ -138,7 +140,7 @@ macro_rules! api_call_fn {
     ) => {
         pub async fn $fn(
             api: &axum_test::TestServer,
-            token: secrecy::SecretString,
+            auth: &service::auth::AuthToken,
             $($route_param_name: $route_param,)*
             payload: $payload_type,
         ) -> Result<axum_test::TestResponse, tokio::time::error::Elapsed> {
@@ -154,7 +156,7 @@ macro_rules! api_call_fn {
                     )
                     .add_header(
                         axum::http::header::AUTHORIZATION,
-                        format!("Bearer {}", token.expose_secret()),
+                        format!("Bearer {}", auth.expose_secret()),
                     )
                     .text(payload)
                     $(.content_type($content_type))?,

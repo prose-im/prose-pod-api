@@ -1,329 +1,282 @@
 // prose-pod-api
 //
-// Copyright: 2023–2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use chrono::{DateTime, TimeDelta, Utc};
-use sea_orm::{
-    prelude::*, DeleteResult, IntoActiveModel as _, ItemsAndPagesNumber, NotSet, QueryOrder as _,
-    Set,
-};
-use secrecy::{zeroize::Zeroize, ExposeSecret, SecretString, SerializableSecret};
-use serdev::{Deserialize, Serialize};
+pub mod prelude {
+    pub use std::sync::Arc;
 
-use crate::{
-    dependencies,
-    invitations::{
-        entities::workspace_invitation::{ActiveModel, Column, Entity},
-        Invitation, InvitationContact, InvitationStatus,
-    },
-    members::MemberRole,
-    models::{BareJid, EmailAddress},
-    MutationError,
-};
+    pub use async_trait::async_trait;
+    pub use chrono::{DateTime, TimeDelta, Utc};
+
+    pub use crate::{
+        auth::AuthToken,
+        errors::Forbidden,
+        invitations::{
+            invitation_repository::InvitationRepositoryImpl,
+            models::{Invitation, InvitationId, InvitationToken},
+        },
+        members::MemberRole,
+        models::EmailAddress,
+        util::{
+            either::Either,
+            paginate::{paginate_iter, ItemsAndPagesNumber},
+        },
+        xmpp::jid::{JidNode, NodeRef},
+    };
+
+    pub use super::{CreateAccountInvitationCommand, InvitationsStats};
+}
+
+pub use self::live_invitation_repository::LiveInvitationRepository;
+use self::prelude::*;
+
+#[derive(Debug, Clone)]
+pub struct InvitationRepository {
+    pub implem: Arc<dyn InvitationRepositoryImpl>,
+}
+
+#[async_trait]
+pub trait InvitationRepositoryImpl: std::fmt::Debug + Sync + Send {
+    async fn create_account_invitation(
+        &self,
+        command: CreateAccountInvitationCommand,
+        auth: &AuthToken,
+    ) -> Result<Invitation, Either<Forbidden, anyhow::Error>>;
+
+    async fn list_account_invitations(
+        &self,
+        auth: &AuthToken,
+    ) -> Result<Vec<Invitation>, Either<Forbidden, anyhow::Error>>;
+
+    async fn list_account_invitations_paged(
+        &self,
+        page_number: usize,
+        page_size: usize,
+        until: Option<DateTime<Utc>>,
+        auth: &AuthToken,
+    ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), Either<Forbidden, anyhow::Error>> {
+        let full_list: Vec<Invitation> = self.list_account_invitations(auth).await?;
+
+        // Filter based on date.
+        let until = until.unwrap_or_else(Utc::now);
+        let invitations = full_list
+            .into_iter()
+            // NOTE: Results aleady sorted by ascending creation date.
+            .take_while(|invitation| invitation.created_at <= until);
+
+        // Paginate.
+        let (metadata, invitations) = paginate_iter(invitations, page_number, page_size);
+
+        Ok((metadata, invitations))
+    }
+
+    async fn account_invitations_stats(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<InvitationsStats, anyhow::Error>;
+
+    /// Used to prevent duplicates.
+    async fn get_account_invitation_by_username(
+        &self,
+        username: &NodeRef,
+        auth: &AuthToken,
+    ) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>>;
+
+    /// Used to get details for a single invitation.
+    async fn get_account_invitation_by_id(
+        &self,
+        id: &InvitationId,
+        auth: &AuthToken,
+    ) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>>;
+
+    /// Used to show some information in the UI when accepting an invitation.
+    async fn get_account_invitation_by_token(
+        &self,
+        token: &InvitationToken,
+    ) -> Result<Option<Invitation>, anyhow::Error>;
+
+    async fn delete_invitation(
+        &self,
+        token: InvitationToken,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+}
 
 #[derive(Debug)]
-pub enum InvitationRepository {}
+pub struct CreateAccountInvitationCommand {
+    pub username: JidNode,
+    pub role: MemberRole,
+    pub email_address: EmailAddress,
+    pub ttl: Option<TimeDelta>,
+}
 
-impl InvitationRepository {
-    // TODO: Trace fields.
-    #[tracing::instrument(name = "db::invitation::create", level = "info", skip_all, err)]
-    pub async fn create(
-        db: &impl ConnectionTrait,
-        form: impl Into<InvitationCreateForm>,
-        uuid: &dependencies::Uuid,
-    ) -> Result<Invitation, DbErr> {
-        form.into().into_active_model(uuid).insert(db).await
+#[derive(Debug)]
+pub struct InvitationsStats {
+    pub count: usize,
+}
+
+mod live_invitation_repository {
+    use serde_json::json;
+
+    use crate::invitations::errors::{InvitationNotFound, InvitationNotFoundForToken};
+    use crate::prose_pod_server_api::{self, ProsePodServerApi, ProsePodServerError};
+    use crate::prosody::prosody_http_admin_api::{CreateAccountInvitationRequest, InviteInfo};
+    use crate::prosody::{AsProsody as _, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi};
+    use crate::util::either::Either3;
+    use crate::TEAM_GROUP_ID;
+
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct LiveInvitationRepository {
+        pub server_api: ProsePodServerApi,
+        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub invites_register_api: ProsodyInvitesRegisterApi,
     }
 
-    #[tracing::instrument(
-        name = "db::invitation::get_all",
-        level = "trace",
-        skip_all,
-        fields(page_number, page_size, until),
-        err
-    )]
-    pub async fn get_all(
-        db: &impl ConnectionTrait,
-        page_number: u64,
-        page_size: u64,
-        until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), DbErr> {
-        assert_ne!(
-            page_number, 0,
-            "`page_number` starts at 1 like in the public API."
-        );
+    #[async_trait]
+    impl InvitationRepositoryImpl for LiveInvitationRepository {
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn create_account_invitation(
+            &self,
+            CreateAccountInvitationCommand {
+                username,
+                role,
+                email_address,
+                ttl,
+            }: CreateAccountInvitationCommand,
+            auth: &AuthToken,
+        ) -> Result<Invitation, Either<Forbidden, anyhow::Error>> {
+            if let Some(ref ttl) = ttl {
+                assert!(ttl.num_seconds() >= 0);
+            }
 
-        let mut query = Entity::find().order_by_asc(Column::CreatedAt);
-        if let Some(until) = until {
-            query = query.filter(Column::CreatedAt.lte(until));
+            let admin_api_request = CreateAccountInvitationRequest {
+                username: Some(JidNode::from(username)),
+                ttl_secs: ttl.map(|ttl| ttl.num_seconds() as u32),
+                groups: Some(vec![TEAM_GROUP_ID.to_owned()]),
+                roles: Some(vec![role.as_prosody()]),
+                note: None,
+                additional_data: json!({
+                    "email": email_address,
+                }),
+            };
+            let prosody_invite: InviteInfo = self
+                .admin_api
+                .create_invite_for_account(admin_api_request, auth)
+                .await?;
+
+            Invitation::try_from(prosody_invite).map_err(Either::E2)
         }
-        let pages = query.paginate(db, page_size);
 
-        let num_items_and_pages = pages.num_items_and_pages().await?;
-        let models = pages.fetch_page(page_number - 1).await?;
-        Ok((num_items_and_pages, models))
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn list_account_invitations(
+            &self,
+            auth: &AuthToken,
+        ) -> Result<Vec<Invitation>, Either<Forbidden, anyhow::Error>> {
+            let prosody_invites: Vec<InviteInfo> = self.admin_api.list_invites(auth).await?;
+
+            let mut res: Vec<Invitation> = Vec::with_capacity(prosody_invites.len());
+            for invite in prosody_invites {
+                let id = invite.id.clone();
+                match Invitation::try_from(invite) {
+                    Ok(invitation) => res.push(invitation),
+                    Err(err) => tracing::warn!("Bad invitation {id:?}: {err}"),
+                }
+            }
+
+            Ok(res)
+        }
+
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn account_invitations_stats(
+            &self,
+            auth: Option<&AuthToken>,
+        ) -> Result<InvitationsStats, anyhow::Error> {
+            match self.server_api.invitations_util_stats(auth).await {
+                Ok(response) => Ok(InvitationsStats::from(response)),
+                // All of those mean something is wrong.
+                Err(err @ ProsePodServerError::Unavailable)
+                | Err(err @ ProsePodServerError::Forbidden(_))
+                | Err(err @ ProsePodServerError::Internal(_)) => Err(anyhow::Error::new(err)),
+            }
+        }
+
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn get_account_invitation_by_username(
+            &self,
+            username: &NodeRef,
+            auth: &AuthToken,
+        ) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>> {
+            let prosody_invites = self.admin_api.list_invites(auth).await?;
+
+            match prosody_invites
+                .into_iter()
+                .find(|invite| invite.jid.node() == Some(username))
+            {
+                Some(prosody_invite) => match Invitation::try_from(prosody_invite) {
+                    Ok(invitation) => Ok(Some(invitation)),
+                    Err(err) => Err(Either::E2(err)),
+                },
+                None => Ok(None),
+            }
+        }
+
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn get_account_invitation_by_id(
+            &self,
+            id: &InvitationId,
+            auth: &AuthToken,
+        ) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>> {
+            match self.admin_api.get_invite_by_id(id, auth).await {
+                Ok(prosody_invite) => match Invitation::try_from(prosody_invite) {
+                    Ok(invitation) => Ok(Some(invitation)),
+                    Err(err) => Err(Either::E2(err)),
+                },
+                Err(Either3::E1(err @ Forbidden(_))) => Err(Either::E1(err)),
+                Err(Either3::E2(InvitationNotFound(_))) => Ok(None),
+                Err(Either3::E3(err)) => Err(Either::E2(err)),
+            }
+        }
+
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn get_account_invitation_by_token(
+            &self,
+            token: &InvitationToken,
+        ) -> Result<Option<Invitation>, anyhow::Error> {
+            match self.invites_register_api.get_invite_info(token).await {
+                Ok(prosody_invite) => Invitation::try_from(prosody_invite).map(Some),
+                Err(Either::E1(InvitationNotFoundForToken)) => Ok(None),
+                Err(Either::E2(err)) => Err(err),
+            }
+        }
+
+        #[tracing::instrument(level = "trace", skip_all)]
+        async fn delete_invitation(
+            &self,
+            token: InvitationToken,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.admin_api.delete_invite(&token, auth).await
+        }
     }
 
-    #[tracing::instrument(
-        name = "db::invitation::get_by_id",
-        level = "trace",
-        skip_all,
-        fields(invitation_id = id),
-        err
-    )]
-    pub async fn get_by_id(
-        db: &impl ConnectionTrait,
-        id: &i32,
-    ) -> Result<Option<Invitation>, DbErr> {
-        Entity::find_by_id(*id).one(db).await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::get_by_jid", level = "trace",
-        skip_all, fields(jid = jid.to_string()),
-        err
-    )]
-    pub async fn get_by_jid(
-        db: &impl ConnectionTrait,
-        jid: &BareJid,
-    ) -> Result<Option<Invitation>, DbErr> {
-        Entity::find()
-            .filter(Column::Jid.eq(jid.as_str()))
-            .one(db)
-            .await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::get_by_accept_token",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub async fn get_by_accept_token(
-        db: &impl ConnectionTrait,
-        token: InvitationToken,
-    ) -> Result<Option<Invitation>, DbErr> {
-        Entity::find()
-            .filter(Column::AcceptToken.eq(*token.expose_secret()))
-            .one(db)
-            .await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::get_by_reject_token",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    pub async fn get_by_reject_token(
-        db: &impl ConnectionTrait,
-        token: InvitationToken,
-    ) -> Result<Option<Invitation>, DbErr> {
-        Entity::find()
-            .filter(Column::RejectToken.eq(*token.expose_secret()))
-            .one(db)
-            .await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::update_status_by_id",
-        level = "trace",
-        skip_all,
-        fields(invitation_id = id, status),
-        err
-    )]
-    pub async fn update_status_by_id(
-        db: &impl ConnectionTrait,
-        id: i32,
-        status: InvitationStatus,
-    ) -> Result<Invitation, MutationError> {
-        // Query
-        let model = Entity::find_by_id(id).one(db).await?;
-        let Some(model) = model else {
-            return Err(MutationError::EntityNotFound {
-                entity_name: stringify!(workspace_invitation::Entity),
-            });
-        };
-
-        // Update
-        Self::update_status(db, model, status).await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::update_status_by_email",
-        level = "trace",
-        skip_all,
-        fields(email_address, status),
-        err
-    )]
-    pub async fn update_status_by_email(
-        db: &impl ConnectionTrait,
-        email_address: EmailAddress,
-        status: InvitationStatus,
-    ) -> Result<Invitation, MutationError> {
-        // Query
-        let model = Entity::find()
-            .filter(Column::EmailAddress.eq(email_address))
-            .one(db)
-            .await?;
-        let Some(model) = model else {
-            return Err(MutationError::EntityNotFound {
-                entity_name: stringify!(workspace_invitation::Entity),
-            });
-        };
-
-        // Update
-        Self::update_status(db, model, status).await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::update_status",
-        level = "info",
-        skip_all,
-        fields(invitation_id = model.id, jid = model.jid.to_string(), previous_status = model.status.to_string(), status = status.to_string()),
-        err
-    )]
-    pub async fn update_status(
-        db: &impl ConnectionTrait,
-        model: Invitation,
-        status: InvitationStatus,
-    ) -> Result<Invitation, MutationError> {
-        let mut active = model.into_active_model();
-        active.status = Set(status);
-        let model = active.update(db).await?;
-
-        Ok(model)
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::resend",
-        level = "info",
-        skip_all,
-        fields(invitation_id = model.id, jid = model.jid.to_string(), status = model.status.to_string(), ttl),
-        err
-    )]
-    pub async fn resend(
-        db: &impl ConnectionTrait,
-        uuid: &dependencies::Uuid,
-        model: Invitation,
-        ttl: TimeDelta,
-    ) -> Result<Invitation, MutationError> {
-        let mut active = model.into_active_model();
-        active.accept_token = Set(uuid.new_v4());
-        active.accept_token_expires_at = Set(Utc::now().checked_add_signed(ttl).unwrap());
-        let model = active.update(db).await?;
-
-        Ok(model)
-    }
-
-    /// Accept a user invitation (i.e. delete it from database).
-    /// To also create the associated user at the same time,
-    /// use [`MemberService`][crate::members::MemberService].
-    #[tracing::instrument(
-        name = "db::invitation::accept",
-        level = "info",
-        skip_all,
-        fields(invitation_id = invitation.id, jid = invitation.jid.to_string()),
-        err
-    )]
-    pub async fn accept(
-        db: &impl ConnectionTrait,
-        invitation: Invitation,
-    ) -> Result<(), MutationError> {
-        invitation.delete(db).await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::count_for_email_address",
-        level = "trace",
-        skip_all,
-        fields(email_address),
-        err
-    )]
-    pub async fn count_for_email_address(
-        db: &impl ConnectionTrait,
-        email_address: EmailAddress,
-    ) -> Result<u64, DbErr> {
-        Entity::find()
-            .filter(Column::EmailAddress.eq(email_address))
-            .count(db)
-            .await
-    }
-
-    #[tracing::instrument(
-        name = "db::invitation::delete_by_id",
-        level = "info",
-        skip_all,
-        fields(invitation_id = invitation_id),
-        err
-    )]
-    pub async fn delete_by_id(
-        db: &impl ConnectionTrait,
-        invitation_id: i32,
-    ) -> Result<DeleteResult, DbErr> {
-        Entity::delete_by_id(invitation_id).exec(db).await
+    impl From<prose_pod_server_api::GetInvitationsStatsResponse> for InvitationsStats {
+        fn from(response: prose_pod_server_api::GetInvitationsStatsResponse) -> Self {
+            Self {
+                count: response.count,
+            }
+        }
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct InvitationCreateForm {
-    pub jid: BareJid,
-    pub pre_assigned_role: Option<MemberRole>,
-    pub contact: InvitationContact,
-    pub created_at: Option<DateTime<Utc>>,
-    pub ttl: TimeDelta,
-}
+// MARK: - Boilerplate
 
-impl InvitationCreateForm {
-    fn into_active_model(self, uuid: &dependencies::Uuid) -> ActiveModel {
-        let created_at = self.created_at.unwrap_or_else(Utc::now);
-        let mut res = ActiveModel {
-            id: NotSet,
-            created_at: Set(created_at),
-            status: NotSet,
-            jid: Set(self.jid.to_owned().into()),
-            pre_assigned_role: Set(self.pre_assigned_role.unwrap_or_default()),
-            invitation_channel: NotSet,
-            email_address: NotSet,
-            accept_token: Set(uuid.new_v4()),
-            accept_token_expires_at: Set(created_at.checked_add_signed(self.ttl).unwrap()),
-            reject_token: Set(uuid.new_v4()),
-        };
-        res.set_contact(self.contact);
-        res
-    }
-}
+impl std::ops::Deref for InvitationRepository {
+    type Target = Arc<dyn InvitationRepositoryImpl>;
 
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
-// NOTE: No need to validate as `Uuid` is parsed.
-#[repr(transparent)]
-pub struct InvitationToken(Uuid);
-impl Zeroize for InvitationToken {
-    fn zeroize(&mut self) {
-        self.0.into_bytes().zeroize()
-    }
-}
-impl SerializableSecret for InvitationToken {}
-impl ExposeSecret<Uuid> for InvitationToken {
-    fn expose_secret(&self) -> &Uuid {
-        &self.0
-    }
-}
-impl From<Uuid> for InvitationToken {
-    fn from(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-impl InvitationToken {
-    pub fn into_secret_string(&self) -> SecretString {
-        SecretString::from(self.0.to_string())
-    }
-}
-impl Into<SecretString> for InvitationToken {
-    fn into(self) -> SecretString {
-        self.into_secret_string()
+    fn deref(&self) -> &Self::Target {
+        &self.implem
     }
 }

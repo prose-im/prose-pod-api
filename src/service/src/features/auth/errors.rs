@@ -31,9 +31,5 @@ pub struct CannotResetPassword;
 pub struct MissingEmailAddress(pub BareJid);
 
 #[derive(Debug, thiserror::Error)]
-#[error("Token not found.")]
-pub struct PasswordResetTokenNotFound;
-
-#[derive(Debug, thiserror::Error)]
 #[error("Token expired.")]
 pub struct PasswordResetTokenExpired;

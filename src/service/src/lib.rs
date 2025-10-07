@@ -9,7 +9,7 @@ pub extern crate prosody_config;
 pub extern crate reqwest;
 extern crate xmpp_parsers;
 
-pub mod dependencies;
+mod backward_compatibility;
 pub mod errors;
 mod features;
 mod migrations;
@@ -29,6 +29,11 @@ pub use prosody_config::ProsodyConfigSection;
 pub use reqwest::Client as HttpClient;
 pub use sea_orm;
 pub use sea_orm_migration::MigratorTrait;
+
+// TODO: Move somewhere else.
+pub(crate) const TEAM_GROUP_ID: &'static str = "team";
+
+const TODO: &'static str = "Test that accepting invitation stores email address";
 
 trait ProseDefault {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self;

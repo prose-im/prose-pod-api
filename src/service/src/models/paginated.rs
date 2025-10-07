@@ -6,18 +6,18 @@
 #[derive(Debug)]
 pub struct Paginated<T> {
     pub data: Vec<T>,
-    pub current_page: u64,
-    pub page_size: u64,
-    pub page_count: u64,
-    pub item_count: u64,
+    pub current_page: usize,
+    pub page_size: usize,
+    pub page_count: usize,
+    pub item_count: usize,
 }
 
 impl<T> Paginated<T> {
     pub fn new(
         data: Vec<T>,
-        current_page: u64,
-        page_size: u64,
-        metadata: sea_orm::ItemsAndPagesNumber,
+        current_page: usize,
+        page_size: usize,
+        metadata: crate::util::paginate::ItemsAndPagesNumber,
     ) -> Self {
         Self {
             data,

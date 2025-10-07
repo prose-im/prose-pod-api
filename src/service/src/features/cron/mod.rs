@@ -3,7 +3,6 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod delete_expired_password_reset_tokens;
 mod refresh_service_accounts_tokens;
 
 use std::sync::Arc;
@@ -14,7 +13,7 @@ use tracing::{info, Instrument as _};
 
 use crate::{models::DatabaseRwConnectionPools, AppConfig};
 
-use super::{auth::AuthService, secrets::SecretsStore};
+use super::{auth::AuthService, secrets_store::SecretsStore};
 
 #[derive(Debug, Clone)]
 pub struct CronContext {
@@ -40,7 +39,6 @@ pub fn start_cron_tasks(ctx: CronContext) {
             tokio::select! {
                 _ = join_all(vec![
                     spawn!(refresh_service_accounts_tokens),
-                    spawn!(delete_expired_password_reset_tokens),
                 ]) => {},
                 _ = ctx.cancellation_token.cancelled() => {},
             }

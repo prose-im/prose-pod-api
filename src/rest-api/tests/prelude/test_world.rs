@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
@@ -12,15 +11,17 @@ use std::{
 use axum_test::{TestResponse, TestServer};
 use cucumber::*;
 use figment::Figment;
-use secrecy::{ExposeSecret as _, SecretString};
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
-    auth::{AuthService, AuthToken, PasswordResetToken},
-    dependencies,
+    auth::{AuthService, AuthToken},
     factory_reset::FactoryResetService,
-    invitations::{Invitation, InvitationService},
-    licensing::LicenseService,
-    members::{Member, UnauthenticatedMemberService},
+    identity_provider::{IdentityProvider, VcardIdentityProvider},
+    invitations::{
+        invitation_service::InvitationApplicationService, Invitation, InvitationRepository,
+        InvitationService,
+    },
+    licensing::LicensingService,
+    members::{MemberService, UserApplicationService, UserRepository},
     models::{DatabaseRwConnectionPools, EmailAddress},
     network_checks::{NetworkChecker, PodNetworkConfig},
     notifications::{
@@ -28,13 +29,15 @@ use service::{
         NotificationService, Notifier,
     },
     pod_version::PodVersionService,
-    secrets::SecretsStore,
+    prose_pod_server_service::ProsePodServerService,
+    secrets_store::SecretsStore,
     server_config::{ServerConfig, ServerConfigManager},
     util::random_string_alphanumeric,
     workspace::WorkspaceService,
-    xmpp::{BareJid, ServerCtl, XmppServiceInner},
+    xmpp::{XmppService, XmppServiceContext},
 };
-use uuid::Uuid;
+
+use crate::prelude::util::{name_to_jid, user_missing};
 
 use super::{
     app_config::reload_config,
@@ -52,168 +55,64 @@ lazy_static::lazy_static! {
 pub struct TestWorld {
     pub app_config: Option<Arc<AppConfig>>,
     pub db: DatabaseRwConnectionPools,
-    pub mock_server_ctl: Arc<MockServerCtl>,
-    pub server_ctl: ServerCtl,
-    pub mock_auth_service: Arc<MockAuthService>,
-    pub auth_service: AuthService,
-    pub mock_xmpp_service: Arc<MockXmppService>,
-    pub xmpp_service: XmppServiceInner,
-    #[cfg(feature = "test")]
-    pub mock_license_service: Option<Arc<MockLicenseService>>,
-    pub license_service: Option<LicenseService>,
-    pub mock_email_notifier: Arc<MockNotifier<EmailNotification>>,
+    pub user_repository: Option<UserRepository>,
+    pub mock_user_repository: Option<Arc<MockUserRepository>>,
+    pub invitation_repository: Option<InvitationRepository>,
+    pub mock_invitation_repository: Option<Arc<MockInvitationRepository>>,
+    pub auth_service: Option<AuthService>,
+    pub mock_auth_service: Option<Arc<MockAuthService>>,
+    pub xmpp_service: Option<XmppService>,
+    pub mock_xmpp_service: Option<Arc<MockXmppService>>,
+    pub licensing_service: Option<LicensingService>,
+    pub mock_licensing_service: Option<Arc<MockLicensingService>>,
     pub email_notifier: Notifier<EmailNotification>,
-    pub mock_secrets_store: Option<Arc<MockSecretsStore>>,
+    pub mock_email_notifier: Arc<MockNotifier<EmailNotification>>,
     pub secrets_store: Option<SecretsStore>,
-    pub mock_network_checker: Arc<MockNetworkChecker>,
+    pub mock_secrets_store: Option<Arc<MockSecretsStore>>,
     pub network_checker: NetworkChecker,
+    pub mock_network_checker: Arc<MockNetworkChecker>,
     #[allow(unused)]
     pub mock_pod_version_service: Arc<MockPodVersionService>,
     pub pod_version_service: PodVersionService,
     pub factory_reset_service: FactoryResetService,
-    pub uuid_gen: Option<dependencies::Uuid>,
+    pub server_service: Option<ProsePodServerService>,
+    pub mock_server_service: Option<Arc<MockServerService>>,
+    pub user_application_service: Option<UserApplicationService>,
+    pub mock_user_application_service: Option<Arc<MockUserService>>,
+    #[allow(unused)]
+    pub mock_invitation_application_service: Option<MockInvitationService>,
+    pub identity_provider: IdentityProvider,
+    #[allow(unused)]
+    pub mock_identity_provider: Arc<MockIdentityProvider>,
     pub result: Option<TestResponse>,
-    /// Map a name to a member and an authorization token.
-    pub members: HashMap<String, (Member, AuthToken)>,
-    /// Map an email address to an invitation.
-    pub workspace_invitations: HashMap<EmailAddress, Invitation>,
     pub scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
-    pub previous_workspace_invitation_accept_tokens: HashMap<EmailAddress, Uuid>,
-    pub password_reset_tokens: HashMap<BareJid, Vec<PasswordResetToken>>,
+
+    pub mock_server_state: Arc<RwLock<MockServerServiceState>>,
+    pub mock_auth_service_state: Arc<RwLock<MockAuthServiceState>>,
+    pub mock_xmpp_service_state: Arc<RwLock<MockXmppServiceState>>,
 
     pub api: Option<TestServer>,
     pub config_overrides: Figment,
 }
 
 impl TestWorld {
-    pub fn api(&self) -> &TestServer {
-        self.api
-            .as_ref()
-            .expect("The Prose Pod API must be started with 'Given the Prose Pod API has started'")
-    }
-
-    pub fn result(&mut self) -> &mut TestResponse {
-        match &mut self.result {
-            Some(res) => res,
-            None => panic!("A call must be made before"),
-        }
-    }
-
-    pub fn app_config(&self) -> Arc<AppConfig> {
-        self.app_config
-            .as_ref()
-            .expect("app_config not initialized")
-            .clone()
-    }
-    pub fn mock_license_service(&self) -> &MockLicenseService {
-        self.mock_license_service
-            .as_ref()
-            .expect("mock_license_service not initialized")
-    }
-    pub fn license_service(&self) -> &LicenseService {
-        self.license_service
-            .as_ref()
-            .expect("license_service not initialized")
-    }
-    pub fn mock_secrets_store(&self) -> &MockSecretsStore {
-        self.mock_secrets_store
-            .as_ref()
-            .expect("mock_secrets_store not initialized")
-    }
-    pub fn secrets_store(&self) -> &SecretsStore {
-        self.secrets_store
-            .as_ref()
-            .expect("secrets_store not initialized")
-    }
-    pub fn uuid_gen(&self) -> &dependencies::Uuid {
-        self.uuid_gen.as_ref().expect("uuid_gen not initialized")
-    }
-
     /// Sometimes we need to use the `ServerCtl` from "Given" steps,
     /// to avoid rewriting all of its logic in tests.
     /// However, using the mock attached to the API will cause counters to increase
     /// and this could impact "Then" steps.
     /// This method resets the counters.
     pub fn reset_server_ctl_counts(&self) {
-        self.server_ctl_state_mut().conf_reload_count = 0;
+        self.server_state_mut().conf_reload_count = 0;
     }
 
-    pub fn server_config_manager(&self) -> ServerConfigManager {
-        ServerConfigManager::new(
-            self.db.clone(),
-            self.app_config().clone(),
-            Arc::new(self.server_ctl.clone()),
-        )
-    }
-
-    pub fn member_service(&self) -> UnauthenticatedMemberService {
-        UnauthenticatedMemberService::new(
-            self.server_ctl.clone(),
-            self.auth_service.clone(),
-            self.license_service().clone(),
-            self.xmpp_service.clone(),
-        )
-    }
-
-    pub async fn workspace_service(&self) -> WorkspaceService {
-        let workspace_jid = self.app_config().workspace_jid();
-        WorkspaceService::new(
-            self.xmpp_service.clone(),
-            workspace_jid,
-            Arc::new(self.secrets_store().clone()),
-        )
-        .expect("Workspace not initialized")
-    }
-
-    pub fn invitation_service(&self) -> InvitationService {
-        InvitationService::new(
-            self.db.clone(),
-            self.uuid_gen().clone(),
-            self.member_service(),
-        )
-    }
-
-    pub fn notifcation_service(&self) -> NotificationService {
-        NotificationService::new(self.email_notifier.clone())
-    }
-
-    pub async fn server_config(&self) -> anyhow::Result<ServerConfig> {
-        use service::server_config;
-        let ref dynamic_server_config = server_config::get(&self.db.read).await?;
-        let server_config =
-            ServerConfig::with_default_values(dynamic_server_config, &self.app_config());
-        Ok(server_config)
-    }
-
-    pub fn server_ctl_state(&self) -> RwLockReadGuard<'_, MockServerCtlState> {
-        self.mock_server_ctl.state.read().unwrap()
-    }
-
-    pub fn server_ctl_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockServerCtlState> {
-        self.mock_server_ctl.state.write().unwrap()
-    }
-
-    pub fn xmpp_service_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockXmppServiceState> {
-        self.mock_xmpp_service.state.write().unwrap()
-    }
-
-    pub fn email_notifier_state<'a>(
-        &'a self,
-    ) -> RwLockReadGuard<'a, MockNotifierState<EmailNotification>> {
-        self.mock_email_notifier.state.read().unwrap()
-    }
-
-    pub fn email_notifier_state_mut<'a>(
-        &'a self,
-    ) -> RwLockWriteGuard<'a, MockNotifierState<EmailNotification>> {
-        self.mock_email_notifier.state.write().unwrap()
-    }
-
-    pub fn token(&self, user: &str) -> SecretString {
-        self.members
-            .get(user)
-            .expect("User must be created first")
-            .1
+    pub async fn token(&self, user: &str) -> AuthToken {
+        let jid = name_to_jid(self, user).await.unwrap();
+        self.mock_auth_service()
+            .state()
+            .sessions
+            .iter()
+            .find_map(|(k, v)| if v.jid == jid { Some(k) } else { None })
+            .expect(&user_missing(user))
             .clone()
     }
 
@@ -221,20 +120,6 @@ impl TestWorld {
         self.scenario_workspace_invitation
             .as_ref()
             .expect("Current scenario invitation not stored by previous steps")
-            .clone()
-    }
-
-    pub fn previous_workspace_invitation_accept_token(&self, email_address: &EmailAddress) -> Uuid {
-        self.previous_workspace_invitation_accept_tokens
-            .get(email_address)
-            .expect("Previous invitation accept not stored in previous steps")
-            .clone()
-    }
-
-    pub fn workspace_invitation(&self, email_address: &EmailAddress) -> Invitation {
-        self.workspace_invitations
-            .get(email_address)
-            .expect("Invitation must be created first")
             .clone()
     }
 
@@ -271,15 +156,6 @@ impl TestWorld {
 
 impl TestWorld {
     async fn new() -> Self {
-        // NOTE: Behavior tests don’t read the user’s environment,
-        //   therefore we have to set the required variables
-        //   (otherwise set automatically on `task local:run`).
-        let api_xmpp_password = SecretString::from("anything");
-        std::env::set_var(
-            "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD",
-            &api_xmpp_password.expose_secret(),
-        );
-
         // FIX: Since we open two different connections for reading
         //   and writing, we need in-memory databases to share their cache
         //.  (otherwise the read-only connection could never see anything).
@@ -311,19 +187,12 @@ impl TestWorld {
             panic!("Could not run migrations in tests: {err}");
         }
 
-        let mock_server_ctl_state = Arc::new(RwLock::new(MockServerCtlState::default()));
-        let mock_server_ctl = Arc::new(MockServerCtl::new(
-            mock_server_ctl_state.clone(),
-            db.clone(),
-        ));
-        let mock_xmpp_service = Arc::new(MockXmppService::default());
         let mock_email_notifier = Arc::new(MockNotifier::<EmailNotification>::default());
-        let mock_auth_service = Arc::new(MockAuthService::new(
-            Default::default(),
-            mock_server_ctl_state,
-        ));
         let mock_network_checker = Arc::new(MockNetworkChecker::default());
         let mock_pod_version_service = Arc::new(MockPodVersionService::default());
+        let mock_identity_provider = Arc::new(MockIdentityProvider {
+            implem: VcardIdentityProvider,
+        });
 
         let mut world = Self {
             app_config: None,
@@ -331,19 +200,14 @@ impl TestWorld {
             api: None,
             config_overrides: Figment::new(),
             result: None,
-            members: HashMap::new(),
-            workspace_invitations: HashMap::new(),
             scenario_workspace_invitation: None,
-            previous_workspace_invitation_accept_tokens: HashMap::new(),
-            server_ctl: ServerCtl::new(mock_server_ctl.clone()),
-            mock_server_ctl,
-            xmpp_service: XmppServiceInner::new(mock_xmpp_service.clone()),
-            mock_xmpp_service,
-            auth_service: AuthService::new(mock_auth_service.clone()),
-            mock_auth_service,
-            license_service: None,
+            xmpp_service: None,
+            mock_xmpp_service: None,
+            auth_service: None,
+            mock_auth_service: None,
+            licensing_service: None,
             #[cfg(feature = "test")]
-            mock_license_service: None,
+            mock_licensing_service: None,
             pod_version_service: PodVersionService::new(mock_pod_version_service.clone()),
             mock_pod_version_service,
             factory_reset_service: FactoryResetService::default(),
@@ -354,12 +218,228 @@ impl TestWorld {
             mock_secrets_store: None,
             network_checker: NetworkChecker::new(mock_network_checker.clone()),
             mock_network_checker,
-            uuid_gen: None,
-            password_reset_tokens: HashMap::new(),
+            server_service: None,
+            mock_server_service: None,
+            identity_provider: IdentityProvider::new(mock_identity_provider.clone()),
+            mock_identity_provider,
+            user_repository: None,
+            mock_user_repository: None,
+            invitation_repository: None,
+            mock_invitation_repository: None,
+            user_application_service: None,
+            mock_user_application_service: None,
+            mock_invitation_application_service: None,
+
+            mock_server_state: Default::default(),
+            mock_auth_service_state: Default::default(),
+            mock_xmpp_service_state: Default::default(),
         };
 
         reload_config(&mut world);
 
         world
+    }
+}
+
+// MARK: - Boilerplate
+
+impl TestWorld {
+    pub fn api(&self) -> &TestServer {
+        self.api
+            .as_ref()
+            .expect("The Prose Pod API must be started with 'Given the Prose Pod API has started'")
+    }
+
+    pub fn result(&mut self) -> &mut TestResponse {
+        match &mut self.result {
+            Some(res) => res,
+            None => panic!("A call must be made before"),
+        }
+    }
+
+    pub fn app_config(&self) -> Arc<AppConfig> {
+        self.app_config
+            .as_ref()
+            .expect("app_config not initialized")
+            .clone()
+    }
+    pub fn mock_licensing_service(&self) -> &MockLicensingService {
+        self.mock_licensing_service
+            .as_ref()
+            .expect("mock_licensing_service not initialized")
+    }
+    pub fn licensing_service(&self) -> &LicensingService {
+        self.licensing_service
+            .as_ref()
+            .expect("licensing_service not initialized")
+    }
+    pub fn mock_secrets_store(&self) -> &MockSecretsStore {
+        self.mock_secrets_store
+            .as_ref()
+            .expect("mock_secrets_store not initialized")
+    }
+    pub fn secrets_store(&self) -> &SecretsStore {
+        self.secrets_store
+            .as_ref()
+            .expect("secrets_store not initialized")
+    }
+    pub fn user_repository(&self) -> &UserRepository {
+        self.user_repository
+            .as_ref()
+            .expect("user_repository not initialized")
+    }
+    pub fn auth_service(&self) -> &AuthService {
+        self.auth_service
+            .as_ref()
+            .expect("auth_service not initialized")
+    }
+    pub fn mock_auth_service(&self) -> &MockAuthService {
+        self.mock_auth_service
+            .as_ref()
+            .expect("mock_auth_service not initialized")
+    }
+    pub fn mock_user_repository(&self) -> &Arc<MockUserRepository> {
+        self.mock_user_repository
+            .as_ref()
+            .expect("mock_user_repository not initialized")
+    }
+    pub fn mock_invitation_repository(&self) -> &Arc<MockInvitationRepository> {
+        self.mock_invitation_repository
+            .as_ref()
+            .expect("mock_invitation_repository not initialized")
+    }
+    pub fn invitation_repository(&self) -> &InvitationRepository {
+        self.invitation_repository
+            .as_ref()
+            .expect("invitation_repository not initialized")
+    }
+    pub fn user_application_service(&self) -> &UserApplicationService {
+        self.user_application_service
+            .as_ref()
+            .expect("user_application_service not initialized")
+    }
+    #[allow(unused)]
+    pub fn mock_user_application_service(&self) -> &Arc<MockUserService> {
+        self.mock_user_application_service
+            .as_ref()
+            .expect("mock_user_application_service not initialized")
+    }
+    pub fn server_service(&self) -> &ProsePodServerService {
+        self.server_service
+            .as_ref()
+            .expect("server_service not initialized")
+    }
+    pub fn mock_server_service(&self) -> &Arc<MockServerService> {
+        self.mock_server_service
+            .as_ref()
+            .expect("mock_server_service not initialized")
+    }
+    pub fn xmpp_service(&self) -> &XmppService {
+        self.xmpp_service
+            .as_ref()
+            .expect("xmpp_service not initialized")
+    }
+    pub fn mock_xmpp_service(&self) -> &Arc<MockXmppService> {
+        self.mock_xmpp_service
+            .as_ref()
+            .expect("mock_xmpp_service not initialized")
+    }
+
+    pub fn server_config_manager(&self) -> ServerConfigManager {
+        ServerConfigManager::new(
+            self.db.clone(),
+            self.app_config().clone(),
+            self.server_service().clone(),
+        )
+    }
+
+    #[allow(unused)]
+    pub fn member_service(&self) -> MemberService {
+        MemberService::new(
+            self.user_repository().clone(),
+            self.user_application_service().clone(),
+            self.app_config().server_domain().to_owned(),
+            self.xmpp_service().clone(),
+            self.auth_service().clone(),
+            None,
+            &self.app_config().api.member_enriching,
+        )
+    }
+
+    pub fn workspace_service(&self) -> WorkspaceService {
+        let workspace_jid = self.app_config().workspace_jid();
+        let workspace_token = self
+            .secrets_store()
+            .get_service_account_prosody_token(&workspace_jid)
+            .expect("Workspace not authenticated");
+        WorkspaceService {
+            xmpp_service: self.xmpp_service().clone(),
+            ctx: XmppServiceContext {
+                bare_jid: workspace_jid,
+                auth_token: workspace_token,
+            },
+        }
+    }
+
+    pub fn invitation_application_service(&self) -> InvitationApplicationService {
+        InvitationApplicationService {
+            implem: Arc::new(MockInvitationService {
+                server: self.mock_server_service().clone(),
+                mock_invitation_repository: self.mock_invitation_repository().clone(),
+                mock_user_repository: self.mock_user_repository().clone(),
+                mock_auth_service: self.mock_auth_service().clone(),
+            }),
+        }
+    }
+
+    pub fn invitation_service(&self) -> InvitationService {
+        InvitationService {
+            db: self.db.clone(),
+            notification_service: self.notifcation_service(),
+            invitation_repository: self.invitation_repository().clone(),
+            workspace_service: self.workspace_service(),
+            auth_service: self.auth_service().clone(),
+            xmpp_service: self.xmpp_service().clone(),
+            user_repository: self.user_repository().clone(),
+            app_config: self.app_config().clone(),
+            invitation_application_service: self.invitation_application_service().clone(),
+            licensing_service: self.licensing_service().clone(),
+        }
+    }
+
+    pub fn notifcation_service(&self) -> NotificationService {
+        NotificationService::new(self.email_notifier.clone())
+    }
+
+    pub async fn server_config(&self) -> anyhow::Result<ServerConfig> {
+        use service::server_config;
+        let ref dynamic_server_config = server_config::get(&self.db.read).await?;
+        let server_config =
+            ServerConfig::with_default_values(dynamic_server_config, &self.app_config());
+        Ok(server_config)
+    }
+
+    pub fn server_state(&self) -> RwLockReadGuard<'_, MockServerServiceState> {
+        self.mock_server_service().state.read().unwrap()
+    }
+
+    pub fn server_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockServerServiceState> {
+        self.mock_server_service().state.write().unwrap()
+    }
+
+    pub fn xmpp_service_state_mut<'a>(&'a self) -> RwLockWriteGuard<'a, MockXmppServiceState> {
+        self.mock_xmpp_service().state.write().unwrap()
+    }
+
+    pub fn email_notifier_state<'a>(
+        &'a self,
+    ) -> RwLockReadGuard<'a, MockNotifierState<EmailNotification>> {
+        self.mock_email_notifier.state.read().unwrap()
+    }
+
+    pub fn email_notifier_state_mut<'a>(
+        &'a self,
+    ) -> RwLockWriteGuard<'a, MockNotifierState<EmailNotification>> {
+        self.mock_email_notifier.state.write().unwrap()
     }
 }

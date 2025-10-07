@@ -9,9 +9,12 @@ use prose_pod_api::features::{
 };
 use service::{
     members::Nickname,
+    prosody::ProsodyRoleName,
+    secrets_store::ServiceAccountSecrets,
     workspace::{workspace_controller, Workspace},
-    xmpp::server_manager,
 };
+
+use crate::prelude::mocks::{UserAccount, BYPASS_TOKEN};
 
 use super::prelude::*;
 
@@ -46,7 +49,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         icon: None,
     };
 
-    workspace_controller::init_workspace(&world.workspace_service().await, workspace).await?;
+    workspace_controller::init_workspace(&world.workspace_service(), workspace).await?;
 
     Ok(())
 }
@@ -59,21 +62,34 @@ fn given_xmpp_server_not_initialized(_world: &mut TestWorld) {
 #[given("the XMPP server has been initialized")]
 async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<()> {
     // Initialize XMPP server configuration.
-    world.server_config_manager().reload().await?;
+    world.server_config_manager().reload(&BYPASS_TOKEN).await?;
 
-    // Register OAuth 2.0 client.
-    (world.auth_service.register_oauth2_client().await)
-        .context("Could not register OAuth 2.0 client")?;
+    // Create service accounts.
+    {
+        let jid = world.app_config().workspace_jid();
+        let password = dumb_password();
 
-    // Create service XMPP accounts.
-    server_manager::create_service_accounts(
-        &world.server_ctl,
-        &world.app_config().clone(),
-        &world.auth_service,
-        &world.secrets_store(),
-    )
-    .await
-    .context("Could not create service XMPP account")?;
+        world
+            .mock_user_repository()
+            .add_service_account(UserAccount {
+                jid: jid.clone(),
+                password: password.clone(),
+                role: ProsodyRoleName::REGISTERED_RAW.into(),
+                joined_at: Utc::now(),
+                email_address: None,
+            })
+            .await
+            .context("Could not create Workspace account")?;
+
+        let prosody_token = world.mock_auth_service().log_in_unchecked(&jid).await?;
+        world.secrets_store().set_service_account_secrets(
+            jid,
+            ServiceAccountSecrets {
+                password,
+                prosody_token,
+            },
+        );
+    }
 
     world.reset_server_ctl_counts();
     Ok(())

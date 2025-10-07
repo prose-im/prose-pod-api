@@ -4,12 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use sea_orm::DatabaseConnection;
 use serdev::Serialize;
 
-use crate::members::MemberRepository;
+use crate::members::UserRepository;
 
-use super::LicenseService;
+use super::LicensingService;
 
 #[derive(Debug)]
 #[derive(Serialize)]
@@ -21,12 +20,12 @@ pub struct GetLicenseResponse {
     pub ttl_ms: Option<u128>,
 }
 
-pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse {
+pub async fn get_license(licensing_service: &LicensingService) -> GetLicenseResponse {
     use std::time::SystemTime;
 
     use iso8601_timestamp::Timestamp as IsoTimestamp;
 
-    let license = (license_service.installed_licenses().last())
+    let license = (licensing_service.installed_licenses().last())
         .expect("The Community license should always be installed")
         .to_owned();
 
@@ -49,17 +48,17 @@ pub async fn get_license(license_service: &LicenseService) -> GetLicenseResponse
 #[derive(Serialize)]
 pub struct GetLicensingStatusResponse {
     pub license: GetLicenseResponse,
-    pub user_count: u64,
-    pub remaining_seats: u64,
+    pub user_count: u32,
+    pub remaining_seats: u32,
 }
 
 pub async fn get_licensing_status(
-    license_service: &LicenseService,
-    db: &DatabaseConnection,
+    licensing_service: &LicensingService,
+    user_repository: &UserRepository,
 ) -> Result<GetLicensingStatusResponse, anyhow::Error> {
-    let license = self::get_license(license_service).await;
-    let user_count = MemberRepository::count(db).await?;
-    let remaining_seats = (license.user_limit as u64)
+    let license = self::get_license(licensing_service).await;
+    let user_count = user_repository.users_stats(None).await?.count as u32;
+    let remaining_seats = (license.user_limit)
         .checked_sub(user_count)
         .unwrap_or_default();
 

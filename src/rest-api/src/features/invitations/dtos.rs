@@ -8,7 +8,7 @@
 use chrono::{DateTime, Utc};
 use serdev::Serialize;
 use service::{
-    invitations::{self, InvitationContact, InvitationStatus},
+    invitations::{self, InvitationContact, InvitationId},
     members::MemberRole,
     models::BareJid,
 };
@@ -17,9 +17,8 @@ use service::{
 #[derive(Serialize)]
 #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {
-    pub invitation_id: i32,
+    pub invitation_id: InvitationId,
     pub created_at: DateTime<Utc>,
-    pub status: InvitationStatus,
     pub jid: BareJid,
     pub pre_assigned_role: MemberRole,
     pub contact: InvitationContact,
@@ -29,12 +28,11 @@ pub struct WorkspaceInvitationDto {
 
 // MARK: - Boilerplate
 
-impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationDto {
-    fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
+impl From<invitations::Invitation> for WorkspaceInvitationDto {
+    fn from(value: invitations::Invitation) -> Self {
         Self {
-            invitation_id: value.id,
+            invitation_id: value.id.clone(),
             created_at: value.created_at,
-            status: value.status,
             jid: value.jid.clone().into(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),

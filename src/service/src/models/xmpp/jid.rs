@@ -38,11 +38,23 @@ sea_orm_string!(JID);
 
 wrapper_type!(JidNode, jid::NodePart);
 
-impl From<EmailAddress> for JidNode {
-    fn from(value: EmailAddress) -> Self {
+impl From<&EmailAddress> for JidNode {
+    fn from(email_address: &EmailAddress) -> Self {
         // NOTE: Email adresses are already parsed, and their local part are
         //   equivalent to a JID node part.
-        Self::from_str(value.local_part()).unwrap()
+        Self::from_str(email_address.local_part()).unwrap()
+    }
+}
+
+impl From<EmailAddress> for JidNode {
+    fn from(email_address: EmailAddress) -> Self {
+        Self::from(&email_address)
+    }
+}
+
+impl From<&NodeRef> for JidNode {
+    fn from(value: &NodeRef) -> Self {
+        Self::from(value.to_owned())
     }
 }
 

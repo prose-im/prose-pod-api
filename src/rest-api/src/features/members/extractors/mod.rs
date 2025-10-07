@@ -4,4 +4,3 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod member_service;
-mod unauthenticated_member_service;

@@ -40,9 +40,9 @@ pub struct GetCloudApiReportResponse {
 
 async fn get_cloud_api_report(
     State(AppState {
-        ref db,
-        ref license_service,
+        ref licensing_service,
         ref pod_version_service,
+        ref user_repository,
         ..
     }): State<AppState>,
     State(ref app_config): State<Arc<AppConfig>>,
@@ -50,7 +50,8 @@ async fn get_cloud_api_report(
 ) -> Result<Json<GetCloudApiReportResponse>, Error> {
     let timestamp = Timestamp::now_utc();
     let versions = pod_version_controller::get_pod_version(pod_version_service).await?;
-    let licensing = licensing_controller::get_licensing_status(license_service, &db.read).await?;
+    let licensing =
+        licensing_controller::get_licensing_status(licensing_service, user_repository).await?;
     let workspace = workspace_controller::get_workspace(workspace_service).await?;
     let server = server_config_controller::get_server_config_public(app_config);
     let dashboard = app_config.dashboard.clone();

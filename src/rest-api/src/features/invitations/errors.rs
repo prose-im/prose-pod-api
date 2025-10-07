@@ -5,9 +5,9 @@
 
 use service::{
     errors::MissingConfiguration,
-    invitations::{
-        invitation_controller::InvitationNotFound, CannotAcceptInvitation, InvitationAcceptError,
-        InvitationExpired, InvitationResendError, InviteMemberError, NoInvitationForToken,
+    invitations::errors::{
+        InvitationAlreadyExists, InvitationNotFound, InvitationNotFoundForToken,
+        MemberAlreadyExists, UsernameAlreadyTaken,
     },
     notifications::notifier::email::EmailNotificationCreateError,
 };
@@ -38,34 +38,13 @@ impl HttpApiError for InvitationNotFound {
     }
 }
 
-impl HttpApiError for InvitationAcceptError {
+impl HttpApiError for MemberAlreadyExists {
     fn code(&self) -> ErrorCode {
-        match self {
-            Self::CouldNotCreateUser(err) => err.code(),
-            Self::Internal(err) => err.code(),
-        }
+        ErrorCode::MEMBER_ALREADY_EXISTS
     }
 }
 
-impl HttpApiError for CannotAcceptInvitation {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound(err) => err.code(),
-            Self::InvitationExpired(err) => err.code(),
-            Self::MemberAlreadyExists => ErrorCode::MEMBER_ALREADY_EXISTS,
-            Self::AcceptError(err) => err.code(),
-            Self::Internal(err) => err.code(),
-        }
-    }
-}
-
-impl HttpApiError for NoInvitationForToken {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::INVITATION_NOT_FOUND
-    }
-}
-
-impl HttpApiError for InvitationExpired {
+impl HttpApiError for InvitationNotFoundForToken {
     fn code(&self) -> ErrorCode {
         ErrorCode::INVITATION_NOT_FOUND
     }
@@ -82,23 +61,14 @@ impl HttpApiError for EmailNotificationCreateError {
     }
 }
 
-impl HttpApiError for InvitationResendError {
+impl HttpApiError for InvitationAlreadyExists {
     fn code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound(_) => ErrorCode::INVITATION_NOT_FOUND,
-            Self::Internal(err) => err.code(),
-        }
+        ErrorCode::INVITATION_ALREADY_EXISTS
     }
 }
 
-impl HttpApiError for InviteMemberError {
+impl HttpApiError for UsernameAlreadyTaken {
     fn code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationConfict => ErrorCode::INVITATION_ALREADY_EXISTS,
-            Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
-            #[cfg(debug_assertions)]
-            Self::CouldNotAutoAcceptInvitation(err) => err.code(),
-            Self::Internal(err) => err.code(),
-        }
+        ErrorCode::MEMBER_ALREADY_EXISTS
     }
 }

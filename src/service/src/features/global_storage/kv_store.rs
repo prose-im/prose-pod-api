@@ -272,7 +272,7 @@ macro_rules! gen_scoped_kv_store_get_set {
     (bool) => {
         crate::gen_scoped_kv_store_get_set!(bool, get_bool, set_bool);
     };
-    (string) => {
+    (String) => {
         crate::gen_scoped_kv_store_get_set!(String, get_string, set_string);
     };
     (

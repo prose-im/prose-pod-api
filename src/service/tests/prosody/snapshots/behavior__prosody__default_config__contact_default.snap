@@ -55,6 +55,9 @@ modules_enabled = {
   "register";
   "prose_version";
   "http_admin_api";
+  "invites";
+  "invites_groups";
+  "invites_register_api";
   "mam";
 }
 modules_disabled = { "s2s" }
@@ -95,8 +98,6 @@ push_notification_with_sender = true
 
 -- Server hosts and components
 VirtualHost "test.org"
-  admins = { "prose-pod-api@admin.prose.local" }
-
   -- Modules
   modules_enabled = {
     "rest";
@@ -134,18 +135,6 @@ VirtualHost "test.org"
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
   oauth2_registration_key = "dummy-test-key"
-
-VirtualHost "admin.prose.local"
-  admins = { "prose-pod-api@admin.prose.local" }
-
-  -- Modules
-  modules_enabled = {
-    "admin_rest";
-    "init_admin";
-  }
-
-  -- HTTP settings
-  http_host = "prose-pod-server-admin"
 
 Component "groups.test.org" "muc"
   name = "Chatrooms"

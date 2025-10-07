@@ -3,61 +3,34 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use linked_hash_map::LinkedHashMap;
 use service::{
     models::{Avatar, AvatarOwned},
-    xmpp::{xmpp_service::Error, BareJid, VCard, XmppServiceContext, XmppServiceImpl},
-};
-use tracing::{instrument, trace};
-
-use std::{
-    collections::HashSet,
-    fmt::Debug,
-    sync::{Arc, RwLock},
+    xmpp::{xmpp_service::Error, VCard, XmppServiceContext, XmppServiceImpl},
 };
 
-#[derive(Debug, Default)]
+use super::prelude::*;
+
+#[derive(Debug, Clone)]
 pub struct MockXmppService {
     pub(crate) state: Arc<RwLock<MockXmppServiceState>>,
+    pub mock_server_state: Arc<RwLock<MockServerServiceState>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MockXmppServiceState {
-    pub online: bool,
     pub vcards: LinkedHashMap<BareJid, VCard>,
     pub avatars: LinkedHashMap<BareJid, Option<AvatarOwned>>,
     pub online_members: HashSet<BareJid>,
 }
 
 impl MockXmppService {
-    fn check_online(&self) -> Result<(), Error> {
-        if self.state.read().unwrap().online {
-            Ok(())
-        } else {
-            Err(Error::Other("XMPP server offline".to_owned()))?
-        }
-    }
-}
-
-impl Default for MockXmppServiceState {
-    fn default() -> Self {
-        Self {
-            online: true,
-            vcards: Default::default(),
-            avatars: Default::default(),
-            online_members: Default::default(),
-        }
-    }
-}
-
-impl MockXmppService {
-    #[instrument(
+    #[tracing::instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, Error> {
-        self.check_online()?;
+        check_online(&self.mock_server_state)?;
 
         Ok(self
             .state
@@ -67,43 +40,42 @@ impl MockXmppService {
             .get(jid)
             .map(ToOwned::to_owned))
     }
-    #[instrument(
+
+    #[tracing::instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn set_vcard(&self, jid: &BareJid, vcard: &VCard) -> Result<(), Error> {
-        self.check_online()?;
+        check_online(&self.mock_server_state)?;
 
-        self.state
-            .write()
-            .unwrap()
-            .vcards
-            .insert(jid.to_owned(), vcard.to_owned());
+        Self::set_vcard_(&self.state, jid, vcard);
+
         Ok(())
     }
 
-    #[instrument(
+    #[tracing::instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn get_avatar<'a>(&'a self, jid: &BareJid) -> Result<Option<AvatarOwned>, Error> {
-        self.check_online()?;
+        check_online(&self.mock_server_state)?;
 
-        trace!("Getting {jid}'s avatar…");
+        tracing::trace!("Getting {jid}'s avatar…");
         let state = (self.state.read()).expect("`MockXmppServiceState` lock poisonned");
         Ok(state.avatars.get(jid).cloned().flatten())
     }
-    #[instrument(
+
+    #[tracing::instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn set_avatar<'a>(&self, jid: &BareJid, avatar: Option<Avatar<'a>>) -> Result<(), Error> {
-        self.check_online()?;
+        check_online(&self.mock_server_state)?;
 
-        trace!("Setting {jid}'s avatar…");
+        tracing::trace!("Setting {jid}'s avatar…");
         self.state
             .write()
             .expect("`MockXmppServiceState` lock poisonned")
@@ -112,15 +84,29 @@ impl MockXmppService {
         Ok(())
     }
 
-    #[instrument(
+    #[tracing::instrument(
         level = "trace",
         skip_all, fields(jid = jid.to_string()),
         ret(level = "trace"), err(level = "trace")
     )]
     fn is_connected(&self, jid: &BareJid) -> Result<bool, Error> {
-        self.check_online()?;
+        check_online(&self.mock_server_state)?;
 
         Ok(self.state.read().unwrap().online_members.contains(jid))
+    }
+}
+
+impl MockXmppService {
+    pub(crate) fn set_vcard_(
+        state: &Arc<RwLock<MockXmppServiceState>>,
+        jid: &BareJid,
+        vcard: &VCard,
+    ) {
+        state
+            .write()
+            .unwrap()
+            .vcards
+            .insert(jid.to_owned(), vcard.to_owned());
     }
 }
 

@@ -5,7 +5,6 @@
 
 use axum_test::TestServer;
 use prose_pod_api::{util::LifecycleManager, AppState, MinimalAppState};
-use service::xmpp::ServerCtlImpl as _;
 use tracing::*;
 
 use super::{app_config::reload_config, test_world::TestWorld};
@@ -19,37 +18,29 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
 
     let app_config = world.app_config();
 
-    // Create API XMPP account
-    // NOTE: This is done automatically via Prosody, we need to do it by hand here.
-    if let Err(err) = world
-        .mock_server_ctl
-        .add_user(
-            &app_config.api_jid(),
-            &app_config.bootstrap.prose_pod_api_xmpp_password,
-        )
-        .await
-    {
-        panic!("Could not create API XMPP account: {}", err);
-    }
-
     let lifecycle_manager = LifecycleManager::new();
-    let app_state = AppState::new(
-        MinimalAppState {
+    let app_state = AppState {
+        base: MinimalAppState {
             lifecycle_manager: lifecycle_manager.clone(),
             secrets_store: world.secrets_store().clone(),
             static_pod_version_service: world.pod_version_service.clone(),
         },
-        world.db.clone(),
+        db: world.db.clone(),
         app_config,
-        world.server_ctl.clone(),
-        world.xmpp_service.clone(),
-        world.auth_service.clone(),
-        Some(world.email_notifier.clone()),
-        world.network_checker.clone(),
-        world.license_service().clone(),
-        world.pod_version_service.clone(),
-        world.factory_reset_service.clone(),
-    );
+        user_repository: world.user_repository().clone(),
+        invitation_repository: world.invitation_repository().clone(),
+        xmpp_service: world.xmpp_service().clone(),
+        auth_service: world.auth_service().clone(),
+        email_notifier: Some(world.email_notifier.clone()),
+        network_checker: world.network_checker.clone(),
+        licensing_service: world.licensing_service().clone(),
+        pod_version_service: world.pod_version_service.clone(),
+        factory_reset_service: world.factory_reset_service.clone(),
+        prose_pod_server_service: world.server_service().clone(),
+        identity_provider: world.identity_provider.clone(),
+        user_application_service: world.user_application_service().clone(),
+        invitation_application_service: world.invitation_application_service().clone(),
+    };
 
     let router = prose_pod_api::make_router(&app_state);
     let app = prose_pod_api::run_startup_actions(router, app_state).await?;

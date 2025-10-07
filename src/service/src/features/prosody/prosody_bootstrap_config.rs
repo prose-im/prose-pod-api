@@ -3,16 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::str::FromStr;
-
-use jid::{BareJid, DomainPart};
-use prosody_config::{utils::def, *};
-use secrecy::{ExposeSecret as _, SecretString};
-
-use crate::{
-    app_config::{self, ADMIN_HOST},
-    xmpp::JidNode,
-};
+use prosody_config::*;
 
 use super::ProsodyConfig;
 
@@ -27,7 +18,7 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
                 .collect(),
         )),
         http_ports: Some(
-            vec![app_config::pub_defaults::SERVER_HTTP_PORT]
+            vec![crate::app_config::pub_defaults::SERVER_HTTP_PORT]
                 .into_iter()
                 .collect(),
         ),
@@ -50,57 +41,10 @@ pub fn global_settings() -> prosody_config::ProsodySettings {
     }
 }
 
-pub fn admin_virtual_host(
-    api_jid: &prosody_config::BareJid,
-    local_hostname_admin: String,
-) -> prosody_config::ProsodyConfigSection {
-    ProsodyConfigSection::VirtualHost {
-        hostname: ADMIN_HOST.to_owned(),
-        settings: ProsodySettings {
-            admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
-            modules_enabled: Some(
-                vec![
-                    "admin_rest",
-                    "init_admin",
-                ]
-                .into_iter()
-                .map(ToString::to_string)
-                .collect(),
-            ),
-            http_host: Some(local_hostname_admin),
-            ..Default::default()
-        },
-    }
-}
-
-pub fn prosody_bootstrap_config(init_admin_password: &SecretString) -> ProsodyConfig {
-    use app_config::pub_defaults::*;
-
-    let api_jid = BareJid::from_parts(
-        Some(&JidNode::from_str(SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE).unwrap()),
-        &DomainPart::from_str(ADMIN_HOST).unwrap(),
-    );
-    let api_jid = prosody_config::BareJid::new(
-        (api_jid.node()).expect(&format!("Invalid API JID: {api_jid}")),
-        api_jid.domain(),
-    );
-
-    let mut admin_virtual_host =
-        admin_virtual_host(&api_jid, SERVER_LOCAL_HOSTNAME_ADMIN.to_owned());
-    (admin_virtual_host.settings_mut().custom_settings).push(
-        // See <https://github.com/prose-im/prose-pod-server/blob/49f4d857e42507ef5cd6604633020dd836c7d7c2/plugins/prose/mod_init_admin.lua>.
-        Group::new(
-            "mod_init_admin",
-            vec![
-                def("init_admin_jid", api_jid),
-                def("init_admin_password", init_admin_password.expose_secret()),
-            ],
-        ),
-    );
-
+pub fn prosody_bootstrap_config() -> ProsodyConfig {
     let config = prosody_config::ProsodyConfig {
         global_settings: global_settings(),
-        additional_sections: vec![admin_virtual_host],
+        additional_sections: vec![],
     };
 
     ProsodyConfig(config)

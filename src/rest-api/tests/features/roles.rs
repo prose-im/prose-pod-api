@@ -4,86 +4,73 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use prose_pod_api::error::Error;
-use service::{members::*, models::EmailAddress};
+use service::members::*;
+
+use crate::prelude::mocks::UserAccount;
 
 use super::prelude::*;
 
 // MARK: - Given
 
 #[given(expr = "{} is an admin")]
-pub async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+pub async fn given_admin(world: &mut TestWorld, name: String) -> Result<(), anyhow::Error> {
     let jid = name_to_jid(world, &name).await?;
-    match MemberRepository::get(&world.db.read, &jid).await? {
-        Some(_) => {
-            MemberRepository::set_role(&world.db.write, &jid, MemberRole::Admin).await?;
-        }
-        None => {
-            let model = (world.member_service())
-                .create_user(
-                    &world.db.write,
-                    &jid,
-                    &"password".into(),
-                    &name,
-                    &Some(MemberRole::Admin),
-                    Some(EmailAddress::from_str(jid.as_str()).unwrap()),
-                )
-                .await?;
+    let username = jid.expect_username();
+    let repository = world.mock_user_repository();
 
-            let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
-
-            world.members.insert(name, (model, token));
-        }
-    };
+    if repository.user_exists(username, &BYPASS_TOKEN).await? {
+        repository
+            .set_user_role(username, &MemberRole::Admin, &BYPASS_TOKEN)
+            .await?;
+    } else {
+        repository
+            .add_user(
+                &Nickname::from_string_unsafe(name),
+                UserAccount::admin(jid),
+                world.mock_auth_service(),
+            )
+            .await?;
+    }
 
     Ok(())
 }
 
 #[given(regex = r"^(.+) is (not an admin|a regular member|a member)$")]
-async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), Error> {
+async fn given_not_admin(world: &mut TestWorld, name: String) -> Result<(), anyhow::Error> {
     let jid = name_to_jid(world, &name).await?;
-    let model = (world.member_service())
-        .create_user(
-            &world.db.write,
-            &jid,
-            &"password".into(),
-            &name,
-            &Some(MemberRole::Member),
-            Some(EmailAddress::from_str(jid.as_str()).unwrap()),
+
+    world
+        .mock_user_repository()
+        .add_user(
+            &Nickname::from_string_unsafe(name),
+            UserAccount::member(jid),
+            world.mock_auth_service(),
         )
         .await?;
-
-    let token = world.mock_auth_service.log_in_unchecked(&jid).await?;
-
-    world.members.insert(name, (model, token));
 
     Ok(())
 }
 
 // MARK: - When
 
-async fn set_member_role(
-    api: &TestServer,
-    token: &SecretString,
-    jid: &BareJid,
-    role: MemberRole,
-) -> TestResponse {
-    api.put(&format!("/v1/members/{jid}/role"))
-        .add_header(CONTENT_TYPE, "application/json")
-        .add_header(AUTHORIZATION, format!("Bearer {}", token.expose_secret()))
-        .json(&json!(role))
-        .await
-}
+api_call_fn!(
+    set_member_role,
+    PUT, "/v1/members/{jid}/role"; jid=&BareJid,
+    payload: MemberRole
+);
 
 #[when(expr = "{} makes {} an admin")]
 async fn when_set_role_admin(
     world: &mut TestWorld,
     actor: String,
     subject: String,
-) -> Result<(), Error> {
-    let token = world.token(&actor);
+) -> Result<(), anyhow::Error> {
+    let ref auth = world.token(&actor).await;
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_role(world.api(), &token, &jid, MemberRole::Admin).await;
+
+    let res = set_member_role(world.api(), auth, &jid, MemberRole::Admin).await?;
     world.result = Some(res.into());
+
     Ok(())
 }
 
@@ -92,11 +79,13 @@ async fn when_set_role_member(
     world: &mut TestWorld,
     actor: String,
     subject: String,
-) -> Result<(), Error> {
-    let token = world.token(&actor);
+) -> Result<(), anyhow::Error> {
+    let ref auth = world.token(&actor).await;
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_role(world.api(), &token, &jid, MemberRole::Member).await;
+
+    let res = set_member_role(world.api(), auth, &jid, MemberRole::Member).await?;
     world.result = Some(res.into());
+
     Ok(())
 }
 
@@ -106,13 +95,12 @@ async fn when_set_role_member(
 async fn then_role(
     world: &mut TestWorld,
     subject: String,
-    role: parameters::MemberRole,
+    expected_role: parameters::MemberRole,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &subject).await?;
-    let member = MemberRepository::get(&world.db.read, &jid)
-        .await?
-        .expect(&format!("Member {jid} not found"));
-    assert_eq!(member.role, role.0);
+
+    let role = world.mock_user_repository().role(&jid).unwrap();
+    assert_eq!(role, expected_role.0);
 
     Ok(())
 }
@@ -121,17 +109,12 @@ async fn then_role(
 async fn then_prosody_role(
     world: &mut TestWorld,
     subject: String,
-    prosody_role: String,
+    expected_role: String,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &subject).await?;
-    let member_role = world
-        .server_ctl_state()
-        .users
-        .get(&jid)
-        .expect(&format!("Member {jid} not found"))
-        .role
-        .clone();
-    assert_eq!(member_role, prosody_role);
+
+    let role = world.mock_user_repository().role(&jid).unwrap();
+    assert_eq!(role.as_prosody().to_string(), expected_role);
 
     Ok(())
 }

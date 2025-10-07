@@ -277,22 +277,6 @@ components:
           oauth2_refresh_token_ttl = 0
           oauth2_registration_key = "C9VSarOH2_5PKzJK2O6wQN1vqhYpGbewSEEdmFBymq6xiAW61V9ZJWuWD6TjWcF7VDp6yg7O7KYK_if38ucreET9_Qrq4MqG8uSaCP6Kug81htfygX6v9hRWnynbpGkgQVOy45J1DfDy--ZYFlBoAjVzCTGr8WvCm2-Mfu0CFtI1_JFs19gEaIh9a2XjJkcJoKVnghxQWZkos1bKejIKLRPtqjabOoCqpHKraKfWTLO-FmXeTy8F7itYV3LFcX5f08-xjLR0JpxwyLXI8LlmUk4c70q0CmcjuUVtKCqWficovXg-FIz6B5DmG9P7dVGdSf4GS3-aRj9vwprQXKftBw"
 
-        VirtualHost "admin.prose.local"
-          admins = { "prose-pod-api@admin.prose.local" }
-
-          -- Modules
-          modules_enabled = {
-            "admin_rest";
-            "init_admin";
-          }
-
-          -- HTTP settings
-          http_host = "prose-pod-server-admin"
-
-          -- mod_init_admin
-          init_admin_jid = "prose-pod-api@admin.prose.local"
-          init_admin_password_env_var_name = "PROSE_BOOTSTRAP__PROSE_POD_API_XMPP_PASSWORD"
-
         Component "groups.example.org" "muc"
           name = "Chatrooms"
 

@@ -3,11 +3,9 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use prose_pod_api::features::auth::ResetPasswordRequest;
+use prose_pod_api::features::auth::{models::Password, ResetPasswordRequest};
 use service::{
-    auth::{auth_controller, password_reset_tokens, AuthServiceImpl},
-    prosody_config::LuaValue,
-    xmpp::ServerCtlImpl,
+    invitations::InvitationContact, models::EmailAddress, prosody_config::LuaValue, util::JidExt,
 };
 
 use super::prelude::*;
@@ -26,7 +24,7 @@ async fn given_presence(
     match presence.as_str() {
         "online" => state.online_members.insert(jid),
         "offline" => state.online_members.remove(&jid),
-        p => panic!("Unexpected presence: '{p}'"),
+        p => unreachable!("Unexpected presence: '{p}'"),
     };
 
     Ok(())
@@ -39,9 +37,10 @@ async fn given_password(
     password: String,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    (world.mock_server_ctl)
-        .set_user_password(&jid, &password.into())
-        .await?;
+
+    world
+        .mock_user_repository()
+        .set_password(&jid, &password.into());
 
     Ok(())
 }
@@ -55,29 +54,29 @@ async fn given_password_reset_requested(
     let actor_jid = name_to_jid(world, &actor).await?;
     let subject_jid = name_to_jid(world, &subject).await?;
 
-    let token = world.mock_auth_service.log_in_unchecked(&actor_jid).await?;
-    let user_info = (world.mock_auth_service)
-        .get_user_info(token, &world.db.read)
+    let auth_token = world
+        .mock_auth_service()
+        .log_in_unchecked(&actor_jid)
         .await?;
 
-    auth_controller::request_password_reset(
-        &world.db.write,
-        &world.notifcation_service(),
-        &world.app_config(),
-        &user_info,
-        &subject_jid,
-    )
-    .await?;
-
-    let tokens = password_reset_tokens::get_by_jid(&world.db.read, &subject_jid).await?;
-    world.password_reset_tokens.insert(subject_jid, tokens);
+    world
+        .auth_service()
+        .create_password_reset_token(
+            subject_jid.expect_username(),
+            None,
+            &InvitationContact::Email {
+                email_address: EmailAddress::from(&subject_jid),
+            },
+            &auth_token,
+        )
+        .await?;
 
     Ok(())
 }
 
 // MARK: - When
 
-async fn log_in(api: &TestServer, username: &BareJid, password: SecretString) -> TestResponse {
+async fn log_in(api: &TestServer, username: &BareJid, password: Password) -> TestResponse {
     api.post("/v1/login")
         .add_header(CONTENT_TYPE, "application/json")
         .add_header(
@@ -95,15 +94,16 @@ async fn log_in(api: &TestServer, username: &BareJid, password: SecretString) ->
 }
 
 #[when(expr = "{} logs into the Prose Pod API")]
-async fn when_user_logs_in(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let jid = name_to_jid(world, &name).await?;
-    let password = {
-        let ref users = world.server_ctl_state().users;
-        let user = users.get(&jid).expect("User must be created first");
-        user.password.clone()
-    };
-    let res = log_in(world.api(), &jid, password).await;
+async fn when_user_logs_in(world: &mut TestWorld, ref name: String) -> Result<(), Error> {
+    let jid = name_to_jid(world, name).await?;
+    let password = world
+        .mock_user_repository()
+        .password(&jid)
+        .expect(&user_missing(name));
+
+    let res = log_in(world.api(), &jid, password.into()).await;
     world.result = Some(res.into());
+
     Ok(())
 }
 
@@ -119,14 +119,11 @@ async fn when_password_reset_request(
     actor: String,
     subject: String,
 ) -> Result<(), Error> {
-    let actor_token = user_token!(world, actor);
+    let ref actor_token = world.token(&actor).await;
     let subject_jid = name_to_jid(world, &subject).await?;
 
     let res = request_password_reset(world.api(), actor_token, subject_jid.clone()).await;
     world.result = Some(res.unwrap().into());
-
-    let tokens = password_reset_tokens::get_by_jid(&world.db.read, &subject_jid).await?;
-    world.password_reset_tokens.insert(subject_jid, tokens);
 
     Ok(())
 }
@@ -134,7 +131,7 @@ async fn when_password_reset_request(
 api_call_fn!(
     reset_password,
     unauthenticated: PUT,
-    "/v1/password-reset-tokens/{token}/use"; token=String,
+    "/v1/password-reset-tokens/{token}/use"; token=&str,
     payload: ResetPasswordRequest,
 );
 
@@ -146,35 +143,37 @@ async fn when_password_reset_n(
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
 
-    let tokens = (world.password_reset_tokens.get(&jid))
-        .expect("A password reset request must be sent first.");
-    let token = tokens.get(n).expect(&format!(
-        "{n} password reset request(s) must be sent first.",
-        n = n + 1
-    ));
+    let password_reset_requests = [
+        world
+            .mock_auth_service()
+            .expired_password_reset_requests(&jid),
+        world.mock_auth_service().password_reset_requests(&jid),
+    ]
+    .concat();
 
-    use secrecy::ExposeSecret;
+    let token = password_reset_requests
+        .get(n)
+        .expect(&format!(
+            "{n} password reset request(s) must be sent first.",
+            n = n + 1
+        ))
+        .token
+        .clone();
+
     let res = reset_password(
         world.api(),
-        token.expose_secret().to_owned(),
+        token.expose_secret(),
         ResetPasswordRequest {
             password: password.into(),
         },
     )
     .await;
     world.result = Some(res.unwrap().into());
+
     Ok(())
 }
 
 #[when(expr = "an unauthenticated user uses {}’s password reset token with password {string}")]
-async fn when_password_reset(
-    world: &mut TestWorld,
-    name: String,
-    password: String,
-) -> Result<(), Error> {
-    when_password_reset_n(world, name, password, 0).await
-}
-
 #[when(
     expr = "an unauthenticated user uses {}’s first password reset token with password {string}"
 )]
@@ -204,6 +203,11 @@ fn then_password_changed(world: &mut TestWorld, jid: parameters::JID) {
     assert_ne!(world.mock_secrets_store().changes_count(&jid), 0);
 }
 
+#[then(expr = "<{jid}>'s password is not changed")]
+fn then_password_not_changed(world: &mut TestWorld, jid: parameters::JID) {
+    assert_eq!(world.mock_secrets_store().changes_count(&jid), 0);
+}
+
 #[then(expr = "their Prosody access token should expire after {duration}")]
 async fn then_prosody_token_expires_after(
     world: &mut TestWorld,
@@ -211,7 +215,7 @@ async fn then_prosody_token_expires_after(
 ) -> Result<(), DbErr> {
     let domain = world.app_config().server_domain().clone();
 
-    let server_ctl_state = world.server_ctl_state();
+    let server_ctl_state = world.server_state();
     let prosody_config = (server_ctl_state.applied_config)
         .as_ref()
         .expect("XMPP server config not initialized");
@@ -238,19 +242,26 @@ async fn then_n_valid_password_reset_tokens(
     name: String,
 ) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
-    let entries = password_reset_tokens::get_by_jid(&world.db.read, &jid).await?;
+
+    let entries = world.mock_auth_service().password_reset_requests(&jid);
     assert_eq!(entries.len(), n);
+
     Ok(())
 }
 
 #[then(expr = "{}’s password should be {string}")]
-async fn then_password(world: &mut TestWorld, name: String, expected: String) -> Result<(), Error> {
-    let jid = name_to_jid(world, &name).await?;
-    let password = {
-        let ref users = world.server_ctl_state().users;
-        let user = users.get(&jid).expect("User must be created first");
-        user.password.clone()
-    };
+async fn then_password(
+    world: &mut TestWorld,
+    ref name: String,
+    expected: String,
+) -> Result<(), Error> {
+    let jid = name_to_jid(world, name).await?;
+
+    let password = world
+        .mock_user_repository()
+        .password(&jid)
+        .expect(&user_missing(name));
     assert_eq!(password.expose_secret(), expected);
+
     Ok(())
 }

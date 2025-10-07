@@ -3,33 +3,24 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::{
-    auth::UserInfo, members::MemberServiceContext, util::ConcurrentTaskRunner, xmpp::XmppService,
-};
-
 use crate::extractors::prelude::*;
 
 impl FromRequestParts<AppState> for service::members::MemberService {
-    type Rejection = error::Error;
+    type Rejection = Infallible;
 
     #[tracing::instrument(name = "req::extract::member_service", level = "trace", skip_all, err)]
     async fn from_request_parts(
-        parts: &mut request::Parts,
+        _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let xmpp_service = XmppService::from_request_parts(parts, state).await?;
-        let user_info = UserInfo::from_request_parts(parts, state).await?;
-        let ctx = MemberServiceContext {
-            bare_jid: user_info.jid,
-        };
-
         Ok(Self::new(
-            state.db.clone(),
-            Arc::new(state.server_ctl.clone()),
-            Arc::new(xmpp_service),
-            ConcurrentTaskRunner::default(),
-            ctx,
-            state.app_config.api.member_enriching,
+            state.user_repository.clone(),
+            state.user_application_service.clone(),
+            state.app_config.server_domain().to_owned(),
+            state.xmpp_service.clone(),
+            state.auth_service.clone(),
+            None,
+            &state.app_config.api.member_enriching,
         ))
     }
 }

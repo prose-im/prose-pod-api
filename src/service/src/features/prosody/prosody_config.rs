@@ -123,9 +123,6 @@ impl ProsodyConfig {
 
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
-        let api_jid = app_config.api_jid();
-        let api_jid =
-            BareJid::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
@@ -169,6 +166,9 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "register",
                     "prose_version",
                     "http_admin_api",
+                    "invites",
+                    "invites_groups",
+                    "invites_register_api",
                 ]
                 .into_iter()
                 .map(ToString::to_string)
@@ -203,7 +203,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
         let main_virtual_host = ProsodyConfigSection::VirtualHost {
             hostname: server_config.domain.to_string(),
             settings: ProsodySettings {
-                admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                 modules_enabled: Some(
                     vec![
                         "rest",
@@ -242,10 +241,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 ..Default::default()
             },
         };
-        let admin_virtual_host = prosody_bootstrap_config::admin_virtual_host(
-            &api_jid,
-            app_config.server.local_hostname_admin.to_owned(),
-        );
         let groups_virtual_host = ProsodyConfigSection::Component {
             hostname: server_config.groups_domain().to_string(),
             plugin: "muc".into(),
@@ -268,7 +263,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
 
         let mut additional_sections = vec![
             main_virtual_host,
-            admin_virtual_host,
             groups_virtual_host,
         ];
 

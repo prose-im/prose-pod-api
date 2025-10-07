@@ -18,7 +18,7 @@ pub async fn init_server_config(app_state @ AppState { db, .. }: &AppState) -> R
 
     // Apply the server configuration stored in the database
     let server_config_manager = ServerConfigManager::from_ref(app_state);
-    if let Err(err) = server_config_manager.apply(&server_config).await {
+    if let Err(err) = server_config_manager.apply(&server_config, None).await {
         return Err(format!(
             "Could not initialize the XMPP server configuration: {err}"
         ));

@@ -3,25 +3,27 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::{anyhow, Context};
-use chrono::Utc;
+use anyhow::Context;
 use jid::BareJid;
-use sea_orm::DatabaseConnection;
-use secrecy::SecretString;
 use tracing::instrument;
 
 use crate::{
-    members::{entities::member, MemberRepository, MemberRole, MemberService},
+    errors::Forbidden,
+    identity_provider::IdentityProvider,
+    invitations::InvitationContact,
+    members::{MemberRole, MemberService, UserRepository},
     notifications::{notifier::email::EmailNotification, NotificationService},
-    util::either::{Either, Either3},
-    xmpp::ServerCtl,
+    util::{
+        either::{Either, Either3, Either4},
+        JidExt as _,
+    },
+    xmpp::XmppServiceContext,
     AppConfig,
 };
 
 use super::{
-    errors::*, password_reset_notification::PasswordResetNotificationPayload,
-    password_reset_tokens, AuthService, AuthToken, Credentials, PasswordResetRecord,
-    PasswordResetToken, UserInfo,
+    errors::*, password_reset_notification::PasswordResetNotificationPayload, AuthService,
+    AuthToken, Credentials, Password, PasswordResetToken, UserInfo,
 };
 
 /// Log user in and return an authentication token.
@@ -42,26 +44,24 @@ pub async fn log_in(
 #[instrument(
     name = "auth_controller::set_member_role",
     level = "trace",
-    skip_all, fields(jid = jid.to_string(), role = role.to_string(), caller = user_info.jid.to_string()),
+    skip_all, fields(jid = %jid, role = %role, caller = %caller.jid),
 )]
 pub async fn set_member_role(
-    db: &DatabaseConnection,
-    member_service: &MemberService,
-    user_info: &UserInfo,
+    user_repository: &UserRepository,
+    caller: &UserInfo,
     jid: BareJid,
     role: MemberRole,
-) -> Result<(), Either3<CannotChangeOwnRole, CannotAssignRole, anyhow::Error>> {
-    let Some(caller) = MemberRepository::get(db, &user_info.jid).await? else {
-        return Err(Either3::E3(anyhow!("Cannot get role for '{jid}'.")));
-    };
-    if caller.jid() == jid {
-        return Err(Either3::E1(CannotChangeOwnRole));
+    auth: &AuthToken,
+) -> Result<(), Either4<CannotChangeOwnRole, CannotAssignRole, Forbidden, anyhow::Error>> {
+    if caller.jid == jid {
+        return Err(Either4::E1(CannotChangeOwnRole));
     };
     if caller.role < role {
-        return Err(Either3::E2(CannotAssignRole));
+        return Err(Either4::E2(CannotAssignRole));
     };
 
-    member_service.set_member_role(&jid, role).await?;
+    let username = jid.expect_username();
+    user_repository.set_user_role(username, &role, auth).await?;
 
     Ok(())
 }
@@ -72,48 +72,54 @@ pub async fn set_member_role(
     skip_all, fields(jid = jid.to_string(), caller = caller.jid.to_string()),
 )]
 pub async fn request_password_reset(
-    db: &DatabaseConnection,
     notification_service: &NotificationService,
     app_config: &AppConfig,
-    caller: &UserInfo,
     jid: &BareJid,
-) -> Result<(), Either3<MissingEmailAddress, CannotResetPassword, anyhow::Error>> {
-    // Find member email address.
-    let email_address = match MemberRepository::get(db, jid).await? {
-        Some(member::Model {
-            email_address: Some(email_address),
-            ..
-        }) => email_address,
-        _ => return Err(Either3::E1(MissingEmailAddress(jid.clone()))),
+    contact: Option<InvitationContact>,
+    identity_provider: &IdentityProvider,
+    auth_service: &AuthService,
+    member_service: &MemberService,
+    caller: &UserInfo,
+    ctx: &XmppServiceContext,
+) -> Result<(), Either<Forbidden, anyhow::Error>> {
+    let ref auth = ctx.auth_token;
+
+    let Some(username) = jid.node() else {
+        // That’s not a user account, of course you can’t do that.
+        return Err(Either::E1(Forbidden("Not a user account".to_owned())));
     };
 
     // Authorize action (or not).
     // NOTE: One can only reset their own password or trigger a reset for
     //   someone else if they are an admin.
     if !(caller.is(jid) || caller.is_admin()) {
-        return Err(Either3::E2(CannotResetPassword));
+        return Err(Either::E1(Forbidden(
+            "Not your account. Only admins can do that.".to_owned(),
+        )));
     }
 
-    // Generate a random token.
-    let token = PasswordResetToken::new();
-
-    // Compute token expiry.
-    let password_reset_token_ttl = (app_config.auth.password_reset_token_ttl.to_std()).expect(
-        "`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.",
-    );
-    let expires_at = chrono::Utc::now() + password_reset_token_ttl;
-
-    // Store password reset token.
-    let record = PasswordResetRecord {
-        jid: jid.to_owned(),
-        expires_at,
+    let contact = match contact {
+        Some(contact) => contact,
+        None => {
+            let email_address = identity_provider.get_email_address(jid, member_service, ctx).await?.expect(
+                "Until we implement #342, this should have been set already (except for the #256 bug).",
+            );
+            InvitationContact::Email { email_address }
+        }
     };
-    password_reset_tokens::set(db, &token, &record).await?;
+
+    // Create password reset token.
+    let info = auth_service
+        .create_password_reset_token(username, None, &contact, auth)
+        .await?;
 
     // Send email.
+    let email_address = match contact {
+        InvitationContact::Email { email_address } => email_address.clone(),
+    };
     let notification_payload = PasswordResetNotificationPayload {
-        reset_token: token,
-        expires_at,
+        reset_token: info.token,
+        expires_at: info.expires_at,
         dashboard_url: app_config.dashboard_url().clone(),
     };
     let email =
@@ -126,28 +132,9 @@ pub async fn request_password_reset(
 
 #[instrument(name = "auth_controller::reset_password", level = "trace", skip_all)]
 pub async fn reset_password(
-    db: &DatabaseConnection,
-    server_ctl: &ServerCtl,
-    token: &PasswordResetToken,
-    password: &SecretString,
-) -> Result<(), Either3<PasswordResetTokenNotFound, PasswordResetTokenExpired, anyhow::Error>> {
-    let record = match password_reset_tokens::get(db, token).await? {
-        Some(model) => model,
-        None => return Err(Either3::E1(PasswordResetTokenNotFound)),
-    };
-    let jid = record.jid;
-
-    tracing::Span::current().record("jid", jid.to_string());
-
-    // Check password expiry.
-    if Utc::now() > record.expires_at {
-        return Err(Either3::E2(PasswordResetTokenExpired));
-    }
-
-    (server_ctl.set_user_password(&jid, password).await).context("ServerCtl error")?;
-
-    // Delete record from database.
-    password_reset_tokens::delete(db, token).await?;
-
-    Ok(())
+    token: PasswordResetToken,
+    password: &Password,
+    auth_service: &AuthService,
+) -> Result<(), Either3<PasswordResetTokenExpired, Forbidden, anyhow::Error>> {
+    auth_service.reset_password(token, password).await
 }

@@ -114,7 +114,7 @@ paths:
     description: |-
       Get information about a workspace invitation.
 
-      If an accept or reject token is used in the path and `token_type` is provided as a query parameter, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
+      If an accept or reject token is used in the path, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
     operationId: get_invitation
     security:
       - BearerAuth: []
@@ -153,7 +153,6 @@ paths:
     security: []
     parameters:
       - $ref: "#/components/parameters/InvitationToken"
-      - $ref: "#/components/parameters/InvitationTokenType"
     responses:
       "200":
         description: Success
@@ -183,6 +182,7 @@ paths:
             properties:
               nickname: { $ref: "members.yaml#/components/schemas/Nickname" }
               password: { $ref: "../shared.yaml#/components/schemas/Password" }
+              email: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
       "410": { $ref: "#/components/responses/InvitationNotFound" }
@@ -225,16 +225,11 @@ components:
       type: string
       format: password
       example: f2736e87-850e-4776-bb26-52c12a7d8bd8
-    InvitationTokenType:
-      type: string
-      enum: [accept, reject]
-      example: accept
     WorkspaceInvitation:
       type: object
       required:
         - invitation_id
         - created_at
-        - status
         - jid
         - pre_assigned_role
         - contact
@@ -247,7 +242,6 @@ components:
         invitation_id: { $ref: "#/components/schemas/InvitationId" }
         jid: { $ref: "../shared.yaml#/components/schemas/JID" }
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
-        status: { $ref: "#/components/schemas/InvitationStatus" }
         is_expired:
           type: boolean
     WorkspaceInvitationBasicDetails:
@@ -266,11 +260,6 @@ components:
       type: integer
       format: int32
       example: 42
-    InvitationStatus:
-      description: The status of an invitation.
-      type: string
-      enum: [TO_SEND, SENT, SEND_FAILED]
-      example: SENT
     InvitationContact:
       description: |-
         How to contact someone.
@@ -321,12 +310,6 @@ components:
       in: path
       name: token
       schema: { $ref: "#/components/schemas/InvitationRejectToken" }
-      required: true
-    InvitationTokenType:
-      description: Type of invitation token
-      in: query
-      name: token_type
-      schema: { $ref: "#/components/schemas/InvitationTokenType" }
       required: true
   responses:
     InvitationNotFound:

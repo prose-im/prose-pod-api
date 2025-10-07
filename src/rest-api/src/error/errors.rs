@@ -5,11 +5,7 @@
 
 use axum::http::header::InvalidHeaderValue;
 pub use service::errors::*;
-use service::{
-    sea_orm,
-    xmpp::{server_ctl, xmpp_service, CreateServiceAccountError},
-    MutationError,
-};
+use service::{sea_orm, xmpp::xmpp_service, MutationError};
 
 use super::prelude::*;
 
@@ -109,10 +105,6 @@ impl ErrorCode {
         log_level: LogLevel::Info,
     };
 }
-#[derive(Debug, thiserror::Error)]
-#[repr(transparent)]
-#[error("Unauthorized: {0}")]
-pub struct Unauthorized(pub String);
 impl HttpApiError for Unauthorized {
     fn code(&self) -> ErrorCode {
         ErrorCode::UNAUTHORIZED
@@ -280,28 +272,6 @@ impl HttpApiError for HTTPStatus {
 
 impl_into_error!(sea_orm::DbErr, ErrorCode::DATABASE_ERROR);
 
-impl HttpApiError for server_ctl::Error {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::Unauthorized(_) => ErrorCode::UNAUTHORIZED,
-            Self::Forbidden(_) => ErrorCode::FORBIDDEN,
-            Self::UnexpectedResponse(err) => err.code(),
-            _ => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-
-    fn message(&self) -> String {
-        std::format!("server_ctl::Error: {self}")
-    }
-
-    fn debug_info(&self) -> Option<serde_json::Value> {
-        match self {
-            Self::UnexpectedResponse(err) => err.debug_info(),
-            _ => None,
-        }
-    }
-}
-
 impl_into_error!(xmpp_service::Error, ErrorCode::INTERNAL_SERVER_ERROR);
 
 impl CustomErrorCode for MutationError {
@@ -313,16 +283,6 @@ impl CustomErrorCode for MutationError {
     }
 }
 impl_into_error!(MutationError);
-
-impl CustomErrorCode for CreateServiceAccountError {
-    fn error_code(&self) -> ErrorCode {
-        match self {
-            Self::CouldNotCreateXmppAccount(err) => err.code(),
-            Self::CouldNotLogIn(_) => ErrorCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-impl_into_error!(CreateServiceAccountError);
 
 impl HttpApiError for service::errors::UnexpectedHttpResponse {
     fn code(&self) -> ErrorCode {

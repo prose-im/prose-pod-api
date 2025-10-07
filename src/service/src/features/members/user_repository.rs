@@ -1,0 +1,192 @@
+// prose-pod-api
+//
+// Copyright: 2025, Rémi Bardon <remi@remibardon.name>
+// License: Mozilla Public License v2.0 (MPL v2.0)
+
+pub mod prelude {
+    pub use async_trait::async_trait;
+
+    pub use crate::{
+        auth::AuthToken,
+        errors::{Forbidden, Unauthorized},
+        members::{
+            models::{Member, MemberRole, UsersStats},
+            UserRepositoryImpl,
+        },
+        util::either::{Either, Either3},
+        xmpp::jid::NodeRef,
+    };
+}
+
+use std::sync::Arc;
+
+pub use self::live_user_repository::LiveUserRepository;
+use self::prelude::*;
+
+#[derive(Debug, Clone)]
+pub struct UserRepository {
+    pub implem: Arc<dyn UserRepositoryImpl>,
+}
+
+#[async_trait]
+pub trait UserRepositoryImpl: std::fmt::Debug + Sync + Send {
+    async fn list_users(
+        &self,
+        auth: &AuthToken,
+    ) -> Result<Vec<Member>, Either3<Unauthorized, Forbidden, anyhow::Error>>;
+
+    async fn get_user_by_username(
+        &self,
+        username: &NodeRef,
+        auth: &AuthToken,
+    ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>>;
+
+    async fn user_exists(
+        &self,
+        username: &NodeRef,
+        auth: &AuthToken,
+    ) -> Result<bool, Either<Forbidden, anyhow::Error>> {
+        self.get_user_by_username(username, auth)
+            .await
+            .map(|opt| opt.is_some())
+    }
+
+    async fn users_stats(&self, auth: Option<&AuthToken>) -> Result<UsersStats, anyhow::Error>;
+
+    async fn set_user_role(
+        &self,
+        username: &NodeRef,
+        role: &MemberRole,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+
+    async fn delete_user(
+        &self,
+        username: &NodeRef,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+}
+
+#[derive(Debug)]
+pub struct UsersStats {
+    pub count: usize,
+}
+
+mod live_user_repository {
+    use crate::{
+        auth::AuthService,
+        prose_pod_server_api::{self, ProsePodServerApi, ProsePodServerError},
+        prosody::{ProsodyAdminRest, ProsodyHttpAdminApi},
+        util::either::to_either3_1_3,
+    };
+
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct LiveUserRepository {
+        pub server_api: ProsePodServerApi,
+        pub admin_rest: Arc<ProsodyAdminRest>,
+        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub auth_service: AuthService,
+    }
+
+    #[async_trait]
+    impl UserRepositoryImpl for LiveUserRepository {
+        async fn list_users(
+            &self,
+            auth: &AuthToken,
+        ) -> Result<Vec<Member>, Either3<Unauthorized, Forbidden, anyhow::Error>> {
+            // NOTE: This makes one more API call to the Prose Pod Server,
+            //   but it’s not a problem yet. If it becomes one, we’ll add
+            //   a caching layer.
+            let caller = self
+                .auth_service
+                .get_user_info(auth)
+                .await
+                .map_err(to_either3_1_3)?;
+
+            // Admins need to see everyone (in roster or not), which means we
+            // have to use a dedicated API. However it’s authenticated not to
+            // leak sensitive information therefore non-admins would get 403s.
+            // As a fallback, we show people in their roster.
+            if caller.is_admin() {
+                let response = self.admin_rest.list_users(auth).await?;
+                Ok(response.into_iter().map(Member::from).collect())
+            } else {
+                // See [Non-admins cannot see users · Issue #346 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/346).
+                Ok(vec![])
+            }
+        }
+
+        async fn get_user_by_username(
+            &self,
+            username: &NodeRef,
+            auth: &AuthToken,
+        ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
+            self.admin_api.get_user_by_name(username, auth).await
+        }
+
+        async fn users_stats(&self, auth: Option<&AuthToken>) -> Result<UsersStats, anyhow::Error> {
+            match self.server_api.users_util_stats(auth).await {
+                Ok(response) => Ok(UsersStats::from(response)),
+                // All of those mean something is wrong.
+                Err(err @ ProsePodServerError::Unavailable)
+                | Err(err @ ProsePodServerError::Forbidden(_))
+                | Err(err @ ProsePodServerError::Internal(_)) => Err(anyhow::Error::new(err)),
+            }
+        }
+
+        async fn set_user_role(
+            &self,
+            username: &NodeRef,
+            role: &MemberRole,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            use crate::prosody::AsProsody as _;
+
+            self.admin_rest
+                .call(
+                    |client| {
+                        client
+                            .patch(format!("{}/{username}/role", self.admin_rest.url("user")))
+                            .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
+                    },
+                    auth,
+                )
+                .await?;
+
+            Ok(())
+        }
+
+        async fn delete_user(
+            &self,
+            username: &NodeRef,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.admin_rest
+                .call(
+                    |client| client.delete(format!("{}/{username}", self.admin_rest.url("user"))),
+                    auth,
+                )
+                .await?;
+
+            Ok(())
+        }
+    }
+
+    impl From<prose_pod_server_api::GetUsersStatsResponse> for UsersStats {
+        fn from(stats: prose_pod_server_api::GetUsersStatsResponse) -> Self {
+            Self { count: stats.count }
+        }
+    }
+}
+
+// MARK: - Boilerplate
+
+impl std::ops::Deref for UserRepository {
+    type Target = Arc<dyn UserRepositoryImpl>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.implem
+    }
+}

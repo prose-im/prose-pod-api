@@ -11,12 +11,12 @@ use tracing::{debug, info, instrument, warn};
 
 use crate::app_config::CONFIG_FILE_PATH;
 use crate::auth::errors::InvalidCredentials;
-use crate::auth::{AuthService, Credentials};
+use crate::auth::{AuthService, AuthToken, Credentials};
 use crate::factory_reset::FactoryResetConfirmationCode;
 use crate::models::DatabaseRwConnectionPools;
-use crate::secrets::SecretsStore;
+use crate::prose_pod_server_service::ProsePodServerService;
 use crate::util::either::Either;
-use crate::xmpp::{server_manager, ServerCtl};
+use crate::xmpp::server_manager;
 use crate::AppConfig;
 
 use super::{FactoryResetService, InvalidConfirmationCode};
@@ -58,9 +58,9 @@ pub async fn perform_factory_reset(
     factory_reset_service: &FactoryResetService,
     confirmation: FactoryResetConfirmationCode,
     db: DatabaseRwConnectionPools,
-    server_ctl: &ServerCtl,
+    server: &ProsePodServerService,
     app_config: &AppConfig,
-    secrets_store: &SecretsStore,
+    auth: &AuthToken,
 ) -> Result<(), Either<InvalidConfirmationCode, anyhow::Error>> {
     if !factory_reset_service.is_confirmation_code_valid(&confirmation) {
         return Err(Either::E1(InvalidConfirmationCode));
@@ -69,12 +69,12 @@ pub async fn perform_factory_reset(
     warn!("Performing a factory reset…");
 
     debug!("Resetting the server…");
-    (server_manager::reset_server_config(&db.write, server_ctl, app_config, secrets_store).await)
+    (server_manager::reset_server_config(&db.write, server, auth).await)
         .context("Could not reset server config")
         .map_err(Either::E2)?;
 
     debug!("Erasing user data from the server…");
-    (server_ctl.delete_all_data().await)
+    (server.delete_all_data(auth).await)
         .context("Could not erase all server data")
         .map_err(Either::E2)?;
 

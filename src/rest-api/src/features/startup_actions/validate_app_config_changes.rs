@@ -3,7 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use service::members::MemberRepository;
+use service::onboarding;
 use tracing::{debug, instrument};
 
 use crate::AppState;
@@ -20,17 +20,16 @@ pub async fn validate_app_config_changes(app_state: &AppState) -> Result<(), Str
 async fn ensure_server_domain_not_changed(
     AppState { db, app_config, .. }: &AppState,
 ) -> Result<(), String> {
-    let (_, members) = (MemberRepository::get_page(&db.read, 1, 1, None).await)
+    let chosen_domain = (onboarding::chosen_server_domain::get_opt(&db.read).await)
         .map_err(|err| format!("Could not ensure the server domain hasn’t been modified: {err}"))?;
 
-    let Some(member) = members.first() else {
+    let Some(old_domain) = chosen_domain else {
         debug!(
             "Could not ensure the server domain hasn’t been modified: First account not initialized.",
         );
         return Ok(());
     };
 
-    let old_domain = member.jid().domain().to_string();
     let new_domain = app_config.server_domain().to_string();
     if new_domain != old_domain {
         debug!("Server domain changed from {old_domain} to {new_domain}.");

@@ -29,22 +29,22 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 
 async fn get_license(
     State(AppState {
-        ref license_service,
+        ref licensing_service,
         ..
     }): State<AppState>,
 ) -> Json<GetLicenseResponse> {
-    let response = licensing_controller::get_license(license_service).await;
+    let response = licensing_controller::get_license(licensing_service).await;
     Json(response)
 }
 
 async fn set_license(
     State(AppState {
-        ref license_service,
+        ref licensing_service,
         ..
     }): State<AppState>,
     license: License,
 ) -> Result<NoContent, Error> {
-    match license_service.install_license(license) {
+    match licensing_service.install_license(license) {
         Ok(()) => Ok(NoContent),
         Err(err) => Err(Error::from(err)),
     }
@@ -52,13 +52,27 @@ async fn set_license(
 
 async fn get_licensing_status(
     State(AppState {
-        ref license_service,
-        ref db,
+        ref licensing_service,
+        ref user_repository,
         ..
     }): State<AppState>,
 ) -> Result<Json<GetLicensingStatusResponse>, Error> {
-    match licensing_controller::get_licensing_status(license_service, &db.read).await {
+    match licensing_controller::get_licensing_status(licensing_service, user_repository).await {
         Ok(status) => Ok(Json(status)),
         Err(err) => Err(Error::from(err)),
+    }
+}
+
+mod errors {
+    use crate::error::prelude::*;
+
+    impl HttpApiError for service::licensing::errors::UserLimitReached {
+        fn code(&self) -> ErrorCode {
+            ErrorCode {
+                value: "user_limit_reached",
+                http_status: StatusCode::FORBIDDEN,
+                log_level: LogLevel::Error,
+            }
+        }
     }
 }

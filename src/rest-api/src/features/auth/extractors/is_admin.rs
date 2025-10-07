@@ -6,7 +6,7 @@
 use axum::extract::OptionalFromRequestParts;
 use service::{
     auth::{IsAdmin, UserInfo},
-    members::MemberRepository,
+    members::MemberRole,
 };
 
 use crate::extractors::prelude::*;
@@ -20,13 +20,13 @@ impl FromRequestParts<AppState> for IsAdmin {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let user_info = UserInfo::from_request_parts(parts, state).await?;
-        let jid = user_info.jid;
 
-        if MemberRepository::is_admin(&state.db.read, &jid).await? {
+        if user_info.role == MemberRole::Admin {
             Ok(Self)
         } else {
             Err(Error::from(error::Forbidden(format!(
-                "<{jid}> is not an admin."
+                "<{jid}> is not an admin.",
+                jid = user_info.jid
             ))))
         }
     }

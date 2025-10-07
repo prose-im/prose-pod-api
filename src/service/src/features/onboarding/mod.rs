@@ -27,6 +27,7 @@ pub async fn get_steps_statuses(db: &impl sea_orm::ConnectionTrait) -> Onboardin
 
 crate::gen_scoped_kv_store!(pub(super) onboarding; get/set: bool);
 
+crate::gen_kv_store_scoped_get_set!(pub chosen_server_domain: String);
 // TODO: Remove `pub` once network checks logic has been moved to `service`.
 crate::gen_kv_store_scoped_get_set!(pub all_dns_checks_passed_once: bool [+default]);
 crate::gen_kv_store_scoped_get_set!(pub at_least_one_invitation_sent: bool [+default]);

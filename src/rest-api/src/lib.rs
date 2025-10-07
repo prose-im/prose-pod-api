@@ -17,15 +17,18 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
-    dependencies::Uuid,
     factory_reset::FactoryResetService,
-    licensing::LicenseService,
+    identity_provider::IdentityProvider,
+    invitations::{invitation_service::InvitationApplicationService, InvitationRepository},
+    licensing::LicensingService,
+    members::{UserApplicationService, UserRepository},
     models::DatabaseRwConnectionPools,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
     pod_version::PodVersionService,
-    secrets::SecretsStore,
-    xmpp::{ServerCtl, XmppServiceInner},
+    prose_pod_server_service::ProsePodServerService,
+    secrets_store::SecretsStore,
+    xmpp::XmppService,
     AppConfig,
 };
 use tower::ServiceBuilder;
@@ -37,50 +40,24 @@ pub trait AxumState: Clone + Send + Sync + 'static {}
 // NOTE: Any Axum state must implement `Clone`.
 #[derive(Debug, Clone)]
 pub struct AppState {
-    base: MinimalAppState,
-    db: DatabaseRwConnectionPools,
-    app_config: Arc<AppConfig>,
-    server_ctl: ServerCtl,
-    xmpp_service: XmppServiceInner,
-    auth_service: AuthService,
-    email_notifier: Option<Notifier<EmailNotification>>,
-    network_checker: NetworkChecker,
-    license_service: LicenseService,
-    pod_version_service: PodVersionService,
-    factory_reset_service: FactoryResetService,
-    uuid_gen: Uuid,
-}
+    pub base: MinimalAppState,
+    pub db: DatabaseRwConnectionPools,
+    pub app_config: Arc<AppConfig>,
 
-impl AppState {
-    pub fn new(
-        base: MinimalAppState,
-        db: DatabaseRwConnectionPools,
-        app_config: Arc<AppConfig>,
-        server_ctl: ServerCtl,
-        xmpp_service: XmppServiceInner,
-        auth_service: AuthService,
-        email_notifier: Option<Notifier<EmailNotification>>,
-        network_checker: NetworkChecker,
-        license_service: LicenseService,
-        pod_version_service: PodVersionService,
-        factory_reset_service: FactoryResetService,
-    ) -> Self {
-        let uuid_gen = Uuid::from_config(&app_config);
-        Self {
-            base,
-            db,
-            uuid_gen,
-            app_config,
-            server_ctl,
-            xmpp_service,
-            auth_service,
-            email_notifier,
-            network_checker,
-            license_service,
-            pod_version_service,
-            factory_reset_service,
-        }
-    }
+    pub user_repository: UserRepository,
+    pub invitation_repository: InvitationRepository,
+
+    pub xmpp_service: XmppService,
+    pub auth_service: AuthService,
+    pub email_notifier: Option<Notifier<EmailNotification>>,
+    pub network_checker: NetworkChecker,
+    pub licensing_service: LicensingService,
+    pub pod_version_service: PodVersionService,
+    pub factory_reset_service: FactoryResetService,
+    pub prose_pod_server_service: ProsePodServerService,
+    pub identity_provider: IdentityProvider,
+    pub user_application_service: UserApplicationService,
+    pub invitation_application_service: InvitationApplicationService,
 }
 
 impl AxumState for AppState {}

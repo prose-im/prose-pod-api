@@ -14,6 +14,8 @@ use service::{
     server_config,
 };
 
+use crate::prelude::mocks::BYPASS_TOKEN;
+
 use super::prelude::*;
 
 // MARK: - Global
@@ -34,8 +36,8 @@ api_call_fn!(get_server_config, GET, "/v1/server/config");
 
 #[when(expr = "{} queries the server configuration")]
 async fn when_get_server_config(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = get_server_config(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = get_server_config(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -43,12 +45,12 @@ async fn when_get_server_config(world: &mut TestWorld, name: String) {
 
 #[then("the server should have been reconfigured")]
 fn then_server_reconfigured(world: &mut TestWorld) {
-    assert_ne!(world.server_ctl_state().conf_reload_count, 0);
+    assert_ne!(world.server_state().conf_reload_count, 0);
 }
 
 #[then("the server should not have been reconfigured")]
 fn then_server_not_reconfigured(world: &mut TestWorld) {
-    assert_eq!(world.server_ctl_state().conf_reload_count, 0);
+    assert_eq!(world.server_state().conf_reload_count, 0);
 }
 
 // MARK: - Message archiving
@@ -108,8 +110,8 @@ async fn when_set_message_archiving(
     name: String,
     state: parameters::ToggleState,
 ) {
-    let token = user_token!(world, name);
-    let res = set_message_archiving(world.api(), token, state.into()).await;
+    let ref auth = world.token(&name).await;
+    let res = set_message_archiving(world.api(), auth, state.into()).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -119,22 +121,22 @@ async fn when_set_message_archive_retention(
     name: String,
     duration: parameters::Duration,
 ) {
-    let token = user_token!(world, name);
-    let res = set_message_archive_retention(world.api(), token, duration.into()).await;
+    let ref auth = world.token(&name).await;
+    let res = set_message_archive_retention(world.api(), auth, duration.into()).await;
     world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the Messaging configuration to its default value")]
 async fn when_reset_messaging_configuration(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = reset_messaging_configuration(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = reset_messaging_configuration(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the message archive retention to its default value")]
 async fn when_reset_message_archive_retention(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = reset_message_archive_retention(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = reset_message_archive_retention(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -153,7 +155,7 @@ async fn then_message_archiving(
 
     // Check applied Prosody configuration
     let prosody_config = {
-        let server_ctl_state = world.server_ctl_state();
+        let server_ctl_state = world.server_state();
         server_ctl_state.applied_config.as_ref().unwrap().clone()
     };
     let global_settings = prosody_config.global_settings.to_owned();
@@ -185,7 +187,7 @@ async fn then_message_archive_retention(
 
     // Check applied Prosody configuration
     let prosody_config = {
-        let server_ctl_state = world.server_ctl_state();
+        let server_ctl_state = world.server_state();
         server_ctl_state.applied_config.as_ref().unwrap().clone()
     };
     let global_settings = prosody_config.global_settings.to_owned();
@@ -242,15 +244,15 @@ async fn when_set_file_uploading(
     name: String,
     state: parameters::ToggleState,
 ) {
-    let token = user_token!(world, name);
-    let res = set_file_uploading(world.api(), token, state.into()).await;
+    let ref auth = world.token(&name).await;
+    let res = set_file_uploading(world.api(), auth, state.into()).await;
     world.result = Some(res.unwrap().into());
 }
 
 #[when(expr = "{} resets the Files configuration to its default value")]
 async fn when_reset_files_configuration(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = reset_files_configuration(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = reset_files_configuration(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -260,8 +262,8 @@ async fn when_set_file_retention(
     name: String,
     duration: parameters::Duration,
 ) {
-    let token = user_token!(world, name);
-    let res = set_file_retention(world.api(), token, duration.into()).await;
+    let ref auth = world.token(&name).await;
+    let res = set_file_retention(world.api(), auth, duration.into()).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -301,7 +303,7 @@ where
     F: Future<Output = anyhow::Result<R>> + 'static,
 {
     update(world.db.write.clone()).await?;
-    world.server_config_manager().reload().await?;
+    world.server_config_manager().reload(&BYPASS_TOKEN).await?;
     world.reset_server_ctl_counts();
     Ok(())
 }

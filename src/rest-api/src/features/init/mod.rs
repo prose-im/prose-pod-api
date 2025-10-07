@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod errors;
-mod extractors;
 mod routes;
 
 use axum::routing::MethodRouter;

@@ -9,10 +9,11 @@ mod debounced_notify;
 mod deserializers;
 mod detect_mime_type;
 pub mod either;
+pub mod paginate;
 mod sea_orm;
 mod unaccent;
 
-use crate::models::jid::{BareJid, DomainRef, NodeRef};
+use crate::models::jid::{BareJid, NodeRef};
 
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
@@ -21,14 +22,29 @@ pub use self::deserializers::*;
 pub use self::detect_mime_type::*;
 pub use self::unaccent::*;
 
-pub fn bare_jid_from_username(username: &NodeRef, server_domain: &DomainRef) -> BareJid {
-    BareJid::from_parts(Some(username), server_domain)
+pub trait JidExt {
+    fn expect_username(&self) -> &NodeRef;
+}
+
+impl JidExt for BareJid {
+    fn expect_username(&self) -> &NodeRef {
+        self.node().expect("User JIDs should have a localpart")
+    }
+}
+
+/// [`panic!`] in debug mode, [`tracing::warn!`] in release.
+pub fn debug_panic_or_log_warning(msg: String) {
+    if cfg!(debug_assertions) {
+        panic!("{msg}");
+    } else {
+        tracing::warn!(msg);
+    }
 }
 
 #[macro_export]
 macro_rules! wrapper_type {
     ($wrapper:ident, $t:ty) => {
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, PartialEq, Eq, Hash)]
         #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
         #[repr(transparent)]
         pub struct $wrapper($t);
@@ -44,6 +60,12 @@ macro_rules! wrapper_type {
         impl std::ops::DerefMut for $wrapper {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.0
+            }
+        }
+
+        impl std::fmt::Debug for $wrapper {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                std::fmt::Debug::fmt(&self.0, f)
             }
         }
 

@@ -26,7 +26,7 @@ Feature: Member limit
        When a new member joins the Workspace
        Then the call should fail
         And the error code should be "user_limit_reached"
-        And there should be 3 members in the database
+        And there should be 3 accounts on the Server
 
     # This shouldn’t happen, but just in case we lower the limit at some point,
     # we have to make sure the API doesn’t use `==` (who’d do that anyway?).
@@ -36,7 +36,7 @@ Feature: Member limit
        When a new member joins the Workspace
        Then the call should fail
         And the error code should be "user_limit_reached"
-        And there should be 5 members in the database
+        And there should be 5 accounts on the Server
 
   Rule: The user limit counts how many members are currently in the Workspace, not how many have been created over the lifetime of the Prose Pod
 

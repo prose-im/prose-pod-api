@@ -3,9 +3,9 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Arc, RwLock};
-
 use service::pod_version::{PodVersionServiceImpl, StaticPodVersionService, VersionInfo};
+
+use super::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct MockPodVersionService {

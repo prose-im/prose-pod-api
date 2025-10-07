@@ -18,7 +18,7 @@ use service::{
     models::SerializableSecretString,
     notifications::NotificationService,
     util::either::Either,
-    xmpp::{BareJid, ServerCtl},
+    xmpp::{BareJid, XmppServiceContext},
 };
 use validator::Validate;
 
@@ -53,13 +53,16 @@ pub async fn login_route(
 // MARK: - Roles
 
 pub async fn set_member_role_route(
-    State(AppState { ref db, .. }): State<AppState>,
-    ref member_service: MemberService,
+    State(AppState {
+        ref user_repository,
+        ..
+    }): State<AppState>,
     ref user_info: UserInfo,
+    ref auth: AuthToken,
     Path(jid): Path<BareJid>,
     Json(role): Json<MemberRole>,
 ) -> Result<Json<MemberRole>, Error> {
-    match auth_controller::set_member_role(&db.write, member_service, user_info, jid, role).await? {
+    match auth_controller::set_member_role(user_repository, user_info, jid, role, auth).await? {
         () => Ok(Json(role)),
     }
 }
@@ -68,20 +71,27 @@ pub async fn set_member_role_route(
 
 pub async fn request_password_reset_route(
     State(AppState {
-        ref db,
         ref app_config,
+        ref identity_provider,
+        ref auth_service,
         ..
     }): State<AppState>,
     ref notification_service: NotificationService,
+    ref member_service: MemberService,
     ref caller: UserInfo,
+    ref ctx: XmppServiceContext,
     Path(ref jid): Path<BareJid>,
 ) -> Result<StatusCode, Error> {
     auth_controller::request_password_reset(
-        &db.write,
         notification_service,
         app_config,
-        caller,
         jid,
+        None,
+        identity_provider,
+        auth_service,
+        member_service,
+        caller,
+        ctx,
     )
     .await?;
     Ok(StatusCode::ACCEPTED)
@@ -97,12 +107,11 @@ pub struct ResetPasswordRequest {
 }
 
 pub async fn reset_password_route(
-    State(AppState { ref db, .. }): State<AppState>,
-    ref server_ctl: ServerCtl,
-    Path(ref token): Path<PasswordResetToken>,
-    Json(ResetPasswordRequest { password }): Json<ResetPasswordRequest>,
+    ref auth_service: AuthService,
+    Path(token): Path<PasswordResetToken>,
+    Json(ResetPasswordRequest { ref password }): Json<ResetPasswordRequest>,
 ) -> Result<(), Error> {
-    auth_controller::reset_password(&db.write, server_ctl, token, &password).await?;
+    auth_controller::reset_password(token, password, auth_service).await?;
     Ok(())
 }
 

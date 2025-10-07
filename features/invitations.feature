@@ -18,8 +18,8 @@ Feature: Inviting members
        Then the HTTP status code should be Created
         And the response should contain a "Location" HTTP header
         And 1 email should have been sent
-        And the email body should match "/invitations/accept/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-        And the email body should match "/invitations/reject/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        And the email body should match "/invitations/accept/[a-zA-Z0-9]{32}"
+        And the email body should match "/invitations/reject/[a-zA-Z0-9]{32}"
 
   """
   For security reasons, we don't want members to invite other people.
@@ -67,22 +67,6 @@ Feature: Inviting members
         And the "Pagination-Current-Page" header should contain "3"
         And the "Pagination-Page-Size" header should contain "20"
         And the "Pagination-Page-Count" header should contain "3"
-
-  """
-  Admins should be able to see the status of an invitation
-  (to act if needed).
-  """
-  Rule: Admins can see the status of an invitation
-
-    Scenario: Small number of invitations
-      Given <marc@prose.org> has been invited via email
-        And <marc@prose.org> has received their invitation
-        And <remi@prose.org> has been invited via email
-        And Valerian is an admin
-       When Valerian lists pending invitations
-       Then the call should succeed
-        And 1 invitation should be TO_SEND
-        And 1 invitation should be SENT
 
   """
   Admins should be able to see when an invitation has been created
@@ -159,7 +143,6 @@ Feature: Inviting members
 
     Scenario: Valerian (admin) resends an invitation
       Given <marc@prose.org> has been invited via email
-        And the invitation did not go through
         And Valerian is an admin
        When Valerian resends the invitation
        Then the HTTP status code should be No Content
@@ -167,7 +150,6 @@ Feature: Inviting members
 
     Scenario: Rémi (not admin) tries to resend an invitation
       Given <marc@prose.org> has been invited via email
-        And the invitation did not go through
         And Rémi is not an admin
        When Rémi resends the invitation
        Then the HTTP status code should be Forbidden

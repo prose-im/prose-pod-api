@@ -12,6 +12,7 @@ use serdev::Deserialize;
 use tracing::{debug, trace};
 
 use crate::{
+    auth::AuthToken,
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
     models::BareJid,
     AppConfig,
@@ -78,8 +79,7 @@ impl ProsodyOAuth2 {
                 }
                 _ => {
                     let err =
-                        UnexpectedHttpResponse::new(request_data, response, error_description)
-                            .await;
+                        UnexpectedHttpResponse::new(request_data, response, error_description);
                     Error::Internal(anyhow::Error::new(err).context("Unexpected API response"))
                 }
             })
@@ -161,6 +161,25 @@ impl ProsodyOAuth2 {
 
         let _: RegisterResponse = serde_json::from_str(&response.text())
             .context("Could not decode Prosody OAuth2 API response")?;
+
+        Ok(())
+    }
+
+    pub async fn revoke(&self, token: AuthToken) -> Result<(), Error> {
+        use secrecy::ExposeSecret as _;
+
+        self.call(
+            |client| {
+                client
+                    .post(self.url("revoke"))
+                    .bearer_auth(token.expose_secret())
+                    .json(&json!({
+                        "token": token.expose_secret(),
+                    }))
+            },
+            |res| res.status.is_success(),
+        )
+        .await?;
 
         Ok(())
     }

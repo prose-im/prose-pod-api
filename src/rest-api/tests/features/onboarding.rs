@@ -26,8 +26,8 @@ api_call_fn!(get_onboarding_steps_statuses, GET, "/v1/onboarding-steps");
 
 #[when(expr = "{} queries onboarding steps statuses")]
 async fn when_get_onboarding_step_statuses(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = get_onboarding_steps_statuses(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = get_onboarding_steps_statuses(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 

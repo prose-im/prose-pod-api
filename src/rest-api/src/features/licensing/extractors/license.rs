@@ -13,7 +13,7 @@ impl FromRequest<AppState> for service::licensing::License {
 
     #[tracing::instrument(name = "req::extract::license", level = "trace", skip_all)]
     async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
-        let ref license_service = state.license_service;
+        let ref licensing_service = state.licensing_service;
 
         let content_type = (req.headers())
             .typed_get::<ContentType>()
@@ -35,14 +35,14 @@ impl FromRequest<AppState> for service::licensing::License {
                     reason: format!("Invalid base64 license: {err}"),
                 })
             })?;
-            match license_service.deserialize_license_base64(body_string) {
+            match licensing_service.deserialize_license_base64(body_string) {
                 Ok(license) => Ok(license),
                 Err(err) => Err(Error::from(error::BadRequest {
                     reason: format!("Invalid base64 license: {err}"),
                 })),
             }
         } else if content_type == ContentType::octet_stream() {
-            match license_service.deserialize_license_bytes(&body_bytes) {
+            match licensing_service.deserialize_license_bytes(&body_bytes) {
                 Ok(license) => Ok(license),
                 Err(err) => Err(Error::from(error::BadRequest {
                     reason: format!("Invalid raw license: {err}"),

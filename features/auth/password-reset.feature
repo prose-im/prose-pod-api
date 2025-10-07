@@ -54,7 +54,7 @@ Feature: Password reset
         And Rémi is not an admin
         And Valerian requested a password reset for Rémi
        When an unauthenticated user uses Rémi’s password reset token with password "new-password"
-       Then the HTTP status code should be Gone
+       Then the HTTP status code should be Not Found
         And the error code should be "password_reset_token_expired"
 
   """

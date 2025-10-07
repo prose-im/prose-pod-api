@@ -9,5 +9,6 @@ mod authenticated;
 mod basic_auth;
 mod is_admin;
 mod user_info;
+mod xmpp_service_context;
 
 pub use basic_auth::*;

@@ -3,7 +3,6 @@ Feature: Port reachability checks
 
   Background:
     Given the XMPP server has been initialized
-      And Valerian is an admin
         # NOTE: Required when `pod.address.domain` is unset
       And config "dashboard.url" is set to "https://dashboard.prose.test.org"
 
@@ -14,6 +13,7 @@ Feature: Port reachability checks
         And config "pod.address.ipv4" is set to "0.0.0.0"
         And config "pod.address.ipv6" is set to "::"
         And config "pod.address.domain" is unset
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And test.org’s port 5222 is open
@@ -60,6 +60,7 @@ Feature: Port reachability checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And test.org’s port 5222 is open
@@ -108,6 +109,7 @@ Feature: Port reachability checks
     Scenario: Standard XMPP hostnames
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And test.org’s port 5222 is closed
@@ -143,6 +145,7 @@ Feature: Port reachability checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is disabled
         And test.org’s port 5222 is open

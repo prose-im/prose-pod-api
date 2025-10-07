@@ -3,25 +3,14 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use service::secrets_store::{LiveSecretsStore, SecretsStoreImpl, ServiceAccountSecrets};
 
-use secrecy::SecretString;
-pub use service::secrets::SecretsStoreImpl;
-use service::{
-    models::xmpp::BareJid,
-    secrets::{LiveSecretsStore, ServiceAccountSecrets},
-    AppConfig,
-};
+use super::prelude::*;
 
 #[derive(Debug)]
 pub struct MockSecretsStore {
     implem: LiveSecretsStore,
     state: Arc<RwLock<MockSecretsStoreState>>,
-    api_jid: BareJid,
 }
 
 #[derive(Debug, Default)]
@@ -30,11 +19,10 @@ pub struct MockSecretsStoreState {
 }
 
 impl MockSecretsStore {
-    pub fn new(implem: LiveSecretsStore, app_config: &AppConfig) -> Self {
+    pub fn new(implem: LiveSecretsStore) -> Self {
         Self {
             implem,
             state: Default::default(),
-            api_jid: app_config.api_jid(),
         }
     }
 
@@ -63,30 +51,29 @@ impl SecretsStoreImpl for MockSecretsStore {
         self.implem.load_config(app_config);
     }
 
-    fn set_prose_pod_api_xmpp_password(&self, password: SecretString) {
-        self.increase_changes_count(self.api_jid.clone());
-        self.implem.set_prose_pod_api_xmpp_password(password)
-    }
-    fn prose_pod_api_xmpp_password(&self) -> Option<SecretString> {
-        self.implem.prose_pod_api_xmpp_password()
-    }
-
     fn set_service_account_secrets(&self, jid: BareJid, secrets: ServiceAccountSecrets) {
-        self.increase_changes_count(jid.clone());
+        if self.implem.get_service_account_password(&jid).is_some() {
+            self.increase_changes_count(jid.clone());
+        }
         self.implem.set_service_account_secrets(jid, secrets)
     }
-    fn get_service_account_password(&self, jid: &BareJid) -> Option<SecretString> {
+
+    fn get_service_account_password(&self, jid: &BareJid) -> Option<Password> {
         self.implem.get_service_account_password(jid)
     }
-    fn get_service_account_prosody_token(&self, jid: &BareJid) -> Option<SecretString> {
+
+    fn get_service_account_prosody_token(&self, jid: &BareJid) -> Option<AuthToken> {
         self.implem.get_service_account_prosody_token(jid)
     }
+
     fn set_service_account_prosody_token(
         &self,
         jid: &BareJid,
-        prosody_token: SecretString,
-    ) -> Result<(), service::secrets::ServiceAccountNotFound> {
-        self.increase_changes_count(jid.clone());
+        prosody_token: AuthToken,
+    ) -> Result<(), service::secrets_store::ServiceAccountNotFound> {
+        if self.implem.get_service_account_prosody_token(jid).is_some() {
+            self.increase_changes_count(jid.clone());
+        }
         self.implem
             .set_service_account_prosody_token(jid, prosody_token)
     }

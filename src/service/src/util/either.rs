@@ -35,6 +35,21 @@ macro_rules! gen {
 
         // MARK: Useful (opinionated) implementations
 
+        // NOTE: `EitherN<…, anyhow::Error>` -> `std::error::Error`
+        //   (therefore `EitherN<…, anyhow::Error>` -> `anyhow::Error`).
+        impl<$case_0$(, $case)*> std::error::Error for $t<$case_0$(, $case)*, anyhow::Error>
+        where
+            $case_0: std::error::Error + Send + Sync + 'static,
+            $($case: std::error::Error + Send + Sync + 'static,)*
+        {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                match self {
+                    Self::$case_0(err) => err.source(),
+                    $(Self::$case(err) => err.source(),)*
+                    Self::$case_n(err) => err.source(),
+                }
+            }
+        }
         // NOTE: `anyhow::Error` -> `EitherN<…, anyhow::Error>`.
         impl<$case_0$(, $case)*> From<anyhow::Error> for $t<$case_0$(, $case)*, anyhow::Error> {
             fn from(value: anyhow::Error) -> Self {
@@ -74,6 +89,8 @@ pub trait Context {
         C: Display + Send + Sync + 'static;
 }
 
+// TODO: Implement `Context` if `anyhow::Error: From<Result<…>>`
+//   (`map_err(anyhow::Error::new)`).
 impl<T, E: Context> Context for Result<T, E> {
     fn context<C>(self, context: C) -> Self
     where
@@ -82,6 +99,50 @@ impl<T, E: Context> Context for Result<T, E> {
         match self {
             Ok(val) => Ok(val),
             Err(err) => Err(err.context(context)),
+        }
+    }
+}
+
+// MARK: - Helpers
+
+pub fn to_either3_1_3<E1, E2, E3>(either: Either<E1, E3>) -> Either3<E1, E2, E3> {
+    match either {
+        Either::E1(val) => Either3::E1(val),
+        Either::E2(val) => Either3::E3(val),
+    }
+}
+
+pub fn to_either4_1_4<E1, E2, E3, E4>(either: Either<E1, E4>) -> Either4<E1, E2, E3, E4> {
+    match either {
+        Either::E1(val) => Either4::E1(val),
+        Either::E2(val) => Either4::E4(val),
+    }
+}
+
+impl<E1, E2, E3> From<Either<E2, E3>> for Either3<E1, E2, E3> {
+    fn from(value: Either<E2, E3>) -> Self {
+        match value {
+            Either::E1(err) => Self::E2(err),
+            Either::E2(err) => Self::E3(err),
+        }
+    }
+}
+
+impl<E1, E2, E3, E4> From<Either<E3, E4>> for Either4<E1, E2, E3, E4> {
+    fn from(value: Either<E3, E4>) -> Self {
+        match value {
+            Either::E1(err) => Self::E3(err),
+            Either::E2(err) => Self::E4(err),
+        }
+    }
+}
+
+impl<E1, E2, E3, E4> From<Either3<E2, E3, E4>> for Either4<E1, E2, E3, E4> {
+    fn from(value: Either3<E2, E3, E4>) -> Self {
+        match value {
+            Either3::E1(err) => Self::E2(err),
+            Either3::E2(err) => Self::E3(err),
+            Either3::E3(err) => Self::E4(err),
         }
     }
 }
