@@ -10,6 +10,7 @@ target
 # Local execution files
 *.env
 *.log
+.task
 
 # Scenario files
 **/scenarios/ephemeral-scenarios.txt
