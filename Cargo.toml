@@ -29,7 +29,6 @@ form_urlencoded = { version = "1", default-features = false }
 futures = { version = "0.3", default-features = false }
 hickory-proto = { version = "0.24", default-features = false }
 hickory-resolver = { version = "0.24", default-features = false }
-hmac = { version = "0.12", default-features = false }
 http-auth-basic = { version = "0.3", default-features = false }
 init-tracing-opentelemetry = { version = "0.25", default-features = false }
 insta = { version = "1", default-features = false }
@@ -65,9 +64,7 @@ tracing = { version = "0.1", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false }
 unicode-normalization = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false }
-url_serde = { version = "0.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
-uuid = { version = "1", default-features = false }
 validator = { version = "0.20.0", default-features = false }
 
 # `lettre` dependencies.

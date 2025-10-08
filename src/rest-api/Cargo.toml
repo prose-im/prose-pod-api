@@ -31,9 +31,7 @@ axum-extra = { workspace = true, features = [
 axum-tracing-opentelemetry = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }
-form_urlencoded = { workspace = true }
 futures = { workspace = true }
-hickory-resolver = { workspace = true }
 http-auth-basic = { workspace = true }
 init-tracing-opentelemetry = { workspace = true, features = [
     "tracing_subscriber_ext",
@@ -42,8 +40,6 @@ iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde", "std"] }
 lazy_static = { workspace = true }
 mime = { workspace = true }
-minidom = { workspace = true }
-rand = { workspace = true }
 rustls = { workspace = true }
 secrecy = { workspace = true }
 serde_json = { workspace = true }
@@ -59,7 +55,6 @@ tower = { workspace = true, features = ["util"] }
 tower-http = { workspace = true, features = ["fs", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "std"] }
-uuid = { workspace = true }
 validator = { workspace = true }
 
 [dev-dependencies]

@@ -22,9 +22,6 @@ strum = { version = "0.27", default-features = false, features = [
     "std",
     "derive",
 ] }
-validator = { version = "0.20.0", default-features = false, features = [
-    "derive",
-], optional = true }
 
 [dev-dependencies]
 insta = { version = "1", default-features = false }
@@ -36,7 +33,6 @@ merge = []
 serde = [
     "dep:serdev",
     "dep:serde_with",
-    "dep:validator",
     "secrecy/serde",
     "linked-hash-map/serde_impl",
     "linked_hash_set/serde",

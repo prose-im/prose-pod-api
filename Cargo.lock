@@ -251,7 +251,7 @@ dependencies = [
  "matchit 0.7.3",
  "memchr",
  "mime",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "pin-project-lite",
  "rustversion",
  "serde",
@@ -281,7 +281,7 @@ dependencies = [
  "matchit 0.8.4",
  "memchr",
  "mime",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "pin-project-lite",
  "rustversion",
  "serde",
@@ -400,7 +400,7 @@ dependencies = [
  "smallvec",
  "tokio",
  "tower 0.5.2",
- "url 2.5.4",
+ "url",
 ]
 
 [[package]]
@@ -830,7 +830,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "time",
  "version_check",
 ]
@@ -1369,7 +1369,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
- "percent-encoding 2.3.1",
+ "percent-encoding",
 ]
 
 [[package]]
@@ -1697,7 +1697,7 @@ dependencies = [
  "futures-channel",
  "futures-io",
  "futures-util",
- "idna 1.0.3",
+ "idna",
  "ipnet",
  "once_cell",
  "rand",
@@ -1706,7 +1706,7 @@ dependencies = [
  "tinyvec",
  "tokio",
  "tracing",
- "url 2.5.4",
+ "url",
 ]
 
 [[package]]
@@ -2078,17 +2078,6 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
-dependencies = [
- "matches",
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "686f825264d630750a544639377bae737628043f20d38bbc029e8f29ea968a7e"
@@ -2372,17 +2361,17 @@ dependencies = [
  "fastrand",
  "hostname 0.4.0",
  "httpdate",
- "idna 1.0.3",
+ "idna",
  "mime",
  "nom",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "quoted_printable",
  "rustls",
  "rustls-pemfile",
  "rustls-pki-types",
  "socket2",
  "tokio",
- "url 2.5.4",
+ "url",
  "webpki-roots",
 ]
 
@@ -2489,12 +2478,6 @@ checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
  "regex-automata 0.1.10",
 ]
-
-[[package]]
-name = "matches"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
 name = "matchit"
@@ -2782,7 +2765,7 @@ dependencies = [
  "futures-util",
  "glob",
  "opentelemetry",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "rand",
  "thiserror 1.0.69",
  "tokio",
@@ -2942,12 +2925,6 @@ checksum = "88b39c9bfcfc231068454382784bb460aae594343fb030d46e9f50a645418412"
 dependencies = [
  "base64ct",
 ]
-
-[[package]]
-name = "percent-encoding"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
@@ -3127,10 +3104,8 @@ dependencies = [
  "chrono",
  "cucumber",
  "figment",
- "form_urlencoded",
  "futures",
  "hickory-proto",
- "hickory-resolver",
  "http-auth-basic",
  "init-tracing-opentelemetry",
  "iso8601-duration",
@@ -3138,8 +3113,6 @@ dependencies = [
  "lazy_static",
  "linked-hash-map",
  "mime",
- "minidom",
- "rand",
  "regex",
  "rustls",
  "secrecy",
@@ -3157,7 +3130,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "urlencoding",
- "uuid",
  "validator",
 ]
 
@@ -3233,7 +3205,6 @@ dependencies = [
  "serde_with",
  "serdev",
  "strum 0.27.1",
- "validator",
 ]
 
 [[package]]
@@ -3485,7 +3456,7 @@ dependencies = [
  "log",
  "mime",
  "once_cell",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "pin-project-lite",
  "quinn",
  "rustls",
@@ -3500,7 +3471,7 @@ dependencies = [
  "tokio-rustls",
  "tower 0.5.2",
  "tower-service",
- "url 2.5.4",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3806,7 +3777,7 @@ dependencies = [
  "thiserror 1.0.69",
  "time",
  "tracing",
- "url 2.5.4",
+ "url",
  "uuid",
 ]
 
@@ -3824,7 +3795,7 @@ dependencies = [
  "sea-schema",
  "tracing",
  "tracing-subscriber",
- "url 2.5.4",
+ "url",
 ]
 
 [[package]]
@@ -3869,7 +3840,6 @@ dependencies = [
  "ordered-float",
  "sea-query-derive",
  "serde_json",
- "uuid",
 ]
 
 [[package]]
@@ -3882,7 +3852,6 @@ dependencies = [
  "sea-query",
  "serde_json",
  "sqlx",
- "uuid",
 ]
 
 [[package]]
@@ -4158,7 +4127,6 @@ dependencies = [
  "futures",
  "hickory-proto",
  "hickory-resolver",
- "hmac",
  "insta",
  "iso8601-duration",
  "iso8601-timestamp",
@@ -4187,10 +4155,8 @@ dependencies = [
  "toml 0.9.7",
  "tracing",
  "unicode-normalization",
- "url 2.5.4",
- "url_serde",
+ "url",
  "urlencoding",
- "uuid",
  "validator",
  "xmpp-parsers",
 ]
@@ -4388,7 +4354,7 @@ dependencies = [
  "log",
  "memchr",
  "once_cell",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "rustls",
  "rustls-pemfile",
  "serde",
@@ -4399,8 +4365,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
- "url 2.5.4",
- "uuid",
+ "url",
  "webpki-roots",
 ]
 
@@ -4440,7 +4405,7 @@ dependencies = [
  "syn 2.0.96",
  "tempfile",
  "tokio",
- "url 2.5.4",
+ "url",
 ]
 
 [[package]]
@@ -4472,7 +4437,7 @@ dependencies = [
  "md-5",
  "memchr",
  "once_cell",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "rand",
  "rsa",
  "serde",
@@ -4483,7 +4448,6 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.11",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -4522,7 +4486,6 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.11",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -4542,13 +4505,12 @@ dependencies = [
  "futures-util",
  "libsqlite3-sys",
  "log",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "serde",
  "serde_urlencoded",
  "sqlx-core",
  "tracing",
- "url 2.5.4",
- "uuid",
+ "url",
 ]
 
 [[package]]
@@ -4930,7 +4892,7 @@ dependencies = [
  "bytes",
  "futures",
  "hickory-resolver",
- "idna 1.0.3",
+ "idna",
  "log",
  "minidom",
  "rand",
@@ -5023,7 +4985,7 @@ dependencies = [
  "hyper",
  "hyper-timeout",
  "hyper-util",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "pin-project",
  "prost 0.13.4",
  "socket2",
@@ -5087,7 +5049,7 @@ dependencies = [
  "httpdate",
  "mime",
  "mime_guess",
- "percent-encoding 2.3.1",
+ "percent-encoding",
  "pin-project-lite",
  "tokio",
  "tokio-util",
@@ -5360,35 +5322,14 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
-version = "1.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
-dependencies = [
- "idna 0.1.5",
- "matches",
- "percent-encoding 1.0.1",
-]
-
-[[package]]
-name = "url"
 version = "2.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60"
 dependencies = [
  "form_urlencoded",
- "idna 1.0.3",
- "percent-encoding 2.3.1",
+ "idna",
+ "percent-encoding",
  "serde",
-]
-
-[[package]]
-name = "url_serde"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74e7d099f1ee52f823d4bdd60c93c3602043c728f5db3b97bdb548467f7bddea"
-dependencies = [
- "serde",
- "url 1.7.2",
 ]
 
 [[package]]
@@ -5445,14 +5386,14 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43fb22e1a008ece370ce08a3e9e4447a910e92621bb49b85d6e48a45397e7cfa"
 dependencies = [
- "idna 1.0.3",
+ "idna",
  "once_cell",
  "regex",
  "serde",
  "serde_derive",
  "serde_json",
  "unic-ucd-common",
- "url 2.5.4",
+ "url",
  "validator_derive",
 ]
 

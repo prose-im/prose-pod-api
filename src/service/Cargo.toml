@@ -22,7 +22,6 @@ hickory-proto = { workspace = true, features = [
     "serde-config",
 ] }
 hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
-hmac = { workspace = true }
 iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde", "std"] }
 jid = { workspace = true }
@@ -51,7 +50,6 @@ sea-orm = { workspace = true, features = [
     "macros",
     "with-json",
     "with-chrono",
-    "with-uuid",
 ] }
 sea-orm-migration = { workspace = true, features = [
     "runtime-tokio-rustls",
@@ -70,9 +68,7 @@ toml = { workspace = true, features = ["serde", "display"] }
 tracing = { workspace = true }
 unicode-normalization = { workspace = true }
 url = { workspace = true }
-url_serde = { workspace = true }
 urlencoding = { workspace = true }
-uuid = { workspace = true, features = ["v4"] }
 validator = { workspace = true, features = ["derive", "unic"] }
 xmpp-parsers = { workspace = true }
 
