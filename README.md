@@ -8,6 +8,30 @@ Copyright 2022-2025, Prose Foundation - Released under the [Mozilla Public Licen
 
 _Tested at Rust version: `rustc 1.89.0 (29483883e 2025-08-04)`_
 
+## Quick Start
+
+### Run the API server
+
+The API can be ran with the following command:
+
+```sh
+task local:run -- --scenario=demo --ephemeral --api=edge
+```
+
+This will run the latest API version, with the demo scenario, in ephemeral mode. This means that no data will be persisted. Every time you restart the API, you will start from the same fresh demo data again.
+
+The API will be running at [localhost:8080](http://localhost:8080).
+
+### Read the API documentation
+
+To start the API documentation server, run the following command:
+
+```sh
+task openapi:preview-docs
+```
+
+Then, open the server at [localhost:8081](http://localhost:8081).
+
 ## License
 
 Licensing information can be found in the [LICENSE.md](./LICENSE.md) document.
