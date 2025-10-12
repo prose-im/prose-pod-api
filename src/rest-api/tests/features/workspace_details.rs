@@ -68,7 +68,7 @@ async fn then_workspace_name(world: &mut TestWorld, name: String) -> Result<(), 
 async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
     world.mock_xmpp_service().set_avatar(
         &world.app_config().workspace_jid(),
-        Some(Avatar::try_from_base64_string(base64).unwrap()),
+        Some(Avatar::try_from_base64(base64).unwrap()),
     )?;
     Ok(())
 }

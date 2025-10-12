@@ -8,7 +8,7 @@ use prose_xmpp::stanza::VCard4;
 use tracing::instrument;
 
 use crate::{
-    models::{Avatar, AvatarOwned, Color},
+    models::{Avatar, Color},
     workspace::Workspace,
     xmpp::{XmppService, XmppServiceContext},
 };
@@ -93,12 +93,12 @@ impl WorkspaceService {
     }
 
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_icon(&self) -> anyhow::Result<Option<AvatarOwned>> {
+    pub async fn get_workspace_icon(&self) -> anyhow::Result<Option<Avatar>> {
         (self.xmpp_service.get_own_avatar(&self.ctx).await).context("XmppService error")
     }
 
     #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_icon<'a>(&self, icon: Avatar<'a>) -> anyhow::Result<()> {
+    pub async fn set_workspace_icon(&self, icon: Avatar) -> anyhow::Result<()> {
         (self.xmpp_service.set_own_avatar(&self.ctx, icon).await).context("XmppService error")
     }
 }

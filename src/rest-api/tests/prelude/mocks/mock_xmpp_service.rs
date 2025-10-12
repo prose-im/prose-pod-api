@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    models::{Avatar, AvatarOwned},
+    models::Avatar,
     xmpp::{xmpp_service::Error, VCard, XmppServiceContext, XmppServiceImpl},
 };
 
@@ -19,14 +19,14 @@ pub struct MockXmppService {
 #[derive(Debug, Default)]
 pub struct MockXmppServiceState {
     pub vcards: LinkedHashMap<BareJid, VCard>,
-    pub avatars: LinkedHashMap<BareJid, Option<AvatarOwned>>,
+    pub avatars: LinkedHashMap<BareJid, Option<Avatar>>,
     pub online_members: HashSet<BareJid>,
 }
 
 impl MockXmppService {
     #[tracing::instrument(
         level = "trace",
-        skip_all, fields(jid = jid.to_string()),
+        skip_all, fields(jid = %jid),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn get_vcard(&self, jid: &BareJid) -> Result<Option<VCard>, Error> {
@@ -43,7 +43,7 @@ impl MockXmppService {
 
     #[tracing::instrument(
         level = "trace",
-        skip_all, fields(jid = jid.to_string()),
+        skip_all, fields(jid = %jid),
         ret(level = "trace"), err(level = "trace")
     )]
     pub fn set_vcard(&self, jid: &BareJid, vcard: &VCard) -> Result<(), Error> {
@@ -56,10 +56,10 @@ impl MockXmppService {
 
     #[tracing::instrument(
         level = "trace",
-        skip_all, fields(jid = jid.to_string()),
+        skip_all, fields(jid = %jid),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn get_avatar<'a>(&'a self, jid: &BareJid) -> Result<Option<AvatarOwned>, Error> {
+    pub fn get_avatar(&self, jid: &BareJid) -> Result<Option<Avatar>, Error> {
         check_online(&self.mock_server_state)?;
 
         tracing::trace!("Getting {jid}'s avatar…");
@@ -69,10 +69,10 @@ impl MockXmppService {
 
     #[tracing::instrument(
         level = "trace",
-        skip_all, fields(jid = jid.to_string()),
+        skip_all, fields(jid = %jid),
         ret(level = "trace"), err(level = "trace")
     )]
-    pub fn set_avatar<'a>(&self, jid: &BareJid, avatar: Option<Avatar<'a>>) -> Result<(), Error> {
+    pub fn set_avatar(&self, jid: &BareJid, avatar: Option<Avatar>) -> Result<(), Error> {
         check_online(&self.mock_server_state)?;
 
         tracing::trace!("Setting {jid}'s avatar…");
@@ -80,13 +80,13 @@ impl MockXmppService {
             .write()
             .expect("`MockXmppServiceState` lock poisonned")
             .avatars
-            .insert(jid.to_owned(), avatar.map(|a| a.to_owned()));
+            .insert(jid.to_owned(), avatar);
         Ok(())
     }
 
     #[tracing::instrument(
         level = "trace",
-        skip_all, fields(jid = jid.to_string()),
+        skip_all, fields(jid = %jid),
         ret(level = "trace"), err(level = "trace")
     )]
     fn is_connected(&self, jid: &BareJid) -> Result<bool, Error> {
@@ -123,18 +123,14 @@ impl XmppServiceImpl for MockXmppService {
         self.set_vcard(&ctx.bare_jid, vcard)
     }
 
-    async fn get_avatar<'a>(
-        &'a self,
+    async fn get_avatar(
+        &self,
         _ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarOwned>, Error> {
+    ) -> Result<Option<Avatar>, Error> {
         self.get_avatar(jid)
     }
-    async fn set_own_avatar<'a>(
-        &self,
-        ctx: &XmppServiceContext,
-        avatar: Avatar<'a>,
-    ) -> Result<(), Error> {
+    async fn set_own_avatar(&self, ctx: &XmppServiceContext, avatar: Avatar) -> Result<(), Error> {
         self.set_avatar(&ctx.bare_jid, Some(avatar))
     }
 

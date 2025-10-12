@@ -21,6 +21,7 @@ base64 = { version = "0.22", default-features = false }
 biscuit-auth = { version = "6.0.0", default-features = false, features = [
     "datalog-macro",
 ] }
+bytes = { version = "1", default-features = false }
 chrono = { version = "0.4", default-features = false }
 cucumber = { version = "0.21", default-features = false }
 email_address = { version = "0.2", default-features = false }

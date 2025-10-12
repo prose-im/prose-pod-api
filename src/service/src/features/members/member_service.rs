@@ -24,7 +24,7 @@ pub mod prelude {
             models::{Member, MemberRole},
             UserRepository,
         },
-        models::AvatarOwned,
+        models::Avatar,
         prose_pod_server_api::CreateAccountResponse,
         util::{either::Either, paginate::*, unaccent, Cache, ConcurrentTaskRunner, JidExt as _},
         xmpp::{
@@ -53,7 +53,7 @@ pub struct MemberService {
     /// A runner used when doing multiple enrichings in parallel.
     concurrent_task_runner: ConcurrentTaskRunner,
     vcards_data_cache: Arc<Cache<BareJid, Option<VCardData>>>,
-    avatars_cache: Arc<Cache<BareJid, Option<AvatarOwned>>>,
+    avatars_cache: Arc<Cache<BareJid, Option<Arc<Avatar>>>>,
     online_statuses_cache: Arc<Cache<BareJid, Option<bool>>>,
 }
 
@@ -375,7 +375,7 @@ impl MemberService {
                         .get_or_insert_with(&member.jid, async || {
                             trace!("Getting `{jid}`'s avatar…");
                             match self.xmpp_service.get_avatar(ctx, jid).await {
-                                Ok(Some(avatar)) => Some(avatar),
+                                Ok(Some(avatar)) => Some(Arc::new(avatar)),
                                 Ok(None) => {
                                     debug!("`{jid}` has no avatar.");
                                     None
@@ -537,7 +537,7 @@ pub struct EnrichedMember {
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub email: Option<String>,
-    pub avatar: Option<AvatarOwned>,
+    pub avatar: Option<Arc<Avatar>>,
 }
 
 // NOTE: This is just to ensure that `EnrichedMember` is a supertype of `Member`.

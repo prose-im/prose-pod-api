@@ -49,12 +49,12 @@ mod routes {
         AppState,
     };
 
-    pub async fn set_member_avatar_route<'a>(
+    pub async fn set_member_avatar_route(
         Path(member_id): Path<BareJid>,
         UserInfo { jid, .. }: UserInfo,
         ref xmpp_service: XmppService,
         ref ctx: XmppServiceContext,
-        avatar: Avatar<'a>,
+        avatar: Avatar,
     ) -> Result<NoContent, Error> {
         if jid != member_id {
             Err(error::Forbidden(

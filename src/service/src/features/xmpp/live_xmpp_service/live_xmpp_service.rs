@@ -16,7 +16,7 @@ use tracing::{debug, trace};
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::{
-    models::{jid::ResourcePart, Avatar, AvatarOwned},
+    models::{jid::ResourcePart, Avatar},
     prosody::ProsodyRest,
     util::detect_image_media_type,
     xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
@@ -126,7 +126,7 @@ impl XmppServiceImpl for LiveXmppService {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarOwned>, XmppServiceError> {
+    ) -> Result<Option<Avatar>, XmppServiceError> {
         let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx).await? else {
             return Ok(None);
         };
@@ -146,14 +146,14 @@ impl XmppServiceImpl for LiveXmppService {
 
         let avatar = Avatar::try_from(avatar_data)?;
 
-        Ok(Some(avatar.to_owned()))
+        Ok(Some(avatar))
     }
 
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
-    async fn set_own_avatar<'a>(
+    async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        avatar: Avatar<'a>,
+        avatar: Avatar,
     ) -> Result<(), XmppServiceError> {
         let mime = detect_image_media_type(&avatar)
             .ok_or(XmppServiceError::Other("Unsupported MIME type.".to_owned()))?;

@@ -13,7 +13,7 @@ use prose_xmpp::{
 use serdev::Serialize;
 
 use crate::{
-    models::{AvatarOwned, Color},
+    models::{Avatar, Color},
     workspace::errors::WorkspaceNotInitialized,
 };
 
@@ -21,7 +21,7 @@ use crate::{
 #[derive(Serialize)]
 pub struct Workspace {
     pub name: String,
-    pub icon: Option<AvatarOwned>,
+    pub icon: Option<Avatar>,
     pub accent_color: Option<Color>,
 }
 

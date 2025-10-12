@@ -4119,6 +4119,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "biscuit-auth",
+ "bytes",
  "chrono",
  "cucumber",
  "email_address",

@@ -14,7 +14,7 @@ use axum::{
 use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 use mime::APPLICATION_JSON;
 use service::{
-    models::{Avatar, AvatarOwned, Color},
+    models::{Avatar, Color},
     workspace::{
         workspace_controller::{self, PatchWorkspaceDetailsRequest},
         Workspace, WorkspaceService,
@@ -129,10 +129,8 @@ pub async fn set_workspace_name_route(
 pub async fn get_workspace_icon_route(
     workspace_service: WorkspaceService,
     headers: HeaderMap,
-) -> Either<
-    Result<Either<responders::Avatar, NoContent>, Error>,
-    Result<Json<Option<AvatarOwned>>, Error>,
-> {
+) -> Either<Result<Either<responders::Avatar, NoContent>, Error>, Result<Json<Option<Avatar>>, Error>>
+{
     match headers.get(ACCEPT) {
         Some(ct) if ct.starts_with(APPLICATION_JSON.essence_str()) => {
             Either::E2(get_workspace_icon_json_route_(workspace_service).await)
@@ -150,14 +148,14 @@ async fn get_workspace_icon_route_(
 }
 async fn get_workspace_icon_json_route_(
     ref workspace_service: WorkspaceService,
-) -> Result<Json<Option<AvatarOwned>>, Error> {
+) -> Result<Json<Option<Avatar>>, Error> {
     match workspace_controller::get_workspace_icon(workspace_service).await? {
         icon => Ok(Json(icon)),
     }
 }
-pub async fn set_workspace_icon_route<'a>(
+pub async fn set_workspace_icon_route(
     ref workspace_service: WorkspaceService,
-    icon: Avatar<'a>,
+    icon: Avatar,
 ) -> Result<NoContent, Error> {
     workspace_controller::set_workspace_icon(workspace_service, icon).await?;
     Ok(NoContent)

@@ -9,7 +9,7 @@ use tracing::info;
 use validator::Validate;
 
 use crate::{
-    models::{Avatar, AvatarOwned, Color},
+    models::{Avatar, Color},
     util::either::Either,
     xmpp::VCard,
 };
@@ -81,14 +81,14 @@ pub async fn set_workspace_name(
     workspace_service.set_workspace_name(name).await
 }
 
-pub async fn get_workspace_icon<'a>(
-    workspace_service: &'a WorkspaceService,
-) -> anyhow::Result<Option<AvatarOwned>, anyhow::Error> {
+pub async fn get_workspace_icon(
+    workspace_service: &WorkspaceService,
+) -> anyhow::Result<Option<Avatar>, anyhow::Error> {
     workspace_service.get_workspace_icon().await
 }
-pub async fn set_workspace_icon<'a>(
+pub async fn set_workspace_icon(
     workspace_service: &WorkspaceService,
-    icon: Avatar<'a>,
+    icon: Avatar,
 ) -> anyhow::Result<()> {
     workspace_service.set_workspace_icon(icon).await
 }

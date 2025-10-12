@@ -46,7 +46,7 @@ async fn given_avatar(world: &mut TestWorld, name: String, base64: String) -> Re
 
     world
         .mock_xmpp_service()
-        .set_avatar(&jid, Some(Avatar::try_from_base64_string(base64).unwrap()))?;
+        .set_avatar(&jid, Some(Avatar::try_from_base64(base64).unwrap()))?;
 
     Ok(())
 }

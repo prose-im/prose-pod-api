@@ -14,7 +14,7 @@ use prose_xmpp::{
 use crate::{
     auth::AuthToken,
     members::Nickname,
-    models::{Avatar, AvatarDecodeError, AvatarOwned, EmailAddress},
+    models::{Avatar, AvatarDecodeError, EmailAddress},
 };
 
 pub use super::live_xmpp_service::LiveXmppService;
@@ -123,19 +123,19 @@ pub trait XmppServiceImpl: std::fmt::Debug + Send + Sync {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarOwned>, XmppServiceError>;
+    ) -> Result<Option<Avatar>, XmppServiceError>;
 
     async fn get_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-    ) -> Result<Option<AvatarOwned>, XmppServiceError> {
+    ) -> Result<Option<Avatar>, XmppServiceError> {
         self.get_avatar(ctx, &ctx.bare_jid).await
     }
 
-    async fn set_own_avatar<'a>(
+    async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        avatar: Avatar<'a>,
+        avatar: Avatar,
     ) -> Result<(), XmppServiceError>;
 
     async fn is_connected(

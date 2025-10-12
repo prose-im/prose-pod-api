@@ -5,11 +5,10 @@
 
 use axum::{body::Bytes, response::IntoResponse};
 use axum_extra::{headers::ContentType, TypedHeader};
-use service::models::AvatarOwned;
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Avatar(pub AvatarOwned);
+pub struct Avatar(pub service::models::Avatar);
 
 impl IntoResponse for Avatar {
     fn into_response(self) -> axum::response::Response {
