@@ -18,7 +18,7 @@ The API can be ran with the following command:
 task local:run -- --scenario=demo --ephemeral --api=edge
 ```
 
-This will run the latest API version, with the demo scenario, in ephemeral mode. This means that no data will be persisted. Every time you restart the API, you will start from the same fresh demo data again.
+This will run the _latest_ API version, with the _demo scenario_, in _ephemeral mode_. This means that no data will be persisted. Every time you restart the API, you will start from the same fresh demo data again.
 
 The API will be running at [localhost:8080](http://localhost:8080).
 
@@ -30,7 +30,7 @@ To start the API documentation server, run the following command:
 task openapi:preview-docs
 ```
 
-Then, open the server at [localhost:8081](http://localhost:8081).
+Then, open the documentation at [localhost:8081](http://localhost:8081).
 
 ## License
 
