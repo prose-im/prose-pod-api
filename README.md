@@ -32,6 +32,12 @@ task openapi:preview-docs
 
 Then, open the documentation at [localhost:8081](http://localhost:8081).
 
+### Access the fake email inbox
+
+Whenever your API is running, a fake email inbox is also running on the side (for development purposes only). This can be used to test email-related functionality without sending actual emails. For instance, you can use this to test user invitations, receive the invitation email, and accept those invitations with the invitation link.
+
+The fake email inbox Web UI is available at [localhost:8025](http://localhost:8025).
+
 ## License
 
 Licensing information can be found in the [LICENSE.md](./LICENSE.md) document.
