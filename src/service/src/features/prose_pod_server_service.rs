@@ -83,6 +83,7 @@ mod live_prose_pod_server_service {
             err
         )]
         async fn wait_until_ready(&self) -> Result<(), anyhow::Error> {
+            use std::convert::identity as is_true;
             use std::time::{Duration, Instant};
             use tokio::time::sleep;
 
@@ -90,7 +91,9 @@ mod live_prose_pod_server_service {
             let timeout = Duration::from_secs(10);
             let retry_interval = Duration::from_millis(100);
 
-            while self.server_api.health().await.is_err() && start.elapsed() < timeout {
+            while !self.server_api.is_healthy().await.is_ok_and(is_true)
+                && start.elapsed() < timeout
+            {
                 sleep(retry_interval).await;
             }
 
@@ -180,6 +183,8 @@ mod live_prose_pod_server_service {
             err
         )]
         async fn delete_all_data(&self, auth: &AuthToken) -> Result<(), anyhow::Error> {
+            let todo = "Move to Server API";
+
             self.admin_rest
                 .call(|client| client.delete(self.admin_rest.url("certs")), auth)
                 .await?;
@@ -187,6 +192,7 @@ mod live_prose_pod_server_service {
             self.admin_rest
                 .call(|client| client.delete(self.admin_rest.url("data")), auth)
                 .await?;
+
             Ok(())
         }
     }

@@ -33,6 +33,7 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
         auth_service: world.auth_service().clone(),
         email_notifier: Some(world.email_notifier.clone()),
         network_checker: world.network_checker.clone(),
+        workspace_service: world.workspace_service().clone(),
         licensing_service: world.licensing_service().clone(),
         pod_version_service: world.pod_version_service.clone(),
         factory_reset_service: world.factory_reset_service.clone(),

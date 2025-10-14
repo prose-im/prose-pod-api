@@ -7,6 +7,7 @@ use bytes::Bytes;
 use mime::Mime;
 use serde_with::{base64::Base64, serde_as, DisplayFromStr};
 use serdev::Serialize;
+use validator::Validate;
 
 use crate::{
     models::BytesAmount,
@@ -14,7 +15,7 @@ use crate::{
 };
 
 // NOTE: This is the very maximum the Pod API will accept. While a softer limit
-//   can be configured via the app configuration (checked when uploading), this
+//   could be configured via the app configuration (checked when uploading), this
 //   limit ensures no [`Avatar`] value can ever exceed 10MB (to prevent abuse).
 pub(crate) const AVATAR_MAX_LENGTH: BytesAmount = BytesAmount::MegaBytes(10);
 
@@ -24,8 +25,8 @@ pub(crate) const AVATAR_MAX_LENGTH: BytesAmount = BytesAmount::MegaBytes(10);
 /// Media type detected from magic bytes for improved security.
 #[derive(Clone, PartialEq, Eq)]
 #[serde_as]
-#[derive(Serialize)]
-#[cfg_attr(feature = "test", derive(serdev::Deserialize))]
+#[derive(Serialize, Validate, serdev::Deserialize)]
+#[serde(validate = "Self::validate")]
 pub struct Avatar {
     #[serde(rename = "base64")]
     #[serde_as(as = "Base64")]
@@ -82,9 +83,24 @@ impl std::fmt::Debug for Avatar {
     }
 }
 
+impl Avatar {
+    fn validate(&self) -> Result<(), AvatarDecodeError> {
+        if self.bytes.len() <= AVATAR_MAX_LENGTH.as_bytes() as usize {
+            Ok(())
+        } else {
+            Err(AvatarDecodeError::TooLarge)
+        }
+    }
+}
+
 // MARK: - Boilerplate
 
 impl Avatar {
+    #[inline]
+    pub fn into_inner(self) -> Bytes {
+        self.bytes
+    }
+
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes

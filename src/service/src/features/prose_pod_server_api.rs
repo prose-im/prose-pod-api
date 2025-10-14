@@ -4,19 +4,22 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::Context as _;
+use bytes::Bytes;
 use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
 use secrecy::SecretString;
 use serde_json::json;
-use serdev::Deserialize;
+use serdev::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::trace;
 
 use crate::{
     auth::{AuthToken, UserInfo},
     errors::{Forbidden, RequestData, ResponseData, Unauthorized, UnexpectedHttpResponse},
     init::errors::FirstAccountAlreadyCreated,
+    models::{Avatar, Color},
     prosody::ProsodyRoleName,
     util::either::Either,
+    workspace::errors::WorkspaceAlreadyInitialized,
     xmpp::jid::{BareJid, JidNode, NodeRef},
     AppConfig,
 };
@@ -37,42 +40,50 @@ pub enum ProsePodServerError {
     Internal(#[from] anyhow::Error),
 }
 
+#[derive(Debug)]
+#[derive(Deserialize)]
+pub struct ProsePodServerApiError {
+    pub kind: String,
+    pub code: String,
+    pub message: String,
+    pub description: String,
+}
+
 impl ProsePodServerApi {
     pub fn from_config(config: &AppConfig, http_client: HttpClient) -> Self {
         Self {
             http_client,
-            api_url: config.server.api_url(),
+            api_url: config.server_api_url(),
         }
     }
 }
 
 impl ProsePodServerApi {
-    pub async fn health(&self) -> Result<bool, ProsePodServerError> {
+    pub async fn health(&self) -> Result<(), ProsePodServerError> {
         let response = self
-            .call_(
-                |client| client.get(self.url("/health")),
-                |response| {
-                    let status = response.status();
-                    if status.is_success() || status == StatusCode::SERVICE_UNAVAILABLE {
-                        Ok(response)
-                    } else {
-                        Err(response)
-                    }
-                },
-                None,
-            )
+            .call(|client| client.get(self.url("/health")), None)
             .await?;
-        Ok(response.status().is_success())
+        assert!(response.status().is_success());
+        Ok(())
+    }
+
+    pub async fn is_healthy(&self) -> Result<bool, ProsePodServerError> {
+        match self.health().await {
+            Ok(()) => Ok(true),
+            Err(ProsePodServerError::Unavailable) => Ok(false),
+            Err(err) => Err(err),
+        }
     }
 
     pub async fn lifecycle_reload(
         &self,
         auth: Option<&AuthToken>,
-    ) -> Result<bool, ProsePodServerError> {
+    ) -> Result<(), ProsePodServerError> {
         let response = self
-            .call(|client| client.put(self.url("/lifecycle/reload")), auth)
+            .call(|client| client.post(self.url("/lifecycle/reload")), auth)
             .await?;
-        Ok(response.status().is_success())
+        assert!(response.status().is_success());
+        Ok(())
     }
 
     pub async fn init_first_account(
@@ -123,61 +134,142 @@ impl ProsePodServerApi {
         &self,
         auth: Option<&AuthToken>,
     ) -> Result<GetUsersStatsResponse, ProsePodServerError> {
-        let response = self
-            .call(|client| client.put(self.url("/users-util/stats")), auth)
-            .await?;
-
-        let response: GetUsersStatsResponse =
-            response.json().await.context("Invalid response body")?;
-
-        Ok(response)
+        self.get("/users-util/stats", auth).await
     }
 
     pub async fn users_util_admin_jids(
         &self,
         auth: Option<&AuthToken>,
     ) -> Result<Vec<BareJid>, ProsePodServerError> {
-        let response = self
-            .call(
-                |client| client.put(self.url("/users-util/admin-jids")),
-                auth,
-            )
-            .await?;
-
-        let response: Vec<BareJid> = response.json().await.context("Invalid response body")?;
-
-        Ok(response)
+        self.get("/users-util/admin-jids", auth).await
     }
 
     pub async fn users_util_self(&self, auth: &AuthToken) -> Result<UserInfo, ProsePodServerError> {
-        let response = self
-            .call(
-                |client| client.put(self.url("/users-util/self")),
-                Some(auth),
-            )
-            .await?;
-
-        let response: UserInfo = response.json().await.context("Invalid response body")?;
-
-        Ok(response)
+        self.get("/users-util/self", Some(auth)).await
     }
 
     pub async fn invitations_util_stats(
         &self,
         auth: Option<&AuthToken>,
     ) -> Result<GetInvitationsStatsResponse, ProsePodServerError> {
-        let response = self
-            .call(
-                |client| client.put(self.url("/invitations-util/stats")),
-                auth,
-            )
-            .await?;
-
-        let response: GetInvitationsStatsResponse =
-            response.json().await.context("Invalid response body")?;
-
-        Ok(response)
+        self.get("/invitations-util/stats", auth).await
     }
+}
+
+impl ProsePodServerApi {
+    pub async fn init_workspace(
+        &self,
+        req: &InitWorkspaceRequest,
+    ) -> Result<(), Either<WorkspaceAlreadyInitialized, ProsePodServerError>> {
+        let response = self
+            .call_(
+                |client| client.put(self.url("/workspace-init")).json(req),
+                |response| {
+                    let status = response.status();
+                    if status.is_success() || status == StatusCode::GONE {
+                        Ok(response)
+                    } else {
+                        Err(response)
+                    }
+                },
+                None,
+            )
+            .await
+            .map_err(Either::E2)?;
+
+        match response.status() {
+            status if status.is_success() => Ok(()),
+            StatusCode::GONE => Err(Either::E1(WorkspaceAlreadyInitialized)),
+            _ => unreachable!(),
+        }
+    }
+
+    pub async fn get_workspace(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<GetWorkspaceResponse, ProsePodServerError> {
+        self.get("/workspace", auth).await
+    }
+
+    pub async fn patch_workspace(
+        &self,
+        req: &PatchWorkspaceRequest,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.call(
+            |client| client.patch(self.url("/workspace")).json(req),
+            Some(auth),
+        )
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_workspace_name(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<String, ProsePodServerError> {
+        self.get("/workspace/name", auth).await
+    }
+
+    pub async fn set_workspace_name(
+        &self,
+        name: &str,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.put("/workspace/name", name, auth).await
+    }
+
+    pub async fn get_workspace_accent_color(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<Option<Color>, ProsePodServerError> {
+        self.get("/workspace/accent-color", auth).await
+    }
+
+    pub async fn set_workspace_accent_color(
+        &self,
+        accent_color: &Option<Color>,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.put("/workspace/accent-color", accent_color, auth)
+            .await
+    }
+
+    pub async fn get_workspace_icon(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<Option<Avatar>, ProsePodServerError> {
+        self.get("/workspace/icon", auth).await
+    }
+
+    pub async fn set_workspace_icon(
+        &self,
+        icon: Avatar,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.put_raw("/workspace/icon", icon.into_inner(), auth)
+            .await
+    }
+}
+
+#[derive(Serialize)]
+pub struct InitWorkspaceRequest {
+    pub name: String,
+    pub accent_color: Option<Color>,
+}
+
+#[derive(Deserialize)]
+pub struct GetWorkspaceResponse {
+    name: String,
+    icon: Option<Avatar>,
+    accent_color: Option<Color>,
+}
+
+#[derive(Default)]
+#[derive(Serialize)]
+pub struct PatchWorkspaceRequest {
+    pub name: Option<String>,
+    pub accent_color: Option<Option<Color>>,
 }
 
 #[derive(Deserialize)]
@@ -199,8 +291,45 @@ pub struct CreateAccountResponse {
 // MARK: - Helpers
 
 impl ProsePodServerApi {
+    #[inline]
+    async fn get<T: DeserializeOwned>(
+        &self,
+        path: &'static str,
+        auth: Option<&AuthToken>,
+    ) -> Result<T, ProsePodServerError> {
+        let response = self.call(|client| client.get(self.url(path)), auth).await?;
+
+        let response: T = response.json().await.context("Invalid response body")?;
+
+        Ok(response)
+    }
+
+    #[inline]
+    async fn put<T: Serialize + ?Sized>(
+        &self,
+        path: &'static str,
+        body: &T,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.call(|client| client.put(self.url(path)).json(body), Some(auth))
+            .await?;
+        Ok(())
+    }
+
+    #[inline]
+    async fn put_raw(
+        &self,
+        path: &'static str,
+        body: Bytes,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        self.call(|client| client.put(self.url(path)).body(body), Some(auth))
+            .await?;
+        Ok(())
+    }
+
     pub fn url(&self, path: &str) -> String {
-        assert!(!path.starts_with("/"), "path={path:?}");
+        assert!(path.starts_with("/"), "path={path:?}");
         format!("{}{path}", self.api_url)
     }
 
@@ -276,6 +405,18 @@ impl ProsePodServerApi {
     }
 }
 
+// MARK: - Domain conversions
+
+impl From<GetWorkspaceResponse> for super::workspace::Workspace {
+    fn from(res: GetWorkspaceResponse) -> Self {
+        Self {
+            name: res.name,
+            icon: res.icon,
+            accent_color: res.accent_color,
+        }
+    }
+}
+
 // MARK: - Boilerplate
 
 impl<E> From<Result<ResponseData, E>> for ProsePodServerError
@@ -306,7 +447,7 @@ fn error_description(
         .map(ToString::to_string)
         .or_else(|| {
             let mime = content_type.unwrap_or(mime::STAR_STAR);
-            if mime.essence_str() == "text/html" {
+            if mime.essence_str().starts_with("text/html") {
                 Some(format!("`{mime}` content"))
             } else {
                 text.clone()

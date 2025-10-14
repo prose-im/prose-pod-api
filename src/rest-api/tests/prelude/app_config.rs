@@ -12,13 +12,14 @@ use service::{
     members::{UserApplicationService, UserRepository},
     prose_pod_server_service::ProsePodServerService,
     secrets_store::{LiveSecretsStore, SecretsStore},
+    workspace::WorkspaceService,
     xmpp::XmppService,
     AppConfig,
 };
 
 use crate::prelude::mocks::{
     MockAuthService, MockInvitationRepository, MockServerService, MockUserRepository,
-    MockUserService, MockXmppService,
+    MockUserService, MockWorkspaceService, MockXmppService,
 };
 
 use super::{
@@ -29,8 +30,11 @@ use super::{
 pub fn reload_config(world: &mut crate::TestWorld) {
     let figment =
         AppConfig::figment_at_path(CONFIG_PATH.as_path()).merge(world.config_overrides.clone());
-    let config = AppConfig::from_figment(figment)
-        .expect(&format!("Invalid config file at {}", CONFIG_PATH.display()));
+    let config = Arc::new(
+        AppConfig::from_figment(figment)
+            .expect(&format!("Invalid config file at {}", CONFIG_PATH.display())),
+    );
+    world.app_config = Some(config.clone());
 
     let mock_licensing_service = Arc::new(MockLicensingService::new(config.server_fqdn()));
     let mock_secrets_store = Arc::new(MockSecretsStore::new(LiveSecretsStore::default()));
@@ -74,8 +78,11 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         mock_auth_service: mock_auth_service.clone(),
         server_domain: config.server_domain().clone(),
     });
+    let mock_workspace_service = Arc::new(MockWorkspaceService {
+        state: world.mock_workspace_service_state().clone(),
+        mock_auth_service: mock_auth_service.clone(),
+    });
 
-    world.app_config = Some(Arc::new(config));
     world.licensing_service = Some(LicensingService::new(mock_licensing_service.clone()));
     world.mock_licensing_service = Some(mock_licensing_service);
     world.secrets_store = Some(SecretsStore(mock_secrets_store.clone()));
@@ -108,4 +115,9 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         implem: mock_xmpp_service.clone(),
     });
     world.mock_xmpp_service = Some(mock_xmpp_service);
+
+    world.workspace_service = Some(WorkspaceService {
+        implem: mock_workspace_service.clone(),
+    });
+    world.mock_workspace_service = Some(mock_workspace_service);
 }

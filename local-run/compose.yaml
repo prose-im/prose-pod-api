@@ -10,7 +10,7 @@ services:
       - "8080:8080"
     volumes:
       - "${DATABASE_PATH:?}:/var/lib/prose-pod-api/database.sqlite"
-      # NOTE: `prose.toml` cannot be read-only because we ne to
+      # NOTE: `prose.toml` cannot be read-only because we need to
       #   override it when doing a factory reset (and only then).
       - "${PROSE_CONFIG_FILE:?}:/etc/prose/prose.toml"
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
@@ -29,11 +29,15 @@ services:
     volumes:
       - "${ETC_PROSODY_DIR:?}:/etc/prosody/"
       - "${VAR_LIB_PROSODY_DIR:?}:/var/lib/prosody/"
+      # NOTE: `prose.toml` cannot be read-only because we need to
+      #   override it when doing a factory reset (and only then).
+      - "${PROSE_CONFIG_FILE:?}:/etc/prose/prose.toml"
     ports:
       - "5222:5222"
       - "5269:5269"
-      - "5280:5280"
+      - "5280:5280" # DO NOT EXPOSE THIS IN PRODUCTION
       - "5281:5281"
+      - "8082:8080" # DO NOT EXPOSE THIS IN PRODUCTION
     networks:
       prose-network:
         aliases:
@@ -43,7 +47,7 @@ services:
         ipv6_address: 2001:db8::40
     # env_file: "${ENV_FILE:?}"
     environment:
-      RUST_LOG: debug,prose_pod_server_api=trace
+      RUST_LOG: debug,prose_pod_server_api=trace,prosodyctl=trace,ureq=debug,ureq_proto::client=info,ureq::pool=info
     # entrypoint: >
     #   sh -c "cp /usr/share/prose/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
     # Make sure logs are colored.

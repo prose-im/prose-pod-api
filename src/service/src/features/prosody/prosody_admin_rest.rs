@@ -6,17 +6,13 @@
 use anyhow::Context;
 use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
-use serdev::Deserialize;
 use tracing::trace;
 
 use crate::{
     auth::AuthToken,
     errors::{Forbidden, RequestData, ResponseData, UnexpectedHttpResponse},
-    members::{Member, MemberRole},
-    prosody::ProsodyRole,
     util::either::Either,
-    xmpp::{BareJid, NonStandardXmppClient},
-    AppConfig, TEAM_GROUP_ID,
+    AppConfig,
 };
 
 /// Rust interface to [`mod_admin_rest`](https://github.com/wltsmrz/mod_admin_rest/tree/master).
@@ -98,85 +94,6 @@ impl ProsodyAdminRest {
     pub fn url(&self, path: &str) -> String {
         format!("{}/{path}", self.admin_rest_api_url)
     }
-
-    #[must_use]
-    pub async fn list_users(
-        &self,
-        auth: &AuthToken,
-    ) -> Result<Vec<ListUsersItem>, Either<Forbidden, anyhow::Error>> {
-        let response = self
-            .call(|client| client.get(self.url("all-users")), auth)
-            .await?;
-        let res: ProsodyAdminRestApiResponse<ListUsersResponse> =
-            response.deserialize().context("Cannot deserialize")?;
-        Ok(res.result.users)
-    }
-
-    #[allow(unused)]
-    pub(crate) async fn update_rosters(
-        &self,
-        auth: &AuthToken,
-    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-        tracing::debug!("Synchronizing rosters…");
-        self.call(
-            |client| client.post(format!("{}/{TEAM_GROUP_ID}/sync", self.url("groups"))),
-            auth,
-        )
-        .await?;
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl NonStandardXmppClient for ProsodyAdminRest {
-    async fn is_connected(&self, jid: &BareJid, auth: &AuthToken) -> Result<bool, anyhow::Error> {
-        let response = self
-            .call_(
-                |client| {
-                    client.get(format!(
-                        "{}/{}/connected",
-                        self.url("user"),
-                        urlencoding::encode(&jid.to_string()),
-                    ))
-                },
-                |response| {
-                    // Accept the response if it's a 404, as the API returns a 404
-                    // when the user has no session (<=> not connected).
-                    if response.status.is_success() || response.status == StatusCode::NOT_FOUND {
-                        Ok(response)
-                    } else {
-                        Err(response)
-                    }
-                },
-                auth,
-            )
-            .await?;
-        let res: ProsodyAdminRestApiResponse<ConnectedResponse> = response.deserialize()?;
-        Ok(res.result.connected)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct ProsodyAdminRestApiResponse<T> {
-    result: T,
-}
-
-#[derive(Debug, Deserialize)]
-struct ConnectedResponse {
-    connected: bool,
-}
-
-#[derive(Debug, Deserialize)]
-struct ListUsersResponse {
-    // count: u32,
-    users: Vec<ListUsersItem>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ListUsersItem {
-    pub jid: BareJid,
-    pub role: Option<ProsodyRole>,
-    // pub secondary_roles: Vec<ProsodyRole>,
 }
 
 fn error_description(
@@ -190,24 +107,11 @@ fn error_description(
         .map(ToString::to_string)
         .or_else(|| {
             let mime = content_type.unwrap_or(mime::STAR_STAR);
-            if mime.essence_str() == "text/html" {
+            if mime.essence_str().starts_with("text/html") {
                 Some(format!("`{mime}` content"))
             } else {
                 text.clone()
             }
         })
         .unwrap_or("Prosody admin_rest call failed.".to_string())
-}
-
-// MARK: - Boilerplate
-
-impl From<ListUsersItem> for Member {
-    fn from(info: ListUsersItem) -> Self {
-        let role = info.role.expect("Members should have roles");
-
-        Self {
-            jid: info.jid,
-            role: MemberRole::try_from(&role).expect("Members should have supported roles"),
-        }
-    }
 }

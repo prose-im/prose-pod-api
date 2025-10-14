@@ -258,7 +258,7 @@ impl TryFrom<&SessionInfo> for UserInfo {
 
         Ok(UserInfo {
             jid: session.jid.clone(),
-            role,
+            primary_role: role,
         })
     }
 }

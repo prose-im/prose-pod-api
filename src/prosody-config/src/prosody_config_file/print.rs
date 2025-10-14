@@ -139,6 +139,7 @@ impl Print for LuaValue {
             Self::Bool(b) => acc.push_str(&format!("{b}")),
             Self::Number(n) => n.print(acc, indent),
             Self::String(s) => acc.push_str(&format!("{s:?}")),
+            Self::Env(name) => acc.push_str(&format!("ENV_{name}")),
             Self::List(list) => match list.len() {
                 0 => acc.push_str("{}"),
                 1 if list[0].is_scalar() => {

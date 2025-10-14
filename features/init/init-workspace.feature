@@ -15,6 +15,7 @@ Feature: Initializing the Prose Workspace
 
   Scenario: Trying to initialize the workspace again
     Given the Prose Pod has been initialized
+      And the Workspace has 1 member
      When someone initializes a workspace named "Prose"
      Then the call should not succeed
       And the user should receive 'Workspace already initialized'

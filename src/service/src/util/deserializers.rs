@@ -15,3 +15,22 @@ where
 {
     Deserialize::deserialize(deserializer).map(Some)
 }
+
+pub mod prose_role_as_prosody {
+    use serdev::de::{self};
+
+    use crate::{members::MemberRole, prosody::ProsodyRoleName};
+
+    use super::*;
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<MemberRole, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let prosody_role = ProsodyRoleName::deserialize(deserializer)?;
+        match MemberRole::try_from(&prosody_role) {
+            Ok(role) => Ok(role),
+            Err(err) => Err(de::Error::custom(err)),
+        }
+    }
+}

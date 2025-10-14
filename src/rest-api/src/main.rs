@@ -36,6 +36,7 @@ use service::{
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi, ProsodyOAuth2},
     secrets_store::{LiveSecretsStore, SecretsStore},
+    workspace::{LiveWorkspaceService, WorkspaceService},
     xmpp::{LiveXmppService, XmppService},
     AppConfig, HttpClient,
 };
@@ -257,7 +258,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         implem: Arc::new(LiveXmppService::from_config(
             &app_config,
             http_client.clone(),
-            prosody_admin_rest.clone(),
+            prosody_http_admin_api.clone(),
             Arc::new(UUIDProvider::new()),
         )),
     };
@@ -285,6 +286,16 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         invites_register_api: prosody_invites_register_api.clone(),
         db: db.clone(),
     }));
+    let workspace_service = WorkspaceService {
+        implem: Arc::new(LiveWorkspaceService {
+            server_api: server_api.clone(),
+            workspace_username: app_config
+                .service_accounts
+                .prose_workspace
+                .xmpp_node
+                .clone(),
+        }),
+    };
 
     let user_application_service = UserApplicationService {
         implem: Arc::new(LiveUserApplicationService {
@@ -307,6 +318,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         auth_service,
         email_notifier,
         network_checker,
+        workspace_service,
         licensing_service,
         pod_version_service,
         factory_reset_service,

@@ -262,7 +262,7 @@ fn error_description(
         .flatten()
         .or_else(|| {
             let mime = content_type.unwrap_or(mime::STAR_STAR);
-            if mime.essence_str() == "text/html" {
+            if mime.essence_str().starts_with("text/html") {
                 Some(format!("`{mime}` content"))
             } else {
                 text.clone()

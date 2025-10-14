@@ -23,6 +23,16 @@ fn then_response_body_empty(world: &mut TestWorld) {
     world.result().as_bytes().is_empty();
 }
 
+#[then("the response body should be `null`")]
+fn then_response_body_null(world: &mut TestWorld) {
+    assert_eq!(world.result().text().as_str(), "null");
+}
+
+#[then("the response body should not be `null`")]
+fn then_response_body_not_null(world: &mut TestWorld) {
+    assert_ne!(world.result().text().as_str(), "null");
+}
+
 #[then("the response content type should be JSON")]
 fn then_content_type_json(world: &mut TestWorld) {
     let res = world.result();

@@ -128,14 +128,16 @@ impl UserRepositoryImpl for MockUserRepository {
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+    ) -> Result<(), Either3<MemberNotFound, Forbidden, anyhow::Error>> {
         check_online(&self.mock_server_state)?;
         check_admin(&self.mock_auth_service_state, auth)?;
 
         let jid = BareJid::from_parts(Some(username), &self.server_domain);
 
         let mut state = self.state.write().unwrap();
-        state.users.remove(&jid);
+        if state.users.remove(&jid).is_none() {
+            return Err(Either3::E1(MemberNotFound(username.to_string())));
+        };
 
         Ok(())
     }

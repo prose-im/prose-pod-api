@@ -56,7 +56,7 @@ pub async fn set_member_role(
     if caller.jid == jid {
         return Err(Either4::E1(CannotChangeOwnRole));
     };
-    if caller.role < role {
+    if caller.primary_role < role {
         return Err(Either4::E2(CannotAssignRole));
     };
 

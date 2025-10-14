@@ -58,7 +58,7 @@ macro_rules! gen {
         }
         // NOTE: `.context` for `EitherN<…, anyhow::Error>`.
         impl<$case_0$(, $case)*> Context for $t<$case_0$(, $case)*, anyhow::Error> {
-            fn context<C>(self, context: C) -> Self
+            fn err_context<C>(self, context: C) -> Self
             where
                 C: Display + Send + Sync + 'static,
             {
@@ -82,9 +82,10 @@ macro_rules! gen {
 gen!(Either<E1; E2>);
 gen!(Either3<E1, E2; E3>);
 gen!(Either4<E1, E2, E3; E4>);
+// NOTE: We should not go higher. If you need `Either5`, use an `enum`.
 
 pub trait Context {
-    fn context<C>(self, context: C) -> Self
+    fn err_context<C>(self, context: C) -> Self
     where
         C: Display + Send + Sync + 'static;
 }
@@ -92,13 +93,13 @@ pub trait Context {
 // TODO: Implement `Context` if `anyhow::Error: From<Result<…>>`
 //   (`map_err(anyhow::Error::new)`).
 impl<T, E: Context> Context for Result<T, E> {
-    fn context<C>(self, context: C) -> Self
+    fn err_context<C>(self, context: C) -> Self
     where
         C: Display + Send + Sync + 'static,
     {
         match self {
             Ok(val) => Ok(val),
-            Err(err) => Err(err.context(context)),
+            Err(err) => Err(err.err_context(context)),
         }
     }
 }
@@ -119,6 +120,8 @@ pub fn to_either4_1_4<E1, E2, E3, E4>(either: Either<E1, E4>) -> Either4<E1, E2,
     }
 }
 
+// Either3 from 2..2
+
 impl<E1, E2, E3> From<Either<E2, E3>> for Either3<E1, E2, E3> {
     fn from(value: Either<E2, E3>) -> Self {
         match value {
@@ -127,6 +130,8 @@ impl<E1, E2, E3> From<Either<E2, E3>> for Either3<E1, E2, E3> {
         }
     }
 }
+
+// Either4 from 2..3
 
 impl<E1, E2, E3, E4> From<Either<E3, E4>> for Either4<E1, E2, E3, E4> {
     fn from(value: Either<E3, E4>) -> Self {

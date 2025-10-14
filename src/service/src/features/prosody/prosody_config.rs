@@ -7,7 +7,6 @@ use std::{ops::Deref, str::FromStr as _};
 
 use hickory_proto::rr::Name as DomainName;
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
-use secrecy::ExposeSecret;
 use util::{ApplyDefaultsAndOverrides, WithDefaultsAndOverrides};
 use utils::def;
 
@@ -123,6 +122,8 @@ impl ProsodyConfig {
 
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
+        use prosody_config::LuaValue;
+
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
@@ -188,7 +189,15 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 .into_iter()
                 .collect(),
             ),
-            reload_modules: Some(vec!["tls"].into_iter().map(ToString::to_string).collect()),
+            reload_modules: Some(
+                vec![
+                    "tls",
+                    "prose_version",
+                ]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+            ),
             consider_websocket_secure: Some(true),
             cross_domain_websocket: None,
             upgrade_legacy_vcards: Some(true),
@@ -232,7 +241,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                             def("oauth2_refresh_token_ttl", 0),
                             def(
                                 "oauth2_registration_key",
-                                app_config.auth.oauth2_registration_key.expose_secret(),
+                                LuaValue::Env("OAUTH2_REGISTRATION_KEY".to_owned()),
                             ),
                         ],
                     ),

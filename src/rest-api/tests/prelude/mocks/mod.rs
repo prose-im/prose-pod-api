@@ -45,6 +45,7 @@ mod mock_secrets_store;
 mod mock_server_service;
 mod mock_user_repository;
 mod mock_user_service;
+mod mock_workspace_service;
 mod mock_xmpp_service;
 
 mod mocks {
@@ -60,6 +61,7 @@ mod mocks {
     pub use super::mock_server_service::*;
     pub use super::mock_user_repository::*;
     pub use super::mock_user_service::*;
+    pub use super::mock_workspace_service::*;
     pub use super::mock_xmpp_service::*;
 }
 

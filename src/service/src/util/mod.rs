@@ -6,7 +6,7 @@
 mod cache;
 mod concurrent_task_runner;
 mod debounced_notify;
-mod deserializers;
+pub mod deserializers;
 mod detect_mime_type;
 pub mod either;
 pub mod paginate;
@@ -18,7 +18,7 @@ use crate::models::jid::{BareJid, NodeRef};
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::debounced_notify::*;
-pub use self::deserializers::*;
+pub use self::deserializers::deserialize_null_as_some_none;
 pub use self::detect_mime_type::*;
 pub use self::unaccent::*;
 
@@ -33,6 +33,7 @@ impl JidExt for BareJid {
 }
 
 /// [`panic!`] in debug mode, [`tracing::warn!`] in release.
+#[inline(always)]
 pub fn debug_panic_or_log_warning(msg: String) {
     if cfg!(debug_assertions) {
         panic!("{msg}");

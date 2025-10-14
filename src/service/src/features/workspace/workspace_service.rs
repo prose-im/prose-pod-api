@@ -3,110 +3,212 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::Context;
-use prose_xmpp::stanza::VCard4;
-use tracing::instrument;
+pub mod prelude {
+    pub use async_trait::async_trait;
 
-use crate::{
-    models::{Avatar, Color},
-    workspace::Workspace,
-    xmpp::{XmppService, XmppServiceContext},
-};
+    pub use crate::{
+        auth::AuthToken,
+        errors::Forbidden,
+        models::{Avatar, Color},
+        prose_pod_server_api::{InitWorkspaceRequest, PatchWorkspaceRequest},
+        util::either::Either,
+        workspace::{errors::WorkspaceAlreadyInitialized, Workspace},
+    };
 
-use super::errors::WorkspaceNotInitialized;
+    pub use super::WorkspaceServiceImpl;
+}
 
+use std::sync::Arc;
+
+pub use self::live_workspace_service::LiveWorkspaceService;
+use self::prelude::*;
+
+/// [`MemberService`] has domain logic only, but some actions
+/// still need to be mockable. This is where those functions go.
 #[derive(Debug, Clone)]
 pub struct WorkspaceService {
-    pub xmpp_service: XmppService,
-    pub ctx: XmppServiceContext,
+    pub implem: Arc<dyn WorkspaceServiceImpl>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum WorkspaceServiceInitError {
-    #[error("Workspace XMPP account not initialized.")]
-    WorkspaceXmppAccountNotInitialized,
-}
-
-impl WorkspaceService {
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn is_workspace_initialized(&self) -> anyhow::Result<bool> {
-        let vcard =
-            (self.xmpp_service.get_own_vcard(&self.ctx).await).context("XmppService error")?;
-        Ok(vcard.is_some())
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace(&self) -> Result<Workspace, GetWorkspaceError> {
-        let vcard = self.get_workspace_vcard().await?;
-        let mut workspace = Workspace::try_from(vcard)?;
-        // Avatars are not stored in vCards.
-        // TODO: Avoid this copy?
-        workspace.icon = self.get_workspace_icon().await?;
-        Ok(workspace)
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_vcard(&self) -> Result<VCard4, GetWorkspaceError> {
-        let vcard = (self.xmpp_service.get_own_vcard(&self.ctx).await)
-            .context("XmppService error")?
-            .ok_or(WorkspaceNotInitialized::WithReason("No vCard."))?;
-        Ok(vcard)
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_vcard(&self, vcard: &VCard4) -> anyhow::Result<()> {
-        (self.xmpp_service.set_own_vcard(&self.ctx, vcard).await).context("XmppService error")?;
-        Ok(())
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_name(&self) -> Result<String, GetWorkspaceError> {
-        let vcard = self.get_workspace_vcard().await?;
-        let workspace = Workspace::try_from(vcard)?;
-        Ok(workspace.name)
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_name(&self, name: String) -> Result<String, GetWorkspaceError> {
-        let mut workspace = self.get_workspace().await?;
-        workspace.name = name.clone();
-        self.set_workspace_vcard(&VCard4::from(&workspace)).await?;
-        Ok(name)
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_accent_color(&self) -> Result<Option<Color>, GetWorkspaceError> {
-        let vcard = self.get_workspace_vcard().await?;
-        let workspace = Workspace::try_from(vcard)?;
-        Ok(workspace.accent_color)
-    }
-
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_accent_color(
+#[async_trait]
+pub trait WorkspaceServiceImpl: std::fmt::Debug + Sync + Send {
+    async fn init_workspace(
         &self,
-        accent_color: Option<Color>,
-    ) -> Result<Option<Color>, GetWorkspaceError> {
-        let mut workspace = self.get_workspace().await?;
-        workspace.accent_color = accent_color.clone();
-        self.set_workspace_vcard(&VCard4::from(&workspace)).await?;
-        Ok(accent_color)
+        req: &InitWorkspaceRequest,
+    ) -> Result<(), Either<WorkspaceAlreadyInitialized, anyhow::Error>>;
+
+    async fn get_workspace(&self, auth: Option<&AuthToken>) -> Result<Workspace, anyhow::Error>;
+
+    async fn patch_workspace(
+        &self,
+        req: &PatchWorkspaceRequest,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+
+    async fn get_workspace_name(&self, auth: Option<&AuthToken>) -> Result<String, anyhow::Error>;
+
+    async fn set_workspace_name(
+        &self,
+        name: &str,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+
+    async fn get_workspace_accent_color(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<Option<Color>, anyhow::Error>;
+
+    async fn set_workspace_accent_color(
+        &self,
+        accent_color: &Option<Color>,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+
+    async fn get_workspace_icon(
+        &self,
+        auth: Option<&AuthToken>,
+    ) -> Result<Option<Avatar>, anyhow::Error>;
+
+    async fn set_workspace_icon(
+        &self,
+        icon: Avatar,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+}
+
+mod live_workspace_service {
+    use crate::{
+        prose_pod_server_api::{ProsePodServerApi, ProsePodServerError},
+        xmpp::JidNode,
+    };
+
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct LiveWorkspaceService {
+        pub server_api: ProsePodServerApi,
+        pub workspace_username: JidNode,
     }
 
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn get_workspace_icon(&self) -> anyhow::Result<Option<Avatar>> {
-        (self.xmpp_service.get_own_avatar(&self.ctx).await).context("XmppService error")
+    #[async_trait]
+    impl WorkspaceServiceImpl for LiveWorkspaceService {
+        async fn init_workspace(
+            &self,
+            req: &InitWorkspaceRequest,
+        ) -> Result<(), Either<WorkspaceAlreadyInitialized, anyhow::Error>> {
+            self.server_api.init_workspace(req).await.map_err(erase_e2)
+        }
+
+        async fn get_workspace(
+            &self,
+            auth: Option<&AuthToken>,
+        ) -> Result<Workspace, anyhow::Error> {
+            match self.server_api.get_workspace(auth).await.into() {
+                Ok(response) => Ok(Workspace::from(response)),
+                Err(err) => Err(anyhow::Error::from(err)),
+            }
+        }
+
+        async fn patch_workspace(
+            &self,
+            req: &PatchWorkspaceRequest,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.server_api
+                .patch_workspace(req, auth)
+                .await
+                .map_err(separate_forbidden)
+        }
+
+        async fn get_workspace_name(
+            &self,
+            auth: Option<&AuthToken>,
+        ) -> Result<String, anyhow::Error> {
+            self.server_api
+                .get_workspace_name(auth)
+                .await
+                .map_err(anyhow::Error::from)
+        }
+
+        async fn set_workspace_name(
+            &self,
+            name: &str,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.server_api
+                .set_workspace_name(name, auth)
+                .await
+                .map_err(separate_forbidden)
+        }
+
+        async fn get_workspace_accent_color(
+            &self,
+            auth: Option<&AuthToken>,
+        ) -> Result<Option<Color>, anyhow::Error> {
+            self.server_api
+                .get_workspace_accent_color(auth)
+                .await
+                .map_err(anyhow::Error::from)
+        }
+
+        async fn set_workspace_accent_color(
+            &self,
+            accent_color: &Option<Color>,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.server_api
+                .set_workspace_accent_color(accent_color, auth)
+                .await
+                .map_err(separate_forbidden)
+        }
+
+        async fn get_workspace_icon(
+            &self,
+            auth: Option<&AuthToken>,
+        ) -> Result<Option<Avatar>, anyhow::Error> {
+            self.server_api
+                .get_workspace_icon(auth)
+                .await
+                .map_err(anyhow::Error::from)
+        }
+
+        async fn set_workspace_icon(
+            &self,
+            icon: Avatar,
+            auth: &AuthToken,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            self.server_api
+                .set_workspace_icon(icon, auth)
+                .await
+                .map_err(separate_forbidden)
+        }
     }
 
-    #[instrument(level = "trace", skip_all, err(level = "trace"))]
-    pub async fn set_workspace_icon(&self, icon: Avatar) -> anyhow::Result<()> {
-        (self.xmpp_service.set_own_avatar(&self.ctx, icon).await).context("XmppService error")
+    // MARK: - Helpers
+
+    fn separate_forbidden(err: ProsePodServerError) -> Either<Forbidden, anyhow::Error> {
+        match err {
+            ProsePodServerError::Forbidden(err) => Either::E1(err),
+            err @ ProsePodServerError::Unavailable | err @ ProsePodServerError::Internal(_) => {
+                Either::E2(anyhow::Error::from(err))
+            }
+        }
+    }
+
+    fn erase_e2<E>(err: Either<E, ProsePodServerError>) -> Either<E, anyhow::Error> {
+        match err {
+            Either::E1(err) => Either::E1(err),
+            Either::E2(err) => Either::E2(anyhow::Error::from(err)),
+        }
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum GetWorkspaceError {
-    #[error("{0}")]
-    WorkspaceNotInitialized(#[from] WorkspaceNotInitialized),
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
+// MARK: - Boilerplate
+
+impl std::ops::Deref for WorkspaceService {
+    type Target = Arc<dyn WorkspaceServiceImpl>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.implem
+    }
 }

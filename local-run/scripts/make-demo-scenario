@@ -107,7 +107,7 @@ start() {
 	for _ in $(seq 1 5); do
 		trace 'Waiting a second…'
 		sleep 1
-		local error="$(edo xh :8080/v1/version -q)" && return 0 || :
+		local error="$(edo xh :8080/health -q)" && return 0 || :
 	done
 	error 'API still unreachable after 5s:'
 	error "${error-}"
@@ -219,13 +219,12 @@ for n in $(seq 1 $(( ${#MEMBER_USERNAMES[@]} - 1 ))); do
 	add-member-n "${n:?}"
 done
 
-# NOTE: While we could restart the API to trigger its `update_rosters` startup
-#   action, Docker takes a long time to stop and restart the containers so we’re
-#   better off just waiting a bit.
-# NOTE: `TEAM_ROSTERS_SYNC_DEBOUNCE` is set to 10s, but it takes some time (see
-#   the benchmarks) so we wait a bit more to ensure it has finished.
+# NOTE: WHen creating a user, Prosody adds it to the desired groups using an event handler.
+#   However, this action takes some time (see the benchmarks) therefore we wait a bit to
+#   ensure it has properly finished.
+# TODO: Is this really necessary? Does Prosody finish this task on a graceful shutdown?
 info Waiting
-sleep 11
+sleep 3
 
 success 'Done'
 

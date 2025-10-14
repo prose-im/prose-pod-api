@@ -3,9 +3,13 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::time::Duration;
+
 use anyhow::Context as _;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use reqwest::{Client as HttpClient, StatusCode};
+use serde_json::json;
 use serdev::{Deserialize, Serialize};
 use tracing::trace;
 
@@ -13,12 +17,15 @@ use crate::{
     auth::AuthToken,
     errors::{Forbidden, GroupAlreadyExists, GroupNotFound},
     invitations::{errors::InvitationNotFound, InvitationId, InvitationToken},
-    members::{Member, MemberRole},
+    members::{errors::MemberNotFound, Member, MemberRole},
     prosody::ProsodyRoleName,
-    util::either::{Either, Either3},
+    util::{
+        either::{Either, Either3},
+        JidExt,
+    },
     xmpp::{
         jid::{BareJid, NodeRef},
-        JidNode,
+        JidNode, NonStandardXmppClient,
     },
     AppConfig,
 };
@@ -39,14 +46,75 @@ impl ProsodyHttpAdminApi {
     }
 }
 
+#[async_trait]
+impl NonStandardXmppClient for ProsodyHttpAdminApi {
+    async fn is_connected(&self, jid: &BareJid, auth: &AuthToken) -> Result<bool, anyhow::Error> {
+        let user_opt = self.get_user_by_name(jid.expect_username(), auth).await?;
+        match user_opt {
+            Some(UserInfo {
+                last_active: Some(last_active),
+                ..
+            }) => {
+                // `user.last_active` is set to “now” if the user is connected,
+                // but “now” is on the Server, and time passed because of
+                // serialization, networking, deserialization, etc. We can
+                // consider that if a user was “last active” in the past
+                // 5 seconds it means they are connected.
+                let considered_active_if_logged_in_after = Utc::now() - Duration::from_secs(5);
+                Ok(last_active > considered_active_if_logged_in_after)
+            }
+            None
+            | Some(UserInfo {
+                last_active: None, ..
+            }) => Ok(false),
+        }
+    }
+}
+
 // MARK: Users
 
 impl ProsodyHttpAdminApi {
+    pub async fn list_users(
+        &self,
+        auth: &AuthToken,
+    ) -> Result<Vec<UserInfo>, Either<Forbidden, anyhow::Error>> {
+        use secrecy::ExposeSecret as _;
+
+        let ref http = self.http_client;
+
+        let url = format!("{root}/users", root = self.api_root);
+        let request = http
+            .get(url)
+            .bearer_auth(auth.expose_secret())
+            .build()
+            .context("Could not build request")?;
+
+        trace!("Calling `{} {}`…", request.method(), request.url());
+        let response = http.execute(request).await.context("Request failed")?;
+
+        let status = response.status();
+        if status.is_success() {
+            let user_infos: Vec<UserInfo> =
+                response.json().await.context("Invalid response body")?;
+            Ok(user_infos)
+        } else {
+            let body = (response.text().await)
+                .ok()
+                .unwrap_or_else(|| "<empty response body>".to_owned());
+            match status {
+                StatusCode::FORBIDDEN => Err(Either::E1(Forbidden(body))),
+                _ => Err(Either::E2(anyhow::Error::msg(format!(
+                    "admin_api call failed: {status}: {body}"
+                )))),
+            }
+        }
+    }
+
     pub async fn get_user_by_name(
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
+    ) -> Result<Option<UserInfo>, Either<Forbidden, anyhow::Error>> {
         use secrecy::ExposeSecret as _;
 
         let ref http = self.http_client;
@@ -63,13 +131,12 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
             let user_info: UserInfo = response.json().await.context("Invalid response body")?;
-            let member = Member::from(user_info);
-            Ok(Some(member))
+            Ok(Some(user_info))
         } else {
             let body = (response.text().await)
                 .ok()
@@ -78,6 +145,102 @@ impl ProsodyHttpAdminApi {
                 StatusCode::NOT_FOUND => Ok(None),
                 StatusCode::FORBIDDEN => Err(Either::E1(Forbidden(body))),
                 _ => Err(Either::E2(anyhow::Error::msg(format!(
+                    "admin_api call failed: {status}: {body}"
+                )))),
+            }
+        }
+    }
+
+    pub async fn update_user(
+        &self,
+        username: &NodeRef,
+        req: &UpdateUserInfoRequest,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+        use secrecy::ExposeSecret as _;
+
+        let ref http = self.http_client;
+
+        let url = format!(
+            "{root}/users/{username}",
+            root = self.api_root,
+            username = username.to_string()
+        );
+
+        let mut body = json!(req);
+        // TODO: At the moment, the API requires the username to be passed in
+        //   the request body too and it fails if not. This doesn’t make much
+        //   sense for a `PATCH`. See with Snikket devs the rationale behind it,
+        //   but we’ll likely make it not required.
+        if let serde_json::Value::Object(ref mut map) = body {
+            map.insert("username".to_owned(), json!(username.to_string()));
+        } else if cfg!(debug_assertions) {
+            unreachable!()
+        }
+
+        let request = http
+            // TODO: It’s `PUT`, but it really behaves as a `PATCH`.
+            //   We will fix this but until then we have to use `PUT`.
+            .put(url)
+            .bearer_auth(auth.expose_secret())
+            .json(&body)
+            .build()
+            .context("Could not build request")?;
+
+        trace!("Calling `{} {}`…", request.method(), request.url());
+        let response = http.execute(request).await.context("Request failed")?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = (response.text().await)
+                .ok()
+                .unwrap_or_else(|| "<empty response body>".to_owned());
+            match status {
+                // NOTE: 404 never happens in this route.
+                StatusCode::FORBIDDEN => Err(Either::E1(Forbidden(body))),
+                _ => Err(Either::E2(anyhow::Error::msg(format!(
+                    "admin_api call failed: {status}: {body}"
+                )))),
+            }
+        }
+    }
+
+    pub async fn delete_user(
+        &self,
+        username: &NodeRef,
+        auth: &AuthToken,
+    ) -> Result<(), Either3<MemberNotFound, Forbidden, anyhow::Error>> {
+        use secrecy::ExposeSecret as _;
+
+        let ref http = self.http_client;
+
+        let url = format!(
+            "{root}/users/{username}",
+            root = self.api_root,
+            username = username.to_string()
+        );
+        let request = http
+            .delete(url)
+            .bearer_auth(auth.expose_secret())
+            .build()
+            .context("Could not build request")?;
+
+        trace!("Calling `{} {}`…", request.method(), request.url());
+        let response = http.execute(request).await.context("Request failed")?;
+
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = (response.text().await)
+                .ok()
+                .unwrap_or_else(|| "<empty response body>".to_owned());
+            match status {
+                StatusCode::NOT_FOUND => Err(Either3::E1(MemberNotFound(username.to_string()))),
+                StatusCode::FORBIDDEN => Err(Either3::E2(Forbidden(body))),
+                _ => Err(Either3::E3(anyhow::Error::msg(format!(
                     "admin_api call failed: {status}: {body}"
                 )))),
             }
@@ -92,11 +255,21 @@ pub struct UserInfo {
     // display_name: String,
     role: Option<ProsodyRoleName>,
     // secondary_roles: Vec<ProsodyRoleName>,
-    // NOTE: Not yet implemented.
+    // // NOTE: Not yet implemented.
     // email: EmailAddress,
-    // NOTE: Not yet implemented.
+    // // NOTE: Not yet implemented.
     // phone: String,
     // groups: Vec<String>,
+    #[serde(default, with = "chrono::serde::ts_seconds_option")]
+    last_active: Option<DateTime<Utc>>,
+}
+
+#[derive(Default)]
+#[derive(Serialize)]
+pub struct UpdateUserInfoRequest {
+    // pub display_name: Option<String>,
+    pub role: Option<ProsodyRoleName>,
+    pub enabled: Option<bool>,
 }
 
 // MARK: Groups
@@ -116,12 +289,12 @@ impl ProsodyHttpAdminApi {
         let request = http
             .put(url)
             .bearer_auth(auth.expose_secret())
-            .body(format!(r#"{{"name":"{group_name}","id":"{group_id}"}}"#))
+            .json(&json!({ "name": group_name, "id": group_id }))
             .build()
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -163,7 +336,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -205,7 +378,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -244,7 +417,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -285,7 +458,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -325,7 +498,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -370,7 +543,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {
@@ -416,7 +589,7 @@ impl ProsodyHttpAdminApi {
             .context("Could not build request")?;
 
         trace!("Calling `{} {}`…", request.method(), request.url());
-        let response = (http.execute(request).await).context("Request failed")?;
+        let response = http.execute(request).await.context("Request failed")?;
 
         let status = response.status();
         if status.is_success() {

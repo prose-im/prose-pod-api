@@ -476,7 +476,7 @@ impl MemberService {
     }
 }
 
-/// [`MemberService`] is has domain logic only, but some actions
+/// [`MemberService`] has domain logic only, but some actions
 /// still need to be mockable and don’t belong in [`UserRepository`].
 /// This is where those functions go.
 #[derive(Debug, Clone)]

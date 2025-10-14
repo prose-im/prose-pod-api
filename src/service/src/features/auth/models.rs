@@ -6,6 +6,7 @@
 use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
+use serdev::Deserialize;
 
 use crate::members::MemberRole;
 
@@ -20,14 +21,16 @@ pub struct Credentials {
 
 /// An OAuth 2.0 token (provided by Prosody).
 #[derive(Debug, Clone)]
+#[derive(Deserialize)]
 #[repr(transparent)]
 pub struct AuthToken(pub SecretString);
 
 #[derive(Debug, Clone)]
-#[derive(serdev::Deserialize)]
+#[derive(Deserialize)]
 pub struct UserInfo {
     pub jid: BareJid,
-    pub role: MemberRole,
+    #[serde(with = "crate::util::deserializers::prose_role_as_prosody")]
+    pub primary_role: MemberRole,
 }
 
 impl UserInfo {
@@ -35,7 +38,7 @@ impl UserInfo {
         &self.jid == other
     }
     pub fn is_admin(&self) -> bool {
-        self.role == MemberRole::Admin
+        self.primary_role == MemberRole::Admin
     }
 }
 
@@ -84,7 +87,7 @@ impl From<UserInfo> for crate::members::Member {
     fn from(info: UserInfo) -> Self {
         Self {
             jid: info.jid,
-            role: info.role,
+            role: info.primary_role,
         }
     }
 }

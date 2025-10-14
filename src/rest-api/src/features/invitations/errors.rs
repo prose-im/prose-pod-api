@@ -5,9 +5,12 @@
 
 use service::{
     errors::MissingConfiguration,
-    invitations::errors::{
-        InvitationAlreadyExists, InvitationNotFound, InvitationNotFoundForToken,
-        MemberAlreadyExists, UsernameAlreadyTaken,
+    invitations::{
+        errors::{
+            InvitationAlreadyExists, InvitationNotFound, InvitationNotFoundForToken,
+            MemberAlreadyExists, UsernameAlreadyTaken,
+        },
+        invitation_service::InviteUserError,
     },
     notifications::notifier::email::EmailNotificationCreateError,
 };
@@ -70,5 +73,16 @@ impl HttpApiError for InvitationAlreadyExists {
 impl HttpApiError for UsernameAlreadyTaken {
     fn code(&self) -> ErrorCode {
         ErrorCode::MEMBER_ALREADY_EXISTS
+    }
+}
+
+impl HttpApiError for InviteUserError {
+    fn code(&self) -> ErrorCode {
+        match self {
+            Self::Forbidden(err) => err.code(),
+            Self::InvitationAlreadyExists(err) => err.code(),
+            Self::UsernameAlreadyTaken(err) => err.code(),
+            Self::Internal(err) => err.code(),
+        }
     }
 }

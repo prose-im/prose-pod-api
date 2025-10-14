@@ -18,10 +18,6 @@ pub async fn reset_server_config(
     // Write the bootstrap configuration.
     server.reset_config(auth).await?;
 
-    // // Update the API user password to match the new one specified in the bootstrap configuration.
-    // self::set_api_xmpp_password(server_ctl, app_config, secrets_store, password.clone()).await?;
-    let todo = "Update service account passwords?";
-
     // Apply the bootstrap configuration.
     server.reload(Some(auth)).await?;
 

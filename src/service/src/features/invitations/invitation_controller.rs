@@ -6,7 +6,10 @@
 use crate::{
     auth::AuthToken,
     errors::Forbidden,
-    invitations::{invitation_service::AcceptAccountInvitationCommand, InvitationRepository},
+    invitations::{
+        invitation_service::{AcceptAccountInvitationCommand, InviteUserError},
+        InvitationRepository,
+    },
     licensing::errors::UserLimitReached,
     members::Member,
     models::{Paginated, Pagination, PaginationForm},
@@ -37,10 +40,7 @@ pub async fn invite_member(
     auth: &AuthToken,
     #[cfg(debug_assertions)] auto_accept: bool,
     req: InviteMemberForm,
-) -> Result<
-    InviteMemberResponse,
-    Either4<Forbidden, InvitationAlreadyExists, UsernameAlreadyTaken, anyhow::Error>,
-> {
+) -> Result<InviteMemberResponse, InviteUserError> {
     #[cfg(debug_assertions)]
     let username = req.username.clone();
 
@@ -88,7 +88,7 @@ pub async fn invite_member(
                 },
             )
             .await
-            .map_err(|err| Either4::E4(anyhow::Error::new(err)))?;
+            .map_err(|err| InviteUserError::Internal(anyhow::Error::new(err)))?;
 
         return Ok(Either::E2(member));
     }

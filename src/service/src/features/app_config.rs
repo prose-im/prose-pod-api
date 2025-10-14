@@ -29,6 +29,7 @@ pub use self::prosody::*;
 pub use self::prosody_ext::*;
 pub use self::public_contacts::*;
 pub use self::server::*;
+pub use self::server_api::*;
 pub use self::service_accounts::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
@@ -75,15 +76,12 @@ pub mod pub_defaults {
     pub const SERVER_LOCAL_HOSTNAME: &'static str = "prose-pod-server";
 }
 
+// TODO: Remove default server values from here and use the ones defined in
+//   `prose-pod-server` to avoid discrepancies.
 fn default_config_static() -> Figment {
     use self::pub_defaults::*;
     use figment::providers::{Format as _, Toml};
-    use secrecy::{ExposeSecret as _, SecretString};
     use toml::toml;
-
-    let random_oauth2_registration_key: SecretString =
-        crate::auth::util::random_oauth2_registration_key();
-    let random_oauth2_registration_key: &str = random_oauth2_registration_key.expose_secret();
 
     let default_database_url = DEFAULT_MAIN_DATABASE_URL.as_str();
 
@@ -135,7 +133,6 @@ fn default_config_static() -> Figment {
         token_ttl = "PT3H"
         password_reset_token_ttl = "PT15M"
         invitation_ttl = "P1W"
-        oauth2_registration_key = random_oauth2_registration_key
 
         [api.network_checks]
         timeout = "PT5M"
@@ -164,8 +161,10 @@ fn default_config_static() -> Figment {
         [server]
         local_hostname = SERVER_LOCAL_HOSTNAME
         http_port = SERVER_HTTP_PORT
-        api_port = SERVER_API_PORT
         log_level = "info"
+
+        [server_api]
+        port = SERVER_API_PORT
 
         [server.defaults]
         message_archive_enabled = true
@@ -334,6 +333,8 @@ pub struct AppConfig {
     pub pod: Arc<PodConfig>,
 
     pub server: Arc<ServerConfig>,
+
+    pub server_api: Arc<ServerApiConfig>,
 
     pub api: Arc<ApiConfig>,
 
@@ -690,8 +691,6 @@ mod server {
 
         pub http_port: u16,
 
-        pub api_port: u16,
-
         pub log_level: prosody_config::LogLevel,
 
         #[validate(nested)]
@@ -701,9 +700,6 @@ mod server {
     impl ServerConfig {
         pub fn http_url(&self) -> String {
             format!("http://{}:{}", self.local_hostname, self.http_port)
-        }
-        pub fn api_url(&self) -> String {
-            format!("http://{}:{}", self.local_hostname, self.api_port)
         }
     }
 
@@ -790,6 +786,27 @@ mod server {
     }
 }
 
+mod server_api {
+    use super::prelude::*;
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServerApiConfig {
+        #[validate(skip)]
+        pub port: u16,
+    }
+
+    impl AppConfig {
+        pub fn server_api_url(&self) -> String {
+            format!(
+                "http://{}:{}",
+                self.server.local_hostname, self.server_api.port
+            )
+        }
+    }
+}
+
 mod auth {
     use super::prelude::*;
 
@@ -803,8 +820,6 @@ mod auth {
         pub password_reset_token_ttl: iso8601_duration::Duration,
 
         pub invitation_ttl: iso8601_duration::Duration,
-
-        pub oauth2_registration_key: SecretString,
     }
 }
 

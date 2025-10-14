@@ -63,10 +63,7 @@ impl InvitationService {
         &self,
         command: InviteUserCommand,
         auth: &AuthToken,
-    ) -> Result<
-        Invitation,
-        Either4<Forbidden, InvitationAlreadyExists, UsernameAlreadyTaken, anyhow::Error>,
-    > {
+    ) -> Result<Invitation, InviteUserError> {
         let ref username = command.username;
         let email_address = command.email_address.clone();
 
@@ -74,29 +71,22 @@ impl InvitationService {
         if self
             .invitation_repository
             .get_account_invitation_by_username(username, auth)
-            .await
-            .map_err(to_either4_1_4)?
+            .await?
             .is_some()
         {
-            return Err(Either4::E2(InvitationAlreadyExists));
+            return Err(InvitationAlreadyExists.into());
         }
 
         // Test if a user already exists with the given username.
-        if self
-            .user_repository
-            .user_exists(username, auth)
-            .await
-            .map_err(to_either4_1_4)?
-        {
-            return Err(Either4::E3(UsernameAlreadyTaken));
+        if self.user_repository.user_exists(username, auth).await? {
+            return Err(UsernameAlreadyTaken.into());
         }
 
         // Create the invitation on the Server.
         let invitation = self
             .invitation_repository
             .create_account_invitation(command.into(), auth)
-            .await
-            .map_err(to_either4_1_4)?;
+            .await?;
 
         // Store that at least one invitation has been sent.
         (onboarding::at_least_one_invitation_sent::set(&self.db.write, true).await)
@@ -106,7 +96,7 @@ impl InvitationService {
             .ok();
 
         // Send the notification.
-        self.send_account_invitation_notification(&invitation, email_address)
+        self.send_account_invitation_notification(&invitation, email_address, auth)
             .await?;
 
         Ok(invitation)
@@ -203,7 +193,7 @@ impl InvitationService {
         let email_address = invitation.email_address.clone();
 
         // Send the notification.
-        self.send_account_invitation_notification(&invitation, email_address)
+        self.send_account_invitation_notification(&invitation, email_address, auth)
             .await?;
 
         Ok(())
@@ -223,10 +213,13 @@ impl InvitationService {
         &self,
         invitation: &Invitation,
         email_address: EmailAddress,
+        auth: &AuthToken,
     ) -> Result<(), anyhow::Error> {
         // Construct the notification payload.
         let payload = {
-            let workspace_name = (self.workspace_service.get_workspace_name().await)
+            let workspace_name = (self.workspace_service)
+                .get_workspace_name(Some(auth))
+                .await
                 .context("Could not get workspace details (to build the notification)")?;
 
             WorkspaceInvitationPayload {
@@ -261,6 +254,16 @@ pub struct InviteUserCommand {
 }
 
 #[derive(Debug)]
+#[derive(thiserror::Error)]
+#[error("{0}")]
+pub enum InviteUserError {
+    Forbidden(#[from] Forbidden),
+    InvitationAlreadyExists(#[from] InvitationAlreadyExists),
+    UsernameAlreadyTaken(#[from] UsernameAlreadyTaken),
+    Internal(#[from] anyhow::Error),
+}
+
+#[derive(Debug)]
 pub struct AcceptAccountInvitationCommand {
     pub nickname: Nickname,
     pub password: Password,
@@ -269,7 +272,7 @@ pub struct AcceptAccountInvitationCommand {
 
 // MARK: - Application Service
 
-/// [`InvitationService`] is has domain logic only, but some actions
+/// [`InvitationService`] has domain logic only, but some actions
 /// still need to be mockable and don’t belong in [`InvitationRepository`].
 /// This is where those functions go.
 #[derive(Debug, Clone)]
@@ -343,6 +346,18 @@ impl std::ops::Deref for InvitationApplicationService {
 
     fn deref(&self) -> &Self::Target {
         &self.implem
+    }
+}
+
+impl<E1, E2> From<Either<E1, E2>> for InviteUserError
+where
+    InviteUserError: From<E1> + From<E2>,
+{
+    fn from(either: Either<E1, E2>) -> Self {
+        match either {
+            Either::E1(err) => Self::from(err),
+            Either::E2(err) => Self::from(err),
+        }
     }
 }
 

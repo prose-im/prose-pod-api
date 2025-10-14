@@ -16,12 +16,12 @@ pub use models::*;
 pub use user_repository::{LiveUserRepository, UserRepository, UserRepositoryImpl, UsersStats};
 
 pub mod errors {
-    use crate::{errors::Forbidden, util::either::Either, xmpp::BareJid};
+    use crate::{errors::Forbidden, util::either::Either};
 
     #[derive(Debug, thiserror::Error)]
-    #[error("No member with id '{0}'.")]
+    #[error("Member not found: {0}.")]
     #[repr(transparent)]
-    pub struct MemberNotFound(pub BareJid);
+    pub struct MemberNotFound(pub String);
 
     #[derive(Debug, thiserror::Error)]
     pub enum UserDeleteError {

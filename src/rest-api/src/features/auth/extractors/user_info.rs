@@ -47,7 +47,7 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
             .auth_service
             .get_user_info(&token)
             .await
-            .context("Could not get user info from token")
+            .err_context("Could not get user info from token")
             .map_err(Error::from);
 
         // Cache value to avoid recomputations next time.

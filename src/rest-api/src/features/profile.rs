@@ -39,7 +39,7 @@ mod routes {
     };
     use service::{
         auth::UserInfo,
-        members::{MemberRole, MemberService, Nickname},
+        members::{MemberService, Nickname},
         models::{Avatar, BareJid, EmailAddress},
         xmpp::{XmppService, XmppServiceContext},
     };
@@ -77,7 +77,7 @@ mod routes {
         ref ctx: XmppServiceContext,
         Path(jid): Path<BareJid>,
     ) -> Result<Json<Option<EmailAddress>>, Error> {
-        if !(caller.jid == jid || caller.role == MemberRole::Admin) {
+        if !(caller.jid == jid || caller.is_admin()) {
             Err(error::Forbidden("You cannot do that.".to_string()))?
         }
 

@@ -10,6 +10,7 @@ pub mod prelude {
         auth::AuthToken,
         errors::{Forbidden, Unauthorized},
         members::{
+            errors::MemberNotFound,
             models::{Member, MemberRole, UsersStats},
             UserRepositoryImpl,
         },
@@ -64,7 +65,7 @@ pub trait UserRepositoryImpl: std::fmt::Debug + Sync + Send {
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
+    ) -> Result<(), Either3<MemberNotFound, Forbidden, anyhow::Error>>;
 }
 
 #[derive(Debug)]
@@ -108,10 +109,10 @@ mod live_user_repository {
             // Admins need to see everyone (in roster or not), which means we
             // have to use a dedicated API. However it’s authenticated not to
             // leak sensitive information therefore non-admins would get 403s.
-            // As a fallback, we show people in their roster.
+            // As a fallback, we show roster contacts.
             if caller.is_admin() {
-                let response = self.admin_rest.list_users(auth).await?;
-                Ok(response.into_iter().map(Member::from).collect())
+                let user_infos = self.admin_api.list_users(auth).await?;
+                Ok(user_infos.into_iter().map(Member::from).collect())
             } else {
                 // See [Non-admins cannot see users · Issue #346 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/346).
                 Ok(vec![])
@@ -123,7 +124,10 @@ mod live_user_repository {
             username: &NodeRef,
             auth: &AuthToken,
         ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
-            self.admin_api.get_user_by_name(username, auth).await
+            match self.admin_api.get_user_by_name(username, auth).await {
+                Ok(user_info) => Ok(user_info.map(Member::from)),
+                Err(err) => Err(err),
+            }
         }
 
         async fn users_stats(&self, auth: Option<&AuthToken>) -> Result<UsersStats, anyhow::Error> {
@@ -142,14 +146,15 @@ mod live_user_repository {
             role: &MemberRole,
             auth: &AuthToken,
         ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            use crate::prosody::prosody_http_admin_api::UpdateUserInfoRequest;
             use crate::prosody::AsProsody as _;
 
-            self.admin_rest
-                .call(
-                    |client| {
-                        client
-                            .patch(format!("{}/{username}/role", self.admin_rest.url("user")))
-                            .body(format!(r#"{{"role":"{}"}}"#, role.as_prosody()))
+            self.admin_api
+                .update_user(
+                    username,
+                    &UpdateUserInfoRequest {
+                        role: Some(role.as_prosody()),
+                        ..Default::default()
                     },
                     auth,
                 )
@@ -162,15 +167,8 @@ mod live_user_repository {
             &self,
             username: &NodeRef,
             auth: &AuthToken,
-        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-            self.admin_rest
-                .call(
-                    |client| client.delete(format!("{}/{username}", self.admin_rest.url("user"))),
-                    auth,
-                )
-                .await?;
-
-            Ok(())
+        ) -> Result<(), Either3<MemberNotFound, Forbidden, anyhow::Error>> {
+            self.admin_api.delete_user(username, auth).await
         }
     }
 

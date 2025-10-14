@@ -493,6 +493,7 @@ macro_rules! gen_kv_store_scoped_get_set {
 
             pub const KEY: &'static str = stringify!($val);
 
+            #[allow(unused)]
             #[tracing::instrument(level = "trace", skip_all)]
             pub async fn get_opt(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<Option<$t>> {
                 (kv_store::get_typed::<$t>(db, KEY).await)
@@ -500,6 +501,7 @@ macro_rules! gen_kv_store_scoped_get_set {
 
             $(crate::gen_kv_store_scoped_get_set!($vis $val: $t => $option);)*
 
+            #[allow(unused)]
             #[tracing::instrument(level = "trace", skip_all, fields(new_value))]
             pub async fn set(db: &impl sea_orm::ConnectionTrait, new_value: $t) -> anyhow::Result<()> {
                 kv_store::set_typed::<$t>(db, KEY, new_value).await
@@ -508,11 +510,14 @@ macro_rules! gen_kv_store_scoped_get_set {
     };
     // NOTE: Internal.
     ($vis:vis $val:ident: $t:ty => default) => {
+        #[allow(unused)]
         #[tracing::instrument(level = "trace", skip_all)]
         pub async fn get(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<$t> {
             (kv_store::get_typed::<$t>(db, KEY).await)
                 .map(Option::unwrap_or_default)
         }
+
+        #[allow(unused)]
         #[tracing::instrument(level = "trace", skip_all)]
         pub async fn get_or_default(db: &impl sea_orm::ConnectionTrait) -> $t {
             (kv_store::get_typed::<$t>(db, KEY).await)
@@ -522,6 +527,7 @@ macro_rules! gen_kv_store_scoped_get_set {
     };
     // NOTE: Internal.
     ($vis:vis $val:ident: $t:ty => delete) => {
+        #[allow(unused)]
         #[tracing::instrument(level = "trace", skip_all)]
         pub async fn delete(db: &impl sea_orm::ConnectionTrait) -> anyhow::Result<()> {
             match kv_store::delete(db, KEY).await {

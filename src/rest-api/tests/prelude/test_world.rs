@@ -33,8 +33,8 @@ use service::{
     secrets_store::SecretsStore,
     server_config::{ServerConfig, ServerConfigManager},
     util::random_string_alphanumeric,
-    workspace::WorkspaceService,
-    xmpp::{XmppService, XmppServiceContext},
+    workspace::{Workspace, WorkspaceService},
+    xmpp::XmppService,
 };
 
 use crate::prelude::util::{name_to_jid, user_missing};
@@ -63,6 +63,8 @@ pub struct TestWorld {
     pub mock_auth_service: Option<Arc<MockAuthService>>,
     pub xmpp_service: Option<XmppService>,
     pub mock_xmpp_service: Option<Arc<MockXmppService>>,
+    pub workspace_service: Option<WorkspaceService>,
+    pub mock_workspace_service: Option<Arc<MockWorkspaceService>>,
     pub licensing_service: Option<LicensingService>,
     pub mock_licensing_service: Option<Arc<MockLicensingService>>,
     pub email_notifier: Notifier<EmailNotification>,
@@ -90,6 +92,7 @@ pub struct TestWorld {
     pub mock_server_state: Arc<RwLock<MockServerServiceState>>,
     pub mock_auth_service_state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_xmpp_service_state: Arc<RwLock<MockXmppServiceState>>,
+    pub mock_workspace_service_state: Option<Arc<RwLock<MockWorkspaceServiceState>>>,
 
     pub api: Option<TestServer>,
     pub config_overrides: Figment,
@@ -203,6 +206,8 @@ impl TestWorld {
             scenario_workspace_invitation: None,
             xmpp_service: None,
             mock_xmpp_service: None,
+            workspace_service: None,
+            mock_workspace_service: None,
             auth_service: None,
             mock_auth_service: None,
             licensing_service: None,
@@ -233,6 +238,7 @@ impl TestWorld {
             mock_server_state: Default::default(),
             mock_auth_service_state: Default::default(),
             mock_xmpp_service_state: Default::default(),
+            mock_workspace_service_state: None,
         };
 
         reload_config(&mut world);
@@ -344,6 +350,29 @@ impl TestWorld {
             .as_ref()
             .expect("mock_xmpp_service not initialized")
     }
+    pub fn workspace_service(&self) -> &WorkspaceService {
+        self.workspace_service
+            .as_ref()
+            .expect("workspace_service not initialized")
+    }
+    #[allow(unused)]
+    pub fn mock_workspace_service(&self) -> &Arc<MockWorkspaceService> {
+        self.mock_workspace_service
+            .as_ref()
+            .expect("mock_workspace_service not initialized")
+    }
+    pub fn mock_workspace_service_state(&mut self) -> &Arc<RwLock<MockWorkspaceServiceState>> {
+        let server_domain = self.app_config().server_domain().to_string();
+        &*self.mock_workspace_service_state.get_or_insert_with(|| {
+            Arc::new(RwLock::new(MockWorkspaceServiceState {
+                workspace: Workspace {
+                    name: server_domain,
+                    icon: None,
+                    accent_color: None,
+                },
+            }))
+        })
+    }
 
     pub fn server_config_manager(&self) -> ServerConfigManager {
         ServerConfigManager::new(
@@ -366,21 +395,6 @@ impl TestWorld {
         )
     }
 
-    pub fn workspace_service(&self) -> WorkspaceService {
-        let workspace_jid = self.app_config().workspace_jid();
-        let workspace_token = self
-            .secrets_store()
-            .get_service_account_prosody_token(&workspace_jid)
-            .expect("Workspace not authenticated");
-        WorkspaceService {
-            xmpp_service: self.xmpp_service().clone(),
-            ctx: XmppServiceContext {
-                bare_jid: workspace_jid,
-                auth_token: workspace_token,
-            },
-        }
-    }
-
     pub fn invitation_application_service(&self) -> InvitationApplicationService {
         InvitationApplicationService {
             implem: Arc::new(MockInvitationService {
@@ -397,7 +411,7 @@ impl TestWorld {
             db: self.db.clone(),
             notification_service: self.notifcation_service(),
             invitation_repository: self.invitation_repository().clone(),
-            workspace_service: self.workspace_service(),
+            workspace_service: self.workspace_service().clone(),
             auth_service: self.auth_service().clone(),
             xmpp_service: self.xmpp_service().clone(),
             user_repository: self.user_repository().clone(),

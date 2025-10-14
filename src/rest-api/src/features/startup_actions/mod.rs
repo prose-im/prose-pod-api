@@ -63,8 +63,8 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         run_step!(db_configure);
         run_step!(db_run_migrations);
         run_step!(test_services_reachability);
-        run_step!(wait_for_server);
         run_step!(validate_app_config_changes);
+        run_step!(wait_for_server);
         run_step!(init_server_config);
         run_step!(register_oauth2_client);
         run_step!(start_cron_tasks);

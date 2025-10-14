@@ -53,8 +53,6 @@ impl FromRequest<AppState> for Avatar {
 
         async fn from_bytes(req: Request) -> Result<Avatar, AvatarFromRequestError> {
             let bytes = Bytes::from_request(req, &()).await?;
-            // TODO: Find a way to avoid this copy? Using `bytes::Bytes`
-            //   internally could be a good idea.
             let avatar = Avatar::try_from_bytes(bytes)?;
             Ok(avatar)
         }

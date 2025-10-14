@@ -146,6 +146,7 @@ pub enum LuaValue {
     Bool(bool),
     Number(LuaNumber),
     String(String),
+    Env(String),
     List(Vec<LuaValue>),
     Map(LinkedHashMap<String, LuaValue>),
 }
@@ -153,7 +154,7 @@ pub enum LuaValue {
 impl LuaValue {
     pub fn is_scalar(&self) -> bool {
         match self {
-            Self::Bool(_) | Self::Number(_) | Self::String(_) => true,
+            Self::Bool(_) | Self::Number(_) | Self::String(_) | Self::Env(_) => true,
             Self::List(_) | Self::Map(_) => false,
         }
     }

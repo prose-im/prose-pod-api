@@ -4,10 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::extract::OptionalFromRequestParts;
-use service::{
-    auth::{IsAdmin, UserInfo},
-    members::MemberRole,
-};
+use service::auth::{IsAdmin, UserInfo};
 
 use crate::extractors::prelude::*;
 
@@ -21,7 +18,7 @@ impl FromRequestParts<AppState> for IsAdmin {
     ) -> Result<Self, Self::Rejection> {
         let user_info = UserInfo::from_request_parts(parts, state).await?;
 
-        if user_info.role == MemberRole::Admin {
+        if user_info.is_admin() {
             Ok(Self)
         } else {
             Err(Error::from(error::Forbidden(format!(

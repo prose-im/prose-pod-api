@@ -28,6 +28,7 @@ use service::{
     pod_version::PodVersionService,
     prose_pod_server_service::ProsePodServerService,
     secrets_store::SecretsStore,
+    workspace::WorkspaceService,
     xmpp::XmppService,
     AppConfig,
 };
@@ -51,6 +52,7 @@ pub struct AppState {
     pub auth_service: AuthService,
     pub email_notifier: Option<Notifier<EmailNotification>>,
     pub network_checker: NetworkChecker,
+    pub workspace_service: WorkspaceService,
     pub licensing_service: LicensingService,
     pub pod_version_service: PodVersionService,
     pub factory_reset_service: FactoryResetService,
