@@ -101,7 +101,10 @@ pub(crate) fn check_admin(
         return Ok(());
     }
 
-    match auth_service_state.read().unwrap().sessions.get(auth) {
+    let state = auth_service_state
+        .read()
+        .expect("Auth service state poisoned");
+    match state.sessions.get(auth) {
         Some(session) if MemberRole::try_from(&session.role) == Ok(MemberRole::Admin) => Ok(()),
         Some(session) => Err(Either::E1(Forbidden(format!(
             "'{}' is not an admin.",

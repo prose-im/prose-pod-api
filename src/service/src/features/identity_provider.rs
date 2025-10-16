@@ -6,16 +6,18 @@
 use std::sync::Arc;
 
 use crate::{
+    errors::Forbidden,
     members::MemberService,
     models::{xmpp::BareJid, EmailAddress},
+    util::either::Either,
     xmpp::XmppServiceContext,
 };
 
-pub use self::vcard::VcardIdentityProvider;
+pub use self::live::LiveIdentityProvider;
 
 #[derive(Debug, Clone)]
 pub struct IdentityProvider {
-    implem: Arc<dyn IdentityProviderImpl>,
+    pub implem: Arc<dyn IdentityProviderImpl>,
 }
 
 impl IdentityProvider {
@@ -37,34 +39,38 @@ pub trait IdentityProviderImpl: std::fmt::Debug + Sync + Send {
     async fn get_email_address(
         &self,
         jid: &BareJid,
-        // TODO: Remove this, as it won’t make sense with other IdPs we might
-        //   support in the future. At the moment it’s non-trivial because of
-        //   how `XmppService` works and how state is passed around in the API,
-        //   but we’ll get there eventually.
-        member_service: &MemberService,
         ctx: &XmppServiceContext,
-    ) -> anyhow::Result<Option<EmailAddress>>;
+    ) -> Result<Option<EmailAddress>, anyhow::Error>;
+
+    async fn set_email_address(
+        &self,
+        jid: &BareJid,
+        email_address: EmailAddress,
+        ctx: &XmppServiceContext,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>>;
 }
 
-mod vcard {
-    use crate::members::VCardData;
+mod live {
+    use crate::{members::VCardData, prosody::ProsodyHttpAdminApi, util::JidExt as _};
 
     use super::*;
 
-    #[derive(Debug, Default)]
-    pub struct VcardIdentityProvider;
+    #[derive(Debug)]
+    pub struct LiveIdentityProvider {
+        pub member_service: MemberService,
+        pub admin_api: Arc<ProsodyHttpAdminApi>,
+    }
 
     #[async_trait::async_trait]
-    impl IdentityProviderImpl for VcardIdentityProvider {
+    impl IdentityProviderImpl for LiveIdentityProvider {
         async fn get_email_address(
             &self,
             jid: &BareJid,
-            member_service: &MemberService,
             ctx: &XmppServiceContext,
-        ) -> anyhow::Result<Option<EmailAddress>> {
+        ) -> Result<Option<EmailAddress>, anyhow::Error> {
             use std::str::FromStr as _;
 
-            match member_service.get_vcard(jid, ctx).await {
+            match self.member_service.get_vcard(jid, ctx).await {
                 Some(VCardData {
                     email: Some(email_address),
                     ..
@@ -84,6 +90,26 @@ mod vcard {
                     Ok(None)
                 }
             }
+        }
+
+        async fn set_email_address(
+            &self,
+            jid: &BareJid,
+            email_address: EmailAddress,
+            ctx: &XmppServiceContext,
+        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+            use crate::prosody::prosody_http_admin_api::UpdateUserInfoRequest;
+
+            self.admin_api
+                .update_user(
+                    jid.expect_username(),
+                    &UpdateUserInfoRequest {
+                        email: Some(email_address),
+                        ..Default::default()
+                    },
+                    &ctx.auth_token,
+                )
+                .await
         }
     }
 }

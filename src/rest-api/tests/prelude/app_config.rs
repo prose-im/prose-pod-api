@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use service::{
     auth::AuthService,
+    identity_provider::IdentityProvider,
     invitations::InvitationRepository,
     licensing::LicensingService,
     members::{UserApplicationService, UserRepository},
@@ -18,8 +19,8 @@ use service::{
 };
 
 use crate::prelude::mocks::{
-    MockAuthService, MockInvitationRepository, MockServerService, MockUserRepository,
-    MockUserService, MockWorkspaceService, MockXmppService,
+    MockAuthService, MockIdentityProvider, MockInvitationRepository, MockServerService,
+    MockUserRepository, MockUserService, MockWorkspaceService, MockXmppService,
 };
 
 use super::{
@@ -45,7 +46,7 @@ pub fn reload_config(world: &mut crate::TestWorld) {
     });
 
     let mock_user_repository = Arc::new(MockUserRepository {
-        state: Default::default(),
+        state: world.mock_user_repository_state.clone(),
         mock_server_state: world.mock_server_state.clone(),
         mock_auth_service_state: world.mock_auth_service_state.clone(),
         mock_xmpp_service: mock_xmpp_service.clone(),
@@ -81,6 +82,9 @@ pub fn reload_config(world: &mut crate::TestWorld) {
     let mock_workspace_service = Arc::new(MockWorkspaceService {
         state: world.mock_workspace_service_state().clone(),
         mock_auth_service: mock_auth_service.clone(),
+    });
+    let mock_identity_provider = Arc::new(MockIdentityProvider {
+        mock_user_repository_state: world.mock_user_repository_state.clone(),
     });
 
     world.licensing_service = Some(LicensingService::new(mock_licensing_service.clone()));
@@ -120,4 +124,9 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         implem: mock_workspace_service.clone(),
     });
     world.mock_workspace_service = Some(mock_workspace_service);
+
+    world.identity_provider = Some(IdentityProvider {
+        implem: mock_identity_provider.clone(),
+    });
+    world.mock_identity_provider = Some(mock_identity_provider);
 }

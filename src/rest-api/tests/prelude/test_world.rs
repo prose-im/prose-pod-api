@@ -15,7 +15,7 @@ use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
     auth::{AuthService, AuthToken},
     factory_reset::FactoryResetService,
-    identity_provider::{IdentityProvider, VcardIdentityProvider},
+    identity_provider::IdentityProvider,
     invitations::{
         invitation_service::InvitationApplicationService, Invitation, InvitationRepository,
         InvitationService,
@@ -83,15 +83,15 @@ pub struct TestWorld {
     pub mock_user_application_service: Option<Arc<MockUserService>>,
     #[allow(unused)]
     pub mock_invitation_application_service: Option<MockInvitationService>,
-    pub identity_provider: IdentityProvider,
-    #[allow(unused)]
-    pub mock_identity_provider: Arc<MockIdentityProvider>,
+    pub identity_provider: Option<IdentityProvider>,
+    pub mock_identity_provider: Option<Arc<MockIdentityProvider>>,
     pub result: Option<TestResponse>,
     pub scenario_workspace_invitation: Option<(EmailAddress, Invitation)>,
 
     pub mock_server_state: Arc<RwLock<MockServerServiceState>>,
     pub mock_auth_service_state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_xmpp_service_state: Arc<RwLock<MockXmppServiceState>>,
+    pub mock_user_repository_state: Arc<RwLock<MockUserRepositoryState>>,
     pub mock_workspace_service_state: Option<Arc<RwLock<MockWorkspaceServiceState>>>,
 
     pub api: Option<TestServer>,
@@ -193,9 +193,6 @@ impl TestWorld {
         let mock_email_notifier = Arc::new(MockNotifier::<EmailNotification>::default());
         let mock_network_checker = Arc::new(MockNetworkChecker::default());
         let mock_pod_version_service = Arc::new(MockPodVersionService::default());
-        let mock_identity_provider = Arc::new(MockIdentityProvider {
-            implem: VcardIdentityProvider,
-        });
 
         let mut world = Self {
             app_config: None,
@@ -225,8 +222,8 @@ impl TestWorld {
             mock_network_checker,
             server_service: None,
             mock_server_service: None,
-            identity_provider: IdentityProvider::new(mock_identity_provider.clone()),
-            mock_identity_provider,
+            identity_provider: None,
+            mock_identity_provider: None,
             user_repository: None,
             mock_user_repository: None,
             invitation_repository: None,
@@ -238,6 +235,7 @@ impl TestWorld {
             mock_server_state: Default::default(),
             mock_auth_service_state: Default::default(),
             mock_xmpp_service_state: Default::default(),
+            mock_user_repository_state: Default::default(),
             mock_workspace_service_state: None,
         };
 
@@ -355,11 +353,16 @@ impl TestWorld {
             .as_ref()
             .expect("workspace_service not initialized")
     }
-    #[allow(unused)]
-    pub fn mock_workspace_service(&self) -> &Arc<MockWorkspaceService> {
-        self.mock_workspace_service
+    pub fn identity_provider(&self) -> &IdentityProvider {
+        self.identity_provider
             .as_ref()
-            .expect("mock_workspace_service not initialized")
+            .expect("identity_provider not initialized")
+    }
+    #[allow(unused)]
+    pub fn mock_identity_provider(&self) -> &Arc<MockIdentityProvider> {
+        self.mock_identity_provider
+            .as_ref()
+            .expect("mock_identity_provider not initialized")
     }
     pub fn mock_workspace_service_state(&mut self) -> &Arc<RwLock<MockWorkspaceServiceState>> {
         let server_domain = self.app_config().server_domain().to_string();

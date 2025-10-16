@@ -19,14 +19,15 @@ use service::{
     app_config::{pub_defaults as defaults, LogConfig},
     auth::{AuthService, LiveAuthService},
     factory_reset::FactoryResetService,
-    identity_provider::{IdentityProvider, VcardIdentityProvider},
+    identity_provider::{IdentityProvider, LiveIdentityProvider},
     invitations::{
         invitation_service::{InvitationApplicationService, LiveInvitationApplicationService},
         InvitationRepository, LiveInvitationRepository,
     },
     licensing::{LicensingService, LiveLicensingService},
     members::{
-        LiveUserApplicationService, LiveUserRepository, UserApplicationService, UserRepository,
+        LiveUserApplicationService, LiveUserRepository, MemberService, UserApplicationService,
+        UserRepository,
     },
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
@@ -254,6 +255,17 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         }),
     };
 
+    let user_application_service = UserApplicationService {
+        implem: Arc::new(LiveUserApplicationService {
+            server_api: server_api.clone(),
+        }),
+    };
+    let invitation_application_service = InvitationApplicationService {
+        implem: Arc::new(LiveInvitationApplicationService {
+            invites_register_api: prosody_invites_register_api.clone(),
+        }),
+    };
+
     let xmpp_service = XmppService {
         implem: Arc::new(LiveXmppService::from_config(
             &app_config,
@@ -274,7 +286,19 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         http_client.clone(),
     )));
     let factory_reset_service = FactoryResetService::default();
-    let identity_provider = IdentityProvider::new(Arc::new(VcardIdentityProvider));
+    let member_service = MemberService::new(
+        user_repository.clone(),
+        user_application_service.clone(),
+        app_config.server_domain().to_owned(),
+        xmpp_service.clone(),
+        auth_service.clone(),
+        None,
+        &app_config.api.member_enriching,
+    );
+    let identity_provider = IdentityProvider::new(Arc::new(LiveIdentityProvider {
+        member_service: member_service.clone(),
+        admin_api: prosody_http_admin_api.clone(),
+    }));
     let prose_pod_server_service = ProsePodServerService(Arc::new(LiveProsePodServerService {
         config_file_path: app_config.prosody_ext.config_file_path.clone(),
         server_api: server_api.clone(),
@@ -297,17 +321,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         }),
     };
 
-    let user_application_service = UserApplicationService {
-        implem: Arc::new(LiveUserApplicationService {
-            server_api: server_api.clone(),
-        }),
-    };
-    let invitation_application_service = InvitationApplicationService {
-        implem: Arc::new(LiveInvitationApplicationService {
-            invites_register_api: prosody_invites_register_api.clone(),
-        }),
-    };
-
     AppState {
         base,
         db,
@@ -317,6 +330,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         xmpp_service,
         auth_service,
         email_notifier,
+        member_service,
         network_checker,
         workspace_service,
         licensing_service,

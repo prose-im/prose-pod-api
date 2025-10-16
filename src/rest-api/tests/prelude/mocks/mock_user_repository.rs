@@ -134,7 +134,7 @@ impl UserRepositoryImpl for MockUserRepository {
 
         let jid = BareJid::from_parts(Some(username), &self.server_domain);
 
-        let mut state = self.state.write().unwrap();
+        let mut state = self.state_mut();
         if state.users.remove(&jid).is_none() {
             return Err(Either3::E1(MemberNotFound(username.to_string())));
         };
@@ -153,7 +153,9 @@ impl MockUserRepository {
 
     #[inline]
     pub(crate) fn state_mut(&self) -> RwLockWriteGuard<'_, MockUserRepositoryState> {
-        self.state.write().unwrap()
+        self.state
+            .write()
+            .expect("MockUserRepository state poisoned")
     }
 
     pub(crate) fn raw_role(&self, jid: &BareJid) -> Option<ProsodyRoleName> {

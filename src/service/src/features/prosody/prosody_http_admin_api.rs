@@ -18,6 +18,7 @@ use crate::{
     errors::{Forbidden, GroupAlreadyExists, GroupNotFound},
     invitations::{errors::InvitationNotFound, InvitationId, InvitationToken},
     members::{errors::MemberNotFound, Member, MemberRole},
+    models::EmailAddress,
     prosody::ProsodyRoleName,
     util::{
         either::{Either, Either3},
@@ -270,6 +271,7 @@ pub struct UpdateUserInfoRequest {
     // pub display_name: Option<String>,
     pub role: Option<ProsodyRoleName>,
     pub enabled: Option<bool>,
+    pub email: Option<EmailAddress>,
 }
 
 // MARK: Groups

@@ -14,7 +14,7 @@ use service::{
         auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
         UserInfo,
     },
-    members::{MemberRole, MemberService},
+    members::MemberRole,
     models::SerializableSecretString,
     notifications::NotificationService,
     util::either::Either,
@@ -77,7 +77,6 @@ pub async fn request_password_reset_route(
         ..
     }): State<AppState>,
     ref notification_service: NotificationService,
-    ref member_service: MemberService,
     ref caller: UserInfo,
     ref ctx: XmppServiceContext,
     Path(ref jid): Path<BareJid>,
@@ -89,7 +88,6 @@ pub async fn request_password_reset_route(
         None,
         identity_provider,
         auth_service,
-        member_service,
         caller,
         ctx,
     )

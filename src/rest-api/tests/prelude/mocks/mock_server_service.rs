@@ -45,7 +45,8 @@ impl MockServerService {
 pub fn check_online(
     mock_server_state: &Arc<RwLock<MockServerServiceState>>,
 ) -> Result<(), anyhow::Error> {
-    if mock_server_state.read().unwrap().online {
+    let state = mock_server_state.read().expect("Server state poisoned");
+    if state.online {
         Ok(())
     } else {
         Err(anyhow::Error::msg("Prose Pod Server offline"))

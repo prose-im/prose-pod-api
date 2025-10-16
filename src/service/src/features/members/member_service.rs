@@ -36,7 +36,9 @@ pub mod prelude {
     pub use super::{UserApplicationServiceImpl, VCardData};
 }
 
-use crate::{errors::Unauthorized, util::either::Either3, xmpp::XmppService};
+use crate::{
+    errors::Unauthorized, members::errors::MemberNotFound, util::either::Either3, xmpp::XmppService,
+};
 
 pub use self::live_user_service::LiveUserApplicationService;
 use self::prelude::*;
@@ -184,7 +186,7 @@ impl MemberService {
         self.user_repository
             .delete_user(username, auth)
             .await
-            .context("XMPP server cannot delete user")?;
+            .or_else(ok_if_not_found)?;
 
         Ok(())
     }
@@ -547,6 +549,16 @@ impl From<EnrichedMember> for Member {
             jid: value.jid,
             role: value.role,
         }
+    }
+}
+
+// MARK: - Helpers
+
+fn ok_if_not_found<E2, E3>(err: Either3<MemberNotFound, E2, E3>) -> Result<(), Either<E2, E3>> {
+    match err {
+        Either3::E1(_) => Ok(()),
+        Either3::E2(err) => Err(Either::E1(err)),
+        Either3::E3(err) => Err(Either::E2(err)),
     }
 }
 

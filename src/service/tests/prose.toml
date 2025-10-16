@@ -13,8 +13,5 @@ domain = "test.org"
 [notifiers.email]
 smtp_host = "test.org"
 
-[auth]
-oauth2_registration_key = "dummy-test-key"
-
 [debug_only.dependency_modes]
 notifier = "logging"

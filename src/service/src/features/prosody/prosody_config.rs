@@ -189,15 +189,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 .into_iter()
                 .collect(),
             ),
-            reload_modules: Some(
-                vec![
-                    "tls",
-                    "prose_version",
-                ]
-                .into_iter()
-                .map(ToString::to_string)
-                .collect(),
-            ),
+            reload_modules: Some(vec!["tls"].into_iter().map(ToString::to_string).collect()),
             consider_websocket_secure: Some(true),
             cross_domain_websocket: None,
             upgrade_legacy_vcards: Some(true),

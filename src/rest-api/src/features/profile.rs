@@ -22,7 +22,9 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
                 .route("/nickname", put(set_member_nickname_route))
                 .route(
                     "/email-address",
-                    MethodRouter::new().get(get_member_email_address_route),
+                    MethodRouter::new()
+                        .get(get_member_email_address_route)
+                        .put(set_member_email_address_route),
                 ),
         )
         .route_layer(from_extractor_with_state::<Authenticated, _>(
@@ -39,7 +41,7 @@ mod routes {
     };
     use service::{
         auth::UserInfo,
-        members::{MemberService, Nickname},
+        members::Nickname,
         models::{Avatar, BareJid, EmailAddress},
         xmpp::{XmppService, XmppServiceContext},
     };
@@ -67,12 +69,32 @@ mod routes {
         Ok(NoContent)
     }
 
+    pub async fn set_member_email_address_route(
+        State(AppState {
+            ref identity_provider,
+            ..
+        }): State<AppState>,
+        Path(jid): Path<BareJid>,
+        ref ctx: XmppServiceContext,
+        ref caller: UserInfo,
+        Json(email_address): Json<EmailAddress>,
+    ) -> Result<(), Error> {
+        if !(caller.jid == jid || caller.is_admin()) {
+            Err(error::Forbidden("You cannot do that.".to_string()))?
+        }
+
+        identity_provider
+            .set_email_address(&jid, email_address, ctx)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn get_member_email_address_route(
         State(AppState {
             ref identity_provider,
             ..
         }): State<AppState>,
-        ref member_service: MemberService,
         ref caller: UserInfo,
         ref ctx: XmppServiceContext,
         Path(jid): Path<BareJid>,
@@ -81,9 +103,7 @@ mod routes {
             Err(error::Forbidden("You cannot do that.".to_string()))?
         }
 
-        let email_address = identity_provider
-            .get_email_address(&jid, member_service, ctx)
-            .await?;
+        let email_address = identity_provider.get_email_address(&jid, ctx).await?;
 
         Ok(Json(email_address))
     }

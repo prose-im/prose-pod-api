@@ -11,7 +11,7 @@ use crate::{
     errors::Forbidden,
     identity_provider::IdentityProvider,
     invitations::InvitationContact,
-    members::{MemberRole, MemberService, UserRepository},
+    members::{MemberRole, UserRepository},
     notifications::{notifier::email::EmailNotification, NotificationService},
     util::{
         either::{Either, Either3, Either4},
@@ -78,7 +78,6 @@ pub async fn request_password_reset(
     contact: Option<InvitationContact>,
     identity_provider: &IdentityProvider,
     auth_service: &AuthService,
-    member_service: &MemberService,
     caller: &UserInfo,
     ctx: &XmppServiceContext,
 ) -> Result<(), Either<Forbidden, anyhow::Error>> {
@@ -101,7 +100,7 @@ pub async fn request_password_reset(
     let contact = match contact {
         Some(contact) => contact,
         None => {
-            let email_address = identity_provider.get_email_address(jid, member_service, ctx).await?.expect(
+            let email_address = identity_provider.get_email_address(jid, ctx).await?.expect(
                 "Until we implement #342, this should have been set already (except for the #256 bug).",
             );
             InvitationContact::Email { email_address }

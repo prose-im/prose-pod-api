@@ -13,14 +13,6 @@ impl FromRequestParts<AppState> for service::members::MemberService {
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        Ok(Self::new(
-            state.user_repository.clone(),
-            state.user_application_service.clone(),
-            state.app_config.server_domain().to_owned(),
-            state.xmpp_service.clone(),
-            state.auth_service.clone(),
-            None,
-            &state.app_config.api.member_enriching,
-        ))
+        Ok(state.member_service.clone())
     }
 }
