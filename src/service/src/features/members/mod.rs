@@ -29,7 +29,7 @@ pub mod errors {
         CannotSelfRemove,
         #[error("{0}")]
         Forbidden(#[from] Forbidden),
-        #[error("Internal error: {0}")]
+        #[error("{0:#}")]
         Internal(#[from] anyhow::Error),
     }
 

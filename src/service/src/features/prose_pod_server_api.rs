@@ -36,7 +36,7 @@ pub enum ProsePodServerError {
     Unavailable,
     #[error("{0}")]
     Forbidden(Forbidden),
-    #[error("{0}")]
+    #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
 }
 

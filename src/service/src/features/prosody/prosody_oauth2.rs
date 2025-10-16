@@ -243,7 +243,7 @@ pub enum ProsodyOAuth2Error {
     Unauthorized(String),
     #[error("Forbidden: {0}")]
     Forbidden(String),
-    #[error("Internal error: {0}")]
+    #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
 }
 

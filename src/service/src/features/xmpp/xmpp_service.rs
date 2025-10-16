@@ -163,7 +163,7 @@ pub enum XmppServiceError {
 
 impl From<anyhow::Error> for XmppServiceError {
     fn from(err: anyhow::Error) -> Self {
-        Self::Other(format!("{err}"))
+        Self::Other(format!("{err:#}"))
     }
 }
 

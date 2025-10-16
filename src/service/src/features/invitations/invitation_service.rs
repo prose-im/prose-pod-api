@@ -255,11 +255,14 @@ pub struct InviteUserCommand {
 
 #[derive(Debug)]
 #[derive(thiserror::Error)]
-#[error("{0}")]
 pub enum InviteUserError {
+    #[error("{0}")]
     Forbidden(#[from] Forbidden),
+    #[error("{0}")]
     InvitationAlreadyExists(#[from] InvitationAlreadyExists),
+    #[error("{0}")]
     UsernameAlreadyTaken(#[from] UsernameAlreadyTaken),
+    #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
 }
 
