@@ -50,6 +50,9 @@ async fn main() {
         .install_default()
         .expect("Could not install default crypto provider.");
 
+    let todo1 = "Try to run make-demo-scenarios";
+    let todo2 = "Update scenarios";
+
     // NOTE: Can only be called once.
     let (_tracing_guard, tracing_reload_handles) = {
         let figment = AppConfig::figment();
@@ -236,6 +239,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
             invites_register_api: prosody_invites_register_api.clone(),
             password_reset_token_ttl: app_config.auth.password_reset_token_ttl.to_std()
                 .expect("`app_config.auth.password_reset_token_ttl` contains years or months. Not supported."),
+            min_password_length: app_config.auth.min_password_length,
         }),
     };
 
@@ -296,6 +300,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         &app_config.api.member_enriching,
     );
     let identity_provider = IdentityProvider::new(Arc::new(LiveIdentityProvider {
+        db: db.clone(),
         member_service: member_service.clone(),
         admin_api: prosody_http_admin_api.clone(),
     }));

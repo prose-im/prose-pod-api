@@ -31,5 +31,11 @@ pub struct CannotResetPassword;
 pub struct MissingEmailAddress(pub BareJid);
 
 #[derive(Debug, thiserror::Error)]
+pub enum PasswordValidationError {
+    #[error("Password too short. Minimum: {min_len}, got {len}.")]
+    TooShort { min_len: u8, len: usize },
+}
+
+#[derive(Debug, thiserror::Error)]
 #[error("Token expired.")]
 pub struct PasswordResetTokenExpired;

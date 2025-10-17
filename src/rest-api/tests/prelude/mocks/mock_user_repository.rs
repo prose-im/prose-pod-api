@@ -112,7 +112,7 @@ impl UserRepositoryImpl for MockUserRepository {
 
         let jid = BareJid::from_parts(Some(username), &self.server_domain);
 
-        let mut state = self.state.write().unwrap();
+        let mut state = self.state_mut();
         state
             .users
             .get_mut(&jid)

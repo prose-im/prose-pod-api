@@ -13,6 +13,43 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LoginResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+  set_member_recovery_email_address:
+    tags: [Auth]
+    summary: Set member recovery email address
+    description: Set a member’s recovery email address.
+    operationId: set_member_recovery_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_member_recovery_email_address:
+    tags: [Auth]
+    summary: Get member recovery email address
+    description: Get a member’s recovery email address.
+    operationId: get_member_recovery_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "../shared.yaml#/components/schemas/EmailAddress"
+              type: [string, "null"]
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   request_password_reset:
     tags: [Auth]
     summary: Request password reset
@@ -68,6 +105,7 @@ paths:
                   const: password_reset_token_expired
             example:
               error: password_reset_token_expired
+
 components:
   schemas:
     LoginResponse:

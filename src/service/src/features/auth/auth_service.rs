@@ -11,14 +11,14 @@ pub mod prelude {
 
     pub use crate::{
         auth::{
-            errors::{InvalidCredentials, PasswordResetTokenExpired},
+            auth_service::{self, AuthServiceImpl},
+            errors::{InvalidCredentials, PasswordResetTokenExpired, PasswordValidationError},
             models::{AuthToken, Password, PasswordResetRequestInfo, PasswordResetToken, UserInfo},
-            AuthServiceImpl,
         },
         errors::{Forbidden, Unauthorized},
         invitations::InvitationContact,
         models::jid::{BareJid, NodeRef},
-        util::either::{Either, Either3},
+        util::either::{Either, Either3, Either4},
     };
 }
 
@@ -28,6 +28,18 @@ use self::prelude::*;
 #[derive(Debug, Clone)]
 pub struct AuthService {
     pub implem: Arc<dyn AuthServiceImpl>,
+}
+
+#[inline]
+pub fn validate_password(password: &Password, min_len: u8) -> Result<(), PasswordValidationError> {
+    use secrecy::ExposeSecret as _;
+
+    let len = password.expose_secret().len();
+    if len < min_len as usize {
+        return Err(PasswordValidationError::TooShort { min_len, len });
+    };
+
+    Ok(())
 }
 
 #[async_trait::async_trait]
@@ -43,8 +55,6 @@ pub trait AuthServiceImpl: std::fmt::Debug + Sync + Send {
         auth: &AuthToken,
     ) -> Result<UserInfo, Either<Unauthorized, anyhow::Error>>;
 
-    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error>;
-
     async fn revoke(&self, token: AuthToken) -> Result<(), anyhow::Error>;
 
     async fn create_password_reset_token(
@@ -55,11 +65,16 @@ pub trait AuthServiceImpl: std::fmt::Debug + Sync + Send {
         auth: &AuthToken,
     ) -> Result<PasswordResetRequestInfo, Either<Forbidden, anyhow::Error>>;
 
+    fn validate_password(&self, password: &Password) -> Result<(), PasswordValidationError>;
+
     async fn reset_password(
         &self,
         token: PasswordResetToken,
         password: &Password,
-    ) -> Result<(), Either3<PasswordResetTokenExpired, Forbidden, anyhow::Error>>;
+    ) -> Result<
+        (),
+        Either4<PasswordValidationError, PasswordResetTokenExpired, Forbidden, anyhow::Error>,
+    >;
 }
 
 mod live_auth_service {
@@ -85,6 +100,7 @@ mod live_auth_service {
         pub admin_api: Arc<ProsodyHttpAdminApi>,
         pub invites_register_api: ProsodyInvitesRegisterApi,
         pub password_reset_token_ttl: Duration,
+        pub min_password_length: u8,
     }
 
     #[async_trait::async_trait]
@@ -112,13 +128,6 @@ mod live_auth_service {
                     Err(Either::E1(Unauthorized(msg)))
                 }
                 Err(err) => Err(Either::E2(anyhow::Error::new(err))),
-            }
-        }
-
-        async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
-            match self.oauth2.register().await {
-                Ok(()) => Ok(()),
-                Err(err) => Err(anyhow!(err).context("Prosody OAuth 2.0 error")),
             }
         }
 
@@ -174,11 +183,20 @@ mod live_auth_service {
             })
         }
 
+        fn validate_password(&self, password: &Password) -> Result<(), PasswordValidationError> {
+            auth_service::validate_password(password, self.min_password_length)
+        }
+
         async fn reset_password(
             &self,
             token: PasswordResetToken,
             password: &Password,
-        ) -> Result<(), Either3<PasswordResetTokenExpired, Forbidden, anyhow::Error>> {
+        ) -> Result<
+            (),
+            Either4<PasswordValidationError, PasswordResetTokenExpired, Forbidden, anyhow::Error>,
+        > {
+            self.validate_password(password).map_err(Either4::E1)?;
+
             match self
                 .invites_register_api
                 .register_with_invite(None, password, token)
@@ -186,11 +204,11 @@ mod live_auth_service {
             {
                 Ok(_) => Ok(()),
                 Err(Either4::E1(InvitationNotFoundForToken)) => {
-                    Err(Either3::E1(PasswordResetTokenExpired))
+                    Err(Either4::E2(PasswordResetTokenExpired))
                 }
-                Err(Either4::E2(err)) => Err(Either3::E2(err)),
+                Err(Either4::E2(err)) => Err(Either4::E3(err)),
                 Err(Either4::E3(MemberAlreadyExists(_))) => unreachable!(),
-                Err(Either4::E4(err)) => Err(Either3::E3(err)),
+                Err(Either4::E4(err)) => Err(Either4::E4(err)),
             }
         }
     }

@@ -23,7 +23,7 @@ pub struct InitFirstAccountRequest {
     #[validate(skip)] // NOTE: Already parsed.
     pub username: JidNode,
 
-    #[validate(nested)]
+    #[validate(skip)] // NOTE: Will be checked later.
     pub password: Password,
 
     #[validate(nested)]

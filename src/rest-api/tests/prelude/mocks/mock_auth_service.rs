@@ -19,6 +19,7 @@ pub struct MockAuthService {
     pub state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_user_repository: Arc<MockUserRepository>,
     pub password_reset_tokens_ttl: Duration,
+    pub min_password_length: u8,
     pub server_domain: JidDomain,
 }
 
@@ -151,13 +152,6 @@ impl AuthServiceImpl for MockAuthService {
         }
     }
 
-    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
-        self.server.check_online()?;
-
-        // NOTE: Nothing to do in tests
-        Ok(())
-    }
-
     async fn revoke(&self, token: AuthToken) -> Result<(), anyhow::Error> {
         self.server.check_online()?;
 
@@ -216,23 +210,31 @@ impl AuthServiceImpl for MockAuthService {
         Ok(info)
     }
 
+    fn validate_password(&self, password: &Password) -> Result<(), PasswordValidationError> {
+        auth_service::validate_password(password, self.min_password_length)
+    }
+
     async fn reset_password(
         &self,
         token: PasswordResetToken,
         password: &Password,
-    ) -> Result<(), Either3<PasswordResetTokenExpired, Forbidden, anyhow::Error>> {
+    ) -> Result<
+        (),
+        Either4<PasswordValidationError, PasswordResetTokenExpired, Forbidden, anyhow::Error>,
+    > {
         self.server.check_online()?;
+        self.validate_password(password).map_err(Either4::E1)?;
 
         let jid = {
             let state = self.state();
             let reset_request = state.password_reset_tokens.get(&token);
 
             let Some(reset_request) = reset_request else {
-                return Err(Either3::E1(PasswordResetTokenExpired));
+                return Err(Either4::E2(PasswordResetTokenExpired));
             };
 
             if reset_request.is_expired() {
-                return Err(Either3::E1(PasswordResetTokenExpired));
+                return Err(Either4::E2(PasswordResetTokenExpired));
             }
 
             reset_request.jid.to_owned()

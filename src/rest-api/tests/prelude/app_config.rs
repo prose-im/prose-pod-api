@@ -71,6 +71,7 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         server: mock_server_service.clone(),
         mock_user_repository: mock_user_repository.clone(),
         password_reset_tokens_ttl: config.auth.password_reset_token_ttl.to_std().unwrap(),
+        min_password_length: config.auth.min_password_length,
         server_domain: config.server_domain().clone(),
     });
     let mock_user_application_service = Arc::new(MockUserService {
@@ -84,6 +85,7 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         mock_auth_service: mock_auth_service.clone(),
     });
     let mock_identity_provider = Arc::new(MockIdentityProvider {
+        state: world.mock_identity_provider_state.clone(),
         mock_user_repository_state: world.mock_user_repository_state.clone(),
     });
 

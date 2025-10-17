@@ -7,13 +7,14 @@ use crate::{
     auth::AuthToken,
     errors::Forbidden,
     invitations::{
-        invitation_service::{AcceptAccountInvitationCommand, InviteUserError},
+        invitation_service::{
+            AcceptAccountInvitationCommand, AcceptAccountInvitationError, InviteUserError,
+        },
         InvitationRepository,
     },
-    licensing::errors::UserLimitReached,
     members::Member,
     models::{Paginated, Pagination, PaginationForm},
-    util::either::{Either, Either3, Either4},
+    util::either::{Either, Either3},
 };
 
 use super::{errors::*, models::*, InvitationService};
@@ -172,10 +173,7 @@ pub async fn invitation_accept(
     invitation_service: &InvitationService,
     token: InvitationToken,
     command: AcceptAccountInvitationCommand,
-) -> Result<
-    Member,
-    Either4<UserLimitReached, InvitationNotFoundForToken, MemberAlreadyExists, anyhow::Error>,
-> {
+) -> Result<Member, AcceptAccountInvitationError> {
     invitation_service
         .accept_account_invitation(token, command)
         .await

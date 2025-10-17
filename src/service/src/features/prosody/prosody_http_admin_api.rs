@@ -251,21 +251,22 @@ impl ProsodyHttpAdminApi {
 
 #[derive(Deserialize)]
 pub struct UserInfo {
-    jid: BareJid,
-    // username: JidNode,
-    // display_name: String,
-    role: Option<ProsodyRoleName>,
-    // secondary_roles: Vec<ProsodyRoleName>,
+    pub jid: BareJid,
+    // pub username: JidNode,
+    // pub display_name: String,
+    pub role: Option<ProsodyRoleName>,
+    // pub secondary_roles: Vec<ProsodyRoleName>,
     // // NOTE: Not yet implemented.
-    // email: EmailAddress,
+    // pub email: EmailAddress,
     // // NOTE: Not yet implemented.
-    // phone: String,
-    // groups: Vec<String>,
+    // pub phone: String,
+    // pub groups: Vec<String>,
     #[serde(default, with = "chrono::serde::ts_seconds_option")]
-    last_active: Option<DateTime<Utc>>,
+    pub last_active: Option<DateTime<Utc>>,
 }
 
 #[derive(Default)]
+#[serde_with::skip_serializing_none]
 #[derive(Serialize)]
 pub struct UpdateUserInfoRequest {
     // pub display_name: Option<String>,
@@ -614,6 +615,7 @@ impl ProsodyHttpAdminApi {
     }
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(Serialize)]
 pub struct CreateAccountInvitationRequest {
     pub username: Option<JidNode>,
@@ -625,6 +627,7 @@ pub struct CreateAccountInvitationRequest {
     pub additional_data: serde_json::Value,
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(Serialize)]
 pub struct CreateAccountResetInvitationRequest {
     pub username: Option<JidNode>,
@@ -664,8 +667,11 @@ impl From<UserInfo> for Member {
         let role: ProsodyRoleName = info.role.expect("Members should have roles");
 
         Self {
+            role: MemberRole::try_from(&role).expect(&format!(
+                "Member `{jid}` should have a supported role",
+                jid = &info.jid
+            )),
             jid: info.jid,
-            role: MemberRole::try_from(&role).expect("Members should have supported roles"),
         }
     }
 }

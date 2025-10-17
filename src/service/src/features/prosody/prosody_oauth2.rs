@@ -3,8 +3,12 @@
 // Copyright: 2024, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::sync::Arc;
+
 use anyhow::Context;
+use chrono::{DateTime, Utc};
 use mime::Mime;
+use parking_lot::RwLock;
 use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
 use secrecy::{ExposeSecret as _, SecretString};
 use serde_json::json;
@@ -23,6 +27,7 @@ use crate::{
 pub struct ProsodyOAuth2 {
     http_client: HttpClient,
     base_url: String,
+    client_info: Arc<RwLock<Option<RegisterResponse>>>,
 }
 
 impl ProsodyOAuth2 {
@@ -30,6 +35,7 @@ impl ProsodyOAuth2 {
         Self {
             http_client,
             base_url: format!("{}/oauth2", config.server.http_url()),
+            client_info: Default::default(),
         }
     }
 
@@ -100,12 +106,18 @@ impl ProsodyOAuth2 {
         password: &SecretString,
     ) -> Result<Option<SecretString>, ProsodyOAuth2Error> {
         let jid = jid.to_string();
+
+        let oauth2_client = self.client_info().await?;
+
         let response = self
             .call(
                 |client| {
                     client
                         .post(self.url("token"))
-                        .basic_auth(jid.clone(), Some(password.expose_secret()))
+                        .basic_auth(
+                            oauth2_client.client_id.as_str(),
+                            Some(oauth2_client.client_secret.expose_secret()),
+                        )
                         .header("Content-Type", "application/x-www-form-urlencoded")
                         .body(
                             form_urlencoded::Serializer::new(String::new())
@@ -143,7 +155,9 @@ impl ProsodyOAuth2 {
         Ok(Some(res.access_token))
     }
 
-    pub async fn register(&self) -> Result<(), Error> {
+    pub async fn register(&self) -> Result<RegisterResponse, Error> {
+        tracing::debug!("Registering Pod API OAuth 2.0 client…");
+
         let response = self
             .call(
                 |client| {
@@ -159,23 +173,42 @@ impl ProsodyOAuth2 {
             )
             .await?;
 
-        let _: RegisterResponse = serde_json::from_str(&response.text())
+        let response: RegisterResponse = serde_json::from_str(&response.text())
             .context("Could not decode Prosody OAuth2 API response")?;
 
-        Ok(())
+        Ok(response)
+    }
+
+    async fn client_info(&self) -> Result<RegisterResponse, Error> {
+        let registered_info = self.client_info.read().clone();
+
+        match registered_info.as_ref() {
+            Some(client_info) if client_info.is_expired() => {
+                tracing::info!("Pod API OAuth 2.0 client expired, registering again…");
+                self.register().await
+            }
+            Some(client_info) => Ok(client_info.clone()),
+            None => self.register().await,
+        }
     }
 
     pub async fn revoke(&self, token: AuthToken) -> Result<(), Error> {
-        use secrecy::ExposeSecret as _;
+        let oauth2_client = self.client_info().await?;
 
         self.call(
             |client| {
                 client
                     .post(self.url("revoke"))
-                    .bearer_auth(token.expose_secret())
-                    .json(&json!({
-                        "token": token.expose_secret(),
-                    }))
+                    .basic_auth(
+                        oauth2_client.client_id.as_str(),
+                        Some(oauth2_client.client_secret.expose_secret()),
+                    )
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .body(
+                        form_urlencoded::Serializer::new(String::new())
+                            .append_pair("token", token.expose_secret())
+                            .finish(),
+                    )
             },
             |res| res.status.is_success(),
         )
@@ -232,8 +265,19 @@ struct TokenResponse {
 ///     "client_secret_expires_at": 0
 /// }
 /// ```
-#[derive(Debug, Deserialize)]
-struct RegisterResponse {}
+#[derive(Debug, Clone, Deserialize)]
+pub struct RegisterResponse {
+    pub client_id: String,
+    pub client_secret: SecretString,
+    #[serde(rename = "exp", with = "chrono::serde::ts_seconds")]
+    pub expires_at: DateTime<Utc>,
+}
+
+impl RegisterResponse {
+    fn is_expired(&self) -> bool {
+        self.expires_at < Utc::now()
+    }
+}
 
 type Error = ProsodyOAuth2Error;
 

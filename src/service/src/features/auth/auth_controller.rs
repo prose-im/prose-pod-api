@@ -14,7 +14,7 @@ use crate::{
     members::{MemberRole, UserRepository},
     notifications::{notifier::email::EmailNotification, NotificationService},
     util::{
-        either::{Either, Either3, Either4},
+        either::{Either, Either4},
         JidExt as _,
     },
     xmpp::XmppServiceContext,
@@ -100,7 +100,7 @@ pub async fn request_password_reset(
     let contact = match contact {
         Some(contact) => contact,
         None => {
-            let email_address = identity_provider.get_email_address(jid, ctx).await?.expect(
+            let email_address = identity_provider.get_recovery_email_address_with_fallback(jid, ctx).await?.expect(
                 "Until we implement #342, this should have been set already (except for the #256 bug).",
             );
             InvitationContact::Email { email_address }
@@ -134,6 +134,7 @@ pub async fn reset_password(
     token: PasswordResetToken,
     password: &Password,
     auth_service: &AuthService,
-) -> Result<(), Either3<PasswordResetTokenExpired, Forbidden, anyhow::Error>> {
+) -> Result<(), Either4<PasswordValidationError, PasswordResetTokenExpired, Forbidden, anyhow::Error>>
+{
     auth_service.reset_password(token, password).await
 }

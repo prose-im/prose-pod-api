@@ -188,7 +188,7 @@ update-member-n() {
 	local email="${MEMBER_EMAILS[n]}"
 	if [ -n "${email?}" ]; then
 		info "Set ${MEMBER_JIDS[n]}’s email address"
-		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/email-address -q \
+		edo xh PUT :8080/v1/members/"${MEMBER_JIDS[n]}"/recovery-email-address -q \
 			--raw "\"${email:?}\"" \
 			-A bearer -a "${MEMBER_TOKENS[n]}"
 	else

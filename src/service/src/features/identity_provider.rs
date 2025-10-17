@@ -36,13 +36,33 @@ impl std::ops::Deref for IdentityProvider {
 
 #[async_trait::async_trait]
 pub trait IdentityProviderImpl: std::fmt::Debug + Sync + Send {
-    async fn get_email_address(
+    async fn get_public_email_address(
         &self,
         jid: &BareJid,
         ctx: &XmppServiceContext,
     ) -> Result<Option<EmailAddress>, anyhow::Error>;
 
-    async fn set_email_address(
+    async fn get_recovery_email_address(
+        &self,
+        jid: &BareJid,
+        ctx: &XmppServiceContext,
+    ) -> Result<Option<EmailAddress>, anyhow::Error>;
+
+    async fn get_recovery_email_address_with_fallback(
+        &self,
+        jid: &BareJid,
+        ctx: &XmppServiceContext,
+    ) -> Result<Option<EmailAddress>, anyhow::Error> {
+        // Look for a dedicated password recovery email address.
+        if let recovery_email @ Some(_) = self.get_recovery_email_address(jid, ctx).await? {
+            return Ok(recovery_email);
+        }
+
+        // Fallback to public email address (e.g. in vCard).
+        self.get_public_email_address(jid, ctx).await
+    }
+
+    async fn set_recovery_email_address(
         &self,
         jid: &BareJid,
         email_address: EmailAddress,
@@ -51,19 +71,22 @@ pub trait IdentityProviderImpl: std::fmt::Debug + Sync + Send {
 }
 
 mod live {
-    use crate::{members::VCardData, prosody::ProsodyHttpAdminApi, util::JidExt as _};
+    use crate::{
+        members::VCardData, models::DatabaseRwConnectionPools, prosody::ProsodyHttpAdminApi,
+    };
 
     use super::*;
 
     #[derive(Debug)]
     pub struct LiveIdentityProvider {
+        pub db: DatabaseRwConnectionPools,
         pub member_service: MemberService,
         pub admin_api: Arc<ProsodyHttpAdminApi>,
     }
 
     #[async_trait::async_trait]
     impl IdentityProviderImpl for LiveIdentityProvider {
-        async fn get_email_address(
+        async fn get_public_email_address(
             &self,
             jid: &BareJid,
             ctx: &XmppServiceContext,
@@ -92,24 +115,31 @@ mod live {
             }
         }
 
-        async fn set_email_address(
+        async fn get_recovery_email_address(
+            &self,
+            jid: &BareJid,
+            _ctx: &XmppServiceContext,
+        ) -> Result<Option<EmailAddress>, anyhow::Error> {
+            use crate::auth::recovery_emails_store as store;
+
+            let todo = "Migrate data from previous table to KV store";
+            store::get_typed(&self.db.read, jid.as_str()).await
+        }
+
+        async fn set_recovery_email_address(
             &self,
             jid: &BareJid,
             email_address: EmailAddress,
-            ctx: &XmppServiceContext,
+            _ctx: &XmppServiceContext,
         ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-            use crate::prosody::prosody_http_admin_api::UpdateUserInfoRequest;
+            crate::auth::recovery_emails_store::set_typed(
+                &self.db.write,
+                jid.as_str(),
+                email_address,
+            )
+            .await?;
 
-            self.admin_api
-                .update_user(
-                    jid.expect_username(),
-                    &UpdateUserInfoRequest {
-                        email: Some(email_address),
-                        ..Default::default()
-                    },
-                    &ctx.auth_token,
-                )
-                .await
+            Ok(())
         }
     }
 }

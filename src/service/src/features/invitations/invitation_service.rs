@@ -39,7 +39,7 @@ pub mod prelude {
     };
 }
 
-use crate::licensing::errors::UserLimitReached;
+use crate::{auth::errors::PasswordValidationError, licensing::errors::UserLimitReached};
 
 pub use self::live_invitation_service::LiveInvitationApplicationService;
 use self::prelude::*;
@@ -106,14 +106,14 @@ impl InvitationService {
         &self,
         token: InvitationToken,
         command: AcceptAccountInvitationCommand,
-    ) -> Result<
-        Member,
-        Either4<UserLimitReached, InvitationNotFoundForToken, MemberAlreadyExists, anyhow::Error>,
-    > {
+    ) -> Result<Member, AcceptAccountInvitationError> {
+        // Validate password.
+        self.auth_service.validate_password(&command.password)?;
+
         // Check user limit.
         let user_count = self.user_repository.users_stats(None).await?.count as u32;
         if !self.licensing_service.allows_user_count(user_count + 1) {
-            return Err(Either4::E1(UserLimitReached));
+            return Err(UserLimitReached.into());
         }
 
         let Some(invitation) = self
@@ -121,7 +121,7 @@ impl InvitationService {
             .get_account_invitation_by_token(&token)
             .await?
         else {
-            return Err(Either4::E2(InvitationNotFoundForToken));
+            return Err(InvitationNotFoundForToken.into());
         };
 
         let jid = self
@@ -147,8 +147,7 @@ impl InvitationService {
         self.xmpp_service
             .create_own_vcard(&ctx, &command.nickname, Some(email_address))
             .await
-            .context("Could not create user vCard4")
-            .map_err(Either4::E4)?;
+            .context("Could not create user vCard4")?;
 
         let user_info = self
             .auth_service
@@ -159,11 +158,14 @@ impl InvitationService {
         let member = Member::from(user_info);
 
         // Revoke token because it will never be used again.
-        self.auth_service
-            .revoke(ctx.auth_token)
-            .await
-            .context("Could not revoke temporary auth token")
-            .map_err(Either4::E4)?;
+        // FIXME: Re-enable this once we implement proper OAuth 2.0 (calling
+        //   `revoke` with a token granted using the ROPC “password” flow
+        //   fails with `403 Forbidden`). We can just let this token expire.
+        //   No one will know since we don’t provide a way to see the tokens…
+        // self.auth_service
+        //     .revoke(ctx.auth_token)
+        //     .await
+        //     .context("Could not revoke temporary auth token")?;
 
         Ok(member)
     }
@@ -246,6 +248,28 @@ impl InvitationService {
     }
 }
 
+#[derive(Debug)]
+pub struct AcceptAccountInvitationCommand {
+    pub nickname: Nickname,
+    pub password: Password,
+    pub email: Option<EmailAddress>,
+}
+
+#[derive(Debug)]
+#[derive(thiserror::Error)]
+pub enum AcceptAccountInvitationError {
+    #[error("{0}")]
+    InvalidPassword(#[from] PasswordValidationError),
+    #[error("{0}")]
+    UserLimitReached(#[from] UserLimitReached),
+    #[error("{0}")]
+    InvitationNotFound(#[from] InvitationNotFoundForToken),
+    #[error("{0}")]
+    MemberAlreadyExists(#[from] MemberAlreadyExists),
+    #[error("{0:#}")]
+    Internal(#[from] anyhow::Error),
+}
+
 pub struct InviteUserCommand {
     pub username: JidNode,
     pub role: MemberRole,
@@ -264,13 +288,6 @@ pub enum InviteUserError {
     UsernameAlreadyTaken(#[from] UsernameAlreadyTaken),
     #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
-}
-
-#[derive(Debug)]
-pub struct AcceptAccountInvitationCommand {
-    pub nickname: Nickname,
-    pub password: Password,
-    pub email: Option<EmailAddress>,
 }
 
 // MARK: - Application Service
@@ -352,9 +369,22 @@ impl std::ops::Deref for InvitationApplicationService {
     }
 }
 
+impl<E1, E2, E3> From<Either3<E1, E2, E3>> for AcceptAccountInvitationError
+where
+    Self: From<E1> + From<E2> + From<E3>,
+{
+    fn from(either: Either3<E1, E2, E3>) -> Self {
+        match either {
+            Either3::E1(err) => Self::from(err),
+            Either3::E2(err) => Self::from(err),
+            Either3::E3(err) => Self::from(err),
+        }
+    }
+}
+
 impl<E1, E2> From<Either<E1, E2>> for InviteUserError
 where
-    InviteUserError: From<E1> + From<E2>,
+    Self: From<E1> + From<E2>,
 {
     fn from(either: Either<E1, E2>) -> Self {
         match either {

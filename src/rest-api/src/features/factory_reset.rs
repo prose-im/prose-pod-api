@@ -126,7 +126,7 @@ pub async fn restart_guard(
 impl Validate for FactoryResetRequest {
     fn validate(&self) -> Result<(), ValidationErrors> {
         match self {
-            Self::PasswordConfirmation { password } => password.validate(),
+            Self::PasswordConfirmation { .. } => Ok(()),
             Self::ConfirmationToken(confirmation) => confirmation.validate(),
         }
     }

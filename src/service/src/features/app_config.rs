@@ -37,6 +37,15 @@ pub const API_CONFIG_DIR: &'static str = "/etc/prose";
 pub const CONFIG_FILE_NAME: &'static str = "prose.toml";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
 
+/// NOTE: In demos we use the password “demo” to make logging in easier.
+#[cfg(debug_assertions)]
+pub const MINIMUM_PASSWORD_LENGTH: u8 = 1;
+/// If MFA is enabled passwords shorter than 8 characters are
+/// considered to be weak (NIST SP800-63B). The API won’t accept
+/// choosing a `auth.min_password_length` setting lower than that.
+#[cfg(not(debug_assertions))]
+pub const MINIMUM_PASSWORD_LENGTH: u8 = 8;
+
 lazy_static! {
     pub static ref CONFIG_FILE_PATH: PathBuf =
         (Path::new(API_CONFIG_DIR).join(CONFIG_FILE_NAME)).to_path_buf();
@@ -130,6 +139,9 @@ fn default_config_static() -> Figment {
         sqlx_logging = false
 
         [auth]
+        // See [NIST Special Publication 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html#passwordver)
+        // and [Authentication - OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#implement-proper-password-strength-controls).
+        min_password_length = 15
         token_ttl = "PT3H"
         password_reset_token_ttl = "PT15M"
         invitation_ttl = "P1W"
@@ -808,6 +820,8 @@ mod server_api {
 }
 
 mod auth {
+    use crate::app_config::MINIMUM_PASSWORD_LENGTH;
+
     use super::prelude::*;
 
     #[derive(Debug)]
@@ -815,6 +829,9 @@ mod auth {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct AuthConfig {
+        #[validate(range(min = MINIMUM_PASSWORD_LENGTH))]
+        pub min_password_length: u8,
+
         pub token_ttl: iso8601_duration::Duration,
 
         pub password_reset_token_ttl: iso8601_duration::Duration,
@@ -997,8 +1014,9 @@ mod debug_only {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct DebugOnlyConfig {
-        /// When automatically accepting invitations during testing, one might want to authenticate
-        /// the created member. With this flag turned on, the member's password will be their JID.
+        /// When automatically accepting invitations during testing, one might
+        /// want to authenticate the created member. With this flag turned on,
+        /// the member's password will be their JID.
         #[serde(default)]
         pub insecure_password_on_auto_accept_invitation: bool,
 

@@ -62,6 +62,9 @@ modules_enabled = {
 }
 modules_disabled = { "s2s" }
 
+-- mod_reload_modules
+reload_modules = { "tls" }
+
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
 allow_registration = false
 
@@ -89,9 +92,6 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
--- mod_reload_modules
-reload_modules = { "tls" }
-
 -- mod_cloud_notify
 push_notification_with_body = true
 push_notification_with_sender = true
@@ -104,6 +104,9 @@ VirtualHost "test.org"
     "http_oauth2";
     "admin_rest";
   }
+
+  -- mod_reload_modules
+  reload_modules = { "http_oauth2" }
 
   -- HTTP settings
   http_host = "prose-pod-server"

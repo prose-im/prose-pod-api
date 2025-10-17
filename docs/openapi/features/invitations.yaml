@@ -257,9 +257,8 @@ components:
           type: boolean
     InvitationId:
       description: The unique identifier of an invitation.
-      type: integer
-      format: int32
-      example: 42
+      type: string
+      example: FZBDmy1ROTqb65JafQvfa4vV
     InvitationContact:
       description: |-
         How to contact someone.

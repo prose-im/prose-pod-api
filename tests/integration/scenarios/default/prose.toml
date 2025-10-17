@@ -19,3 +19,6 @@ url = "http://localhost:8081"
 [notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
+
+[auth]
+min_password_length = 4

@@ -180,6 +180,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
         push_if_some(
             &mut res,
             Group::flattened(
+                "mod_reload_modules".into(),
+                vec![
+                    option_def(None, "reload_modules", reload_modules),
+                    option_def(None, "reload_global_modules", reload_global_modules),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
                 None,
                 vec![
                     option_def(
@@ -419,16 +429,6 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "disco_items", disco_items),
                     option_def(None, "disco_hidden", disco_hidden),
                     option_def(None, "disco_expose_admins", disco_expose_admins),
-                ],
-            ),
-        );
-        push_if_some(
-            &mut res,
-            Group::flattened(
-                "mod_reload_modules".into(),
-                vec![
-                    option_def(None, "reload_modules", reload_modules),
-                    option_def(None, "reload_global_modules", reload_global_modules),
                 ],
             ),
         );

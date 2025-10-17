@@ -15,3 +15,8 @@ pub mod util;
 pub use auth_service::{AuthService, AuthServiceImpl, LiveAuthService};
 
 pub use self::models::*;
+pub(crate) use self::recovery_emails::kv_store as recovery_emails_store;
+
+mod recovery_emails {
+    crate::gen_scoped_kv_store!(pub(crate) recovery_emails);
+}

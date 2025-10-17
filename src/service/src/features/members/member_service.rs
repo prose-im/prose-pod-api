@@ -37,7 +37,8 @@ pub mod prelude {
 }
 
 use crate::{
-    errors::Unauthorized, members::errors::MemberNotFound, util::either::Either3, xmpp::XmppService,
+    auth::errors::PasswordValidationError, errors::Unauthorized, members::errors::MemberNotFound,
+    util::either::Either3, xmpp::XmppService,
 };
 
 pub use self::live_user_service::LiveUserApplicationService;
@@ -104,9 +105,15 @@ impl MemberService {
         &self,
         username: &NodeRef,
         command: &AcceptAccountInvitationCommand,
-    ) -> Result<Member, Either<FirstAccountAlreadyCreated, anyhow::Error>> {
+    ) -> Result<Member, Either3<PasswordValidationError, FirstAccountAlreadyCreated, anyhow::Error>>
+    {
+        // Validate password.
+        self.auth_service
+            .validate_password(&command.password)
+            .map_err(Either3::E1)?;
+
         if self.user_repository.users_stats(None).await?.count > 0 {
-            return Err(Either::E1(FirstAccountAlreadyCreated));
+            return Err(Either3::E2(FirstAccountAlreadyCreated));
         }
 
         let AcceptAccountInvitationCommand {
@@ -154,11 +161,15 @@ impl MemberService {
             .expect("User account should exist");
 
         // Revoke token because it will never be used again.
-        self.auth_service
-            .revoke(ctx.auth_token)
-            .await
-            .context("Could not revoke temporary auth token")
-            .map_err(Either::E2)?;
+        // FIXME: Re-enable this once we implement proper OAuth 2.0 (calling
+        //   `revoke` with a token granted using the ROPC “password” flow
+        //   fails with `403 Forbidden`). We can just let this token expire.
+        //   No one will know since we don’t provide a way to see the tokens…
+        // self.auth_service
+        //     .revoke(ctx.auth_token)
+        //     .await
+        //     .context("Could not revoke temporary auth token")
+        //     .map_err(Either::E2)?;
 
         Ok(user)
     }
@@ -475,6 +486,12 @@ impl MemberService {
         }
 
         res
+    }
+}
+
+impl MemberService {
+    pub fn invalidate_vcard_cache(&self, jid: &BareJid) {
+        self.vcards_data_cache.remove(jid);
     }
 }
 

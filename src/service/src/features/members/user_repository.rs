@@ -77,7 +77,7 @@ mod live_user_repository {
     use crate::{
         auth::AuthService,
         prose_pod_server_api::{self, ProsePodServerApi, ProsePodServerError},
-        prosody::{ProsodyAdminRest, ProsodyHttpAdminApi},
+        prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyRoleName},
         util::either::to_either3_1_3,
     };
 
@@ -112,6 +112,27 @@ mod live_user_repository {
             // As a fallback, we show roster contacts.
             if caller.is_admin() {
                 let user_infos = self.admin_api.list_users(auth).await?;
+
+                // Filter out service accounts (using role "prosody:registered"
+                // at the moment).
+                // TODO: Allow listing service accounts via another route,
+                //   or a query param.
+                let user_infos = user_infos.into_iter().filter(|info| {
+                    if let Some(ref role) = info.role {
+                        role.as_str() != ProsodyRoleName::REGISTERED_RAW
+                    } else {
+                        // Also filter out accounts without a role.
+                        // It should not even exist so let’s ignore it.
+                        false
+                    }
+                });
+
+                // Sort by JID, ascending. It doesn’t make much sense,
+                // but at least it’s coherent across API calls.
+                // FIXME: Move this Server-side.
+                let mut user_infos = user_infos.collect::<Vec<_>>();
+                user_infos.sort_by(|u1, u2| u1.jid.as_str().cmp(u2.jid.as_str()));
+
                 Ok(user_infos.into_iter().map(Member::from).collect())
             } else {
                 // See [Non-admins cannot see users · Issue #346 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/346).

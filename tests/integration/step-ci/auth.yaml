@@ -98,6 +98,31 @@ tests:
               Content-Type: application/json
             schema:
               $ref: openapi.json#/components/schemas/Error
+  setAndGetRecoveryEmailAddressAsAdmin:
+    name: Set then get a member’s recovery email address as an admin
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: Set email address
+        http:
+          method: PUT
+          url: /v1/members/${{ env.MEMBER_JIDS.0 }}/recovery-email-address
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json: ${{ env.MEMBER_EMAILS.0 }}
+          check:
+            status: /2../
+      - name: Get email address
+        http:
+          method: GET
+          url: /v1/members/${{ env.MEMBER_JIDS.0 }}/recovery-email-address
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            jsonpath:
+              $: ${{ env.MEMBER_EMAILS.0 }}
 
 components:
   steps:

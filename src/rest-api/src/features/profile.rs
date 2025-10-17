@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use axum::middleware::from_extractor_with_state;
-use axum::routing::{put, MethodRouter};
+use axum::routing::put;
 use service::auth::Authenticated;
 
 use crate::AppState;
@@ -19,13 +19,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             MEMBER_ROUTE,
             axum::Router::new()
                 .route("/avatar", put(set_member_avatar_route))
-                .route("/nickname", put(set_member_nickname_route))
-                .route(
-                    "/email-address",
-                    MethodRouter::new()
-                        .get(get_member_email_address_route)
-                        .put(set_member_email_address_route),
-                ),
+                .route("/nickname", put(set_member_nickname_route)),
         )
         .route_layer(from_extractor_with_state::<Authenticated, _>(
             app_state.clone(),
@@ -34,22 +28,15 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 mod routes {
-    use axum::{
-        extract::{Path, State},
-        response::NoContent,
-        Json,
-    };
+    use axum::{extract::Path, response::NoContent, Json};
     use service::{
         auth::UserInfo,
         members::Nickname,
-        models::{Avatar, BareJid, EmailAddress},
+        models::{Avatar, BareJid},
         xmpp::{XmppService, XmppServiceContext},
     };
 
-    use crate::{
-        error::{self, Error},
-        AppState,
-    };
+    use crate::error::{self, Error};
 
     pub async fn set_member_avatar_route(
         Path(member_id): Path<BareJid>,
@@ -67,45 +54,6 @@ mod routes {
         xmpp_service.set_own_avatar(ctx, avatar).await?;
 
         Ok(NoContent)
-    }
-
-    pub async fn set_member_email_address_route(
-        State(AppState {
-            ref identity_provider,
-            ..
-        }): State<AppState>,
-        Path(jid): Path<BareJid>,
-        ref ctx: XmppServiceContext,
-        ref caller: UserInfo,
-        Json(email_address): Json<EmailAddress>,
-    ) -> Result<(), Error> {
-        if !(caller.jid == jid || caller.is_admin()) {
-            Err(error::Forbidden("You cannot do that.".to_string()))?
-        }
-
-        identity_provider
-            .set_email_address(&jid, email_address, ctx)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn get_member_email_address_route(
-        State(AppState {
-            ref identity_provider,
-            ..
-        }): State<AppState>,
-        ref caller: UserInfo,
-        ref ctx: XmppServiceContext,
-        Path(jid): Path<BareJid>,
-    ) -> Result<Json<Option<EmailAddress>>, Error> {
-        if !(caller.jid == jid || caller.is_admin()) {
-            Err(error::Forbidden("You cannot do that.".to_string()))?
-        }
-
-        let email_address = identity_provider.get_email_address(&jid, ctx).await?;
-
-        Ok(Json(email_address))
     }
 
     pub async fn set_member_nickname_route(

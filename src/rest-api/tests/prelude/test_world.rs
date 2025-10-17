@@ -92,6 +92,7 @@ pub struct TestWorld {
     pub mock_auth_service_state: Arc<RwLock<MockAuthServiceState>>,
     pub mock_xmpp_service_state: Arc<RwLock<MockXmppServiceState>>,
     pub mock_user_repository_state: Arc<RwLock<MockUserRepositoryState>>,
+    pub mock_identity_provider_state: Arc<RwLock<MockIdentityProviderState>>,
     pub mock_workspace_service_state: Option<Arc<RwLock<MockWorkspaceServiceState>>>,
 
     pub api: Option<TestServer>,
@@ -236,6 +237,7 @@ impl TestWorld {
             mock_auth_service_state: Default::default(),
             mock_xmpp_service_state: Default::default(),
             mock_user_repository_state: Default::default(),
+            mock_identity_provider_state: Default::default(),
             mock_workspace_service_state: None,
         };
 

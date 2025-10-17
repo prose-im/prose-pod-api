@@ -238,6 +238,12 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         ],
                     ),
                 ],
+                reload_modules: Some(
+                    vec!["http_oauth2"]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                ),
                 contact_info: ContactInfo::from(app_config.public_contacts.deref()).non_empty(),
                 ..Default::default()
             },

@@ -33,6 +33,11 @@ tests:
                 $ref: openapi.json#/components/schemas/Member
             jsonpath:
               $.length: ${{ env.MEMBER_COUNT }}
+              # Check sort order (sorted by JID, ascending).
+              $.[0].jid: "barbara.mante@test.local"
+              $.[1].jid: "charlie.schmitt@test.local"
+              $.[11].jid: "taylor.cartwright@test.local"
+              $.[12].jid: "todd.schultz@test.local"
   listMembersPage2:
     name: Page 2
     steps:
@@ -190,8 +195,8 @@ tests:
             status: 200
             jsonpath:
               $.length: 2
-              $.[0].jid: ${{ env.MEMBER_JIDS.0 }}
-              $.[1].jid: ${{ env.MEMBER_JIDS.4 }}
+              $.[0].jid: ${{ env.MEMBER_JIDS.4 }}
+              $.[1].jid: ${{ env.MEMBER_JIDS.0 }}
   headUnauthenticated:
     name: Get member count without authentication
     steps:
@@ -200,33 +205,9 @@ tests:
           method: HEAD
           url: /v1/members
           check:
-            status: /2../
+            status: 401
             headers:
-              Pagination-Item-Count: 13
-  setAndGetEmailAddress:
-    name: Set then get a member’s email address
-    steps:
-      - name: Set email address
-        http:
-          method: PUT
-          url: /v1/members/${{ env.MEMBER_JIDS.0 }}/email-address
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          json: ${{ env.MEMBER_EMAILS.0 }}
-          check:
-            status: /2../
-      - name: Get email address
-        http:
-          method: GET
-          url: /v1/members/${{ env.MEMBER_JIDS.0 }}/email-address
-          auth:
-            bearer:
-              token: ${{ captures.token }}
-          check:
-            status: 200
-            jsonpath:
-              $: ${{ env.MEMBER_EMAILS.0 }}
+              Pagination-Item-Count: null
 
 components:
   steps:

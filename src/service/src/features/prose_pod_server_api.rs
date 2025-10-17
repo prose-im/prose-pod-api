@@ -97,7 +97,7 @@ impl ProsePodServerApi {
         let response = self
             .call_(
                 |client| {
-                    client.put("/init/first-account").json(&json!({
+                    client.put(self.url("/init/first-account")).json(&json!({
                         "username": username.as_str(),
                         "password": password.expose_secret(),
                     }))

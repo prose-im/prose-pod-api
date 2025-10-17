@@ -187,7 +187,7 @@ pub struct AcceptWorkspaceInvitationRequest {
     #[validate(nested)]
     pub nickname: Nickname,
 
-    #[validate(nested)]
+    #[validate(skip)] // NOTE: Will be checked later.
     pub password: Password,
 
     #[serde(default)]

@@ -8,21 +8,23 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serdev::Serialize;
+use serdev::{Deserialize, Serialize};
 use service::{
     auth::{
         auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
         UserInfo,
     },
     members::MemberRole,
-    models::SerializableSecretString,
+    models::{EmailAddress, SerializableSecretString},
     notifications::NotificationService,
     util::either::Either,
     xmpp::{BareJid, XmppServiceContext},
 };
-use validator::Validate;
 
-use crate::{error::Error, AppState};
+use crate::{
+    error::{self, Error},
+    AppState,
+};
 
 use super::{extractors::BasicAuth, models::Password};
 
@@ -67,6 +69,49 @@ pub async fn set_member_role_route(
     }
 }
 
+// MARK: - Recovery email address
+
+pub async fn set_member_recovery_email_address_route(
+    State(AppState {
+        ref identity_provider,
+        ..
+    }): State<AppState>,
+    Path(jid): Path<BareJid>,
+    ref ctx: XmppServiceContext,
+    ref caller: UserInfo,
+    Json(email_address): Json<EmailAddress>,
+) -> Result<(), Error> {
+    if !(caller.jid == jid || caller.is_admin()) {
+        Err(error::Forbidden("You cannot do that.".to_string()))?
+    }
+
+    identity_provider
+        .set_recovery_email_address(&jid, email_address, ctx)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn get_member_recovery_email_address_route(
+    State(AppState {
+        ref identity_provider,
+        ..
+    }): State<AppState>,
+    ref caller: UserInfo,
+    ref ctx: XmppServiceContext,
+    Path(jid): Path<BareJid>,
+) -> Result<Json<Option<EmailAddress>>, Error> {
+    if !(caller.jid == jid || caller.is_admin()) {
+        Err(error::Forbidden("You cannot do that.".to_string()))?
+    }
+
+    let email_address = identity_provider
+        .get_recovery_email_address_with_fallback(&jid, ctx)
+        .await?;
+
+    Ok(Json(email_address))
+}
+
 // MARK: - Password reset / change
 
 pub async fn request_password_reset_route(
@@ -95,12 +140,10 @@ pub async fn request_password_reset_route(
     Ok(StatusCode::ACCEPTED)
 }
 
-#[derive(Debug, Validate, serdev::Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {
-    #[validate(nested)]
     pub password: Password,
 }
 
