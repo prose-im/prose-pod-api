@@ -17,9 +17,9 @@ pub use self::routes::*;
 use super::members::MEMBER_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
-    let todo1 = "Test set own recovery email address";
-    let todo2 = "Test minimum password length at account creation (write test)";
-    let todo3 = "Test minimum password length at password reset (write test)";
+    let todo = "Test set own recovery email address";
+    let todo = "Test minimum password length at account creation (write test)";
+    let todo = "Test minimum password length at password reset (write test)";
     axum::Router::new()
         .nest(
             MEMBER_ROUTE,

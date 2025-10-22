@@ -3,16 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::Context as _;
 use prose_pod_api::features::{
     auth::models::Password, init::*, workspace_details::InitWorkspaceRequest,
 };
-use service::{
-    members::Nickname, prosody::ProsodyRoleName, secrets_store::ServiceAccountSecrets,
-    workspace::workspace_controller,
-};
+use service::{members::Nickname, workspace::workspace_controller};
 
-use crate::prelude::mocks::{UserAccount, BYPASS_TOKEN};
+use crate::prelude::mocks::BYPASS_TOKEN;
 
 use super::prelude::*;
 
@@ -60,33 +56,6 @@ fn given_xmpp_server_not_initialized(_world: &mut TestWorld) {
 async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<()> {
     // Initialize XMPP server configuration.
     world.server_config_manager().reload(&BYPASS_TOKEN).await?;
-
-    // Create service accounts.
-    {
-        let jid = world.app_config().workspace_jid();
-        let password = dumb_password();
-
-        world
-            .mock_user_repository()
-            .add_service_account(UserAccount {
-                jid: jid.clone(),
-                password: password.clone(),
-                role: ProsodyRoleName::REGISTERED_RAW.into(),
-                joined_at: Utc::now(),
-                email_address: None,
-            })
-            .await
-            .context("Could not create Workspace account")?;
-
-        let prosody_token = world.mock_auth_service().log_in_unchecked(&jid).await?;
-        world.secrets_store().set_service_account_secrets(
-            jid,
-            ServiceAccountSecrets {
-                password,
-                prosody_token,
-            },
-        );
-    }
 
     world.reset_server_ctl_counts();
     Ok(())

@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod live_xmpp_service;
-pub mod server_manager;
 pub mod xmpp_service;
 pub mod models {
     pub use crate::models::xmpp::*;

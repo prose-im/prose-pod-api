@@ -6,7 +6,7 @@
 use std::{fmt::Debug, str::FromStr as _};
 
 use prose_pod_api::error::{self, Error};
-use service::{auth::Password, xmpp::BareJid};
+use service::xmpp::BareJid;
 
 use crate::TestWorld;
 
@@ -37,10 +37,6 @@ pub async fn name_to_jid(world: &TestWorld, name: &str) -> Result<BareJid, Error
             "'{name}' cannot be used in a JID (or '{domain}' isn't a valid domain): {err}"
         ))
     })?)
-}
-
-pub fn dumb_password() -> Password {
-    Password::from("insecure-test-password")
 }
 
 pub fn assert_contains_if<S: Debug, T: Debug + ?Sized>(

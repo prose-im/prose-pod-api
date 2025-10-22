@@ -8,8 +8,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::{
-    auth::AuthToken, errors::*, invitations::models::*, members::MemberRole,
-    prosody::prosody_http_admin_api::InviteInfo, util::either::*, AppConfig, ServerConfig,
+    auth::AuthToken, errors::InvalidConfiguration, invitations::models::*, members::MemberRole,
+    prosody::prosody_http_admin_api::InviteInfo, util::either::Either, AppConfig, ServerConfig,
 };
 
 pub use self::live_prose_pod_server_service::LiveProsePodServerService;
@@ -28,7 +28,7 @@ impl std::ops::Deref for ProsePodServerService {
 
 #[async_trait]
 pub trait ProsePodServerServiceImpl: std::fmt::Debug + Sync + Send {
-    async fn wait_until_ready(&self) -> Result<(), anyhow::Error>;
+    async fn wait_until_ready(&self) -> Result<(), Either<InvalidConfiguration, anyhow::Error>>;
 
     async fn save_config(
         &self,
@@ -36,8 +36,6 @@ pub trait ProsePodServerServiceImpl: std::fmt::Debug + Sync + Send {
         app_config: &AppConfig,
         auth: Option<&AuthToken>,
     ) -> Result<(), anyhow::Error>;
-
-    async fn reset_config(&self, auth: &AuthToken) -> Result<(), Either<Forbidden, anyhow::Error>>;
 
     async fn reload(&self, auth: Option<&AuthToken>) -> Result<(), anyhow::Error>;
 
@@ -52,7 +50,7 @@ mod live_prose_pod_server_service {
     use crate::{
         auth::AuthService,
         models::DatabaseRwConnectionPools,
-        prose_pod_server_api::ProsePodServerApi,
+        prose_pod_server_api::{ProsePodServerApi, ProsePodServerApiStatus},
         prosody::{
             ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi, ProsodyOAuth2,
         },
@@ -82,8 +80,9 @@ mod live_prose_pod_server_service {
             skip_all,
             err
         )]
-        async fn wait_until_ready(&self) -> Result<(), anyhow::Error> {
-            use std::convert::identity as is_true;
+        async fn wait_until_ready(
+            &self,
+        ) -> Result<(), Either<InvalidConfiguration, anyhow::Error>> {
             use std::time::{Duration, Instant};
             use tokio::time::sleep;
 
@@ -91,19 +90,19 @@ mod live_prose_pod_server_service {
             let timeout = Duration::from_secs(10);
             let retry_interval = Duration::from_millis(100);
 
-            while !self.server_api.is_healthy().await.is_ok_and(is_true)
-                && start.elapsed() < timeout
-            {
-                sleep(retry_interval).await;
+            while start.elapsed() < timeout {
+                match self.server_api.health().await {
+                    Ok(ProsePodServerApiStatus::Running) => return Ok(()),
+                    Ok(ProsePodServerApiStatus::Misconfigured(err)) => {
+                        return Err(Either::E1(InvalidConfiguration(err)))
+                    }
+                    Ok(_) | Err(_) => sleep(retry_interval).await,
+                }
             }
 
-            if start.elapsed() >= timeout {
-                return Err(anyhow::Error::msg(
-                    "Timed out while waiting for the Server. Check Server logs.",
-                ));
-            }
-
-            Ok(())
+            Err(Either::E2(anyhow::Error::msg(
+                "Timed out while waiting for the Server. Check Server logs.",
+            )))
         }
 
         #[tracing::instrument(name = "pod::server::save_config", level = "trace", skip_all, err)]
@@ -144,32 +143,6 @@ mod live_prose_pod_server_service {
             Ok(())
         }
 
-        #[tracing::instrument(name = "pod::server::reset_config", level = "trace", skip_all, err)]
-        async fn reset_config(
-            &self,
-            // NOTE: Not used but here as last-resort a safety guard.
-            _auth: &AuthToken,
-        ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-            use crate::prosody::prosody_bootstrap_config;
-            use std::fs::File;
-            use std::io::Write as _;
-
-            let mut file = File::create(&self.config_file_path).context(format!(
-                "Cannot create Prosody config file at path `{path}`",
-                path = self.config_file_path.display()
-            ))?;
-
-            let prosody_config = prosody_bootstrap_config();
-            let prosody_config_file = prosody_config.print_with_bootstrap_header();
-            file.write_all(prosody_config_file.to_string().as_bytes())
-                .context(format!(
-                    "Cannot write Prosody config file at path `{path}`",
-                    path = self.config_file_path.display()
-                ))?;
-
-            Ok(())
-        }
-
         #[tracing::instrument(name = "pod::server::reload", level = "trace", skip_all, err)]
         async fn reload(&self, auth: Option<&AuthToken>) -> Result<(), anyhow::Error> {
             self.server_api.lifecycle_reload(auth).await?;
@@ -183,15 +156,7 @@ mod live_prose_pod_server_service {
             err
         )]
         async fn delete_all_data(&self, auth: &AuthToken) -> Result<(), anyhow::Error> {
-            let todo = "Move to Server API";
-
-            self.admin_rest
-                .call(|client| client.delete(self.admin_rest.url("certs")), auth)
-                .await?;
-            // NOTE: Delete data last otherwise API calls fail because of authentication.
-            self.admin_rest
-                .call(|client| client.delete(self.admin_rest.url("data")), auth)
-                .await?;
+            self.server_api.lifecycle_factory_reset(auth).await?;
 
             Ok(())
         }

@@ -3,7 +3,7 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use bytes::Bytes;
 use mime::Mime;
 use reqwest::{Client as HttpClient, RequestBuilder, Response, StatusCode};
@@ -14,7 +14,10 @@ use tracing::trace;
 
 use crate::{
     auth::{AuthToken, UserInfo},
-    errors::{Forbidden, RequestData, ResponseData, Unauthorized, UnexpectedHttpResponse},
+    errors::{
+        Forbidden, InvalidConfiguration, RequestData, ResponseData, Unauthorized,
+        UnexpectedHttpResponse,
+    },
     init::errors::FirstAccountAlreadyCreated,
     models::{Avatar, Color},
     prosody::ProsodyRoleName,
@@ -36,6 +39,8 @@ pub enum ProsePodServerError {
     Unavailable,
     #[error("{0}")]
     Forbidden(Forbidden),
+    #[error("{0}")]
+    Misconfigured(InvalidConfiguration),
     #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
 }
@@ -59,19 +64,25 @@ impl ProsePodServerApi {
 }
 
 impl ProsePodServerApi {
-    pub async fn health(&self) -> Result<(), ProsePodServerError> {
+    pub async fn health(&self) -> Result<ProsePodServerApiStatus, anyhow::Error> {
         let response = self
-            .call(|client| client.get(self.url("/health")), None)
+            .call_(|client| client.get(self.url("/health")), Ok, None)
             .await?;
-        assert!(response.status().is_success());
-        Ok(())
-    }
 
-    pub async fn is_healthy(&self) -> Result<bool, ProsePodServerError> {
-        match self.health().await {
-            Ok(()) => Ok(true),
-            Err(ProsePodServerError::Unavailable) => Ok(false),
-            Err(err) => Err(err),
+        if response.status().is_success() {
+            Ok(ProsePodServerApiStatus::Running)
+        } else {
+            let error: self::Error = response.json().await?;
+            match error.code.as_str() {
+                "SERVER_STARTING" => Ok(ProsePodServerApiStatus::Starting),
+                "SERVER_RESTARTING" => Ok(ProsePodServerApiStatus::Restarting),
+                "RESTART_FAILED" => Ok(ProsePodServerApiStatus::RestartFailed),
+                "BAD_CONFIGURATION" => {
+                    Ok(ProsePodServerApiStatus::Misconfigured(error.description))
+                }
+                "FACTORY_RESET_IN_PROGRESS" => Ok(ProsePodServerApiStatus::UndergoingFactoryReset),
+                code => panic!("Unexpected code: {code}"),
+            }
         }
     }
 
@@ -81,6 +92,20 @@ impl ProsePodServerApi {
     ) -> Result<(), ProsePodServerError> {
         let response = self
             .call(|client| client.post(self.url("/lifecycle/reload")), auth)
+            .await?;
+        assert!(response.status().is_success());
+        Ok(())
+    }
+
+    pub async fn lifecycle_factory_reset(
+        &self,
+        auth: &AuthToken,
+    ) -> Result<(), ProsePodServerError> {
+        let response = self
+            .call(
+                |client| client.post(self.url("/lifecycle/factory-reset")),
+                Some(auth),
+            )
             .await?;
         assert!(response.status().is_success());
         Ok(())
@@ -252,6 +277,16 @@ impl ProsePodServerApi {
     }
 }
 
+#[derive(Debug)]
+pub enum ProsePodServerApiStatus {
+    Starting,
+    Running,
+    Restarting,
+    RestartFailed,
+    Misconfigured(String),
+    UndergoingFactoryReset,
+}
+
 #[derive(Serialize)]
 pub struct InitWorkspaceRequest {
     pub name: String,
@@ -382,27 +417,53 @@ impl ProsePodServerApi {
         match map_res(response) {
             Ok(res) => Ok(res),
             Err(response) => {
-                let status = response.status();
-                let read_response = async || ResponseData::from(response).await;
-                Err(match status {
-                    StatusCode::SERVICE_UNAVAILABLE => ProsePodServerError::Unavailable,
-                    StatusCode::UNAUTHORIZED => ProsePodServerError::Internal(anyhow::Error::new(
-                        Unauthorized(read_response().await.text()),
-                    )),
-                    StatusCode::FORBIDDEN => {
-                        ProsePodServerError::Forbidden(Forbidden(read_response().await.text()))
+                let response = ResponseData::from(response).await;
+                let error: self::Error = match response.body {
+                    Ok(json) => match serde_json::from_value(json.clone()) {
+                        Ok(error) => error,
+                        Err(err) => {
+                            return Err(ProsePodServerError::Internal(
+                                anyhow::Error::new(err)
+                                    .context(format!("Invalid JSON error: {json:#}")),
+                            ))
+                        }
+                    },
+                    Err(_) => {
+                        return Err(ProsePodServerError::Internal(anyhow::Error::new(
+                            UnexpectedHttpResponse::new(request_data, response, error_description),
+                        )))
                     }
-                    _ => ProsePodServerError::Internal(anyhow::Error::new(
-                        UnexpectedHttpResponse::new(
-                            request_data,
-                            read_response().await,
-                            error_description,
-                        ),
+                };
+
+                Err(match error.code.as_str() {
+                    "FACTORY_RESET_IN_PROGRESS" => ProsePodServerError::Unavailable,
+                    "UNAUTHORIZED" => ProsePodServerError::Internal(anyhow::Error::new(
+                        Unauthorized(error.description),
                     )),
+                    "FORBIDDEN" => ProsePodServerError::Forbidden(Forbidden(error.description)),
+                    "BAD_CONFIGURATION" => {
+                        ProsePodServerError::Misconfigured(InvalidConfiguration(error.description))
+                    }
+                    _ => ProsePodServerError::Internal(anyhow!("{error:?}")),
                 })
             }
         }
     }
+}
+
+#[derive(Debug)]
+#[derive(Deserialize)]
+struct Error {
+    // /// Error kind (to group error codes).
+    // ///
+    // /// E.g. "AUTH_ERROR".
+    // kind: String,
+    /// Error kind (to group error codes).
+    ///
+    /// E.g. "FORBIDDEN".
+    code: String,
+    // message: String,
+    description: String,
 }
 
 // MARK: - Domain conversions

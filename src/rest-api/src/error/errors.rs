@@ -307,3 +307,7 @@ impl HttpApiError for service::errors::NotImplemented {
         ErrorCode::NOT_IMPLEMENTED
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct InvalidServerConfiguration(pub InvalidConfiguration);

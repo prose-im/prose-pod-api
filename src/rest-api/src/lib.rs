@@ -27,7 +27,7 @@ use service::{
     notifications::{notifier::email::EmailNotification, Notifier},
     pod_version::PodVersionService,
     prose_pod_server_service::ProsePodServerService,
-    secrets_store::SecretsStore,
+    util::either::Either,
     workspace::WorkspaceService,
     xmpp::XmppService,
     AppConfig,
@@ -35,6 +35,8 @@ use service::{
 use tower::ServiceBuilder;
 use tracing::{error, instrument};
 use util::{error_catcher, LifecycleManager};
+
+use crate::error::InvalidServerConfiguration;
 
 pub trait AxumState: Clone + Send + Sync + 'static {}
 
@@ -70,7 +72,6 @@ impl AxumState for AppState {}
 #[derive(Debug, Clone)]
 pub struct MinimalAppState {
     pub lifecycle_manager: LifecycleManager,
-    pub secrets_store: SecretsStore,
     pub static_pod_version_service: PodVersionService,
 }
 
@@ -83,8 +84,14 @@ impl FromRef<AppState> for MinimalAppState {
 }
 
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct PreStartupRouter(Router);
+pub struct PreStartupRouter {
+    next: Router,
+    // NOTE: It doesn’t make sense to duplicate state, but this will go
+    //   whenever we fix https://github.com/prose-im/prose-pod-api/issues/357
+    //   or https://github.com/prose-im/prose-pod-api/issues/341.
+    //   It’s just a temporary shortcut.
+    minimal_app_state: MinimalAppState,
+}
 
 /// A custom [`Router`] with a default configuration.
 ///
@@ -94,6 +101,8 @@ pub struct PreStartupRouter(Router);
 /// overlapping routes (failing fast if something’s wrong).
 #[instrument(level = "trace", skip_all)]
 pub fn make_router(app_state: &AppState) -> PreStartupRouter {
+    let minimal_app_state = app_state.base.clone();
+
     let router = Router::new()
         .merge(features::router(app_state.clone()))
         // Include trace context as header into the response.
@@ -107,7 +116,10 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
             restart_guard,
         ));
 
-    PreStartupRouter(router)
+    PreStartupRouter {
+        next: router,
+        minimal_app_state,
+    }
 }
 
 /// A router used only after a factory reset, when the static configuration file
@@ -151,9 +163,15 @@ pub async fn run_startup_actions(
     router: PreStartupRouter,
     app_state: AppState,
 ) -> Result<Router, StartupError> {
-    startup_actions::run_startup_actions(app_state)
-        .await
-        .map_err(StartupError)?;
-
-    Ok(router.0)
+    match startup_actions::run_startup_actions(app_state).await {
+        Ok(Either::E1(())) => Ok(router.next),
+        Ok(Either::E2(InvalidServerConfiguration(_))) => {
+            // NOTE: The factory reset router does what we want, let’s take
+            //   a shortcut and not create another one. This will go when we
+            //   implement https://github.com/prose-im/prose-pod-api/issues/357
+            //   anyway.
+            Ok(factory_reset_router(&router.minimal_app_state))
+        }
+        Err(err) => Err(StartupError(err)),
+    }
 }

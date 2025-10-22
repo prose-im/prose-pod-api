@@ -36,7 +36,6 @@ use service::{
     prose_pod_server_service::{LiveProsePodServerService, ProsePodServerService},
     prose_xmpp::UUIDProvider,
     prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi, ProsodyOAuth2},
-    secrets_store::{LiveSecretsStore, SecretsStore},
     workspace::{LiveWorkspaceService, WorkspaceService},
     xmpp::{LiveXmppService, XmppService},
     AppConfig, HttpClient,
@@ -50,8 +49,8 @@ async fn main() {
         .install_default()
         .expect("Could not install default crypto provider.");
 
-    let todo1 = "Try to run make-demo-scenarios";
-    let todo2 = "Update scenarios";
+    let todo = "Try to run make-demo-scenarios";
+    let todo = "Update scenarios";
 
     // NOTE: Can only be called once.
     let (_tracing_guard, tracing_reload_handles) = {
@@ -69,7 +68,6 @@ async fn main() {
     };
 
     let mut lifecycle_manager = LifecycleManager::new();
-    let secrets_store = SecretsStore(Arc::new(LiveSecretsStore::default()));
 
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
@@ -93,7 +91,6 @@ async fn main() {
         {
             let minimal_app_state = MinimalAppState {
                 lifecycle_manager: lifecycle_manager.clone(),
-                secrets_store: secrets_store.clone(),
                 static_pod_version_service: PodVersionService::new(Arc::new(
                     StaticPodVersionService,
                 )),
@@ -215,7 +212,6 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
 
     // FIXME: Pass a dynamic `AppConfig` to dependencies?
 
-    base.secrets_store.load_config(&app_config);
     let http_client = HttpClient::new();
 
     let prosody_admin_rest = Arc::new(ProsodyAdminRest::from_config(

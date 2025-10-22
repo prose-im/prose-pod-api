@@ -16,7 +16,6 @@ use crate::factory_reset::FactoryResetConfirmationCode;
 use crate::models::DatabaseRwConnectionPools;
 use crate::prose_pod_server_service::ProsePodServerService;
 use crate::util::either::Either;
-use crate::xmpp::server_manager;
 use crate::AppConfig;
 
 use super::{FactoryResetService, InvalidConfirmationCode};
@@ -68,37 +67,31 @@ pub async fn perform_factory_reset(
 
     warn!("Performing a factory reset…");
 
-    debug!("Resetting the server…");
-    (server_manager::reset_server_config(&db.write, server, auth).await)
-        .context("Could not reset server config")
-        .map_err(Either::E2)?;
-
     debug!("Erasing user data from the server…");
-    (server.delete_all_data(auth).await)
-        .context("Could not erase all server data")
-        .map_err(Either::E2)?;
+    server
+        .delete_all_data(auth)
+        .await
+        .context("Could not erase all server data")?;
 
     debug!("Resetting the API’s database…");
     // Close the database connection to make sure SeaORM
     // doesn’t write to it after we empty the file.
-    (db.write.close().await)
-        .context("Could not close the database connection (write)")
-        .map_err(Either::E2)?;
+    (db.write.close())
+        .await
+        .context("Could not close the database connection (write)")?;
     // Close the database connection to make sure SeaORM
     // doesn’t write to it after we empty the file.
-    (db.read.close().await)
-        .context("Could not close the database connection (read)")
-        .map_err(Either::E2)?;
+    (db.read.close())
+        .await
+        .context("Could not close the database connection (read)")?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
     let database_url = (app_config.api.databases.main_url())
         .strip_prefix("sqlite://")
-        .context("Database URL should start with `sqlite://`")
-        .map_err(Either::E2)?;
+        .context("Database URL should start with `sqlite://`")?;
     // NOTE: `File::create` truncates the file if it exists.
     File::create(database_url)
-        .context(format!("Could not reset API database at <{database_url}>"))
-        .map_err(Either::E2)?;
+        .context(format!("Could not reset API database at <{database_url}>"))?;
 
     debug!("Resetting the API’s configuration file…");
     let config_file_path = CONFIG_FILE_PATH.as_path();
@@ -109,8 +102,7 @@ pub async fn perform_factory_reset(
         .context(format!(
             "Could not reset API config file at <{path}>: Cannot open",
             path = config_file_path.display(),
-        ))
-        .map_err(Either::E2)?;
+        ))?;
     let bootstrap_config = r#"# Prose Pod API configuration file
 # Template: https://github.com/prose-im/prose-pod-system/blob/master/templates/prose.toml
 # All keys: https://github.com/prose-im/prose-pod-api/blob/master/src/service/src/features/app_config/mod.rs
@@ -119,8 +111,7 @@ pub async fn perform_factory_reset(
         .context(format!(
             "Could not reset API config file at <{path}>: Cannot write",
             path = config_file_path.display(),
-        ))
-        .map_err(Either::E2)?;
+        ))?;
 
     info!("Factory reset done.");
     Ok(())

@@ -30,7 +30,6 @@ use service::{
     },
     pod_version::PodVersionService,
     prose_pod_server_service::ProsePodServerService,
-    secrets_store::SecretsStore,
     server_config::{ServerConfig, ServerConfigManager},
     util::random_string_alphanumeric,
     workspace::{Workspace, WorkspaceService},
@@ -69,8 +68,6 @@ pub struct TestWorld {
     pub mock_licensing_service: Option<Arc<MockLicensingService>>,
     pub email_notifier: Notifier<EmailNotification>,
     pub mock_email_notifier: Arc<MockNotifier<EmailNotification>>,
-    pub secrets_store: Option<SecretsStore>,
-    pub mock_secrets_store: Option<Arc<MockSecretsStore>>,
     pub network_checker: NetworkChecker,
     pub mock_network_checker: Arc<MockNetworkChecker>,
     #[allow(unused)]
@@ -217,8 +214,6 @@ impl TestWorld {
             email_notifier: Notifier::from(mock_email_notifier.clone()
                 as Arc<dyn GenericNotifier<Notification = EmailNotification>>),
             mock_email_notifier,
-            secrets_store: None,
-            mock_secrets_store: None,
             network_checker: NetworkChecker::new(mock_network_checker.clone()),
             mock_network_checker,
             server_service: None,
@@ -278,16 +273,6 @@ impl TestWorld {
         self.licensing_service
             .as_ref()
             .expect("licensing_service not initialized")
-    }
-    pub fn mock_secrets_store(&self) -> &MockSecretsStore {
-        self.mock_secrets_store
-            .as_ref()
-            .expect("mock_secrets_store not initialized")
-    }
-    pub fn secrets_store(&self) -> &SecretsStore {
-        self.secrets_store
-            .as_ref()
-            .expect("secrets_store not initialized")
     }
     pub fn user_repository(&self) -> &UserRepository {
         self.user_repository

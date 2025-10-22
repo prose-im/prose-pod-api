@@ -12,7 +12,6 @@ use service::{
     licensing::LicensingService,
     members::{UserApplicationService, UserRepository},
     prose_pod_server_service::ProsePodServerService,
-    secrets_store::{LiveSecretsStore, SecretsStore},
     workspace::WorkspaceService,
     xmpp::XmppService,
     AppConfig,
@@ -23,10 +22,7 @@ use crate::prelude::mocks::{
     MockUserRepository, MockUserService, MockWorkspaceService, MockXmppService,
 };
 
-use super::{
-    mocks::{MockLicensingService, MockSecretsStore},
-    test_world::CONFIG_PATH,
-};
+use super::{mocks::MockLicensingService, test_world::CONFIG_PATH};
 
 pub fn reload_config(world: &mut crate::TestWorld) {
     let figment =
@@ -38,7 +34,6 @@ pub fn reload_config(world: &mut crate::TestWorld) {
     world.app_config = Some(config.clone());
 
     let mock_licensing_service = Arc::new(MockLicensingService::new(config.server_fqdn()));
-    let mock_secrets_store = Arc::new(MockSecretsStore::new(LiveSecretsStore::default()));
 
     let mock_xmpp_service = Arc::new(MockXmppService {
         state: world.mock_xmpp_service_state.clone(),
@@ -91,8 +86,6 @@ pub fn reload_config(world: &mut crate::TestWorld) {
 
     world.licensing_service = Some(LicensingService::new(mock_licensing_service.clone()));
     world.mock_licensing_service = Some(mock_licensing_service);
-    world.secrets_store = Some(SecretsStore(mock_secrets_store.clone()));
-    world.mock_secrets_store = Some(mock_secrets_store);
 
     world.user_repository = Some(UserRepository {
         implem: mock_user_repository.clone(),

@@ -76,7 +76,7 @@ pub struct UsersStats {
 mod live_user_repository {
     use crate::{
         auth::AuthService,
-        prose_pod_server_api::{self, ProsePodServerApi, ProsePodServerError},
+        prose_pod_server_api::{self, ProsePodServerApi},
         prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyRoleName},
         util::either::to_either3_1_3,
     };
@@ -154,10 +154,7 @@ mod live_user_repository {
         async fn users_stats(&self, auth: Option<&AuthToken>) -> Result<UsersStats, anyhow::Error> {
             match self.server_api.users_util_stats(auth).await {
                 Ok(response) => Ok(UsersStats::from(response)),
-                // All of those mean something is wrong.
-                Err(err @ ProsePodServerError::Unavailable)
-                | Err(err @ ProsePodServerError::Forbidden(_))
-                | Err(err @ ProsePodServerError::Internal(_)) => Err(anyhow::Error::new(err)),
+                Err(err) => Err(anyhow::Error::new(err)),
             }
         }
 

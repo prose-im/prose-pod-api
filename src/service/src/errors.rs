@@ -22,6 +22,11 @@ pub struct MissingConfiguration(pub &'static str);
 
 #[derive(Debug, thiserror::Error)]
 #[repr(transparent)]
+#[error("Invalid configuration: {0}")]
+pub struct InvalidConfiguration(pub String);
+
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Not implemented: {0}")]
 pub struct NotImplemented(pub &'static str);
 

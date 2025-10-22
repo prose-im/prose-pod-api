@@ -219,17 +219,6 @@ impl MockUserRepository {
         Ok(())
     }
 
-    pub(crate) async fn add_service_account(
-        &self,
-        account: UserAccount,
-    ) -> Result<(), anyhow::Error> {
-        // Create the user account.
-        let jid = account.jid.clone();
-        self.state_mut().users.insert(jid.clone(), account.clone());
-
-        Ok(())
-    }
-
     pub(crate) fn user_count(&self) -> usize {
         let ref all_users = self.state().users;
         // I.e. not service accounts.

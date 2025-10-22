@@ -19,7 +19,6 @@ pub mod pod_version;
 pub mod prose_pod_server_api;
 pub mod prose_pod_server_service;
 pub mod prosody;
-pub mod secrets_store;
 pub mod server_config;
 pub mod workspace;
 pub mod xmpp;

@@ -120,7 +120,7 @@ mod live_invitation_repository {
     use serde_json::json;
 
     use crate::invitations::errors::{InvitationNotFound, InvitationNotFoundForToken};
-    use crate::prose_pod_server_api::{self, ProsePodServerApi, ProsePodServerError};
+    use crate::prose_pod_server_api::{self, ProsePodServerApi};
     use crate::prosody::prosody_http_admin_api::{CreateAccountInvitationRequest, InviteInfo};
     use crate::prosody::{AsProsody as _, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi};
     use crate::util::either::Either3;
@@ -196,10 +196,7 @@ mod live_invitation_repository {
         ) -> Result<InvitationsStats, anyhow::Error> {
             match self.server_api.invitations_util_stats(auth).await {
                 Ok(response) => Ok(InvitationsStats::from(response)),
-                // All of those mean something is wrong.
-                Err(err @ ProsePodServerError::Unavailable)
-                | Err(err @ ProsePodServerError::Forbidden(_))
-                | Err(err @ ProsePodServerError::Internal(_)) => Err(anyhow::Error::new(err)),
+                Err(err) => Err(anyhow::Error::new(err)),
             }
         }
 

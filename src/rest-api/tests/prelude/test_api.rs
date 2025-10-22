@@ -22,7 +22,6 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
     let app_state = AppState {
         base: MinimalAppState {
             lifecycle_manager: lifecycle_manager.clone(),
-            secrets_store: world.secrets_store().clone(),
             static_pod_version_service: world.pod_version_service.clone(),
         },
         db: world.db.clone(),

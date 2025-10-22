@@ -189,9 +189,7 @@ mod live_workspace_service {
     fn separate_forbidden(err: ProsePodServerError) -> Either<Forbidden, anyhow::Error> {
         match err {
             ProsePodServerError::Forbidden(err) => Either::E1(err),
-            err @ ProsePodServerError::Unavailable | err @ ProsePodServerError::Internal(_) => {
-                Either::E2(anyhow::Error::from(err))
-            }
+            err => Either::E2(anyhow::Error::from(err)),
         }
     }
 

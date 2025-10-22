@@ -5,7 +5,7 @@
 
 use service::{
     prose_pod_server_service::*,
-    prosody::{prosody_bootstrap_config, prosody_config_from_db, ProsodyConfig},
+    prosody::{prosody_config_from_db, ProsodyConfig},
     ServerConfig,
 };
 
@@ -55,8 +55,8 @@ pub fn check_online(
 
 #[async_trait]
 impl ProsePodServerServiceImpl for MockServerService {
-    async fn wait_until_ready(&self) -> Result<(), anyhow::Error> {
-        self.check_online()
+    async fn wait_until_ready(&self) -> Result<(), Either<InvalidConfiguration, anyhow::Error>> {
+        self.check_online().map_err(Either::E2)
     }
 
     async fn save_config(
@@ -94,15 +94,6 @@ impl ProsePodServerServiceImpl for MockServerService {
 
         let mut state = self.state.write().unwrap();
         state.applied_config = Some(Arc::new(new_config));
-        Ok(())
-    }
-
-    async fn reset_config(&self, auth: &AuthToken) -> Result<(), Either<Forbidden, anyhow::Error>> {
-        self.check_online()?;
-        check_admin(&self.mock_auth_service_state, auth)?;
-
-        let mut state = self.state.write().unwrap();
-        state.applied_config = Some(Arc::new(prosody_bootstrap_config()));
         Ok(())
     }
 

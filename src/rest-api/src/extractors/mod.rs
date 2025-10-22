@@ -8,7 +8,6 @@ mod avatar;
 mod lua;
 mod notification_service;
 mod prose_pod_server_service;
-mod secrets_store;
 mod xmpp_service;
 
 pub use lua::Lua;

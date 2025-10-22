@@ -41,7 +41,6 @@ mod mock_licensing_service;
 mod mock_network_checker;
 mod mock_notifier;
 mod mock_pod_version_service;
-mod mock_secrets_store;
 mod mock_server_service;
 mod mock_user_repository;
 mod mock_user_service;
@@ -57,7 +56,6 @@ mod mocks {
     pub use super::mock_network_checker::*;
     pub use super::mock_notifier::*;
     pub use super::mock_pod_version_service::*;
-    pub use super::mock_secrets_store::*;
     pub use super::mock_server_service::*;
     pub use super::mock_user_repository::*;
     pub use super::mock_user_service::*;
