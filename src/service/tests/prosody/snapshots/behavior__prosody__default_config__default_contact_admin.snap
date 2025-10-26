@@ -51,13 +51,6 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "reload_modules";
-  "cloud_notify";
-  "register";
-  "prose_version";
-  "http_admin_api";
-  "invites";
-  "invites_groups";
-  "invites_register_api";
   "mam";
 }
 modules_disabled = { "s2s" }
@@ -103,6 +96,13 @@ VirtualHost "test.org"
     "rest";
     "http_oauth2";
     "admin_rest";
+    "cloud_notify";
+    "register";
+    "prose_version";
+    "http_admin_api";
+    "invites";
+    "invites_groups";
+    "invites_register_api";
   }
 
   -- mod_reload_modules

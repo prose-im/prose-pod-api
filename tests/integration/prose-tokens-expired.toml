@@ -15,6 +15,5 @@ smtp_host = "mailpit"
 smtp_encrypt = false
 
 [auth]
-min_password_length = 4
 # Expire tokens immediately, allowing successful log in but not subsequent requests.
 token_ttl = "PT0S"

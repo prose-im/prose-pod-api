@@ -19,6 +19,3 @@ url = "https://admin.prose.test.local"
 [notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
-
-[auth]
-min_password_length = 4

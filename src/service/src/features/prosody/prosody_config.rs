@@ -161,13 +161,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "server_contact_info",
                     "websocket",
                     "reload_modules",
-                    "cloud_notify",
-                    "register",
-                    "prose_version",
-                    "http_admin_api",
-                    "invites",
-                    "invites_groups",
-                    "invites_register_api",
                 ]
                 .into_iter()
                 .map(ToString::to_string)
@@ -201,6 +194,13 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         "rest",
                         "http_oauth2",
                         "admin_rest",
+                        "cloud_notify",
+                        "register",
+                        "prose_version",
+                        "http_admin_api", // Has to be non-global.
+                        "invites",
+                        "invites_groups",
+                        "invites_register_api",
                     ]
                     .into_iter()
                     .map(ToString::to_string)

@@ -43,9 +43,7 @@ async fn reload_route(
             .send()
             .await
         {
-            Ok(response) => {
-                dbg!(response);
-            }
+            Ok(_response) => {}
             Err(err) => {
                 tracing::error!("{err:#}");
                 return StatusCode::INTERNAL_SERVER_ERROR;
