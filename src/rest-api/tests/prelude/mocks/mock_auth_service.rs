@@ -191,11 +191,9 @@ impl AuthServiceImpl for MockAuthService {
         let token = PasswordResetToken::from(random_secret(32));
 
         let jid = BareJid::from_parts(Some(username), &self.server_domain);
-        let created_at = Utc::now();
+        let created_at = OffsetDateTime::now_utc();
         let ttl = ttl.unwrap_or(self.password_reset_tokens_ttl.clone());
-        let expires_at = created_at
-            .checked_add_signed(TimeDelta::from_std(ttl).unwrap())
-            .unwrap();
+        let expires_at = created_at.saturating_add(ttl);
         let info = PasswordResetRequestInfo {
             jid,
             token: token.clone(),
@@ -249,6 +247,13 @@ impl AuthServiceImpl for MockAuthService {
             };
         }
 
+        Ok(())
+    }
+
+    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
+        self.server.check_online()?;
+
+        // NOTE: Nothing to do in tests
         Ok(())
     }
 }

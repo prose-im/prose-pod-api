@@ -47,7 +47,7 @@ services:
         ipv6_address: 2001:db8::40
     # env_file: "${ENV_FILE:?}"
     environment:
-      RUST_LOG: debug,prose_pod_server_api=trace,prosodyctl=trace,ureq=debug,ureq_proto::client=info,ureq::pool=info
+      RUST_LOG: debug,prose_pod_server_api=trace,prosodyctl=trace,ureq=trace,ureq_proto::util=debug,ureq::unversioned=info,ureq_proto::client=info,ureq::pool=info
     # entrypoint: >
     #   sh -c "cp /usr/share/prose/prosody.bootstrap.cfg.lua /etc/prosody/prosody.cfg.lua && prosody"
     # Make sure logs are colored.

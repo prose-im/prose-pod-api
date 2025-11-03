@@ -5,8 +5,8 @@
 
 use std::ops::Deref;
 
-use chrono::{DateTime, Utc};
 use iso8601_timestamp::Timestamp as ISOTimestamp;
+use time::OffsetDateTime;
 
 use crate::error::{self, Error};
 
@@ -16,14 +16,16 @@ use crate::error::{self, Error};
 pub struct Timestamp(ISOTimestamp);
 
 impl Timestamp {
-    pub fn try_into_chrono_datetime(self) -> Result<DateTime<Utc>, Error> {
-        DateTime::from_timestamp_millis(
+    pub fn try_into_offset_date_time(self) -> Result<OffsetDateTime, Error> {
+        OffsetDateTime::from_unix_timestamp(
             self.duration_since(ISOTimestamp::UNIX_EPOCH)
                 .whole_milliseconds() as i64,
         )
-        .ok_or(Error::from(error::BadRequest {
-            reason: "Timestamp out of `DateTime<Utc>` bounds.".to_string(),
-        }))
+        .map_err(|err| {
+            Error::from(error::BadRequest {
+                reason: format!("Timestamp out of `OffsetDateTime` bounds: {err}"),
+            })
+        })
     }
 }
 
@@ -35,10 +37,10 @@ impl Deref for Timestamp {
     }
 }
 
-impl TryInto<DateTime<Utc>> for Timestamp {
+impl TryInto<OffsetDateTime> for Timestamp {
     type Error = Error;
 
-    fn try_into(self) -> Result<DateTime<Utc>, Self::Error> {
-        self.try_into_chrono_datetime()
+    fn try_into(self) -> Result<OffsetDateTime, Self::Error> {
+        self.try_into_offset_date_time()
     }
 }

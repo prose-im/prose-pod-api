@@ -6,10 +6,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use prosody_http::admin_api::InviteInfo;
 
 use crate::{
     auth::AuthToken, errors::InvalidConfiguration, invitations::models::*, members::MemberRole,
-    prosody::prosody_http_admin_api::InviteInfo, util::either::Either, AppConfig, ServerConfig,
+    util::either::Either, AppConfig, ServerConfig,
 };
 
 pub use self::live_prose_pod_server_service::LiveProsePodServerService;
@@ -46,14 +47,13 @@ mod live_prose_pod_server_service {
     use std::path::PathBuf;
 
     use anyhow::Context as _;
+    use prosody_http::{admin_api::ProsodyAdminApi, oauth2::ProsodyOAuth2};
 
     use crate::{
         auth::AuthService,
         models::DatabaseRwConnectionPools,
         prose_pod_server_api::{ProsePodServerApi, ProsePodServerApiStatus},
-        prosody::{
-            ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi, ProsodyOAuth2,
-        },
+        prosody::{ProsodyAdminRest, ProsodyInvitesRegisterApi},
         xmpp::XmppService,
     };
 
@@ -64,7 +64,7 @@ mod live_prose_pod_server_service {
         pub config_file_path: PathBuf,
         pub server_api: ProsePodServerApi,
         pub admin_rest: Arc<ProsodyAdminRest>,
-        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub admin_api: Arc<ProsodyAdminApi>,
         pub auth_service: AuthService,
         pub xmpp_service: XmppService,
         pub oauth2: Arc<ProsodyOAuth2>,
@@ -164,10 +164,10 @@ mod live_prose_pod_server_service {
 
     // MARK: - Boilerplate
 
-    impl TryFrom<InviteInfo> for Invitation {
+    impl TryFrom<&InviteInfo> for Invitation {
         type Error = anyhow::Error;
 
-        fn try_from(invite: InviteInfo) -> Result<Self, Self::Error> {
+        fn try_from(invite: &InviteInfo) -> Result<Self, Self::Error> {
             use crate::models::EmailAddress;
             use anyhow::anyhow;
             use std::str::FromStr as _;
@@ -187,15 +187,23 @@ mod live_prose_pod_server_service {
                 .context("Email address in invitation is invalid")?;
 
             Ok(Self {
-                id: invite.id.clone(),
+                id: invite.id.clone().into(),
                 created_at: invite.created_at,
-                jid: invite.jid,
+                jid: invite.jid.clone(),
                 pre_assigned_role,
                 email_address: email_address,
-                accept_token: invite.id.clone(),
+                accept_token: invite.id.clone().into(),
                 accept_token_expires_at: invite.expires,
-                reject_token: invite.id.clone(),
+                reject_token: invite.id.clone().into(),
             })
+        }
+    }
+
+    impl TryFrom<InviteInfo> for Invitation {
+        type Error = anyhow::Error;
+
+        fn try_from(invite: InviteInfo) -> Result<Self, Self::Error> {
+            Self::try_from(&invite)
         }
     }
 }

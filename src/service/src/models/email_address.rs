@@ -5,7 +5,7 @@
 
 use crate::{models::xmpp::BareJid, wrapper_type};
 
-wrapper_type!(EmailAddress, email_address::EmailAddress);
+wrapper_type!(EmailAddress, email_address::EmailAddress [+FromStr]; serde_with::DeserializeFromStr);
 
 impl From<&BareJid> for EmailAddress {
     fn from(jid: &BareJid) -> Self {

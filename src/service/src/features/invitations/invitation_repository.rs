@@ -7,7 +7,7 @@ pub mod prelude {
     pub use std::sync::Arc;
 
     pub use async_trait::async_trait;
-    pub use chrono::{DateTime, TimeDelta, Utc};
+    pub use time::{Duration, OffsetDateTime};
 
     pub use crate::{
         auth::AuthToken,
@@ -53,13 +53,13 @@ pub trait InvitationRepositoryImpl: std::fmt::Debug + Sync + Send {
         &self,
         page_number: usize,
         page_size: usize,
-        until: Option<DateTime<Utc>>,
+        until: Option<OffsetDateTime>,
         auth: &AuthToken,
     ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), Either<Forbidden, anyhow::Error>> {
         let full_list: Vec<Invitation> = self.list_account_invitations(auth).await?;
 
         // Filter based on date.
-        let until = until.unwrap_or_else(Utc::now);
+        let until = until.unwrap_or_else(OffsetDateTime::now_utc);
         let invitations = full_list
             .into_iter()
             // NOTE: Results aleady sorted by ascending creation date.
@@ -108,7 +108,7 @@ pub struct CreateAccountInvitationCommand {
     pub username: JidNode,
     pub role: MemberRole,
     pub email_address: EmailAddress,
-    pub ttl: Option<TimeDelta>,
+    pub ttl: Option<Duration>,
 }
 
 #[derive(Debug)]
@@ -117,13 +117,14 @@ pub struct InvitationsStats {
 }
 
 mod live_invitation_repository {
+    use prosody_http::admin_api::{
+        self, CreateAccountInvitationRequest, InviteInfo, ProsodyAdminApi,
+    };
     use serde_json::json;
 
-    use crate::invitations::errors::{InvitationNotFound, InvitationNotFoundForToken};
+    use crate::invitations::errors::InvitationNotFoundForToken;
     use crate::prose_pod_server_api::{self, ProsePodServerApi};
-    use crate::prosody::prosody_http_admin_api::{CreateAccountInvitationRequest, InviteInfo};
-    use crate::prosody::{AsProsody as _, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi};
-    use crate::util::either::Either3;
+    use crate::prosody::{AsProsody as _, ProsodyInvitesRegisterApi};
     use crate::TEAM_GROUP_ID;
 
     use super::*;
@@ -131,7 +132,7 @@ mod live_invitation_repository {
     #[derive(Debug)]
     pub struct LiveInvitationRepository {
         pub server_api: ProsePodServerApi,
-        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub admin_api: Arc<ProsodyAdminApi>,
         pub invites_register_api: ProsodyInvitesRegisterApi,
     }
 
@@ -149,14 +150,15 @@ mod live_invitation_repository {
             auth: &AuthToken,
         ) -> Result<Invitation, Either<Forbidden, anyhow::Error>> {
             if let Some(ref ttl) = ttl {
-                assert!(ttl.num_seconds() >= 0);
+                // Assert `ttl > 0`.
+                assert!(ttl.is_positive());
             }
 
             let admin_api_request = CreateAccountInvitationRequest {
-                username: Some(JidNode::from(username)),
-                ttl_secs: ttl.map(|ttl| ttl.num_seconds() as u32),
+                username: Some(username.into()),
+                ttl,
                 groups: Some(vec![TEAM_GROUP_ID.to_owned()]),
-                roles: Some(vec![role.as_prosody()]),
+                roles: Some(vec![role.as_prosody().to_string()]),
                 note: None,
                 additional_data: json!({
                     "email": email_address,
@@ -164,7 +166,7 @@ mod live_invitation_repository {
             };
             let prosody_invite: InviteInfo = self
                 .admin_api
-                .create_invite_for_account(admin_api_request, auth)
+                .create_invite_for_account(&admin_api_request, auth)
                 .await?;
 
             Invitation::try_from(prosody_invite).map_err(Either::E2)
@@ -175,7 +177,7 @@ mod live_invitation_repository {
             &self,
             auth: &AuthToken,
         ) -> Result<Vec<Invitation>, Either<Forbidden, anyhow::Error>> {
-            let prosody_invites: Vec<InviteInfo> = self.admin_api.list_invites(auth).await?;
+            let prosody_invites = self.admin_api.list_invites(auth).await?;
 
             let mut res: Vec<Invitation> = Vec::with_capacity(prosody_invites.len());
             for invite in prosody_invites {
@@ -209,7 +211,7 @@ mod live_invitation_repository {
             let prosody_invites = self.admin_api.list_invites(auth).await?;
 
             match prosody_invites
-                .into_iter()
+                .iter()
                 .find(|invite| invite.jid.node() == Some(username))
             {
                 Some(prosody_invite) => match Invitation::try_from(prosody_invite) {
@@ -227,13 +229,16 @@ mod live_invitation_repository {
             auth: &AuthToken,
         ) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>> {
             match self.admin_api.get_invite_by_id(id, auth).await {
-                Ok(prosody_invite) => match Invitation::try_from(prosody_invite) {
+                Ok(Some(prosody_invite)) => match Invitation::try_from(prosody_invite) {
                     Ok(invitation) => Ok(Some(invitation)),
                     Err(err) => Err(Either::E2(err)),
                 },
-                Err(Either3::E1(err @ Forbidden(_))) => Err(Either::E1(err)),
-                Err(Either3::E2(InvitationNotFound(_))) => Ok(None),
-                Err(Either3::E3(err)) => Err(Either::E2(err)),
+                Ok(None) => Ok(None),
+                Err(admin_api::Error::NotFound(_)) => Ok(None),
+                Err(admin_api::Error::Forbidden(err)) => {
+                    Err(Either::E1(Forbidden(err.to_string())))
+                }
+                Err(err) => Err(Either::E2(anyhow::Error::new(err))),
             }
         }
 
@@ -255,7 +260,10 @@ mod live_invitation_repository {
             token: InvitationToken,
             auth: &AuthToken,
         ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-            self.admin_api.delete_invite(&token, auth).await
+            self.admin_api
+                .delete_invite(&token, auth)
+                .await
+                .map_err(Into::into)
         }
     }
 

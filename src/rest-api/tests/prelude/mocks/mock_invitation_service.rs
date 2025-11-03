@@ -40,7 +40,7 @@ impl InvitationApplicationServiceImpl for MockInvitationService {
             jid: invitation.jid.clone(),
             password: password.clone(),
             role: invitation.pre_assigned_role.as_prosody(),
-            joined_at: Utc::now(),
+            joined_at: OffsetDateTime::now_utc(),
             email_address: Some(email_address.clone()),
         };
         self.mock_user_repository

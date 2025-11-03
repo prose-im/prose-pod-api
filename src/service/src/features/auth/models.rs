@@ -3,10 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
 use serdev::Deserialize;
+use time::OffsetDateTime;
 
 use crate::members::MemberRole;
 
@@ -70,14 +70,14 @@ pub type PasswordResetToken = crate::invitations::InvitationToken;
 pub struct PasswordResetRequestInfo {
     pub jid: BareJid,
     pub token: PasswordResetToken,
-    pub created_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub expires_at: OffsetDateTime,
 }
 
 impl PasswordResetRequestInfo {
     #[inline]
     pub fn is_expired(&self) -> bool {
-        self.expires_at < Utc::now()
+        self.expires_at < OffsetDateTime::now_utc()
     }
 }
 

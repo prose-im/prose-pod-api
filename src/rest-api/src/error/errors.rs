@@ -14,7 +14,7 @@ impl HttpApiError for anyhow::Error {
         ErrorCode::INTERNAL_SERVER_ERROR
     }
     fn message(&self) -> String {
-        format!("{self:#}")
+        format!("{self}")
     }
     fn debug_info(&self) -> Option<serde_json::Value> {
         Some(serde_json::Value::String(format!("{self:#?}")))

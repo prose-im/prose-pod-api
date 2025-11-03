@@ -5,7 +5,7 @@
 
 use crate::{sea_orm_string, wrapper_type};
 
-wrapper_type!(Url, url::Url);
+wrapper_type!(Url, url::Url [+FromStr]; serde_with::DeserializeFromStr);
 
 impl Url {
     #[inline]

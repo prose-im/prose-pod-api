@@ -71,9 +71,9 @@ pub trait IdentityProviderImpl: std::fmt::Debug + Sync + Send {
 }
 
 mod live {
-    use crate::{
-        members::VCardData, models::DatabaseRwConnectionPools, prosody::ProsodyHttpAdminApi,
-    };
+    use prosody_http::admin_api::ProsodyAdminApi;
+
+    use crate::{members::VCardData, models::DatabaseRwConnectionPools};
 
     use super::*;
 
@@ -81,7 +81,7 @@ mod live {
     pub struct LiveIdentityProvider {
         pub db: DatabaseRwConnectionPools,
         pub member_service: MemberService,
-        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub admin_api: Arc<ProsodyAdminApi>,
     }
 
     #[async_trait::async_trait]

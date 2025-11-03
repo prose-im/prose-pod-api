@@ -3,8 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use chrono::{DateTime, Utc};
 use serdev::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::members::MemberRole;
 use crate::models::{BareJid, EmailAddress, SerializableSecretString};
@@ -17,7 +17,7 @@ pub use super::workspace_invitation_notification::WorkspaceInvitationPayload;
 #[derive(Debug, Clone)]
 pub struct Invitation {
     pub id: InvitationId,
-    pub created_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
     pub jid: BareJid,
     pub pre_assigned_role: MemberRole,
     pub email_address: EmailAddress,
@@ -25,7 +25,7 @@ pub struct Invitation {
     /// Will change every time an admin resends the invitation.
     /// Will be deleted along with the entire invitation once used.
     pub accept_token: InvitationToken,
-    pub accept_token_expires_at: DateTime<Utc>,
+    pub accept_token_expires_at: OffsetDateTime,
     /// Unique token used by someone to reject an invitation (e.g. because of
     /// misspelled email address).
     /// Never expires, will be usable as long as the invitation still exists.
@@ -40,7 +40,7 @@ impl Invitation {
         }
     }
     pub fn is_expired(&self) -> bool {
-        self.accept_token_expires_at < Utc::now()
+        self.accept_token_expires_at < OffsetDateTime::now_utc()
     }
 }
 
@@ -137,7 +137,6 @@ impl From<InvitationToken> for secrecy::SecretString {
     }
 }
 
-#[cfg(feature = "test")]
 impl From<secrecy::SecretString> for InvitationToken {
     fn from(secret: secrecy::SecretString) -> Self {
         Self(secret.into())

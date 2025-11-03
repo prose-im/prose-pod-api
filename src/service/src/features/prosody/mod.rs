@@ -8,7 +8,6 @@ pub mod prosody_config;
 mod prosody_config_from_db;
 pub mod prosody_http_admin_api;
 pub mod prosody_invites_register_api;
-mod prosody_oauth2;
 mod prosody_prose_version;
 mod prosody_rest;
 
@@ -16,9 +15,7 @@ use crate::members::MemberRole;
 pub use prosody_admin_rest::ProsodyAdminRest;
 pub use prosody_config::ProsodyConfig;
 pub use prosody_config_from_db::{prosody_config_from_db, IntoProsody};
-pub use prosody_http_admin_api::ProsodyHttpAdminApi;
 pub use prosody_invites_register_api::ProsodyInvitesRegisterApi;
-pub use prosody_oauth2::{ProsodyOAuth2, ProsodyOAuth2Error};
 pub use prosody_prose_version::ProsodyProseVersion;
 pub use prosody_rest::ProsodyRest;
 use serdev::Deserialize;
@@ -33,7 +30,7 @@ pub trait AsProsody {
     fn as_prosody(&self) -> Self::ProsodyType;
 }
 
-crate::wrapper_type!(ProsodyRoleName, String);
+crate::wrapper_type!(ProsodyRoleName, Box<str>; serde::Deserialize);
 
 // See [Prosody built-in roles](https://prosody.im/doc/roles#built-in-roles).
 impl ProsodyRoleName {
@@ -46,7 +43,7 @@ impl ProsodyRoleName {
 
 impl AsRef<str> for ProsodyRoleName {
     fn as_ref(&self) -> &str {
-        self.0.as_str()
+        self.0.as_ref()
     }
 }
 
@@ -57,8 +54,8 @@ impl AsProsody for MemberRole {
     #[inline]
     fn as_prosody(&self) -> ProsodyRoleName {
         match self {
-            MemberRole::Member => ProsodyRoleName(ProsodyRoleName::MEMBER_RAW.to_owned()),
-            MemberRole::Admin => ProsodyRoleName(ProsodyRoleName::ADMIN_RAW.to_owned()),
+            MemberRole::Member => ProsodyRoleName(Box::from(ProsodyRoleName::MEMBER_RAW)),
+            MemberRole::Admin => ProsodyRoleName(Box::from(ProsodyRoleName::ADMIN_RAW)),
         }
     }
 }
@@ -67,7 +64,7 @@ impl TryFrom<&ProsodyRoleName> for MemberRole {
     type Error = UnsupportedProsodyRole;
 
     fn try_from(role: &ProsodyRoleName) -> Result<Self, Self::Error> {
-        match role.as_str() {
+        match role.as_ref() {
             ProsodyRoleName::MEMBER_RAW => Ok(Self::Member),
             ProsodyRoleName::ADMIN_RAW => Ok(Self::Admin),
             _ => Err(UnsupportedProsodyRole(role.clone())),
@@ -95,7 +92,7 @@ impl ProsodyRole {
 
         let mut stack = vec![self];
         while let Some(role) = stack.pop() {
-            if role.name.as_str() == other {
+            if role.name.as_ref() == other {
                 return true;
             }
             // NOTE: We’re using a LIFO stack so we need to
@@ -133,6 +130,6 @@ pub struct UnsupportedProsodyRole(ProsodyRoleName);
 
 impl From<&str> for ProsodyRoleName {
     fn from(value: &str) -> Self {
-        Self(value.to_owned())
+        Self(Box::from(value))
     }
 }

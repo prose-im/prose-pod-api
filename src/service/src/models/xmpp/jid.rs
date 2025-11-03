@@ -11,7 +11,7 @@ use crate::{models::EmailAddress, sea_orm_string, wrapper_type};
 
 // MARK: - Bare JID
 
-wrapper_type!(JID, jid::BareJid);
+wrapper_type!(JID, jid::BareJid [+FromStr]; serde_with::DeserializeFromStr);
 
 impl JID {
     pub fn new<S1: ToString, S2: ToString>(node: S1, domain: S2) -> Result<Self, jid::Error> {
@@ -36,7 +36,7 @@ sea_orm_string!(JID);
 
 // MARK: - JID node
 
-wrapper_type!(JidNode, jid::NodePart);
+wrapper_type!(JidNode, jid::NodePart [+FromStr]; serde_with::DeserializeFromStr);
 
 impl From<&EmailAddress> for JidNode {
     fn from(email_address: &EmailAddress) -> Self {
@@ -62,7 +62,7 @@ sea_orm_string!(JidNode);
 
 // MARK: - JID domain
 
-wrapper_type!(JidDomain, jid::DomainPart);
+wrapper_type!(JidDomain, jid::DomainPart [+FromStr]; serde_with::DeserializeFromStr);
 
 impl From<&hickory_proto::rr::Name> for JidDomain {
     #[inline]

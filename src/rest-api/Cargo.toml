@@ -15,6 +15,7 @@ authors = [
 
 [dependencies]
 anyhow = { workspace = true }
+arc-swap = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true, features = [
     "macros",
@@ -30,7 +31,6 @@ axum-extra = { workspace = true, features = [
 ] }
 axum-tracing-opentelemetry = { workspace = true }
 base64 = { workspace = true }
-chrono = { workspace = true }
 futures = { workspace = true }
 http-auth-basic = { workspace = true }
 init-tracing-opentelemetry = { workspace = true, features = [
@@ -48,6 +48,7 @@ serdev = { workspace = true }
 service = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
+time = { workspace = true, features = ["std"] }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true }

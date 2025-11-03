@@ -6,6 +6,7 @@
 extern crate biscuit_auth as biscuit;
 pub extern crate prose_xmpp;
 pub extern crate prosody_config;
+pub extern crate prosody_http;
 pub extern crate reqwest;
 extern crate xmpp_parsers;
 

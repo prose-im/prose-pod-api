@@ -7,6 +7,7 @@ mod backfill_database;
 mod db_configure;
 mod db_run_migrations;
 mod init_server_config;
+mod register_oauth2_client;
 mod start_cron_tasks;
 mod test_services_reachability;
 mod validate_app_config_changes;
@@ -24,6 +25,7 @@ use self::backfill_database::*;
 use self::db_configure::*;
 use self::db_run_migrations::*;
 use self::init_server_config::*;
+use self::register_oauth2_client::*;
 use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
 use self::validate_app_config_changes::*;
@@ -85,6 +87,7 @@ pub async fn run_startup_actions(
         let res = run_step!(wait_for_server or Ok(Either::E1(()))).await?;
         if let Either::E1(()) = res {
             run_step!(init_server_config);
+            run_step!(register_oauth2_client);
         }
         run_step!(start_cron_tasks);
         res

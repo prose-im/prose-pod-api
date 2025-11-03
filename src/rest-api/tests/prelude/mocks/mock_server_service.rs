@@ -76,7 +76,7 @@ impl ProsePodServerServiceImpl for MockServerService {
             .users
             .values()
             .filter_map(|account| {
-                if account.role.as_str() == "prosody:admin" {
+                if account.role.as_ref() == "prosody:admin" {
                     Some(account.jid.clone())
                 } else {
                     None

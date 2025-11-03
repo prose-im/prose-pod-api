@@ -5,11 +5,12 @@
 
 use std::fmt::Display;
 
-use chrono::{DateTime, Utc};
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 
 use crate::{
     models::{EmailAddress, Url},
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
+    util::debug_panic_or_log_error,
     AppConfig,
 };
 
@@ -19,7 +20,7 @@ use super::PasswordResetToken;
 #[derive(Debug, Clone)]
 pub struct PasswordResetNotificationPayload {
     pub reset_token: PasswordResetToken,
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: OffsetDateTime,
     pub dashboard_url: Url,
 }
 
@@ -54,7 +55,10 @@ fn notification_message(
 
         format!(
             "This link expires at {expires_at}. After that time passes, you will have to request a new password reset.",
-            expires_at = expires_at.to_rfc2822(),
+            expires_at = expires_at.format(&Rfc2822).unwrap_or_else(|err| {
+                debug_panic_or_log_error(format!("Could not format date as RFC 2822: {err:?}"));
+                format!("{expires_at}")
+            }),
         ).as_str(),
     ]
     .join("\n\n")

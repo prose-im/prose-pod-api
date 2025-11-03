@@ -32,6 +32,16 @@ impl JidExt for BareJid {
     }
 }
 
+/// [`panic!`] in debug mode, [`tracing::error!`] in release.
+#[inline(always)]
+pub fn debug_panic_or_log_error(msg: String) {
+    if cfg!(debug_assertions) {
+        panic!("{msg}");
+    } else {
+        tracing::error!(msg);
+    }
+}
+
 /// [`panic!`] in debug mode, [`tracing::warn!`] in release.
 #[inline(always)]
 pub fn debug_panic_or_log_warning(msg: String) {
@@ -42,11 +52,21 @@ pub fn debug_panic_or_log_warning(msg: String) {
     }
 }
 
+// TODO: Get rid of this.
+/// `jid@0.12` introduces `serde` support for `NodePart`, which we need here.
+/// `prose_xmpp` depends on `jid@0.11`, and we can’t easily bump because of
+/// breaking changes in `jid@0.12`. For now we’ll do manual mapping here, and
+/// we’ll get rid of this after we bump.
+pub fn jid_0_12_to_jid_0_11(jid_0_12: &prosody_http::jid::BareJid) -> jid::BareJid {
+    jid::BareJid::new(jid_0_12.as_str()).unwrap()
+}
+
 #[macro_export]
 macro_rules! wrapper_type {
-    ($wrapper:ident, $t:ty) => {
+    ($wrapper:ident, $t:ty $([+$option:ident])* $(; $derive:path)*) => {
         #[derive(Clone, PartialEq, Eq, Hash)]
-        #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+        #[derive(serde_with::SerializeDisplay)]
+        $(#[derive($derive)])*
         #[repr(transparent)]
         pub struct $wrapper($t);
 
@@ -76,14 +96,6 @@ macro_rules! wrapper_type {
             }
         }
 
-        impl std::str::FromStr for $wrapper {
-            type Err = <$t as std::str::FromStr>::Err;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                <$t>::from_str(s).map(Self)
-            }
-        }
-
         impl From<$t> for $wrapper {
             fn from(inner: $t) -> Self {
                 Self(inner)
@@ -93,6 +105,17 @@ macro_rules! wrapper_type {
         impl Into<$t> for $wrapper {
             fn into(self) -> $t {
                 self.0
+            }
+        }
+
+        $(crate::wrapper_type!(__impls $wrapper, $t [+$option]);)*
+    };
+    (__impls $wrapper:ident, $t:ty [+FromStr]) => {
+        impl std::str::FromStr for $wrapper {
+            type Err = <$t as std::str::FromStr>::Err;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                <$t>::from_str(s).map(Self)
             }
         }
     };

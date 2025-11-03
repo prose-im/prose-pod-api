@@ -38,10 +38,8 @@ impl InvitationRepositoryImpl for MockInvitationRepository {
 
         let jid = BareJid::from_parts(Some(&username), &self.server_domain);
         let token = InvitationToken::from(random_secret(32));
-        let created_at = Utc::now();
-        let expires_at = created_at
-            .checked_add_signed(ttl.unwrap_or(TimeDelta::from_std(self.invitations_ttl).unwrap()))
-            .unwrap();
+        let created_at = OffsetDateTime::now_utc();
+        let expires_at = created_at.saturating_add(ttl.unwrap_or(self.invitations_ttl));
         let invitation = Invitation {
             id: token.clone(),
             created_at,

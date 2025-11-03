@@ -34,7 +34,7 @@ impl UserApplicationServiceImpl for MockUserService {
                     jid,
                     password: password.to_owned(),
                     role: role.clone(),
-                    joined_at: Utc::now(),
+                    joined_at: OffsetDateTime::now_utc(),
                     email_address: Some(email_address),
                 },
                 &self.mock_auth_service,

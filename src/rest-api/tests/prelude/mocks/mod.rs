@@ -8,12 +8,10 @@ mod prelude {
         collections::{HashMap, HashSet},
         str::FromStr as _,
         sync::{Arc, LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
-        time::Duration,
     };
 
     pub use anyhow::Context as _;
     pub use async_trait::async_trait;
-    pub use chrono::{DateTime, TimeDelta, Utc};
     pub use linked_hash_map::LinkedHashMap;
     pub use service::{
         auth::{util::random_secret, AuthToken, Password},
@@ -25,6 +23,7 @@ mod prelude {
         xmpp::jid::*,
         AppConfig,
     };
+    pub use time::{Duration, OffsetDateTime};
 
     #[allow(unused)]
     pub use crate::util::{jid_missing, user_missing, USER_MISSING};

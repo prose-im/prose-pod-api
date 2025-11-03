@@ -30,7 +30,7 @@ pub struct UserAccount {
     pub jid: BareJid,
     pub password: Password,
     pub role: ProsodyRoleName,
-    pub joined_at: DateTime<Utc>,
+    pub joined_at: OffsetDateTime,
     pub email_address: Option<EmailAddress>,
 }
 
@@ -39,7 +39,7 @@ impl UserAccount {
         Self {
             password: Password::from("password"),
             role: MemberRole::Member.as_prosody(),
-            joined_at: Utc::now(),
+            joined_at: OffsetDateTime::now_utc(),
             email_address: Some(EmailAddress::from(&jid)),
             jid,
         }
@@ -49,7 +49,7 @@ impl UserAccount {
         Self {
             password: Password::from("password"),
             role: MemberRole::Admin.as_prosody(),
-            joined_at: Utc::now(),
+            joined_at: OffsetDateTime::now_utc(),
             email_address: Some(EmailAddress::from(&jid)),
             jid,
         }
@@ -224,7 +224,7 @@ impl MockUserRepository {
         // I.e. not service accounts.
         let regular_users = all_users
             .iter()
-            .filter(|(_, account)| account.role.as_str() != ProsodyRoleName::REGISTERED_RAW);
+            .filter(|(_, account)| account.role.as_ref() != ProsodyRoleName::REGISTERED_RAW);
         regular_users.count()
     }
 }

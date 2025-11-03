@@ -8,7 +8,7 @@ pub mod prelude {
 
     pub use anyhow::Context as _;
     pub use async_trait::async_trait;
-    pub use chrono::TimeDelta;
+    pub use time::Duration;
 
     pub use crate::{
         auth::{AuthService, AuthToken, Password},
@@ -59,6 +59,7 @@ pub struct InvitationService {
 }
 
 impl InvitationService {
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn invite_user(
         &self,
         command: InviteUserCommand,
@@ -102,6 +103,7 @@ impl InvitationService {
         Ok(invitation)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn accept_account_invitation(
         &self,
         token: InvitationToken,
@@ -170,6 +172,7 @@ impl InvitationService {
         Ok(member)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn reject_account_invitation(
         &self,
         token: InvitationToken,
@@ -180,6 +183,7 @@ impl InvitationService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn resend_account_invitation(
         &self,
         invitation_id: &InvitationId,
@@ -201,6 +205,7 @@ impl InvitationService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn cancel_invitation(
         &self,
         invitation_id: InvitationId,
@@ -211,6 +216,7 @@ impl InvitationService {
             .await
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     async fn send_account_invitation_notification(
         &self,
         invitation: &Invitation,
@@ -274,7 +280,7 @@ pub struct InviteUserCommand {
     pub username: JidNode,
     pub role: MemberRole,
     pub email_address: EmailAddress,
-    pub ttl: Option<TimeDelta>,
+    pub ttl: Option<Duration>,
 }
 
 #[derive(Debug)]

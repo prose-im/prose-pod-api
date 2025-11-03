@@ -22,6 +22,9 @@ pub use time_like::*;
 
 use crate::sea_orm_try_get_by_string;
 
+// TODO: Use `iso8601_duration` only as a (de)serializer,
+//   and use `time::Duration` in domain models.
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Duration<Content: DurationContent>(pub Content);
 

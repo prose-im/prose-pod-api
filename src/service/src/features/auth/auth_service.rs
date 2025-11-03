@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 pub mod prelude {
-    pub use std::{sync::Arc, time::Duration};
+    pub use std::sync::Arc;
 
     pub use async_trait::async_trait;
     pub use secrecy::SecretString;
@@ -22,7 +22,9 @@ pub mod prelude {
     };
 }
 
-pub use self::live_auth_service::LiveAuthService;
+use time::Duration;
+
+pub use self::live_auth_service::{LiveAuthService, OAuth2ClientState};
 use self::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -75,20 +77,23 @@ pub trait AuthServiceImpl: std::fmt::Debug + Sync + Send {
         (),
         Either4<PasswordValidationError, PasswordResetTokenExpired, Forbidden, anyhow::Error>,
     >;
+
+    async fn register_oauth2_client(&self) -> Result<(), anyhow::Error>;
 }
 
 mod live_auth_service {
     use anyhow::{anyhow, Context as _};
+    use arc_swap::ArcSwap;
+    use prosody_http::{
+        admin_api::{InviteInfo, ProsodyAdminApi},
+        oauth2::{self, ProsodyOAuth2},
+    };
 
     use crate::{
         invitations::errors::{InvitationNotFoundForToken, MemberAlreadyExists},
         prose_pod_server_api::{ProsePodServerApi, ProsePodServerError},
-        prosody::{
-            prosody_http_admin_api::InviteInfo, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi,
-            ProsodyOAuth2, ProsodyOAuth2Error,
-        },
-        util::either::Either4,
-        xmpp::JidNode,
+        prosody::ProsodyInvitesRegisterApi,
+        util::{either::Either4, JidExt as _},
     };
 
     use super::*;
@@ -96,11 +101,18 @@ mod live_auth_service {
     #[derive(Debug)]
     pub struct LiveAuthService {
         pub oauth2: Arc<ProsodyOAuth2>,
+        pub oauth2_client: ArcSwap<OAuth2ClientState>,
         pub server_api: ProsePodServerApi,
-        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub admin_api: Arc<ProsodyAdminApi>,
         pub invites_register_api: ProsodyInvitesRegisterApi,
         pub password_reset_token_ttl: Duration,
         pub min_password_length: u8,
+    }
+
+    #[derive(Debug)]
+    pub enum OAuth2ClientState {
+        Unregistered(oauth2::ClientConfig),
+        Registered(oauth2::ClientCredentials),
     }
 
     #[async_trait::async_trait]
@@ -110,10 +122,20 @@ mod live_auth_service {
             jid: &BareJid,
             password: &SecretString,
         ) -> Result<AuthToken, Either<InvalidCredentials, anyhow::Error>> {
-            match self.oauth2.log_in(jid, password).await {
-                Ok(Some(token)) => Ok(AuthToken(token)),
-                Ok(None) => Err(Either::E1(InvalidCredentials)),
-                Err(ProsodyOAuth2Error::Unauthorized(_)) => Err(Either::E1(InvalidCredentials)),
+            let client_state_guard = self.oauth2_client.load();
+            let OAuth2ClientState::Registered(oauth2_client_credentials) =
+                client_state_guard.as_ref()
+            else {
+                return Err(Either::E2(anyhow!("OAuth 2.0 client not registered.")));
+            };
+
+            match self
+                .oauth2
+                .util_log_in(jid.expect_username(), password, oauth2_client_credentials)
+                .await
+            {
+                Ok(res) => Ok(AuthToken(res.access_token)),
+                Err(oauth2::Error::Unauthorized(_)) => Err(Either::E1(InvalidCredentials)),
                 Err(err) => Err(Either::E2(anyhow!(err).context("Prosody OAuth 2.0 error"))),
             }
         }
@@ -133,7 +155,7 @@ mod live_auth_service {
 
         async fn revoke(&self, token: AuthToken) -> Result<(), anyhow::Error> {
             self.oauth2
-                .revoke(token)
+                .revoke(&token)
                 .await
                 .context("Prosody OAuth 2.0 error")
         }
@@ -146,7 +168,7 @@ mod live_auth_service {
             auth: &AuthToken,
         ) -> Result<PasswordResetRequestInfo, Either<Forbidden, anyhow::Error>> {
             use crate::auth::PasswordResetToken;
-            use crate::prosody::prosody_http_admin_api::CreateAccountResetInvitationRequest;
+            use prosody_http::admin_api::CreateAccountResetInvitationRequest;
             use serde_json::json;
 
             let email_address = match contact {
@@ -158,15 +180,15 @@ mod live_auth_service {
             //   configuration, as `mod_invites` has a special `ttl or 86400`
             //   and via `mod_http_admin_api` `ttl` comes from the request
             //   body exclusively.
-            let default_ttl_secs = self.password_reset_token_ttl.as_secs();
+            let default_ttl = self.password_reset_token_ttl;
 
             // Create the password reset token.
             let invite: InviteInfo = self
                 .admin_api
                 .create_invite_for_account_reset(
-                    CreateAccountResetInvitationRequest {
-                        username: Some(JidNode::from(username)),
-                        ttl_secs: Some(ttl.map_or(default_ttl_secs, |d| d.as_secs()) as u32),
+                    &CreateAccountResetInvitationRequest {
+                        username: Some(username.to_owned()),
+                        ttl: Some(ttl.unwrap_or(default_ttl)),
                         additional_data: json!({
                             "email": email_address,
                         }),
@@ -209,6 +231,30 @@ mod live_auth_service {
                 Err(Either4::E2(err)) => Err(Either4::E3(err)),
                 Err(Either4::E3(MemberAlreadyExists(_))) => unreachable!(),
                 Err(Either4::E4(err)) => Err(Either4::E4(err)),
+            }
+        }
+
+        async fn register_oauth2_client(&self) -> Result<(), anyhow::Error> {
+            match self.oauth2_client.load().as_ref() {
+                OAuth2ClientState::Unregistered(client_config) => {
+                    let credentials = (self.oauth2)
+                        .register(client_config)
+                        .await?
+                        .into_credentials();
+
+                    self.oauth2_client
+                        .store(Arc::new(OAuth2ClientState::Registered(credentials)));
+
+                    tracing::debug!("Registered OAuth 2.0 client.");
+                    Ok(())
+                }
+                OAuth2ClientState::Registered(_credentials) => {
+                    // NOTE: Do not panic or log error, as this is expected
+                    //   behavior if the client credentials have been passed
+                    //   via configuration.
+                    tracing::debug!("OAuth 2.0 client already registered.");
+                    Ok(())
+                }
             }
         }
     }

@@ -21,6 +21,8 @@ pub mod prelude {
 
 use std::sync::Arc;
 
+use prosody_http::admin_api;
+
 pub use self::live_user_repository::LiveUserRepository;
 use self::prelude::*;
 
@@ -42,6 +44,7 @@ pub trait UserRepositoryImpl: std::fmt::Debug + Sync + Send {
         auth: &AuthToken,
     ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>>;
 
+    #[tracing::instrument(level = "trace", skip_all, fields(username))]
     async fn user_exists(
         &self,
         username: &NodeRef,
@@ -74,10 +77,12 @@ pub struct UsersStats {
 }
 
 mod live_user_repository {
+    use prosody_http::admin_api::{self, ProsodyAdminApi, UpdateUserInfoRequest};
+
     use crate::{
         auth::AuthService,
         prose_pod_server_api::{self, ProsePodServerApi},
-        prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyRoleName},
+        prosody::{ProsodyAdminRest, ProsodyRoleName},
         util::either::to_either3_1_3,
     };
 
@@ -87,7 +92,7 @@ mod live_user_repository {
     pub struct LiveUserRepository {
         pub server_api: ProsePodServerApi,
         pub admin_rest: Arc<ProsodyAdminRest>,
-        pub admin_api: Arc<ProsodyHttpAdminApi>,
+        pub admin_api: Arc<ProsodyAdminApi>,
         pub auth_service: AuthService,
     }
 
@@ -117,9 +122,9 @@ mod live_user_repository {
                 // at the moment).
                 // TODO: Allow listing service accounts via another route,
                 //   or a query param.
-                let user_infos = user_infos.into_iter().filter(|info| {
+                let user_infos = user_infos.iter().filter(|info| {
                     if let Some(ref role) = info.role {
-                        role.as_str() != ProsodyRoleName::REGISTERED_RAW
+                        role.as_ref() != ProsodyRoleName::REGISTERED_RAW
                     } else {
                         // Also filter out accounts without a role.
                         // It should not even exist so let’s ignore it.
@@ -147,7 +152,7 @@ mod live_user_repository {
         ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
             match self.admin_api.get_user_by_name(username, auth).await {
                 Ok(user_info) => Ok(user_info.map(Member::from)),
-                Err(err) => Err(err),
+                Err(err) => Err(err.into()),
             }
         }
 
@@ -164,14 +169,13 @@ mod live_user_repository {
             role: &MemberRole,
             auth: &AuthToken,
         ) -> Result<(), Either<Forbidden, anyhow::Error>> {
-            use crate::prosody::prosody_http_admin_api::UpdateUserInfoRequest;
             use crate::prosody::AsProsody as _;
 
             self.admin_api
                 .update_user(
                     username,
                     &UpdateUserInfoRequest {
-                        role: Some(role.as_prosody()),
+                        role: Some(role.as_prosody().to_string()),
                         ..Default::default()
                     },
                     auth,
@@ -186,13 +190,43 @@ mod live_user_repository {
             username: &NodeRef,
             auth: &AuthToken,
         ) -> Result<(), Either3<MemberNotFound, Forbidden, anyhow::Error>> {
-            self.admin_api.delete_user(username, auth).await
+            self.admin_api
+                .delete_user(username, auth)
+                .await
+                .map_err(|err| match err {
+                    admin_api::Error::NotFound(_err) => {
+                        Either3::E1(MemberNotFound(username.to_string()))
+                    }
+                    admin_api::Error::Forbidden(err) => Either3::E2(Forbidden(err.to_string())),
+                    err => Either3::E3(anyhow::Error::new(err)),
+                })
         }
     }
 
     impl From<prose_pod_server_api::GetUsersStatsResponse> for UsersStats {
         fn from(stats: prose_pod_server_api::GetUsersStatsResponse) -> Self {
             Self { count: stats.count }
+        }
+    }
+}
+
+// MARK: - Helpers
+
+impl From<admin_api::Error> for Either<Forbidden, anyhow::Error> {
+    fn from(error: admin_api::Error) -> Self {
+        match error {
+            admin_api::Error::Forbidden(err) => Either::E1(Forbidden(err.to_string())),
+            err => Either::E2(anyhow::Error::new(err)),
+        }
+    }
+}
+
+impl From<admin_api::Error> for Either3<Unauthorized, Forbidden, anyhow::Error> {
+    fn from(error: admin_api::Error) -> Self {
+        match error {
+            admin_api::Error::Unauthorized(err) => Either3::E1(Unauthorized(err.to_string())),
+            admin_api::Error::Forbidden(err) => Either3::E2(Forbidden(err.to_string())),
+            err => Either3::E3(anyhow::Error::new(err)),
         }
     }
 }

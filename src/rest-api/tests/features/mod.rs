@@ -26,7 +26,6 @@ mod prelude {
     pub(super) use axum::http::{header::*, StatusCode};
     pub(super) use axum_test::{TestResponse, TestServer};
     pub(super) use base64::{prelude::BASE64_STANDARD, Engine as _};
-    pub(super) use chrono::{TimeDelta, Utc};
     pub(super) use cucumber::{given, then, when};
     pub(super) use prose_pod_api::error::Error;
     pub(super) use secrecy::ExposeSecret as _;
@@ -40,6 +39,7 @@ mod prelude {
         util::JidExt as _,
         MutationError,
     };
+    pub(super) use time::OffsetDateTime;
 
     pub(super) use crate::mocks::BYPASS_TOKEN;
     #[allow(unused)]

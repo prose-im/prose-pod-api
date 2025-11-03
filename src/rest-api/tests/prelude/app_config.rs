@@ -52,7 +52,9 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         mock_server_state: world.mock_server_state.clone(),
         mock_auth_service_state: world.mock_auth_service_state.clone(),
         server_domain: config.server_domain().clone(),
-        invitations_ttl: config.auth.invitation_ttl.to_std().unwrap(),
+        invitations_ttl: (config.auth.invitation_ttl.to_std().unwrap())
+            .try_into()
+            .unwrap(),
     });
 
     let mock_server_service = Arc::new(MockServerService {
@@ -65,7 +67,9 @@ pub fn reload_config(world: &mut crate::TestWorld) {
         state: world.mock_auth_service_state.clone(),
         server: mock_server_service.clone(),
         mock_user_repository: mock_user_repository.clone(),
-        password_reset_tokens_ttl: config.auth.password_reset_token_ttl.to_std().unwrap(),
+        password_reset_tokens_ttl: (config.auth.password_reset_token_ttl.to_std().unwrap())
+            .try_into()
+            .unwrap(),
         min_password_length: config.auth.min_password_length,
         server_domain: config.server_domain().clone(),
     });

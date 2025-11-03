@@ -4,11 +4,11 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::Context as _;
-use chrono::{DateTime, Utc};
 use reqwest::{Client as HttpClient, StatusCode};
 use secrecy::SecretString;
 use serde_json::json;
 use serdev::Deserialize;
+use time::OffsetDateTime;
 use tracing::trace;
 
 use crate::{
@@ -180,10 +180,10 @@ pub struct InviteInfo {
     // pub r#type: String,
     pub jid: BareJid,
     // pub inviter: BareJid,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub created_at: DateTime<Utc>,
-    #[serde(with = "chrono::serde::ts_seconds")]
-    pub expires: DateTime<Utc>,
+    #[serde(with = "time::serde::timestamp")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::timestamp")]
+    pub expires: OffsetDateTime,
     // pub reset: bool,
     #[serde(default)]
     pub additional_data: InviteAdditionalData,

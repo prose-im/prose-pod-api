@@ -8,6 +8,7 @@ use service::{
     invitations::{prelude::MemberRole, *},
     members::Nickname,
 };
+use time::Duration;
 
 use super::prelude::*;
 
@@ -105,7 +106,7 @@ fn given_invitation_expired(world: &mut TestWorld) -> Result<(), MutationError> 
             .get_mut(&email_address)
             .unwrap();
         invitation.accept_token_expires_at =
-            Utc::now().checked_sub_signed(TimeDelta::days(1)).unwrap();
+            OffsetDateTime::now_utc().saturating_sub(Duration::days(1));
         invitation.clone()
     };
 

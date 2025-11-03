@@ -5,24 +5,32 @@
 
 //! Data Transfer Objects.
 
-use chrono::{DateTime, Utc};
 use serdev::Serialize;
 use service::{
     invitations::{self, InvitationContact, InvitationId},
     members::MemberRole,
     models::BareJid,
 };
+use time::OffsetDateTime;
 
 #[derive(Debug)]
 #[derive(Serialize)]
 #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {
     pub invitation_id: InvitationId,
-    pub created_at: DateTime<Utc>,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+
     pub jid: BareJid,
+
     pub pre_assigned_role: MemberRole,
+
     pub contact: InvitationContact,
-    pub accept_token_expires_at: DateTime<Utc>,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub accept_token_expires_at: OffsetDateTime,
+
     pub is_expired: bool,
 }
 

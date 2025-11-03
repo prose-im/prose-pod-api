@@ -5,6 +5,7 @@
 
 use std::{net::SocketAddr, sync::Arc};
 
+use arc_swap::ArcSwap;
 use axum::Router;
 use prose_pod_api::{
     factory_reset_router, make_router, run_startup_actions,
@@ -17,7 +18,7 @@ use prose_pod_api::{
 };
 use service::{
     app_config::{pub_defaults as defaults, LogConfig},
-    auth::{AuthService, LiveAuthService},
+    auth::{auth_service::OAuth2ClientState, AuthService, LiveAuthService},
     factory_reset::FactoryResetService,
     identity_provider::{IdentityProvider, LiveIdentityProvider},
     invitations::{
@@ -35,7 +36,12 @@ use service::{
     prose_pod_server_api::ProsePodServerApi,
     prose_pod_server_service::{LiveProsePodServerService, ProsePodServerService},
     prose_xmpp::UUIDProvider,
-    prosody::{ProsodyAdminRest, ProsodyHttpAdminApi, ProsodyInvitesRegisterApi, ProsodyOAuth2},
+    prosody::{ProsodyAdminRest, ProsodyInvitesRegisterApi},
+    prosody_http::{
+        admin_api::ProsodyAdminApi,
+        oauth2::{self, ProsodyOAuth2},
+        ProsodyHttpConfig,
+    },
     workspace::{LiveWorkspaceService, WorkspaceService},
     xmpp::{LiveXmppService, XmppService},
     AppConfig, HttpClient,
@@ -218,23 +224,40 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         &app_config,
         http_client.clone(),
     ));
-    let prosody_http_admin_api = Arc::new(ProsodyHttpAdminApi::from_config(
-        &app_config,
-        http_client.clone(),
-    ));
+    let prosody_http_config = Arc::new(ProsodyHttpConfig {
+        url: app_config.server.http_url(),
+    });
+    let prosody_http_admin_api = Arc::new(ProsodyAdminApi::new(Arc::clone(&prosody_http_config)));
+    let prosody_oauth2 = Arc::new(ProsodyOAuth2::new(Arc::clone(&prosody_http_config)));
     let server_api = ProsePodServerApi::from_config(&app_config, http_client.clone());
-    let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&app_config, http_client.clone()));
     let prosody_invites_register_api =
         ProsodyInvitesRegisterApi::from_config(&app_config, http_client.clone());
 
+    let api_version = base.static_pod_version_service.get_api_version();
+
+    let oauth2_client_config = oauth2::ClientConfig {
+        client_name: "Prose Pod API".to_owned(),
+        client_uri: "https://prose-pod-api:8080".to_owned(),
+        redirect_uris: vec!["https://prose-pod-api:8080/redirect".to_owned()],
+        grant_types: vec![
+            "authorization_code".to_owned(),
+            "refresh_token".to_owned(),
+            "password".to_owned(),
+        ],
+        software_version: api_version.commit_long,
+        ..Default::default()
+    };
     let auth_service = AuthService {
         implem: Arc::new(LiveAuthService {
             oauth2: prosody_oauth2.clone(),
+            oauth2_client: ArcSwap::from_pointee(OAuth2ClientState::Unregistered(oauth2_client_config)),
             server_api: server_api.clone(),
             admin_api: prosody_http_admin_api.clone(),
             invites_register_api: prosody_invites_register_api.clone(),
             password_reset_token_ttl: app_config.auth.password_reset_token_ttl.to_std()
-                .expect("`app_config.auth.password_reset_token_ttl` contains years or months. Not supported."),
+                .expect("`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.")
+                .try_into()
+                .expect("`app_config.auth.password_reset_token_ttl` out of range."),
             min_password_length: app_config.auth.min_password_length,
         }),
     };
