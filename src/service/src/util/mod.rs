@@ -58,6 +58,7 @@ pub fn debug_panic_or_log_warning(msg: String) {
 /// breaking changes in `jid@0.12`. For now we’ll do manual mapping here, and
 /// we’ll get rid of this after we bump.
 pub fn jid_0_12_to_jid_0_11(jid_0_12: &prosody_http::jid::BareJid) -> jid::BareJid {
+    let todo = "Revert to jid@0.11 and get rid of this";
     jid::BareJid::new(jid_0_12.as_str()).unwrap()
 }
 
