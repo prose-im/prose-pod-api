@@ -62,7 +62,10 @@ impl LiveXmppService {
         }
     }
 
-    async fn xmpp_client(&self, ctx: &XmppServiceContext) -> Result<XMPPClient, XmppServiceError> {
+    pub async fn xmpp_client(
+        &self,
+        ctx: &XmppServiceContext,
+    ) -> Result<XMPPClient, XmppServiceError> {
         let http_client = self.http_client.clone();
         let rest_api_url = self.rest_api_url.clone();
         let xmpp_client = XMPPClient::builder()
@@ -78,6 +81,7 @@ impl LiveXmppService {
             .map_err(XmppServiceError::from)?;
         Ok(xmpp_client)
     }
+
     pub async fn load_latest_avatar_metadata(
         &self,
         from: &BareJid,

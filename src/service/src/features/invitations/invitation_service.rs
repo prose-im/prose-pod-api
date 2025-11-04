@@ -39,7 +39,10 @@ pub mod prelude {
     };
 }
 
-use crate::{auth::errors::PasswordValidationError, licensing::errors::UserLimitReached};
+use crate::{
+    auth::errors::PasswordValidationError, errors::Unauthorized,
+    licensing::errors::UserLimitReached,
+};
 
 pub use self::live_invitation_service::LiveInvitationApplicationService;
 use self::prelude::*;
@@ -287,6 +290,8 @@ pub struct InviteUserCommand {
 #[derive(thiserror::Error)]
 pub enum InviteUserError {
     #[error("{0}")]
+    Unauthorized(#[from] Unauthorized),
+    #[error("{0}")]
     Forbidden(#[from] Forbidden),
     #[error("{0}")]
     InvitationAlreadyExists(#[from] InvitationAlreadyExists),
@@ -396,6 +401,19 @@ where
         match either {
             Either::E1(err) => Self::from(err),
             Either::E2(err) => Self::from(err),
+        }
+    }
+}
+
+impl<E1, E2, E3> From<Either3<E1, E2, E3>> for InviteUserError
+where
+    Self: From<E1> + From<E2> + From<E3>,
+{
+    fn from(either: Either3<E1, E2, E3>) -> Self {
+        match either {
+            Either3::E1(err) => Self::from(err),
+            Either3::E2(err) => Self::from(err),
+            Either3::E3(err) => Self::from(err),
         }
     }
 }

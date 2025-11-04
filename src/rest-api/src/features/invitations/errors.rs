@@ -102,6 +102,7 @@ impl HttpApiError for AcceptAccountInvitationError {
 impl HttpApiError for InviteUserError {
     fn code(&self) -> ErrorCode {
         match self {
+            Self::Unauthorized(err) => err.code(),
             Self::Forbidden(err) => err.code(),
             Self::InvitationAlreadyExists(err) => err.code(),
             Self::UsernameAlreadyTaken(err) => err.code(),

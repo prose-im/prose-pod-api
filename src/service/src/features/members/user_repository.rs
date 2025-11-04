@@ -42,14 +42,14 @@ pub trait UserRepositoryImpl: std::fmt::Debug + Sync + Send {
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>>;
+    ) -> Result<Option<Member>, Either3<Unauthorized, Forbidden, anyhow::Error>>;
 
     #[tracing::instrument(level = "trace", skip_all, fields(username))]
     async fn user_exists(
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<bool, Either<Forbidden, anyhow::Error>> {
+    ) -> Result<bool, Either3<Unauthorized, Forbidden, anyhow::Error>> {
         self.get_user_by_username(username, auth)
             .await
             .map(|opt| opt.is_some())
@@ -77,6 +77,9 @@ pub struct UsersStats {
 }
 
 mod live_user_repository {
+    use anyhow::Context;
+    use jid::BareJid;
+    use prose_xmpp::mods;
     use prosody_http::admin_api::{self, ProsodyAdminApi, UpdateUserInfoRequest};
 
     use crate::{
@@ -84,6 +87,7 @@ mod live_user_repository {
         prose_pod_server_api::{self, ProsePodServerApi},
         prosody::{ProsodyAdminRest, ProsodyRoleName},
         util::either::to_either3_1_3,
+        xmpp::{LiveXmppService, XmppServiceContext},
     };
 
     use super::*;
@@ -94,6 +98,8 @@ mod live_user_repository {
         pub admin_rest: Arc<ProsodyAdminRest>,
         pub admin_api: Arc<ProsodyAdminApi>,
         pub auth_service: AuthService,
+        pub xmpp_service: Arc<LiveXmppService>,
+        pub workspace_jid: BareJid,
     }
 
     #[async_trait]
@@ -141,7 +147,35 @@ mod live_user_repository {
                 Ok(user_infos.into_iter().map(Member::from).collect())
             } else {
                 // See [Non-admins cannot see users · Issue #346 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/346).
-                Ok(vec![])
+                let ref ctx = XmppServiceContext {
+                    bare_jid: caller.jid.clone(),
+                    auth_token: auth.clone(),
+                };
+                let xmpp_client = self
+                    .xmpp_service
+                    .xmpp_client(ctx)
+                    .await
+                    .context("Could not create XMPP client")?;
+
+                // Load contacts.
+                let roster = xmpp_client.get_mod::<mods::Roster>();
+                let mut members = roster
+                    .load_roster()
+                    .await?
+                    .items
+                    .into_iter()
+                    .filter_map(|item| {
+                        if item.jid == self.workspace_jid {
+                            return None;
+                        };
+                        return Some(Member::from(item));
+                    })
+                    .collect::<Vec<_>>();
+
+                // Add caller.
+                members.insert(0, Member::from(caller));
+
+                Ok(members)
             }
         }
 
@@ -149,10 +183,41 @@ mod live_user_repository {
             &self,
             username: &NodeRef,
             auth: &AuthToken,
-        ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
-            match self.admin_api.get_user_by_name(username, auth).await {
-                Ok(user_info) => Ok(user_info.map(Member::from)),
-                Err(err) => Err(err.into()),
+        ) -> Result<Option<Member>, Either3<Unauthorized, Forbidden, anyhow::Error>> {
+            // NOTE: This makes one more API call to the Prose Pod Server,
+            //   but it’s not a problem yet. If it becomes one, we’ll add
+            //   a caching layer.
+            let caller = self
+                .auth_service
+                .get_user_info(auth)
+                .await
+                .map_err(to_either3_1_3)?;
+
+            if caller.jid.node() == Some(username) {
+                return Ok(Some(Member::from(caller)));
+            }
+
+            // Admins need to see everyone (in roster or not), which means we
+            // have to use a dedicated API. However it’s authenticated not to
+            // leak sensitive information therefore non-admins would get 403s.
+            // As a fallback, we show roster contacts.
+            if caller.is_admin() {
+                match self.admin_api.get_user_by_name(username, auth).await {
+                    Ok(user_info) => Ok(user_info.map(Member::from)),
+                    Err(err) => Err(err.into()),
+                }
+            } else {
+                // FIXME: Make this more efficient by not loading the entire
+                //   contact list. We don’t care about it now because this
+                //   route is likely never called (no use case), and even
+                //   if it is the Dashboard is not designed to be used by
+                //   regular members yet.
+                let contacts = self.list_users(auth).await?;
+                let member_opt = contacts
+                    .into_iter()
+                    .find(|member| member.jid.node() == Some(username));
+
+                Ok(member_opt)
             }
         }
 
@@ -206,6 +271,15 @@ mod live_user_repository {
     impl From<prose_pod_server_api::GetUsersStatsResponse> for UsersStats {
         fn from(stats: prose_pod_server_api::GetUsersStatsResponse) -> Self {
             Self { count: stats.count }
+        }
+    }
+
+    impl From<xmpp_parsers::roster::Item> for Member {
+        fn from(value: xmpp_parsers::roster::Item) -> Self {
+            Self {
+                jid: value.jid,
+                role: None,
+            }
         }
     }
 }

@@ -87,7 +87,7 @@ impl From<UserInfo> for crate::members::Member {
     fn from(info: UserInfo) -> Self {
         Self {
             jid: info.jid,
-            role: info.primary_role,
+            role: Some(info.primary_role),
         }
     }
 }

@@ -552,7 +552,7 @@ enum EnrichingStep {
 #[derive(Serialize)]
 pub struct EnrichedMember {
     pub jid: BareJid,
-    pub role: MemberRole,
+    pub role: Option<MemberRole>,
     pub online: Option<bool>,
     pub nickname: Option<String>,
     pub email: Option<String>,

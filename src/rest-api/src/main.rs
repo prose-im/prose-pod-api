@@ -262,12 +262,21 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         }),
     };
 
+    let live_xmpp_service = Arc::new(LiveXmppService::from_config(
+        &app_config,
+        http_client.clone(),
+        prosody_http_admin_api.clone(),
+        Arc::new(UUIDProvider::new()),
+    ));
+
     let user_repository = UserRepository {
         implem: Arc::new(LiveUserRepository {
             server_api: server_api.clone(),
             admin_rest: prosody_admin_rest.clone(),
             admin_api: prosody_http_admin_api.clone(),
             auth_service: auth_service.clone(),
+            xmpp_service: Arc::clone(&live_xmpp_service),
+            workspace_jid: app_config.workspace_jid(),
         }),
     };
     let invitation_repository = InvitationRepository {
@@ -290,12 +299,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     };
 
     let xmpp_service = XmppService {
-        implem: Arc::new(LiveXmppService::from_config(
-            &app_config,
-            http_client.clone(),
-            prosody_http_admin_api.clone(),
-            Arc::new(UUIDProvider::new()),
-        )),
+        implem: live_xmpp_service,
     };
     let email_notifier = Notifier::from_config::<EmailNotifier, _>(&app_config)
         .inspect_err(|err| warn!("Could not create email notifier: {err}"))

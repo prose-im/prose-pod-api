@@ -50,10 +50,11 @@ impl From<&UserInfo> for Member {
         let role: ProsodyRoleName = info.role.clone().expect("Members should have roles").into();
 
         Self {
-            role: MemberRole::try_from(&role).expect(&format!(
-                "Member `{jid}` should have a supported role",
-                jid = &info.jid
-            )),
+            role: MemberRole::try_from(&role)
+                .inspect_err(|e| {
+                    tracing::warn!("Unsupported role for `{jid}`: {e}", jid = &info.jid)
+                })
+                .ok(),
             jid: jid_0_12_to_jid_0_11(&info.jid),
         }
     }

@@ -18,7 +18,7 @@ mod member {
     #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
     pub struct Member {
         pub jid: BareJid,
-        pub role: MemberRole,
+        pub role: Option<MemberRole>,
     }
 }
 

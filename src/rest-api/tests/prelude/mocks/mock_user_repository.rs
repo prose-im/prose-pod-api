@@ -79,7 +79,7 @@ impl UserRepositoryImpl for MockUserRepository {
         &self,
         username: &NodeRef,
         auth: &AuthToken,
-    ) -> Result<Option<Member>, Either<Forbidden, anyhow::Error>> {
+    ) -> Result<Option<Member>, Either3<Unauthorized, Forbidden, anyhow::Error>> {
         check_online(&self.mock_server_state)?;
         check_admin(&self.mock_auth_service_state, auth)?;
 
@@ -244,7 +244,7 @@ impl TryFrom<&UserAccount> for Member {
     fn try_from(account: &UserAccount) -> Result<Self, Self::Error> {
         Ok(Self {
             jid: account.jid.clone(),
-            role: MemberRole::try_from(&account.role)?,
+            role: Some(MemberRole::try_from(&account.role)?),
         })
     }
 }
