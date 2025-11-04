@@ -8,7 +8,7 @@ pub mod extractors;
 mod routes;
 
 use axum::{middleware::from_extractor_with_state, routing::*};
-use service::auth::IsAdmin;
+use service::auth::{Authenticated, IsAdmin};
 
 use crate::AppState;
 
@@ -17,7 +17,6 @@ pub use self::routes::*;
 use super::members::MEMBER_ROUTE;
 
 pub(super) fn router(app_state: AppState) -> axum::Router {
-    let todo = "Test set own recovery email address";
     let todo = "Test minimum password length at account creation (write test)";
     let todo = "Test minimum password length at password reset (write test)";
     axum::Router::new()
@@ -26,14 +25,17 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
             axum::Router::new()
                 .route("/role", put(set_member_role_route))
                 .route("/password", delete(request_password_reset_route))
+                .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
                 .route(
                     "/recovery-email-address",
                     MethodRouter::new()
                         .get(get_member_recovery_email_address_route)
                         .put(set_member_recovery_email_address_route),
-                ),
+                )
+                .route_layer(from_extractor_with_state::<Authenticated, _>(
+                    app_state.clone(),
+                )),
         )
-        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .route("/v1/login", post(login_route))
         .route(
             "/v1/password-reset-tokens/{token}/use",

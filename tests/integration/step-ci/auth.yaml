@@ -123,6 +123,54 @@ tests:
             status: 200
             jsonpath:
               $: ${{ env.MEMBER_EMAILS.0 }}
+  setAndGetOwnRecoveryEmailAddress:
+    name: Set then get one’s own recovery email address
+    steps:
+      - name: Log in
+        http:
+          method: POST
+          url: /v1/login
+          auth:
+            basic:
+              username: ${{ env.MEMBER_JIDS.1 }}
+              password: ${{ env.MEMBER_PASSWORDS.1 }}
+          captures:
+            token:
+              jsonpath: $.token
+          check:
+            status: 200
+      - name: Check role
+        http:
+          method: GET
+          url: /v1/members/${{ env.MEMBER_JIDS.1 }}
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            jsonpath:
+              $.role: MEMBER
+      - name: Set email address
+        http:
+          method: PUT
+          url: /v1/members/${{ env.MEMBER_JIDS.1 }}/recovery-email-address
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json: test@example.org
+          check:
+            status: /2../
+      - name: Get email address
+        http:
+          method: GET
+          url: /v1/members/${{ env.MEMBER_JIDS.1 }}/recovery-email-address
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: /2../
+            jsonpath:
+              $: test@example.org
 
 components:
   steps:
