@@ -52,16 +52,6 @@ pub fn debug_panic_or_log_warning(msg: String) {
     }
 }
 
-// TODO: Get rid of this.
-/// `jid@0.12` introduces `serde` support for `NodePart`, which we need here.
-/// `prose_xmpp` depends on `jid@0.11`, and we can’t easily bump because of
-/// breaking changes in `jid@0.12`. For now we’ll do manual mapping here, and
-/// we’ll get rid of this after we bump.
-pub fn jid_0_12_to_jid_0_11(jid_0_12: &prosody_http::jid::BareJid) -> jid::BareJid {
-    let todo = "Revert to jid@0.11 and get rid of this";
-    jid::BareJid::new(jid_0_12.as_str()).unwrap()
-}
-
 #[macro_export]
 macro_rules! wrapper_type {
     ($wrapper:ident, $t:ty $([+$option:ident])* $(; $derive:path)*) => {

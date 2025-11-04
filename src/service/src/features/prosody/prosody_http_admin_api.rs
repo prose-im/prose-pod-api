@@ -13,7 +13,7 @@ use crate::{
     auth::AuthToken,
     members::{Member, MemberRole},
     prosody::ProsodyRoleName,
-    util::{jid_0_12_to_jid_0_11, JidExt},
+    util::JidExt,
     xmpp::{jid::BareJid, NonStandardXmppClient},
 };
 
@@ -55,7 +55,7 @@ impl From<&UserInfo> for Member {
                     tracing::warn!("Unsupported role for `{jid}`: {e}", jid = &info.jid)
                 })
                 .ok(),
-            jid: jid_0_12_to_jid_0_11(&info.jid),
+            jid: info.jid.clone(),
         }
     }
 }
