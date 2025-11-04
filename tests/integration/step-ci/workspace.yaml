@@ -8,6 +8,13 @@ env:
 
 # NOTE: Paths are relative to the directory from which `stepci` is ran.
 tests:
+  getWorkspaceDetailsNoAuth:
+    name: Get workspace details without being authenticated
+    steps:
+      - $ref: "#/components/steps/get_workspace_details"
+      - $ref: "#/components/steps/get_workspace_name"
+      - $ref: "#/components/steps/get_workspace_icon"
+      - $ref: "#/components/steps/get_workspace_accent_color"
   getWorkspaceDetailsAsAdmin:
     name: Get workspace details as admin
     steps:
