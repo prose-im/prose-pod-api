@@ -102,7 +102,7 @@ tests:
     name: Set then get a member’s recovery email address as an admin
     steps:
       - $ref: "init.yaml#/components/steps/log_admin_in"
-      - name: Set email address
+      - name: Set recovery email address
         http:
           method: PUT
           url: /v1/members/${{ env.MEMBER_JIDS.0 }}/recovery-email-address
@@ -112,7 +112,7 @@ tests:
           json: ${{ env.MEMBER_EMAILS.0 }}
           check:
             status: /2../
-      - name: Get email address
+      - name: Get recovery email address
         http:
           method: GET
           url: /v1/members/${{ env.MEMBER_JIDS.0 }}/recovery-email-address
@@ -150,7 +150,7 @@ tests:
             status: 200
             jsonpath:
               $.role: MEMBER
-      - name: Set email address
+      - name: Set recovery email address
         http:
           method: PUT
           url: /v1/members/${{ env.MEMBER_JIDS.1 }}/recovery-email-address
@@ -160,7 +160,7 @@ tests:
           json: test@example.org
           check:
             status: /2../
-      - name: Get email address
+      - name: Get recovery email address
         http:
           method: GET
           url: /v1/members/${{ env.MEMBER_JIDS.1 }}/recovery-email-address

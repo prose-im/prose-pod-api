@@ -54,7 +54,7 @@ pub async fn invite_member(
             super::invitation_service::InviteUserCommand {
                 username: req.username,
                 role: req.pre_assigned_role,
-                email_address,
+                email_address: email_address.clone(),
                 ttl: None,
             },
             auth,
@@ -63,9 +63,7 @@ pub async fn invite_member(
 
     #[cfg(debug_assertions)]
     if auto_accept {
-        use crate::{
-            invitations::invitation_service::AcceptAccountInvitationCommand, models::EmailAddress,
-        };
+        use crate::invitations::invitation_service::AcceptAccountInvitationCommand;
 
         tracing::warn!("As requested, the created invitation will be automatically accepted.");
 
@@ -85,7 +83,7 @@ pub async fn invite_member(
                 AcceptAccountInvitationCommand {
                     nickname: username.into(),
                     password,
-                    email: Some(EmailAddress::from(&invitation.jid)),
+                    email: Some(email_address),
                 },
             )
             .await

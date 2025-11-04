@@ -119,6 +119,37 @@ tests:
             status: 409
             schema:
               $ref: openapi.json#/components/schemas/Error
+  acceptingInvitationSetsRecoveryEmailAddress:
+    name: Accepting an email invitation sets the recovery email address
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: Invite member and auto-accept invitation
+        http:
+          method: POST
+          url: /v1/invitations
+          params:
+            auto_accept: true
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: auto-recovery-email
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: auto-recovery-email@example.org
+          check:
+            status: 201
+      - name: Get recovery email address
+        http:
+          method: GET
+          url: /v1/members/auto-recovery-email@${{ env.DOMAIN }}/recovery-email-address
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: /2../
+            jsonpath:
+              $: auto-recovery-email@example.org
 
 components:
   steps:

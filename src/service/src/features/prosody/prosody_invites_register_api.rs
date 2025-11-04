@@ -4,7 +4,7 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use anyhow::Context as _;
-use reqwest::{Client as HttpClient, StatusCode};
+use reqwest::{header::ACCEPT, Client as HttpClient, StatusCode};
 use secrecy::SecretString;
 use serde_json::json;
 use serdev::Deserialize;
@@ -48,10 +48,11 @@ impl ProsodyInvitesRegisterApi {
 
         let request = http
             .get(format!(
-                "{root}/invites/{token}",
+                "{root}/invite/{token}",
                 root = self.api_root,
                 token = token.expose_secret()
             ))
+            .header(ACCEPT, "application/json")
             .build()
             .context("Could not build request")?;
 
@@ -94,7 +95,8 @@ impl ProsodyInvitesRegisterApi {
         let ref http = self.http_client;
 
         let request = http
-            .put(format!("{root}/register", root = self.api_root))
+            .post(format!("{root}/register", root = self.api_root))
+            .header(ACCEPT, "application/json")
             .json(&json!({
                 "username": username.map(NodeRef::as_str),
                 "password": password.expose_secret(),
@@ -138,10 +140,11 @@ impl ProsodyInvitesRegisterApi {
 
         let request = http
             .delete(format!(
-                "{root}/invites/{token}",
+                "{root}/invite/{token}",
                 root = self.api_root,
                 token = token.expose_secret()
             ))
+            .header(ACCEPT, "application/json")
             .build()
             .context("Could not build request")?;
 
@@ -210,17 +213,16 @@ impl TryFrom<InviteInfo> for crate::invitations::Invitation {
     fn try_from(invite: InviteInfo) -> Result<Self, Self::Error> {
         use crate::members::MemberRole;
         use anyhow::anyhow;
-        use std::str::FromStr as _;
 
         let pre_assigned_role = invite
             .additional_data
             .roles
             .first()
-            .map(|s| match MemberRole::from_str(s) {
+            .map(|prosody_role| match MemberRole::try_from(prosody_role) {
                 Ok(role) => Some(role),
                 Err(err) => {
                     crate::util::debug_panic_or_log_warning(format!(
-                        "Invalid member role '{s}': {err}"
+                        "Invalid member role '{prosody_role}': {err}"
                     ));
                     None
                 }

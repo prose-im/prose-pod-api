@@ -69,7 +69,7 @@ unicode-normalization = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 validator = { version = "0.20.0", default-features = false }
-prosody-http = { git = "https://github.com/prose-im/prose-pod-server.git", rev = "4e7758072ccb332d55b2cff45de4fced7340761a", default-features = false }
+prosody-http = { git = "https://github.com/prose-im/prose-pod-server.git", rev = "de4e31061ce401a9a59e4241ff6f4ce884d4e20a", default-features = false }
 
 # `lettre` dependencies.
 # WARN: `lettre` depends on the massive `aws-lc-rs` which takes a big portion of our build time.

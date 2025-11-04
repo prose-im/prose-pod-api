@@ -3250,7 +3250,7 @@ dependencies = [
 [[package]]
 name = "prosody-http"
 version = "0.1.0"
-source = "git+https://github.com/prose-im/prose-pod-server.git?rev=4e7758072ccb332d55b2cff45de4fced7340761a#4e7758072ccb332d55b2cff45de4fced7340761a"
+source = "git+https://github.com/prose-im/prose-pod-server.git?rev=de4e31061ce401a9a59e4241ff6f4ce884d4e20a#de4e31061ce401a9a59e4241ff6f4ce884d4e20a"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

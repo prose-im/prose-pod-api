@@ -102,6 +102,7 @@ VirtualHost "test.org"
     "http_admin_api";
     "invites";
     "invites_groups";
+    "invites_register";
     "invites_register_api";
   }
 

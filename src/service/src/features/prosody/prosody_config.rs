@@ -200,6 +200,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                         "http_admin_api", // Has to be non-global.
                         "invites",
                         "invites_groups",
+                        "invites_register",
                         "invites_register_api",
                     ]
                     .into_iter()
