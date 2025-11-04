@@ -34,6 +34,11 @@ impl FromRequestParts<AppState> for service::auth::AuthToken {
                 "The '{AUTHORIZATION}' header does not start with '{PREFIX}'."
             ))));
         };
+        if token == "null" {
+            return Err(Error::from(error::Unauthorized(format!(
+                "Invalid auth token: '{token}'."
+            ))));
+        }
 
         Ok(Self(SecretString::from(token.to_string())))
     }
