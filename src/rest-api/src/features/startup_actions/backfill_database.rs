@@ -22,6 +22,7 @@ pub async fn backfill_onboarding_steps(
         network_checker,
         user_repository,
         invitation_repository,
+        workspace_service,
         ..
     }: &AppState,
 ) -> Result<(), String> {
@@ -32,6 +33,7 @@ pub async fn backfill_onboarding_steps(
         network_checker,
         invitation_repository,
         user_repository,
+        workspace_service,
     )
     .await;
     Ok(())

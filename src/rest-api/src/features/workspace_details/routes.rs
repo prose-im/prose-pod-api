@@ -15,7 +15,7 @@ use axum::{
 use axum_extra::{either::Either, headers::IfMatch, TypedHeader};
 use mime::APPLICATION_JSON;
 use service::{
-    auth::{AuthToken, IsAdmin},
+    auth::AuthToken,
     models::{Avatar, Color},
     workspace::{
         workspace_controller::{self, PatchWorkspaceDetailsRequest},
@@ -55,10 +55,11 @@ pub struct InitWorkspaceRequest {
 //   by default, but until then it’ll map to `PATCH /v1/workspace`, with a
 //   check that ensures the name is set (not to change behavior).
 pub async fn init_workspace_route(
+    State(AppState { ref db, .. }): State<AppState>,
     ref workspace_service: WorkspaceService,
     Json(req): Json<InitWorkspaceRequest>,
 ) -> Result<Created<Workspace>, Error> {
-    let workspace = workspace_controller::init_workspace(workspace_service, req).await?;
+    let workspace = workspace_controller::init_workspace(db, workspace_service, req).await?;
 
     let resource_uri = WORKSPACE_ROUTE;
     Ok(Created {
@@ -81,13 +82,12 @@ pub async fn get_workspace_route(
 pub async fn is_workspace_initialized_route(
     State(AppState { ref db, .. }): State<AppState>,
     TypedHeader(if_match): TypedHeader<IfMatch>,
-    ref is_admin: IsAdmin,
 ) -> Result<StatusCode, Error> {
     if if_match != IfMatch::any() {
         Err(Error::from(PreconditionRequired {
             comment: format!("Missing header: '{IF_MATCH}'."),
         }))
-    } else if workspace_controller::is_workspace_initialized(db, is_admin).await {
+    } else if workspace_controller::is_workspace_initialized(db).await {
         Ok(StatusCode::NO_CONTENT)
     } else {
         Ok(StatusCode::PRECONDITION_FAILED)

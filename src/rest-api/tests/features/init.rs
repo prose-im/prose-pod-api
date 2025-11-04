@@ -42,7 +42,7 @@ async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error>
         accent_color: None,
     };
 
-    workspace_controller::init_workspace(&world.workspace_service(), req).await?;
+    workspace_controller::init_workspace(&world.db, &world.workspace_service(), req).await?;
 
     Ok(())
 }

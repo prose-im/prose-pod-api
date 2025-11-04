@@ -6,9 +6,10 @@
 use validator::Validate;
 
 use crate::{
-    auth::{AuthToken, IsAdmin},
+    auth::AuthToken,
     errors::Forbidden,
     models::{Avatar, Color, DatabaseRwConnectionPools},
+    onboarding::is_workspace_initialized,
     prose_pod_server_api::InitWorkspaceRequest,
     util::either::Either,
     workspace::errors::WorkspaceAlreadyInitialized,
@@ -22,19 +23,20 @@ use super::{Workspace, WorkspaceService};
 //   by default, but until then it’ll map to `PATCH /v1/workspace`, with a
 //   check that ensures the name is set (not to change behavior).
 pub async fn init_workspace(
+    db: &DatabaseRwConnectionPools,
     workspace_service: &WorkspaceService,
     req: impl Into<InitWorkspaceRequest>,
 ) -> Result<Workspace, Either<WorkspaceAlreadyInitialized, anyhow::Error>> {
     workspace_service.init_workspace(&req.into()).await?;
+
+    is_workspace_initialized::set(&db.write, true).await?;
 
     let workspace = self::get_workspace(workspace_service, None).await?;
 
     Ok(workspace)
 }
 
-// COMPAT: This route will disappear because the Workspace is now initialized by
-//   default, but until then it’ll require a `IsAdmin` not to change behavior.
-pub async fn is_workspace_initialized(db: &DatabaseRwConnectionPools, _is_admin: &IsAdmin) -> bool {
+pub async fn is_workspace_initialized(db: &DatabaseRwConnectionPools) -> bool {
     crate::onboarding::is_workspace_initialized::get_or_default(&db.read).await
 }
 

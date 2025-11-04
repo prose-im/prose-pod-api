@@ -5,7 +5,7 @@
 
 use crate::{
     invitations::InvitationRepository, members::UserRepository, models::DatabaseRwConnectionPools,
-    network_checks::NetworkChecker, server_config, AppConfig,
+    network_checks::NetworkChecker, server_config, workspace::WorkspaceService, AppConfig,
 };
 
 /// If the database was created before this feature was introduced, some keys
@@ -18,12 +18,18 @@ pub async fn backfill(
     network_checker: &NetworkChecker,
     invitation_repository: &InvitationRepository,
     user_repository: &UserRepository,
+    workspace_service: &WorkspaceService,
 ) {
     use tracing::warn;
 
     // Backfill `chosen_server_domain` if necessary.
     if let Err(err) = backfill_chosen_server_domain(db, app_config).await {
         warn!("Could not backfill `chosen_server_domain`: {err}");
+    }
+
+    // Backfill `is_workspace_initialized` if necessary.
+    if let Err(err) = backfill_is_workspace_initialized(db, app_config, workspace_service).await {
+        warn!("Could not backfill `is_workspace_initialized`: {err}");
     }
 
     // Backfill `all_dns_checks_passed_once` if necessary.
@@ -63,6 +69,41 @@ async fn backfill_chosen_server_domain(
     // data as it might be temporary.
     trace!("Backfilling `{KEY}` to {server_domain}…");
     store::set(&db.write, server_domain).await
+}
+
+async fn backfill_is_workspace_initialized(
+    db: &DatabaseRwConnectionPools,
+    app_config: &AppConfig,
+    workspace_service: &WorkspaceService,
+) -> anyhow::Result<()> {
+    use tracing::trace;
+
+    use super::is_workspace_initialized as store;
+
+    const KEY: &'static str = "is_workspace_initialized";
+
+    // Do not backfill if a value already exist.
+    if store::get_opt(&db.read).await?.is_some() {
+        trace!("Not backfilling `{KEY}`: Already set.");
+        return Ok(());
+    }
+
+    trace!("Backfilling `{KEY}`…");
+
+    let workspace = workspace_service.get_workspace(None).await?;
+
+    // NOTE: To simplify processes internally, the Workspace XMPP account
+    //   is created by default, with the server domain as default name.
+    //   If `is_workspace_initialized` is not already set and the name
+    //   is the default one, it means no admin went through the process
+    //   of Workspace initialization, and we should report the Workspace
+    //   as “not initialized”. Once the Workspace is manually assigned a
+    //   name (even if same as default one), `is_workspace_initialized`
+    //   is set to `true` and this code path becomes unreachable.
+    let is_workspace_initialized = workspace.name.as_str() != app_config.server.domain.as_str();
+
+    trace!("Backfilling `{KEY}` to {is_workspace_initialized}…");
+    store::set(&db.write, is_workspace_initialized).await
 }
 
 async fn backfill_all_dns_checks_passed_once(
