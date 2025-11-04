@@ -17,108 +17,108 @@ before:
     - $ref: "#/components/steps/invite_member"
     - $ref: "#/components/steps/invite_member"
 
-tests: []
-  # listInvitationsDefault:
-  #   name: Default
-  #   steps:
-  #     - name: List invitations
-  #       http:
-  #         method: GET
-  #         url: /v1/invitations
-  #         auth:
-  #           bearer:
-  #             token: ${{ captures.token }}
-  #         check:
-  #           status: 200
-  #           headers:
-  #             $ref: "#/components/headers/paginated_json"
-  #           schema:
-  #             type: array
-  #             items:
-  #               $ref: openapi.json#/components/schemas/WorkspaceInvitation
-  #           jsonpath:
-  #             # NOTE: 5 or 6 depending if `doubleInviteConflict` already ran.
-  #             $.length: /5|6/
-  # listInvitationsPage2:
-  #   name: Page 2
-  #   steps:
-  #     - name: List invitations
-  #       http:
-  #         method: GET
-  #         url: /v1/invitations
-  #         params:
-  #           page_number: 2
-  #           page_size: 2
-  #         auth:
-  #           bearer:
-  #             token: ${{ captures.token }}
-  #         check:
-  #           status: 206
-  #           headers:
-  #             $ref: "#/components/headers/paginated_json"
-  #           schema:
-  #             type: array
-  #             items:
-  #               $ref: openapi.json#/components/schemas/WorkspaceInvitation
-  #           jsonpath:
-  #             $.length: 2
-  # doubleInviteConflict:
-  #   name: Double invitation returns 409 Conflict
-  #   steps:
-  #     - name: Invite a first time
-  #       http:
-  #         method: POST
-  #         url: /v1/invitations
-  #         auth:
-  #           bearer:
-  #             token: ${{ captures.token }}
-  #         json:
-  #           username: someone
-  #           pre_assigned_role: MEMBER
-  #           channel: email
-  #           email_address: someone@example.org
-  #         check:
-  #           status: 201
-  #           headers:
-  #             Content-Type: application/json
-  #             Location: /.+/
-  #           schema:
-  #             $ref: openapi.json#/components/schemas/WorkspaceInvitation
-  #     - name: Invite a second time
-  #       http:
-  #         method: POST
-  #         url: /v1/invitations
-  #         auth:
-  #           bearer:
-  #             token: ${{ captures.token }}
-  #         json:
-  #           username: someone
-  #           pre_assigned_role: MEMBER
-  #           channel: email
-  #           email_address: someone@example.org
-  #         check:
-  #           status: 409
-  #           schema:
-  #             $ref: openapi.json#/components/schemas/Error
-  # inviteAlreadyTakenUsernameConflict:
-  #   name: Inviting for an already-taken username returns 409 Conflict
-  #   steps:
-  #     - name: Invite using an already-taken username
-  #       http:
-  #         method: POST
-  #         url: /v1/invitations
-  #         auth:
-  #           bearer:
-  #             token: ${{ captures.token }}
-  #         json:
-  #           username: ${{ env.MEMBER_USERNAMES.0 }}
-  #           pre_assigned_role: MEMBER
-  #           channel: email
-  #           email_address: ${{ internet.email | fake }}
-  #         check:
-  #           status: 409
-  #           schema:
-  #             $ref: openapi.json#/components/schemas/Error
+tests:
+  listInvitationsDefault:
+    name: Default
+    steps:
+      - name: List invitations
+        http:
+          method: GET
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+            headers:
+              $ref: "#/components/headers/paginated_json"
+            schema:
+              type: array
+              items:
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
+            jsonpath:
+              # NOTE: 5 or 6 depending if `doubleInviteConflict` already ran.
+              $.length: /5|6/
+  listInvitationsPage2:
+    name: Page 2
+    steps:
+      - name: List invitations
+        http:
+          method: GET
+          url: /v1/invitations
+          params:
+            page_number: 2
+            page_size: 2
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 206
+            headers:
+              $ref: "#/components/headers/paginated_json"
+            schema:
+              type: array
+              items:
+                $ref: openapi.json#/components/schemas/WorkspaceInvitation
+            jsonpath:
+              $.length: 2
+  doubleInviteConflict:
+    name: Double invitation returns 409 Conflict
+    steps:
+      - name: Invite a first time
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: someone
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: someone@example.org
+          check:
+            status: 201
+            headers:
+              Content-Type: application/json
+              Location: /.+/
+            schema:
+              $ref: openapi.json#/components/schemas/WorkspaceInvitation
+      - name: Invite a second time
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: someone
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: someone@example.org
+          check:
+            status: 409
+            schema:
+              $ref: openapi.json#/components/schemas/Error
+  inviteAlreadyTakenUsernameConflict:
+    name: Inviting for an already-taken username returns 409 Conflict
+    steps:
+      - name: Invite using an already-taken username
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: ${{ env.MEMBER_USERNAMES.0 }}
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: ${{ internet.email | fake }}
+          check:
+            status: 409
+            schema:
+              $ref: openapi.json#/components/schemas/Error
 
 components:
   steps:
