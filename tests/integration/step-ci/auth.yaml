@@ -171,6 +171,111 @@ tests:
             status: /2../
             jsonpath:
               $: test@example.org
+  passwordLengthAtAccountCreation:
+    name: Test minimum password length at account creation
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: Invite member
+        http:
+          method: POST
+          url: /v1/invitations
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          json:
+            username: min-password-length
+            pre_assigned_role: MEMBER
+            channel: email
+            email_address: min-password-length@example.org
+          check:
+            status: 201
+          captures:
+            acceptToken:
+              jsonpath: $.accept_token
+      # NOTE: In tests, `auth.min_password_length` is set to `4`.
+      - name: Try setting password too short
+        http:
+          method: PUT
+          url: /v1/invitation-tokens/${{ captures.acceptToken }}/accept
+          json:
+            nickname: ${{ internet.userName | fake }}
+            password: abc
+          check:
+            status: 400
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/Error
+      - name: Reset password
+        http:
+          method: PUT
+          url: /v1/invitation-tokens/${{ captures.acceptToken }}/accept
+          json:
+            nickname: ${{ internet.userName | fake }}
+            password: abcd
+          check:
+            status: 200
+      - name: Try logging in with new password
+        http:
+          method: POST
+          url: /v1/login
+          auth:
+            basic:
+              username: ${{ env.MEMBER_JIDS.2 }}
+              password: abcd
+          check:
+            status: 200
+  passwordLengthAtPasswordReset:
+    name: Test minimum password length at password reset
+    steps:
+      - $ref: "init.yaml#/components/steps/log_admin_in"
+      - name: Request password reset
+        http:
+          method: DELETE
+          url: /v1/members/${{ env.MEMBER_JIDS.2 }}/password
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 202
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/PasswordResetNotificationPayload
+          captures:
+            passwordResetToken:
+              jsonpath: $.token
+      # NOTE: In tests, `auth.min_password_length` is set to `4`.
+      - name: Try setting password too short
+        http:
+          method: PUT
+          url: /v1/password-reset-tokens/${{ captures.passwordResetToken }}/use
+          json:
+            password: abc
+          check:
+            status: 400
+            headers:
+              Content-Type: application/json
+            schema:
+              $ref: openapi.json#/components/schemas/Error
+      - name: Reset password
+        http:
+          method: PUT
+          url: /v1/password-reset-tokens/${{ captures.passwordResetToken }}/use
+          json:
+            password: abcd
+          check:
+            status: 200
+      - name: Try logging in with new password
+        http:
+          method: POST
+          url: /v1/login
+          auth:
+            basic:
+              username: ${{ env.MEMBER_JIDS.2 }}
+              password: abcd
+          check:
+            status: 200
 
 components:
   steps:
