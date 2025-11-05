@@ -50,7 +50,7 @@ fn notification_message(
 ) -> String {
     vec![
         format!(
-            "To reset you password, open the following link in a web browser: {pw_reset_link}. You will be guided to create a new one.",
+            "To reset your password, open the following link in a web browser: {pw_reset_link}. You will be guided to create a new one.",
         ).as_str(),
 
         format!(
