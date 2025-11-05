@@ -225,7 +225,7 @@ impl InvitationService {
         invitation: &Invitation,
         email_address: EmailAddress,
         auth: &AuthToken,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<WorkspaceInvitationPayload, anyhow::Error> {
         // Construct the notification payload.
         let payload = {
             let workspace_name = (self.workspace_service)
@@ -233,19 +233,19 @@ impl InvitationService {
                 .await
                 .context("Could not get workspace details (to build the notification)")?;
 
-            WorkspaceInvitationPayload {
-                accept_token: invitation.accept_token.clone(),
-                reject_token: invitation.reject_token.clone(),
+            WorkspaceInvitationPayload::new(
+                invitation.accept_token.clone(),
                 workspace_name,
-                dashboard_url: self.app_config.dashboard_url().clone(),
-                api_app_name: self.app_config.branding.api_app_name.clone(),
-                organization_name: self.app_config.branding.company_name.clone(),
-            }
+                self.app_config.branding.api_app_name.clone(),
+                self.app_config.branding.company_name.clone(),
+                invitation.accept_token_expires_at,
+                self.app_config.dashboard_url().into(),
+            )
         };
 
         // Create the notification.
         let notification =
-            EmailNotification::for_workspace_invitation(email_address, payload, &self.app_config)
+            EmailNotification::for_workspace_invitation(email_address, &payload, &self.app_config)
                 .context("Could not create email")?;
 
         // Send the notification.
@@ -253,7 +253,7 @@ impl InvitationService {
             .send_email(notification)
             .context("Could not send account invitation: {err}")?;
 
-        Ok(())
+        Ok(payload)
     }
 }
 

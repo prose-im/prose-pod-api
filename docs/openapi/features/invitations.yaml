@@ -220,11 +220,11 @@ components:
     InvitationAcceptToken:
       type: string
       format: password
-      example: 20edadc2-6c3b-4297-b92a-042f23249225
+      example: MBEw_Wp3-1CEVyR0MauTpYlT
     InvitationRejectToken:
       type: string
       format: password
-      example: f2736e87-850e-4776-bb26-52c12a7d8bd8
+      example: kjYmRIMukLiW13RZm0xAmZzg
     WorkspaceInvitation:
       type: object
       required:
@@ -233,9 +233,13 @@ components:
         - jid
         - pre_assigned_role
         - contact
+        - accept_token
+        - reject_token
         - accept_token_expires_at
         - is_expired
       properties:
+        accept_token: { $ref: "#/components/schemas/InvitationAcceptToken" }
+        reject_token: { $ref: "#/components/schemas/InvitationRejectToken" }
         accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
         contact: { $ref: "#/components/schemas/InvitationContact" }
         created_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }

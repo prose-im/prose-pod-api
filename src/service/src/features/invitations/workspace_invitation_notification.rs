@@ -5,6 +5,9 @@
 
 use std::fmt::Display;
 
+use serdev::Serialize;
+use time::OffsetDateTime;
+
 use crate::{
     invitations::InvitationToken,
     models::{EmailAddress, Url},
@@ -14,26 +17,56 @@ use crate::{
 
 /// All the data needed to generate the content of a workspace invitation.
 #[derive(Debug, Clone)]
+#[derive(Serialize)]
 pub struct WorkspaceInvitationPayload {
-    pub accept_token: InvitationToken,
-    pub reject_token: InvitationToken,
+    pub token: InvitationToken,
+
     pub workspace_name: String,
-    pub dashboard_url: Url,
+
     pub api_app_name: String,
+
     pub organization_name: Option<String>,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub expires_at: OffsetDateTime,
+
+    pub url: url::Url,
+
+    pub reject_url: url::Url,
+}
+
+impl WorkspaceInvitationPayload {
+    pub fn new(
+        token: InvitationToken,
+        workspace_name: String,
+        api_app_name: String,
+        organization_name: Option<String>,
+        expires_at: OffsetDateTime,
+        dashboard_url: &Url,
+    ) -> Self {
+        Self {
+            workspace_name,
+            api_app_name,
+            organization_name,
+            expires_at: expires_at,
+            url: accept_link(&token, dashboard_url),
+            reject_url: reject_link(&token, dashboard_url),
+            token: token,
+        }
+    }
 }
 
 impl EmailNotification {
     pub fn for_workspace_invitation(
         recipient: EmailAddress,
-        payload: WorkspaceInvitationPayload,
+        payload: &WorkspaceInvitationPayload,
         app_config: &AppConfig,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             recipient,
-            notification_subject(&payload),
-            notification_message_plain(&payload),
-            notification_message_html(&payload),
+            notification_subject(payload),
+            notification_message_plain(payload),
+            notification_message_html(payload),
             app_config,
         )
     }
@@ -122,22 +155,12 @@ fn reject_link(reject_token: &InvitationToken, dashboard_url: &url::Url) -> url:
 }
 
 fn notification_message_plain(payload: &WorkspaceInvitationPayload) -> String {
-    notification_message(
-        payload,
-        accept_link(&payload.accept_token, &payload.dashboard_url),
-        reject_link(&payload.reject_token, &payload.dashboard_url),
-    )
+    notification_message(payload, &payload.url, &payload.reject_url)
 }
 
 fn notification_message_html(payload: &WorkspaceInvitationPayload) -> String {
-    let accept_link = format!(
-        r#"<a href="{url}">{url}</a>"#,
-        url = accept_link(&payload.accept_token, &payload.dashboard_url),
-    );
-    let reject_link = format!(
-        r#"<a href="{url}">{url}</a>"#,
-        url = reject_link(&payload.reject_token, &payload.dashboard_url),
-    );
+    let accept_link = format!(r#"<a href="{url}">{url}</a>"#, url = &payload.url);
+    let reject_link = format!(r#"<a href="{url}">{url}</a>"#, url = &payload.reject_url);
     let mut body = notification_message(payload, accept_link, reject_link);
     body = body.replace("\n\n", "</p><p>");
     format!(

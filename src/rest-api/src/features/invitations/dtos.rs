@@ -7,7 +7,7 @@
 
 use serdev::Serialize;
 use service::{
-    invitations::{self, InvitationContact, InvitationId},
+    invitations::{self, InvitationContact, InvitationId, InvitationToken},
     members::MemberRole,
     models::BareJid,
 };
@@ -28,6 +28,9 @@ pub struct WorkspaceInvitationDto {
 
     pub contact: InvitationContact,
 
+    pub accept_token: InvitationToken,
+    pub reject_token: InvitationToken,
+
     #[serde(with = "time::serde::rfc3339")]
     pub accept_token_expires_at: OffsetDateTime,
 
@@ -39,13 +42,15 @@ pub struct WorkspaceInvitationDto {
 impl From<invitations::Invitation> for WorkspaceInvitationDto {
     fn from(value: invitations::Invitation) -> Self {
         Self {
+            is_expired: value.is_expired(),
             invitation_id: value.id.clone(),
             created_at: value.created_at,
             jid: value.jid.clone().into(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
+            accept_token: value.accept_token,
+            reject_token: value.reject_token,
             accept_token_expires_at: value.accept_token_expires_at,
-            is_expired: value.is_expired(),
         }
     }
 }
