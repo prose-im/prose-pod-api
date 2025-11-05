@@ -62,6 +62,9 @@ paths:
     responses:
       "202":
         description: Success (password reset link sent)
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordResetNotificationPayload" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_password:
@@ -121,10 +124,23 @@ components:
     PasswordResetToken:
       type: string
       format: password
-      example: GjRli65Gkbbzrxf4YhzjnYdfZS2B2PlqP9cB
+      example: d4DPhMhrIJtQ0_hvq-keGrNX
     ResetPasswordRequest:
       type: object
       required:
         - password
       properties:
         password: { $ref: "../shared.yaml#/components/schemas/Password" }
+    PasswordResetNotificationPayload:
+      type: object
+      required:
+        - token
+        - expires_at
+        - url
+      properties:
+        token: { $ref: "#/components/schemas/PasswordResetToken" }
+        expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        url:
+          type: string
+          format: uri
+          example: https://admin.prose.company.com/invitations/accept/d4DPhMhrIJtQ0_hvq-keGrNX

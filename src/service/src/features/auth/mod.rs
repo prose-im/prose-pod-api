@@ -15,6 +15,7 @@ pub mod util;
 pub use auth_service::{AuthService, AuthServiceImpl, LiveAuthService};
 
 pub use self::models::*;
+pub use self::password_reset_notification::PasswordResetNotificationPayload;
 pub(crate) use self::recovery_emails::kv_store as recovery_emails_store;
 
 mod recovery_emails {

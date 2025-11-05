@@ -5,6 +5,7 @@
 
 use std::fmt::Display;
 
+use serdev::Serialize;
 use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 
 use crate::{
@@ -18,23 +19,37 @@ use super::PasswordResetToken;
 
 /// All the data needed to generate the content of a password reset notification.
 #[derive(Debug, Clone)]
+#[derive(Serialize)]
 pub struct PasswordResetNotificationPayload {
-    pub reset_token: PasswordResetToken,
+    pub token: PasswordResetToken,
+
+    #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
-    pub dashboard_url: Url,
+
+    pub url: url::Url,
+}
+
+impl PasswordResetNotificationPayload {
+    pub fn new(token: PasswordResetToken, expires_at: OffsetDateTime, dashboard_url: &Url) -> Self {
+        Self {
+            url: pw_reset_link(&token, dashboard_url),
+            token,
+            expires_at,
+        }
+    }
 }
 
 impl EmailNotification {
     pub fn for_password_reset(
         recipient: EmailAddress,
-        payload: PasswordResetNotificationPayload,
+        payload: &PasswordResetNotificationPayload,
         app_config: &AppConfig,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             recipient,
             subject(),
-            message_plain(&payload),
-            message_html(&payload),
+            message_plain(payload),
+            message_html(payload),
             app_config,
         )
     }
@@ -77,17 +92,11 @@ fn pw_reset_link(reset_token: &PasswordResetToken, dashboard_url: &url::Url) -> 
 }
 
 fn message_plain(payload: &PasswordResetNotificationPayload) -> String {
-    notification_message(
-        payload,
-        pw_reset_link(&payload.reset_token, &payload.dashboard_url),
-    )
+    notification_message(payload, &payload.url)
 }
 
 fn message_html(payload: &PasswordResetNotificationPayload) -> String {
-    let pw_reset_link = format!(
-        r#"<a href="{url}">{url}</a>"#,
-        url = pw_reset_link(&payload.reset_token, &payload.dashboard_url),
-    );
+    let pw_reset_link = format!(r#"<a href="{url}">{url}</a>"#, url = &payload.url);
     let mut body = notification_message(payload, pw_reset_link);
     body = body.replace("\n\n", "</p><p>");
     format!(

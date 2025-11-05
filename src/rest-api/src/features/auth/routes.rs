@@ -11,8 +11,8 @@ use axum::{
 use serdev::{Deserialize, Serialize};
 use service::{
     auth::{
-        auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
-        UserInfo,
+        auth_controller, errors::InvalidCredentials, AuthService, AuthToken,
+        PasswordResetNotificationPayload, PasswordResetToken, UserInfo,
     },
     members::MemberRole,
     models::{EmailAddress, SerializableSecretString},
@@ -125,8 +125,8 @@ pub async fn request_password_reset_route(
     ref caller: UserInfo,
     ref ctx: XmppServiceContext,
     Path(ref jid): Path<BareJid>,
-) -> Result<StatusCode, Error> {
-    auth_controller::request_password_reset(
+) -> Result<(StatusCode, Json<PasswordResetNotificationPayload>), Error> {
+    let payload = auth_controller::request_password_reset(
         notification_service,
         app_config,
         jid,
@@ -137,7 +137,7 @@ pub async fn request_password_reset_route(
         ctx,
     )
     .await?;
-    Ok(StatusCode::ACCEPTED)
+    Ok((StatusCode::ACCEPTED, Json(payload)))
 }
 
 #[derive(Debug, Deserialize)]

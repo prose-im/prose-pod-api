@@ -80,7 +80,7 @@ pub async fn request_password_reset(
     auth_service: &AuthService,
     caller: &UserInfo,
     ctx: &XmppServiceContext,
-) -> Result<(), Either<Forbidden, anyhow::Error>> {
+) -> Result<PasswordResetNotificationPayload, Either<Forbidden, anyhow::Error>> {
     let ref auth = ctx.auth_token;
 
     let Some(username) = jid.node() else {
@@ -116,17 +116,17 @@ pub async fn request_password_reset(
     let email_address = match contact {
         InvitationContact::Email { email_address } => email_address.clone(),
     };
-    let notification_payload = PasswordResetNotificationPayload {
-        reset_token: info.token,
-        expires_at: info.expires_at,
-        dashboard_url: app_config.dashboard_url().clone(),
-    };
+    let notification_payload = PasswordResetNotificationPayload::new(
+        info.token,
+        info.expires_at,
+        app_config.dashboard_url(),
+    );
     let email =
-        EmailNotification::for_password_reset(email_address, notification_payload, app_config)
+        EmailNotification::for_password_reset(email_address, &notification_payload, app_config)
             .context("Could not create email")?;
     notification_service.send_email(email)?;
 
-    Ok(())
+    Ok(notification_payload)
 }
 
 #[instrument(name = "auth_controller::reset_password", level = "trace", skip_all)]
