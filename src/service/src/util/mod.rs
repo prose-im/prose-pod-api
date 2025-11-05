@@ -10,7 +10,7 @@ pub mod deserializers;
 mod detect_mime_type;
 pub mod either;
 pub mod paginate;
-mod sea_orm;
+pub mod sea_orm;
 mod unaccent;
 
 use crate::models::jid::{BareJid, NodeRef};

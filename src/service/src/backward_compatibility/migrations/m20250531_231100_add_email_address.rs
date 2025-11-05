@@ -36,6 +36,6 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum NewFields {
+pub(super) enum NewFields {
     EmailAddress,
 }

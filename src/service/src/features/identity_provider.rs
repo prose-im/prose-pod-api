@@ -122,7 +122,6 @@ mod live {
         ) -> Result<Option<EmailAddress>, anyhow::Error> {
             use crate::auth::recovery_emails_store as store;
 
-            let todo = "Migrate data from previous table to KV store";
             store::get_typed(&self.db.read, jid.as_str()).await
         }
 
