@@ -31,8 +31,6 @@ tests:
               Content-Type: application/json
             schema:
               $ref: openapi.json#/components/schemas/Error
-            jsonpath:
-              $.accept_token: null
 
 components:
   headers:

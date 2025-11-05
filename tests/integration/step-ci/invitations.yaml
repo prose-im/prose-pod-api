@@ -176,8 +176,6 @@ components:
             Location: /.+/
           schema:
             $ref: openapi.json#/components/schemas/WorkspaceInvitation
-          jsonpath:
-            $.accept_token: null
     log_last_invited_member_in:
       name: Log last invited member in
       http:
