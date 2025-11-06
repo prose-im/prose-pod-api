@@ -27,6 +27,7 @@ pub struct LifecycleManager {
 
 impl LifecycleManager {
     fn new_instance(child_token: CancellationToken) -> (CancellationToken, Arc<Barrier>) {
+        // NOTE: 2 = current instance + new instance.
         (child_token, Arc::new(Barrier::new(2)))
     }
 }
