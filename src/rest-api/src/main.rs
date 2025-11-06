@@ -193,6 +193,8 @@ async fn startup(app_config: AppConfig, minimal_app_state: MinimalAppState) -> R
         Err(err) => {
             // NOTE: `panic`s are unwound therefore we need to exit manually.
             tracing::error!("Startup error: {err:#}");
+            // FIXME: This could lead to corrupted database,
+            //   stop gracefully with code 1 instead.
             std::process::exit(1);
         }
     }
