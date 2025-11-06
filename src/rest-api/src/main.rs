@@ -170,7 +170,7 @@ async fn run(
     let (cancellation_token, stopped) = lifecycle_manager.current_instance();
     info!("Serving the Prose Pod API on {addr}…");
     axum::serve(listener, app)
-        .with_graceful_shutdown(async move { cancellation_token.cancelled().await })
+        .with_graceful_shutdown(cancellation_token.cancelled_owned())
         .await
         .unwrap();
 
