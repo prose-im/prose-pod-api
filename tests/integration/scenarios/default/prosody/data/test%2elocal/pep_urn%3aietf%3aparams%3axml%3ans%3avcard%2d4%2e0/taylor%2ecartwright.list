@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"taylor.cartwright@example.org";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Taylor C.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "taylor.cartwright@test.local";
-	["with"] = "taylor.cartwright@test.local";
-	["when"] = 1757007018;
 	["name"] = "vcard";
+	["when"] = 1762402890;
+	["with"] = "taylor.cartwright@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:18Z";
+		["stamp"] = "2025-11-06T04:21:30Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

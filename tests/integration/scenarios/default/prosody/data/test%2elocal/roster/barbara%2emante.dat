@@ -3,31 +3,7 @@ return {
 		["pending"] = {};
 		["version"] = 65;
 	};
-	["pablo.bartoletti@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["jake.lang@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["taylor.cartwright@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["dianna.hermann@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["prose-workspace@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -39,11 +15,53 @@ return {
 			["Team"] = true;
 		};
 	};
+	["ella.white@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["jake.lang@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["meghan.donnelly@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["pablo.bartoletti@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["dianna.hermann@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
 	["charlie.schmitt@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
+	};
+	["evan.turner@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["drew.howell@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
 	};
 	["todd.schultz@test.local"] = {
 		["subscription"] = "both";
@@ -51,31 +69,13 @@ return {
 			["Team"] = true;
 		};
 	};
-	["evan.turner@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["ella.white@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["drew.howell@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
 	["sheri.nienow@test.local"] = {
-		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
+		["subscription"] = "both";
 	};
-	["meghan.donnelly@test.local"] = {
+	["prose-workspace@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;

@@ -47,12 +47,12 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "reload_modules";
-  "cloud_notify";
-  "register";
-  "prose_version";
   "mam";
 }
 modules_disabled = { "s2s" }
+
+-- mod_reload_modules
+reload_modules = { "tls" }
 
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
 allow_registration = false
@@ -73,11 +73,6 @@ limits = {
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
 
--- Specify server administrator
-contact_info = {
-  admin = { "mailto:hostmaster@mailpit" };
-}
-
 -- MAM settings
 archive_expires_after = "never"
 default_archive_policy = true
@@ -86,23 +81,29 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
--- mod_reload_modules
-reload_modules = { "tls" }
-
 -- mod_cloud_notify
 push_notification_with_body = true
 push_notification_with_sender = true
 
 -- Server hosts and components
 VirtualHost "test.local"
-  admins = { "prose-pod-api@admin.prose.local" }
-
   -- Modules
   modules_enabled = {
     "rest";
     "http_oauth2";
     "admin_rest";
+    "cloud_notify";
+    "register";
+    "prose_version";
+    "http_admin_api";
+    "invites";
+    "invites_groups";
+    "invites_register";
+    "invites_register_api";
   }
+
+  -- mod_reload_modules
+  reload_modules = { "http_oauth2" }
 
   -- HTTP settings
   http_host = "prose-pod-server"

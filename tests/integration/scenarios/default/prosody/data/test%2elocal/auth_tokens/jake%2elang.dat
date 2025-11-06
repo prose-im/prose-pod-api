@@ -1,38 +1,48 @@
 return {
-	["Uvra_DKO8K1b"] = {
-		["jid"] = "jake.lang@test.local";
-		["id"] = "Uvra_DKO8K1b";
-		["accessed"] = 1757007019;
-		["owner"] = "jake.lang@test.local";
+	["ovxMbMTF5_r2"] = {
+		["id"] = "ovxMbMTF5_r2";
+		["accessed"] = 1762402891;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:aeef2687a973524800529a618ef8bbd3cbca18c54c069974c611bc9c1a04d6ab"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007019;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017819;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007019;
+		["tokens"] = {
+			["sha256:1ba3cd7a1df49fec688dc086aaafff3d2bfae5a9081758d8ffc43f9280373c6f"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402891;
+				["expires"] = 1762413691;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402891;
+		["owner"] = "jake.lang@test.local";
+		["jid"] = "jake.lang@test.local";
 	};
-	["4zizCJ82Oz85"] = {
-		["jid"] = "jake.lang@test.local";
-		["id"] = "4zizCJ82Oz85";
-		["accessed"] = 1757007019;
-		["owner"] = "jake.lang@test.local";
+	["ZU0vQvLXyYsn"] = {
+		["id"] = "ZU0vQvLXyYsn";
+		["accessed"] = 1762402891;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:aeb37839498ed00fb19cbed60eebd1369a798514e71134886c912e9d365737f6"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007019;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017819;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007019;
+		["tokens"] = {
+			["sha256:5c818121e3363a322314ebfb1eb3aa0e0d1d35105b4cb74e3c102a2bc4a3b356"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402891;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413691;
+			};
+		};
+		["created"] = 1762402891;
+		["owner"] = "jake.lang@test.local";
+		["jid"] = "jake.lang@test.local";
 	};
 };

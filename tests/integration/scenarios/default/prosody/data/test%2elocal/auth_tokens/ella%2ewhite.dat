@@ -1,38 +1,48 @@
 return {
-	["aSWhR9z9WwOW"] = {
-		["jid"] = "ella.white@test.local";
-		["id"] = "aSWhR9z9WwOW";
-		["accessed"] = 1757007017;
-		["owner"] = "ella.white@test.local";
+	["aao7tI7M3QKq"] = {
+		["id"] = "aao7tI7M3QKq";
+		["accessed"] = 1762402889;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:122fe43e587d89f622eea5b4a1d3128cf8c66944bb3643cc05bae360e56a5b94"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007017;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017817;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007017;
+		["tokens"] = {
+			["sha256:9572572a4c281ea77b552a7872502a03d45576a66f11f37476dbf76c3cdaf9da"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402889;
+				["expires"] = 1762413689;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402889;
+		["owner"] = "ella.white@test.local";
+		["jid"] = "ella.white@test.local";
 	};
-	["QJ--SwpKE6hm"] = {
-		["jid"] = "ella.white@test.local";
-		["id"] = "QJ--SwpKE6hm";
-		["accessed"] = 1757007017;
-		["owner"] = "ella.white@test.local";
+	["mtVApF8Ppqtl"] = {
+		["id"] = "mtVApF8Ppqtl";
+		["accessed"] = 1762402889;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:c8952118b611a865983264604d72efe01a12a6cc53b074650ef05f12cd3bb7e9"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007017;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017817;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007017;
+		["tokens"] = {
+			["sha256:0f3c225d3a4f1ff1b53098540c5af83896f37fb0163afaf6fbd9541337fd8934"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402889;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413689;
+			};
+		};
+		["created"] = 1762402889;
+		["owner"] = "ella.white@test.local";
+		["jid"] = "ella.white@test.local";
 	};
 };

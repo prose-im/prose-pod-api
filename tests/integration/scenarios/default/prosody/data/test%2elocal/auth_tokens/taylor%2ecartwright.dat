@@ -1,38 +1,48 @@
 return {
-	["vuIwVrxk4Vt0"] = {
-		["jid"] = "taylor.cartwright@test.local";
-		["id"] = "vuIwVrxk4Vt0";
-		["accessed"] = 1757007017;
-		["owner"] = "taylor.cartwright@test.local";
+	["onJdmEJaEk2-"] = {
+		["id"] = "onJdmEJaEk2-";
+		["accessed"] = 1762402890;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:ce7fa047a76be478d224f5848f8b1d989d923e13675e46480bcf884b5cee0b15"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007017;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017817;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007017;
+		["tokens"] = {
+			["sha256:fbff9ae81ec8cf74a5a1a9a63924ac2c455c57eea0350fd266d4da476bdaf6f7"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402890;
+				["expires"] = 1762413690;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402890;
+		["owner"] = "taylor.cartwright@test.local";
+		["jid"] = "taylor.cartwright@test.local";
 	};
-	["5fY8OmqORGF3"] = {
-		["jid"] = "taylor.cartwright@test.local";
-		["id"] = "5fY8OmqORGF3";
-		["accessed"] = 1757007018;
-		["owner"] = "taylor.cartwright@test.local";
+	["njeWcgnMhHf2"] = {
+		["id"] = "njeWcgnMhHf2";
+		["accessed"] = 1762402890;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:7c9a5de3f04403be81366633477d18a29b571b34e25119e7908aab542e34f9f5"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007018;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017818;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007018;
+		["tokens"] = {
+			["sha256:19903dcb42a9b6a2fd92f72f051e23c944ce58a3fe3115972e18d7834f9c3954"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402890;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413690;
+			};
+		};
+		["created"] = 1762402890;
+		["owner"] = "taylor.cartwright@test.local";
+		["jid"] = "taylor.cartwright@test.local";
 	};
 };

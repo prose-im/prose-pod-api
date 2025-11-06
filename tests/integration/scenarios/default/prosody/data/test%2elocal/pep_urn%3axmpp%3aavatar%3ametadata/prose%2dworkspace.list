@@ -2,18 +2,20 @@ item({
 	{
 		["name"] = "info";
 		["attr"] = {
-			["bytes"] = "15398";
 			["id"] = "c068efb85867dfb992f274e289f7a8263e2e3a27";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
+			["bytes"] = "15398";
+			["width"] = "128";
+			["type"] = "image/png";
+			["height"] = "128";
 		};
 	};
 	["key"] = "c068efb85867dfb992f274e289f7a8263e2e3a27";
-	["with"] = "prose-workspace@test.local";
-	["when"] = 1757007012;
 	["name"] = "metadata";
+	["when"] = 1762402884;
+	["with"] = "prose-workspace@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:12Z";
+		["stamp"] = "2025-11-06T04:21:24Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
 });

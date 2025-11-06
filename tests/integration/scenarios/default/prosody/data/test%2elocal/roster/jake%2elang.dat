@@ -3,49 +3,43 @@ return {
 		["pending"] = {};
 		["version"] = 65;
 	};
-	["sheri.nienow@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
 	["taylor.cartwright@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["dianna.hermann@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["pauline.collins@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["sheri.nienow@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["todd.schultz@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
-	["prose-workspace@test.local"] = {
+	["meghan.donnelly@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
 	["ella.white@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["todd.schultz@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["pablo.bartoletti@test.local"] = {
+	["barbara.mante@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
@@ -57,25 +51,31 @@ return {
 			["Team"] = true;
 		};
 	};
-	["barbara.mante@test.local"] = {
+	["evan.turner@test.local"] = {
+		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
-		["subscription"] = "both";
 	};
 	["drew.howell@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["evan.turner@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["meghan.donnelly@test.local"] = {
+	["dianna.hermann@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["pablo.bartoletti@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["prose-workspace@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;

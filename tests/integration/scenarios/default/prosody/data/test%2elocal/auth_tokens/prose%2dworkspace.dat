@@ -1,20 +1,25 @@
 return {
-	["ZT0rkLNP2ZmM"] = {
-		["jid"] = "prose-workspace@test.local";
-		["id"] = "ZT0rkLNP2ZmM";
-		["accessed"] = 1757007010;
-		["owner"] = "prose-workspace@test.local";
+	["FWK7kwO0RxPu"] = {
+		["id"] = "FWK7kwO0RxPu";
+		["accessed"] = 1762402883;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:95880e6a0fad7438198e88c91a679affcd1c7e2019bbf5cefbe554878c955c12"] = {
-				["role"] = "prosody:registered";
-				["created"] = 1757007010;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017810;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-server:8080";
+				["name"] = "Prose\194\160Pod\194\160Server\194\160API";
+				["hash"] = "X4HgZtCbeu4BqjTuy3bOTgMLIVwWboG29rH54P2Xnfw";
 			};
 		};
-		["created"] = 1757007010;
+		["tokens"] = {
+			["sha256:0c31c2ab17a84ebb4c40cbd68c77f176ab6f9d6673f22e2f2baba4c53a094c1e"] = {
+				["role"] = "prosody:registered";
+				["created"] = 1762402883;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413683;
+			};
+		};
+		["created"] = 1762402883;
+		["owner"] = "prose-workspace@test.local";
+		["jid"] = "prose-workspace@test.local";
 	};
 };

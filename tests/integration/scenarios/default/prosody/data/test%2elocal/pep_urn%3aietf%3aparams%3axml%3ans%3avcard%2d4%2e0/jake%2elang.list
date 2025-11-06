@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"jake.lang@example.com";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Jake L.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "jake.lang@test.local";
-	["with"] = "jake.lang@test.local";
-	["when"] = 1757007019;
 	["name"] = "vcard";
+	["when"] = 1762402891;
+	["with"] = "jake.lang@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:19Z";
+		["stamp"] = "2025-11-06T04:21:31Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

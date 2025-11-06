@@ -1,20 +1,20 @@
 return {
 	["urn:xmpp:avatar:data"] = {
-		["name"] = "urn:xmpp:avatar:data";
 		["config"] = {};
 		["subscribers"] = {};
+		["name"] = "urn:xmpp:avatar:data";
 		["affiliations"] = {};
 	};
 	["urn:ietf:params:xml:ns:vcard-4.0"] = {
-		["name"] = "urn:ietf:params:xml:ns:vcard-4.0";
 		["config"] = {};
 		["affiliations"] = {};
 		["subscribers"] = {};
+		["name"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 	["urn:xmpp:avatar:metadata"] = {
-		["name"] = "urn:xmpp:avatar:metadata";
 		["config"] = {};
 		["affiliations"] = {};
+		["name"] = "urn:xmpp:avatar:metadata";
 		["subscribers"] = {};
 	};
 };

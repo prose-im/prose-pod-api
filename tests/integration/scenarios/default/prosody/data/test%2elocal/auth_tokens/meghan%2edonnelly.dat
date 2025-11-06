@@ -1,38 +1,48 @@
 return {
-	["02w1bVlWAFqh"] = {
-		["jid"] = "meghan.donnelly@test.local";
-		["id"] = "02w1bVlWAFqh";
-		["accessed"] = 1757007016;
-		["owner"] = "meghan.donnelly@test.local";
+	["qKBhyGGayhJd"] = {
+		["id"] = "qKBhyGGayhJd";
+		["accessed"] = 1762402888;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:d537e5b7f07ed9d62e0ece5aed2a3d33d1dcdebb4849db0d6bf27186bbc73f8a"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007016;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017816;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007016;
+		["tokens"] = {
+			["sha256:3cd4ee6650df813e256db61e55ad65b70ef1a4cb8c909ee5d55e752a980cb15f"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402888;
+				["expires"] = 1762413688;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402888;
+		["owner"] = "meghan.donnelly@test.local";
+		["jid"] = "meghan.donnelly@test.local";
 	};
-	["FOR2i9pgNxZU"] = {
-		["jid"] = "meghan.donnelly@test.local";
-		["id"] = "FOR2i9pgNxZU";
-		["accessed"] = 1757007016;
-		["owner"] = "meghan.donnelly@test.local";
+	["znbEZPaoufZQ"] = {
+		["id"] = "znbEZPaoufZQ";
+		["accessed"] = 1762402888;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:7fb22fde7b2c9b12d3d8314b65be8000fd6d662a6bc00bfd3be6fc0a20344b30"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007016;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017816;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007016;
+		["tokens"] = {
+			["sha256:2d4b2b792bd97ad7908129ef548bf3cd215750dcb2653ac60985d49179f74144"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402888;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413688;
+			};
+		};
+		["created"] = 1762402888;
+		["owner"] = "meghan.donnelly@test.local";
+		["jid"] = "meghan.donnelly@test.local";
 	};
 };

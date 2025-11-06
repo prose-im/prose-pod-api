@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"evan.turner@example.com";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Evan T.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "evan.turner@test.local";
-	["with"] = "evan.turner@test.local";
-	["when"] = 1757007014;
 	["name"] = "vcard";
+	["when"] = 1762402887;
+	["with"] = "evan.turner@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:14Z";
+		["stamp"] = "2025-11-06T04:21:27Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

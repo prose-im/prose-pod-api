@@ -3,31 +3,31 @@ return {
 		["pending"] = {};
 		["version"] = 65;
 	};
-	["evan.turner@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["jake.lang@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
 	["taylor.cartwright@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
-	["dianna.hermann@test.local"] = {
+	["sheri.nienow@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
 	};
-	["prose-workspace@test.local"] = {
+	["ella.white@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["jake.lang@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["meghan.donnelly@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
@@ -39,13 +39,25 @@ return {
 			["Team"] = true;
 		};
 	};
+	["dianna.hermann@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
 	["todd.schultz@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["evan.turner@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
-	["ella.white@test.local"] = {
+	["drew.howell@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -63,19 +75,7 @@ return {
 			["Team"] = true;
 		};
 	};
-	["drew.howell@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["sheri.nienow@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["meghan.donnelly@test.local"] = {
+	["prose-workspace@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};

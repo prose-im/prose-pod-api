@@ -2,18 +2,18 @@ item({
 	{
 		["name"] = "info";
 		["attr"] = {
-			["bytes"] = "5424";
 			["id"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
-			["type"] = "image/png";
 			["xmlns"] = "urn:xmpp:avatar:metadata";
+			["type"] = "image/png";
+			["bytes"] = "5424";
 		};
 	};
 	["key"] = "7fd82c8fc1680673099acdba3b5b6df2bf3ef258";
-	["with"] = "sheri.nienow@test.local";
-	["when"] = 1757007014;
 	["name"] = "metadata";
+	["when"] = 1762402886;
+	["with"] = "sheri.nienow@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:14Z";
+		["stamp"] = "2025-11-06T04:21:26Z";
 		["xmlns"] = "urn:xmpp:avatar:metadata";
 	};
 });

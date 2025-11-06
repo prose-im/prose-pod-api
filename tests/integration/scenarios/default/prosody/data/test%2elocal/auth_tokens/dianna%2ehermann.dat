@@ -1,38 +1,48 @@
 return {
-	["qAKBtGkMnLvV"] = {
-		["jid"] = "dianna.hermann@test.local";
-		["id"] = "qAKBtGkMnLvV";
-		["accessed"] = 1757007018;
-		["owner"] = "dianna.hermann@test.local";
+	["ldo-QOFOa8Ae"] = {
+		["id"] = "ldo-QOFOa8Ae";
+		["accessed"] = 1762402890;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:5ac76cb28240954a9eeb385d9649139f05e70dc1c19442106da53250594cc69d"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007018;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017818;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007018;
+		["tokens"] = {
+			["sha256:1bb7c52fb163899d5a6e89eba524c5a460384fe360e58974c27a76a070c2d3a7"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402890;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413690;
+			};
+		};
+		["created"] = 1762402890;
+		["owner"] = "dianna.hermann@test.local";
+		["jid"] = "dianna.hermann@test.local";
 	};
-	["Ap9lv7XlM1N2"] = {
-		["jid"] = "dianna.hermann@test.local";
-		["id"] = "Ap9lv7XlM1N2";
-		["accessed"] = 1757007018;
-		["owner"] = "dianna.hermann@test.local";
+	["N4notha1gQMs"] = {
+		["id"] = "N4notha1gQMs";
+		["accessed"] = 1762402890;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:b8e2af7a91471506dd438877d884fe5c53a4f7fafca93fa2273c1897d2d40ae4"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007018;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017818;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007018;
+		["tokens"] = {
+			["sha256:bc364aca66209765b146bdbce15ba259cabd3b1ddb4d36f3383ebffa1c3c9de6"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402890;
+				["expires"] = 1762413690;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402890;
+		["owner"] = "dianna.hermann@test.local";
+		["jid"] = "dianna.hermann@test.local";
 	};
 };
