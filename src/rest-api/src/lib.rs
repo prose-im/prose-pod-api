@@ -175,3 +175,13 @@ pub async fn run_startup_actions(
         Err(err) => Err(StartupError(err)),
     }
 }
+
+// MARK: - Boilerplate
+
+impl std::ops::Deref for AppState {
+    type Target = MinimalAppState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}

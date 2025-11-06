@@ -3,9 +3,13 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Arc, Weak};
+use std::{
+    ops::DerefMut as _,
+    sync::{Arc, Weak},
+};
 
-use tokio::sync::{watch, Barrier};
+use service::models::DatabaseRwConnectionPools;
+use tokio::sync::{watch, Barrier, RwLock};
 use tokio_util::sync::CancellationToken;
 use tracing::trace;
 
@@ -28,6 +32,8 @@ pub struct LifecycleManager {
     /// NOTE: Some startup actions run asynchronously.
     ///   This allows tests to wait for it to finish.
     startup_actions_finished_channel: (watch::Sender<bool>, watch::Receiver<bool>),
+
+    to_cleanup: Arc<RwLock<ToCleanup>>,
 }
 
 impl LifecycleManager {
@@ -49,6 +55,7 @@ impl LifecycleManager {
             restart_tx: Some(Arc::new(restart_tx)),
             restart_rx,
             startup_actions_finished_channel,
+            to_cleanup: Arc::default(),
         }
     }
 
@@ -118,6 +125,7 @@ impl LifecycleManager {
             restart_tx: self.restart_tx,
             restart_rx: self.restart_rx,
             startup_actions_finished_channel: watch::channel(false),
+            to_cleanup: Arc::default(),
         }
     }
 
@@ -214,5 +222,38 @@ impl LifecycleManager {
             } => {},
             _ = self.master_cancellation_token.cancelled() => {}
         }
+    }
+}
+
+#[derive(Debug, Default)]
+struct ToCleanup {
+    db: Option<DatabaseRwConnectionPools>,
+}
+
+impl LifecycleManager {
+    pub async fn cleanup(&self) {
+        let mut to_cleanup = self.to_cleanup.write().await;
+        let ToCleanup { db } = to_cleanup.deref_mut();
+
+        // NOTE: This prevents database corruptions. Without it, shutdowns
+        //   cause `Error: in prepare, database disk image is malformed (11)`
+        //   in the SQLite database.
+        if let Some(db) = db.take() {
+            tracing::debug!("Closing database read connection…");
+            db.read.close().await.unwrap_or_else(|err| {
+                tracing::error!("Could not close database read connection: {err}")
+            });
+
+            tracing::debug!("Closing database write connection…");
+            db.write.close().await.unwrap_or_else(|err| {
+                tracing::error!("Could not close database write connection: {err}")
+            });
+        } else {
+            tracing::debug!("Could not close database connections: Not stored.");
+        }
+    }
+
+    pub async fn attach_db_for_cleanup(&self, db: DatabaseRwConnectionPools) {
+        self.to_cleanup.write().await.db = Some(db);
     }
 }

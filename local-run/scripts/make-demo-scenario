@@ -226,3 +226,6 @@ sleep 3
 success 'Done'
 
 edo task local:stop
+
+info Ensuring database is not corrupted…
+edo log_as_trace_ sqlite3 "${DATABASE_PATH:?}" 'PRAGMA integrity_check;'

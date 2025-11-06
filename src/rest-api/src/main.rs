@@ -86,12 +86,15 @@ async fn main() {
         tokio::spawn(async move { lifecycle_manager.listen_for_reload().await }.in_current_span());
     }
 
+    let mut run_handle = None;
+
     let mut starting = true;
     while starting || lifecycle_manager.should_restart().await {
         if starting {
             starting = false;
         } else {
             warn!("Restarting…");
+            lifecycle_manager = lifecycle_manager.rotate_instance();
         }
 
         {
@@ -102,23 +105,28 @@ async fn main() {
                 )),
             };
             let tracing_reload_handles = tracing_reload_handles.clone();
-            tokio::spawn(
+            run_handle = Some(tokio::spawn(
                 async move {
                     trace!("Starting an instance…");
                     run(minimal_app_state, &tracing_reload_handles).await;
                     trace!("Run finished.");
                 }
                 .in_current_span(),
-            );
+            ));
         }
-
-        lifecycle_manager = lifecycle_manager.rotate_instance();
 
         if lifecycle_manager.will_restart() {
             trace!("Waiting for next `restart_rx` signal…");
         } else {
             trace!("Not waiting for next `restart_rx` signal.");
         }
+    }
+
+    if let Some(handle) = run_handle {
+        trace!("Waiting for instance to finish gracefully…");
+        handle.await.unwrap_or_else(|err| {
+            tracing::error!("Could not wait for running instance to finish: {err}")
+        });
     }
 
     info!("Nothing else to do, exiting.");
@@ -174,6 +182,9 @@ async fn run(
         .await
         .unwrap();
 
+    // Perform cleanup tasks.
+    lifecycle_manager.cleanup().await;
+
     trace!("API instance stopped.");
     if lifecycle_manager.is_restarting() {
         trace!("Waiting for next instance to start…");
@@ -184,6 +195,11 @@ async fn run(
 #[instrument(level = "trace", skip_all)]
 async fn startup(app_config: AppConfig, minimal_app_state: MinimalAppState) -> Router {
     let app_state = init_dependencies(app_config, minimal_app_state).await;
+
+    app_state
+        .lifecycle_manager
+        .attach_db_for_cleanup(app_state.db.clone())
+        .await;
 
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
