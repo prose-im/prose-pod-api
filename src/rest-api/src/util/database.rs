@@ -5,14 +5,33 @@
 
 use std::time::Duration;
 
-use service::{app_config::DatabaseConfig, models::DatabaseRwConnectionPools, sea_orm};
+use anyhow::Context;
+use service::{
+    app_config::DatabaseConfig,
+    models::DatabaseRwConnectionPools,
+    sea_orm::{self, ConnectionTrait},
+};
 
 pub async fn db_conn(
     read_config: &DatabaseConfig,
     write_config: &DatabaseConfig,
-) -> Result<DatabaseRwConnectionPools, sea_orm::DbErr> {
-    let read_pool = db_conn_with(read_config, |_| {}).await?;
+) -> Result<DatabaseRwConnectionPools, anyhow::Error> {
+    tracing::debug!(
+        "Opening database write connection at `{url}`…",
+        url = &write_config.url
+    );
     let write_pool = db_conn_with(write_config, |_| {}).await?;
+
+    // Configure the database before opening the read connection pool as most
+    // configuration would not be visible to the other pool until a restart.
+    configure_db(&write_pool).await?;
+
+    tracing::debug!(
+        "Opening database read connection at `{url}`…",
+        url = &read_config.url
+    );
+    let read_pool = db_conn_with(read_config, |_| {}).await?;
+
     Ok(DatabaseRwConnectionPools {
         read: read_pool,
         write: write_pool,
@@ -39,4 +58,16 @@ pub async fn db_conn_with(
     }
     additional_options(&mut options);
     sea_orm::Database::connect(options.to_owned()).await
+}
+
+#[tracing::instrument(level = "trace", skip_all, err)]
+async fn configure_db(db: &sea_orm::DatabaseConnection) -> Result<(), anyhow::Error> {
+    tracing::debug!("Configuring the database…");
+
+    // Allow simultaneous reads with one writer.
+    db.execute_unprepared("PRAGMA journal_mode=WAL;")
+        .await
+        .context("Could not set `journal_mode=WAL`")?;
+
+    Ok(())
 }

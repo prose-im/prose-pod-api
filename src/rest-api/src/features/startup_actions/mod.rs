@@ -4,7 +4,6 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 mod backfill_database;
-mod db_configure;
 mod db_run_migrations;
 mod init_server_config;
 mod register_oauth2_client;
@@ -22,7 +21,6 @@ use crate::{
 };
 
 use self::backfill_database::*;
-use self::db_configure::*;
 use self::db_run_migrations::*;
 use self::init_server_config::*;
 use self::register_oauth2_client::*;
@@ -80,7 +78,6 @@ pub async fn run_startup_actions(
     let startup_res = {
         run_step_macro!(app_state, app_config);
 
-        run_step!(db_configure);
         run_step!(db_run_migrations);
         run_step!(test_services_reachability);
         run_step!(validate_app_config_changes);
