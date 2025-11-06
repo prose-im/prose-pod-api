@@ -282,6 +282,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
 pub fn base_global_settings() -> prosody_config::ProsodySettings {
     prosody_config::ProsodySettings {
         pidfile: Some("/var/run/prosody/prosody.pid".into()),
+        admin_socket: Some("/var/run/prosody/prosody.sock".into()),
         authentication: Some(AuthenticationProvider::InternalHashed),
         default_storage: Some(StorageBackend::Internal),
         plugin_paths: Some(

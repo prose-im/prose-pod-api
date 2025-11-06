@@ -5,6 +5,7 @@
 
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
+admin_socket = "/var/run/prosody/prosody.sock"
 
 authentication = "internal_hashed"
 

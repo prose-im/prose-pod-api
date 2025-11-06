@@ -20,6 +20,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
 
         let Self {
             pidfile,
+            admin_socket,
             admins,
             authentication,
             default_storage,
@@ -121,7 +122,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             }
         }
 
-        push_if_some(&mut res, option_def(None, "pidfile", pidfile));
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                None,
+                vec![
+                    option_def(None, "pidfile", pidfile),
+                    option_def(None, "admin_socket", admin_socket),
+                ],
+            ),
+        );
         push_if_some(&mut res, option_def(None, "admins", admins));
         push_if_some(&mut res, option_def(None, "authentication", authentication));
         push_if_some(
