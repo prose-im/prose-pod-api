@@ -12,14 +12,19 @@ use tracing::trace;
 #[derive(Debug, Clone)]
 pub struct LifecycleManager {
     master_cancellation_token: CancellationToken,
+
     current_instance: (CancellationToken, Arc<Barrier>),
+
     previous_instance: Option<(CancellationToken, Arc<Barrier>)>,
+
     /// NOTE: Set to [`None`] to close the channel, effectively
     ///   stopping restarts after the API gracefully shuts down.
     restart_tx: Option<Arc<watch::Sender<bool>>>,
+
     /// NOTE: Receives `true` every time the API should restart.
     ///   Receives `false` once the API has restarted.
     restart_rx: watch::Receiver<bool>,
+
     /// NOTE: Some startup actions run asynchronously.
     ///   This allows tests to wait for it to finish.
     startup_actions_finished_channel: (watch::Sender<bool>, watch::Receiver<bool>),
@@ -122,6 +127,7 @@ impl LifecycleManager {
             // Stop the previous instance.
             trace!("Stopping the previous instance…");
             running.cancel();
+
             // Wait for previous instance to be stopped (for port to be available).
             trace!("Waiting for previous instance to be stopped…");
             stopped.wait().await;
