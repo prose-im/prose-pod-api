@@ -76,14 +76,14 @@ pub async fn perform_factory_reset(
     debug!("Resetting the API’s database…");
     // Close the database connection to make sure SeaORM
     // doesn’t write to it after we empty the file.
-    (db.write.close())
-        .await
-        .context("Could not close the database connection (write)")?;
-    // Close the database connection to make sure SeaORM
-    // doesn’t write to it after we empty the file.
     (db.read.close())
         .await
         .context("Could not close the database connection (read)")?;
+    // Close the database connection to make sure SeaORM
+    // doesn’t write to it after we empty the file.
+    (db.write.close())
+        .await
+        .context("Could not close the database connection (write)")?;
     // Then empty the database file.
     // NOTE: We don’t just revert database migrations to ensure nothing remains.
     let database_url = (app_config.api.databases.main_url())
