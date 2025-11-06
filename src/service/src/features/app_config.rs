@@ -9,9 +9,11 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::Context as _;
 use figment::Figment;
 use hickory_resolver::Name as DomainName;
 use lazy_static::lazy_static;
+use url::Url;
 use validator::Validate;
 
 pub use self::api::*;
@@ -283,6 +285,26 @@ fn with_dynamic_defaults(mut figment: Figment) -> anyhow::Result<Figment> {
                 "api.databases.main_write.max_connections",
                 1,
             ));
+
+        // Make sure `main_read` opens in read-only mode
+        // (SeaORM doesn’t support it as an open configuration).
+        if let Ok(Value::String(_, read_url)) =
+            figment.extract_inner::<Value>("api.databases.main_read.url")
+        {
+            let mut read_url: Url = read_url
+                .parse()
+                .context("Invalid `api.databases.main_read.url`")?;
+            if !read_url
+                .query_pairs()
+                .any(|(key, _value)| key.as_ref() == "mode")
+            {
+                read_url
+                    .query_pairs_mut()
+                    .append_pair("mode", "ro")
+                    .finish();
+            }
+            figment = figment.merge(Serialized::default("api.databases.main_read.url", read_url));
+        }
     }
 
     Ok(figment)
@@ -531,8 +553,7 @@ mod api {
 
         impl DatabasesConfig {
             pub fn main_url(&self) -> &String {
-                assert_eq!(self.main_read.url, self.main_write.url);
-                &self.main_read.url
+                &self.main_write.url
             }
         }
 
@@ -1337,16 +1358,16 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example"
+                    "url": "sqlite:///example"
                 }
             }),
             json!({
                 "main_read": {
-                    "url": "example",
+                    "url": "sqlite:///example?mode=ro",
                     "max_connections": *DEFAULT_DB_MAX_READ_CONNECTIONS
                 },
                 "main_write": {
-                    "url": "example",
+                    "url": "sqlite:///example",
                     "max_connections": 1
                 },
             }),
@@ -1358,17 +1379,14 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example",
                     "max_connections": 4
                 }
             }),
             json!({
                 "main_read": {
-                    "url": "example",
                     "max_connections": 4
                 },
                 "main_write": {
-                    "url": "example",
                     "max_connections": 4
                 },
             }),
@@ -1380,11 +1398,7 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example",
                     "max_connections": 4
-                },
-                "main_read": {
-                    "url": "other"
                 },
                 "main_write": {
                     "max_connections": 1
@@ -1392,12 +1406,28 @@ mod tests {
             }),
             json!({
                 "main_read": {
-                    "url": "other",
                     "max_connections": 4
                 },
                 "main_write": {
-                    "url": "example",
                     "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    /// One shouldn’t do this, but if they are forced to do it
+    /// for technical reasons, they should be able to.
+    #[test]
+    fn test_database_rw_defaults_override_read_mode() {
+        test_database_rw_defaults_(
+            json!({
+                "main_read": {
+                    "url": "sqlite:///other?mode=rw",
+                },
+            }),
+            json!({
+                "main_read": {
+                    "url": "sqlite:///other?mode=rw",
                 },
             }),
         );
