@@ -67,7 +67,7 @@ start() {
 	else
 		trace 'Starting the Prose Pod…'
 		task local:run -- --detach --api=local --scenario="${SCENARIO_NAME:?}" --ephemeral
-		wait-until-api-running
+		wait_until_api_running
 	fi
 }
 
