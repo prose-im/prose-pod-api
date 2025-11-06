@@ -105,6 +105,11 @@ VirtualHost "test.local"
   -- mod_reload_modules
   reload_modules = { "http_oauth2" }
 
+  -- XEP-0157: Contact Addresses for XMPP Services
+  contact_info = {
+    admin = { "xmpp:evan.turner@test.local" };
+  }
+
   -- HTTP settings
   http_host = "prose-pod-server"
 

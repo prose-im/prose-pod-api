@@ -192,6 +192,14 @@ tasks:
       - cmd: "sed -i '' -E '{{.PATTERN}}' '{{.README}}'"
         platforms: [darwin]
 
+  dev:demos:recreate:
+    desc: Recreate demo scenarios.
+    cmd: local-run/scripts/demo-scenarios-recreate
+
+  dev:demos:update:
+    desc: Update demo scenarios (e.g. by running migrations).
+    cmd: local-run/scripts/demo-scenarios-update
+
   dev:make-test-scenarios:
     desc: Create scenarios for integration testing.
     cmd: "{{.ROOT_DIR}}/tests/integration/make-test-scenarios"

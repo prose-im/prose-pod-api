@@ -55,9 +55,6 @@ async fn main() {
         .install_default()
         .expect("Could not install default crypto provider.");
 
-    let todo = "Try to run make-demo-scenarios";
-    let todo = "Update scenarios";
-
     // NOTE: Can only be called once.
     let (_tracing_guard, tracing_reload_handles) = {
         let figment = AppConfig::figment();

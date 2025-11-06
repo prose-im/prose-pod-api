@@ -123,7 +123,7 @@ EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
 info Waiting for the API to restart…
-wait_until_api_running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 
 info Checking if the API still works…
 # Run the `init` integration test, which will initialize the Pod
@@ -164,18 +164,18 @@ smtp_encrypt = false
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
-	wait_until_api_running
+	wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 	success It worked!
 }
 
 info 'Trying a second factory reset…'
-wait_until_api_running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 # NOTE: This time we don’t need to initialize the Pod again as
 #   `task integration-test -- init` did it already.
 retry
 
 info 'Trying a third factory reset (because why not?)…'
-wait_until_api_running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 edo xh PUT -Iv "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \
