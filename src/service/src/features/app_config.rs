@@ -126,7 +126,7 @@ fn default_config_static() -> Figment {
         with_thread_ids = false
         with_line_number = true_in_debug
         with_span_events = false
-        with_thread_names = true_in_debug
+        with_thread_names = false
 
         [api]
         address = api_address
