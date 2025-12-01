@@ -1,7 +1,12 @@
 FROM rust:alpine AS build
 WORKDIR /usr/src/prose-pod-api
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev sccache
+
+# Building Rust in Docker in CI can be very inefficient. This Dockerfile tries
+# to reduce CI build times by making proper use of the BuildKit cache + sccache.
+ENV RUSTC_WRAPPER=/usr/bin/sccache \
+    SCCACHE_DIR=/var/cache/sccache
 
 ARG CARGO_PROFILE='release'
 
@@ -17,7 +22,10 @@ RUN API_VERSION_DIR=./src/service/static/api-version && \
     echo "${COMMIT:-}" > "${API_VERSION_DIR:?}"/COMMIT && \
     if [ -z "${BUILD_TIMESTAMP}" ]; then BUILD_TIMESTAMP="$(date -u -Iseconds)" && BUILD_TIMESTAMP="${BUILD_TIMESTAMP//+00:00/Z}"; fi && \
     echo "${BUILD_TIMESTAMP:?}" > "${API_VERSION_DIR:?}"/BUILD_TIMESTAMP
-RUN cargo install --path src/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=${SCCACHE_DIR},sharing=locked \
+    cargo install --path src/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
 
 
 FROM alpine:latest
