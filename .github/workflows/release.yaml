@@ -14,14 +14,12 @@ on:
       - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "VERSION"
       # We changed how the image is built:
       - "Dockerfile"
       - ".dockerignore"
       # We changed how the workflow is ran:
       - ".github/workflows/release.yaml"
-      # We changed some packaged documentation:
-      - "docs/openapi/**"
-      - "src/*/static/**"
 
 jobs:
   ship-docker-image:

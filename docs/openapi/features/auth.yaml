@@ -13,6 +13,43 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LoginResponse" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+  set_member_recovery_email_address:
+    tags: [Auth]
+    summary: Set member recovery email address
+    description: Set a member’s recovery email address.
+    operationId: set_member_recovery_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
+    responses:
+      "204": { description: Success }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_member_recovery_email_address:
+    tags: [Auth]
+    summary: Get member recovery email address
+    description: Get a member’s recovery email address.
+    operationId: get_member_recovery_email_address
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "members.yaml#/components/parameters/MemberId"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: "../shared.yaml#/components/schemas/EmailAddress"
+              type: [string, "null"]
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   request_password_reset:
     tags: [Auth]
     summary: Request password reset
@@ -25,6 +62,9 @@ paths:
     responses:
       "202":
         description: Success (password reset link sent)
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordResetNotificationPayload" }
       "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
       "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
   reset_password:
@@ -68,6 +108,7 @@ paths:
                   const: password_reset_token_expired
             example:
               error: password_reset_token_expired
+
 components:
   schemas:
     LoginResponse:
@@ -83,10 +124,23 @@ components:
     PasswordResetToken:
       type: string
       format: password
-      example: GjRli65Gkbbzrxf4YhzjnYdfZS2B2PlqP9cB
+      example: d4DPhMhrIJtQ0_hvq-keGrNX
     ResetPasswordRequest:
       type: object
       required:
         - password
       properties:
         password: { $ref: "../shared.yaml#/components/schemas/Password" }
+    PasswordResetNotificationPayload:
+      type: object
+      required:
+        - token
+        - expires_at
+        - url
+      properties:
+        token: { $ref: "#/components/schemas/PasswordResetToken" }
+        expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
+        url:
+          type: string
+          format: uri
+          example: https://admin.prose.company.com/invitations/accept/d4DPhMhrIJtQ0_hvq-keGrNX

@@ -29,5 +29,3 @@ tests:
               Content-Type: application/json
             schema:
               $ref: openapi.json#/components/schemas/GetDnsRecordsResponse
-            jsonpath:
-              $.accept_token: null

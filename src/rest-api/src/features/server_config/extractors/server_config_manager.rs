@@ -10,7 +10,7 @@ impl FromRef<AppState> for service::server_config::ServerConfigManager {
         Self::new(
             state.db.clone(),
             state.app_config.clone(),
-            Arc::new(state.server_ctl.clone()),
+            state.prose_pod_server_service.clone(),
         )
     }
 }

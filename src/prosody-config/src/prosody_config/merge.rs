@@ -31,6 +31,7 @@ impl ProsodySettings {
             access_control_allow_methods,
             access_control_allow_origins,
             access_control_max_age,
+            admin_socket,
             admins,
             allow_registration,
             archive_cleanup_date_cache_size,
@@ -137,6 +138,7 @@ impl ProsodySettings {
         merge!(access_control_allow_methods);
         merge!(access_control_allow_origins);
         merge!(access_control_max_age);
+        merge!(admin_socket);
         merge!(admins);
         merge!(allow_registration);
         merge!(archive_cleanup_date_cache_size);

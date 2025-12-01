@@ -3,6 +3,8 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use cucumber::{given, then, when};
 use prose_pod_api::{error::Error, features::dns_setup::GetDnsRecordsResponse};
 use service::{
@@ -10,9 +12,119 @@ use service::{
     server_config,
 };
 
-use crate::{api_call_fn, cucumber_parameters::*, user_token, TestWorld};
+use crate::{api_call_fn, cucumber_parameters::*, TestWorld};
 
 // MARK: - Given
+
+#[given(expr = "{domain_name}'s DNS zone has no {} record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has no {} record for {domain_name}")]
+async fn given_no_record(
+    _world: &mut TestWorld,
+    _host: DomainName,
+    _record_type: String,
+    _record_hostname: DomainName,
+) {
+    // Nothing to do as the state is empty when each scenario starts
+}
+
+fn add_record(world: &mut TestWorld, dns_record: DnsRecord) {
+    let dns_zone = world.mock_network_checker.dns_zone.clone();
+    dns_zone.write().unwrap().push(dns_record);
+    // println!("Added record. All records: {:#?}", dns_zone.read().unwrap());
+}
+
+#[given(expr = "{domain_name}'s DNS zone has a A record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has a A record for {domain_name}")]
+async fn given_a_record(world: &mut TestWorld, _host: DomainName, record_hostname: DomainName) {
+    add_record(
+        world,
+        DnsRecord::A {
+            hostname: record_hostname.into(),
+            ttl: 42,
+            value: Ipv4Addr::UNSPECIFIED,
+        },
+    );
+}
+
+#[given(expr = "{domain_name}'s DNS zone has a AAAA record for {domain_name}")]
+#[given(expr = "{domain_name}’s DNS zone has a AAAA record for {domain_name}")]
+async fn given_aaaa_record(world: &mut TestWorld, _host: DomainName, record_hostname: DomainName) {
+    add_record(
+        world,
+        DnsRecord::AAAA {
+            hostname: record_hostname.into(),
+            ttl: 42,
+            value: Ipv6Addr::UNSPECIFIED,
+        },
+    );
+}
+
+#[given(
+    expr = "{domain_name}'s DNS zone has a CNAME record redirecting {domain_name} to {domain_name}"
+)]
+#[given(
+    expr = "{domain_name}’s DNS zone has a CNAME record redirecting {domain_name} to {domain_name}"
+)]
+async fn given_cname_record(
+    world: &mut TestWorld,
+    _host: DomainName,
+    record_hostname: DomainName,
+    target: DomainName,
+) {
+    add_record(
+        world,
+        DnsRecord::CNAME {
+            hostname: record_hostname.into(),
+            ttl: 42,
+            target: target.into(),
+        },
+    );
+}
+
+#[given(
+    expr = "{domain_name}'s DNS zone has a SRV record for {domain_name} redirecting port {int} to {domain_name}"
+)]
+#[given(
+    expr = "{domain_name}’s DNS zone has a SRV record for {domain_name} redirecting port {int} to {domain_name}"
+)]
+async fn given_srv_record(
+    world: &mut TestWorld,
+    _host: DomainName,
+    record_hostname: DomainName,
+    port: u16,
+    record_target: DomainName,
+) {
+    add_record(
+        world,
+        DnsRecord::SRV {
+            hostname: record_hostname.into(),
+            ttl: 42,
+            priority: 42,
+            weight: 42,
+            port,
+            target: record_target.into(),
+        },
+    );
+}
+
+#[given(expr = "{domain_name}'s port {int} is {open_or_not}")]
+#[given(expr = "{domain_name}’s port {int} is {open_or_not}")]
+async fn given_port_open_or_not(
+    world: &mut TestWorld,
+    host: DomainName,
+    port: u16,
+    open_or_not: OpenState,
+) {
+    let mut write_guard = world.mock_network_checker.open_ports.write().unwrap();
+    let mut host = host.0;
+    host.set_fqdn(true);
+    let open_ports = write_guard.entry(host).or_default();
+    if open_or_not.as_bool() {
+        open_ports.insert(port);
+    } else {
+        open_ports.remove(&port);
+    }
+}
 
 #[given(expr = "federation is {toggle}")]
 async fn given_federation(world: &mut TestWorld, enabled: ToggleState) -> Result<(), Error> {
@@ -26,8 +138,8 @@ api_call_fn!(get_dns_instructions, GET, "/v1/network/dns/records");
 
 #[when(expr = "{} requests DNS setup instructions")]
 async fn when_get_dns_instructions(world: &mut TestWorld, name: String) {
-    let token = user_token!(world, name);
-    let res = get_dns_instructions(world.api(), token).await;
+    let ref auth = world.token(&name).await;
+    let res = get_dns_instructions(world.api(), auth).await;
     world.result = Some(res.unwrap().into());
 }
 

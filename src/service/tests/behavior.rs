@@ -13,6 +13,7 @@ use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
     prosody::ProsodyConfig,
     util::random_string_alphanumeric,
+    xmpp::BareJid,
     MigratorTrait as _,
 };
 
@@ -40,6 +41,7 @@ struct TestWorld {
     db: DatabaseConnection,
     app_config: AppConfig,
     prosody_config: Option<ProsodyConfig>,
+    admins: Vec<BareJid>,
 }
 
 impl TestWorld {
@@ -75,6 +77,7 @@ impl TestWorld {
             db,
             app_config,
             prosody_config: None,
+            admins: Vec::with_capacity(1),
         }
     }
 

@@ -8,21 +8,23 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serdev::Serialize;
+use serdev::{Deserialize, Serialize};
 use service::{
     auth::{
-        auth_controller, errors::InvalidCredentials, AuthService, AuthToken, PasswordResetToken,
-        UserInfo,
+        auth_controller, errors::InvalidCredentials, AuthService, AuthToken,
+        PasswordResetNotificationPayload, PasswordResetToken, UserInfo,
     },
-    members::{MemberRole, MemberService},
-    models::SerializableSecretString,
+    members::MemberRole,
+    models::{EmailAddress, SerializableSecretString},
     notifications::NotificationService,
     util::either::Either,
-    xmpp::{BareJid, ServerCtl},
+    xmpp::{BareJid, XmppServiceContext},
 };
-use validator::Validate;
 
-use crate::{error::Error, AppState};
+use crate::{
+    error::{self, Error},
+    AppState,
+};
 
 use super::{extractors::BasicAuth, models::Password};
 
@@ -53,56 +55,104 @@ pub async fn login_route(
 // MARK: - Roles
 
 pub async fn set_member_role_route(
-    State(AppState { ref db, .. }): State<AppState>,
-    ref member_service: MemberService,
+    State(AppState {
+        ref user_repository,
+        ..
+    }): State<AppState>,
     ref user_info: UserInfo,
+    ref auth: AuthToken,
     Path(jid): Path<BareJid>,
     Json(role): Json<MemberRole>,
 ) -> Result<Json<MemberRole>, Error> {
-    match auth_controller::set_member_role(&db.write, member_service, user_info, jid, role).await? {
+    match auth_controller::set_member_role(user_repository, user_info, jid, role, auth).await? {
         () => Ok(Json(role)),
     }
+}
+
+// MARK: - Recovery email address
+
+pub async fn set_member_recovery_email_address_route(
+    State(AppState {
+        ref identity_provider,
+        ..
+    }): State<AppState>,
+    Path(jid): Path<BareJid>,
+    ref ctx: XmppServiceContext,
+    ref caller: UserInfo,
+    Json(email_address): Json<EmailAddress>,
+) -> Result<(), Error> {
+    if !(caller.jid == jid || caller.is_admin()) {
+        Err(error::Forbidden("You cannot do that.".to_string()))?
+    }
+
+    identity_provider
+        .set_recovery_email_address(&jid, email_address, ctx)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn get_member_recovery_email_address_route(
+    State(AppState {
+        ref identity_provider,
+        ..
+    }): State<AppState>,
+    ref caller: UserInfo,
+    ref ctx: XmppServiceContext,
+    Path(jid): Path<BareJid>,
+) -> Result<Json<Option<EmailAddress>>, Error> {
+    if !(caller.jid == jid || caller.is_admin()) {
+        Err(error::Forbidden("You cannot do that.".to_string()))?
+    }
+
+    let email_address = identity_provider
+        .get_recovery_email_address_with_fallback(&jid, ctx)
+        .await?;
+
+    Ok(Json(email_address))
 }
 
 // MARK: - Password reset / change
 
 pub async fn request_password_reset_route(
     State(AppState {
-        ref db,
         ref app_config,
+        ref identity_provider,
+        ref auth_service,
         ..
     }): State<AppState>,
     ref notification_service: NotificationService,
     ref caller: UserInfo,
+    ref ctx: XmppServiceContext,
     Path(ref jid): Path<BareJid>,
-) -> Result<StatusCode, Error> {
-    auth_controller::request_password_reset(
-        &db.write,
+) -> Result<(StatusCode, Json<PasswordResetNotificationPayload>), Error> {
+    let payload = auth_controller::request_password_reset(
         notification_service,
         app_config,
-        caller,
         jid,
+        None,
+        identity_provider,
+        auth_service,
+        caller,
+        ctx,
     )
     .await?;
-    Ok(StatusCode::ACCEPTED)
+    Ok((StatusCode::ACCEPTED, Json(payload)))
 }
 
-#[derive(Debug, Validate, serdev::Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[serde(validate = "Validate::validate")]
 #[cfg_attr(feature = "test", derive(Serialize))]
 pub struct ResetPasswordRequest {
-    #[validate(nested)]
     pub password: Password,
 }
 
 pub async fn reset_password_route(
-    State(AppState { ref db, .. }): State<AppState>,
-    ref server_ctl: ServerCtl,
-    Path(ref token): Path<PasswordResetToken>,
-    Json(ResetPasswordRequest { password }): Json<ResetPasswordRequest>,
+    ref auth_service: AuthService,
+    Path(token): Path<PasswordResetToken>,
+    Json(ResetPasswordRequest { ref password }): Json<ResetPasswordRequest>,
 ) -> Result<(), Error> {
-    auth_controller::reset_password(&db.write, server_ctl, token, &password).await?;
+    auth_controller::reset_password(token, password, auth_service).await?;
     Ok(())
 }
 

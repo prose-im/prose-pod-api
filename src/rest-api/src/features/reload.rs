@@ -29,6 +29,28 @@ async fn reload_route(
         ..
     }): State<MinimalAppState>,
 ) -> StatusCode {
+    // FIXME: This is bad. I (@RemiBardon) know. It’s just a temporary shortcut
+    //   until I implement https://github.com/prose-im/prose-pod-api/issues/357.
+    //   The current Pod API architecture doesn’t allow easy access to the
+    //   Pod Server API during this stage, I have no choice without a huge
+    //   rewrite.
+    {
+        use service::reqwest;
+        let client = reqwest::Client::new();
+        tracing::debug!("Reloading the Server…");
+        match client
+            .post("http://prose-pod-server:8080/lifecycle/reload")
+            .send()
+            .await
+        {
+            Ok(_response) => {}
+            Err(err) => {
+                tracing::error!("{err:#}");
+                return StatusCode::INTERNAL_SERVER_ERROR;
+            }
+        }
+    }
+
     lifecycle_manager.set_restarting();
     StatusCode::ACCEPTED
 }

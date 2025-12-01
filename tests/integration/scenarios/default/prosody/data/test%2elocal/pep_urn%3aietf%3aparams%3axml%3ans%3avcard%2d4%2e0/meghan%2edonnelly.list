@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"meghan.donnelly@example.net";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Meghan D.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "meghan.donnelly@test.local";
-	["with"] = "meghan.donnelly@test.local";
-	["when"] = 1757007016;
 	["name"] = "vcard";
+	["when"] = 1762402888;
+	["with"] = "meghan.donnelly@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:16Z";
+		["stamp"] = "2025-11-06T04:21:28Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

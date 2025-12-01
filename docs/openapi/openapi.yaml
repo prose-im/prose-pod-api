@@ -30,6 +30,9 @@ paths:
     delete: { $ref: "features/auth.yaml#/paths/request_password_reset" }
   "/v1/password-reset-tokens/{token}/use":
     put: { $ref: "features/auth.yaml#/paths/reset_password" }
+  "/v1/members/{memberId}/recovery-email":
+    put: { $ref: "features/auth.yaml#/paths/set_member_recovery_email_address" }
+    get: { $ref: "features/auth.yaml#/paths/get_member_recovery_email_address" }
 
   # ===== Server config =====
   "/v1/server/config":
@@ -148,9 +151,6 @@ paths:
     put: { $ref: "features/roles.yaml#/paths/set_member_role" }
   "/v1/members/{memberId}/avatar":
     put: { $ref: "features/profile.yaml#/paths/set_member_avatar" }
-  "/v1/members/{memberId}/email-address":
-    put: { $ref: "features/profile.yaml#/paths/set_member_email_address" }
-    get: { $ref: "features/profile.yaml#/paths/get_member_email_address" }
   "/v1/members/{memberId}/nickname":
     put: { $ref: "features/profile.yaml#/paths/set_member_nickname" }
 

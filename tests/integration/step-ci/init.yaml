@@ -13,11 +13,77 @@ tests:
       - $ref: "#/components/steps/init_workspace"
       - $ref: "#/components/steps/create_first_admin"
       - $ref: "#/components/steps/log_admin_in"
+  isWorkspaceInitializedNoAuth:
+    name: Get Workspace details without being authenticated
+    steps:
+      - name: Test Workspace not initialized
+        http:
+          method: HEAD
+          url: /v1/workspace
+          headers:
+            If-Match: "*"
+          check:
+            status: 412
+      - $ref: "#/components/steps/init_workspace"
+      - name: Test Workspace initialized
+        http:
+          method: HEAD
+          url: /v1/workspace
+          headers:
+            If-Match: "*"
+          check:
+            status: /2../
+  workspaceInitializeWithDefaultName:
+    name: Workspace is marked as initialized after setting its name to the default one
+    steps:
+      - name: Test Workspace not initialized
+        http:
+          method: HEAD
+          url: /v1/workspace
+          headers:
+            If-Match: "*"
+          check:
+            status: 412
+      - name: Get workspace name
+        http:
+          method: GET
+          url: /v1/workspace/name
+          auth:
+            bearer:
+              token: ${{ captures.token }}
+          check:
+            status: 200
+          captures:
+            workspaceName:
+              jsonpath: $
+      - name: Initialize Workspace
+        http:
+          method: PUT
+          url: /v1/workspace
+          headers:
+            Content-Type: application/json
+          json:
+            name: ${{ captures.workspaceName }}
+          check:
+            status: 201
+            headers:
+              Content-Type: application/json
+              Location: /.+/
+            schema:
+              $ref: openapi.json#/components/schemas/Workspace
+      - name: Test Workspace initialized
+        http:
+          method: HEAD
+          url: /v1/workspace
+          headers:
+            If-Match: "*"
+          check:
+            status: /2../
 
 components:
   steps:
     init_workspace:
-      name: Initialize Prose workspace
+      name: Initialize Prose Workspace
       http:
         method: PUT
         url: /v1/workspace

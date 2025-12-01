@@ -3,14 +3,10 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use chrono::TimeDelta;
-
 use crate::{
-    dependencies, models::DatabaseRwConnectionPools, network_checks::NetworkChecker, server_config,
-    AppConfig,
+    invitations::InvitationRepository, members::UserRepository, models::DatabaseRwConnectionPools,
+    network_checks::NetworkChecker, server_config, workspace::WorkspaceService, AppConfig,
 };
-
-use super::{all_dns_checks_passed_once, at_least_one_invitation_sent};
 
 /// If the database was created before this feature was introduced, some keys
 /// could be missing while they should have been set. This function tries to
@@ -20,9 +16,21 @@ pub async fn backfill(
     db: &DatabaseRwConnectionPools,
     app_config: &AppConfig,
     network_checker: &NetworkChecker,
-    uuid_gen: &dependencies::Uuid,
+    invitation_repository: &InvitationRepository,
+    user_repository: &UserRepository,
+    workspace_service: &WorkspaceService,
 ) {
     use tracing::warn;
+
+    // Backfill `chosen_server_domain` if necessary.
+    if let Err(err) = backfill_chosen_server_domain(db, app_config).await {
+        warn!("Could not backfill `chosen_server_domain`: {err}");
+    }
+
+    // Backfill `is_workspace_initialized` if necessary.
+    if let Err(err) = backfill_is_workspace_initialized(db, app_config, workspace_service).await {
+        warn!("Could not backfill `is_workspace_initialized`: {err}");
+    }
 
     // Backfill `all_dns_checks_passed_once` if necessary.
     if let Err(err) = backfill_all_dns_checks_passed_once(db, app_config, network_checker).await {
@@ -30,9 +38,72 @@ pub async fn backfill(
     }
 
     // Backfill `at_least_one_invitation_sent` if necessary.
-    if let Err(err) = backfill_at_least_one_invitation_sent(db, uuid_gen).await {
+    if let Err(err) =
+        backfill_at_least_one_invitation_sent(db, invitation_repository, user_repository).await
+    {
         warn!("Could not backfill `at_least_one_invitation_sent`: {err}");
     }
+}
+
+async fn backfill_chosen_server_domain(
+    db: &DatabaseRwConnectionPools,
+    app_config: &AppConfig,
+) -> anyhow::Result<()> {
+    use tracing::trace;
+
+    use super::chosen_server_domain as store;
+
+    const KEY: &'static str = "chosen_server_domain";
+
+    // Do not backfill if a value already exist.
+    if store::get_opt(&db.read).await?.is_some() {
+        trace!("Not backfilling `{KEY}`: Already set.");
+        return Ok(());
+    }
+
+    trace!("Backfilling `{KEY}`…");
+
+    let server_domain = app_config.server_domain().to_string();
+
+    // If checks passed now, they passed once. If not, we can’t backfill
+    // data as it might be temporary.
+    trace!("Backfilling `{KEY}` to {server_domain}…");
+    store::set(&db.write, server_domain).await
+}
+
+async fn backfill_is_workspace_initialized(
+    db: &DatabaseRwConnectionPools,
+    app_config: &AppConfig,
+    workspace_service: &WorkspaceService,
+) -> anyhow::Result<()> {
+    use tracing::trace;
+
+    use super::is_workspace_initialized as store;
+
+    const KEY: &'static str = "is_workspace_initialized";
+
+    // Do not backfill if a value already exist.
+    if store::get_opt(&db.read).await?.is_some() {
+        trace!("Not backfilling `{KEY}`: Already set.");
+        return Ok(());
+    }
+
+    trace!("Backfilling `{KEY}`…");
+
+    let workspace = workspace_service.get_workspace(None).await?;
+
+    // NOTE: To simplify processes internally, the Workspace XMPP account
+    //   is created by default, with the server domain as default name.
+    //   If `is_workspace_initialized` is not already set and the name
+    //   is the default one, it means no admin went through the process
+    //   of Workspace initialization, and we should report the Workspace
+    //   as “not initialized”. Once the Workspace is manually assigned a
+    //   name (even if same as default one), `is_workspace_initialized`
+    //   is set to `true` and this code path becomes unreachable.
+    let is_workspace_initialized = workspace.name.as_str() != app_config.server.domain.as_str();
+
+    trace!("Backfilling `{KEY}` to {is_workspace_initialized}…");
+    store::set(&db.write, is_workspace_initialized).await
 }
 
 async fn backfill_all_dns_checks_passed_once(
@@ -46,10 +117,11 @@ async fn backfill_all_dns_checks_passed_once(
     use crate::network_checks::PodNetworkConfig;
     use crate::network_checks::{NetworkCheck as _, RetryableNetworkCheckResult as _};
 
-    use self::all_dns_checks_passed_once as store;
+    use super::all_dns_checks_passed_once as store;
 
     const KEY: &'static str = "all_dns_checks_passed_once";
 
+    // Do not backfill if a value already exist.
     if store::get_opt(&db.read).await?.is_some() {
         trace!("Not backfilling `{KEY}`: Already set.");
         return Ok(());
@@ -80,21 +152,15 @@ async fn backfill_all_dns_checks_passed_once(
 
 async fn backfill_at_least_one_invitation_sent(
     db: &DatabaseRwConnectionPools,
-    uuid_gen: &dependencies::Uuid,
+    invitation_repository: &InvitationRepository,
+    user_repository: &UserRepository,
 ) -> anyhow::Result<()> {
-    use std::str::FromStr as _;
-
-    use jid::BareJid;
-    use sea_orm::TransactionTrait as _;
+    use super::at_least_one_invitation_sent as store;
     use tracing::trace;
-
-    use crate::invitations::{InvitationContact, InvitationCreateForm, InvitationRepository};
-    use crate::models::EmailAddress;
-
-    use self::at_least_one_invitation_sent as store;
 
     const KEY: &'static str = "at_least_one_invitation_sent";
 
+    // Do not backfill if a value already exist.
     if store::get_opt(&db.read).await?.is_some() {
         trace!("Not backfilling `{KEY}`: Already set.");
         return Ok(());
@@ -102,33 +168,30 @@ async fn backfill_at_least_one_invitation_sent(
 
     trace!("Backfilling `{KEY}`…");
 
-    // Inviations are deleted once they are accepted, for privacy reasons,
-    // but one way to know if one has been created in the past is to create
-    // a new one in a transaction and check the auto-incrementing ID (which
-    // don’t get reused, as stated in https://sqlite.org/autoinc.html). If
-    // it’s greater than 1, it means a row existed once in the past.
-    let transaction = db.write.begin().await.unwrap();
+    /// Just a helper to do logging.
+    async fn backfill(
+        db: &DatabaseRwConnectionPools,
+        at_least_one_invitation_sent: bool,
+    ) -> anyhow::Result<()> {
+        trace!("Backfilling `{KEY}` to {at_least_one_invitation_sent}…");
+        store::set(&db.write, at_least_one_invitation_sent).await
+    }
 
-    let invitation = InvitationRepository::create(
-        &transaction,
-        InvitationCreateForm {
-            jid: BareJid::new("foo@example.org").unwrap(),
-            pre_assigned_role: None,
-            contact: InvitationContact::Email {
-                email_address: EmailAddress::from_str("foo@example.org").unwrap(),
-            },
-            created_at: None,
-            ttl: TimeDelta::zero(),
-        },
-        uuid_gen,
-    )
-    .await?;
-    // NOTE: Invitation IDs start at 1 (see https://sqlite.org/autoinc.html).
-    let at_least_one_invitation_sent = invitation.id > 1;
+    // Mark true if an invitation is pending.
+    let invitation_count = invitation_repository
+        .account_invitations_stats(None)
+        .await?
+        .count;
+    if invitation_count > 0 {
+        return backfill(db, true).await;
+    }
 
-    // Explicitly roll back the transaction to ensure it’s not committed.
-    transaction.rollback().await?;
+    // Mark true if more than one user exist.
+    let user_count = user_repository.users_stats(None).await?.count;
+    if user_count > 1 {
+        return backfill(db, true).await;
+    }
 
-    trace!("Backfilling `{KEY}` to {at_least_one_invitation_sent}…");
-    store::set(&db.write, at_least_one_invitation_sent).await
+    // Otherwise, mark false.
+    backfill(db, false).await
 }

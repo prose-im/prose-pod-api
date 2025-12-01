@@ -9,7 +9,6 @@ paths:
     parameters:
       - $ref: "../shared.yaml#/components/parameters/PageNumber"
       - $ref: "../shared.yaml#/components/parameters/PageSize"
-      - $ref: "../shared.yaml#/components/parameters/Until"
       - in: query
         name: q
         schema:
@@ -169,6 +168,7 @@ components:
         role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
         online: { $ref: "#/components/schemas/OnlineStatus" }
         nickname: { $ref: "#/components/schemas/Nickname" }
+        email: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
         avatar: { $ref: "#/components/schemas/Avatar" }
     Nickname:
       type: string

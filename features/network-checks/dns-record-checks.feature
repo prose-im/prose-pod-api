@@ -3,7 +3,6 @@ Feature: DNS record checks
 
   Background:
     Given the XMPP server has been initialized
-      And Valerian is an admin
         # NOTE: Required when `pod.address.domain` is unset
       And config "dashboard.url" is set to "https://dashboard.prose.test.org"
 
@@ -14,6 +13,7 @@ Feature: DNS record checks
         And config "pod.address.ipv4" is set to "0.0.0.0"
         And config "pod.address.ipv6" is set to "::"
         And config "pod.address.domain" is unset
+        And Valerian is an admin
         And federation is enabled
         And the Prose Pod API has started
         And prose.org’s DNS zone has a A record for prose.test.org.
@@ -73,6 +73,7 @@ Feature: DNS record checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.org. to prose.test.org.
@@ -112,6 +113,7 @@ Feature: DNS record checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is disabled
         And prose.org’s DNS zone has a CNAME record redirecting admin.prose.test.org. to prose.test.org.

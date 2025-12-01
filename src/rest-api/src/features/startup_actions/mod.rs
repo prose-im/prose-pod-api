@@ -3,37 +3,29 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod add_workspace_to_team;
 mod backfill_database;
-mod create_service_accounts;
-mod db_configure;
 mod db_run_migrations;
 mod init_server_config;
-mod migrate_workspace_vcard;
 mod register_oauth2_client;
-mod rotate_api_xmpp_password;
 mod start_cron_tasks;
 mod test_services_reachability;
-mod update_rosters;
 mod validate_app_config_changes;
 mod wait_for_server;
 
-use tracing::{info, instrument, trace, warn};
+use service::util::either::Either;
+use tracing::{info, instrument, trace, warn, Instrument as _};
 
-use crate::{error::DETAILED_ERROR_REPONSES, AppState};
+use crate::{
+    error::{InvalidServerConfiguration, DETAILED_ERROR_REPONSES},
+    AppState,
+};
 
-use self::add_workspace_to_team::*;
 use self::backfill_database::*;
-use self::create_service_accounts::*;
-use self::db_configure::*;
 use self::db_run_migrations::*;
 use self::init_server_config::*;
-use self::migrate_workspace_vcard::*;
 use self::register_oauth2_client::*;
-use self::rotate_api_xmpp_password::*;
 use self::start_cron_tasks::*;
 use self::test_services_reachability::*;
-use self::update_rosters::*;
 use self::validate_app_config_changes::*;
 use self::wait_for_server::*;
 
@@ -50,12 +42,28 @@ macro_rules! run_step_macro {
                     $step(&$app_state).await?;
                 }
             };
+            ($step:ident or $default:expr) => {
+                async {
+                    if ($app_config.debug.skip_startup_actions).contains(stringify!($step)) {
+                        warn!(
+                            "Not running startup step '{}': Step marked to skip in the app configuration.",
+                            stringify!($step),
+                        );
+                        $default
+                    } else {
+                        $step(&$app_state).await
+                    }
+                }
+            };
         }
     };
 }
 
 #[instrument(level = "trace", skip_all, err)]
-pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
+#[must_use]
+pub async fn run_startup_actions(
+    app_state: AppState,
+) -> Result<Either<(), InvalidServerConfiguration>, String> {
     trace!("Running startup actions…");
 
     let ref app_config = app_state.app_config;
@@ -67,47 +75,45 @@ pub async fn run_startup_actions(app_state: AppState) -> Result<(), String> {
         info!("app_config: {app_config:#?}");
     }
 
-    {
+    let startup_res = {
         run_step_macro!(app_state, app_config);
 
-        run_step!(db_configure);
         run_step!(db_run_migrations);
         run_step!(test_services_reachability);
-        run_step!(wait_for_server);
-        run_step!(rotate_api_xmpp_password);
         run_step!(validate_app_config_changes);
-        run_step!(init_server_config);
-        run_step!(register_oauth2_client);
-        run_step!(create_service_accounts);
-        run_step!(migrate_workspace_vcard);
-        run_step!(add_workspace_to_team);
+        let res = run_step!(wait_for_server or Ok(Either::E1(()))).await?;
+        if let Either::E1(()) = res {
+            run_step!(init_server_config);
+            run_step!(register_oauth2_client);
+        }
         run_step!(start_cron_tasks);
-    }
+        res
+    };
 
     // Some actions won’t prevent the API from running properly so let’s not
     // make startup longer because of it.
     async fn run_remaining(
         app_state @ AppState { app_config, .. }: &AppState,
+        startup_succeeded: bool,
     ) -> Result<(), String> {
         run_step_macro!(app_state, app_config);
 
-        run_step!(backfill_database);
-        // NOTE: `update_rosters` should run after `backfill_database`
-        //   as the latter can add team members.
-        run_step!(update_rosters);
+        if startup_succeeded {
+            run_step!(backfill_database);
+        }
 
         Ok(())
     }
+    let startup_succeeded = matches!(startup_res, Either::E1(()));
     tokio::spawn(
         async move {
-            if let Err(err) = run_remaining(&app_state).await {
+            if let Err(err) = run_remaining(&app_state, startup_succeeded).await {
                 warn!("{}", crate::StartupError(err));
             }
             (app_state.base.lifecycle_manager).set_startup_actions_finished();
-        },
-        // FIXME: For some reason, this breaks behavior tests.
-        // .in_current_span(),
+        }
+        .in_current_span(),
     );
 
-    Ok(())
+    Ok(startup_res)
 }

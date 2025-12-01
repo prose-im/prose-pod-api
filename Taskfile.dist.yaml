@@ -133,7 +133,29 @@ tasks:
 
   local:build:
     desc: Builds the Prose Pod API and the repositories it depends on without updating the code.
-    cmd: "{{.ROOT_DIR}}/local-run/scripts/build-images {{.CLI_ARGS}}"
+    cmds:
+      - scripts/build-image --profile={{ .CARGO_PROFILE }} --locked {{.CLI_ARGS}}
+      - echo '{{ .CARGO_PROFILE }}-{{ .CHECKSUM }}' > .task/checksum/local-build-profile
+    env:
+      DOCKERFILE_PATH: local-run/Dockerfile
+    vars:
+      CARGO_PROFILE: '{{ .CARGO_PROFILE | default "dev" }}'
+    sources:
+      # We changed the code:
+      - "src/*/src/**"
+      - "src/*/src/Cargo.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "VERSION"
+      # We changed how the image is built:
+      - "Dockerfile"
+      - ".dockerignore"
+      # We changed some packaged documentation:
+      # NOTE: This is only packaged in dev builds.
+      - "docs/openapi/**"
+    status:
+      - >-
+        [[ "$(cat .task/checksum/local-build-profile)" == '{{ .CARGO_PROFILE }}-{{ .CHECKSUM }}' ]]
 
   local:reset:
     desc: Starts fresh with a Prose Pod API that has no data.
@@ -169,6 +191,14 @@ tasks:
         platforms: [linux]
       - cmd: "sed -i '' -E '{{.PATTERN}}' '{{.README}}'"
         platforms: [darwin]
+
+  dev:demos:recreate:
+    desc: Recreate demo scenarios.
+    cmd: local-run/scripts/demo-scenarios-recreate
+
+  dev:demos:update:
+    desc: Update demo scenarios (e.g. by running migrations).
+    cmd: local-run/scripts/demo-scenarios-update
 
   dev:make-test-scenarios:
     desc: Create scenarios for integration testing.

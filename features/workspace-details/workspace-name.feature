@@ -10,7 +10,8 @@ Feature: Workspace name
       Given the XMPP server has been initialized
         And the workspace has not been initialized
        When an unauthenticated user gets the workspace name
-       Then the user should receive 'Workspace not initialized: No vCard'
+       Then the call should succeed
+        And the response body should not be `null`
 
   """
   When logging into a workspace, we want to show the name of the workspace the person

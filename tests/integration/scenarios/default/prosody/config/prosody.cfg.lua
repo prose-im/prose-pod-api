@@ -5,6 +5,7 @@
 
 -- Base server configuration
 pidfile = "/var/run/prosody/prosody.pid"
+admin_socket = "/var/run/prosody/prosody.sock"
 
 authentication = "internal_hashed"
 
@@ -23,6 +24,7 @@ modules_enabled = {
   "auto_activate_hosts";
   "roster";
   "groups_internal";
+  "groups_shell";
   "saslauth";
   "tls";
   "dialback";
@@ -45,12 +47,12 @@ modules_enabled = {
   "server_contact_info";
   "websocket";
   "reload_modules";
-  "cloud_notify";
-  "register";
-  "prose_version";
   "mam";
 }
 modules_disabled = { "s2s" }
+
+-- mod_reload_modules
+reload_modules = { "tls" }
 
 -- Disable in-band registrations (done through the Prose Pod Dashboard/API)
 allow_registration = false
@@ -71,11 +73,6 @@ limits = {
 -- Allow reverse-proxying to WebSocket service over insecure local HTTP
 consider_websocket_secure = true
 
--- Specify server administrator
-contact_info = {
-  admin = { "mailto:hostmaster@mailpit" };
-}
-
 -- MAM settings
 archive_expires_after = "never"
 default_archive_policy = true
@@ -84,22 +81,33 @@ max_archive_query_results = 100
 -- Enable vCard legacy compatibility layer
 upgrade_legacy_vcards = true
 
--- mod_reload_modules
-reload_modules = { "tls" }
-
 -- mod_cloud_notify
 push_notification_with_body = true
 push_notification_with_sender = true
 
 -- Server hosts and components
 VirtualHost "test.local"
-  admins = { "prose-pod-api@admin.prose.local" }
-
   -- Modules
   modules_enabled = {
     "rest";
     "http_oauth2";
     "admin_rest";
+    "cloud_notify";
+    "register";
+    "prose_version";
+    "http_admin_api";
+    "invites";
+    "invites_groups";
+    "invites_register";
+    "invites_register_api";
+  }
+
+  -- mod_reload_modules
+  reload_modules = { "http_oauth2" }
+
+  -- XEP-0157: Contact Addresses for XMPP Services
+  contact_info = {
+    admin = { "xmpp:evan.turner@test.local" };
   }
 
   -- HTTP settings
@@ -121,19 +129,7 @@ VirtualHost "test.local"
   }
   oauth2_access_token_ttl = 10800
   oauth2_refresh_token_ttl = 0
-  oauth2_registration_key = "0TJ6t1lWutrYon6SVjtcdVz9_XfIwAIuWkRoellx-f1r8ALPYAwjnwR4DgTy2aaGprMIBPd0HLTfT9GPprfUG_O4-FHDBduoNotdjJc4KIki2KrfnL_B2orAqreBXk_yPk3ay3gBUHfet74CPbnROx66AsPVGQjJ1SH_68YVK10NGbSTnp0Er9EQlYXvuO01H-NlRylmnRHXb05Ph5dKK_pfhEdCEsD5Jhz_uLs5emlAyXS9h6uk5GMihW9Yz1o3CZQzBwuhv6kBSTtssXjBqJme7nEyZdIRLCic1Eg5ks3YBokOPMSvX1WjFUK0nsTm1J0J9I9rKnJMQrSQYrkUjA"
-
-VirtualHost "admin.prose.local"
-  admins = { "prose-pod-api@admin.prose.local" }
-
-  -- Modules
-  modules_enabled = {
-    "admin_rest";
-    "init_admin";
-  }
-
-  -- HTTP settings
-  http_host = "prose-pod-server-admin"
+  oauth2_registration_key = ENV_OAUTH2_REGISTRATION_KEY
 
 Component "groups.test.local" "muc"
   name = "Chatrooms"

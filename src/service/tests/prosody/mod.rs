@@ -7,10 +7,7 @@ use cucumber::{gherkin::Step, given, then, when};
 use figment::providers::Serialized;
 use insta::assert_snapshot;
 use jid::BareJid;
-use service::{
-    members::{MemberCreateForm, MemberRepository, MemberRole},
-    prosody_config_from_db, server_config, AppConfig,
-};
+use service::{prosody_config_from_db, server_config, AppConfig};
 
 use crate::{TestWorld, CONFIG_PATH};
 
@@ -32,25 +29,10 @@ async fn given_everything_disabled(world: &mut TestWorld) -> anyhow::Result<()> 
 }
 
 #[given(expr = "the first admin account is {string}")]
-async fn given_first_admin(world: &mut TestWorld, name: String) -> anyhow::Result<()> {
-    let ref db = world.db;
-
-    MemberRepository::create(
-        db,
-        MemberCreateForm {
-            jid: BareJid::new(&format!(
-                "{name}@{domain}",
-                domain = world.app_config.server_domain()
-            ))
-            .unwrap(),
-            role: Some(MemberRole::Admin),
-            joined_at: None,
-            email_address: None,
-        },
-    )
-    .await?;
-
-    Ok(())
+async fn given_first_admin(world: &mut TestWorld, name: String) {
+    let server_domain = world.app_config.server_domain();
+    let jid = BareJid::new(&format!("{name}@{server_domain}")).unwrap();
+    world.admins.push(jid);
 }
 
 #[given("the following app configuration is set:")]
@@ -72,7 +54,8 @@ async fn given_app_config(world: &mut TestWorld, step: &Step) -> anyhow::Result<
 #[when("generating a new Prosody configuration file from the database")]
 async fn when_generating_prosody_config(world: &mut TestWorld) -> anyhow::Result<()> {
     let ref app_config = world.app_config;
-    let prosody_config = prosody_config_from_db(&world.db, app_config, None).await?;
+    let prosody_config =
+        prosody_config_from_db(&world.db, app_config, None, world.admins.clone()).await?;
     world.prosody_config = Some(prosody_config);
     Ok(())
 }

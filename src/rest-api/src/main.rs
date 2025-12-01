@@ -5,6 +5,7 @@
 
 use std::{net::SocketAddr, sync::Arc};
 
+use arc_swap::ArcSwap;
 use axum::Router;
 use prose_pod_api::{
     factory_reset_router, make_router, run_startup_actions,
@@ -17,16 +18,32 @@ use prose_pod_api::{
 };
 use service::{
     app_config::{pub_defaults as defaults, LogConfig},
-    auth::{AuthService, LiveAuthService},
+    auth::{auth_service::OAuth2ClientState, AuthService, LiveAuthService},
     factory_reset::FactoryResetService,
-    licensing::{LicenseService, LiveLicenseService},
+    identity_provider::{IdentityProvider, LiveIdentityProvider},
+    invitations::{
+        invitation_service::{InvitationApplicationService, LiveInvitationApplicationService},
+        InvitationRepository, LiveInvitationRepository,
+    },
+    licensing::{LicensingService, LiveLicensingService},
+    members::{
+        LiveUserApplicationService, LiveUserRepository, MemberService, UserApplicationService,
+        UserRepository,
+    },
     network_checks::{LiveNetworkChecker, NetworkChecker},
     notifications::{notifier::email::EmailNotifier, Notifier},
     pod_version::{LivePodVersionService, PodVersionService, StaticPodVersionService},
+    prose_pod_server_api::ProsePodServerApi,
+    prose_pod_server_service::{LiveProsePodServerService, ProsePodServerService},
     prose_xmpp::UUIDProvider,
-    prosody::{ProsodyAdminRest, ProsodyOAuth2},
-    secrets::{LiveSecretsStore, SecretsStore},
-    xmpp::{LiveServerCtl, LiveXmppService, ServerCtl, XmppServiceInner},
+    prosody::{ProsodyAdminRest, ProsodyInvitesRegisterApi},
+    prosody_http::{
+        admin_api::ProsodyAdminApi,
+        oauth2::{self, ProsodyOAuth2},
+        ProsodyHttpConfig,
+    },
+    workspace::{LiveWorkspaceService, WorkspaceService},
+    xmpp::{LiveXmppService, XmppService},
     AppConfig, HttpClient,
 };
 use tracing::{info, instrument, trace, warn, Instrument as _, Subscriber};
@@ -54,7 +71,6 @@ async fn main() {
     };
 
     let mut lifecycle_manager = LifecycleManager::new();
-    let secrets_store = SecretsStore::new(Arc::new(LiveSecretsStore::default()));
 
     {
         let mut lifecycle_manager = lifecycle_manager.clone();
@@ -67,40 +83,47 @@ async fn main() {
         tokio::spawn(async move { lifecycle_manager.listen_for_reload().await }.in_current_span());
     }
 
+    let mut run_handle = None;
+
     let mut starting = true;
     while starting || lifecycle_manager.should_restart().await {
         if starting {
             starting = false;
         } else {
             warn!("Restarting…");
+            lifecycle_manager = lifecycle_manager.rotate_instance();
         }
 
         {
             let minimal_app_state = MinimalAppState {
                 lifecycle_manager: lifecycle_manager.clone(),
-                secrets_store: secrets_store.clone(),
                 static_pod_version_service: PodVersionService::new(Arc::new(
                     StaticPodVersionService,
                 )),
             };
             let tracing_reload_handles = tracing_reload_handles.clone();
-            tokio::spawn(
+            run_handle = Some(tokio::spawn(
                 async move {
                     trace!("Starting an instance…");
                     run(minimal_app_state, &tracing_reload_handles).await;
                     trace!("Run finished.");
                 }
                 .in_current_span(),
-            );
+            ));
         }
-
-        lifecycle_manager = lifecycle_manager.rotate_instance();
 
         if lifecycle_manager.will_restart() {
             trace!("Waiting for next `restart_rx` signal…");
         } else {
             trace!("Not waiting for next `restart_rx` signal.");
         }
+    }
+
+    if let Some(handle) = run_handle {
+        trace!("Waiting for instance to finish gracefully…");
+        handle.await.unwrap_or_else(|err| {
+            tracing::error!("Could not wait for running instance to finish: {err}")
+        });
     }
 
     info!("Nothing else to do, exiting.");
@@ -152,9 +175,12 @@ async fn run(
     let (cancellation_token, stopped) = lifecycle_manager.current_instance();
     info!("Serving the Prose Pod API on {addr}…");
     axum::serve(listener, app)
-        .with_graceful_shutdown(async move { cancellation_token.cancelled().await })
+        .with_graceful_shutdown(cancellation_token.cancelled_owned())
         .await
         .unwrap();
+
+    // Perform cleanup tasks.
+    lifecycle_manager.cleanup().await;
 
     trace!("API instance stopped.");
     if lifecycle_manager.is_restarting() {
@@ -167,6 +193,11 @@ async fn run(
 async fn startup(app_config: AppConfig, minimal_app_state: MinimalAppState) -> Router {
     let app_state = init_dependencies(app_config, minimal_app_state).await;
 
+    app_state
+        .lifecycle_manager
+        .attach_db_for_cleanup(app_state.db.clone())
+        .await;
+
     // NOTE: While we could have made `AppState` mutable by wrapping it in a `RwLock`
     //   and replaced all of it, we chose to recreate the `Router` to make sure Axum
     //   doesn’t keep caches which would leak data.
@@ -175,6 +206,8 @@ async fn startup(app_config: AppConfig, minimal_app_state: MinimalAppState) -> R
         Err(err) => {
             // NOTE: `panic`s are unwound therefore we need to exit manually.
             tracing::error!("Startup error: {err:#}");
+            // FIXME: This could lead to corrupted database,
+            //   stop gracefully with code 1 instead.
             std::process::exit(1);
         }
     }
@@ -189,7 +222,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
     .await
     .expect("Could not connect to the database.");
 
-    let license_service_impl = match LiveLicenseService::from_config(&app_config) {
+    let licensing_service_impl = match LiveLicensingService::from_config(&app_config) {
         Ok(service) => service,
         Err(err) => {
             // NOTE: `panic`s are unwound therefore we need to exit manually.
@@ -200,50 +233,155 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
 
     // FIXME: Pass a dynamic `AppConfig` to dependencies?
 
-    base.secrets_store.load_config(&app_config);
     let http_client = HttpClient::new();
+
     let prosody_admin_rest = Arc::new(ProsodyAdminRest::from_config(
         &app_config,
         http_client.clone(),
-        base.secrets_store.clone(),
     ));
-    let server_ctl = ServerCtl::new(Arc::new(LiveServerCtl::from_config(
-        &app_config,
-        prosody_admin_rest.clone(),
-        db.clone(),
-    )));
-    let xmpp_service = XmppServiceInner::new(Arc::new(LiveXmppService::from_config(
+    let prosody_http_config = Arc::new(ProsodyHttpConfig {
+        url: app_config.server.http_url(),
+    });
+    let prosody_http_admin_api = Arc::new(ProsodyAdminApi::new(Arc::clone(&prosody_http_config)));
+    let prosody_oauth2 = Arc::new(ProsodyOAuth2::new(Arc::clone(&prosody_http_config)));
+    let server_api = ProsePodServerApi::from_config(&app_config, http_client.clone());
+    let prosody_invites_register_api =
+        ProsodyInvitesRegisterApi::from_config(&app_config, http_client.clone());
+
+    let api_version = base.static_pod_version_service.get_api_version();
+
+    let oauth2_client_config = oauth2::ClientConfig {
+        client_name: "Prose Pod API".to_owned(),
+        client_uri: "https://prose-pod-api:8080".to_owned(),
+        redirect_uris: vec!["https://prose-pod-api:8080/redirect".to_owned()],
+        grant_types: vec![
+            "authorization_code".to_owned(),
+            "refresh_token".to_owned(),
+            "password".to_owned(),
+        ],
+        software_version: api_version.commit_long,
+        ..Default::default()
+    };
+    let auth_service = AuthService {
+        implem: Arc::new(LiveAuthService {
+            oauth2: prosody_oauth2.clone(),
+            oauth2_client: ArcSwap::from_pointee(OAuth2ClientState::Unregistered(oauth2_client_config)),
+            server_api: server_api.clone(),
+            admin_api: prosody_http_admin_api.clone(),
+            invites_register_api: prosody_invites_register_api.clone(),
+            password_reset_token_ttl: app_config.auth.password_reset_token_ttl.to_std()
+                .expect("`app_config.auth.password_reset_token_ttl` contains years or months. Not supported.")
+                .try_into()
+                .expect("`app_config.auth.password_reset_token_ttl` out of range."),
+            min_password_length: app_config.auth.min_password_length,
+        }),
+    };
+
+    let live_xmpp_service = Arc::new(LiveXmppService::from_config(
         &app_config,
         http_client.clone(),
-        prosody_admin_rest.clone(),
+        prosody_http_admin_api.clone(),
         Arc::new(UUIDProvider::new()),
-    )));
-    let prosody_oauth2 = Arc::new(ProsodyOAuth2::from_config(&app_config, http_client.clone()));
-    let auth_service = AuthService::new(Arc::new(LiveAuthService::new(prosody_oauth2.clone())));
+    ));
+
+    let user_repository = UserRepository {
+        implem: Arc::new(LiveUserRepository {
+            server_api: server_api.clone(),
+            admin_rest: prosody_admin_rest.clone(),
+            admin_api: prosody_http_admin_api.clone(),
+            auth_service: auth_service.clone(),
+            xmpp_service: Arc::clone(&live_xmpp_service),
+            workspace_jid: app_config.workspace_jid(),
+        }),
+    };
+    let invitation_repository = InvitationRepository {
+        implem: Arc::new(LiveInvitationRepository {
+            server_api: server_api.clone(),
+            admin_api: prosody_http_admin_api.clone(),
+            invites_register_api: prosody_invites_register_api.clone(),
+        }),
+    };
+
+    let user_application_service = UserApplicationService {
+        implem: Arc::new(LiveUserApplicationService {
+            server_api: server_api.clone(),
+        }),
+    };
+    let invitation_application_service = InvitationApplicationService {
+        implem: Arc::new(LiveInvitationApplicationService {
+            invites_register_api: prosody_invites_register_api.clone(),
+        }),
+    };
+
+    let xmpp_service = XmppService {
+        implem: live_xmpp_service,
+    };
     let email_notifier = Notifier::from_config::<EmailNotifier, _>(&app_config)
         .inspect_err(|err| warn!("Could not create email notifier: {err}"))
         .ok();
     let network_checker = NetworkChecker::new(Arc::new(LiveNetworkChecker::from_config(
         &app_config.api.network_checks,
     )));
-    let license_service = LicenseService::new(Arc::new(license_service_impl));
+    let licensing_service = LicensingService::new(Arc::new(licensing_service_impl));
     let pod_version_service = PodVersionService::new(Arc::new(LivePodVersionService::from_config(
         &app_config,
         http_client.clone(),
     )));
     let factory_reset_service = FactoryResetService::default();
+    let member_service = MemberService::new(
+        user_repository.clone(),
+        user_application_service.clone(),
+        app_config.server_domain().to_owned(),
+        xmpp_service.clone(),
+        auth_service.clone(),
+        None,
+        &app_config.api.member_enriching,
+    );
+    let identity_provider = IdentityProvider::new(Arc::new(LiveIdentityProvider {
+        db: db.clone(),
+        member_service: member_service.clone(),
+        admin_api: prosody_http_admin_api.clone(),
+    }));
+    let prose_pod_server_service = ProsePodServerService(Arc::new(LiveProsePodServerService {
+        config_file_path: app_config.prosody_ext.config_file_path.clone(),
+        server_api: server_api.clone(),
+        admin_rest: prosody_admin_rest.clone(),
+        admin_api: prosody_http_admin_api.clone(),
+        auth_service: auth_service.clone(),
+        xmpp_service: xmpp_service.clone(),
+        oauth2: prosody_oauth2.clone(),
+        invites_register_api: prosody_invites_register_api.clone(),
+        db: db.clone(),
+    }));
+    let workspace_service = WorkspaceService {
+        implem: Arc::new(LiveWorkspaceService {
+            server_api: server_api.clone(),
+            workspace_username: app_config
+                .service_accounts
+                .prose_workspace
+                .xmpp_node
+                .clone(),
+        }),
+    };
 
-    AppState::new(
+    AppState {
         base,
         db,
-        Arc::new(app_config),
-        server_ctl,
+        app_config: Arc::new(app_config),
+        user_repository,
+        invitation_repository,
         xmpp_service,
         auth_service,
         email_notifier,
+        member_service,
         network_checker,
-        license_service,
+        workspace_service,
+        licensing_service,
         pod_version_service,
         factory_reset_service,
-    )
+        prose_pod_server_service,
+        identity_provider,
+        user_application_service,
+        invitation_application_service,
+    }
 }

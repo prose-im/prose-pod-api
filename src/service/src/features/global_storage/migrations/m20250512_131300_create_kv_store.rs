@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum KvStore {
+pub(crate) enum KvStore {
     #[sea_orm(iden = "kv_store")]
     Table,
     Namespace,

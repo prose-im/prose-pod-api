@@ -3,85 +3,93 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::{anyhow, Context as _};
-use jid::{BareJid, DomainRef};
-use serdev::Serialize;
-
 use crate::{
-    members::MemberRole,
+    auth::AuthToken,
+    errors::Forbidden,
+    invitations::{
+        invitation_service::{
+            AcceptAccountInvitationCommand, AcceptAccountInvitationError, InviteUserError,
+        },
+        InvitationRepository,
+    },
+    members::Member,
     models::{Paginated, Pagination, PaginationForm},
-    notifications::NotificationService,
     util::either::{Either, Either3},
-    workspace::WorkspaceService,
-    AppConfig,
 };
 
-use super::{
-    entities::workspace_invitation, CannotAcceptInvitation, Invitation, InvitationAcceptForm,
-    InvitationExpired, InvitationId, InvitationResendError, InvitationService, InvitationToken,
-    InvitationTokenType, InviteMemberError, InviteMemberForm, NoInvitationForToken,
-};
-
-#[derive(Debug, thiserror::Error)]
-#[repr(transparent)]
-#[error("No invitation with id '{0}'.")]
-pub struct InvitationNotFound(InvitationId);
+use super::{errors::*, models::*, InvitationService};
 
 // MARK: Create
 
 #[cfg(not(debug_assertions))]
-pub type InviteMemberResponse = Result<Invitation, InviteMemberError>;
+pub type InviteMemberResponse = Invitation;
 #[cfg(not(debug_assertions))]
-fn ok(invitation: Invitation) -> InviteMemberResponse {
+fn ok<E>(invitation: Invitation) -> Result<InviteMemberResponse, E> {
     Ok(invitation)
 }
 #[cfg(debug_assertions)]
-pub type InviteMemberResponse =
-    Result<Either<Invitation, crate::members::Member>, Either<InviteMemberError, anyhow::Error>>;
+pub type InviteMemberResponse = Either<Invitation, crate::members::Member>;
 #[cfg(debug_assertions)]
-fn ok(invitation: Invitation) -> InviteMemberResponse {
+fn ok<E>(invitation: Invitation) -> Result<InviteMemberResponse, E> {
     Ok(Either::E1(invitation))
 }
 
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member(
-    #[cfg(debug_assertions)] db: &sea_orm::DatabaseConnection,
-    app_config: &AppConfig,
-    server_domain: &DomainRef,
-    notification_service: &NotificationService,
     invitation_service: &InvitationService,
-    workspace_service: &WorkspaceService,
+    #[cfg(debug_assertions)] app_config: &crate::AppConfig,
+    auth: &AuthToken,
     #[cfg(debug_assertions)] auto_accept: bool,
     req: InviteMemberForm,
-) -> InviteMemberResponse {
+) -> Result<InviteMemberResponse, InviteUserError> {
+    #[cfg(debug_assertions)]
+    let username = req.username.clone();
+
+    let email_address = match req.contact {
+        InvitationContact::Email { email_address } => email_address,
+    };
+
     let invitation = invitation_service
-        .invite_member(
-            app_config,
-            server_domain,
-            notification_service,
-            workspace_service,
-            req,
-            #[cfg(debug_assertions)]
-            auto_accept,
+        .invite_user(
+            super::invitation_service::InviteUserCommand {
+                username: req.username,
+                role: req.pre_assigned_role,
+                email_address: email_address.clone(),
+                ttl: None,
+            },
+            auth,
         )
-        .await
-        .map_err(|err| {
-            #[cfg(not(debug_assertions))]
-            return err;
-            #[cfg(debug_assertions)]
-            return Either::E1(err);
-        })?;
+        .await?;
 
     #[cfg(debug_assertions)]
-    {
-        if auto_accept {
-            let jid = invitation.jid;
-            let member = (crate::members::MemberRepository::get(db, &jid).await)
-                .context("Database error")
-                .map_err(Either::E2)?
-                .unwrap();
-            return Ok(Either::E2(member.into()));
-        }
+    if auto_accept {
+        use crate::invitations::invitation_service::AcceptAccountInvitationCommand;
+
+        tracing::warn!("As requested, the created invitation will be automatically accepted.");
+
+        let password: secrecy::SecretString = if app_config
+            .debug_only
+            .insecure_password_on_auto_accept_invitation
+        {
+            // Use JID as password to make password predictable
+            invitation.jid.to_string().into()
+        } else {
+            crate::auth::util::random_secret(32)
+        };
+
+        let member = invitation_service
+            .accept_account_invitation(
+                invitation.accept_token,
+                AcceptAccountInvitationCommand {
+                    nickname: username.into(),
+                    password,
+                    email: Some(email_address),
+                },
+            )
+            .await
+            .map_err(|err| InviteUserError::Internal(anyhow::Error::new(err)))?;
+
+        return Ok(Either::E2(member));
     }
 
     ok(invitation)
@@ -91,50 +99,26 @@ pub async fn invite_member(
 
 /// Get information about a workspace invitation.
 pub async fn get_invitation(
-    invitation_id: InvitationId,
-    invitation_service: InvitationService,
-) -> Result<Invitation, Either<InvitationNotFound, anyhow::Error>> {
-    match invitation_service.get(&invitation_id).await {
-        Ok(Some(invitation)) => Ok(invitation),
-        Ok(None) => Err(Either::E1(InvitationNotFound(invitation_id))),
-        Err(err) => Err(Either::E2(anyhow!(err).context("Database error"))),
-    }
-}
-
-#[derive(Debug, Clone)]
-#[derive(Serialize)]
-pub struct WorkspaceInvitationBasicDetails {
-    pub jid: BareJid,
-    pub pre_assigned_role: MemberRole,
-    pub is_expired: bool,
-}
-
-impl From<workspace_invitation::Model> for WorkspaceInvitationBasicDetails {
-    fn from(value: workspace_invitation::Model) -> Self {
-        Self {
-            is_expired: value.is_expired(),
-            jid: value.jid.into(),
-            pre_assigned_role: value.pre_assigned_role,
-        }
-    }
+    invitation_repository: &InvitationRepository,
+    invitation_id: &InvitationId,
+    auth: &AuthToken,
+) -> Result<Option<Invitation>, Either<Forbidden, anyhow::Error>> {
+    invitation_repository
+        .get_account_invitation_by_id(invitation_id, auth)
+        .await
 }
 
 /// Get information about an invitation from an accept or reject token.
 pub async fn get_invitation_by_token(
-    token: InvitationToken,
-    token_type: InvitationTokenType,
-    invitation_service: &InvitationService,
-) -> Result<
-    WorkspaceInvitationBasicDetails,
-    Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>,
-> {
-    let res = match token_type {
-        InvitationTokenType::Accept => invitation_service.get_by_accept_token(token).await,
-        InvitationTokenType::Reject => invitation_service.get_by_reject_token(token).await,
-    };
-
-    match res {
-        Ok(invitation) => Ok(invitation.into()),
+    invitation_repository: &InvitationRepository,
+    token: &InvitationToken,
+) -> Result<Option<WorkspaceInvitationBasicDetails>, anyhow::Error> {
+    match invitation_repository
+        .get_account_invitation_by_token(token)
+        .await
+    {
+        Ok(Some(invitation)) => Ok(Some(WorkspaceInvitationBasicDetails::from(invitation))),
+        Ok(None) => Ok(None),
         Err(err) => Err(err),
     }
 }
@@ -157,21 +141,20 @@ impl Pagination {
     }
 }
 
-/// Get workspace invitations.
 pub async fn get_invitations(
-    invitation_service: InvitationService,
+    invitation_repository: &InvitationRepository,
     pagination: PaginationForm,
-) -> anyhow::Result<Paginated<Invitation>> {
+    auth: &AuthToken,
+) -> Result<Paginated<Invitation>, Either<Forbidden, anyhow::Error>> {
     let Pagination {
         page_number,
         page_size,
         until,
     } = Pagination::invitations(pagination);
 
-    let (pages_metadata, invitations) = invitation_service
-        .get_invitations(page_number, page_size, until)
-        .await
-        .context("Database error")?;
+    let (pages_metadata, invitations) = invitation_repository
+        .list_account_invitations_paged(page_number, page_size, until, auth)
+        .await?;
 
     Ok(Paginated::new(
         invitations,
@@ -187,9 +170,11 @@ pub async fn get_invitations(
 pub async fn invitation_accept(
     invitation_service: &InvitationService,
     token: InvitationToken,
-    form: InvitationAcceptForm,
-) -> Result<(), CannotAcceptInvitation> {
-    invitation_service.accept_by_token(token, form).await
+    command: AcceptAccountInvitationCommand,
+) -> Result<Member, AcceptAccountInvitationError> {
+    invitation_service
+        .accept_account_invitation(token, command)
+        .await
 }
 
 /// Reject a workspace invitation.
@@ -197,29 +182,17 @@ pub async fn invitation_reject(
     invitation_service: &InvitationService,
     token: InvitationToken,
 ) -> anyhow::Result<()> {
-    match invitation_service.reject_by_token(token).await {
-        Ok(()) => Ok(()),
-        Err(Either3::E1(NoInvitationForToken)) => Ok(()),
-        Err(Either3::E2(InvitationExpired)) => Ok(()),
-        Err(Either3::E3(err)) => Err(err),
-    }
+    invitation_service.reject_account_invitation(token).await
 }
 
 /// Resend a workspace invitation.
 pub async fn invitation_resend(
     invitation_service: &InvitationService,
-    app_config: &AppConfig,
-    notification_service: &NotificationService,
-    workspace_service: &WorkspaceService,
-    invitation_id: InvitationId,
-) -> Result<(), InvitationResendError> {
+    invitation_id: &InvitationId,
+    auth: &AuthToken,
+) -> Result<(), Either3<Forbidden, InvitationNotFound, anyhow::Error>> {
     invitation_service
-        .resend(
-            app_config,
-            notification_service,
-            workspace_service,
-            invitation_id,
-        )
+        .resend_account_invitation(invitation_id, auth)
         .await
 }
 
@@ -227,6 +200,9 @@ pub async fn invitation_resend(
 pub async fn invitation_cancel(
     invitation_service: &InvitationService,
     invitation_id: InvitationId,
-) -> anyhow::Result<()> {
-    invitation_service.cancel(invitation_id).await
+    auth: &AuthToken,
+) -> Result<(), Either<Forbidden, anyhow::Error>> {
+    invitation_service
+        .cancel_invitation(invitation_id, auth)
+        .await
 }

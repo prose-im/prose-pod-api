@@ -8,7 +8,7 @@ pub mod extractors;
 mod routes;
 
 use axum::{middleware::from_extractor_with_state, routing::*};
-use service::auth::IsAdmin;
+use service::auth::{Authenticated, IsAdmin};
 
 use crate::AppState;
 
@@ -16,19 +16,24 @@ pub use self::routes::*;
 
 use super::members::MEMBER_ROUTE;
 
-// NOTE: At the moment we’re using “demo” as the demo password. I (@RemiBardon)
-//   don’t want to have to fix all of that now so we’ll use 4 until I take the
-//   time to regenerate all scenarios (or add a debug-only config to bypass it).
-pub const MINIMUM_PASSWORD_LENGTH: usize = 4;
-
 pub(super) fn router(app_state: AppState) -> axum::Router {
     axum::Router::new()
-        .route(&format!("{MEMBER_ROUTE}/role"), put(set_member_role_route))
-        .route(
-            &format!("{MEMBER_ROUTE}/password"),
-            delete(request_password_reset_route),
+        .nest(
+            MEMBER_ROUTE,
+            axum::Router::new()
+                .route("/role", put(set_member_role_route))
+                .route("/password", delete(request_password_reset_route))
+                .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
+                .route(
+                    "/recovery-email-address",
+                    MethodRouter::new()
+                        .get(get_member_recovery_email_address_route)
+                        .put(set_member_recovery_email_address_route),
+                )
+                .route_layer(from_extractor_with_state::<Authenticated, _>(
+                    app_state.clone(),
+                )),
         )
-        .route_layer(from_extractor_with_state::<IsAdmin, _>(app_state.clone()))
         .route("/v1/login", post(login_route))
         .route(
             "/v1/password-reset-tokens/{token}/use",
@@ -38,18 +43,18 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
 }
 
 pub mod models {
-    use std::{borrow::Cow, ops::Deref};
+    use std::ops::Deref;
 
     use secrecy::SecretString;
-    use serdev::Serialize;
+    use serdev::{Deserialize, Serialize};
     use service::models::SerializableSecretString;
-    use validator::{Validate, ValidationError, ValidationErrors};
 
-    use crate::features::auth::MINIMUM_PASSWORD_LENGTH;
-
+    // NOTE: We shouldn only validate password length during
+    //   account creation and password reset. If we did it when
+    //   parsing, we could prevent someone from logging in if they
+    //   have chosen a shorter password using another tool.
     #[derive(Debug, Clone)]
-    #[derive(Serialize, serdev::Deserialize)]
-    #[serde(validate = "Validate::validate")]
+    #[derive(Serialize, Deserialize)]
     #[repr(transparent)]
     pub struct Password(SerializableSecretString);
 
@@ -58,22 +63,6 @@ pub mod models {
 
         fn deref(&self) -> &Self::Target {
             &self.0
-        }
-    }
-
-    impl Validate for Password {
-        fn validate(&self) -> Result<(), ValidationErrors> {
-            if self.0.len() < MINIMUM_PASSWORD_LENGTH {
-                let mut errors = ValidationErrors::new();
-                errors.add(
-                    "__all__",
-                    ValidationError::new("password_too_short")
-                        .with_message(Cow::Borrowed("Password too short.")),
-                );
-                Err(errors)
-            } else {
-                Ok(())
-            }
         }
     }
 

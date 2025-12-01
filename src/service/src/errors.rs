@@ -22,8 +22,23 @@ pub struct MissingConfiguration(pub &'static str);
 
 #[derive(Debug, thiserror::Error)]
 #[repr(transparent)]
+#[error("Invalid configuration: {0}")]
+pub struct InvalidConfiguration(pub String);
+
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
 #[error("Not implemented: {0}")]
 pub struct NotImplemented(pub &'static str);
+
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
+#[error("Unauthorized: {0}")]
+pub struct Unauthorized(pub String);
+
+#[derive(Debug, thiserror::Error)]
+#[repr(transparent)]
+#[error("Forbidden: {0}")]
+pub struct Forbidden(pub String);
 
 #[derive(Debug, thiserror::Error, Serialize)]
 #[error("{message} (response: {response:#?})")]
@@ -131,7 +146,7 @@ fn ser_body<S: Serializer>(
 }
 
 impl UnexpectedHttpResponse {
-    pub async fn new(
+    pub fn new(
         request: Option<RequestData>,
         response: ResponseData,
         error_description: impl FnOnce(
@@ -158,44 +173,16 @@ impl UnexpectedHttpResponse {
     }
 }
 
-// impl UnexpectedHttpResponse {
-//     pub async fn new(
-//         request: Option<RequestData>,
-//         response: ResponseData,
-//         error_description: impl FnOnce(Option<serde_json::Value>, Option<String>) -> String,
-//     ) -> Self {
-//         let (request_url, request_headers, request_body) = if let Some(request) = request {
-//             (
-//                 Some(request.url.clone()),
-//                 Some(request.headers.clone()),
-//                 request
-//                     .body()
-//                     .and_then(|body| body.as_bytes())
-//                     .map(std::str::from_utf8)
-//                     .map(Result::ok)
-//                     .flatten()
-//                     .map(ToString::to_string),
-//             )
-//         } else {
-//             (None, None, None)
-//         };
+// TODO: Move somewhere else.
+#[derive(Debug, thiserror::Error)]
+#[error("Group ‘{group_id}’ not found.")]
+pub struct GroupNotFound {
+    pub group_id: String,
+}
 
-//         let response_status = response.status();
-//         let response_headers = response.headers().clone();
-//         let response_text: Option<String> = response.text().await.ok();
-//         let response_json: Option<serde_json::Value> = response_text
-//             .as_ref()
-//             .map(|s| serde_json::from_str(&s).ok())
-//             .flatten();
-
-//         Self {
-//             message: error_description(response_json.clone(), response_text.clone()),
-//             response_status,
-//             response_headers,
-//             response_body: response_json.or(response_text.map(serde_json::Value::String)),
-//             request_url,
-//             request_headers,
-//             request_body,
-//         }
-//     }
-// }
+// TODO: Move somewhere else.
+#[derive(Debug, thiserror::Error)]
+#[error("Group ‘{group_id}’ already exists.")]
+pub struct GroupAlreadyExists {
+    pub group_id: String,
+}

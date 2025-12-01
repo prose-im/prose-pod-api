@@ -3,34 +3,34 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use chrono::{DateTime, Utc};
 use jid::BareJid;
 use secrecy::SecretString;
-use serdev::Serialize;
-use validator::{Validate, ValidationError, ValidationErrors};
+use serdev::Deserialize;
+use time::OffsetDateTime;
 
-use crate::{
-    auth::util::random_secret_url_safe, members::MemberRole, models::SerializableSecretString,
-};
+use crate::members::MemberRole;
 
-pub const PASSWORD_RESET_TOKEN_LENGTH: usize = 36;
+// TODO: Make it a proper newtype wrapper.
+pub use secrecy::SecretString as Password;
 
 #[derive(Debug)]
 pub struct Credentials {
     pub jid: BareJid,
-    pub password: SecretString,
+    pub password: Password,
 }
 
 /// An OAuth 2.0 token (provided by Prosody).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[derive(Deserialize)]
 #[repr(transparent)]
 pub struct AuthToken(pub SecretString);
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "test", derive(serdev::Serialize, serdev::Deserialize))]
+#[derive(Deserialize)]
 pub struct UserInfo {
     pub jid: BareJid,
-    pub role: MemberRole,
+    #[serde(with = "crate::util::deserializers::prose_role_as_prosody")]
+    pub primary_role: MemberRole,
 }
 
 impl UserInfo {
@@ -38,7 +38,7 @@ impl UserInfo {
         &self.jid == other
     }
     pub fn is_admin(&self) -> bool {
-        self.role == MemberRole::Admin
+        self.primary_role == MemberRole::Admin
     }
 }
 
@@ -61,56 +61,33 @@ impl From<UserInfo> for Authenticated {
 #[derive(Debug)]
 pub struct IsAdmin;
 
-#[derive(Debug, Clone)]
-#[derive(serdev::Deserialize)]
-#[serde(validate = "Validate::validate")]
-#[repr(transparent)]
-pub struct PasswordResetToken(SerializableSecretString);
+// NOTE: I (@RemiBardon) am taking a shortcut here as
+//   Prosody uses invitations to do password resets,
+//   therefore `PasswordResetToken` == `InvitationToken`.
+pub type PasswordResetToken = crate::invitations::InvitationToken;
 
-impl PasswordResetToken {
-    pub fn new() -> Self {
-        // NOTE: `random_secret`
-        Self::from(random_secret_url_safe(PASSWORD_RESET_TOKEN_LENGTH))
+#[derive(Debug, Clone)]
+pub struct PasswordResetRequestInfo {
+    pub jid: BareJid,
+    pub token: PasswordResetToken,
+    pub created_at: OffsetDateTime,
+    pub expires_at: OffsetDateTime,
+}
+
+impl PasswordResetRequestInfo {
+    #[inline]
+    pub fn is_expired(&self) -> bool {
+        self.expires_at < OffsetDateTime::now_utc()
     }
 }
 
-#[derive(Debug)]
-#[derive(sea_orm::FromQueryResult)]
-pub struct PasswordResetKvRecord {
-    pub key: PasswordResetToken,
-    pub value: PasswordResetRecord,
-}
+// MARK: - Conversions
 
-/// The JSON value stored in the global key/value store.
-#[derive(Debug)]
-#[derive(Serialize, serdev::Deserialize)]
-#[derive(sea_orm::FromJsonQueryResult)]
-pub struct PasswordResetRecord {
-    pub jid: BareJid,
-    pub expires_at: DateTime<Utc>,
-}
-
-// MARK: Validation
-
-impl Validate for PasswordResetToken {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        use std::borrow::Cow;
-
-        let mut errors = ValidationErrors::new();
-
-        if self.0.len() != PASSWORD_RESET_TOKEN_LENGTH {
-            errors.add(
-                "__all__",
-                ValidationError::new("length").with_message(Cow::Owned(format!(
-                    "Invalid confirmation code: Expected length is {PASSWORD_RESET_TOKEN_LENGTH}."
-                ))),
-            );
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
+impl From<UserInfo> for crate::members::Member {
+    fn from(info: UserInfo) -> Self {
+        Self {
+            jid: info.jid,
+            role: Some(info.primary_role),
         }
     }
 }
@@ -125,21 +102,34 @@ impl std::ops::Deref for AuthToken {
     }
 }
 
-impl std::ops::Deref for PasswordResetToken {
-    type Target = SerializableSecretString;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl AuthToken {
+    pub fn into_inner(self) -> <Self as std::ops::Deref>::Target {
+        self.0
     }
 }
 
-impl<T> From<T> for PasswordResetToken
-where
-    T: Into<SerializableSecretString>,
-{
-    fn from(value: T) -> Self {
+#[cfg(feature = "test")]
+impl std::cmp::PartialEq for AuthToken {
+    fn eq(&self, other: &Self) -> bool {
+        use secrecy::ExposeSecret as _;
+        self.0.expose_secret() == other.0.expose_secret()
+    }
+}
+
+#[cfg(feature = "test")]
+impl std::cmp::Eq for AuthToken {}
+
+#[cfg(feature = "test")]
+impl std::hash::Hash for AuthToken {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        use secrecy::ExposeSecret as _;
+        self.0.expose_secret().hash(state);
+    }
+}
+
+#[cfg(feature = "test")]
+impl From<String> for AuthToken {
+    fn from(value: String) -> Self {
         Self(value.into())
     }
 }
-
-crate::sea_orm_string!(PasswordResetToken; secret);

@@ -1,10 +1,11 @@
 // prose-pod-api
 //
-// Copyright: 2024, Rémi Bardon <remi@remibardon.name>
+// Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::{str::FromStr as _, sync::Arc};
+use std::{ops::Deref, str::FromStr as _, sync::Arc};
 
+use async_trait::async_trait;
 use prose_xmpp::{
     mods::{self, AvatarData},
     stanza::avatar::{self, ImageId},
@@ -15,7 +16,7 @@ use tracing::{debug, trace};
 use xmpp_parsers::hashes::Sha1HexAttribute;
 
 use crate::{
-    models::{jid::ResourcePart, Avatar, AvatarOwned},
+    models::{jid::ResourcePart, Avatar},
     prosody::ProsodyRest,
     util::detect_image_media_type,
     xmpp::{VCard, XmppServiceContext, XmppServiceError, XmppServiceImpl},
@@ -61,7 +62,10 @@ impl LiveXmppService {
         }
     }
 
-    async fn xmpp_client(&self, ctx: &XmppServiceContext) -> Result<XMPPClient, XmppServiceError> {
+    pub async fn xmpp_client(
+        &self,
+        ctx: &XmppServiceContext,
+    ) -> Result<XMPPClient, XmppServiceError> {
         let http_client = self.http_client.clone();
         let rest_api_url = self.rest_api_url.clone();
         let xmpp_client = XMPPClient::builder()
@@ -71,12 +75,13 @@ impl LiveXmppService {
             .connect(
                 &ctx.bare_jid
                     .with_resource(&ResourcePart::new(&self.id_provider.new_id()).unwrap()),
-                ctx.prosody_token.clone(),
+                ctx.auth_token.deref().clone(),
             )
             .await
             .map_err(XmppServiceError::from)?;
         Ok(xmpp_client)
     }
+
     pub async fn load_latest_avatar_metadata(
         &self,
         from: &BareJid,
@@ -91,7 +96,7 @@ impl LiveXmppService {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl XmppServiceImpl for LiveXmppService {
     async fn get_vcard(
         &self,
@@ -105,6 +110,7 @@ impl XmppServiceImpl for LiveXmppService {
             .await
             .map_err(Into::into)
     }
+
     async fn set_own_vcard(
         &self,
         ctx: &XmppServiceContext,
@@ -124,7 +130,7 @@ impl XmppServiceImpl for LiveXmppService {
         &self,
         ctx: &XmppServiceContext,
         jid: &BareJid,
-    ) -> Result<Option<AvatarOwned>, XmppServiceError> {
+    ) -> Result<Option<Avatar>, XmppServiceError> {
         let Some(avatar_metadata) = self.load_latest_avatar_metadata(jid, ctx).await? else {
             return Ok(None);
         };
@@ -144,13 +150,14 @@ impl XmppServiceImpl for LiveXmppService {
 
         let avatar = Avatar::try_from(avatar_data)?;
 
-        Ok(Some(avatar.to_owned()))
+        Ok(Some(avatar))
     }
+
     /// Inspired by <https://github.com/prose-im/prose-core-client/blob/adae6b5a5ec6ca550c2402a75b57e17ef50583f9/crates/prose-core-client/src/app/services/account_service.rs#L116-L157>.
-    async fn set_own_avatar<'a>(
+    async fn set_own_avatar(
         &self,
         ctx: &XmppServiceContext,
-        avatar: Avatar<'a>,
+        avatar: Avatar,
     ) -> Result<(), XmppServiceError> {
         let mime = detect_image_media_type(&avatar)
             .ok_or(XmppServiceError::Other("Unsupported MIME type.".to_owned()))?;
@@ -188,11 +195,13 @@ impl XmppServiceImpl for LiveXmppService {
 
     async fn is_connected(
         &self,
-        _ctx: &XmppServiceContext,
+        ctx: &XmppServiceContext,
         jid: &BareJid,
     ) -> Result<bool, XmppServiceError> {
+        // FIXME: Use standard XMPP (so non-admins can see the presence
+        //   of their contacts in the Dashboard).
         self.non_standard_xmpp_client
-            .is_connected(jid)
+            .is_connected(jid, &ctx.auth_token)
             .await
             .map_err(XmppServiceError::from)
     }

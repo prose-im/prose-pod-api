@@ -3,39 +3,21 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::extract::OptionalFromRequestParts;
-use service::workspace::WorkspaceService;
+use crate::extractors::prelude::*;
 
-use crate::{error::prelude::*, extractors::prelude::*};
+impl FromRequestParts<AppState> for service::workspace::WorkspaceService {
+    type Rejection = Infallible;
 
-impl FromRequestParts<AppState> for WorkspaceService {
-    type Rejection = error::Error;
-
+    #[tracing::instrument(
+        name = "req::extract::workspace_service",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn from_request_parts(
         _parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let workspace_jid = state.app_config.workspace_jid();
-        WorkspaceService::new(
-            state.xmpp_service.clone(),
-            workspace_jid,
-            Arc::new(state.base.secrets_store.clone()),
-        )
-        .map_err(Error::from)
-    }
-}
-
-impl OptionalFromRequestParts<AppState> for WorkspaceService {
-    type Rejection = Infallible;
-
-    async fn from_request_parts(
-        parts: &mut request::Parts,
-        state: &AppState,
-    ) -> Result<Option<Self>, Self::Rejection> {
-        Ok(
-            <WorkspaceService as FromRequestParts<AppState>>::from_request_parts(parts, state)
-                .await
-                .ok(),
-        )
+        Ok(state.workspace_service.clone())
     }
 }

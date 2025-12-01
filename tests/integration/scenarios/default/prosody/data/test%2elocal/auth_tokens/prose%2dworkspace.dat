@@ -1,20 +1,94 @@
 return {
-	["ZT0rkLNP2ZmM"] = {
-		["jid"] = "prose-workspace@test.local";
-		["id"] = "ZT0rkLNP2ZmM";
-		["accessed"] = 1757007010;
-		["owner"] = "prose-workspace@test.local";
-		["data"] = {
-			["oauth2_scopes"] = "openid xmpp";
-		};
+	["LovuMegobWps"] = {
 		["tokens"] = {
-			["sha256:95880e6a0fad7438198e88c91a679affcd1c7e2019bbf5cefbe554878c955c12"] = {
+			["sha256:95564e53e21fbfb7d214d14bd1b4dc25ff0ab3e3daf2e5208cc529b5adae8ed8"] = {
+				["created"] = 1762472114;
+				["expires"] = 1762482914;
 				["role"] = "prosody:registered";
-				["created"] = 1757007010;
 				["purpose"] = "oauth2";
-				["expires"] = 1757017810;
 			};
 		};
-		["created"] = 1757007010;
+		["created"] = 1762472114;
+		["accessed"] = 1762472114;
+		["owner"] = "prose-workspace@test.local";
+		["jid"] = "prose-workspace@test.local";
+		["id"] = "LovuMegobWps";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+			["oauth2_client"] = {
+				["name"] = "Prose\194\160Pod\194\160Server\194\160API";
+				["hash"] = "vlX8r_epXKrMl4HgZ8O_zO15I-P8cpI_po5sv3KE1U8";
+				["uri"] = "https://prose-pod-server:8080";
+			};
+		};
+	};
+	["FWK7kwO0RxPu"] = {
+		["tokens"] = {
+			["sha256:0c31c2ab17a84ebb4c40cbd68c77f176ab6f9d6673f22e2f2baba4c53a094c1e"] = {
+				["created"] = 1762402883;
+				["expires"] = 1762413683;
+				["role"] = "prosody:registered";
+				["purpose"] = "oauth2";
+			};
+		};
+		["created"] = 1762402883;
+		["accessed"] = 1762402883;
+		["owner"] = "prose-workspace@test.local";
+		["id"] = "FWK7kwO0RxPu";
+		["jid"] = "prose-workspace@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+			["oauth2_client"] = {
+				["name"] = "Prose\194\160Pod\194\160Server\194\160API";
+				["hash"] = "X4HgZtCbeu4BqjTuy3bOTgMLIVwWboG29rH54P2Xnfw";
+				["uri"] = "https://prose-pod-server:8080";
+			};
+		};
+	};
+	["dquCCKvP-g8o"] = {
+		["tokens"] = {
+			["sha256:1e324d62fbc3e5f39a17b76cc00cdef29b7f4557ef47790d9f2f26991a01f0b8"] = {
+				["created"] = 1762472503;
+				["role"] = "prosody:registered";
+				["purpose"] = "oauth2";
+				["expires"] = 1762483303;
+			};
+		};
+		["created"] = 1762472503;
+		["accessed"] = 1762472503;
+		["owner"] = "prose-workspace@test.local";
+		["id"] = "dquCCKvP-g8o";
+		["jid"] = "prose-workspace@test.local";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+			["oauth2_client"] = {
+				["name"] = "Prose\194\160Pod\194\160Server\194\160API";
+				["uri"] = "https://prose-pod-server:8080";
+				["hash"] = "wclFIvdEWTGR6EPKlcpJrjGqNgWpaspOApPeyOFiwG0";
+			};
+		};
+	};
+	["0QZdnmL3VY2T"] = {
+		["tokens"] = {
+			["sha256:e2b5e7255aaa75f95b58ea2ed46e00ff32b655a98e7f24e7536061700d4beba2"] = {
+				["created"] = 1762472453;
+				["expires"] = 1762483253;
+				["role"] = "prosody:registered";
+				["purpose"] = "oauth2";
+			};
+		};
+		["created"] = 1762472453;
+		["accessed"] = 1762472453;
+		["owner"] = "prose-workspace@test.local";
+		["jid"] = "prose-workspace@test.local";
+		["id"] = "0QZdnmL3VY2T";
+		["data"] = {
+			["oauth2_scopes"] = "openid xmpp";
+			["oauth2_client"] = {
+				["name"] = "Prose\194\160Pod\194\160Server\194\160API";
+				["hash"] = "Fn7qEWRLwQ9jydziCH8mVjNW77X4Bnrj1vp0y2pB3zo";
+				["uri"] = "https://prose-pod-server:8080";
+			};
+		};
 	};
 };

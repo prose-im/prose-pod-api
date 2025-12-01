@@ -17,6 +17,3 @@ smtp_encrypt = false
 [auth]
 # Expire tokens immediately, allowing successful log in but not subsequent requests.
 token_ttl = "PT0S"
-
-[debug_use_at_your_own_risk]
-skip_startup_actions = ["migrate_workspace_vcard"]

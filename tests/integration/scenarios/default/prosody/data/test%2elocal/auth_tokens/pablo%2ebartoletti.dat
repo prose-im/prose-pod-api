@@ -1,38 +1,48 @@
 return {
-	["HebtWm7VsdQ_"] = {
-		["jid"] = "pablo.bartoletti@test.local";
-		["id"] = "HebtWm7VsdQ_";
-		["accessed"] = 1757007019;
-		["owner"] = "pablo.bartoletti@test.local";
+	["eQLpZJHypC4C"] = {
+		["id"] = "eQLpZJHypC4C";
+		["accessed"] = 1762402892;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:c7ed21f7e456ff4767e119d7bc41faec449c318b6381905a90c894e6d8617b17"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007019;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017819;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007019;
+		["tokens"] = {
+			["sha256:7a89c66b051ad71bb4933c9c0f9f63cb0b63bde1ff04b867a19bcb4c262f52e1"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402892;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413692;
+			};
+		};
+		["created"] = 1762402892;
+		["owner"] = "pablo.bartoletti@test.local";
+		["jid"] = "pablo.bartoletti@test.local";
 	};
-	["I7Wdt2m4QjHe"] = {
-		["jid"] = "pablo.bartoletti@test.local";
-		["id"] = "I7Wdt2m4QjHe";
-		["accessed"] = 1757007020;
-		["owner"] = "pablo.bartoletti@test.local";
+	["fkjfJxkspWnR"] = {
+		["id"] = "fkjfJxkspWnR";
+		["accessed"] = 1762402891;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:c61c51fc438b05b44c8d5fa2123ba906fb4532d40fc508de872379c7e04adfd8"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007020;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017820;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007020;
+		["tokens"] = {
+			["sha256:2f9439767ddf39e6ec33551af976554bf0e3d80fa12f868835af9bdd8755fbfd"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402891;
+				["expires"] = 1762413691;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402891;
+		["owner"] = "pablo.bartoletti@test.local";
+		["jid"] = "pablo.bartoletti@test.local";
 	};
 };

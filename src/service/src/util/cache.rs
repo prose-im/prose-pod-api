@@ -56,4 +56,8 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
 
         (value.to_owned(), false)
     }
+
+    pub fn remove(&self, key: &K) -> Option<V> {
+        self.data.write().remove(key).map(|(_, v)| v)
+    }
 }

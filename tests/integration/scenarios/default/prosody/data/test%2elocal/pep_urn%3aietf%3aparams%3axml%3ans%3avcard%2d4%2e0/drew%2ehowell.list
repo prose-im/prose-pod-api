@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"drew.howell@example.com";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Drew H.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "drew.howell@test.local";
-	["with"] = "drew.howell@test.local";
-	["when"] = 1757007021;
 	["name"] = "vcard";
+	["when"] = 1762402893;
+	["with"] = "drew.howell@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:21Z";
+		["stamp"] = "2025-11-06T04:21:33Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

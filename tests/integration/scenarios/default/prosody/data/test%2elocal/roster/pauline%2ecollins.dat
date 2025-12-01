@@ -3,11 +3,23 @@ return {
 		["pending"] = {};
 		["version"] = 65;
 	};
-	["sheri.nienow@test.local"] = {
+	["taylor.cartwright@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
+	};
+	["pablo.bartoletti@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["sheri.nienow@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
 	};
 	["jake.lang@test.local"] = {
 		["subscription"] = "both";
@@ -15,19 +27,49 @@ return {
 			["Team"] = true;
 		};
 	};
-	["taylor.cartwright@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["dianna.hermann@test.local"] = {
+	["meghan.donnelly@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
 	["ella.white@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["dianna.hermann@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["charlie.schmitt@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["evan.turner@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["drew.howell@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["todd.schultz@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["barbara.mante@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
@@ -38,47 +80,5 @@ return {
 			["Team"] = true;
 		};
 		["subscription"] = "both";
-	};
-	["todd.schultz@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["charlie.schmitt@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["pablo.bartoletti@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
-	};
-	["barbara.mante@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["drew.howell@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["evan.turner@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["meghan.donnelly@test.local"] = {
-		["subscription"] = "both";
-		["groups"] = {
-			["Team"] = true;
-		};
 	};
 };

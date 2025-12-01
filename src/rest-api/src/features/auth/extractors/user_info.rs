@@ -16,6 +16,10 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
         parts: &mut request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        // NOTE: Ensures we store and read the same type (otherwise caching
+        //   would be useless as Axum wouldn’t find the value).
+        type CachedValue = Result<service::auth::UserInfo, Error>;
+
         // Read cache to avoid unnecessary recomputations.
         // NOTE: On a local run, this extractor seems to take around 5ms to run.
         //   It doesn’t seem much, but this function can be called multiple
@@ -32,25 +36,22 @@ impl FromRequestParts<AppState> for service::auth::UserInfo {
         //   misimplemented, could result in security issues (wrong
         //   role/privileges). If we ever do implement such cache, we MUST make
         //   sure said cache expires after a short time.
-        if let Some(cache) = parts.extensions.get::<Option<Self>>() {
+        if let Some(cache) = parts.extensions.get::<CachedValue>() {
             trace!("Cache hit.");
-            return match cache {
-                Some(user_info) => Ok(user_info.to_owned()),
-                None => todo!(),
-            };
+            return cache.clone();
         }
 
         // Get user info from auth token.
         let token = AuthToken::from_request_parts(parts, state).await?;
         let res = state
             .auth_service
-            .get_user_info(token, &state.db.read)
+            .get_user_info(&token)
             .await
-            .context("Could not get user info from token")
+            .err_context("Could not get user info from token")
             .map_err(Error::from);
 
         // Cache value to avoid recomputations next time.
-        (parts.extensions).insert::<Option<Self>>(res.as_ref().ok().cloned());
+        (parts.extensions).insert::<CachedValue>(res.clone());
         trace!("Cache stored.");
 
         res

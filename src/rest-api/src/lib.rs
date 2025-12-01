@@ -17,70 +17,52 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
-    dependencies::Uuid,
     factory_reset::FactoryResetService,
-    licensing::LicenseService,
+    identity_provider::IdentityProvider,
+    invitations::{invitation_service::InvitationApplicationService, InvitationRepository},
+    licensing::LicensingService,
+    members::{MemberService, UserApplicationService, UserRepository},
     models::DatabaseRwConnectionPools,
     network_checks::NetworkChecker,
     notifications::{notifier::email::EmailNotification, Notifier},
     pod_version::PodVersionService,
-    secrets::SecretsStore,
-    xmpp::{ServerCtl, XmppServiceInner},
+    prose_pod_server_service::ProsePodServerService,
+    util::either::Either,
+    workspace::WorkspaceService,
+    xmpp::XmppService,
     AppConfig,
 };
 use tower::ServiceBuilder;
 use tracing::{error, instrument};
 use util::{error_catcher, LifecycleManager};
 
+use crate::error::InvalidServerConfiguration;
+
 pub trait AxumState: Clone + Send + Sync + 'static {}
 
 // NOTE: Any Axum state must implement `Clone`.
 #[derive(Debug, Clone)]
 pub struct AppState {
-    base: MinimalAppState,
-    db: DatabaseRwConnectionPools,
-    app_config: Arc<AppConfig>,
-    server_ctl: ServerCtl,
-    xmpp_service: XmppServiceInner,
-    auth_service: AuthService,
-    email_notifier: Option<Notifier<EmailNotification>>,
-    network_checker: NetworkChecker,
-    license_service: LicenseService,
-    pod_version_service: PodVersionService,
-    factory_reset_service: FactoryResetService,
-    uuid_gen: Uuid,
-}
+    pub base: MinimalAppState,
+    pub db: DatabaseRwConnectionPools,
+    pub app_config: Arc<AppConfig>,
 
-impl AppState {
-    pub fn new(
-        base: MinimalAppState,
-        db: DatabaseRwConnectionPools,
-        app_config: Arc<AppConfig>,
-        server_ctl: ServerCtl,
-        xmpp_service: XmppServiceInner,
-        auth_service: AuthService,
-        email_notifier: Option<Notifier<EmailNotification>>,
-        network_checker: NetworkChecker,
-        license_service: LicenseService,
-        pod_version_service: PodVersionService,
-        factory_reset_service: FactoryResetService,
-    ) -> Self {
-        let uuid_gen = Uuid::from_config(&app_config);
-        Self {
-            base,
-            db,
-            uuid_gen,
-            app_config,
-            server_ctl,
-            xmpp_service,
-            auth_service,
-            email_notifier,
-            network_checker,
-            license_service,
-            pod_version_service,
-            factory_reset_service,
-        }
-    }
+    pub user_repository: UserRepository,
+    pub invitation_repository: InvitationRepository,
+
+    pub xmpp_service: XmppService,
+    pub auth_service: AuthService,
+    pub email_notifier: Option<Notifier<EmailNotification>>,
+    pub member_service: MemberService,
+    pub network_checker: NetworkChecker,
+    pub workspace_service: WorkspaceService,
+    pub licensing_service: LicensingService,
+    pub pod_version_service: PodVersionService,
+    pub factory_reset_service: FactoryResetService,
+    pub prose_pod_server_service: ProsePodServerService,
+    pub identity_provider: IdentityProvider,
+    pub user_application_service: UserApplicationService,
+    pub invitation_application_service: InvitationApplicationService,
 }
 
 impl AxumState for AppState {}
@@ -90,7 +72,6 @@ impl AxumState for AppState {}
 #[derive(Debug, Clone)]
 pub struct MinimalAppState {
     pub lifecycle_manager: LifecycleManager,
-    pub secrets_store: SecretsStore,
     pub static_pod_version_service: PodVersionService,
 }
 
@@ -103,8 +84,14 @@ impl FromRef<AppState> for MinimalAppState {
 }
 
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct PreStartupRouter(Router);
+pub struct PreStartupRouter {
+    next: Router,
+    // NOTE: It doesn’t make sense to duplicate state, but this will go
+    //   whenever we fix https://github.com/prose-im/prose-pod-api/issues/357
+    //   or https://github.com/prose-im/prose-pod-api/issues/341.
+    //   It’s just a temporary shortcut.
+    minimal_app_state: MinimalAppState,
+}
 
 /// A custom [`Router`] with a default configuration.
 ///
@@ -114,6 +101,8 @@ pub struct PreStartupRouter(Router);
 /// overlapping routes (failing fast if something’s wrong).
 #[instrument(level = "trace", skip_all)]
 pub fn make_router(app_state: &AppState) -> PreStartupRouter {
+    let minimal_app_state = app_state.base.clone();
+
     let router = Router::new()
         .merge(features::router(app_state.clone()))
         // Include trace context as header into the response.
@@ -127,7 +116,10 @@ pub fn make_router(app_state: &AppState) -> PreStartupRouter {
             restart_guard,
         ));
 
-    PreStartupRouter(router)
+    PreStartupRouter {
+        next: router,
+        minimal_app_state,
+    }
 }
 
 /// A router used only after a factory reset, when the static configuration file
@@ -171,9 +163,25 @@ pub async fn run_startup_actions(
     router: PreStartupRouter,
     app_state: AppState,
 ) -> Result<Router, StartupError> {
-    startup_actions::run_startup_actions(app_state)
-        .await
-        .map_err(StartupError)?;
+    match startup_actions::run_startup_actions(app_state).await {
+        Ok(Either::E1(())) => Ok(router.next),
+        Ok(Either::E2(InvalidServerConfiguration(_))) => {
+            // NOTE: The factory reset router does what we want, let’s take
+            //   a shortcut and not create another one. This will go when we
+            //   implement https://github.com/prose-im/prose-pod-api/issues/357
+            //   anyway.
+            Ok(factory_reset_router(&router.minimal_app_state))
+        }
+        Err(err) => Err(StartupError(err)),
+    }
+}
 
-    Ok(router.0)
+// MARK: - Boilerplate
+
+impl std::ops::Deref for AppState {
+    type Target = MinimalAppState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
 }

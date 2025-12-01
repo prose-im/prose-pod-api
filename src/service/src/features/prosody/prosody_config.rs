@@ -7,13 +7,10 @@ use std::{ops::Deref, str::FromStr as _};
 
 use hickory_proto::rr::Name as DomainName;
 use prosody_config::{linked_hash_set::LinkedHashSet, *};
-use secrecy::ExposeSecret;
 use util::{ApplyDefaultsAndOverrides, WithDefaultsAndOverrides};
 use utils::def;
 
 use crate::{app_config::PublicContactsConfig, AppConfig, ProseDefault, ServerConfig};
-
-use super::prosody_bootstrap_config;
 
 lazy_static::lazy_static! {
     static ref GLOBAL_HOST: DomainName = DomainName::from_str("global").unwrap();
@@ -123,25 +120,25 @@ impl ProsodyConfig {
 
 impl ProseDefault for prosody_config::ProsodyConfig {
     fn prose_default(server_config: &ServerConfig, app_config: &AppConfig) -> Self {
-        let api_jid = app_config.api_jid();
-        let api_jid =
-            BareJid::from_str(api_jid.as_str()).expect(&format!("Invalid JID: {api_jid}"));
+        use prosody_config::LuaValue;
+
         let oauth2_access_token_ttl = (app_config.auth.token_ttl.num_seconds())
             .expect("`app_config.auth.token_ttl` contains years or months. Not supported.")
             .clamp(u32::MIN as f32, u32::MAX as f32) as u32;
 
         let global_settings = ProsodySettings {
             log: Some(LogConfig::Map(
-                vec![(app_config.server.log_level, LogLevelValue::Console)]
+                [(app_config.server.log_level, LogLevelValue::Console)]
                     .into_iter()
                     .collect(),
             )),
-            http_ports: Some(vec![app_config.server.http_port].into_iter().collect()),
+            http_ports: Some([app_config.server.http_port].into_iter().collect()),
             modules_enabled: Some(
-                vec![
+                [
                     "auto_activate_hosts",
                     "roster",
                     "groups_internal",
+                    "groups_shell",
                     "saslauth",
                     "tls",
                     "dialback",
@@ -164,19 +161,16 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                     "server_contact_info",
                     "websocket",
                     "reload_modules",
-                    "cloud_notify",
-                    "register",
-                    "prose_version",
                 ]
                 .into_iter()
                 .map(ToString::to_string)
                 .collect(),
             ),
-            modules_disabled: Some(vec!["s2s"].into_iter().map(ToString::to_string).collect()),
+            modules_disabled: Some(["s2s"].into_iter().map(ToString::to_string).collect()),
             c2s_require_encryption: Some(true),
             c2s_stanza_size_limit: Some(Bytes::KibiBytes(256)),
             limits: Some(
-                vec![(
+                [(
                     ConnectionType::ClientToServer,
                     ConnectionLimits {
                         rate: Some(DataRate::KiloBytesPerSec(50)),
@@ -186,27 +180,28 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 .into_iter()
                 .collect(),
             ),
-            reload_modules: Some(vec!["tls"].into_iter().map(ToString::to_string).collect()),
-            consider_websocket_secure: Some(true),
-            cross_domain_websocket: None,
-            upgrade_legacy_vcards: Some(true),
+            reload_modules: Some(["tls"].into_iter().map(ToString::to_string).collect()),
             ..Default::default()
         }
         .with_defaults_and_overrides_from(app_config, &GLOBAL_HOST)
-        .shallow_merged_with(
-            prosody_bootstrap_config::global_settings(),
-            MergeStrategy::KeepSelf,
-        );
+        .shallow_merged_with(base_global_settings(), MergeStrategy::KeepSelf);
 
         let main_virtual_host = ProsodyConfigSection::VirtualHost {
             hostname: server_config.domain.to_string(),
             settings: ProsodySettings {
-                admins: Some(vec![api_jid.to_owned()].into_iter().collect()),
                 modules_enabled: Some(
-                    vec![
+                    [
                         "rest",
                         "http_oauth2",
                         "admin_rest",
+                        "cloud_notify",
+                        "register",
+                        "prose_version",
+                        "http_admin_api", // Has to be non-global.
+                        "invites",
+                        "invites_groups",
+                        "invites_register",
+                        "invites_register_api",
                     ]
                     .into_iter()
                     .map(ToString::to_string)
@@ -231,19 +226,21 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                             def("oauth2_refresh_token_ttl", 0),
                             def(
                                 "oauth2_registration_key",
-                                app_config.auth.oauth2_registration_key.expose_secret(),
+                                LuaValue::Env("OAUTH2_REGISTRATION_KEY".to_owned()),
                             ),
                         ],
                     ),
                 ],
+                reload_modules: Some(
+                    ["http_oauth2"]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                ),
                 contact_info: ContactInfo::from(app_config.public_contacts.deref()).non_empty(),
                 ..Default::default()
             },
         };
-        let admin_virtual_host = prosody_bootstrap_config::admin_virtual_host(
-            &api_jid,
-            app_config.server.local_hostname_admin.to_owned(),
-        );
         let groups_virtual_host = ProsodyConfigSection::Component {
             hostname: server_config.groups_domain().to_string(),
             plugin: "muc".into(),
@@ -255,7 +252,7 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 muc_log_expires_after: Some(PossiblyInfinite::Infinite),
                 muc_log_by_default: Some(true),
                 modules_enabled: Some(
-                    vec!["muc_public_affiliations"]
+                    ["muc_public_affiliations"]
                         .into_iter()
                         .map(ToString::to_string)
                         .collect(),
@@ -266,7 +263,6 @@ impl ProseDefault for prosody_config::ProsodyConfig {
 
         let mut additional_sections = vec![
             main_virtual_host,
-            admin_virtual_host,
             groups_virtual_host,
         ];
 
@@ -280,6 +276,26 @@ impl ProseDefault for prosody_config::ProsodyConfig {
             global_settings,
             additional_sections,
         }
+    }
+}
+
+pub fn base_global_settings() -> prosody_config::ProsodySettings {
+    prosody_config::ProsodySettings {
+        pidfile: Some("/var/run/prosody/prosody.pid".into()),
+        admin_socket: Some("/var/run/prosody/prosody.sock".into()),
+        authentication: Some(AuthenticationProvider::InternalHashed),
+        default_storage: Some(StorageBackend::Internal),
+        plugin_paths: Some(
+            ["/usr/local/lib/prosody/modules"]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+        ),
+        // Disable in-band registrations (done through the Prose Pod Dashboard/API)
+        allow_registration: Some(false),
+        consider_websocket_secure: Some(true),
+        upgrade_legacy_vcards: Some(true),
+        ..Default::default()
     }
 }
 

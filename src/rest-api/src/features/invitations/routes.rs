@@ -12,28 +12,26 @@ use axum::{
 };
 #[cfg(debug_assertions)]
 use axum_extra::either::Either;
+use secrecy::ExposeSecret;
 use service::{
-    auth::IsAdmin,
+    auth::{AuthToken, IsAdmin},
     invitations::{
-        invitation_controller::{self, WorkspaceInvitationBasicDetails},
-        InvitationAcceptForm, InvitationContact, InvitationId, InvitationService, InvitationToken,
-        InvitationTokenType, InviteMemberForm,
+        errors::{InvitationNotFound, InvitationNotFoundForToken},
+        invitation_service::AcceptAccountInvitationCommand,
+        *,
     },
     members::{MemberRole, Nickname},
-    models::PaginationForm,
-    notifications::NotificationService,
-    workspace::WorkspaceService,
+    models::{EmailAddress, PaginationForm},
     xmpp::JidNode,
     AppConfig,
 };
 use validator::Validate;
 
-#[cfg(debug_assertions)]
-use crate::AppState;
 use crate::{
     error::Error,
     features::auth::models::Password,
     responders::{Created, Paginated},
+    AppState,
 };
 
 use super::dtos::*;
@@ -85,22 +83,17 @@ pub struct InviteMemberQuery {
 
 /// Invite a new member and auto-accept the invitation if enabled.
 pub async fn invite_member_route(
-    #[cfg(debug_assertions)] State(AppState { ref db, .. }): State<AppState>,
-    State(ref app_config): State<Arc<AppConfig>>,
-    ref notification_service: NotificationService,
+    #[cfg(debug_assertions)] State(ref app_config): State<Arc<AppConfig>>,
     ref invitation_service: InvitationService,
-    ref workspace_service: WorkspaceService,
+    ref auth: AuthToken,
     #[cfg(debug_assertions)] Query(InviteMemberQuery { auto_accept }): Query<InviteMemberQuery>,
     Json(req): Json<InviteMemberRequest>,
 ) -> InviteMemberResponse {
     let res = invitation_controller::invite_member(
-        #[cfg(debug_assertions)]
-        &db.write,
-        app_config,
-        app_config.server_domain(),
-        notification_service,
         invitation_service,
-        workspace_service,
+        #[cfg(debug_assertions)]
+        app_config,
+        auth,
         #[cfg(debug_assertions)]
         auto_accept,
         req.into(),
@@ -121,7 +114,7 @@ pub async fn invite_member_route(
     #[cfg(not(debug_assertions))]
     let invitation = res;
 
-    let resource_uri = format!("/v1/invitations/{id}", id = invitation.id);
+    let resource_uri = format!("/v1/invitations/{id}", id = invitation.id.expose_secret());
     ok(invitation.into(), HeaderValue::from_str(&resource_uri)?)
 }
 
@@ -141,39 +134,44 @@ pub async fn can_invite_member_route(
 // MARK: Get one
 
 pub async fn get_invitation_route(
-    invitation_service: InvitationService,
+    State(AppState {
+        ref invitation_repository,
+        ..
+    }): State<AppState>,
+    ref auth: AuthToken,
     Path(invitation_id): Path<InvitationId>,
 ) -> Result<Json<WorkspaceInvitationDto>, Error> {
-    match invitation_controller::get_invitation(invitation_id, invitation_service).await? {
-        invitation => Ok(Json(invitation.into())),
+    match invitation_controller::get_invitation(invitation_repository, &invitation_id, auth).await?
+    {
+        Some(invitation) => Ok(Json(invitation.into())),
+        None => Err(Error::from(InvitationNotFound(invitation_id))),
     }
 }
 
-#[derive(Debug)]
-#[derive(serdev::Deserialize)]
-pub struct GetInvitationTokenDetailsQuery {
-    token_type: InvitationTokenType,
-}
-
 pub async fn get_invitation_by_token_route(
-    ref invitation_service: InvitationService,
-    Path(token): Path<InvitationToken>,
-    Query(GetInvitationTokenDetailsQuery { token_type }): Query<GetInvitationTokenDetailsQuery>,
+    State(AppState {
+        ref invitation_repository,
+        ..
+    }): State<AppState>,
+    Path(ref token): Path<InvitationToken>,
 ) -> Result<Json<WorkspaceInvitationBasicDetails>, Error> {
-    match invitation_controller::get_invitation_by_token(token, token_type, invitation_service)
-        .await?
-    {
-        details => Ok(Json(details)),
+    match invitation_controller::get_invitation_by_token(invitation_repository, token).await? {
+        Some(details) => Ok(Json(details)),
+        None => Err(Error::from(InvitationNotFoundForToken)),
     }
 }
 
 // MARK: Get many
 
 pub async fn get_invitations_route(
-    invitation_service: InvitationService,
+    State(AppState {
+        ref invitation_repository,
+        ..
+    }): State<AppState>,
+    ref auth: AuthToken,
     Query(pagination): Query<PaginationForm>,
 ) -> Result<Paginated<WorkspaceInvitationDto>, Error> {
-    match invitation_controller::get_invitations(invitation_service, pagination).await? {
+    match invitation_controller::get_invitations(invitation_repository, pagination, auth).await? {
         invitations => Ok(invitations.map(Into::into).into()),
     }
 }
@@ -189,8 +187,12 @@ pub struct AcceptWorkspaceInvitationRequest {
     #[validate(nested)]
     pub nickname: Nickname,
 
-    #[validate(nested)]
+    #[validate(skip)] // NOTE: Will be checked later.
     pub password: Password,
+
+    #[serde(default)]
+    #[validate(skip)]
+    pub email: Option<EmailAddress>,
 }
 
 pub async fn invitation_accept_route(
@@ -212,37 +214,30 @@ pub async fn invitation_reject_route(
 
 pub async fn invitation_resend_route(
     ref invitation_service: InvitationService,
-    State(ref app_config): State<Arc<AppConfig>>,
-    ref notification_service: NotificationService,
-    ref workspace_service: WorkspaceService,
-    Path(invitation_id): Path<InvitationId>,
+    ref auth: AuthToken,
+    Path(ref invitation_id): Path<InvitationId>,
 ) -> Result<StatusCode, Error> {
-    invitation_controller::invitation_resend(
-        invitation_service,
-        app_config,
-        notification_service,
-        workspace_service,
-        invitation_id,
-    )
-    .await?;
+    invitation_controller::invitation_resend(invitation_service, invitation_id, auth).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn invitation_cancel_route(
     ref invitation_service: InvitationService,
+    ref auth: AuthToken,
     Path(invitation_id): Path<InvitationId>,
 ) -> Result<StatusCode, Error> {
-    invitation_controller::invitation_cancel(invitation_service, invitation_id).await?;
+    invitation_controller::invitation_cancel(invitation_service, invitation_id, auth).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 // MARK: - Boilerplate
 
-impl Into<InvitationAcceptForm> for AcceptWorkspaceInvitationRequest {
-    fn into(self) -> InvitationAcceptForm {
-        InvitationAcceptForm {
-            nickname: self.nickname,
-            password: self.password.into(),
+impl From<AcceptWorkspaceInvitationRequest> for AcceptAccountInvitationCommand {
+    fn from(req: AcceptWorkspaceInvitationRequest) -> Self {
+        Self {
+            nickname: req.nickname,
+            password: req.password.into(),
+            email: req.email,
         }
     }
 }

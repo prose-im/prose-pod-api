@@ -23,7 +23,7 @@ use tracing::{instrument, trace};
 
 use crate::models::FullJid;
 
-/// Rust interface to [`mod_http_rest`](https://hg.prosody.im/prosody-modules/file/tip/mod_http_rest).
+/// Rust interface to [`mod_rest`](https://hg.prosody.im/prosody-modules/file/tip/mod_rest).
 #[derive(Debug, Clone)]
 pub struct ProsodyRest {
     connection: Connection,

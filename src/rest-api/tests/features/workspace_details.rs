@@ -16,8 +16,7 @@ use super::prelude::*;
 async fn given_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
     world
         .workspace_service()
-        .await
-        .set_workspace_name(name)
+        .set_workspace_name(&name, &BYPASS_TOKEN)
         .await?;
     Ok(())
 }
@@ -44,8 +43,8 @@ async fn when_anyone_gets_workspace_name(world: &mut TestWorld) {
 
 #[when(expr = "{} sets the workspace name to {string}")]
 async fn when_set_workspace_name(world: &mut TestWorld, name: String, workspace_name: String) {
-    let token = user_token!(world, name);
-    let res = set_workspace_name(world.api(), token, workspace_name).await;
+    let ref auth = world.token(&name).await;
+    let res = set_workspace_name(world.api(), auth, workspace_name).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -59,7 +58,7 @@ async fn then_response_workspace_name(world: &mut TestWorld, name: String) {
 
 #[then(expr = "the workspace should be named {string}")]
 async fn then_workspace_name(world: &mut TestWorld, name: String) -> Result<(), Error> {
-    let workspace_name = world.workspace_service().await.get_workspace_name().await?;
+    let workspace_name = world.workspace_service().get_workspace_name(None).await?;
     assert_eq!(workspace_name, name);
     Ok(())
 }
@@ -70,10 +69,10 @@ async fn then_workspace_name(world: &mut TestWorld, name: String) -> Result<(), 
 
 #[given(expr = "the workspace icon is {string}")]
 async fn given_workspace_icon(world: &mut TestWorld, base64: String) -> Result<(), Error> {
-    world.mock_xmpp_service.set_avatar(
-        &world.app_config().workspace_jid(),
-        Some(Avatar::try_from_base64_string(base64).unwrap()),
-    )?;
+    world
+        .workspace_service()
+        .set_workspace_icon(Avatar::try_from_base64(base64).unwrap(), &BYPASS_TOKEN)
+        .await?;
     Ok(())
 }
 
@@ -100,8 +99,8 @@ async fn when_anyone_gets_workspace_icon(world: &mut TestWorld) {
 
 #[when(expr = "{} sets the workspace icon to {string}")]
 async fn when_set_workspace_icon(world: &mut TestWorld, name: String, png_data: String) {
-    let token = user_token!(world, name);
-    let res = set_workspace_icon(world.api(), token, png_data).await;
+    let ref auth = world.token(&name).await;
+    let res = set_workspace_icon(world.api(), auth, png_data).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -123,8 +122,7 @@ async fn then_response_workspace_icon(world: &mut TestWorld, base64: String) {
 async fn then_workspace_icon(world: &mut TestWorld, png_data: String) -> Result<(), Error> {
     let workspace_icon = world
         .workspace_service()
-        .await
-        .get_workspace_icon()
+        .get_workspace_icon(None)
         .await?
         .map(|icon| BASE64_STANDARD.encode(icon));
     assert_eq!(workspace_icon, Some(png_data));
@@ -140,8 +138,7 @@ async fn given_workspace_accent_color(world: &mut TestWorld, color: String) -> R
     let color = Color::from_str(&color).unwrap();
     world
         .workspace_service()
-        .await
-        .set_workspace_accent_color(Some(color))
+        .set_workspace_accent_color(&Some(color), &BYPASS_TOKEN)
         .await?;
     Ok(())
 }
@@ -172,8 +169,8 @@ async fn when_set_workspace_accent_color(
     name: String,
     workspace_name: String,
 ) {
-    let token = user_token!(world, name);
-    let res = set_workspace_accent_color(world.api(), token, workspace_name).await;
+    let ref auth = world.token(&name).await;
+    let res = set_workspace_accent_color(world.api(), auth, workspace_name).await;
     world.result = Some(res.unwrap().into());
 }
 
@@ -190,8 +187,7 @@ async fn then_workspace_accent_color(world: &mut TestWorld, color: String) -> Re
     let color = Color::from_str(&color).unwrap();
     let workspace_accent_color = world
         .workspace_service()
-        .await
-        .get_workspace_accent_color()
+        .get_workspace_accent_color(None)
         .await?;
     assert_eq!(workspace_accent_color, Some(color));
     Ok(())

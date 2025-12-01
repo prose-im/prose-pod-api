@@ -58,19 +58,18 @@ edo xh DELETE -Iq "${INTEGRATION_TEST_HOST:?}" \
 
 info Checking if factory reset deleted everything…
 
-PROSODY_ADMIN_DATA_DIR_NAME='admin%2eprose%2elocal'
-if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v "^${PROSODY_ADMIN_DATA_DIR_NAME:?}$")" ]; then
+# NOTE: After a factory reset, the Prose Pod Server API restarts Prosody
+#   with a minimal configuration so it can still interact with it.
+#   This makes Prosody recreate some data, but it’s clear it has nothing
+#   to do with the previous Prose Pod instance.
+FRESH_PROSODY_DATA=''
+if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep -v -E "^(${FRESH_PROSODY_DATA:-})$")" ]; then
 	die "Prosody still contains data ($(format_url "${VAR_LIB_PROSODY_DIR:?}") isn’t empty)."
-fi
-PROSODY_DB_NAME='prosody.sqlite'
-if [ -n "$(ls -A1 "${VAR_LIB_PROSODY_DIR:?}" | grep "^${PROSODY_DB_NAME:?}$")" ]; then
-	die "Prosody still contains data ($(format_url "${PROSODY_DB_NAME:?}") still exists)."
 fi
 success Prosody data deleted
 
-PROSODY_CONFIG_FILE="${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
-if ! head -n 1 "${PROSODY_CONFIG_FILE:?}" | grep -q '^-- Prose Pod Server bootstrap configuration$'; then
-	die "Prosody config ($(format_url "${PROSODY_CONFIG_FILE:?}")) hasn’t been reset to its initial state."
+if [ -n "$(ls -A1 "${ETC_PROSODY_DIR:?}")" ]; then
+	die "Prosody still contains config ($(format_url "${ETC_PROSODY_DIR:?}") isn’t empty)."
 fi
 success Prosody config reset
 
@@ -124,7 +123,7 @@ EOF
 edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
 info Waiting for the API to restart…
-wait-until-api-running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 
 info Checking if the API still works…
 # Run the `init` integration test, which will initialize the Pod
@@ -165,18 +164,18 @@ smtp_encrypt = false
 EOF
 	edo xh POST -Iq "${INTEGRATION_TEST_HOST:?}"/reload || abort
 
-	wait-until-api-running
+	wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 	success It worked!
 }
 
 info 'Trying a second factory reset…'
-wait-until-api-running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 # NOTE: This time we don’t need to initialize the Pod again as
 #   `task integration-test -- init` did it already.
 retry
 
 info 'Trying a third factory reset (because why not?)…'
-wait-until-api-running
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 edo xh PUT -Iv "${INTEGRATION_TEST_HOST:?}"/v1/init/first-account \
 	username=pauline.collins \
 	password=demo \

@@ -1,38 +1,48 @@
 return {
-	["DpLd3ukevrFf"] = {
-		["jid"] = "barbara.mante@test.local";
-		["id"] = "DpLd3ukevrFf";
-		["accessed"] = 1757007020;
-		["owner"] = "barbara.mante@test.local";
+	["kaVh2FsVZ2SM"] = {
+		["id"] = "kaVh2FsVZ2SM";
+		["accessed"] = 1762402892;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:a2b22c680deb516b439fee72a55f0cd35774e988d582b6044f3dbf6fb901e75f"] = {
-				["role"] = "prosody:admin";
-				["created"] = 1757007020;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017820;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007020;
+		["tokens"] = {
+			["sha256:6355ff295fadd1e5187663387afe4528ce30256f968f38a549666953c13e24a4"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402892;
+				["expires"] = 1762413692;
+				["role"] = "prosody:admin";
+			};
+		};
+		["created"] = 1762402892;
+		["owner"] = "barbara.mante@test.local";
+		["jid"] = "barbara.mante@test.local";
 	};
-	["kL7AK8w0qKIb"] = {
-		["jid"] = "barbara.mante@test.local";
-		["id"] = "kL7AK8w0qKIb";
-		["accessed"] = 1757007020;
-		["owner"] = "barbara.mante@test.local";
+	["r2aqsw9WTlrA"] = {
+		["id"] = "r2aqsw9WTlrA";
+		["accessed"] = 1762402892;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:2f18d55ac144b4d55fc92dc0afb9fbf4e38a98d2de086775dd5db6e82f197b36"] = {
-				["role"] = "prosody:admin";
-				["created"] = 1757007020;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017820;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007020;
+		["tokens"] = {
+			["sha256:978ab2c3ec6cc89b744869cdd87d49de06b151e29bff3c5cfdffd30b564c320f"] = {
+				["role"] = "prosody:admin";
+				["created"] = 1762402892;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413692;
+			};
+		};
+		["created"] = 1762402892;
+		["owner"] = "barbara.mante@test.local";
+		["jid"] = "barbara.mante@test.local";
 	};
 };

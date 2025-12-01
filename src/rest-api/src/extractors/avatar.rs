@@ -3,8 +3,6 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::borrow::Cow;
-
 use axum::{
     body::Bytes,
     extract::rejection::{BytesRejection, JsonRejection, StringRejection},
@@ -47,28 +45,27 @@ impl HttpApiError for AvatarFromRequestError {
     }
 }
 
-impl<'a> FromRequest<AppState> for Avatar<'a> {
+impl FromRequest<AppState> for Avatar {
     type Rejection = AvatarFromRequestError;
 
     async fn from_request(req: Request, _state: &AppState) -> Result<Self, Self::Rejection> {
         let content_type = req.headers().typed_get::<ContentType>();
 
-        async fn from_bytes<'a>(req: Request) -> Result<Avatar<'a>, AvatarFromRequestError> {
+        async fn from_bytes(req: Request) -> Result<Avatar, AvatarFromRequestError> {
             let bytes = Bytes::from_request(req, &()).await?;
-            // TODO: Find a way to avoid this copy?
-            let avatar = Avatar::try_from_bytes(Cow::Owned(bytes.to_vec()))?;
+            let avatar = Avatar::try_from_bytes(bytes)?;
             Ok(avatar)
         }
 
-        async fn from_text<'a>(req: Request) -> Result<Avatar<'a>, AvatarFromRequestError> {
+        async fn from_text(req: Request) -> Result<Avatar, AvatarFromRequestError> {
             let string = String::from_request(req, &()).await?;
-            let avatar = Avatar::try_from_base64_string(string)?;
+            let avatar = Avatar::try_from_base64(string)?;
             Ok(avatar)
         }
 
-        async fn from_json<'a>(req: Request) -> Result<Avatar<'a>, AvatarFromRequestError> {
+        async fn from_json(req: Request) -> Result<Avatar, AvatarFromRequestError> {
             let Json(string) = Json::<String>::from_request(req, &()).await?;
-            let avatar = Avatar::try_from_base64_string(string)?;
+            let avatar = Avatar::try_from_base64(string)?;
             Ok(avatar)
         }
 

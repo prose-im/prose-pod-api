@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"charlie.schmitt@example.org";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Charlie S.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "charlie.schmitt@test.local";
-	["with"] = "charlie.schmitt@test.local";
-	["when"] = 1757007015;
 	["name"] = "vcard";
+	["when"] = 1762402887;
+	["with"] = "charlie.schmitt@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:15Z";
+		["stamp"] = "2025-11-06T04:21:27Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });

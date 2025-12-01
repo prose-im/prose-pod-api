@@ -9,6 +9,7 @@ use std::{
 };
 
 use iso8601_duration::Duration as ISODuration;
+use time::Duration;
 
 use super::DurationContent;
 
@@ -31,12 +32,12 @@ impl DateLike {
             Self::Years(n) => ISODuration::new(n as f32, 0., 0., 0., 0., 0.),
         }
     }
-    pub fn into_time_delta(self) -> chrono::TimeDelta {
+    pub fn into_time_delta(self) -> Duration {
         match self {
-            Self::Days(n) => chrono::TimeDelta::days(n as i64),
-            Self::Weeks(n) => chrono::TimeDelta::weeks(n as i64),
-            Self::Months(n) => chrono::TimeDelta::days(30 * n as i64),
-            Self::Years(n) => chrono::TimeDelta::days(365 * n as i64),
+            Self::Days(n) => Duration::days(n as i64),
+            Self::Weeks(n) => Duration::weeks(n as i64),
+            Self::Months(n) => Duration::days(30 * n as i64),
+            Self::Years(n) => Duration::days(365 * n as i64),
         }
     }
 }

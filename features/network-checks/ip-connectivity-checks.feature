@@ -3,7 +3,6 @@ Feature: IP connectivity checks
 
   Background:
     Given the XMPP server has been initialized
-      And Valerian is an admin
         # NOTE: Required when `pod.address.domain` is unset
       And config "dashboard.url" is set to "https://dashboard.prose.test.org"
 
@@ -14,6 +13,7 @@ Feature: IP connectivity checks
         And config "pod.address.ipv4" is set to "0.0.0.0"
         And config "pod.address.ipv6" is set to "::"
         And config "pod.address.domain" is unset
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And prose.org’s DNS zone has a A record for test.org.
@@ -69,6 +69,7 @@ Feature: IP connectivity checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And prose.org’s DNS zone has a A record for test.org.
@@ -126,6 +127,7 @@ Feature: IP connectivity checks
     Scenario: Standard XMPP hostnames
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is enabled
         And prose.org’s DNS zone has no A record for test.org.
@@ -169,6 +171,7 @@ Feature: IP connectivity checks
     Scenario: Hostname
       Given config "server.domain" is set to "test.org"
         And config "pod.address.domain" is set to "prose.test.org"
+        And Valerian is an admin
         And the Prose Pod API has started
         And federation is disabled
         And prose.org’s DNS zone has a A record for test.org.

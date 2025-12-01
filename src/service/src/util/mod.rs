@@ -6,30 +6,58 @@
 mod cache;
 mod concurrent_task_runner;
 mod debounced_notify;
-mod deserializers;
+pub mod deserializers;
 mod detect_mime_type;
 pub mod either;
-mod sea_orm;
+pub mod paginate;
+pub mod sea_orm;
 mod unaccent;
 
-use crate::models::jid::{BareJid, DomainRef, NodeRef};
+use crate::models::jid::{BareJid, NodeRef};
 
 pub use self::cache::*;
 pub use self::concurrent_task_runner::*;
 pub use self::debounced_notify::*;
-pub use self::deserializers::*;
+pub use self::deserializers::deserialize_null_as_some_none;
 pub use self::detect_mime_type::*;
 pub use self::unaccent::*;
 
-pub fn bare_jid_from_username(username: &NodeRef, server_domain: &DomainRef) -> BareJid {
-    BareJid::from_parts(Some(username), server_domain)
+pub trait JidExt {
+    fn expect_username(&self) -> &NodeRef;
+}
+
+impl JidExt for BareJid {
+    fn expect_username(&self) -> &NodeRef {
+        self.node().expect("User JIDs should have a localpart")
+    }
+}
+
+/// [`panic!`] in debug mode, [`tracing::error!`] in release.
+#[inline(always)]
+pub fn debug_panic_or_log_error(msg: String) {
+    if cfg!(debug_assertions) {
+        panic!("{msg}");
+    } else {
+        tracing::error!(msg);
+    }
+}
+
+/// [`panic!`] in debug mode, [`tracing::warn!`] in release.
+#[inline(always)]
+pub fn debug_panic_or_log_warning(msg: String) {
+    if cfg!(debug_assertions) {
+        panic!("{msg}");
+    } else {
+        tracing::warn!(msg);
+    }
 }
 
 #[macro_export]
 macro_rules! wrapper_type {
-    ($wrapper:ident, $t:ty) => {
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
+    ($wrapper:ident, $t:ty $([+$option:ident])* $(; $derive:path)*) => {
+        #[derive(Clone, PartialEq, Eq, Hash)]
+        #[derive(serde_with::SerializeDisplay)]
+        $(#[derive($derive)])*
         #[repr(transparent)]
         pub struct $wrapper($t);
 
@@ -47,17 +75,15 @@ macro_rules! wrapper_type {
             }
         }
 
-        impl std::fmt::Display for $wrapper {
+        impl std::fmt::Debug for $wrapper {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self.0, f)
+                std::fmt::Debug::fmt(&self.0, f)
             }
         }
 
-        impl std::str::FromStr for $wrapper {
-            type Err = <$t as std::str::FromStr>::Err;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                <$t>::from_str(s).map(Self)
+        impl std::fmt::Display for $wrapper {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                std::fmt::Display::fmt(&self.0, f)
             }
         }
 
@@ -70,6 +96,17 @@ macro_rules! wrapper_type {
         impl Into<$t> for $wrapper {
             fn into(self) -> $t {
                 self.0
+            }
+        }
+
+        $(crate::wrapper_type!(__impls $wrapper, $t [+$option]);)*
+    };
+    (__impls $wrapper:ident, $t:ty [+FromStr]) => {
+        impl std::str::FromStr for $wrapper {
+            type Err = <$t as std::str::FromStr>::Err;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                <$t>::from_str(s).map(Self)
             }
         }
     };

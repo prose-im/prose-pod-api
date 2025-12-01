@@ -16,8 +16,7 @@ use service::auth::{AuthService, Credentials, IsAdmin, UserInfo};
 use service::factory_reset::{
     factory_reset_controller, FactoryResetConfirmationCode, FactoryResetService,
 };
-use service::secrets::SecretsStore;
-use service::xmpp::ServerCtl;
+use service::prose_pod_server_service::ProsePodServerService;
 use tracing::info;
 use validator::{Validate, ValidationErrors};
 
@@ -58,8 +57,8 @@ async fn factory_reset_route(
     State(AppState {
         db, ref app_config, ..
     }): State<AppState>,
-    ref server_ctl: ServerCtl,
-    ref secrets_store: SecretsStore,
+    ref server_service: ProsePodServerService,
+    ref auth: service::auth::AuthToken,
     user_info: UserInfo,
     ref auth_service: AuthService,
     ref factory_reset_service: FactoryResetService,
@@ -90,9 +89,9 @@ async fn factory_reset_route(
                 factory_reset_service,
                 confirmation,
                 db,
-                server_ctl,
+                server_service,
                 app_config,
-                secrets_store,
+                auth,
             )
             .await?;
 
@@ -127,7 +126,7 @@ pub async fn restart_guard(
 impl Validate for FactoryResetRequest {
     fn validate(&self) -> Result<(), ValidationErrors> {
         match self {
-            Self::PasswordConfirmation { password } => password.validate(),
+            Self::PasswordConfirmation { .. } => Ok(()),
             Self::ConfirmationToken(confirmation) => confirmation.validate(),
         }
     }

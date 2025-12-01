@@ -12,8 +12,7 @@ use tracing::{info, warn};
 
 use crate::{
     app_config::AppConfig,
-    members::{self, MemberRepository},
-    models::{self as db, EmailAddress},
+    models::{self as db},
     ProseDefault, ServerConfig,
 };
 
@@ -27,6 +26,7 @@ pub async fn prosody_config_from_db(
     db: &impl ConnectionTrait,
     app_config: &AppConfig,
     model: Option<ServerConfig>,
+    admins: Vec<crate::xmpp::BareJid>,
 ) -> Result<ProsodyConfig, anyhow::Error> {
     let model = match model {
         Some(model) => model,
@@ -36,19 +36,16 @@ pub async fn prosody_config_from_db(
         }
     };
 
-    let main_admin = (MemberRepository::get_admins(db, Some(1)).await)?
-        .first()
-        .map(Into::into);
-
-    Ok(prosody_config_from_db_(model, app_config, main_admin))
+    Ok(prosody_config_from_db_(model, app_config, admins))
 }
 
 fn prosody_config_from_db_(
     model: ServerConfig,
     app_config: &AppConfig,
-    main_admin: Option<AdminInfo>,
+    admins: Vec<crate::xmpp::BareJid>,
 ) -> ProsodyConfig {
     let mut config = prosody_config::ProsodyConfig::prose_default(&model, app_config);
+    let main_admin = admins.first();
 
     // NOTE: Deconstruct to ensure no value is unused.
     let ServerConfig {
@@ -117,6 +114,8 @@ fn prosody_config_from_db_(
         warn!("Debug config `c2s_unencrypted` is enabled.");
         global_settings.enable_module("reload_modules".to_owned());
         (global_settings.reload_modules.get_or_insert_default()).insert("saslauth".to_owned());
+        // FIX: “Duplicate option 'c2s_require_encryption'”.
+        global_settings.c2s_require_encryption = None;
         global_settings.custom_settings.push(Group::new(
             "Debug config: c2s_unencrypted",
             vec![
@@ -143,12 +142,11 @@ fn prosody_config_from_db_(
         if (main_host_settings.contact_info.as_ref())
             .is_none_or(|contacts| contacts.admin.is_empty())
         {
-            if let Some(main_admin) = main_admin {
+            // TODO(#256): After resolving [First admin account has no email address · Issue #256 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/256), add the first admin email address.
+            // TODO(#347): Add admin email address again.
+            if let Some(main_admin_jid) = main_admin {
                 let contact_info = main_host_settings.contact_info.get_or_insert_default();
-                if let Some(email_address) = main_admin.email_address {
-                    contact_info.admin.push(email_address.to_string());
-                }
-                (contact_info.admin).push(format!("xmpp:{jid}", jid = main_admin.jid));
+                (contact_info.admin).push(format!("xmpp:{jid}", jid = main_admin_jid));
             }
         }
 
@@ -220,14 +218,6 @@ fn prosody_config_from_db_(
     ProsodyConfig(config)
 }
 
-// MARK: - Atoms
-
-#[derive(Debug)]
-pub struct AdminInfo {
-    pub jid: crate::xmpp::BareJid,
-    pub email_address: Option<EmailAddress>,
-}
-
 // MARK: - Model mappings
 
 pub trait IntoProsody<T> {
@@ -283,16 +273,6 @@ impl IntoProsody<ConnectionType> for db::xmpp::XmppDirectionalConnectionType {
             Self::ClientToServer => ConnectionType::ClientToServer,
             Self::ServerToServerInbounds => ConnectionType::ServerToServerInbounds,
             Self::ServerToServerOutbounds => ConnectionType::ServerToServerOutbounds,
-        }
-    }
-}
-
-impl From<&members::entities::Member> for AdminInfo {
-    fn from(model: &members::entities::Member) -> Self {
-        // TODO: After resolving [First admin account has no email address · Issue #256 · prose-im/prose-pod-api](https://github.com/prose-im/prose-pod-api/issues/256), add the first admin email address.
-        Self {
-            jid: model.jid().into(),
-            email_address: None,
         }
     }
 }

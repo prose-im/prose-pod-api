@@ -3,7 +3,7 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use axum::http::header::AUTHORIZATION;
+use axum::{extract::OptionalFromRequestParts, http::header::AUTHORIZATION};
 use secrecy::SecretString;
 
 use crate::extractors::prelude::*;
@@ -34,7 +34,27 @@ impl FromRequestParts<AppState> for service::auth::AuthToken {
                 "The '{AUTHORIZATION}' header does not start with '{PREFIX}'."
             ))));
         };
+        if token == "null" {
+            return Err(Error::from(error::Unauthorized(format!(
+                "Invalid auth token: '{token}'."
+            ))));
+        }
 
         Ok(Self(SecretString::from(token.to_string())))
+    }
+}
+
+impl OptionalFromRequestParts<AppState> for service::auth::AuthToken {
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        parts: &mut request::Parts,
+        state: &AppState,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        Ok(
+            <Self as FromRequestParts<AppState>>::from_request_parts(parts, state)
+                .await
+                .ok(),
+        )
     }
 }

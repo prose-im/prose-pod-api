@@ -3,14 +3,14 @@
 // Copyright: 2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use anyhow::Context as _;
 use mime::Mime;
-use reqwest::{Client as HttpClient, RequestBuilder, StatusCode};
+use reqwest::{Client as HttpClient, RequestBuilder};
 use tracing::trace;
 
 use crate::{
     errors::{RequestData, ResponseData, UnexpectedHttpResponse},
     pod_version::VersionInfo,
-    xmpp::server_ctl,
     AppConfig,
 };
 
@@ -32,7 +32,7 @@ impl ProsodyProseVersion {
     pub async fn call(
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
-    ) -> Result<ResponseData, server_ctl::Error> {
+    ) -> Result<ResponseData, anyhow::Error> {
         self.call_(make_req, |response| {
             if response.status.is_success() {
                 Ok(response)
@@ -47,7 +47,7 @@ impl ProsodyProseVersion {
         &self,
         make_req: impl FnOnce(&HttpClient) -> RequestBuilder,
         map_res: impl FnOnce(ResponseData) -> Result<T, ResponseData>,
-    ) -> Result<T, server_ctl::Error> {
+    ) -> Result<T, anyhow::Error> {
         let client = self.http_client.clone();
         let request = make_req(&client).build()?;
         trace!("Calling `{} {}`…", request.method(), request.url());
@@ -57,23 +57,20 @@ impl ProsodyProseVersion {
             None => None,
         };
         let response = {
-            let response = client.execute(request).await.map_err(|err| {
-                server_ctl::Error::Internal(
-                    anyhow::Error::new(err).context("Prosody Admin REST API call failed"),
-                )
-            })?;
+            let response = client
+                .execute(request)
+                .await
+                .context("Prosody Admin REST API call failed")?;
             ResponseData::from(response).await
         };
 
         match map_res(response) {
             Ok(res) => Ok(res),
-            Err(response) => Err(match response.status {
-                StatusCode::UNAUTHORIZED => server_ctl::Error::Unauthorized(response.text()),
-                StatusCode::FORBIDDEN => server_ctl::Error::Forbidden(response.text()),
-                _ => server_ctl::Error::UnexpectedResponse(
-                    UnexpectedHttpResponse::new(request_data, response, error_description).await,
-                ),
-            }),
+            Err(response) => Err(anyhow::Error::new(UnexpectedHttpResponse::new(
+                request_data,
+                response,
+                error_description,
+            ))),
         }
     }
 
@@ -81,11 +78,9 @@ impl ProsodyProseVersion {
         format!("{}/{path}", self.api_url)
     }
 
-    pub async fn server_version(&self) -> Result<VersionInfo, server_ctl::Error> {
+    pub async fn server_version(&self) -> Result<VersionInfo, anyhow::Error> {
         let response = self.call(|client| client.get(self.url(""))).await?;
-        (response.deserialize()).map_err(|err| {
-            server_ctl::Error::Internal(anyhow::Error::new(err).context("Cannot deserialize"))
-        })
+        response.deserialize().context("Cannot deserialize")
     }
 }
 
@@ -100,7 +95,7 @@ fn error_description(
         .map(ToString::to_string)
         .or_else(|| {
             let mime = content_type.unwrap_or(mime::STAR_STAR);
-            if mime.essence_str() == "text/html" {
+            if mime.essence_str().starts_with("text/html") {
                 Some(format!("`{mime}` content"))
             } else {
                 text.clone()

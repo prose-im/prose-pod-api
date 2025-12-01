@@ -48,9 +48,10 @@ macro_rules! server_config_routes {
 
             pub async fn set(
                 State(ref manager): State<ServerConfigManager>,
+                ref auth: service::auth::AuthToken,
                 Json($var): Json<$var_type>,
             ) -> Result<Json<$var_type>, Error> {
-                match server_config_controller::$var::set(manager, $var).await? {
+                match server_config_controller::$var::set(manager, $var, auth).await? {
                     $var => Ok(Json($var)),
                 }
             }
@@ -66,8 +67,9 @@ macro_rules! server_config_routes {
 
             pub async fn reset(
                 State(ref manager): State<ServerConfigManager>,
+                ref auth: service::auth::AuthToken,
             ) -> Result<Json<$var_type>, Error> {
-                match server_config_controller::$var::reset(manager).await? {
+                match server_config_controller::$var::reset(manager, auth).await? {
                     $var => Ok(Json($var)),
                 }
             }
@@ -87,9 +89,10 @@ macro_rules! gen_server_config_group_reset_route {
 
             pub async fn reset(
                 State(ref manager): State<ServerConfigManager>,
+                ref auth: service::auth::AuthToken,
             ) -> Result<([(HeaderName, HeaderValue); 1], Json<ServerConfig>), crate::error::Error>
             {
-                let new_config = server_config_controller::$group::reset(manager).await?;
+                let new_config = server_config_controller::$group::reset(manager, auth).await?;
                 Ok((
                     [(
                         CONTENT_LOCATION,
@@ -115,8 +118,9 @@ pub mod files_config {
 
     pub async fn reset(
         State(ref manager): State<ServerConfigManager>,
+        ref auth: service::auth::AuthToken,
     ) -> Result<([(HeaderName, HeaderValue); 1], Json<ServerConfig>), crate::error::Error> {
-        let new_config = server_config_controller::files_config::reset(manager).await?;
+        let new_config = server_config_controller::files_config::reset(manager, auth).await?;
         Ok((
             [(
                 CONTENT_LOCATION,
@@ -204,9 +208,10 @@ pub mod prosody_overrides {
 
     pub async fn set(
         State(ref manager): State<ServerConfigManager>,
+        ref auth: service::auth::AuthToken,
         Json(overrides): Json<ProsodySettings>,
     ) -> Result<Json<Option<ProsodySettings>>, Error> {
-        match server_config_controller::prosody_overrides::set(manager, overrides).await? {
+        match server_config_controller::prosody_overrides::set(manager, overrides, auth).await? {
             overrides => Ok(Json(overrides)),
         }
     }
@@ -237,9 +242,12 @@ pub mod prosody_overrides_raw {
 
     pub async fn set(
         State(ref manager): State<ServerConfigManager>,
+        ref auth: service::auth::AuthToken,
         lua: Lua,
     ) -> Result<Either<Lua, NoContent>, Error> {
-        match server_config_controller::prosody_overrides_raw::set(manager, lua.into()).await? {
+        match server_config_controller::prosody_overrides_raw::set(manager, lua.into(), auth)
+            .await?
+        {
             Some(overrides) => Ok(Either::E1(Lua::from(overrides))),
             None => Ok(Either::E2(NoContent)),
         }

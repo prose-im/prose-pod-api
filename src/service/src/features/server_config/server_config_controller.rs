@@ -63,14 +63,18 @@ macro_rules! gen_field_routes {
             pub async fn set(
                 manager: &crate::server_config::ServerConfigManager,
                 new_state: $var_type,
+                auth: &crate::auth::AuthToken,
             ) -> anyhow::Result<$var_type> {
                 $(let new_state = <$db_type>::from(new_state);)?
                 tracing::trace!("Setting {} to {new_state}…", stringify!($var_name));
                 let var = manager
-                    .update(|txn| async move {
-                        crate::server_config::$var_name::set(&txn, new_state).await?;
-                        Ok(txn)
-                    })
+                    .update(
+                        |txn| async move {
+                            crate::server_config::$var_name::set(&txn, new_state).await?;
+                            Ok(txn)
+                        },
+                        auth,
+                    )
                     .await?
                     .$var_name;
                 Ok(var$(.$extra_fn())?)
@@ -94,13 +98,17 @@ macro_rules! gen_field_routes {
 
             pub async fn reset(
                 manager: &crate::server_config::ServerConfigManager,
+                auth: &crate::auth::AuthToken,
             ) -> anyhow::Result<$var_type> {
                 tracing::trace!("Resetting {}…", stringify!($var_name));
                 let var = manager
-                    .update(|txn| async move {
-                        crate::server_config::$var_name::delete(&txn).await?;
-                        Ok(txn)
-                    })
+                    .update(
+                        |txn| async move {
+                            crate::server_config::$var_name::delete(&txn).await?;
+                            Ok(txn)
+                        },
+                        auth,
+                    )
                     .await?
                     .$var_name;
                 Ok(var$(.$extra_fn())?)
@@ -123,13 +131,19 @@ macro_rules! gen_server_config_group_reset_route {
         pub mod $group {
             use crate::server_config::{self, ServerConfig, ServerConfigManager};
 
-            pub async fn reset(manager: &ServerConfigManager) -> anyhow::Result<ServerConfig> {
+            pub async fn reset(
+                manager: &ServerConfigManager,
+                auth: &crate::auth::AuthToken,
+            ) -> anyhow::Result<ServerConfig> {
                 tracing::trace!("Resetting config group {}…", stringify!($group));
                 manager
-                    .update(|txn| async {
-                        $(server_config::$field::delete(&txn).await?;)+
-                        Ok(txn)
-                    })
+                    .update(
+                        |txn| async {
+                            $(server_config::$field::delete(&txn).await?;)+
+                            Ok(txn)
+                        },
+                        auth,
+                    )
                     .await
             }
         }
@@ -246,13 +260,17 @@ pub mod prosody_overrides {
     pub async fn set(
         manager: &crate::server_config::ServerConfigManager,
         new_state: ProsodySettings,
+        auth: &crate::auth::AuthToken,
     ) -> anyhow::Result<Option<ProsodySettings>> {
         tracing::trace!("Setting prosody_overrides to {new_state:?}…");
         let new_val = manager
-            .update(|txn| async move {
-                crate::server_config::prosody_overrides::set(&txn, new_state).await?;
-                Ok(txn)
-            })
+            .update(
+                |txn| async move {
+                    crate::server_config::prosody_overrides::set(&txn, new_state).await?;
+                    Ok(txn)
+                },
+                auth,
+            )
             .await?
             .prosody_overrides;
         Ok(new_val)
@@ -295,13 +313,17 @@ pub mod prosody_overrides_raw {
     pub async fn set(
         manager: &crate::server_config::ServerConfigManager,
         new_state: Lua,
+        auth: &crate::auth::AuthToken,
     ) -> anyhow::Result<Option<Lua>> {
         tracing::trace!("Setting prosody_overrides_raw to {new_state:?}…");
         let new_val = manager
-            .update(|txn| async move {
-                crate::server_config::prosody_overrides_raw::set(&txn, new_state).await?;
-                Ok(txn)
-            })
+            .update(
+                |txn| async move {
+                    crate::server_config::prosody_overrides_raw::set(&txn, new_state).await?;
+                    Ok(txn)
+                },
+                auth,
+            )
             .await?
             .prosody_overrides_raw;
         Ok(new_val)

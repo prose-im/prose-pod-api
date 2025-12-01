@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -eu
+
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+LOCAL_RUN_SCRIPTS_DIR="${REPOSITORY_ROOT:?}"/local-run/scripts
+source "${LOCAL_RUN_SCRIPTS_DIR:?}"/util.sh
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
+
+# ===== CONSTANTS =====
+
+API_HOST=http://127.0.0.1:8080
+
+
+# ===== MAIN LOGIC =====
+
+edo task local:build
+
+export FORCE_RUN=1
+
+info "Updating $(format_code demo)…"
+edo task local:run -- --scenario=demo --api=local --detach
+wait_until_api_running
+edo task local:stop
+
+export SCENARIOS_DIR="${INTEGRATION_TESTS_DIR:?}"/scenarios
+export ENV_FILE="${INTEGRATION_TESTS_DIR:?}"/test.env
+export DNS_ZONE_FILE="${INTEGRATION_TESTS_DIR:?}"/dns-zones/working-static.zone
+export PROSE_CONFIG_FILE="${INTEGRATION_TESTS_DIR:?}/prose-test.toml"
+
+info "Updating $(format_code integration/default)…"
+edo task local:run -- --scenario=default --api=local --detach
+wait_until_api_running
+edo task local:stop

@@ -20,6 +20,7 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
 
         let Self {
             pidfile,
+            admin_socket,
             admins,
             authentication,
             default_storage,
@@ -121,7 +122,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
             }
         }
 
-        push_if_some(&mut res, option_def(None, "pidfile", pidfile));
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                None,
+                vec![
+                    option_def(None, "pidfile", pidfile),
+                    option_def(None, "admin_socket", admin_socket),
+                ],
+            ),
+        );
         push_if_some(&mut res, option_def(None, "admins", admins));
         push_if_some(&mut res, option_def(None, "authentication", authentication));
         push_if_some(
@@ -174,6 +184,16 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "plugin_paths", plugin_paths),
                     option_def(None, "modules_enabled", modules_enabled),
                     option_def(None, "modules_disabled", modules_disabled),
+                ],
+            ),
+        );
+        push_if_some(
+            &mut res,
+            Group::flattened(
+                "mod_reload_modules".into(),
+                vec![
+                    option_def(None, "reload_modules", reload_modules),
+                    option_def(None, "reload_global_modules", reload_global_modules),
                 ],
             ),
         );
@@ -419,16 +439,6 @@ impl Into<Vec<Group<LuaDefinition>>> for ProsodySettings {
                     option_def(None, "disco_items", disco_items),
                     option_def(None, "disco_hidden", disco_hidden),
                     option_def(None, "disco_expose_admins", disco_expose_admins),
-                ],
-            ),
-        );
-        push_if_some(
-            &mut res,
-            Group::flattened(
-                "mod_reload_modules".into(),
-                vec![
-                    option_def(None, "reload_modules", reload_modules),
-                    option_def(None, "reload_global_modules", reload_global_modules),
                 ],
             ),
         );

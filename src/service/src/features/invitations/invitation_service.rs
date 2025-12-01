@@ -3,447 +3,434 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::Context;
-use chrono::{DateTime, Utc};
-use jid::DomainRef;
-use sea_orm::{DbConn, ItemsAndPagesNumber, ModelTrait as _, TransactionTrait as _};
-use secrecy::{ExposeSecret as _, SecretString};
-use tracing::{debug, error, warn};
+pub mod prelude {
+    pub use std::sync::Arc;
+
+    pub use anyhow::Context as _;
+    pub use async_trait::async_trait;
+    pub use time::Duration;
+
+    pub use crate::{
+        auth::{AuthService, AuthToken, Password},
+        errors::Forbidden,
+        invitations::{
+            errors::*,
+            invitation_repository::{CreateAccountInvitationCommand, InvitationRepository},
+            models::*,
+        },
+        licensing::LicensingService,
+        members::{Member, MemberRole, Nickname, UserRepository},
+        models::{DatabaseRwConnectionPools, EmailAddress},
+        notifications::{notifier::email::EmailNotification, NotificationService},
+        onboarding,
+        prosody::prosody_invites_register_api,
+        util::{either::*, JidExt as _},
+        workspace::WorkspaceService,
+        xmpp::{
+            jid::{BareJid, JidNode},
+            XmppService, XmppServiceContext,
+        },
+        AppConfig,
+    };
+
+    pub use super::{
+        AcceptAccountInvitationCommand, InvitationApplicationServiceImpl, InviteUserCommand,
+        RegisterResponse,
+    };
+}
 
 use crate::{
-    dependencies,
-    invitations::{Invitation, InvitationRepository},
-    members::{
-        MemberRepository, MemberRole, Nickname, UnauthenticatedMemberService, UserCreateError,
-    },
-    models::DatabaseRwConnectionPools,
-    notifications::{notifier::email::EmailNotification, NotificationService},
-    onboarding,
-    util::{bare_jid_from_username, either::Either3},
-    workspace::WorkspaceService,
-    xmpp::{BareJid, JidNode},
-    AppConfig,
+    auth::errors::PasswordValidationError, errors::Unauthorized,
+    licensing::errors::UserLimitReached,
 };
 
-use super::{
-    InvitationContact, InvitationCreateForm, InvitationStatus, InvitationToken,
-    WorkspaceInvitationPayload,
-};
+pub use self::live_invitation_service::LiveInvitationApplicationService;
+use self::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct InvitationService {
-    db: DatabaseRwConnectionPools,
-    uuid_gen: dependencies::Uuid,
-    member_service: UnauthenticatedMemberService,
+    pub db: DatabaseRwConnectionPools,
+    pub notification_service: NotificationService,
+    pub invitation_repository: InvitationRepository,
+    pub workspace_service: WorkspaceService,
+    pub auth_service: AuthService,
+    pub xmpp_service: XmppService,
+    pub user_repository: UserRepository,
+    pub app_config: Arc<AppConfig>,
+    pub invitation_application_service: InvitationApplicationService,
+    pub licensing_service: LicensingService,
 }
 
 impl InvitationService {
-    pub fn new(
-        db: DatabaseRwConnectionPools,
-        uuid_gen: dependencies::Uuid,
-        member_service: UnauthenticatedMemberService,
-    ) -> Self {
-        Self {
-            db,
-            uuid_gen,
-            member_service,
-        }
-    }
-}
-
-impl InvitationService {
-    pub async fn invite_member(
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn invite_user(
         &self,
-        app_config: &AppConfig,
-        server_domain: &DomainRef,
-        notification_service: &NotificationService,
-        workspace_service: &WorkspaceService,
-        form: impl Into<InviteMemberForm>,
-        #[cfg(debug_assertions)] auto_accept: bool,
-    ) -> Result<Invitation, InviteMemberError> {
-        let form = form.into();
-        let jid = form.jid(server_domain);
+        command: InviteUserCommand,
+        auth: &AuthToken,
+    ) -> Result<Invitation, InviteUserError> {
+        let ref username = command.username;
+        let email_address = command.email_address.clone();
 
-        if (InvitationRepository::get_by_jid(&self.db.read, &jid).await)
-            .as_ref()
-            .is_ok_and(Option::is_some)
+        // Test if an invitation already exists for the given username.
+        if self
+            .invitation_repository
+            .get_account_invitation_by_username(username, auth)
+            .await?
+            .is_some()
         {
-            return Err(InviteMemberError::InvitationConfict);
-        }
-        if (MemberRepository::get(&self.db.read, &jid).await)
-            .as_ref()
-            .is_ok_and(Option::is_some)
-        {
-            return Err(InviteMemberError::UsernameConfict);
+            return Err(InvitationAlreadyExists.into());
         }
 
-        let invitation = InvitationRepository::create(
-            &self.db.write,
-            InvitationCreateForm {
-                jid,
-                pre_assigned_role: Some(form.pre_assigned_role.clone()),
-                contact: form.contact.clone(),
-                created_at: None,
-                ttl: app_config.api.invitations.invitation_ttl.into_time_delta(),
-            },
-            &self.uuid_gen,
-        )
-        .await
-        .context("Database error")?;
+        // Test if a user already exists with the given username.
+        if self.user_repository.user_exists(username, auth).await? {
+            return Err(UsernameAlreadyTaken.into());
+        }
 
+        // Create the invitation on the Server.
+        let invitation = self
+            .invitation_repository
+            .create_account_invitation(command.into(), auth)
+            .await?;
+
+        // Store that at least one invitation has been sent.
         (onboarding::at_least_one_invitation_sent::set(&self.db.write, true).await)
-            .inspect_err(|err| warn!("Could not set `at_least_one_invitation_sent` to true: {err}"))
+            .inspect_err(|err| {
+                tracing::warn!("Could not set `at_least_one_invitation_sent` to true: {err}")
+            })
             .ok();
 
-        let workspace_name = (workspace_service.get_workspace_name().await)
-            .context("Could not get workspace details (to build the notification)")?;
-
-        if let Err(err) = notification_service
-            .send_workspace_invitation(
-                form.contact,
-                WorkspaceInvitationPayload {
-                    accept_token: invitation.accept_token.into(),
-                    reject_token: invitation.reject_token.into(),
-                    workspace_name,
-                    dashboard_url: app_config.dashboard_url().clone(),
-                    api_app_name: app_config.branding.api_app_name.clone(),
-                    organization_name: app_config.branding.company_name.clone(),
-                },
-                app_config,
-            )
-            .await
-        {
-            error!("Could not send workspace invitation: {err}");
-            InvitationRepository::update_status(
-                &self.db.write,
-                invitation.clone(),
-                InvitationStatus::SendFailed,
-            )
-            .await
-            .map_or_else(
-                |err| {
-                    error!(
-                        "Could not mark workspace invitation `{id}` as `{status}`: {err}",
-                        id = invitation.id,
-                        status = InvitationStatus::SendFailed,
-                    )
-                },
-                |_| {
-                    debug!(
-                        "Marked invitation `{id}` as `{status}`",
-                        id = invitation.id,
-                        status = InvitationStatus::SendFailed,
-                    )
-                },
-            );
-        };
-
-        InvitationRepository::update_status(
-            &self.db.write,
-            invitation.clone(),
-            InvitationStatus::Sent,
-        )
-        .await
-        .context(format!(
-            "Could not mark workspace invitation `{id}` as `{status}`",
-            id = invitation.id,
-            status = InvitationStatus::Sent,
-        ))?;
-
-        #[cfg(debug_assertions)]
-        if auto_accept {
-            warn!("As requested, the created invitation will be automatically accepted.");
-
-            let password: SecretString = if app_config
-                .debug_only
-                .insecure_password_on_auto_accept_invitation
-            {
-                // Use JID as password to make password predictable
-                invitation.jid.to_string().into()
-            } else {
-                crate::auth::util::random_secret(32)
-            };
-            self.accept_by_token(
-                invitation.accept_token.into(),
-                InvitationAcceptForm {
-                    nickname: form.username.into(),
-                    password,
-                },
-            )
+        // Send the notification.
+        self.send_account_invitation_notification(&invitation, email_address, auth)
             .await?;
-        }
 
         Ok(invitation)
     }
-}
 
-impl NotificationService {
-    async fn send_workspace_invitation(
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn accept_account_invitation(
         &self,
-        contact: InvitationContact,
-        payload: WorkspaceInvitationPayload,
-        app_config: &AppConfig,
-    ) -> Result<(), anyhow::Error> {
-        match contact {
-            InvitationContact::Email { email_address } => {
-                let email =
-                    EmailNotification::for_workspace_invitation(email_address, payload, app_config)
-                        .context("Could not create email")?;
-                self.send_email(email)?;
-            }
+        token: InvitationToken,
+        command: AcceptAccountInvitationCommand,
+    ) -> Result<Member, AcceptAccountInvitationError> {
+        // Validate password.
+        self.auth_service.validate_password(&command.password)?;
+
+        // Check user limit.
+        let user_count = self.user_repository.users_stats(None).await?.count as u32;
+        if !self.licensing_service.allows_user_count(user_count + 1) {
+            return Err(UserLimitReached.into());
         }
-        Ok(())
-    }
-}
 
-#[derive(Debug)]
-pub struct InviteMemberForm {
-    pub username: JidNode,
-    pub pre_assigned_role: MemberRole,
-    pub contact: InvitationContact,
-}
-
-impl InviteMemberForm {
-    fn jid(&self, server_domain: &DomainRef) -> BareJid {
-        bare_jid_from_username(&self.username, server_domain)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum InviteMemberError {
-    #[error("Invitation already exists (choose a different username).")]
-    InvitationConfict,
-    #[error("Username already taken.")]
-    UsernameConfict,
-    #[cfg(debug_assertions)]
-    #[error("Could not auto-accept the invitation: {0}")]
-    CouldNotAutoAcceptInvitation(#[from] CannotAcceptInvitation),
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
-}
-
-impl InvitationService {
-    pub async fn get(&self, id: &i32) -> Result<Option<Invitation>, anyhow::Error> {
-        (InvitationRepository::get_by_id(&self.db.read, id).await).context("Database error")
-    }
-    pub async fn get_invitations(
-        &self,
-        page_number: u64,
-        page_size: u64,
-        until: Option<DateTime<Utc>>,
-    ) -> Result<(ItemsAndPagesNumber, Vec<Invitation>), anyhow::Error> {
-        (InvitationRepository::get_all(&self.db.read, page_number, page_size, until).await)
-            .context("Database error")
-    }
-}
-
-impl InvitationService {
-    pub async fn accept(
-        &self,
-        db: &DbConn,
-        invitation: Invitation,
-        form: InvitationAcceptForm,
-    ) -> Result<(), InvitationAcceptError> {
-        let txn = db.begin().await.context("Database error")?;
-
-        let email_address = match invitation.contact() {
-            InvitationContact::Email { email_address } => Some(email_address),
+        let Some(invitation) = self
+            .invitation_repository
+            .get_account_invitation_by_token(&token)
+            .await?
+        else {
+            return Err(InvitationNotFoundForToken.into());
         };
 
-        // Create the user
-        self.member_service
-            .create_user(
-                &txn,
-                &invitation.jid,
-                &form.password,
-                &form.nickname,
-                &Some(invitation.pre_assigned_role),
-                email_address,
-            )
+        let jid = self
+            .invitation_application_service
+            .register_with_token(&command.password, token)
+            .await?
+            .jid;
+
+        // Log user in.
+        // NOTE: We need to log the user in to get a Prosody
+        //   authentication token in order to set the user’s vCard.
+        let auth_token = (self.auth_service)
+            .log_in(&jid, &command.password)
+            .await
+            .expect("User credentials should work after creating an account");
+
+        // Creates the user’s vCard.
+        let ctx = XmppServiceContext {
+            bare_jid: jid.to_owned(),
+            auth_token: auth_token.clone(),
+        };
+        let email_address = command.email.unwrap_or(invitation.email_address);
+        self.xmpp_service
+            .create_own_vcard(&ctx, &command.nickname, Some(email_address))
+            .await
+            .context("Could not create user vCard4")?;
+
+        let user_info = self
+            .auth_service
+            .get_user_info(&auth_token)
+            .await
+            .map_err(anyhow::Error::new)
+            .context("Could not get own account info")?;
+        let member = Member::from(user_info);
+
+        // Revoke token because it will never be used again.
+        // FIXME: Re-enable this once we implement proper OAuth 2.0 (calling
+        //   `revoke` with a token granted using the ROPC “password” flow
+        //   fails with `403 Forbidden`). We can just let this token expire.
+        //   No one will know since we don’t provide a way to see the tokens…
+        // self.auth_service
+        //     .revoke(ctx.auth_token)
+        //     .await
+        //     .context("Could not revoke temporary auth token")?;
+
+        Ok(member)
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn reject_account_invitation(
+        &self,
+        token: InvitationToken,
+    ) -> Result<(), anyhow::Error> {
+        self.invitation_application_service
+            .reject_invitation(token)
+            .await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn resend_account_invitation(
+        &self,
+        invitation_id: &InvitationId,
+        auth: &AuthToken,
+    ) -> Result<(), Either3<Forbidden, InvitationNotFound, anyhow::Error>> {
+        let invitation = self
+            .invitation_repository
+            .get_account_invitation_by_id(&invitation_id, auth)
+            .await
+            .map_err(to_either3_1_3)?
+            .ok_or(Either3::E2(InvitationNotFound(invitation_id.clone())))?;
+
+        let email_address = invitation.email_address.clone();
+
+        // Send the notification.
+        self.send_account_invitation_notification(&invitation, email_address, auth)
             .await?;
 
-        // Delete the invitation from database
-        (InvitationRepository::accept(&txn, invitation).await)
-            .context("Invitation repository could not accept the inviation")?;
-
-        // Commit the transaction if everything went well
-        txn.commit().await.context("Database error")?;
-
         Ok(())
     }
-}
 
-#[derive(Debug, thiserror::Error)]
-pub enum InvitationAcceptError {
-    #[error("Could not create user: {0}")]
-    CouldNotCreateUser(#[from] UserCreateError),
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
-}
-
-impl InvitationService {
-    pub async fn get_by_accept_token(
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn cancel_invitation(
         &self,
-        token: InvitationToken,
-    ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
-        match InvitationRepository::get_by_accept_token(&self.db.read, token).await? {
-            Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
-            Some(invitation) => Ok(invitation),
-            None => Err(Either3::E1(NoInvitationForToken)),
-        }
+        invitation_id: InvitationId,
+        auth: &AuthToken,
+    ) -> Result<(), Either<Forbidden, anyhow::Error>> {
+        self.invitation_repository
+            .delete_invitation(invitation_id, auth)
+            .await
     }
-    pub async fn get_by_reject_token(
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    async fn send_account_invitation_notification(
         &self,
-        token: InvitationToken,
-    ) -> Result<Invitation, Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
-        match InvitationRepository::get_by_reject_token(&self.db.read, token).await? {
-            Some(invitation) if invitation.is_expired() => Err(Either3::E2(InvitationExpired)),
-            Some(invitation) => Ok(invitation),
-            None => Err(Either3::E1(NoInvitationForToken)),
-        }
-    }
-}
+        invitation: &Invitation,
+        email_address: EmailAddress,
+        auth: &AuthToken,
+    ) -> Result<WorkspaceInvitationPayload, anyhow::Error> {
+        // Construct the notification payload.
+        let payload = {
+            let workspace_name = (self.workspace_service)
+                .get_workspace_name(Some(auth))
+                .await
+                .context("Could not get workspace details (to build the notification)")?;
 
-impl InvitationService {
-    pub async fn accept_by_token(
-        &self,
-        token: InvitationToken,
-        form: impl Into<InvitationAcceptForm>,
-    ) -> Result<(), CannotAcceptInvitation> {
-        // NOTE: We don't check that the invitation status is "SENT"
-        //   because it would cause a lot of useless edge cases.
-        let invitation = self.get_by_accept_token(token.clone()).await?;
-        // NOTE: An extra layer of security *just in case*
-        assert_eq!(*token.expose_secret(), invitation.accept_token);
+            WorkspaceInvitationPayload::new(
+                invitation.accept_token.clone(),
+                workspace_name,
+                self.app_config.branding.api_app_name.clone(),
+                self.app_config.branding.company_name.clone(),
+                invitation.accept_token_expires_at,
+                self.app_config.dashboard_url().into(),
+            )
+        };
 
-        if invitation.is_expired() {
-            return Err(CannotAcceptInvitation::from(InvitationExpired));
-        }
+        // Create the notification.
+        let notification =
+            EmailNotification::for_workspace_invitation(email_address, &payload, &self.app_config)
+                .context("Could not create email")?;
 
-        // Check if JID is already taken (in which case the member cannot be created).
-        // NOTE: There should not be any invitation for an already-taken username,
-        //   but let's keep this as a safeguard.
-        if (MemberRepository::get(&self.db.read, &invitation.jid).await)
-            .as_ref()
-            .is_ok_and(Option::is_some)
-        {
-            return Err(CannotAcceptInvitation::MemberAlreadyExists);
-        }
+        // Send the notification.
+        self.notification_service
+            .send_email(notification)
+            .context("Could not send account invitation: {err}")?;
 
-        (self.accept(&self.db.write, invitation, form.into()).await)?;
-
-        Ok(())
+        Ok(payload)
     }
 }
 
 #[derive(Debug)]
-pub struct InvitationAcceptForm {
+pub struct AcceptAccountInvitationCommand {
     pub nickname: Nickname,
-    pub password: SecretString,
+    pub password: Password,
+    pub email: Option<EmailAddress>,
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("Invitation expired.")]
-pub struct InvitationExpired;
-
-#[derive(Debug, thiserror::Error)]
-#[error("No invitation found for provided token.")]
-pub struct NoInvitationForToken;
-
-#[derive(Debug, thiserror::Error)]
-pub enum CannotAcceptInvitation {
+#[derive(Debug)]
+#[derive(thiserror::Error)]
+pub enum AcceptAccountInvitationError {
     #[error("{0}")]
-    InvitationNotFound(#[from] NoInvitationForToken),
+    InvalidPassword(#[from] PasswordValidationError),
     #[error("{0}")]
-    InvitationExpired(#[from] InvitationExpired),
-    #[error("Member already exists (JID already taken).")]
-    MemberAlreadyExists,
+    UserLimitReached(#[from] UserLimitReached),
     #[error("{0}")]
-    AcceptError(#[from] InvitationAcceptError),
-    #[error("Internal error: {0}")]
+    InvitationNotFound(#[from] InvitationNotFoundForToken),
+    #[error("{0}")]
+    MemberAlreadyExists(#[from] MemberAlreadyExists),
+    #[error("{0:#}")]
     Internal(#[from] anyhow::Error),
 }
 
-impl InvitationService {
-    pub async fn reject_by_token(
+pub struct InviteUserCommand {
+    pub username: JidNode,
+    pub role: MemberRole,
+    pub email_address: EmailAddress,
+    pub ttl: Option<Duration>,
+}
+
+#[derive(Debug)]
+#[derive(thiserror::Error)]
+pub enum InviteUserError {
+    #[error("{0}")]
+    Unauthorized(#[from] Unauthorized),
+    #[error("{0}")]
+    Forbidden(#[from] Forbidden),
+    #[error("{0}")]
+    InvitationAlreadyExists(#[from] InvitationAlreadyExists),
+    #[error("{0}")]
+    UsernameAlreadyTaken(#[from] UsernameAlreadyTaken),
+    #[error("{0:#}")]
+    Internal(#[from] anyhow::Error),
+}
+
+// MARK: - Application Service
+
+/// [`InvitationService`] has domain logic only, but some actions
+/// still need to be mockable and don’t belong in [`InvitationRepository`].
+/// This is where those functions go.
+#[derive(Debug, Clone)]
+pub struct InvitationApplicationService {
+    pub implem: Arc<dyn InvitationApplicationServiceImpl>,
+}
+
+#[async_trait]
+pub trait InvitationApplicationServiceImpl: std::fmt::Debug + Sync + Send {
+    async fn register_with_token(
         &self,
+        password: &Password,
         token: InvitationToken,
-    ) -> Result<(), Either3<NoInvitationForToken, InvitationExpired, anyhow::Error>> {
-        // NOTE: We don't check that the invitation status is "SENT"
-        //   because it would cause a lot of useless edge cases.
-        let invitation = self.get_by_reject_token(token.clone()).await?;
-        // NOTE: An extra layer of security *just in case*
-        assert_eq!(*token.expose_secret(), invitation.reject_token);
+    ) -> Result<
+        RegisterResponse,
+        Either3<InvitationNotFoundForToken, MemberAlreadyExists, anyhow::Error>,
+    >;
 
-        (invitation.delete(&self.db.write).await).context("Database error")?;
+    async fn reject_invitation(&self, token: InvitationToken) -> Result<(), anyhow::Error>;
+}
 
-        Ok(())
+pub struct RegisterResponse {
+    pub jid: BareJid,
+}
+
+mod live_invitation_service {
+    use crate::prosody::ProsodyInvitesRegisterApi;
+
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct LiveInvitationApplicationService {
+        pub invites_register_api: ProsodyInvitesRegisterApi,
     }
-}
 
-impl InvitationService {
-    pub async fn resend(
-        &self,
-        app_config: &AppConfig,
-        notification_service: &NotificationService,
-        workspace_service: &WorkspaceService,
-        invitation_id: i32,
-    ) -> Result<(), InvitationResendError> {
-        let invitation = (InvitationRepository::get_by_id(&self.db.read, &invitation_id).await)
-            .context("Database error")?
-            .ok_or(InvitationResendError::InvitationNotFound(invitation_id))?;
+    #[async_trait]
+    impl InvitationApplicationServiceImpl for LiveInvitationApplicationService {
+        async fn register_with_token(
+            &self,
+            password: &Password,
+            token: InvitationToken,
+        ) -> Result<
+            RegisterResponse,
+            Either3<InvitationNotFoundForToken, MemberAlreadyExists, anyhow::Error>,
+        > {
+            match self
+                .invites_register_api
+                .register_with_invite(None, password, token)
+                .await
+            {
+                Ok(res) => Ok(RegisterResponse::from(res)),
+                Err(Either4::E1(err)) => Err(Either3::E1(err)),
+                Err(Either4::E3(err)) => Err(Either3::E2(err)),
+                // NOTE: `403 Forbidden`s can technically happen, but it’d mean
+                //   something is not configured properly internally.
+                Err(Either4::E2(err @ Forbidden(_))) => Err(Either3::E3(anyhow::Error::new(err))),
+                Err(Either4::E4(err)) => Err(Either3::E3(err)),
+            }
+        }
 
-        let workspace = (workspace_service.get_workspace().await)
-            .context("Could not get workspace details (to build the notification)")?;
-
-        notification_service
-            .send_workspace_invitation(
-                invitation.contact(),
-                WorkspaceInvitationPayload {
-                    accept_token: invitation.accept_token.into(),
-                    reject_token: invitation.reject_token.into(),
-                    workspace_name: workspace.name.clone(),
-                    dashboard_url: app_config.dashboard_url().clone(),
-                    api_app_name: app_config.branding.api_app_name.clone(),
-                    organization_name: app_config.branding.company_name.clone(),
-                },
-                app_config,
-            )
-            .await
-            .context("Could not send invitation")?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum InvitationResendError {
-    #[error("Could not find the invitation with id '{0}'.")]
-    InvitationNotFound(i32),
-    #[error("Internal error: {0}")]
-    Internal(#[from] anyhow::Error),
-}
-
-impl InvitationService {
-    pub async fn cancel(&self, invitation_id: i32) -> anyhow::Result<()> {
-        (InvitationRepository::delete_by_id(&self.db.write, invitation_id).await)
-            .context("Database error")?;
-
-        Ok(())
+        async fn reject_invitation(&self, token: InvitationToken) -> Result<(), anyhow::Error> {
+            self.invites_register_api.reject_invite(token).await
+        }
     }
 }
 
 // MARK: - Boilerplate
 
-impl<E1, E2, E3> From<Either3<E1, E2, E3>> for CannotAcceptInvitation
+impl std::ops::Deref for InvitationApplicationService {
+    type Target = Arc<dyn InvitationApplicationServiceImpl>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.implem
+    }
+}
+
+impl<E1, E2, E3> From<Either3<E1, E2, E3>> for AcceptAccountInvitationError
 where
-    CannotAcceptInvitation: From<E1> + From<E2> + From<E3>,
+    Self: From<E1> + From<E2> + From<E3>,
 {
-    fn from(value: Either3<E1, E2, E3>) -> Self {
-        match value {
-            Either3::E1(val) => Self::from(val),
-            Either3::E2(val) => Self::from(val),
-            Either3::E3(val) => Self::from(val),
+    fn from(either: Either3<E1, E2, E3>) -> Self {
+        match either {
+            Either3::E1(err) => Self::from(err),
+            Either3::E2(err) => Self::from(err),
+            Either3::E3(err) => Self::from(err),
         }
+    }
+}
+
+impl<E1, E2> From<Either<E1, E2>> for InviteUserError
+where
+    Self: From<E1> + From<E2>,
+{
+    fn from(either: Either<E1, E2>) -> Self {
+        match either {
+            Either::E1(err) => Self::from(err),
+            Either::E2(err) => Self::from(err),
+        }
+    }
+}
+
+impl<E1, E2, E3> From<Either3<E1, E2, E3>> for InviteUserError
+where
+    Self: From<E1> + From<E2> + From<E3>,
+{
+    fn from(either: Either3<E1, E2, E3>) -> Self {
+        match either {
+            Either3::E1(err) => Self::from(err),
+            Either3::E2(err) => Self::from(err),
+            Either3::E3(err) => Self::from(err),
+        }
+    }
+}
+
+impl From<InviteUserCommand> for CreateAccountInvitationCommand {
+    fn from(command: InviteUserCommand) -> Self {
+        Self {
+            username: command.username,
+            role: command.role,
+            email_address: command.email_address,
+            ttl: command.ttl,
+        }
+    }
+}
+
+impl From<prosody_invites_register_api::RegisterResponse> for RegisterResponse {
+    fn from(response: prosody_invites_register_api::RegisterResponse) -> Self {
+        Self { jid: response.jid }
     }
 }

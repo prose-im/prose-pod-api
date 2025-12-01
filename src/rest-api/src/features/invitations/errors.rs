@@ -4,10 +4,14 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
+    auth::errors::PasswordValidationError,
     errors::MissingConfiguration,
     invitations::{
-        invitation_controller::InvitationNotFound, CannotAcceptInvitation, InvitationAcceptError,
-        InvitationExpired, InvitationResendError, InviteMemberError, NoInvitationForToken,
+        errors::{
+            InvitationAlreadyExists, InvitationNotFound, InvitationNotFoundForToken,
+            MemberAlreadyExists, UsernameAlreadyTaken,
+        },
+        invitation_service::{AcceptAccountInvitationError, InviteUserError},
     },
     notifications::notifier::email::EmailNotificationCreateError,
 };
@@ -38,34 +42,13 @@ impl HttpApiError for InvitationNotFound {
     }
 }
 
-impl HttpApiError for InvitationAcceptError {
+impl HttpApiError for MemberAlreadyExists {
     fn code(&self) -> ErrorCode {
-        match self {
-            Self::CouldNotCreateUser(err) => err.code(),
-            Self::Internal(err) => err.code(),
-        }
+        ErrorCode::MEMBER_ALREADY_EXISTS
     }
 }
 
-impl HttpApiError for CannotAcceptInvitation {
-    fn code(&self) -> ErrorCode {
-        match self {
-            Self::InvitationNotFound(err) => err.code(),
-            Self::InvitationExpired(err) => err.code(),
-            Self::MemberAlreadyExists => ErrorCode::MEMBER_ALREADY_EXISTS,
-            Self::AcceptError(err) => err.code(),
-            Self::Internal(err) => err.code(),
-        }
-    }
-}
-
-impl HttpApiError for NoInvitationForToken {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::INVITATION_NOT_FOUND
-    }
-}
-
-impl HttpApiError for InvitationExpired {
+impl HttpApiError for InvitationNotFoundForToken {
     fn code(&self) -> ErrorCode {
         ErrorCode::INVITATION_NOT_FOUND
     }
@@ -82,22 +65,47 @@ impl HttpApiError for EmailNotificationCreateError {
     }
 }
 
-impl HttpApiError for InvitationResendError {
+impl HttpApiError for InvitationAlreadyExists {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::INVITATION_ALREADY_EXISTS
+    }
+}
+
+impl HttpApiError for UsernameAlreadyTaken {
+    fn code(&self) -> ErrorCode {
+        ErrorCode::MEMBER_ALREADY_EXISTS
+    }
+}
+
+impl HttpApiError for PasswordValidationError {
+    fn code(&self) -> ErrorCode {
+        ErrorCode {
+            value: "invalid_password",
+            http_status: StatusCode::BAD_REQUEST,
+            log_level: LogLevel::Info,
+        }
+    }
+}
+
+impl HttpApiError for AcceptAccountInvitationError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::InvitationNotFound(_) => ErrorCode::INVITATION_NOT_FOUND,
+            Self::InvalidPassword(err) => err.code(),
+            Self::UserLimitReached(err) => err.code(),
+            Self::InvitationNotFound(err) => err.code(),
+            Self::MemberAlreadyExists(err) => err.code(),
             Self::Internal(err) => err.code(),
         }
     }
 }
 
-impl HttpApiError for InviteMemberError {
+impl HttpApiError for InviteUserError {
     fn code(&self) -> ErrorCode {
         match self {
-            Self::InvitationConfict => ErrorCode::INVITATION_ALREADY_EXISTS,
-            Self::UsernameConfict => ErrorCode::MEMBER_ALREADY_EXISTS,
-            #[cfg(debug_assertions)]
-            Self::CouldNotAutoAcceptInvitation(err) => err.code(),
+            Self::Unauthorized(err) => err.code(),
+            Self::Forbidden(err) => err.code(),
+            Self::InvitationAlreadyExists(err) => err.code(),
+            Self::UsernameAlreadyTaken(err) => err.code(),
             Self::Internal(err) => err.code(),
         }
     }

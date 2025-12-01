@@ -164,3 +164,11 @@ macro_rules! sea_orm_string {
         }
     };
 }
+
+pub struct JsonQuote;
+
+impl sea_orm::Iden for JsonQuote {
+    fn unquoted(&self, s: &mut dyn std::fmt::Write) {
+        write!(s, "json_quote").unwrap();
+    }
+}

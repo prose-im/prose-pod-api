@@ -10,9 +10,11 @@ use std::fmt::Display;
 /// Bytes.
 ///
 /// See <https://en.wikipedia.org/wiki/Byte#Multiple-byte_units>.
+///
+/// NOTE: Named `BytesAmount` not to conflict with `bytes::Bytes`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)]
-pub enum Bytes {
+pub enum BytesAmount {
     Bytes(u32),
     KiloBytes(u32),
     KibiBytes(u32),
@@ -20,7 +22,7 @@ pub enum Bytes {
     MebiBytes(u32),
 }
 
-impl Bytes {
+impl BytesAmount {
     pub fn as_bytes(&self) -> u32 {
         match self {
             Self::Bytes(n) => *n,
@@ -32,7 +34,7 @@ impl Bytes {
     }
 }
 
-impl std::str::FromStr for Bytes {
+impl std::str::FromStr for BytesAmount {
     type Err = ParseMeasurementError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -49,7 +51,7 @@ impl std::str::FromStr for Bytes {
     }
 }
 
-impl Display for Bytes {
+impl Display for BytesAmount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Bytes(n) => write!(f, "{n}B"),
@@ -61,12 +63,12 @@ impl Display for Bytes {
     }
 }
 
-impl validator::ValidateRange<Bytes> for Bytes {
-    fn greater_than(&self, max: Bytes) -> Option<bool> {
+impl validator::ValidateRange<BytesAmount> for BytesAmount {
+    fn greater_than(&self, max: BytesAmount) -> Option<bool> {
         Some(self > &max)
     }
 
-    fn less_than(&self, min: Bytes) -> Option<bool> {
+    fn less_than(&self, min: BytesAmount) -> Option<bool> {
         Some(self < &min)
     }
 }

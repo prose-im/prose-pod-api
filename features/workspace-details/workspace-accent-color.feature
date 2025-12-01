@@ -4,13 +4,14 @@ Feature: Workspace accent color
   Background:
     Given the Prose Pod API has started
 
-  Rule: The API should warn if the workspace has not been initialized when getting the workspace accent color
+  Rule: The API should return null if the workspace has not been initialized when getting the workspace accent color
 
     Scenario: XMPP server initialized but not the workspace
       Given the XMPP server has been initialized
         And the workspace has not been initialized
        When an unauthenticated user gets the workspace accent color
-       Then the user should receive 'Workspace not initialized: No vCard'
+       Then the call should succeed
+        And the response body should be `null`
 
   """
   When logging into a workspace, we want to show the accent color of the workspace the person

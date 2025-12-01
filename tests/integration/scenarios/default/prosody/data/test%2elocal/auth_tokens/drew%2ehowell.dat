@@ -1,38 +1,48 @@
 return {
-	["LNobTYVv1rjG"] = {
-		["jid"] = "drew.howell@test.local";
-		["id"] = "LNobTYVv1rjG";
-		["accessed"] = 1757007021;
-		["owner"] = "drew.howell@test.local";
+	["FN7xWA6fuuEo"] = {
+		["id"] = "FN7xWA6fuuEo";
+		["accessed"] = 1762402893;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:ec91161add894bb9423cf6eccc369d10f24272dd63e77d4238ac0081e0ea0efa"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007021;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017821;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007021;
+		["tokens"] = {
+			["sha256:fb2347c10ecec97acc9607fd7d37a2d53fa663c8f5731e2cd5137cb9a2450463"] = {
+				["purpose"] = "oauth2";
+				["created"] = 1762402893;
+				["expires"] = 1762413693;
+				["role"] = "prosody:member";
+			};
+		};
+		["created"] = 1762402893;
+		["owner"] = "drew.howell@test.local";
+		["jid"] = "drew.howell@test.local";
 	};
-	["7fPGednBT7AX"] = {
-		["jid"] = "drew.howell@test.local";
-		["id"] = "7fPGednBT7AX";
-		["accessed"] = 1757007021;
-		["owner"] = "drew.howell@test.local";
+	["RgPabi8_2o4L"] = {
+		["id"] = "RgPabi8_2o4L";
+		["accessed"] = 1762402893;
 		["data"] = {
 			["oauth2_scopes"] = "openid xmpp";
-		};
-		["tokens"] = {
-			["sha256:0a0761234297edd410a92c3de44fbfc4c2c519f56b4c7e003d1369a6f5a30129"] = {
-				["role"] = "prosody:member";
-				["created"] = 1757007021;
-				["purpose"] = "oauth2";
-				["expires"] = 1757017821;
+			["oauth2_client"] = {
+				["uri"] = "https://prose-pod-api:8080";
+				["name"] = "Prose\194\160Pod\194\160API";
+				["hash"] = "A3QahG86iIauUnOJjSkWXL2fYJHG0PYph57mkSH7hik";
 			};
 		};
-		["created"] = 1757007021;
+		["tokens"] = {
+			["sha256:44bb050b7f9aff6014f3d886c3465daae69a244db59549dd25c5f67cefec005b"] = {
+				["role"] = "prosody:member";
+				["created"] = 1762402893;
+				["purpose"] = "oauth2";
+				["expires"] = 1762413693;
+			};
+		};
+		["created"] = 1762402893;
+		["owner"] = "drew.howell@test.local";
+		["jid"] = "drew.howell@test.local";
 	};
 };

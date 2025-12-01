@@ -3,14 +3,11 @@
 // Copyright: 2023–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::Arc;
-
 use axum::{extract::State, http::HeaderValue, Json};
 use service::{
-    init::{InitFirstAccountForm, InitService},
-    members::{Member, MemberRepository, Nickname, UnauthenticatedMemberService},
+    invitations::invitation_service::AcceptAccountInvitationCommand,
+    members::{Member, MemberService, Nickname},
     xmpp::JidNode,
-    AppConfig,
 };
 use validator::Validate;
 
@@ -26,7 +23,7 @@ pub struct InitFirstAccountRequest {
     #[validate(skip)] // NOTE: Already parsed.
     pub username: JidNode,
 
-    #[validate(nested)]
+    #[validate(skip)] // NOTE: Will be checked later.
     pub password: Password,
 
     #[validate(nested)]
@@ -34,15 +31,18 @@ pub struct InitFirstAccountRequest {
 }
 
 pub async fn init_first_account_route(
-    State(ref app_config): State<Arc<AppConfig>>,
-    init_service: InitService,
-    ref member_service: UnauthenticatedMemberService,
+    ref member_service: MemberService,
     Json(req): Json<InitFirstAccountRequest>,
 ) -> Result<Created<Member>, Error> {
-    let ref server_domain = app_config.server_domain();
-
-    let member = init_service
-        .init_first_account(server_domain, member_service, req)
+    let member = member_service
+        .create_first_acount(
+            &req.username,
+            &AcceptAccountInvitationCommand {
+                nickname: req.nickname,
+                password: req.password.into(),
+                email: None,
+            },
+        )
         .await?;
 
     let resource_uri = format!("/v1/members/{jid}", jid = member.jid);
@@ -53,23 +53,18 @@ pub async fn init_first_account_route(
 }
 
 pub async fn is_first_account_created_route(
-    State(AppState { db, .. }): State<AppState>,
+    State(AppState {
+        ref user_repository,
+        ..
+    }): State<AppState>,
 ) -> StatusCode {
-    if MemberRepository::count(&db.read).await.unwrap_or_default() == 0 {
+    let user_count = user_repository
+        .users_stats(None)
+        .await
+        .map_or(0, |stats| stats.count);
+    if user_count == 0 {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::OK
-    }
-}
-
-// MARK: - Boilerplate
-
-impl Into<InitFirstAccountForm> for InitFirstAccountRequest {
-    fn into(self) -> InitFirstAccountForm {
-        InitFirstAccountForm {
-            username: self.username,
-            password: self.password.into(),
-            nickname: self.nickname,
-        }
     }
 }

@@ -33,8 +33,7 @@ async fn given_api_restarted(world: &mut TestWorld) {
 
 #[given("the XMPP server is offline")]
 fn given_xmpp_server_offline(world: &mut TestWorld) {
-    world.xmpp_service_state_mut().online = false;
-    world.server_ctl_state_mut().online = false;
+    world.server_state_mut().online = false;
 }
 
 #[given(expr = "the SMTP server {state_verb} reachable")]

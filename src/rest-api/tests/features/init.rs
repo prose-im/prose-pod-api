@@ -3,15 +3,12 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use anyhow::Context as _;
 use prose_pod_api::features::{
     auth::models::Password, init::*, workspace_details::InitWorkspaceRequest,
 };
-use service::{
-    members::Nickname,
-    workspace::{workspace_controller, Workspace},
-    xmpp::server_manager,
-};
+use service::{members::Nickname, workspace::workspace_controller};
+
+use crate::prelude::mocks::BYPASS_TOKEN;
 
 use super::prelude::*;
 
@@ -40,13 +37,12 @@ fn given_workspace_not_initialized(_world: &mut TestWorld) {
 #[given("the workspace has been initialized")]
 #[given("the Workspace has been initialized")]
 async fn given_workspace_initialized(world: &mut TestWorld) -> Result<(), Error> {
-    let workspace = Workspace {
+    let req = InitWorkspaceRequest {
         name: DEFAULT_WORKSPACE_NAME.to_string(),
         accent_color: None,
-        icon: None,
     };
 
-    workspace_controller::init_workspace(&world.workspace_service().await, workspace).await?;
+    workspace_controller::init_workspace(&world.db, &world.workspace_service(), req).await?;
 
     Ok(())
 }
@@ -59,27 +55,7 @@ fn given_xmpp_server_not_initialized(_world: &mut TestWorld) {
 #[given("the XMPP server has been initialized")]
 async fn given_xmpp_server_initialized(world: &mut TestWorld) -> anyhow::Result<()> {
     // Initialize XMPP server configuration.
-    world.server_config_manager().reload().await?;
-
-    // Register OAuth 2.0 client.
-    (world.auth_service.register_oauth2_client().await)
-        .context("Could not register OAuth 2.0 client")?;
-
-    // Create service XMPP accounts.
-    server_manager::create_service_accounts(
-        &world.server_ctl,
-        &world.app_config().clone(),
-        &world.auth_service,
-        &world.secrets_store(),
-    )
-    .await
-    .context("Could not create service XMPP account")?;
-
-    // Add the Workspace XMPP account to everyone’s rosters so they receive
-    // Workspace icon updates.
-    let workspace_jid = world.app_config().workspace_jid();
-    (world.server_ctl.add_team_member(&workspace_jid).await)
-        .context("Could not add the Workspace to the team")?;
+    world.server_config_manager().reload(&BYPASS_TOKEN).await?;
 
     world.reset_server_ctl_counts();
     Ok(())

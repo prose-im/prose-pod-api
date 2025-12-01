@@ -3,9 +3,9 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-use std::sync::{Arc, RwLock};
-
 use service::notifications::notifier::{GenericNotifier, NotificationTrait, NotifierError};
+
+use super::prelude::*;
 
 #[derive(Debug)]
 pub struct MockNotifier<N: NotificationTrait> {

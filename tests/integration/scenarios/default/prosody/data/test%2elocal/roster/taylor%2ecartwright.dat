@@ -3,6 +3,18 @@ return {
 		["pending"] = {};
 		["version"] = 65;
 	};
+	["pablo.bartoletti@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
+	["ella.white@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
 	["sheri.nienow@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
@@ -10,48 +22,18 @@ return {
 		};
 	};
 	["jake.lang@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["dianna.hermann@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["pablo.bartoletti@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["charlie.schmitt@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
-	["prose-workspace@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["todd.schultz@test.local"] = {
+	["meghan.donnelly@test.local"] = {
 		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
 	};
-	["evan.turner@test.local"] = {
-		["groups"] = {
-			["Team"] = true;
-		};
-		["subscription"] = "both";
-	};
-	["ella.white@test.local"] = {
+	["pauline.collins@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
@@ -63,22 +45,40 @@ return {
 			["Team"] = true;
 		};
 	};
+	["charlie.schmitt@test.local"] = {
+		["subscription"] = "both";
+		["groups"] = {
+			["Team"] = true;
+		};
+	};
+	["evan.turner@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
+	};
 	["drew.howell@test.local"] = {
-		["subscription"] = "both";
 		["groups"] = {
 			["Team"] = true;
 		};
+		["subscription"] = "both";
 	};
-	["pauline.collins@test.local"] = {
-		["subscription"] = "both";
+	["dianna.hermann@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
+		["subscription"] = "both";
 	};
-	["meghan.donnelly@test.local"] = {
-		["subscription"] = "both";
+	["todd.schultz@test.local"] = {
 		["groups"] = {
 			["Team"] = true;
 		};
+		["subscription"] = "both";
+	};
+	["prose-workspace@test.local"] = {
+		["groups"] = {
+			["Team"] = true;
+		};
+		["subscription"] = "both";
 	};
 };

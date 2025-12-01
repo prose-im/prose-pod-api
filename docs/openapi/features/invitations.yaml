@@ -114,7 +114,7 @@ paths:
     description: |-
       Get information about a workspace invitation.
 
-      If an accept or reject token is used in the path and `token_type` is provided as a query parameter, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
+      If an accept or reject token is used in the path, will search for an invitation with the given token. This route can be used by the Prose Pod Dashboard to display some information about the invitation when someone opens an invitation link (like their predefined JID or role).
     operationId: get_invitation
     security:
       - BearerAuth: []
@@ -153,7 +153,6 @@ paths:
     security: []
     parameters:
       - $ref: "#/components/parameters/InvitationToken"
-      - $ref: "#/components/parameters/InvitationTokenType"
     responses:
       "200":
         description: Success
@@ -183,6 +182,7 @@ paths:
             properties:
               nickname: { $ref: "members.yaml#/components/schemas/Nickname" }
               password: { $ref: "../shared.yaml#/components/schemas/Password" }
+              email: { $ref: "../shared.yaml#/components/schemas/EmailAddress" }
     responses:
       "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
       "410": { $ref: "#/components/responses/InvitationNotFound" }
@@ -220,34 +220,32 @@ components:
     InvitationAcceptToken:
       type: string
       format: password
-      example: 20edadc2-6c3b-4297-b92a-042f23249225
+      example: MBEw_Wp3-1CEVyR0MauTpYlT
     InvitationRejectToken:
       type: string
       format: password
-      example: f2736e87-850e-4776-bb26-52c12a7d8bd8
-    InvitationTokenType:
-      type: string
-      enum: [accept, reject]
-      example: accept
+      example: kjYmRIMukLiW13RZm0xAmZzg
     WorkspaceInvitation:
       type: object
       required:
         - invitation_id
         - created_at
-        - status
         - jid
         - pre_assigned_role
         - contact
+        - accept_token
+        - reject_token
         - accept_token_expires_at
         - is_expired
       properties:
+        accept_token: { $ref: "#/components/schemas/InvitationAcceptToken" }
+        reject_token: { $ref: "#/components/schemas/InvitationRejectToken" }
         accept_token_expires_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
         contact: { $ref: "#/components/schemas/InvitationContact" }
         created_at: { $ref: "../shared.yaml#/components/schemas/DateTime" }
         invitation_id: { $ref: "#/components/schemas/InvitationId" }
         jid: { $ref: "../shared.yaml#/components/schemas/JID" }
         pre_assigned_role: { $ref: "roles.yaml#/components/schemas/MemberRole" }
-        status: { $ref: "#/components/schemas/InvitationStatus" }
         is_expired:
           type: boolean
     WorkspaceInvitationBasicDetails:
@@ -263,14 +261,8 @@ components:
           type: boolean
     InvitationId:
       description: The unique identifier of an invitation.
-      type: integer
-      format: int32
-      example: 42
-    InvitationStatus:
-      description: The status of an invitation.
       type: string
-      enum: [TO_SEND, SENT, SEND_FAILED]
-      example: SENT
+      example: FZBDmy1ROTqb65JafQvfa4vV
     InvitationContact:
       description: |-
         How to contact someone.
@@ -321,12 +313,6 @@ components:
       in: path
       name: token
       schema: { $ref: "#/components/schemas/InvitationRejectToken" }
-      required: true
-    InvitationTokenType:
-      description: Type of invitation token
-      in: query
-      name: token_type
-      schema: { $ref: "#/components/schemas/InvitationTokenType" }
       required: true
   responses:
     InvitationNotFound:

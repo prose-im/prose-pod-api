@@ -9,9 +9,11 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::Context as _;
 use figment::Figment;
 use hickory_resolver::Name as DomainName;
 use lazy_static::lazy_static;
+use url::Url;
 use validator::Validate;
 
 pub use self::api::*;
@@ -29,15 +31,22 @@ pub use self::prosody::*;
 pub use self::prosody_ext::*;
 pub use self::public_contacts::*;
 pub use self::server::*;
+pub use self::server_api::*;
 pub use self::service_accounts::*;
 
 pub const API_DATA_DIR: &'static str = "/var/lib/prose-pod-api";
 pub const API_CONFIG_DIR: &'static str = "/etc/prose";
 pub const CONFIG_FILE_NAME: &'static str = "prose.toml";
-// NOTE: Hosts are hard-coded here because they're internal to the Prose Pod
-//   and cannot be changed via configuration.
-pub const ADMIN_HOST: &'static str = "admin.prose.local";
 pub const FILE_SHARE_HOST: &'static str = "upload.prose.local";
+
+/// NOTE: In demos we use the password “demo” to make logging in easier.
+#[cfg(debug_assertions)]
+pub const MINIMUM_PASSWORD_LENGTH: u8 = 1;
+/// If MFA is enabled passwords shorter than 8 characters are
+/// considered to be weak (NIST SP800-63B). The API won’t accept
+/// choosing a `auth.min_password_length` setting lower than that.
+#[cfg(not(debug_assertions))]
+pub const MINIMUM_PASSWORD_LENGTH: u8 = 8;
 
 lazy_static! {
     pub static ref CONFIG_FILE_PATH: PathBuf =
@@ -73,22 +82,17 @@ pub mod pub_defaults {
 
     pub const SERVER_HTTP_PORT: u16 = 5280;
 
+    pub const SERVER_API_PORT: u16 = 8080;
+
     pub const SERVER_LOCAL_HOSTNAME: &'static str = "prose-pod-server";
-
-    pub const SERVER_LOCAL_HOSTNAME_ADMIN: &'static str = "prose-pod-server-admin";
-
-    pub const SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE: &'static str = "prose-pod-api";
 }
 
+// TODO: Remove default server values from here and use the ones defined in
+//   `prose-pod-server` to avoid discrepancies.
 fn default_config_static() -> Figment {
     use self::pub_defaults::*;
     use figment::providers::{Format as _, Toml};
-    use secrecy::{ExposeSecret as _, SecretString};
     use toml::toml;
-
-    let random_oauth2_registration_key: SecretString =
-        crate::auth::util::random_oauth2_registration_key();
-    let random_oauth2_registration_key: &str = random_oauth2_registration_key.expose_secret();
 
     let default_database_url = DEFAULT_MAIN_DATABASE_URL.as_str();
 
@@ -122,7 +126,7 @@ fn default_config_static() -> Figment {
         with_thread_ids = false
         with_line_number = true_in_debug
         with_span_events = false
-        with_thread_names = true_in_debug
+        with_thread_names = false
 
         [api]
         address = api_address
@@ -137,9 +141,12 @@ fn default_config_static() -> Figment {
         sqlx_logging = false
 
         [auth]
+        // See [NIST Special Publication 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html#passwordver)
+        // and [Authentication - OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#implement-proper-password-strength-controls).
+        min_password_length = 15
         token_ttl = "PT3H"
         password_reset_token_ttl = "PT15M"
-        oauth2_registration_key = random_oauth2_registration_key
+        invitation_ttl = "P1W"
 
         [api.network_checks]
         timeout = "PT5M"
@@ -167,9 +174,11 @@ fn default_config_static() -> Figment {
 
         [server]
         local_hostname = SERVER_LOCAL_HOSTNAME
-        local_hostname_admin = SERVER_LOCAL_HOSTNAME_ADMIN
         http_port = SERVER_HTTP_PORT
         log_level = "info"
+
+        [server_api]
+        port = SERVER_API_PORT
 
         [server.defaults]
         message_archive_enabled = true
@@ -190,14 +199,8 @@ fn default_config_static() -> Figment {
         push_notification_with_body = true
         push_notification_with_sender = true
 
-        [service_accounts.prose_pod_api]
-        xmpp_node = SERVICE_ACCOUNTS_PROSE_POD_API_XMPP_NODE
-
         [service_accounts.prose_workspace]
         xmpp_node = "prose-workspace"
-
-        [bootstrap]
-        prose_pod_api_xmpp_password = "bootstrap"
 
         [prosody_ext]
         config_file_path = "/etc/prosody/prosody.cfg.lua"
@@ -282,6 +285,26 @@ fn with_dynamic_defaults(mut figment: Figment) -> anyhow::Result<Figment> {
                 "api.databases.main_write.max_connections",
                 1,
             ));
+
+        // Make sure `main_read` opens in read-only mode
+        // (SeaORM doesn’t support it as an open configuration).
+        if let Ok(Value::String(_, read_url)) =
+            figment.extract_inner::<Value>("api.databases.main_read.url")
+        {
+            let mut read_url: Url = read_url
+                .parse()
+                .context("Invalid `api.databases.main_read.url`")?;
+            if !read_url
+                .query_pairs()
+                .any(|(key, _value)| key.as_ref() == "mode")
+            {
+                read_url
+                    .query_pairs_mut()
+                    .append_pair("mode", "ro")
+                    .finish();
+            }
+            figment = figment.merge(Serialized::default("api.databases.main_read.url", read_url));
+        }
     }
 
     Ok(figment)
@@ -345,6 +368,8 @@ pub struct AppConfig {
 
     pub server: Arc<ServerConfig>,
 
+    pub server_api: Arc<ServerApiConfig>,
+
     pub api: Arc<ApiConfig>,
 
     pub dashboard: Arc<DashboardConfig>,
@@ -362,6 +387,7 @@ pub struct AppConfig {
     pub prosody: HashMap<DomainName, ProsodyHostConfig>,
 
     /// Advanced config, use only if needed.
+    #[serde(default)]
     pub bootstrap: Arc<BootstrapConfig>,
 
     /// Advanced config, use only if needed.
@@ -527,8 +553,7 @@ mod api {
 
         impl DatabasesConfig {
             pub fn main_url(&self) -> &String {
-                assert_eq!(self.main_read.url, self.main_write.url);
-                &self.main_read.url
+                &self.main_write.url
             }
         }
 
@@ -581,11 +606,6 @@ mod dashboard {
 }
 
 mod service_accounts {
-    use std::str::FromStr as _;
-
-    use crate::app_config::ADMIN_HOST;
-    use crate::models::xmpp::jid::DomainPart;
-
     use super::prelude::*;
 
     #[derive(Debug)]
@@ -593,9 +613,6 @@ mod service_accounts {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct ServiceAccountsConfig {
-        #[validate(nested)]
-        pub prose_pod_api: ServiceAccountConfig,
-
         #[validate(nested)]
         pub prose_workspace: ServiceAccountConfig,
     }
@@ -609,13 +626,6 @@ mod service_accounts {
     }
 
     impl AppConfig {
-        pub fn api_jid(&self) -> BareJid {
-            BareJid::from_parts(
-                Some(&self.service_accounts.prose_pod_api.xmpp_node),
-                &DomainPart::from_str(ADMIN_HOST).unwrap(),
-            )
-        }
-
         pub fn workspace_jid(&self) -> BareJid {
             BareJid::from_parts(
                 Some(&self.service_accounts.prose_workspace.xmpp_node),
@@ -628,13 +638,11 @@ mod service_accounts {
 mod bootstrap {
     use super::prelude::*;
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     #[derive(Validate, serdev::Deserialize)]
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
-    pub struct BootstrapConfig {
-        pub prose_pod_api_xmpp_password: SecretString,
-    }
+    pub struct BootstrapConfig {}
 }
 
 mod pod {
@@ -714,9 +722,6 @@ mod server {
         #[validate(length(min = 1, max = 1024), non_control_character)]
         pub local_hostname: String,
 
-        #[validate(length(min = 1, max = 1024), non_control_character)]
-        pub local_hostname_admin: String,
-
         pub http_port: u16,
 
         pub log_level: prosody_config::LogLevel,
@@ -728,9 +733,6 @@ mod server {
     impl ServerConfig {
         pub fn http_url(&self) -> String {
             format!("http://{}:{}", self.local_hostname, self.http_port)
-        }
-        pub fn admin_http_url(&self) -> String {
-            format!("http://{}:{}", self.local_hostname_admin, self.http_port)
         }
     }
 
@@ -817,7 +819,30 @@ mod server {
     }
 }
 
+mod server_api {
+    use super::prelude::*;
+
+    #[derive(Debug)]
+    #[derive(Validate, serdev::Deserialize)]
+    #[serde(validate = "Validate::validate")]
+    pub struct ServerApiConfig {
+        #[validate(skip)]
+        pub port: u16,
+    }
+
+    impl AppConfig {
+        pub fn server_api_url(&self) -> String {
+            format!(
+                "http://{}:{}",
+                self.server.local_hostname, self.server_api.port
+            )
+        }
+    }
+}
+
 mod auth {
+    use crate::app_config::MINIMUM_PASSWORD_LENGTH;
+
     use super::prelude::*;
 
     #[derive(Debug)]
@@ -825,11 +850,14 @@ mod auth {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct AuthConfig {
+        #[validate(range(min = MINIMUM_PASSWORD_LENGTH))]
+        pub min_password_length: u8,
+
         pub token_ttl: iso8601_duration::Duration,
 
         pub password_reset_token_ttl: iso8601_duration::Duration,
 
-        pub oauth2_registration_key: SecretString,
+        pub invitation_ttl: iso8601_duration::Duration,
     }
 }
 
@@ -1007,28 +1035,14 @@ mod debug_only {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct DebugOnlyConfig {
-        /// When automatically accepting invitations during testing, one might want to authenticate
-        /// the created member. With this flag turned on, the member's password will be their JID.
+        /// When automatically accepting invitations during testing, one might
+        /// want to authenticate the created member. With this flag turned on,
+        /// the member's password will be their JID.
         #[serde(default)]
         pub insecure_password_on_auto_accept_invitation: bool,
 
         #[serde(default)]
         pub dependency_modes: DependencyModesConfig,
-    }
-
-    #[derive(Debug)]
-    #[derive(serdev::Deserialize)]
-    #[serde(deny_unknown_fields)]
-    #[serde(rename_all = "snake_case")]
-    pub enum UuidDependencyMode {
-        Normal,
-        Incrementing,
-    }
-
-    impl Default for UuidDependencyMode {
-        fn default() -> Self {
-            Self::Normal
-        }
     }
 
     #[derive(Debug, Clone, Copy)]
@@ -1051,9 +1065,6 @@ mod debug_only {
     #[serde(deny_unknown_fields)]
     #[serde(validate = "Validate::validate")]
     pub struct DependencyModesConfig {
-        #[serde(default)]
-        pub uuid: UuidDependencyMode,
-
         #[serde(default)]
         pub notifier: NotifierDependencyMode,
     }
@@ -1347,16 +1358,16 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example"
+                    "url": "sqlite:///example"
                 }
             }),
             json!({
                 "main_read": {
-                    "url": "example",
+                    "url": "sqlite:///example?mode=ro",
                     "max_connections": *DEFAULT_DB_MAX_READ_CONNECTIONS
                 },
                 "main_write": {
-                    "url": "example",
+                    "url": "sqlite:///example",
                     "max_connections": 1
                 },
             }),
@@ -1368,17 +1379,14 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example",
                     "max_connections": 4
                 }
             }),
             json!({
                 "main_read": {
-                    "url": "example",
                     "max_connections": 4
                 },
                 "main_write": {
-                    "url": "example",
                     "max_connections": 4
                 },
             }),
@@ -1390,11 +1398,7 @@ mod tests {
         test_database_rw_defaults_(
             json!({
                 "main": {
-                    "url": "example",
                     "max_connections": 4
-                },
-                "main_read": {
-                    "url": "other"
                 },
                 "main_write": {
                     "max_connections": 1
@@ -1402,12 +1406,28 @@ mod tests {
             }),
             json!({
                 "main_read": {
-                    "url": "other",
                     "max_connections": 4
                 },
                 "main_write": {
-                    "url": "example",
                     "max_connections": 1
+                },
+            }),
+        );
+    }
+
+    /// One shouldn’t do this, but if they are forced to do it
+    /// for technical reasons, they should be able to.
+    #[test]
+    fn test_database_rw_defaults_override_read_mode() {
+        test_database_rw_defaults_(
+            json!({
+                "main_read": {
+                    "url": "sqlite:///other?mode=rw",
+                },
+            }),
+            json!({
+                "main_read": {
+                    "url": "sqlite:///other?mode=rw",
                 },
             }),
         );

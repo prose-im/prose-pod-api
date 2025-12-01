@@ -3,7 +3,6 @@
 // Copyright: 2024–2025, Rémi Bardon <remi@remibardon.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
-mod errors;
 mod extractors;
 mod routes;
 
@@ -38,4 +37,34 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         ))
         .route(MEMBERS_ROUTE, head(head_members))
         .with_state(app_state)
+}
+
+mod errors {
+    use service::members::errors::*;
+
+    use crate::error::prelude::*;
+
+    impl HttpApiError for MemberNotFound {
+        fn code(&self) -> ErrorCode {
+            ErrorCode {
+                value: "member_not_found",
+                http_status: StatusCode::NOT_FOUND,
+                log_level: LogLevel::Info,
+            }
+        }
+    }
+
+    impl HttpApiError for UserDeleteError {
+        fn code(&self) -> ErrorCode {
+            match self {
+                Self::CannotSelfRemove => ErrorCode {
+                    value: "cannot_remove_self",
+                    http_status: StatusCode::FORBIDDEN,
+                    log_level: LogLevel::Info,
+                },
+                Self::Forbidden(err) => err.code(),
+                Self::Internal(err) => err.code(),
+            }
+        }
+    }
 }

@@ -5,11 +5,13 @@
 
 use std::fmt::Display;
 
-use chrono::{DateTime, Utc};
+use serdev::Serialize;
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 
 use crate::{
     models::{EmailAddress, Url},
     notifications::notifier::email::{EmailNotification, EmailNotificationCreateError},
+    util::debug_panic_or_log_error,
     AppConfig,
 };
 
@@ -17,23 +19,37 @@ use super::PasswordResetToken;
 
 /// All the data needed to generate the content of a password reset notification.
 #[derive(Debug, Clone)]
+#[derive(Serialize)]
 pub struct PasswordResetNotificationPayload {
-    pub reset_token: PasswordResetToken,
-    pub expires_at: DateTime<Utc>,
-    pub dashboard_url: Url,
+    pub token: PasswordResetToken,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub expires_at: OffsetDateTime,
+
+    pub url: url::Url,
+}
+
+impl PasswordResetNotificationPayload {
+    pub fn new(token: PasswordResetToken, expires_at: OffsetDateTime, dashboard_url: &Url) -> Self {
+        Self {
+            url: pw_reset_link(&token, dashboard_url),
+            token,
+            expires_at,
+        }
+    }
 }
 
 impl EmailNotification {
     pub fn for_password_reset(
         recipient: EmailAddress,
-        payload: PasswordResetNotificationPayload,
+        payload: &PasswordResetNotificationPayload,
         app_config: &AppConfig,
     ) -> Result<EmailNotification, EmailNotificationCreateError> {
         EmailNotification::new(
             recipient,
             subject(),
-            message_plain(&payload),
-            message_html(&payload),
+            message_plain(payload),
+            message_html(payload),
             app_config,
         )
     }
@@ -49,12 +65,15 @@ fn notification_message(
 ) -> String {
     vec![
         format!(
-            "To reset you password, open the following link in a web browser: {pw_reset_link}. You will be guided to create a new one.",
+            "To reset your password, open the following link in a web browser: {pw_reset_link}. You will be guided to create a new one.",
         ).as_str(),
 
         format!(
             "This link expires at {expires_at}. After that time passes, you will have to request a new password reset.",
-            expires_at = expires_at.to_rfc2822(),
+            expires_at = expires_at.format(&Rfc2822).unwrap_or_else(|err| {
+                debug_panic_or_log_error(format!("Could not format date as RFC 2822: {err:?}"));
+                format!("{expires_at}")
+            }),
         ).as_str(),
     ]
     .join("\n\n")
@@ -73,17 +92,11 @@ fn pw_reset_link(reset_token: &PasswordResetToken, dashboard_url: &url::Url) -> 
 }
 
 fn message_plain(payload: &PasswordResetNotificationPayload) -> String {
-    notification_message(
-        payload,
-        pw_reset_link(&payload.reset_token, &payload.dashboard_url),
-    )
+    notification_message(payload, &payload.url)
 }
 
 fn message_html(payload: &PasswordResetNotificationPayload) -> String {
-    let pw_reset_link = format!(
-        r#"<a href="{url}">{url}</a>"#,
-        url = pw_reset_link(&payload.reset_token, &payload.dashboard_url),
-    );
+    let pw_reset_link = format!(r#"<a href="{url}">{url}</a>"#, url = &payload.url);
     let mut body = notification_message(payload, pw_reset_link);
     body = body.replace("\n\n", "</p><p>");
     format!(

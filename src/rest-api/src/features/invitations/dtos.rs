@@ -5,41 +5,52 @@
 
 //! Data Transfer Objects.
 
-use chrono::{DateTime, Utc};
 use serdev::Serialize;
 use service::{
-    invitations::{self, InvitationContact, InvitationStatus},
+    invitations::{self, InvitationContact, InvitationId, InvitationToken},
     members::MemberRole,
     models::BareJid,
 };
+use time::OffsetDateTime;
 
 #[derive(Debug)]
 #[derive(Serialize)]
 #[cfg_attr(feature = "test", derive(serdev::Deserialize))]
 pub struct WorkspaceInvitationDto {
-    pub invitation_id: i32,
-    pub created_at: DateTime<Utc>,
-    pub status: InvitationStatus,
+    pub invitation_id: InvitationId,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+
     pub jid: BareJid,
+
     pub pre_assigned_role: MemberRole,
+
     pub contact: InvitationContact,
-    pub accept_token_expires_at: DateTime<Utc>,
+
+    pub accept_token: InvitationToken,
+    pub reject_token: InvitationToken,
+
+    #[serde(with = "time::serde::rfc3339")]
+    pub accept_token_expires_at: OffsetDateTime,
+
     pub is_expired: bool,
 }
 
 // MARK: - Boilerplate
 
-impl From<invitations::entities::workspace_invitation::Model> for WorkspaceInvitationDto {
-    fn from(value: invitations::entities::workspace_invitation::Model) -> Self {
+impl From<invitations::Invitation> for WorkspaceInvitationDto {
+    fn from(value: invitations::Invitation) -> Self {
         Self {
-            invitation_id: value.id,
+            is_expired: value.is_expired(),
+            invitation_id: value.id.clone(),
             created_at: value.created_at,
-            status: value.status,
             jid: value.jid.clone().into(),
             pre_assigned_role: value.pre_assigned_role,
             contact: value.contact(),
+            accept_token: value.accept_token,
+            reject_token: value.reject_token,
             accept_token_expires_at: value.accept_token_expires_at,
-            is_expired: value.is_expired(),
         }
     }
 }

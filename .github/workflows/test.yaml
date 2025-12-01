@@ -10,14 +10,14 @@ on:
       - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "VERSION"
       # We changed how the image is built:
       - "Dockerfile"
       - ".dockerignore"
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
-      # We changed some packaged documentation:
+      # We changed some testable documentation:
       - "docs/openapi/**"
-      - "src/*/static/**"
       # We changed how tests are ran:
       - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
@@ -31,14 +31,14 @@ on:
       - "src/*/src/Cargo.toml"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "VERSION"
       # We changed how the image is built:
       - "Dockerfile"
       - ".dockerignore"
       # We changed how the workflow is ran:
       - ".github/workflows/test.yaml"
-      # We changed some packaged documentation:
+      # We changed some testable documentation:
       - "docs/openapi/**"
-      - "src/*/static/**"
       # We changed how tests are ran:
       - "src/*/tests/**"
       - "local-run/scenarios/demo/**"
@@ -87,6 +87,9 @@ jobs:
 
       - name: Ensure no `dbg!`s are committed in source files
         run: "! grep -rEn --include='*.rs' 'dbg!' src"
+
+      - name: Ensure no `todo!`s are committed in source files
+        run: "! grep -rEn --include='*.rs' 'todo!' src"
 
   smoke-test:
     if: github.event.pull_request.draft == false

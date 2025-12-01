@@ -30,18 +30,18 @@ impl<T> Paginated<T> {
 
 impl<T: Serialize> IntoResponse for Paginated<T> {
     fn into_response(self) -> axum::response::Response {
-        fn u64_to_str(n: u64) -> HeaderValue {
+        fn usize_to_str(n: usize) -> HeaderValue {
             // NOTE: We can safely unwrap here as the string representation
-            //   of a `u64` only uses ASCII characters.
+            //   of a `usize` only uses ASCII characters.
             HeaderValue::from_str(&n.to_string()).unwrap()
         }
         IntoResponse::into_response((
             self.status(),
             [
-                ("Pagination-Current-Page", u64_to_str(self.0.current_page)),
-                ("Pagination-Page-Size", u64_to_str(self.0.page_size)),
-                ("Pagination-Page-Count", u64_to_str(self.0.page_count)),
-                ("Pagination-Item-Count", u64_to_str(self.0.item_count)),
+                ("Pagination-Current-Page", usize_to_str(self.0.current_page)),
+                ("Pagination-Page-Size", usize_to_str(self.0.page_size)),
+                ("Pagination-Page-Count", usize_to_str(self.0.page_count)),
+                ("Pagination-Item-Count", usize_to_str(self.0.item_count)),
             ],
             axum::Json(self.0.data),
         ))

@@ -4,7 +4,8 @@
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
 use service::{
-    prose_xmpp::stanza::vcard4::Nickname,
+    members::Nickname,
+    prose_xmpp::stanza::vcard4,
     xmpp::{XmppServiceContext, XmppServiceImpl},
 };
 
@@ -19,18 +20,20 @@ async fn given_nickname(
     name: String,
     nickname: String,
 ) -> Result<(), Error> {
-    let token = world.token(&name);
+    let auth_token = world.token(&name).await;
     let jid = name_to_jid(world, &name).await?;
+
     world
-        .mock_xmpp_service
+        .mock_xmpp_service()
         .set_own_nickname(
             &XmppServiceContext {
                 bare_jid: jid,
-                prosody_token: token,
+                auth_token,
             },
-            &nickname,
+            &Nickname::from_string_unsafe(nickname),
         )
         .await?;
+
     Ok(())
 }
 
@@ -51,9 +54,9 @@ async fn when_set_nickname(
     subject: String,
     nickname: String,
 ) -> Result<(), Error> {
-    let token = world.token(&actor);
+    let ref auth = world.token(&actor).await;
     let jid = name_to_jid(world, &subject).await?;
-    let res = set_member_nickname(world.api(), token, jid, nickname).await;
+    let res = set_member_nickname(world.api(), auth, jid, nickname).await;
     world.result = Some(res.unwrap().into());
     Ok(())
 }
@@ -74,11 +77,11 @@ async fn when_set_nickname_self(
 async fn then_nickname(world: &mut TestWorld, name: String, nickname: String) -> Result<(), Error> {
     let jid = name_to_jid(world, &name).await?;
     let vcard = world
-        .mock_xmpp_service
+        .mock_xmpp_service()
         .get_vcard(&jid)?
         .expect("vCard not found");
 
-    assert_eq!(vcard.nickname, vec![Nickname { value: nickname }]);
+    assert_eq!(vcard.nickname, vec![vcard4::Nickname { value: nickname }]);
 
     Ok(())
 }

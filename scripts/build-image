@@ -113,7 +113,7 @@ for arg in "$@"; do
 		--dry-run) export DRY_RUN=1 ;;
 		--debug) export LOG_DEBUG=1 ;;
 		--trace) export LOG_TRACE=1 ;;
-		*) die "Unknown argument: $(format_code $arg).\n$(usage)" ;;
+		*) error "Unknown argument: $(format_code $arg)."; info "$(usage)"; die ;;
 	esac
 done
 

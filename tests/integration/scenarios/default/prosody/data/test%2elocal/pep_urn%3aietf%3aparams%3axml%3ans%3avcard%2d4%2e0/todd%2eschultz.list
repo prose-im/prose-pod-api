@@ -1,6 +1,19 @@
 item({
 	{
 		{
+			"todd.schultz@example.net";
+			["name"] = "text";
+			["attr"] = {
+				["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+			};
+		};
+		["name"] = "email";
+		["attr"] = {
+			["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
+		};
+	};
+	{
+		{
 			"Todd S.";
 			["name"] = "text";
 			["attr"] = {
@@ -13,11 +26,11 @@ item({
 		};
 	};
 	["key"] = "todd.schultz@test.local";
-	["with"] = "todd.schultz@test.local";
-	["when"] = 1757007013;
 	["name"] = "vcard";
+	["when"] = 1762402885;
+	["with"] = "todd.schultz@test.local";
 	["attr"] = {
-		["stamp"] = "2025-09-04T17:30:13Z";
+		["stamp"] = "2025-11-06T04:21:25Z";
 		["xmlns"] = "urn:ietf:params:xml:ns:vcard-4.0";
 	};
 });
