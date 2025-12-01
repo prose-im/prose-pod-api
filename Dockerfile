@@ -1,7 +1,7 @@
 FROM rust:alpine AS build
 WORKDIR /usr/src/prose-pod-api
 
-RUN apk update && apk add musl-dev
+RUN apk add --no-cache musl-dev
 
 ARG CARGO_PROFILE='release'
 
@@ -22,7 +22,7 @@ RUN cargo install --path src/rest-api --bin prose-pod-api --profile="${CARGO_PRO
 
 FROM alpine:latest
 
-RUN apk update && apk add libgcc libc6-compat
+RUN apk add --no-cache libgcc libc6-compat
 
 WORKDIR /usr/share/prose-pod-api
 
