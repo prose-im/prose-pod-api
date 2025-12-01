@@ -35,13 +35,13 @@ RUN API_VERSION_DIR=./src/service/static/api-version && \
 RUN cargo install --path src/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" -F openapi ${CARGO_INSTALL_EXTRA_ARGS}
 
 
-FROM redocly/cli:1.34.5 as api-docs
+FROM redocly/cli:1.34.5 AS api-docs
 
 COPY docs/openapi .
 RUN redocly bundle openapi.yaml -o /usr/share/prose-pod-api/static/api-docs/openapi.json --config redocly.cfg.yaml
 
 
-FROM alpine:3.22.0 as run
+FROM alpine:3.22.0 AS run
 
 RUN apk update && apk add libgcc libc6-compat
 
