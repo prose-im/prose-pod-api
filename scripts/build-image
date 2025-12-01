@@ -95,7 +95,6 @@ for arg in "$@"; do
 			CARGO_PROFILE="${arg#'--profile='}"
 			;;
 		--offline)
-			die "Offline builds are not supported anymore, because we build the Rust project in a Dockerfile and we have a git dependency ($(format_code prose-core-client)). If you need this feature, consider adding $(format_code prose-core-client) as a $(format_hyperlink 'git submodule' 'https://git-scm.com/book/en/v2/Git-Tools-Submodules') instead."
 			info 'Will build without accesing the network.'
 			CARGO_INSTALL_EXTRA_ARGS+=('--offline')
 			info 'Will not pull referenced Docker images.'

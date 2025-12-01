@@ -1,11 +1,9 @@
-# syntax=docker/dockerfile:1.7-labs
-
 FROM lukemathwalker/cargo-chef:0.1.71-rust-1.87-alpine3.22 AS chef
 WORKDIR /app
 
 
 FROM chef AS plan
-COPY --exclude=src/*/static/ . .
+COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 
@@ -21,7 +19,7 @@ RUN cargo chef cook --recipe-path recipe.json
 ARG CARGO_PROFILE='release'
 
 # Build application
-COPY --exclude=src/*/static/ . .
+COPY . .
 ARG CARGO_INSTALL_EXTRA_ARGS=''
 ARG VERSION
 ARG COMMIT

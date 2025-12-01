@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7-labs
-
 FROM rust:alpine AS build
 WORKDIR /usr/src/prose-pod-api
 
@@ -8,7 +6,7 @@ RUN apk update && apk add musl-dev
 ARG CARGO_PROFILE='release'
 
 # Build the application.
-COPY --exclude=src/*/static/ . .
+COPY . .
 ARG CARGO_INSTALL_EXTRA_ARGS=''
 ARG VERSION
 ARG COMMIT

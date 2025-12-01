@@ -2,7 +2,6 @@
 !Cargo.*
 !src/**/*.rs
 !src/*/Cargo.*
-!src/*/static/
 !docs/
 docs/tutorials/
 !prose.lic
