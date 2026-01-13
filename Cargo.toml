@@ -14,6 +14,7 @@ repository = "https://github.com/prose-im/prose-pod-api.git"
 anyhow = { version = "1", default-features = false }
 arc-swap = { version = "1", default-features = false }
 async-trait = { version = "0.1", default-features = false }
+aws-sdk-s3 = { version = "1.115.0", default-features = false }
 axum = { version = "0.8.8", default-features = false }
 axum-extra = { version = "0.12", default-features = false }
 axum-test = { version = "18", default-features = false }

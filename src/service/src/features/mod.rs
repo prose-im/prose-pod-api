@@ -5,6 +5,7 @@
 
 pub mod app_config;
 pub mod auth;
+pub mod backups;
 pub mod cron;
 pub mod factory_reset;
 pub mod global_storage;

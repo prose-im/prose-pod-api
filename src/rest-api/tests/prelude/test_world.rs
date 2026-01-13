@@ -14,6 +14,7 @@ use figment::Figment;
 use service::{
     app_config::{AppConfig, CONFIG_FILE_NAME},
     auth::{AuthService, AuthToken},
+    backups::BackupService,
     factory_reset::FactoryResetService,
     identity_provider::IdentityProvider,
     invitations::{
@@ -60,6 +61,9 @@ pub struct TestWorld {
     pub mock_invitation_repository: Option<Arc<MockInvitationRepository>>,
     pub auth_service: Option<AuthService>,
     pub mock_auth_service: Option<Arc<MockAuthService>>,
+    pub backup_service: BackupService,
+    #[allow(unused)]
+    pub mock_backup_service: Arc<MockBackupService>,
     pub xmpp_service: Option<XmppService>,
     pub mock_xmpp_service: Option<Arc<MockXmppService>>,
     pub workspace_service: Option<WorkspaceService>,
@@ -188,6 +192,7 @@ impl TestWorld {
             panic!("Could not run migrations in tests: {err}");
         }
 
+        let mock_backup_service = Arc::new(MockBackupService::default());
         let mock_email_notifier = Arc::new(MockNotifier::<EmailNotification>::default());
         let mock_network_checker = Arc::new(MockNetworkChecker::default());
         let mock_pod_version_service = Arc::new(MockPodVersionService::default());
@@ -205,8 +210,11 @@ impl TestWorld {
             mock_workspace_service: None,
             auth_service: None,
             mock_auth_service: None,
+            backup_service: BackupService {
+                implem: mock_backup_service.clone(),
+            },
+            mock_backup_service,
             licensing_service: None,
-            #[cfg(feature = "test")]
             mock_licensing_service: None,
             pod_version_service: PodVersionService::new(mock_pod_version_service.clone()),
             mock_pod_version_service,

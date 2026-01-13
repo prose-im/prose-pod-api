@@ -19,6 +19,7 @@ use prose_pod_api::{
 use service::{
     app_config::{pub_defaults as defaults, LogConfig},
     auth::{auth_service::OAuth2ClientState, AuthService, LiveAuthService},
+    backups::BackupService,
     factory_reset::FactoryResetService,
     identity_provider::{IdentityProvider, LiveIdentityProvider},
     invitations::{
@@ -276,6 +277,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
             min_password_length: app_config.auth.min_password_length,
         }),
     };
+    let backup_service = BackupService::from_config(&app_config.backups);
 
     let live_xmpp_service = Arc::new(LiveXmppService::from_config(
         &app_config,
@@ -373,6 +375,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         invitation_repository,
         xmpp_service,
         auth_service,
+        backup_service,
         email_notifier,
         member_service,
         network_checker,

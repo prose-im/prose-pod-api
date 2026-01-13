@@ -33,6 +33,7 @@ mod prelude {
 }
 
 mod mock_auth_service;
+mod mock_backup_service;
 mod mock_identity_provider;
 mod mock_invitation_repository;
 mod mock_invitation_service;
@@ -48,6 +49,7 @@ mod mock_xmpp_service;
 
 mod mocks {
     pub use super::mock_auth_service::*;
+    pub use super::mock_backup_service::*;
     pub use super::mock_identity_provider::*;
     pub use super::mock_invitation_repository::*;
     pub use super::mock_invitation_service::*;

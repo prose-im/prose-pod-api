@@ -31,6 +31,7 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
         invitation_repository: world.invitation_repository().clone(),
         xmpp_service: world.xmpp_service().clone(),
         auth_service: world.auth_service().clone(),
+        backup_service: world.backup_service.clone(),
         email_notifier: Some(world.email_notifier.clone()),
         member_service: world.member_service(),
         network_checker: world.network_checker.clone(),

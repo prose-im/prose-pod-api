@@ -17,6 +17,7 @@ use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer}
 use features::{factory_reset::restart_guard, startup_actions};
 use service::{
     auth::AuthService,
+    backups::BackupService,
     factory_reset::FactoryResetService,
     identity_provider::IdentityProvider,
     invitations::{invitation_service::InvitationApplicationService, InvitationRepository},
@@ -53,6 +54,7 @@ pub struct AppState {
 
     pub xmpp_service: XmppService,
     pub auth_service: AuthService,
+    pub backup_service: BackupService,
     pub email_notifier: Option<Notifier<EmailNotification>>,
     pub member_service: MemberService,
     pub network_checker: NetworkChecker,

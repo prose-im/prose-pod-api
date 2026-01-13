@@ -10,6 +10,12 @@ authors = ["Rémi Bardon <remi@remibardon.name>"]
 anyhow = { workspace = true, features = ["backtrace"] }
 arc-swap = { workspace = true }
 async-trait = { workspace = true }
+aws-sdk-s3 = { workspace = true, features = [
+    "default-https-client",
+    "rt-tokio",
+    "rustls",
+    "sigv4a",
+] }
 base64 = { workspace = true }
 biscuit-auth = { workspace = true }
 bytes = { workspace = true }
