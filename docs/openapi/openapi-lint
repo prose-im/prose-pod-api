@@ -23,6 +23,16 @@ fi
 : ${FORMAT:=stylish}
 [ -n "$GITHUB_ACTIONS" ] && FORMAT='github-actions'
 
-edo redocly lint "${OPENAPI_SPEC_FILE:?}" --format "${FORMAT:?}" --config="${REDOCLY_CONFIG_FILE:?}" "$@"
+# NOTE: `2> >(sed '1,/╚/ d')` hides
+#   >
+#   > ╔═══════════════════════════════════════════════════════╗
+#   > ║                                                       ║
+#   > ║  A new version of Redocly CLI (2.14.5) is available.  ║
+#   > ║  Update now: `npm i -g @redocly/cli@latest`.          ║
+#   > ║  Changelog: https://redocly.com/docs/cli/changelog/   ║
+#   > ║                                                       ║
+#   > ╚═══════════════════════════════════════════════════════╝
+edo redocly lint "${OPENAPI_SPEC_FILE:?}" --format "${FORMAT:?}" --config="${REDOCLY_CONFIG_FILE:?}" "$@" \
+    2\> \>\(sed '1,/╚/ d'\)
 
 # TODO: Check that all routes from children files are included in `openapi.json`.
