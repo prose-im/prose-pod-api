@@ -1,0 +1,515 @@
+paths:
+  create_backup:
+    tags: [Backups]
+    summary: Create backup
+    description: Create a new backup.
+    operationId: create_backup
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - description
+            properties:
+              description:
+                $ref: "#/components/schemas/BackupMetadataCheap/properties/description"
+            example:
+              description: 2025-12-17 (pre update)
+    responses:
+      "201":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupDetails" }
+            example: { $ref: "#/components/examples/backupManualValidExpensive" }
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  list_backups:
+    tags: [Backups]
+    summary: List backups
+    description: |-
+      List all backups.
+
+      For technical reasons, this route is not paginated, and returns the results in reverse
+      chronological order (latest first). Implement pagination/sorting at the UI layer if needed.
+    operationId: list_backups
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/Backup" }
+            example: { $ref: "#/components/examples/backups" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  edit_backup:
+    tags: [Backups]
+    summary: Edit backup
+    operationId: edit_backup
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: []
+            properties:
+              description:
+                $ref: "#/components/schemas/BackupMetadataCheap/properties/description"
+            example:
+              description: 2025-12-17 (pre update vX.Y.Z)
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupDetails" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  get_backup_details:
+    tags: [Backups]
+    summary: Get backup details
+    description: |-
+      Get more details about a backup (e.g. encryption and signing keys).
+    operationId: get_backup_details
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    responses:
+      "200":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupDetails" }
+            examples:
+              Valid:
+                value: { $ref: "#/components/examples/backupAutomaticValidExpensive" }
+              Corrupted:
+                value: { $ref: "#/components/examples/backupAutomaticCorruptedExpensive" }
+              Malicious:
+                value: { $ref: "#/components/examples/backupMaliciousExpensive" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  download_backup:
+    tags: [Backups]
+    summary: Download backup
+    description: |-
+      When called, this endpoint redirects to a presigned URL one can use to download the full
+      backup. Note that this route might not work if your bucket is misconfigured.
+      See [“Download and upload objects with presigned URLs” in Amazon AWS Docs][cfg-docs]
+      for more information.
+
+      If you need to get the URL and do something with it (e.g. display it to the user), make sure
+      to disable redirects if your HTTP library follows them by default.
+
+      [cfg-docs]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html
+    operationId: download_backup
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            required: []
+            properties:
+              download_link_ttl_secs:
+                description: |-
+                  Time to live (TTL) of the returned download link (S3 presigned URL).
+
+                  You should not need to change that.
+                  It’s there just in case you absolutely _need_ a longer TTL.
+                type: integer
+                format: uint16
+                minimum: 1
+                maximum: 3600
+                default: 60
+    responses:
+      "303":
+        description: Success (redirect to S3 presigned URL)
+        headers:
+          Location: { $ref: "../shared.yaml#/components/headers/Location" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  restore_backup:
+    tags: [Backups]
+    summary: Restore backup
+    description: |-
+      This will restore all data on your Pod (all settings and all user data).
+      Your Pod will then restart and show the initial setup process, as if it was never used before.
+
+      As a safety measure, the route must be called twice. The first call will return a
+      `202 Accepted` response containing a confirmation token.
+      This token can be used in a second call, which will perform the restoration.
+
+      This second call will return a `205 Reset Content`, implying the administration dashboard from
+      which the API call originated should be reloaded. After the restoration (therefore after
+      returning the `205`), the API will restart and return `503 Service Unavailable` until it’s
+      done. A restart usually takes less than 100ms, but `Retry-After` will have a value of 1 second
+      since it’s the smallest allowed value (per the specification).
+    operationId: restore_backup
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    responses:
+      "202":
+        description: Confirmation code
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupRestorationConfirmationPayload" }
+      "205":
+        description: Success
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackupRestoreResponse" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+      "410": { $ref: "#/components/responses/BackupNotFound" }
+  delete_backup:
+    tags: [Backups]
+    summary: Delete backup
+    description: Delete a backup.
+    operationId: delete_backup
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/BackupId"
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  delete_backups_batch:
+    tags: [Backups]
+    summary: Batch delete backups
+    description: Deletes multiple backups at the same time.
+    operationId: delete_backups_batch
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/BackupId" }
+            minItems: 1
+            maxItems: 1000
+    responses:
+      "204": { $ref: "../shared.yaml#/components/responses/NoContent" }
+      "401": { $ref: "../shared.yaml#/components/responses/Unauthorized" }
+      "403": { $ref: "../shared.yaml#/components/responses/Forbidden" }
+  # TODO: Get signature (whole) for inspection.
+
+components:
+  schemas:
+    Backup:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id: { $ref: "#/components/schemas/BackupId" }
+        - $ref: "#/components/schemas/BackupMetadataCheap"
+      example: { $ref: "#/components/examples/backupAutomaticValidCheap" }
+    BackupDetails:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id: { $ref: "#/components/schemas/BackupId" }
+        # NOTE: `BackupMetadataExpensive` has to be first because the description of
+        #   `can_be_restored` is a bit difference and the first definition seems to take
+        #   precedence.
+        - $ref: "#/components/schemas/BackupMetadataExpensive"
+        - $ref: "#/components/schemas/BackupMetadataCheap"
+      example: { $ref: "#/components/examples/backupAutomaticValidExpensive" }
+    BackupId:
+      description: |-
+        The unique identifier of a backup.
+
+        Deliberately contains file extensions to prevent double-extension attacks. If you strip it
+        in a GUI for readability (although you shouldn’t), use metadata to differenciate backups.
+      type: string
+      example: 1765900175-Automatic%20backup%202025-12-16.tar.zst.gpg
+    BackupMetadataCheap:
+      type: object
+      required:
+        - description
+        - created_at
+        - size_bytes
+        - is_signed
+        - is_encrypted
+        - can_be_restored
+      properties:
+        description:
+          description: Human-readable description of the backup.
+          type: string
+          minLength: 1
+          maxLength: 256
+        created_at:
+          $ref: "../shared.yaml#/components/schemas/DateTime"
+          description: Timestamp at which the backup was created (precise to the second).
+        size_bytes:
+          description: |-
+            Size of the backup (compressed, potentially encrypted), in bytes.
+            Please note that this is not the total size of backed up files, which is much larger.
+          type: integer
+          format: uint32
+        is_signed:
+          description: |-
+            Whether or not the backup is signed.
+
+            Please note that this doesn’t mean the signature is valid or trusted.
+          type: boolean
+        is_encrypted:
+          description: |-
+            Whether or not the backup is encrypted.
+
+            Please note that this doesn’t mean encryption was made using a trusted key.
+          type: boolean
+        can_be_restored:
+          description: |-
+            `(!signing.mandatory || is_signed) && (!encryption.mandatory || is_encrypted)`
+
+            ⚠️ Beware that `can_be_restored` is a one-sided indicator. `true` doesn’t
+            mean a restore will succeed for sure. More computation is required to know
+            if the backup is intact and using trusted keys for example. `false`,
+            however, means restoring this backup is impossible and the option shouldn’t
+            be presented to a user.
+          type: boolean
+      example: { $ref: "#/components/examples/backupAutomaticValidCheap" }
+    # TODO: Add info about key owners (name, email…)? That’d be great to spot a bad key in a GUI.
+    BackupMetadataExpensive:
+      required:
+        - is_intact
+        - signing_key
+        - is_signature_trusted
+        - is_signature_valid
+        - encryption_key
+        - is_encryption_valid
+        - is_trusted
+        - can_be_restored
+      properties:
+        is_intact:
+          description: |-
+            Whether or not the backup is intact (integrity check passed and signature valid if
+            applicable).
+          type: boolean
+        signing_key:
+          $ref: "#/components/schemas/OpenPgpFingerprint"
+          description: If the backup is signed, the long fingerprint of the signing key.
+          type: [string, "null"]
+        is_signature_trusted:
+          description: |-
+            If the backup is signed, whether or not the signing key is a trusted one.
+
+            For security reasons, keys can be rotated, or removed in case of a leak.
+            If this is `false`, `can_be_restored` will also be `false`.
+          type: [boolean, "null"]
+        is_signature_valid:
+          description: |-
+            If the backup is signed, whether or not the signature is correct (backup not corrupted).
+            This doesn’t mean the signing key is trusted. For that, check `is_signature_trusted`.
+
+            For security reasons, keys can be rotated, or removed in case of a leak.
+            If this is `false`, `can_be_restored` will also be `false`.
+          type: [boolean, "null"]
+        encryption_key:
+          $ref: "#/components/schemas/OpenPgpFingerprint"
+          type: [string, "null"]
+        is_encryption_valid:
+          description: |-
+            `is_encryption_correct && is_encryption_key_recognized`
+          type: [boolean, "null"]
+        is_trusted:
+          description: |-
+            More or less
+            `(!signing.enabled || !signing.mandatory || (is_signed && is_signature_trusted)) && (!encryption.enabled || !encryption.mandatory || (is_encrypted && is_encryption_valid))`.
+            It’s more complex than that but you get the idea.
+          type: boolean
+        can_be_restored:
+          description: |-
+            `is_intact && is_trusted`
+
+            ⚠️ Beware that `can_be_restored` is a one-sided indicator. `true` doesn’t
+            mean a restore will succeed for sure. More computation is required to know
+            if the backup is intact and using trusted keys for example. `false`,
+            however, means restoring this backup is impossible and the option shouldn’t
+            be presented to a user.
+          type: boolean
+      example:
+        description: "Automatic backup 2025-12-16"
+        created_at: 2025-12-16T15:49:35Z
+        size_bytes: 1248520837
+        is_intact: true
+        is_signed: true
+        signing_key: 9D4A B3F2 18C7 5E60 A9B1 4F8D 72C6 E03A 5B91
+        is_signature_trusted: true
+        is_signature_valid: true
+        is_encrypted: true
+        encryption_key: A3F9 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+        is_encryption_valid: true
+        is_trusted: true
+        can_be_restored: true
+    BackupRestoreResponse:
+      type: object
+      required:
+        - stats
+      properties:
+        stats:
+          type: object
+          required:
+            - backup_size_bytes
+            - extracted_bytes
+          properties:
+            backup_size_bytes:
+              type: integer
+              format: uint64
+            extracted_bytes:
+              type: integer
+              format: uint64
+    OpenPgpFingerprint:
+      description: |-
+        An [OpenPGP key fingerprint](https://www.rfc-editor.org/rfc/rfc9580#name-key-ids-and-fingerprints "RFC 9580: OpenPGP") (long).
+      type: string
+      example: A3F9 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+    BackupRestorationConfirmationPayload:
+      type: object
+      required:
+        - confirmation
+      properties:
+        confirmation:
+          type: string
+          format: password
+          example: 2gbGiprPzkhZf8mZ
+  parameters:
+    BackupId:
+      description: Unique backup identifier
+      name: backupId
+      in: path
+      schema: { $ref: "#/components/schemas/BackupId" }
+      required: true
+  responses:
+    BackupNotFound:
+      description: Backup not found
+      content:
+        application/json:
+          schema:
+            $ref: "../shared.yaml#/components/schemas/Error"
+            properties:
+              error:
+                const: backup_not_found
+          example:
+            error: backup_not_found
+  examples:
+    backupManualValidCheap:
+      id: 1765900175-2025-12-17%20%28pre%20update%29.tar.zst.gpg
+      description: 2025-12-17 (pre update)
+      created_at: 2025-12-17T08:34:25Z
+      size_bytes: 1425960465
+      is_signed: true
+      is_encrypted: true
+      can_be_restored: true
+    backupManualValidExpensive:
+      id: 1765900175-2025-12-17%20%28pre%20update%29.tar.zst.gpg
+      description: 2025-12-17 (pre update)
+      created_at: 2025-12-17T08:34:25Z
+      size_bytes: 1425960465
+      is_intact: true
+      is_signed: true
+      signing_key: 9D4A B3F2 18C7 5E60 A9B1 4F8D 72C6 E03A 5B91
+      is_signature_trusted: true
+      is_signature_valid: true
+      is_encrypted: true
+      encryption_key: A3F9 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+      is_encryption_valid: true
+      is_trusted: true
+      can_be_restored: true
+    backupAutomaticValidCheap:
+      id: 1765900175-Automatic%20backup%202025-12-16.tar.zst.gpg
+      description: Automatic backup 2025-12-16
+      created_at: 2025-12-16T15:49:35Z
+      size_bytes: 1248520837
+      is_signed: true
+      is_encrypted: true
+      can_be_restored: true
+    backupAutomaticValidExpensive:
+      id: 1765900175-Automatic%20backup%202025-12-16.tar.zst.gpg
+      description: Automatic backup 2025-12-16
+      created_at: 2025-12-16T15:49:35Z
+      size_bytes: 1248520837
+      is_intact: true
+      is_signed: true
+      signing_key: 9D4A B3F2 18C7 5E60 A9B1 4F8D 72C6 E03A 5B91
+      is_signature_trusted: true
+      is_signature_valid: true
+      is_encrypted: true
+      encryption_key: A3F9 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+      is_encryption_valid: true
+      is_trusted: true
+      can_be_restored: true
+    backupAutomaticCorruptedExpensive:
+      id: 1765900175-Automatic%20backup%202025-12-16.tar.zst.gpg
+      description: Automatic backup 2025-12-16
+      created_at: 2025-12-16T15:49:35Z
+      size_bytes: 1248520837
+      is_intact: false
+      is_signed: true
+      signing_key: 9D4A B3F2 18C7 5E60 A9B1 4F8D 72C6 E03A 5B91
+      is_signature_trusted: true
+      is_signature_valid: false
+      is_encrypted: true
+      encryption_key: A3F9 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+      is_encryption_valid: false
+      is_trusted: true
+      can_be_restored: false
+    backupMaliciousExpensive:
+      id: 1766677775-Malicious%20backup%202025-12-25.tar.zst.gpg
+      description: Malicious backup 2025-12-25
+      created_at: 2025-12-25T15:49:35Z
+      size_bytes: 1842420837
+      is_intact: true
+      is_signed: true
+      signing_key: DEAD B3F2 18C7 5E60 A9B1 4F8D 72C6 E03A 5B91
+      is_signature_trusted: false
+      is_signature_valid: true
+      is_encrypted: true
+      encryption_key: DEAD 7C2E 4D81 9B6A 2F10 C8E4 6B5D 91A2 0E7C
+      is_encryption_valid: false
+      is_trusted: false
+      can_be_restored: false
+    backups:
+      - id: 1765900175-2025-12-17%20%28pre%20update%29.tar.zst.gpg
+        description: 2025-12-17 (pre update)
+        created_at: 2025-12-17T08:34:25Z
+        size_bytes: 1425960465
+        is_signed: true
+        is_encrypted: true
+        can_be_restored: true
+      - id: 1765900175-Automatic%20backup%202025-12-16.tar.zst.gpg
+        description: Automatic backup 2025-12-16
+        created_at: 2025-12-16T15:49:35Z
+        size_bytes: 1248520837
+        is_signed: true
+        is_encrypted: true
+        can_be_restored: true

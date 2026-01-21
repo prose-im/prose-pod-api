@@ -173,6 +173,20 @@ paths:
   "/v1/licensing/status":
     get: { $ref: "features/licensing.yaml#/paths/get_licensing_status" }
 
+  # ===== Backups =====
+  "/v1/backups":
+    post: { $ref: "features/backups.yaml#/paths/create_backup" }
+    get: { $ref: "features/backups.yaml#/paths/list_backups" }
+    delete: { $ref: "features/backups.yaml#/paths/delete_backups_batch" }
+  "/v1/backups/{backupId}":
+    patch: { $ref: "features/backups.yaml#/paths/edit_backup" }
+    get: { $ref: "features/backups.yaml#/paths/get_backup_details" }
+    delete: { $ref: "features/backups.yaml#/paths/delete_backup" }
+  "/v1/backups/{backupId}/download":
+    get: { $ref: "features/backups.yaml#/paths/download_backup" }
+  "/v1/backups/{backupId}/restore":
+    put: { $ref: "features/backups.yaml#/paths/restore_backup" }
+
   # ===== Administration =====
   "/":
     delete: { $ref: "features/factory-reset.yaml#/paths/factory_reset" }
