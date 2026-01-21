@@ -86,7 +86,7 @@ components:
         example: application/json
   headers:
     Location:
-      description: URL to the created resource. See [`Location` on
+      description: URL of the created resource. See [`Location` on
         MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location).
       schema:
         type: string
