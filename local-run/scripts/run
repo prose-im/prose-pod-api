@@ -163,7 +163,7 @@ fi
 
 if ! [ -d "${SCENARIO_DIR:?}" ]; then
 	edo log_as_warn_ scenario-does-not-exist
-	edo if-yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
+	edo if_yes "Would you like to create a new one based on the default and continue?" "n" task local:scenarios:create -- "${SCENARIO_NAME:?}"
 fi
 
 # Recompute dynamic variables and fallback to using files

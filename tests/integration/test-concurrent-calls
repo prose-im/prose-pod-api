@@ -37,9 +37,9 @@ run-concurrent() {
 	fi
 }
 
-info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
-info "$(fg-blue "Running test 'concurrent-calls'…")"
-info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg_blue "Running test 'concurrent-calls'…")"
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
 
 info 'Starting the test API (already populated with data)…'
 edo task local:run -- --detach \

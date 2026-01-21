@@ -24,9 +24,9 @@ source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
 
 source "${INTEGRATION_TESTS_DIR:?}"/util.sh
 
-info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
-info "$(fg-blue "Running test 'factory-reset'…")"
-info "$(fg-blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg_blue "Running test 'factory-reset'…")"
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
 
 info 'Starting the test API (already populated with data)…'
 edo task local:run -- --detach \
