@@ -26,6 +26,7 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
         },
         db: world.db.clone(),
         app_config,
+        http_client: reqwest::Client::new(),
         user_repository: world.user_repository().clone(),
         invitation_repository: world.invitation_repository().clone(),
         xmpp_service: world.xmpp_service().clone(),

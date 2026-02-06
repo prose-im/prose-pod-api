@@ -40,6 +40,7 @@ iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde", "std"] }
 lazy_static = { workspace = true }
 mime = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
 rustls = { workspace = true }
 secrecy = { workspace = true }
 serde_json = { workspace = true }

@@ -44,7 +44,7 @@ pub async fn db_conn_with(
 ) -> Result<sea_orm::DatabaseConnection, sea_orm::DbErr> {
     let mut options = sea_orm::ConnectOptions::new(config.url.clone());
     options
-        .max_connections(config.max_connections as u32)
+        .max_connections(config.max_connections)
         .connect_timeout(Duration::from_secs(config.connect_timeout))
         .sqlx_logging(config.sqlx_logging);
     if let Some(min_connections) = config.min_connections {

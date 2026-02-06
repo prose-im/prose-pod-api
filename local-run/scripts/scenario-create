@@ -62,6 +62,7 @@ copy-if-exists() {
 
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
+copy-if-exists 'prose-pod-server-data/'
 copy-if-exists constants.sh
 copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
 copy-if-exists "$(basename "${ENV_FILE:?}")"
