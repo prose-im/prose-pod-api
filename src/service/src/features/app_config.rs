@@ -570,7 +570,7 @@ mod api {
             #[serde(default)]
             pub min_connections: Option<u32>,
 
-            pub max_connections: usize,
+            pub max_connections: u32,
 
             pub connect_timeout: u64,
 
