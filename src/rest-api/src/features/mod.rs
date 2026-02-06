@@ -24,6 +24,7 @@ pub mod pod_config;
 pub mod profile;
 pub mod reload;
 pub mod reports;
+pub mod server_api_proxy;
 pub mod server_config;
 pub mod version;
 pub mod workspace_details;
@@ -51,6 +52,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .merge(version::router(app_state.clone()))
         .merge(workspace_details::router(app_state.clone()))
         .merge(reports::router(app_state.clone()))
+        .merge(server_api_proxy::router(app_state.clone()))
         .layer(tower::ServiceBuilder::new().map_request(rename_bracketed_query_param_names));
 
     #[cfg(all(debug_assertions, feature = "openapi"))]

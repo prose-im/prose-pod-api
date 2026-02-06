@@ -35,7 +35,6 @@ async fn reload_route(
     //   Pod Server API during this stage, I have no choice without a huge
     //   rewrite.
     {
-        use service::reqwest;
         let client = reqwest::Client::new();
         tracing::debug!("Reloading the Server…");
         match client
