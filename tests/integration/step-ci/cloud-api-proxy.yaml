@@ -46,3 +46,24 @@ tests:
                 - isString: true
                 - ne: 19a124bd2f89edfe
               $.json.origin.pod.user_count_range: "10–19"
+  proxySoftwareUpdates:
+    name: Proxy software updates
+    steps:
+      - name: Check CORS
+        http:
+          method: OPTIONS
+          url: /prose-files-proxy/apps/updates/latest.json
+          check:
+            status: 200
+      - name: Get updates manifest
+        http:
+          method: GET
+          url: /prose-files-proxy/apps/updates/latest.json
+          check:
+            status: 200
+      - name: Get one update
+        http:
+          method: GET
+          url: /prose-files-proxy/apps/versions/0.14.1/macos/aarch64/update/Prose.app.tar.gz
+          check:
+            status: 200
