@@ -195,6 +195,17 @@ fn prosody_config_from_db_(
             })
             .expect("The 'Chatrooms' section should always be present.");
 
+        global_settings.custom_settings.push(
+            // See <https://modules.prosody.im/mod_muc_cloud_notify>
+            Group::new(
+                "mod_muc_cloud_notify",
+                // NOTE: `push_notification_with_body` and
+                //   `push_notification_with_sender` already
+                //   defined in the global settings.
+                vec![],
+            ),
+        );
+
         if message_archive_enabled {
             add_enabled_module(global_settings, "mam");
             global_settings.archive_expires_after = Some(message_archive_retention.into_prosody());
