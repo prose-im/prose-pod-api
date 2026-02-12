@@ -19,10 +19,10 @@ form_urlencoded = { workspace = true }
 futures = { workspace = true }
 linked_hash_set = { workspace = true, features = ["serde"] }
 hickory-proto = { workspace = true, features = [
-    "tokio-runtime",
-    "serde-config",
+    "tokio",
+    "serde",
 ] }
-hickory-resolver = { workspace = true, features = ["tokio-runtime"] }
+hickory-resolver = { workspace = true, features = ["tokio"] }
 iso8601-duration = { workspace = true, features = ["serde"] }
 iso8601-timestamp = { workspace = true, features = ["serde", "std"] }
 jid = { workspace = true }
@@ -39,12 +39,12 @@ parking_lot = { workspace = true }
 prose-xmpp = { workspace = true }
 prosody-config = { workspace = true }
 prosody-http = { workspace = true, features = ["jid", "secrecy", "time", "mod_http_admin_api", "mod_http_oauth2"] }
-rand = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
 reqwest = { workspace = true, features = [
     "blocking",
-    "rustls-tls",
+    "rustls",
     "json",
-    "trust-dns",
+    "hickory-dns",
 ] }
 sea-orm = { workspace = true, features = [
     "runtime-tokio-rustls",

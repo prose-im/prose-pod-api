@@ -17,7 +17,7 @@ secrecy = { version = "0.10", default-features = false }
 serde_with = { version = "3", default-features = false, features = [
     "macros",
 ], optional = true }
-serdev = { version = "0.2.0", default-features = false, optional = true }
+serdev = { version = "0.2", default-features = false, optional = true }
 strum = { version = "0.27", default-features = false, features = [
     "std",
     "derive",
