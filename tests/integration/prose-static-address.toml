@@ -14,7 +14,7 @@ domain = "test.local"
 address = { ipv4 = "172.20.0.40", ipv6 = "2001:db8::40" }
 
 [dashboard]
-url = "https://admin.prose.test.local"
+url = "http://localhost:8081"
 
 [notifiers.email]
 smtp_host = "mailpit"
