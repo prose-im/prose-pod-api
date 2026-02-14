@@ -5,9 +5,10 @@ use-default() {
 	if [ -z "${var-}" ]; then
 		eval "$var_name='${SCENARIO_DIR:?}/${path}'"
 	fi
-	if [ "${SCENARIO_NAME:?}" != default ] && ! [ -f "${var}" ]; then
-		eval "$var_name='${SCENARIOS_DIR:?}/default/${path}'"
-		warn "Using $(format_code "$1") from default scenario at $(format_url "$var")."
+	if [ "${SCENARIO_NAME:?}" != default ] && ! [ -e "${var}" ]; then
+		local default_var="${SCENARIOS_DIR:?}/default/${path}"
+		eval "$var_name='${default_var:?}'"
+		warn "Using $(format_code "$1") from default scenario ($(format_url "$default_var") instead of $(format_url "$var"))."
 	fi
 }
 
