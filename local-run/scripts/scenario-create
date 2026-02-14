@@ -54,7 +54,7 @@ edo mkdir -p "${SCENARIO_DIR:?}"
 copy-if-exists() {
 	local file_path="${1:?}"
 	if [ -e "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" ]; then
-		edo cp -Rf "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" "${SCENARIO_DIR:?}"/"${file_path:?}"
+		edo cp -RLf "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" "${SCENARIO_DIR:?}"/"${file_path:?}"
 	else
 		trace "Cannot $(format_code cp) $(format_code "${file_path:?}"): Not found."
 	fi
