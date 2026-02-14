@@ -283,13 +283,14 @@ macro_rules! gen_scoped_kv_store_get_set {
         #[allow(unused)]
         #[inline]
         pub async fn $get_fn(db: &impl ConnectionTrait, key: &str) -> anyhow::Result<Option<$t>> {
+            use tracing::Instrument as _;
+
             let span = tracing::trace_span!(
                 target: concat!("db::", stringify!($namespace)),
                 concat!("db::", stringify!($namespace), stringify!($get_fn)),
                 key,
             );
-            let _span = span.enter();
-            (global_storage::kv_store::$get_fn(db, NAMESPACE, key).await)
+            (global_storage::kv_store::$get_fn(db, NAMESPACE, key).instrument(span).await)
                 .map_err(|err| anyhow::anyhow!("Database error: {err}"))
         }
 
@@ -300,14 +301,16 @@ macro_rules! gen_scoped_kv_store_get_set {
             key: &str,
             value: $t,
         ) -> anyhow::Result<()> {
+            use tracing::Instrument as _;
+
+            use crate::util::either::Either;
+
             let span = tracing::info_span!(
                 target: concat!("db::", stringify!($namespace)),
                 concat!("db::", stringify!($namespace), stringify!($set_fn)),
                 key,
             );
-            let _span = span.enter();
-            use crate::util::either::Either;
-            (global_storage::kv_store::$set_fn(db, NAMESPACE, key, value).await).map_err(|err| {
+            (global_storage::kv_store::$set_fn(db, NAMESPACE, key, value).instrument(span).await).map_err(|err| {
                 match err {
                     Either::E1(err) => anyhow::anyhow!("JSON error: {err}"),
                     Either::E2(err) => anyhow::anyhow!("Database error: {err}"),
@@ -329,6 +332,7 @@ macro_rules! gen_scoped_kv_store {
         $vis mod kv_store {
             use sea_orm::ConnectionTrait;
             use serde_json::Value as Json;
+            use tracing::Instrument as _;
 
             use crate::global_storage;
 
@@ -346,8 +350,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::set"),
                     key, ?value,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::set(db, NAMESPACE, key, value).await)
+                (global_storage::kv_store::set(db, NAMESPACE, key, value).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -363,8 +366,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::set"),
                     key, ?value,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::set_typed::<T>(db, NAMESPACE, key, value).await)
+                (global_storage::kv_store::set_typed::<T>(db, NAMESPACE, key, value).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -377,8 +379,7 @@ macro_rules! gen_scoped_kv_store {
                     target: concat!("db::", stringify!($namespace)),
                     concat!("db::", stringify!($namespace), "::get_all"),
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::get_all(db, NAMESPACE).await)
+                (global_storage::kv_store::get_all(db, NAMESPACE).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -393,8 +394,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::has_key"),
                     key,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::has_key(db, NAMESPACE, key).await)
+                (global_storage::kv_store::has_key(db, NAMESPACE, key).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -409,8 +409,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::get"),
                     key,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::get(db, NAMESPACE, key).await)
+                (global_storage::kv_store::get(db, NAMESPACE, key).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -425,8 +424,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::get"),
                     key,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::get_typed::<T>(db, NAMESPACE, key).await)
+                (global_storage::kv_store::get_typed::<T>(db, NAMESPACE, key).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -440,8 +438,7 @@ macro_rules! gen_scoped_kv_store {
                     target: concat!("db::", stringify!($namespace)),
                     concat!("db::", stringify!($namespace), "::get_by_value_entry"),
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::get_by_value_entry(db, NAMESPACE, entry).await)
+                (global_storage::kv_store::get_by_value_entry(db, NAMESPACE, entry).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -457,8 +454,7 @@ macro_rules! gen_scoped_kv_store {
                     concat!("db::", stringify!($namespace), "::delete"),
                     key,
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::delete(db, NAMESPACE, key).await)
+                (global_storage::kv_store::delete(db, NAMESPACE, key).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
@@ -471,8 +467,7 @@ macro_rules! gen_scoped_kv_store {
                     target: concat!("db::", stringify!($namespace)),
                     concat!("db::", stringify!($namespace), "::delete_all"),
                 );
-                let _span = span.enter();
-                (global_storage::kv_store::delete_all(db, NAMESPACE).await)
+                (global_storage::kv_store::delete_all(db, NAMESPACE).instrument(span).await)
                     .map_err(|err| anyhow::anyhow!("Database error: {err}"))
             }
 
