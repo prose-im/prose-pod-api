@@ -99,6 +99,16 @@ stop() {
 
 source "${INTEGRATION_TESTS_DIR:?}"/util.sh
 
+on_exit() {
+	rc=$?
+	if [ "$rc" -ne 0 ]; then
+		error "Script failed with exit code $rc"
+		print_test_logs
+	fi
+}
+
+trap on_exit EXIT
+
 stepci_run() {
 	local test_file=${1:?}
 	local config_options=${2-test}
