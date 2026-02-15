@@ -175,7 +175,9 @@ info "Running scenario: $(format_code "${SCENARIO_NAME:?}")"
 info 'Selected versions:'
 info "- API: $(format_code "${PROSE_POD_API_IMAGE:?}")"
 info "- Server: $(format_code "${PROSE_POD_SERVER_IMAGE:?}")"
-info "- Dashboard: $(format_code "${PROSE_POD_DASHBOARD_IMAGE:?}")"
+case ",${COMPOSE_PROFILES-}," in
+  *",dashboard,"*) info "- Dashboard: $(format_code "${PROSE_POD_DASHBOARD_IMAGE:?}")" ;;
+esac
 
 # NOTE: The database doesn't exist yet in integration tests.
 [ -f "${DATABASE_PATH:?}" ] || echo '' > "${DATABASE_PATH:?}"
