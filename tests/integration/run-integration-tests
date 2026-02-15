@@ -80,8 +80,8 @@ start() {
 			cp -f "${prose_config_file:?}" "${SCENARIOS_DIR:?}"/"${SCENARIO_NAME:?}"/prose.toml
 
 			# Reload APIs with new configuration file.
-			ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@test.local:demo' -b | jq -r '.token')"
-			edo log_as_trace_ xh POST :8080/reload -A bearer -a "${ADMIN_TOKEN:?}" --meta
+			ADMIN_TOKEN="$(xh POST "${INTEGRATION_TEST_HOST:?}"/v1/login -a 'pauline.collins@test.local:demo' -b | jq -r '.token')"
+			edo log_as_trace_ xh POST "${INTEGRATION_TEST_HOST:?}"/reload -A bearer -a "${ADMIN_TOKEN:?}" --meta
 
 			wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
 		fi
