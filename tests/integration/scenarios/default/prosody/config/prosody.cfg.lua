@@ -137,6 +137,7 @@ Component "groups.test.local" "muc"
   -- Modules
   modules_enabled = {
     "muc_public_affiliations";
+    "muc_cloud_notify";
     "muc_mam";
   }
 

@@ -252,10 +252,13 @@ impl ProseDefault for prosody_config::ProsodyConfig {
                 muc_log_expires_after: Some(PossiblyInfinite::Infinite),
                 muc_log_by_default: Some(true),
                 modules_enabled: Some(
-                    ["muc_public_affiliations"]
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect(),
+                    [
+                        "muc_public_affiliations",
+                        "muc_cloud_notify",
+                    ]
+                    .into_iter()
+                    .map(ToString::to_string)
+                    .collect(),
                 ),
                 ..Default::default()
             },
