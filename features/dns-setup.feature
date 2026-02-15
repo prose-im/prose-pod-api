@@ -37,7 +37,7 @@ Feature: DNS setup instructions
         And step 2 should contain a single SRV record
         And step 3 should contain a single CNAME record
         And step 4 should contain SRV and SRV records
-        And A records hostnames should be prose.<domain>
+        And A records hostnames should be prose.<domain>.
         And SRV records targets should be prose.<domain>.
 
     Examples:
@@ -60,7 +60,7 @@ Feature: DNS setup instructions
         And step 2 should contain a single SRV record
         And step 3 should contain a single CNAME record
         And step 4 should contain SRV and SRV records
-        And AAAA records hostnames should be prose.<domain>
+        And AAAA records hostnames should be prose.<domain>.
         And SRV records targets should be prose.<domain>.
 
     Examples:
@@ -84,8 +84,8 @@ Feature: DNS setup instructions
         And step 2 should contain a single SRV record
         And step 3 should contain a single CNAME record
         And step 4 should contain SRV and SRV records
-        And A records hostnames should be prose.<domain>
-        And AAAA records hostnames should be prose.<domain>
+        And A records hostnames should be prose.<domain>.
+        And AAAA records hostnames should be prose.<domain>.
         And SRV records targets should be prose.<domain>.
 
     Examples:
@@ -160,9 +160,9 @@ Feature: DNS setup instructions
         And Valerian is an admin
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
-        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
-        And SRV record hostname should be _xmpp-server._tcp.groups.<domain> for port 5269
+        And SRV record hostname should be _xmpp-client._tcp.<domain>. for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain>. for port 5269
+        And SRV record hostname should be _xmpp-server._tcp.groups.<domain>. for port 5269
 
     Examples:
       | domain         |
@@ -177,9 +177,9 @@ Feature: DNS setup instructions
         And Valerian is an admin
        When Valerian requests DNS setup instructions
        Then the call should succeed
-        And SRV record hostname should be _xmpp-client._tcp.<domain> for port 5222
-        And SRV record hostname should be _xmpp-server._tcp.<domain> for port 5269
-        And SRV record hostname should be _xmpp-server._tcp.groups.<domain> for port 5269
+        And SRV record hostname should be _xmpp-client._tcp.<domain>. for port 5222
+        And SRV record hostname should be _xmpp-server._tcp.<domain>. for port 5269
+        And SRV record hostname should be _xmpp-server._tcp.groups.<domain>. for port 5269
 
     Examples:
       | domain         |

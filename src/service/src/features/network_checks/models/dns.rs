@@ -152,17 +152,17 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
 
     fn try_from(record: &HickoryRecord) -> Result<Self, Self::Error> {
         match record.data() {
-            Some(RData::A(rdata::A(ipv4))) => Ok(Self::A {
+            RData::A(rdata::A(ipv4)) => Ok(Self::A {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 value: ipv4.clone(),
             }),
-            Some(RData::AAAA(rdata::AAAA(ipv6))) => Ok(Self::AAAA {
+            RData::AAAA(rdata::AAAA(ipv6)) => Ok(Self::AAAA {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 value: ipv6.clone(),
             }),
-            Some(RData::SRV(srv)) => Ok(Self::SRV {
+            RData::SRV(srv) => Ok(Self::SRV {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 priority: srv.priority(),
@@ -170,7 +170,7 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
                 port: srv.port(),
                 target: srv.target().clone(),
             }),
-            Some(RData::CNAME(rdata::CNAME(target))) => Ok(Self::CNAME {
+            RData::CNAME(rdata::CNAME(target)) => Ok(Self::CNAME {
                 hostname: record.name().clone(),
                 ttl: record.ttl(),
                 target: target.clone(),

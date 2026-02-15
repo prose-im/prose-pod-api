@@ -8,7 +8,7 @@ use std::{
     fmt::Debug,
     net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs as _},
     str::FromStr as _,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
@@ -16,11 +16,10 @@ use async_trait::async_trait;
 use hickory_proto::rr::RecordType;
 use hickory_resolver::{
     config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
-    error::ResolveError,
     lookup::NsLookup,
-    Name as DomainName, TokioAsyncResolver,
+    name_server::TokioConnectionProvider,
+    Name as DomainName, ResolveError, TokioResolver,
 };
-use lazy_static::lazy_static;
 use parking_lot::RwLock;
 use tracing::{debug, trace, warn};
 
@@ -28,17 +27,16 @@ use crate::app_config::NetworkChecksConfig;
 
 use super::{DnsLookupError, DnsRecord, NetworkCheckerImpl, SrvLookupResponse};
 
-lazy_static! {
-    /// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
-    ///   so we use [`Resolver::from_system_conf`] explicitly.
-    static ref SYSTEM_RESOLVER: Arc<TokioAsyncResolver> = Arc::new(TokioAsyncResolver::tokio_from_system_conf().unwrap());
-}
+/// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
+///   so we use [`Resolver::from_system_conf`] explicitly.
+static SYSTEM_RESOLVER: LazyLock<Arc<TokioResolver>> =
+    LazyLock::new(|| Arc::new(TokioResolver::builder_tokio().unwrap().build()));
 
 /// NOTE: [`Debug`] is implemented by hand, make sure to update it when adding new fields.
 pub struct LiveNetworkChecker {
     /// Caches non-recursive DNS resolvers by domain name, along with the time it was cached at
     /// to allow cache expiry.
-    direct_resolvers: Arc<RwLock<HashMap<DomainName, (Instant, Arc<TokioAsyncResolver>)>>>,
+    direct_resolvers: Arc<RwLock<HashMap<DomainName, (Instant, Arc<TokioResolver>)>>>,
     dns_cache_ttl: Duration,
 }
 
@@ -51,13 +49,13 @@ impl LiveNetworkChecker {
     }
 
     /// A DNS resolver which queries the name servers directly and stores no cache.
-    async fn direct_resolver(&self, domain: &DomainName) -> Arc<TokioAsyncResolver> {
+    async fn direct_resolver(&self, domain: &DomainName) -> Arc<TokioResolver> {
         // Read the cache to avoid unnecessary DNS queries.
         {
             let mut resolvers_guard = self.direct_resolvers.upgradable_read();
             if let Some((cached_at, resolver)) = resolvers_guard.get(domain) {
                 if cached_at.elapsed() < self.dns_cache_ttl {
-                    return resolver.clone();
+                    return Arc::clone(&resolver);
                 } else {
                     // Clear the cache if it's expired.
                     resolvers_guard.with_upgraded(|r| r.remove(domain));
@@ -66,10 +64,10 @@ impl LiveNetworkChecker {
         }
 
         /// Creates a DNS resolver which queries the name servers directly and stores no cache.
-        async fn create_direct_resolver(domain: &DomainName) -> Arc<TokioAsyncResolver> {
+        async fn create_direct_resolver(domain: &DomainName) -> Arc<TokioResolver> {
             /// Recursively queries the authoritative name servers for the domain.
             async fn recursive_ns_lookup(
-                resolver: &TokioAsyncResolver,
+                resolver: &TokioResolver,
                 mut domain: DomainName,
             ) -> Result<NsLookup, ResolveError> {
                 let mut first_error: Option<ResolveError> = None;
@@ -96,7 +94,7 @@ impl LiveNetworkChecker {
                 //   name server, but as a safe fallback we return the recursive system-defined DNS resolver.
                 //   Results won't be as good because of DNS caching at multiple layers, but at least there
                 //   will be results.
-                return SYSTEM_RESOLVER.clone();
+                return Arc::clone(&SYSTEM_RESOLVER);
             };
 
             if ns_response.iter().next().is_none() {
@@ -105,7 +103,7 @@ impl LiveNetworkChecker {
                 //   name server, but as a safe fallback we return the recursive system-defined DNS resolver.
                 //   Results won't be as good because of DNS caching at multiple layers, but at least there
                 //   will be results.
-                return SYSTEM_RESOLVER.clone();
+                return Arc::clone(&SYSTEM_RESOLVER);
             }
 
             // Resolve the IP addresses of the authoritative name servers.
@@ -130,7 +128,11 @@ impl LiveNetworkChecker {
             let mut options = ResolverOpts::default();
             options.recursion_desired = false;
             options.cache_size = 0;
-            Arc::new(TokioAsyncResolver::tokio(config, options))
+            Arc::new(
+                TokioResolver::builder_with_config(config, TokioConnectionProvider::default())
+                    .with_options(options)
+                    .build(),
+            )
         }
         let domain_clone = domain.clone();
         let resolver = create_direct_resolver(&domain_clone).await;

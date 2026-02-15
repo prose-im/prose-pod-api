@@ -36,6 +36,8 @@ pub mod prelude {
     pub use super::{UserApplicationServiceImpl, VCardData};
 }
 
+use strum::IntoEnumIterator;
+
 use crate::{
     auth::errors::PasswordValidationError, errors::Unauthorized, members::errors::MemberNotFound,
     util::either::Either3, xmpp::XmppService,

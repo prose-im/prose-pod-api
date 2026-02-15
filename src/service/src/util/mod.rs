@@ -119,10 +119,10 @@ macro_rules! wrapper_type {
 #[must_use]
 #[inline]
 pub fn random_string_alphanumeric(length: usize) -> String {
-    use rand::{distributions::Alphanumeric, Rng as _};
+    use rand::{distr::Alphanumeric, RngExt as _};
 
     // NOTE: Code taken from <https://rust-lang-nursery.github.io/rust-cookbook/algorithms/randomness.html#create-random-passwords-from-a-set-of-alphanumeric-characters>.
-    rand::thread_rng()
+    rand::rng()
         .sample_iter(&Alphanumeric)
         .take(length)
         .map(char::from)
