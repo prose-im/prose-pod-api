@@ -129,6 +129,8 @@ mod live_auth_service {
                 return Err(Either::E2(anyhow!("OAuth 2.0 client not registered.")));
             };
 
+            // FIXME: Test JID domain!
+
             match self
                 .oauth2
                 .util_log_in(jid.expect_username(), password, oauth2_client_credentials)

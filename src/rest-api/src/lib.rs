@@ -46,6 +46,7 @@ pub struct AppState {
     pub base: MinimalAppState,
     pub db: DatabaseRwConnectionPools,
     pub app_config: Arc<AppConfig>,
+    pub http_client: reqwest::Client,
 
     pub user_repository: UserRepository,
     pub invitation_repository: InvitationRepository,

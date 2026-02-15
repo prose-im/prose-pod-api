@@ -54,7 +54,7 @@ edo mkdir -p "${SCENARIO_DIR:?}"
 copy-if-exists() {
 	local file_path="${1:?}"
 	if [ -e "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" ]; then
-		edo cp -Rf "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" "${SCENARIO_DIR:?}"/"${file_path:?}"
+		edo cp -RLf "${BASE_SCENARIO_DIR:?}"/"${file_path:?}" "${SCENARIO_DIR:?}"/"${file_path:?}"
 	else
 		trace "Cannot $(format_code cp) $(format_code "${file_path:?}"): Not found."
 	fi
@@ -62,6 +62,7 @@ copy-if-exists() {
 
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
+copy-if-exists 'prose-pod-server-data/'
 copy-if-exists constants.sh
 copy-if-exists "$(basename "${PROSE_CONFIG_FILE:?}")"
 copy-if-exists "$(basename "${ENV_FILE:?}")"
@@ -69,10 +70,10 @@ copy-if-exists "$(basename "${DNS_ZONE_FILE:?}")"
 copy-if-exists "$(basename "${DATABASE_PATH:?}")"
 copy-if-exists "$(basename "${MAILPIT_DATABASE_PATH:?}")"
 
-# NOTE: When running in a GitHub Action, `cp /etc/prosody/prosody{.initial,}.cfg.lua` fails
-#   because `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/prosody` belongs to `runner:docker`.
+# NOTE: When running in a GitHub Action, some commands fail because
+#   `$LOCAL_RUN_DIR/scenarios/$SCENARIO_NAME/*` belong to `runner:docker`.
 # NOTE: Because of `set -e`, we’d have to use `[ … ] && … || :`.
 #   Let’s use `if [ … ]; then …; fi` instead for clarity.
 if [ -n "$GITHUB_ACTIONS" ]; then
-	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/prosody
+	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/{prosody,prose-pod-server-data}
 fi

@@ -368,6 +368,7 @@ async fn init_dependencies(app_config: AppConfig, base: MinimalAppState) -> AppS
         base,
         db,
         app_config: Arc::new(app_config),
+        http_client,
         user_repository,
         invitation_repository,
         xmpp_service,

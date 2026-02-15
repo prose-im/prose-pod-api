@@ -1,3 +1,11 @@
+files.prose.org:53 {
+  # Forward to the real Internet, via Cloudflare.
+  forward . 2606:4700:4700::1111 2606:4700:4700::1001 1.1.1.1 1.0.0.1
+  cache 30
+  errors         # show errors
+  log            # enable query logs
+}
+
 .:53 {
   file /etc/coredns/zones.db
   errors         # show errors

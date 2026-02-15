@@ -14,15 +14,18 @@
 //!
 //! ```rust,no_run
 //! use axum::middleware::from_extractor_with_state;
+//! use axum::routing::any;
 //! use prose_pod_api::AppState;
 //! use service::auth::Authenticated;
 //!
 //! pub fn router(app_state: AppState) -> axum::Router {
 //!     axum::Router::new()
-//!         .route("/example", unimplemented!())
+//!         .route("/example", any(example))
 //!         .route_layer(from_extractor_with_state::<Authenticated, _>(app_state.clone()))
 //!         .with_state(app_state)
 //! }
+//!
+//! # async fn example() { unimplemented!() }
 //! ```
 //!
 //! To define it on a single route, you can use:
@@ -35,14 +38,17 @@
 //!
 //! pub fn router(app_state: AppState) -> axum::Router {
 //!     axum::Router::new()
-//!         .route("/example", get(unimplemented!()))
+//!         .route("/example", get(get_example))
 //!         .route(
 //!             "/example",
-//!             delete(unimplemented!())
+//!             delete(delete_example)
 //!                 .route_layer(from_extractor_with_state::<Authenticated, _>(app_state.clone()))
 //!         )
 //!         .with_state(app_state)
 //! }
+//!
+//! # async fn get_example() { unimplemented!() }
+//! # async fn delete_example() { unimplemented!() }
 //! ```
 //!
 //! [`route_layer`]: axum::Router::route_layer
