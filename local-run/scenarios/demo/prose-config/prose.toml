@@ -19,3 +19,9 @@ url = "http://localhost:8081"
 [notifiers.email]
 smtp_host = "mailpit"
 smtp_encrypt = false
+
+[backups.storage]
+provider = "fs"
+# This is just for debugging purposes (because this path is mounted using
+# Docker), don’t do that in production!
+fs.directory = "/var/lib/prose-backups"

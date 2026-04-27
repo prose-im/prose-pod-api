@@ -24,7 +24,7 @@ reset-one() {
 
 	warn "Resetting scenario $(format_code "${SCENARIO_NAME:?}")…"
 
-	unset DATABASE_PATH MAILPIT_DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR PROSE_POD_SERVER_DATA_DIR
+	unset PROSE_POD_API_DATA_DIR DATABASE_PATH MAILPIT_DATABASE_PATH ETC_PROSODY_DIR VAR_LIB_PROSODY_DIR PROSE_POD_SERVER_DATA_DIR PROSE_BACKUPS_DIR
 	edo source "${SELF_SCRIPTS:?}"/scenario-files.sh
 
 	if (( $DRY_RUN )); then
@@ -42,7 +42,9 @@ reset-one() {
 	edo rm -rf "${ETC_PROSODY_DIR:?}"/prosody.cfg.lua
 	edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*%2e*
 	edo rm -rf "${VAR_LIB_PROSODY_DIR:?}"/*.sqlite*
+	edo rm -rf "${PROSE_POD_API_DATA_DIR:?}"/*
 	edo rm -rf "${PROSE_POD_SERVER_DATA_DIR:?}"/*
+	edo rm -rf "${PROSE_BACKUPS_DIR:?}"/*
 }
 
 for name in "$@"; do

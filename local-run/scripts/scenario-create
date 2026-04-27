@@ -63,6 +63,7 @@ copy-if-exists() {
 copy-if-exists 'prosody/'
 copy-if-exists 'coredns/'
 copy-if-exists 'prose-config/'
+copy-if-exists 'prose-pod-api-data/'
 copy-if-exists 'prose-pod-server-data/'
 copy-if-exists constants.sh
 copy-if-exists "$(basename "${ENV_FILE:?}")"
@@ -75,5 +76,5 @@ copy-if-exists "$(basename "${MAILPIT_DATABASE_PATH:?}")"
 # NOTE: Because of `set -e`, we’d have to use `[ … ] && … || :`.
 #   Let’s use `if [ … ]; then …; fi` instead for clarity.
 if [ -n "$GITHUB_ACTIONS" ]; then
-	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/{prosody,prose-pod-server-data}
+	edo sudo chmod -R a+w "${SCENARIO_DIR:?}"/{prosody,prose-pod-api-data,prose-pod-server-data}
 fi

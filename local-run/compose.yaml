@@ -9,7 +9,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - "${DATABASE_PATH:?}:/var/lib/prose-pod-api/database.sqlite"
+      - "${PROSE_POD_API_DATA_DIR:?}:/var/lib/prose-pod-api/"
       # NOTE: `prose.toml` cannot be read-only because we need to
       #   override it when doing a factory reset (and only then).
       - "${PROSE_CONFIG_DIR:?}:/etc/prose/"
@@ -35,6 +35,7 @@ services:
       #   override it when doing a factory reset (and only then).
       - "${PROSE_CONFIG_DIR:?}:/etc/prose/"
       - "${PROSE_POD_SERVER_DATA_DIR:?}:/var/lib/prose-pod-server/"
+      - "${PROSE_BACKUPS_DIR:?}:/var/lib/prose-backups/"
     ports:
       - "5222:5222"
       - "5269:5269"
