@@ -86,7 +86,7 @@ async fn proxy(
             }
         }
 
-        tracing::debug!("Proxying `{request_uri}` to `{upstream_url}`: {req:#?}");
+        tracing::debug!("Proxying `{request_uri}` to `{upstream_url}`…");
 
         req.body(reqwest::Body::wrap_stream(request_body.into_data_stream()))
     };
