@@ -58,8 +58,6 @@ async fn proxy(
     let upstream_request = {
         let upstream_url = {
             let request_path = request_uri
-                .path_and_query()
-                .expect("`proxy` shouldn’t be called from a route with no path")
                 .path()
                 .strip_prefix(path_prefix)
                 .expect(&format!(
@@ -67,11 +65,17 @@ async fn proxy(
                 ));
             assert!(!request_path.starts_with('/'));
 
-            if destination.ends_with('/') {
+            let mut url = if destination.ends_with('/') {
                 format!("{destination}{request_path}")
             } else {
                 format!("{destination}/{request_path}")
+            };
+
+            if let Some(query) = request_uri.query() {
+                url = format!("{url}?{query}");
             }
+
+            url
         };
 
         let mut req = app_state.http_client.request(request_method, &upstream_url);
