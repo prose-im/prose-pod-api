@@ -20,7 +20,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
         .with_state(app_state)
 }
 
-async fn server_api_proxy(
+pub(super) async fn server_api_proxy(
     State(ref app_state): State<AppState>,
     request_uri: Uri,
     request_method: axum::http::Method,

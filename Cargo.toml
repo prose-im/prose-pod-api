@@ -53,6 +53,8 @@ serde_with = { version = "=3.16.1", default-features = false }
 serdev = { version = "=0.3.2", default-features = false }
 service = { path = "src/service" }
 strum = { version = "=0.27.2", default-features = false }
+tar = { version = "=0.4.45", default-features = false }
+tempfile = { version = "=3.25.0", default-features = false }
 thiserror = { version = "=2.0.18", default-features = false }
 time = { version = "=0.3.47", default-features = false }
 tokio = { version = "=1.49.0", default-features = false }

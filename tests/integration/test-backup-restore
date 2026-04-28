@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+: ${REPOSITORY_ROOT:="${PROSE_POD_API_DIR:?}"}
+: ${SCRIPTS_ROOT:="${REPOSITORY_ROOT:?}"/scripts}
+export SCRIPTS_ROOT
+source "${SCRIPTS_ROOT:?}"/util.sh
+source "${BASH_TOOLBOX:?}"/format.sh
+
+INTEGRATION_TESTS_DIR="${REPOSITORY_ROOT:?}"/tests/integration
+LOCAL_RUN_DIR="${REPOSITORY_ROOT:?}"/local-run
+LOCAL_RUN_SCRIPTS="${LOCAL_RUN_DIR:?}"/scripts
+BASE_SCENARIO_NAME=default
+: ${INTEGRATION_TEST_HOST:=http://127.0.0.1:8080}
+: ${PROSE_POD_API_IMAGE_TAG:=local}
+SCENARIO_NAME="${BASE_SCENARIO_NAME:?}-$(date +%s)"
+
+# Compute dynamic variables.
+source "${LOCAL_RUN_SCRIPTS:?}"/scenario-files.sh
+
+source "${INTEGRATION_TESTS_DIR:?}"/util.sh
+
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
+info "$(fg_blue "Running test 'backup-restore'…")"
+info "$(fg_blue "$(for _ in $(seq 72); do printf "="; done)")"
+
+info 'Starting the test API (already populated with data)…'
+edo task local:run -- --detach \
+	--api="${PROSE_POD_API_IMAGE_TAG:?}" \
+	--scenario="${BASE_SCENARIO_NAME:?}" \
+	--ephemeral --ephemeral-name="${SCENARIO_NAME:?}"
+
+debug 'Waiting for API…'
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
+
+info 'Logging admin in…'
+ADMIN_TOKEN="$(xh POST :8080/v1/login -a 'pauline.collins@prose-demo.org.local:demo' -b | jq -r '.token')"
+
+info 'Creating backup…'
+BACKUP_ID="$(xh POST :8080/v1/backups description=test -A bearer -a "${ADMIN_TOKEN:?}" -b | jq -r '.backup_id')"
+
+info 'Getting workspace name…'
+xh GET :8080/v1/workspace -b | jq .name
+# "Prose (demo)"
+
+
+info 'Setting workspace name…'
+xh PUT :8080/v1/workspace/name -A bearer -a "${ADMIN_TOKEN:?}" --raw '"anything"'
+# HTTP/1.1 200 OK
+# Content-Length: 10
+# Content-Type: application/json
+# Date: Tue, 28 Apr 2026 15:13:13 GMT
+
+# "anything"
+
+
+info 'Getting workspace name…'
+xh GET :8080/v1/workspace -b | jq .name
+# "anything"
+
+
+info 'Restoring backup…'
+xh PUT :8080/v1/backups/"${BACKUP_ID:?}"/restore -A bearer -a "${ADMIN_TOKEN:?}"
+# HTTP/1.1 200 OK
+# Content-Length: 0
+# Date: Tue, 28 Apr 2026 15:13:18 GMT
+
+
+debug 'Waiting for API…'
+wait_until_api_running "${INTEGRATION_TEST_HOST:?}"
+
+
+info 'Getting workspace name…'
+xh GET :8080/v1/workspace -b | jq .name
+# "Prose (demo)"

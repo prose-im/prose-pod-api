@@ -10,6 +10,7 @@ pub mod startup_actions;
 #[cfg(all(debug_assertions, feature = "openapi"))]
 pub mod api_docs;
 pub mod auth;
+pub mod backups;
 pub mod dashboard_config;
 pub mod dns_setup;
 pub mod factory_reset;
@@ -35,6 +36,7 @@ pub(super) fn router(app_state: AppState) -> axum::Router {
     #[allow(unused_mut)]
     let mut router = axum::Router::new()
         .merge(auth::router(app_state.clone()))
+        .merge(backups::router(app_state.clone()))
         .merge(dashboard_config::router(app_state.clone()))
         .merge(dns_setup::router(app_state.clone()))
         .merge(factory_reset::router(app_state.clone()))
