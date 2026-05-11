@@ -62,16 +62,15 @@ replace() {
 	local find="${1:?}"
 	local replace="${2:?}"
 	# NOTE: `//$'\n'/\\n` allows escaping newlines.
-	local pattern="s@${find}@${replace//$'\n'/\\n}@" file="${3:?}"
+	local pattern="s@${find}@${replace//$'\n'/\\n}@gm" file="${3:?}"
 
-	if [[ "$(uname)" == "Darwin" ]]; then
-		sed -i '' -E "$pattern" "$file"
-	else
-		sed -i "$pattern" "$file"
-	fi
+	# Make `perl` exit with code 1 if no substitution was applied.
+	pattern="$(printf '$changed ||= %s;\nEND { exit !$changed }' "${pattern}")"
+
+	perl -i -pe "$pattern" "$file" || { error "Pattern $(format_code "$find") did not match anything in $(format_url "$file")."; return 1; }
 }
 replace-version() {
-	replace "${1:?}" "\1${NEW_VERSION:?}\2" "${2:?}"
+	replace "${1:?}" "\${1}${NEW_VERSION:?}\${2}" "${2:?}"
 }
 
 # ===== ARGUMENT PARSING =====
