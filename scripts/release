@@ -153,7 +153,7 @@ curl -sSf -X POST "${PROSE_CLOUD_API_URL:?}/v1/licenses/community" \
 info "Changing version number in $(format_code "${VERSION_FILE:?}")…"
 echo "${NEW_VERSION:?}" > "${VERSION_FILE:?}"
 info "Changing version number in $(format_code "$(basename "${OPENAPI_SPEC_FILE:?}")")…"
-replace-version '^(\t\t"version": ").+(")' "${OPENAPI_SPEC_FILE:?}"
+replace-version '^(  version: ).+' "${OPENAPI_SPEC_FILE:?}"
 info "Changing version number in $(format_code Cargo.toml)…"
 replace-version '^(version = \").+(\")' "${CARGO_TOML_FILE:?}"
 info "Changing version number in local run config…"
