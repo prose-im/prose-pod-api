@@ -9,7 +9,7 @@ info:
   license:
     name: MPL-2.0
     url: https://github.com/prose-im/prose-pod-api/blob/master/LICENSE.md
-  version: 0.3.1
+  version: 0.20.0
 
 servers:
   - url: http://127.0.0.1:8080
