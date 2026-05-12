@@ -74,7 +74,7 @@ mod routes {
         Json,
     };
     use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
-    use service::auth::UserInfo;
+    use service::{auth::UserInfo, sea_orm::ConnectionTrait as _};
     use validator::Validate;
 
     use crate::{
@@ -111,7 +111,10 @@ mod routes {
             .into());
         };
 
-        let fixme = "Flush SQLite before backing up.";
+        // Flush SQLite before backing up.
+        (state.db.write)
+            .execute_unprepared("PRAGMA wal_checkpoint(FULL);")
+            .await?;
 
         let buf: Vec<u8> = Vec::new();
         let mut builder = tar::Builder::new(buf);
