@@ -47,5 +47,5 @@ pub async fn test_server(world: &mut TestWorld) -> anyhow::Result<TestServer> {
     let router = prose_pod_api::make_router(&app_state);
     let app = prose_pod_api::run_startup_actions(router, app_state).await?;
     (lifecycle_manager.wait_for_startup_actions_to_finish()).await?;
-    Ok(TestServer::new(app).expect("Could not create test server."))
+    Ok(TestServer::new(app))
 }
