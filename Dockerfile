@@ -1,4 +1,4 @@
-FROM rust:alpine AS build
+FROM rust:alpine3.23 AS build
 WORKDIR /usr/src/prose-pod-api
 
 RUN apk add --no-cache musl-dev sccache
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install --path src/rest-api --bin prose-pod-api --profile="${CARGO_PROFILE}" ${CARGO_INSTALL_EXTRA_ARGS}
 
 
-FROM alpine:latest
+FROM alpine:3.23.4
 
 RUN apk add --no-cache libgcc libc6-compat
 

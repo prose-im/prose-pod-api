@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:0.1.72-rust-1.88-alpine3.22 AS chef
+FROM lukemathwalker/cargo-chef:0.1.77-rust-1.95.0-alpine3.23 AS chef
 WORKDIR /app
 
 
@@ -39,7 +39,7 @@ COPY docs/openapi .
 RUN redocly bundle openapi.yaml -o /usr/share/prose-pod-api/static/api-docs/openapi.json --config redocly.cfg.yaml
 
 
-FROM alpine:3.22.0 AS run
+FROM alpine:3.23.4 AS run
 
 RUN apk update && apk add libgcc libc6-compat
 
