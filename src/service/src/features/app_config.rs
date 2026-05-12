@@ -11,7 +11,7 @@ use std::{
 
 use anyhow::Context as _;
 use figment::Figment;
-use hickory_resolver::Name as DomainName;
+use hickory_resolver::proto::rr::Name as DomainName;
 use lazy_static::lazy_static;
 use url::Url;
 use validator::Validate;

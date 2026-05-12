@@ -6,19 +6,23 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
-    net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs as _},
+    net::{SocketAddr, TcpStream, ToSocketAddrs as _},
     str::FromStr as _,
     sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
-use hickory_proto::rr::RecordType;
 use hickory_resolver::{
-    config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
-    lookup::NsLookup,
-    name_server::TokioConnectionProvider,
-    Name as DomainName, ResolveError, TokioResolver,
+    config::NameServerConfig,
+    lookup::Lookup,
+    net::NetError,
+    proto::rr::{Name as DomainName, RecordType},
+};
+use hickory_resolver::{
+    config::{ResolverConfig, ResolverOpts},
+    net::runtime::TokioRuntimeProvider,
+    TokioResolver,
 };
 use parking_lot::RwLock;
 use tracing::{debug, trace, warn};
@@ -30,7 +34,7 @@ use super::{DnsLookupError, DnsRecord, NetworkCheckerImpl, SrvLookupResponse};
 /// NOTE: [`Resolver::default`] uses Google as the resolver… which is… unexpected…
 ///   so we use [`Resolver::from_system_conf`] explicitly.
 static SYSTEM_RESOLVER: LazyLock<Arc<TokioResolver>> =
-    LazyLock::new(|| Arc::new(TokioResolver::builder_tokio().unwrap().build()));
+    LazyLock::new(|| Arc::new(TokioResolver::builder_tokio().unwrap().build().unwrap()));
 
 /// NOTE: [`Debug`] is implemented by hand, make sure to update it when adding new fields.
 pub struct LiveNetworkChecker {
@@ -69,8 +73,8 @@ impl LiveNetworkChecker {
             async fn recursive_ns_lookup(
                 resolver: &TokioResolver,
                 mut domain: DomainName,
-            ) -> Result<NsLookup, ResolveError> {
-                let mut first_error: Option<ResolveError> = None;
+            ) -> Result<Lookup, NetError> {
+                let mut first_error: Option<NetError> = None;
                 loop {
                     match resolver.ns_lookup(domain.clone()).await {
                         Ok(res) => {
@@ -96,6 +100,7 @@ impl LiveNetworkChecker {
                 //   will be results.
                 return Arc::clone(&SYSTEM_RESOLVER);
             };
+            let ns_response = ns_response.answers();
 
             if ns_response.iter().next().is_none() {
                 warn!("No authoritative name server found for `{domain}` (response is empty). Will use the system-defined DNS name servers to run DNS checks.");
@@ -107,31 +112,31 @@ impl LiveNetworkChecker {
             }
 
             // Resolve the IP addresses of the authoritative name servers.
-            trace!(
-                "Authoritative name servers for `{domain}`: {:?}",
-                ns_response.iter().collect::<Vec<_>>(),
-            );
-            let mut name_servers: Vec<IpAddr> = Vec::with_capacity(ns_response.iter().count());
+            trace!("Authoritative name servers for `{domain}`: {ns_response:?}");
+            let mut name_servers: Vec<NameServerConfig> = Vec::with_capacity(ns_response.len());
             for ns in ns_response.iter() {
-                match SYSTEM_RESOLVER.lookup_ip(ns.0.clone()).await {
-                    Ok(ips) => name_servers.extend(ips.iter()),
+                match SYSTEM_RESOLVER.lookup_ip(ns.name.clone()).await {
+                    Ok(ips) => {
+                        for ip in ips.iter() {
+                            let mut name_server = NameServerConfig::udp_and_tcp(ip);
+                            name_server.trust_negative_responses = false;
+                            name_servers.push(name_server);
+                        }
+                    }
                     Err(_) => {}
                 }
             }
 
             // Create the DNS resolver.
-            let config = ResolverConfig::from_parts(
-                None,
-                vec![],
-                NameServerConfigGroup::from_ips_clear(name_servers.as_slice(), 53, false),
-            );
+            let config = ResolverConfig::from_parts(None, vec![], name_servers);
             let mut options = ResolverOpts::default();
             options.recursion_desired = false;
             options.cache_size = 0;
             Arc::new(
-                TokioResolver::builder_with_config(config, TokioConnectionProvider::default())
+                TokioResolver::builder_with_config(config, TokioRuntimeProvider::default())
                     .with_options(options)
-                    .build(),
+                    .build()
+                    .unwrap(),
             )
         }
         let domain_clone = domain.clone();
@@ -162,8 +167,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
 
         let domain = domain.to_string();
         let ipv4_lookup = direct_resolver.ipv4_lookup(domain).await?;
-        Ok((ipv4_lookup.as_lookup())
-            .record_iter()
+        Ok((ipv4_lookup.answers().iter())
             .flat_map(|r| DnsRecord::try_from(r).ok())
             .collect())
     }
@@ -174,8 +178,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
 
         let domain = domain.to_string();
         let ipv6_lookup = direct_resolver.ipv6_lookup(domain).await?;
-        Ok((ipv6_lookup.as_lookup())
-            .record_iter()
+        Ok((ipv6_lookup.answers().iter())
             .flat_map(|r| DnsRecord::try_from(r).ok())
             .collect())
     }
@@ -187,13 +190,15 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
         let domain = domain.to_string();
         let srv_lookup = direct_resolver.srv_lookup(domain).await?;
         Ok(SrvLookupResponse {
-            records: (srv_lookup.as_lookup())
-                .record_iter()
-                .map(DnsRecord::try_from)
-                .flatten()
+            records: (srv_lookup.answers().iter())
+                .flat_map(DnsRecord::try_from)
                 .collect(),
-            recursively_resolved_ips: srv_lookup.ip_iter().collect(),
-            srv_targets: srv_lookup.iter().map(|rec| rec.target()).cloned().collect(),
+            recursively_resolved_ips: (srv_lookup.answers().iter())
+                .flat_map(|rec| rec.data.ip_addr().clone())
+                .collect(),
+            srv_targets: (srv_lookup.answers().iter())
+                .map(|rec| rec.name.clone())
+                .collect(),
         })
     }
     async fn cname_lookup(&self, domain: &str) -> Result<Vec<DnsRecord>, DnsLookupError> {
@@ -203,8 +208,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
 
         let domain = domain.to_string();
         let cname_lookup = direct_resolver.lookup(domain, RecordType::CNAME).await?;
-        Ok(cname_lookup
-            .record_iter()
+        Ok((cname_lookup.answers().iter())
             .flat_map(|r| {
                 DnsRecord::try_from(r)
                     .inspect_err(|err| {
@@ -230,7 +234,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
                 return false;
             }
         };
-        !ipv4_lookup.as_lookup().records().is_empty()
+        !ipv4_lookup.answers().is_empty()
     }
     async fn is_ipv6_available(&self, host: &str) -> bool {
         let host = host.to_string();
@@ -241,7 +245,7 @@ impl NetworkCheckerImpl for LiveNetworkChecker {
                 return false;
             }
         };
-        !ipv6_lookup.as_lookup().records().is_empty()
+        !ipv6_lookup.answers().is_empty()
     }
 }
 
@@ -258,8 +262,8 @@ impl Debug for LiveNetworkChecker {
     }
 }
 
-impl From<ResolveError> for DnsLookupError {
-    fn from(err: ResolveError) -> Self {
+impl From<NetError> for DnsLookupError {
+    fn from(err: NetError) -> Self {
         Self(err.to_string())
     }
 }

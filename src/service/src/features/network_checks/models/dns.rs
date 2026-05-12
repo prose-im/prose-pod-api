@@ -151,28 +151,28 @@ impl TryFrom<&HickoryRecord> for DnsRecord {
     type Error = UnsupportedDnsRecordType;
 
     fn try_from(record: &HickoryRecord) -> Result<Self, Self::Error> {
-        match record.data() {
+        match &record.data {
             RData::A(rdata::A(ipv4)) => Ok(Self::A {
-                hostname: record.name().clone(),
-                ttl: record.ttl(),
+                hostname: record.name.clone(),
+                ttl: record.ttl,
                 value: ipv4.clone(),
             }),
             RData::AAAA(rdata::AAAA(ipv6)) => Ok(Self::AAAA {
-                hostname: record.name().clone(),
-                ttl: record.ttl(),
+                hostname: record.name.clone(),
+                ttl: record.ttl,
                 value: ipv6.clone(),
             }),
             RData::SRV(srv) => Ok(Self::SRV {
-                hostname: record.name().clone(),
-                ttl: record.ttl(),
-                priority: srv.priority(),
-                weight: srv.weight(),
-                port: srv.port(),
-                target: srv.target().clone(),
+                hostname: record.name.clone(),
+                ttl: record.ttl,
+                priority: srv.priority,
+                weight: srv.weight,
+                port: srv.port,
+                target: srv.target.clone(),
             }),
             RData::CNAME(rdata::CNAME(target)) => Ok(Self::CNAME {
-                hostname: record.name().clone(),
-                ttl: record.ttl(),
+                hostname: record.name.clone(),
+                ttl: record.ttl,
                 target: target.clone(),
             }),
             _ => Err(UnsupportedDnsRecordType(record.record_type())),
